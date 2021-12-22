@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeImo", "OfficeImo\OfficeImo.csproj", "{7C7A12CB-44C7-459F-BC0C-7AE4454BE59B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7C7A12CB-44C7-459F-BC0C-7AE4454BE59B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C7A12CB-44C7-459F-BC0C-7AE4454BE59B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C7A12CB-44C7-459F-BC0C-7AE4454BE59B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C7A12CB-44C7-459F-BC0C-7AE4454BE59B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EA4F7BD4-456A-44C6-8B2C-F056C9075575}
+	EndGlobalSection
+EndGlobal
