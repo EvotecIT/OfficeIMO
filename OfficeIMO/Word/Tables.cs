@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
 
                 // Set the style and width for the table.
                 TableProperties tableProp = new TableProperties();
-                TableStyle tableStyle = new TableStyle() {Val = "PlainTable5"};
+                DocumentFormat.OpenXml.Wordprocessing.TableStyle tableStyle = new DocumentFormat.OpenXml.Wordprocessing.TableStyle() {Val = "PlainTable5"};
 
                 // Make the table width 100% of the page width.
                 TableWidth tableWidth = new TableWidth() {Width = "5000", Type = TableWidthUnitValues.Pct};
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word {
                 Table table = new Table();
 
                 TableProperties props = new TableProperties();
-                TableStyle tableStyle = new TableStyle {Val = "GridTable4-Accent4"};
+                DocumentFormat.OpenXml.Wordprocessing.TableStyle tableStyle = new DocumentFormat.OpenXml.Wordprocessing.TableStyle { Val = "GridTable4-Accent4"};
                 props.Append(tableStyle);
                 table.AppendChild(props);
 
