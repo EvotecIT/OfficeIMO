@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples
     {
         static void Main(string[] args) {
             Example0(); // old way of creating word docs, to be removed
-            Example1(); // new way 
+            Example1(); 
         }
 
         private static void Example0() {
@@ -44,6 +44,7 @@ namespace OfficeIMO.Examples
             var paragraph2 = paragraph.AppendText("continuing?");
             paragraph2.Underline = UnderlineValues.Double;
             paragraph2.Bold = true;
+            paragraph2.Spacing = 200;
 
 
             document.InsertParagraph().InsertText("Fourth paragraph with text").Bold = true;
@@ -54,6 +55,36 @@ namespace OfficeIMO.Examples
                 Bold = true
             };
             document.InsertParagraph(paragraph1);
+
+
+            paragraph = document.InsertParagraph("Test gmarmmar, this shouldnt show up as baddly written.");
+            paragraph.DoNotCheckSpellingOrGrammar = true;
+            paragraph.CapsStyle = CapsStyle.Caps;
+
+            paragraph = document.InsertParagraph("Test gmarmmar, this should show up as baddly written.");
+            paragraph.DoNotCheckSpellingOrGrammar = false;
+            paragraph.CapsStyle = CapsStyle.SmallCaps;
+
+            paragraph = document.InsertParagraph("Highlight me?");
+            paragraph.Highlight = HighlightColorValues.Yellow;
+            paragraph.FontSize = 15;
+
+
+            paragraph = document.InsertParagraph("This text should be colored.");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+
+
+            paragraph = document.InsertParagraph("This text should be colored and Arial.");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Arial";
+
+            paragraph = document.InsertParagraph("This text should be colored and Tahoma.");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Tahoma";
+            paragraph.FontSize = 20;
 
             document.Save(filePath, true);
         }
