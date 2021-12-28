@@ -24,8 +24,9 @@ namespace OfficeIMO {
                 
             }
         }
-        private WordprocessingDocument _wordprocessingDocument = null;
-        private Document _document = null;
+
+        internal WordprocessingDocument _wordprocessingDocument = null;
+        internal Document _document = null;
 
         //private MemoryStream _memory = null;
 

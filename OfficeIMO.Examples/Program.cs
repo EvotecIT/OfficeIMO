@@ -10,8 +10,9 @@ namespace OfficeIMO.Examples
     {
         static void Main(string[] args) {
             //Example0(); // old way of creating word docs, to be removed
-            Example1(); 
-            Example2_ReadWord();
+            //Example1(); 
+            //Example2_ReadWord();
+            Example3();
         }
 
         private static void Example0() {
@@ -134,6 +135,29 @@ namespace OfficeIMO.Examples
             WordDocument document = WordDocument.Load(filePath, true);
             Console.WriteLine(document.Paragraphs.Count);
             //null = document.filePath;
+        }
+
+        private static void Example3() {
+            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\TestingOfficeImage.docx";
+
+            WordDocument document = WordDocument.Create();
+
+            var paragraph = document.InsertParagraph("This paragraph starts with some text");
+            paragraph.Bold = true;
+            paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
+
+            // lets add image to paragraph
+            paragraph.InsertImage(@"C:\\Users\\przemyslaw.klys\\Downloads\\PrzemyslawKlysAndKulkozaurr.jpg");
+
+
+            var filePathImage = @"C:\Users\przemyslaw.klys\Downloads\Kulek.jpg";
+            WordParagraph paragraph2 = document.InsertParagraph();
+            paragraph2.InsertImage(filePathImage);
+
+            WordParagraph paragraph3 = document.InsertParagraph();
+            paragraph3.InsertImage(filePathImage);
+
+            document.Save(filePath, true);
         }
     }
 }

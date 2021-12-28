@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml;
 using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO {
-    public class WordParagraph {
+    public partial class WordParagraph {
         internal WordDocument _document = null;
         internal Paragraph _paragraph = null;
         internal RunProperties _runProperties = null;
@@ -596,6 +596,13 @@ namespace OfficeIMO {
             wordParagraph.Text = text;
             this._paragraph.Append(wordParagraph._run);
             return wordParagraph;
+        }
+
+        public WordParagraph InsertImage(string filePathImage) {
+            WordImage wordImage = new WordImage(this._document, filePathImage);
+            WordParagraph paragraph = new WordParagraph(this._document);
+            _run.Append(wordImage._Image);
+            return paragraph;
         }
     }
 }
