@@ -598,8 +598,14 @@ namespace OfficeIMO {
             return wordParagraph;
         }
 
-        public WordParagraph InsertImage(string filePathImage, double width, double height) {
+        public WordParagraph InsertImage(string filePathImage, double? width, double? height) {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
+            WordParagraph paragraph = new WordParagraph(this._document);
+            _run.Append(wordImage._Image);
+            return paragraph;
+        }
+        public WordParagraph InsertImage(string filePathImage) {
+            WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
             return paragraph;

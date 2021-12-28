@@ -155,6 +155,9 @@ namespace OfficeIMO.Examples
 
             WordParagraph paragraph3 = document.InsertParagraph();
             paragraph3.InsertImage(filePathImage, 100,100);
+            
+            WordParagraph paragraph4 = document.InsertParagraph();
+            paragraph4.InsertImage(filePathImage);
 
             document.Save(filePath, true);
         }
