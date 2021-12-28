@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Drawing;
 
 //using NonVisualGraphicFrameDrawingProperties = DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties;
 //using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
@@ -21,16 +22,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO {
     public class WordImage {
         internal Drawing _Image;
-
-        public WordImage() {
-
-        }
-
-
-        public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print ) {
+       
+        public WordImage(WordDocument document, string filePath, double width, double height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-
-
+            
             
             var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(filePath);
@@ -42,24 +37,35 @@ namespace OfficeIMO {
             }
 
             var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
+
+            double englishMetricUnitsPerInch = 914400;
+            double pixelsPerInch = 96;
+
+            //calculate size in emu
+            double emuWidth = width * englishMetricUnitsPerInch / pixelsPerInch;
+            double emuHeight = height * englishMetricUnitsPerInch / pixelsPerInch;
             
+
             var shapeProperties = new DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties(
                 new Transform2D(
                     new Offset() { X = 0L, Y = 0L }, 
-                    new Extents() { Cx = 990000L, Cy = 792000L }),
+                    //new Extents() { Cx = 990000L, Cy = 792000L }),
+                new Extents() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight }),
                 new PresetGeometry(new AdjustValueList()) { Preset = shape });
-
+            
             var element =
                 new Drawing(
-                    new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline(
-                        new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = 990000L, Cy = 792000L },
-                        new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() {
+                    new Inline(
+                        //new Extent() { Cx = 990000L, Cy = 792000L },
+                        new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
+
+                        new EffectExtent() {
                             LeftEdge = 0L,
                             TopEdge = 0L,
                             RightEdge = 0L,
                             BottomEdge = 0L
                         },
-                        new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() {
+                        new DocProperties() {
                             Id = (UInt32Value)1U,
                             Name = imageName
                         },

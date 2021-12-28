@@ -147,15 +147,14 @@ namespace OfficeIMO.Examples
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
             // lets add image to paragraph
-            paragraph.InsertImage(@"C:\\Users\\przemyslaw.klys\\Downloads\\PrzemyslawKlysAndKulkozaurr.jpg");
-
-
+            paragraph.InsertImage(@"C:\\Users\\przemyslaw.klys\\Downloads\\PrzemyslawKlysAndKulkozaurr.jpg", 22, 22);
+            
             var filePathImage = @"C:\Users\przemyslaw.klys\Downloads\Kulek.jpg";
             WordParagraph paragraph2 = document.InsertParagraph();
-            paragraph2.InsertImage(filePathImage);
+            paragraph2.InsertImage(filePathImage, 500, 500);
 
             WordParagraph paragraph3 = document.InsertParagraph();
-            paragraph3.InsertImage(filePathImage);
+            paragraph3.InsertImage(filePathImage, 100,100);
 
             document.Save(filePath, true);
         }
