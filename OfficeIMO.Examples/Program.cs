@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples
         }
 
         private static void Example1() {
-            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\TestingOffice2.docx";
+            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\TestingOffice4.docx";
 
             WordDocument document = WordDocument.Create();
 

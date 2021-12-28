@@ -71,6 +71,13 @@ namespace OfficeIMO {
         }
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+
+            if (filePath != null) {
+                if (!File.Exists(filePath)) {
+                    throw new FileNotFoundException("File doesn't exists", filePath);
+                }
+            }
+
             WordDocument word = new WordDocument();
 
             var openSettings = new OpenSettings {
@@ -105,8 +112,13 @@ namespace OfficeIMO {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-            this._wordprocessingDocument.Dispose();
 
+            //this._document = null;
+            this._wordprocessingDocument.Dispose();
+            //this._wordprocessingDocument = null;
+
+
+            // TODO this needs fixing because Examples are showing that if Example2 runs too long it won't open up on 1st example
             if (openWord) {
                 if (filePath == "") {
                     filePath = this.filePath;
