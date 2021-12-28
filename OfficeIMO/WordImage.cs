@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Drawing;
+using Width = DocumentFormat.OpenXml.Drawing.Charts.Width;
 
 //using NonVisualGraphicFrameDrawingProperties = DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties;
 //using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
@@ -21,6 +22,8 @@ using System.Drawing;
 namespace OfficeIMO {
     public class WordImage {
         internal Drawing _Image;
+        public double _Width;
+        public double _Height;
 
         public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             double width;

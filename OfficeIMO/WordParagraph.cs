@@ -142,7 +142,7 @@ namespace OfficeIMO {
                 }
             }
         }
-
+        
         public int? FontSize {
             get {
                 if (_runProperties.FontSize != null) {
