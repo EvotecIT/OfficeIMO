@@ -2,18 +2,28 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
-    public class WordDocument {
+    public class WordDocument : IDisposable {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
 
         public string filePath = null;
-
-
+        public bool AutoSave
+        {
+            get {
+                return _wordprocessingDocument.AutoSave;
+            }
+            set
+            {
+               //_wordprocessingDocument = value;
+                
+            }
+        }
         private WordprocessingDocument _wordprocessingDocument = null;
         private Document _document = null;
 
@@ -46,6 +56,35 @@ namespace OfficeIMO {
             } catch {
                 return word;
             }
+        }
+
+        internal List<WordParagraph> GetParagraphs() {
+            //var listWord = new List<WordParagraph>();
+            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
+            foreach (Paragraph paragraph in list)
+            {
+                WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+            }
+
+            return this.Paragraphs;
+            //return listWord;
+        }
+
+        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+            WordDocument word = new WordDocument();
+
+            var openSettings = new OpenSettings {
+                AutoSave = autoSave
+            };
+
+            WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
+            word.filePath = filePath;
+            word._wordprocessingDocument = wordDocument;
+            word._document = wordDocument.MainDocumentPart.Document;
+
+            word.GetParagraphs();
+            
+            return word;
         }
 
         public void Save(string filePath = "", bool openWord = false) {
@@ -81,16 +120,22 @@ namespace OfficeIMO {
 
         public WordParagraph InsertParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
-                wordParagraph = new WordParagraph();
+                // we create paragraph (and within that add it to document)
+                wordParagraph = new WordParagraph(this);
+            } else {
+                // since we created paragraph without adding it to document, we now need to add it to document
+                this.Paragraphs.Add(wordParagraph);
             }
-            //var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
-            //paragraph.AppendChild(wordParagraph._run);
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
 
         public WordParagraph InsertParagraph(string text) {
             return InsertParagraph().InsertText(text);
+        }
+
+        public void Dispose() {
+            this._wordprocessingDocument.Close();
         }
     }
 }

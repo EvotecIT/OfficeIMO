@@ -5,17 +5,23 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
+using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO {
     public class WordParagraph {
+        internal WordDocument _document = null;
         internal Paragraph _paragraph = null;
         internal RunProperties _runProperties = null;
         internal Text _text = null;
         internal Run _run = null;
 
         public string Text {
-            get { return _text.Text; }
-            set { _text.Text = value; }
+            get {
+                return _text.Text;
+            }
+            set {
+                _text.Text = value;
+            }
         }
 
         public bool Bold {
@@ -171,16 +177,15 @@ namespace OfficeIMO {
             set {
                 //string stringColor = value;
                 // var color = System.Drawing.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
-
-                var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                color.Val = value;
-
                 if (value != "") {
+                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
+                    color.Val = value;
                     _runProperties.Color = color;
                 } else {
                     _runProperties.Color = null;
                 }
             }
+
         }
 
         public HighlightColorValues? Highlight {
@@ -235,23 +240,74 @@ namespace OfficeIMO {
             }
         }
 
-        public WordParagraph(bool newParagraph = true) {
+        public WordParagraph(WordDocument document = null, bool newParagraph = true) {
+            this._document = document;
             this._run = new Run();
             this._runProperties = new RunProperties();
-            this._text = new Text();
-            // this ensures spaces are preserved between runs
-            this._text.Space = SpaceProcessingModeValues.Preserve;
+            this._text = new Text {
+                // this ensures spaces are preserved between runs
+                Space = SpaceProcessingModeValues.Preserve
+            };
             this._run.AppendChild(_runProperties);
             this._run.AppendChild(_text);
             if (newParagraph) {
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(_run);
             }
+
+            if (document != null) {
+                document.Paragraphs.Add(this);
+            }
         }
 
         public WordParagraph(string text) {
-            WordParagraph paragraph = new WordParagraph();
+            WordParagraph paragraph = new WordParagraph(this._document);
             paragraph.Text = text;
+        }
+
+
+        //public List<WordParagraph> GetParagraphs(List<Paragraph> list)
+        //{
+        //    var listWord = new List<WordParagraph>();
+        //    //var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
+        //    foreach (Paragraph paragraph in list)
+        //    {
+
+        //        WordParagraph wordParagraph = new WordParagraph();
+
+        //        //listWord.Add(wordParagraph);
+        //        // foreach (var element in paragraph.ChildElements.OfType<Run>())
+        //        // {
+        //        //     
+        //        //    }
+        //    }
+
+        //    return listWord;
+        //}
+
+        public WordParagraph(WordDocument document, Paragraph paragraph) {
+            //_paragraph = paragraph;
+            int count = 0;
+            foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+                RunProperties runProperties = run.RunProperties;
+                Text text = run.ChildElements.OfType<Text>().First();
+
+                if (count > 0) {
+                    WordParagraph wordParagraph = new WordParagraph(this._document);
+                    wordParagraph._run = run;
+                    wordParagraph._text = text;
+                    wordParagraph._paragraph = paragraph;
+                    wordParagraph._runProperties = runProperties;
+                    document.Paragraphs.Add(wordParagraph);
+                } else {
+                    this._run = run;
+                    this._text = text;
+                    this._paragraph = paragraph;
+                    this._runProperties = runProperties;
+                    document.Paragraphs.Add(this);
+                }
+                count++;
+            }
         }
 
         public WordParagraph InsertText(string text) {
@@ -270,24 +326,10 @@ namespace OfficeIMO {
         }
 
         public WordParagraph AppendText(string text) {
-            WordParagraph wordParagraph = new WordParagraph(false);
+            WordParagraph wordParagraph = new WordParagraph(this._document, false);
             wordParagraph.Text = text;
             this._paragraph.Append(wordParagraph._run);
             return wordParagraph;
-        }
-
-        public void InsertText(string text, WordFormatting formatting) {
-            //  if (this._paragraph == null) {
-            //     this._paragraph = new Paragraph();
-            // }
-
-            // this._paragraph.Append(formatting._runProperties);
-
-
-            //var run = this.paragraph.ChildElements.First<Run>();
-            //run.RunProperties = runProperties;
-
-            return;
         }
     }
 }

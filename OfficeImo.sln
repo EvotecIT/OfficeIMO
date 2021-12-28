@@ -5,7 +5,12 @@ VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO", "OfficeIMO\OfficeIMO.csproj", "{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Examples", "OfficeIMO.Examples\OfficeIMO.Examples.csproj", "{B437E21F-3A63-45C3-9098-7BA302AB7301}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Examples", "OfficeIMO.Examples\OfficeIMO.Examples.csproj", "{B437E21F-3A63-45C3-9098-7BA302AB7301}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD} = {FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Tests", "OfficeIMO.Tests\OfficeIMO.Tests.csproj", "{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD} = {FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}
 	EndProjectSection
@@ -24,6 +29,10 @@ Global
 		{B437E21F-3A63-45C3-9098-7BA302AB7301}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B437E21F-3A63-45C3-9098-7BA302AB7301}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B437E21F-3A63-45C3-9098-7BA302AB7301}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
