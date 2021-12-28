@@ -11,6 +11,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO {
     public class WordDocument : IDisposable {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+        public List<WordImage> Images = new List<WordImage>();
 
         public string filePath = null;
         public bool AutoSave
@@ -148,7 +149,10 @@ namespace OfficeIMO {
         }
 
         public void Dispose() {
-            this._wordprocessingDocument.Close();
+            if (this._wordprocessingDocument != null) {
+                this._wordprocessingDocument.Close();
+                this._wordprocessingDocument.Dispose();
+            }
         }
     }
 }

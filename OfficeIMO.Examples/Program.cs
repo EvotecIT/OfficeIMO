@@ -13,6 +13,7 @@ namespace OfficeIMO.Examples
             //Example1(); 
             //Example2_ReadWord();
             Example3();
+            Example4_ReadWordWithImages();
         }
 
         private static void Example0() {
@@ -165,6 +166,15 @@ namespace OfficeIMO.Examples
             paragraph4.InsertImage(filePathImage);
 
             document.Save(filePath, true);
+        }
+
+        private static void Example4_ReadWordWithImages() {
+
+            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\ReadWordWithImages.docx";
+
+            WordDocument document = WordDocument.Load(filePath, true);
+            Console.WriteLine(document.Paragraphs.Count);
+            //null = document.filePath;
         }
     }
 }

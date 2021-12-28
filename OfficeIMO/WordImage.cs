@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Drawing;
+using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using Width = DocumentFormat.OpenXml.Drawing.Charts.Width;
 
 //using NonVisualGraphicFrameDrawingProperties = DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties;
@@ -22,8 +23,19 @@ using Width = DocumentFormat.OpenXml.Drawing.Charts.Width;
 namespace OfficeIMO {
     public class WordImage {
         internal Drawing _Image;
-        public double _Width;
-        public double _Height;
+        internal ShapeProperties _shapeProperties;
+
+        public string FilePath { get; set; }
+
+        public string FileName { get; set; }
+
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double EmuWidth { get; set; }
+        public double EmuHeight { get; set; }
+        public ShapeTypeValues Shape { get; set; }
+
+        public BlipCompressionValues CompressionQuality { get; set; }
 
         public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             double width;
@@ -66,7 +78,15 @@ namespace OfficeIMO {
             //calculate size in emu
             double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
             double emuHeight = height.Value * englishMetricUnitsPerInch / pixelsPerInch;
-            
+
+            this.Width = width.Value;
+            this.Height = height.Value;
+            this.EmuWidth = emuWidth;
+            this.EmuHeight = emuHeight;
+            this.Shape = shape;
+            this.CompressionQuality = compressionQuality;
+            this.FileName = fileName;
+            this.FilePath = filePath;
 
             var shapeProperties = new DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties(
                 new Transform2D(
@@ -74,7 +94,9 @@ namespace OfficeIMO {
                     //new Extents() { Cx = 990000L, Cy = 792000L }),
                 new Extents() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight }),
                 new PresetGeometry(new AdjustValueList()) { Preset = shape });
-            
+
+            this._shapeProperties = shapeProperties;
+
             var element =
                 new Drawing(
                     new Inline(
@@ -121,6 +143,8 @@ namespace OfficeIMO {
                         EditId = "50D07946"
                     });
             this._Image = element;
+
+            document.Images.Add(this);
         }
     }
 }

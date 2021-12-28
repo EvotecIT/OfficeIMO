@@ -9,7 +9,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysButViaDomain.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\Przemyslaw Klys EVOTEC.pfx</AssemblyOriginatorKeyFile>
     
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
@@ -18,40 +18,13 @@
     <PackageTags>word;office;openxml;net47;net48;net50;netstandard;netstandard2.0</PackageTags>
     <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
-    <DelaySign>False</DelaySign>
-    <IsPublishable>True</IsPublishable>
-    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
-    <PackageIcon>OfficeIMO.png</PackageIcon>
-    <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
 
 
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\Assets\OfficeIMO.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.12.3" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
