@@ -55,8 +55,7 @@ namespace OfficeIMO.Examples
                 Bold = true
             };
             document.InsertParagraph(paragraph1);
-
-
+            
             paragraph = document.InsertParagraph("5th Test gmarmmar, this shouldnt show up as baddly written.");
             paragraph.DoNotCheckSpellingOrGrammar = true;
             paragraph.CapsStyle = CapsStyle.Caps;
@@ -68,23 +67,60 @@ namespace OfficeIMO.Examples
             paragraph = document.InsertParagraph("7th Highlight me?");
             paragraph.Highlight = HighlightColorValues.Yellow;
             paragraph.FontSize = 15;
+            paragraph.ParagraphAlignment = JustificationValues.Center;
 
 
             paragraph = document.InsertParagraph("8th This text should be colored.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
+            paragraph.IndentationAfter = 1400;
+
+
+            paragraph = document.InsertParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
+            paragraph.Bold = true;
+            paragraph.Color = "#FF0000";
+            paragraph.IndentationBefore = 720;
+            paragraph.IndentationFirstLine = 1400;
 
 
             paragraph = document.InsertParagraph("9th This text should be colored and Arial.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
             paragraph.FontFamily = "Arial";
+            paragraph.VerticalCharacterAlignmentOnLine = VerticalTextAlignmentValues.Bottom;
 
             paragraph = document.InsertParagraph("10th This text should be colored and Tahoma.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
             paragraph.FontFamily = "Tahoma";
             paragraph.FontSize = 20;
+            paragraph.LineSpacingBefore = 300;
+
+            paragraph = document.InsertParagraph("12th This text should be colored and Tahoma and text direction changed");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Tahoma";
+            paragraph.FontSize = 10;
+            paragraph.TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
+            
+            paragraph = document.InsertParagraph("Spacing Test 1");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Tahoma";
+            paragraph.LineSpacingAfter = 720;
+
+            paragraph = document.InsertParagraph("Spacing Test 2");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Tahoma";
+
+
+            paragraph = document.InsertParagraph("Spacing Test 3");
+            paragraph.Bold = true;
+            paragraph.Color = "4F48E2";
+            paragraph.FontFamily = "Tahoma";
+            paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.LineSpacing = 1500;
 
             Console.WriteLine(document.Paragraphs.Count);
 
