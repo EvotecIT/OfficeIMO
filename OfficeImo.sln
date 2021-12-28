@@ -10,9 +10,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Examples", "Offic
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD} = {FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Tests", "OfficeIMO.Tests\OfficeIMO.Tests.csproj", "{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Tests", "OfficeIMO.Tests\OfficeIMO.Tests.csproj", "{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD} = {FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{180EED7F-C628-4AC2-A7D0-530B6C537C2C}"
+	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		CHANGELOG.MD = CHANGELOG.MD
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global
