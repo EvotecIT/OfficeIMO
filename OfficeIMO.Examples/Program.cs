@@ -9,8 +9,9 @@ namespace OfficeIMO.Examples
     internal class Program
     {
         static void Main(string[] args) {
-            Example0(); // old way of creating word docs, to be removed
+            //Example0(); // old way of creating word docs, to be removed
             Example1(); 
+            Example2_ReadWord();
         }
 
         private static void Example0() {
@@ -34,22 +35,21 @@ namespace OfficeIMO.Examples
 
             var paragraph = document.InsertParagraph("This paragraph starts with some text");
             paragraph.Bold = true;
-            paragraph.Text = "This paragraph started with some other text and was overwritten and made bold.";
+            paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
-            paragraph = document.InsertParagraph("Test Second Paragraph");
+            paragraph = document.InsertParagraph("1st Test Second Paragraph");
 
             paragraph = document.InsertParagraph();
-            paragraph.Text = "Test Third Paragraph, ";
+            paragraph.Text = "2nd Test Third Paragraph, ";
             paragraph.Underline = UnderlineValues.None;
-            var paragraph2 = paragraph.AppendText("continuing?");
+            var paragraph2 = paragraph.AppendText("3rd continuing?");
             paragraph2.Underline = UnderlineValues.Double;
             paragraph2.Bold = true;
             paragraph2.Spacing = 200;
+            
+            document.InsertParagraph().InsertText("4th Fourth paragraph with text").Bold = true;
 
-
-            document.InsertParagraph().InsertText("Fourth paragraph with text").Bold = true;
-
-            WordParagraph paragraph1 = new WordParagraph {
+            WordParagraph paragraph1 = new WordParagraph() {
                 Text = "Fifth paragraph",
                 Italic = true,
                 Bold = true
@@ -57,36 +57,47 @@ namespace OfficeIMO.Examples
             document.InsertParagraph(paragraph1);
 
 
-            paragraph = document.InsertParagraph("Test gmarmmar, this shouldnt show up as baddly written.");
+            paragraph = document.InsertParagraph("5th Test gmarmmar, this shouldnt show up as baddly written.");
             paragraph.DoNotCheckSpellingOrGrammar = true;
             paragraph.CapsStyle = CapsStyle.Caps;
 
-            paragraph = document.InsertParagraph("Test gmarmmar, this should show up as baddly written.");
+            paragraph = document.InsertParagraph("6th Test gmarmmar, this should show up as baddly written.");
             paragraph.DoNotCheckSpellingOrGrammar = false;
             paragraph.CapsStyle = CapsStyle.SmallCaps;
 
-            paragraph = document.InsertParagraph("Highlight me?");
+            paragraph = document.InsertParagraph("7th Highlight me?");
             paragraph.Highlight = HighlightColorValues.Yellow;
             paragraph.FontSize = 15;
 
 
-            paragraph = document.InsertParagraph("This text should be colored.");
+            paragraph = document.InsertParagraph("8th This text should be colored.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
 
 
-            paragraph = document.InsertParagraph("This text should be colored and Arial.");
+            paragraph = document.InsertParagraph("9th This text should be colored and Arial.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
             paragraph.FontFamily = "Arial";
 
-            paragraph = document.InsertParagraph("This text should be colored and Tahoma.");
+            paragraph = document.InsertParagraph("10th This text should be colored and Tahoma.");
             paragraph.Bold = true;
             paragraph.Color = "4F48E2";
             paragraph.FontFamily = "Tahoma";
             paragraph.FontSize = 20;
 
+            Console.WriteLine(document.Paragraphs.Count);
+
             document.Save(filePath, true);
+        }
+
+        private static void Example2_ReadWord() {
+
+            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\ReadWord.docx";
+
+            WordDocument document = WordDocument.Load(filePath, true);
+            Console.WriteLine(document.Paragraphs.Count);
+            //null = document.filePath;
         }
     }
 }
