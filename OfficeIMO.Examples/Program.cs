@@ -20,27 +20,28 @@ namespace OfficeIMO.Examples {
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            Console.WriteLine("[*] Creating standard document (empty)");
-            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
-            Example_BasicEmptyWord(filePath, false);
+            //Console.WriteLine("[*] Creating standard document (empty)");
+            //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
+            //Example_BasicEmptyWord(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
-            Example_BasicDocumentProperties(filePath, false);
+            //Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
+            //Example_BasicDocumentProperties(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
-            filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
-            Example_MultipleParagraphsViaDifferentWays(filePath, false);
+            //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
+            //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
+            //Example_MultipleParagraphsViaDifferentWays(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with some Images");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
-            Example_AddingImages(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with some Images");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
+            //Example_AddingImages(filePath, false);
 
-            Console.WriteLine("[*] Read Basic Word");
-            Example_ReadWord(true);
+            //Console.WriteLine("[*] Read Basic Word");
+            //Example_ReadWord(true);
 
-            //Example2_ReadWord();
-            //Example4_ReadWordWithImages();
+            Console.WriteLine("[*] Read Basic Word with Images");
+            Example_ReadWordWithImages();
+
         }
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -217,22 +218,25 @@ namespace OfficeIMO.Examples {
             document.Save(true);
         }
         private static void Example_ReadWord(bool openWord) {
-            string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
+            string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
             WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), true);
-
             
             Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
             Console.WriteLine("+ Document Title: " + document.Title);
             Console.WriteLine("+ Document Author: " + document.Creator);
-        }
-        
-        private static void Example_ReadWordWithImages() {
-            string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\ReadWordWithImages.docx";
 
-            WordDocument document = WordDocument.Load(filePath, true);
-            Console.WriteLine(document.Paragraphs.Count);
-            //null = document.filePath;
+            document.Dispose();
+        }
+        private static void Example_ReadWordWithImages() {
+            string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
+            string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
+
+            WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocumentWithImages.docx"), true);
+            Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
+            Console.WriteLine("+ Document images: " + document.Images.Count);
+            
+            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath,"random.jpg"));
         }
     }
 }
