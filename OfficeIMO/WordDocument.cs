@@ -3,33 +3,23 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
-    public class WordDocument : IDisposable {
+    public partial class WordDocument : IDisposable {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
 
         public string filePath = null;
-        public bool AutoSave
-        {
-            get {
-                return _wordprocessingDocument.AutoSave;
-            }
-            set
-            {
-               //_wordprocessingDocument = value;
-                
-            }
+
+        public bool AutoSave {
+            get { return _wordprocessingDocument.AutoSave; }
         }
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         internal Document _document = null;
-
-        //private MemoryStream _memory = null;
 
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
@@ -45,10 +35,31 @@ namespace OfficeIMO {
                     wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
                 }
 
+                //ExtendedFilePropertiesPart extendedFilePropertiesPart1 = wordDocument.AddNewPart<ExtendedFilePropertiesPart>("rId3");
+                //GenerateExtendedFilePropertiesPart1Content(extendedFilePropertiesPart1);
+
+                //MainDocumentPart mainDocumentPart1 = wordDocument.AddMainDocumentPart();
+                //GenerateMainDocumentPart1Content(mainDocumentPart1);
+
+                //WebSettingsPart webSettingsPart1 = mainDocumentPart1.AddNewPart<WebSettingsPart>("rId3");
+                //GenerateWebSettingsPart1Content(webSettingsPart1);
+
+                //DocumentSettingsPart documentSettingsPart1 = mainDocumentPart1.AddNewPart<DocumentSettingsPart>("rId2");
+                //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
+
+                //StyleDefinitionsPart styleDefinitionsPart1 = mainDocumentPart1.AddNewPart<StyleDefinitionsPart>("rId1");
+                //GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+
+                //ThemePart themePart1 = mainDocumentPart1.AddNewPart<ThemePart>("rId5");
+                //GenerateThemePart1Content(themePart1);
+
+                //FontTablePart fontTablePart1 = mainDocumentPart1.AddNewPart<FontTablePart>("rId4");
+                //GenerateFontTablePart1Content(fontTablePart1);
+
                 wordDocument.AddMainDocumentPart();
                 wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
                 wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
-                OfficeIMO.Word.WordDocument.AddDefaultStyleDefinitions(wordDocument, null);
+                //OfficeIMO.Word.WordDocument.AddDefaultStyleDefinitions(wordDocument, null);
 
                 word.filePath = filePath;
                 word._wordprocessingDocument = wordDocument;
@@ -61,19 +72,27 @@ namespace OfficeIMO {
         }
 
         internal List<WordParagraph> GetParagraphs() {
-            //var listWord = new List<WordParagraph>();
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
-            foreach (Paragraph paragraph in list)
-            {
+            foreach (Paragraph paragraph in list) {
                 WordParagraph wordParagraph = new WordParagraph(this, paragraph);
             }
-
             return this.Paragraphs;
-            //return listWord;
+        }
+
+        internal List<WordImage> GetImages() {
+            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
+            var drawings = this._wordprocessingDocument.MainDocumentPart.Document.Descendants<Drawing>().ToList();
+            var imageParts = this._wordprocessingDocument.MainDocumentPart.ImageParts;
+            foreach (Paragraph paragraph in list) {
+                //paragraph.ChildElements
+                //WordImage wordImage = new WordImage();
+                //WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+            }
+
+            return this.Images;
         }
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
-
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
                     throw new FileNotFoundException("File doesn't exists", filePath);
@@ -92,14 +111,17 @@ namespace OfficeIMO {
             word._document = wordDocument.MainDocumentPart.Document;
 
             word.GetParagraphs();
-            
+            word.GetImages();
+
+
             return word;
         }
-
-        public void Save(string filePath = "", bool openWord = false) {
+        
+        public void Save(string filePath, bool openWord) {
             if (this._wordprocessingDocument != null) {
                 try {
                     if (filePath != "") {
+                        // doesn't work correctly with packages
                         this._wordprocessingDocument.SaveAs(filePath);
                     } else {
                         this._wordprocessingDocument.Save();
@@ -109,27 +131,35 @@ namespace OfficeIMO {
                 } finally {
                     //this._memory.Close();
                     this._wordprocessingDocument.Close();
+                    this._wordprocessingDocument.Dispose();
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
-
-
-            //this._document = null;
-            this._wordprocessingDocument.Dispose();
-            //this._wordprocessingDocument = null;
-
 
             // TODO this needs fixing because Examples are showing that if Example2 runs too long it won't open up on 1st example
             if (openWord) {
                 if (filePath == "") {
                     filePath = this.filePath;
                 }
+
                 ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
                     UseShellExecute = true
                 };
                 Process.Start(startInfo);
             }
+        }
+
+        public void Save() {
+            this.Save("", false);
+        }
+
+        public void Save(string filePath) {
+            this.Save(filePath, false);
+        }
+
+        public void Save(bool openWord) {
+            this.Save("", openWord);
         }
 
         public WordParagraph InsertParagraph(WordParagraph wordParagraph = null) {
@@ -140,6 +170,7 @@ namespace OfficeIMO {
                 // since we created paragraph without adding it to document, we now need to add it to document
                 this.Paragraphs.Add(wordParagraph);
             }
+
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -150,7 +181,7 @@ namespace OfficeIMO {
 
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
-                this._wordprocessingDocument.Close();
+                //this._wordprocessingDocument.Close();
                 this._wordprocessingDocument.Dispose();
             }
         }
