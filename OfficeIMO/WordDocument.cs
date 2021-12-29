@@ -129,7 +129,6 @@ namespace OfficeIMO {
                 } catch {
                     throw;
                 } finally {
-                    //this._memory.Close();
                     this._wordprocessingDocument.Close();
                     this._wordprocessingDocument.Dispose();
                 }
@@ -137,7 +136,6 @@ namespace OfficeIMO {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-            // TODO this needs fixing because Examples are showing that if Example2 runs too long it won't open up on 1st example
             if (openWord) {
                 if (filePath == "") {
                     filePath = this.filePath;

@@ -9,4 +9,19 @@
     <ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Images\BackgroundImage.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\EvotecLogo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\Kulek.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\PrzemyslawKlysAndKulkozaurr.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -10,30 +10,162 @@ using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Drawing;
+using System.Linq;
+using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
+using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
-using Width = DocumentFormat.OpenXml.Drawing.Charts.Width;
-
-//using NonVisualGraphicFrameDrawingProperties = DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties;
-//using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
-//using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
-//using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
-//using ShapeProperties = DocumentFormat.OpenXml.Drawing.ShapeProperties;
-
 
 namespace OfficeIMO {
     public class WordImage {
+        double englishMetricUnitsPerInch = 914400;
+        double pixelsPerInch = 96;
+
         internal Drawing _Image;
+        internal ImagePart _imagePart;
         internal ShapeProperties _shapeProperties;
+
+        public string RelationshipId { get; set; }
 
         public string FilePath { get; set; }
 
         public string FileName { get; set; }
 
-        public double Width { get; set; }
-        public double Height { get; set; }
-        public double EmuWidth { get; set; }
-        public double EmuHeight { get; set; }
-        public ShapeTypeValues Shape { get; set; }
+        public double? Width {
+            get {
+                var extents = _Image.Inline.Extent;
+                var cX = extents.Cx;
+                return cX / englishMetricUnitsPerInch * pixelsPerInch;
+            }
+            set {
+                double emuWidth = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
+                _Image.Inline.Extent.Cx = (Int64Value)emuWidth;
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                //var picture = _Image.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                picture.ShapeProperties.Transform2D.Extents.Cx = (Int64Value)emuWidth;
+            }
+        }
+        public double? Height {
+            get {
+                var extents = _Image.Inline.Extent;
+                var cY = extents.Cy;
+                return cY / englishMetricUnitsPerInch * pixelsPerInch;
+            }
+            set {
+                if (_Image.Inline != null) {
+                    double emuHeight = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
+                    _Image.Inline.Extent.Cy = (Int64Value) emuHeight;
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    //var picture = _Image.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                    picture.ShapeProperties.Transform2D.Extents.Cy = (Int64Value) emuHeight;
+                } else {
+                    Console.WriteLine("Not supported yet");
+                }
+            }
+        }
+        public double EmuWidth {
+            get {
+                var extents = _Image.Inline.Extent;
+                return extents.Cx;
+            }
+        }
+        public double EmuHeight {
+            get {
+                var extents = _Image.Inline.Extent;
+                return extents.Cy;
+            }
+        }
+
+        public ShapeTypeValues Shape {
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                var presetGeometry = picture.ShapeProperties.GetFirstChild<PresetGeometry>();
+                return presetGeometry.Preset;
+            }
+            set {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                var presetGeometry = picture.ShapeProperties.GetFirstChild<PresetGeometry>();
+                presetGeometry.Preset = value;
+            }
+        }
+        public BlackWhiteModeValues BlackWiteMode {
+            // this doesn't work
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.ShapeProperties.BlackWhiteMode.Value;
+            }
+            set {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                if (picture.ShapeProperties.BlackWhiteMode == null) {
+                    picture.ShapeProperties.BlackWhiteMode = new EnumValue<BlackWhiteModeValues>();
+                }
+                picture.ShapeProperties.BlackWhiteMode.Value = value;
+            }
+        }
+        public bool VerticalFlip {
+            // this doesn't work
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.ShapeProperties.Transform2D.VerticalFlip;
+            }
+            set {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                picture.ShapeProperties.Transform2D.VerticalFlip = value;
+            }
+        }
+        public bool HorizontalFlip {
+            // this doesn't work
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.ShapeProperties.Transform2D.HorizontalFlip;
+            }
+            set {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                picture.ShapeProperties.Transform2D.HorizontalFlip = value;
+            }
+        }
+        public int Rotation {
+            // this doesn't work
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.ShapeProperties.Transform2D.Rotation;
+            }
+            set {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                picture.ShapeProperties.Transform2D.Rotation = value;
+            }
+        }
+
+        public bool? Wrap {
+            // this doesn't work
+            get {
+             
+                //_Image.Anchor.
+                return null;
+            }
+            set {
+                
+                if (_Image.Anchor == null) {
+                    var inline = _Image.Inline.CloneNode(true);
+
+                    IEnumerable<OpenXmlElement> clonedElements = _Image.Inline
+                        .Elements()
+                        .Select(e => e.CloneNode(true))
+                        .ToList();
+
+                    var childInline = inline.Descendants();
+                    Anchor anchor1 = new Anchor() { BehindDoc = true };
+                    WrapNone wrapNone1 = new WrapNone();
+                    anchor1.Append(wrapNone1);
+                    _Image.Append(anchor1);
+                   
+                    _Image.Inline.Remove();
+
+                    _Image.Anchor.Append(clonedElements);
+                } else {
+                    _Image.Anchor.AllowOverlap = true;
+                }
+            }
+        }
 
         public BlipCompressionValues CompressionQuality { get; set; }
 
@@ -45,6 +177,10 @@ namespace OfficeIMO {
                 height = img.Height;
             }
             WordImage wordImage = new WordImage(document, filePath, shape, compressionQuality);
+        }
+
+        public WordImage(WordDocument document, Paragraph paragraph) {
+
         }
 
         public WordImage(WordDocument document, string filePath, double? width, double? height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
@@ -65,41 +201,36 @@ namespace OfficeIMO {
             var imageName = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
             ImagePart imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(ImagePartType.Jpeg);
-            
+            this._imagePart = imagePart;
             using (FileStream stream = new FileStream(filePath, FileMode.Open)) {
                 imagePart.FeedData(stream);
             }
 
             var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
 
-            double englishMetricUnitsPerInch = 914400;
-            double pixelsPerInch = 96;
-
-            //calculate size in emu
+  //calculate size in emu
             double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
             double emuHeight = height.Value * englishMetricUnitsPerInch / pixelsPerInch;
-
-            this.Width = width.Value;
-            this.Height = height.Value;
-            this.EmuWidth = emuWidth;
-            this.EmuHeight = emuHeight;
-            this.Shape = shape;
-            this.CompressionQuality = compressionQuality;
-            this.FileName = fileName;
-            this.FilePath = filePath;
-
-            var shapeProperties = new DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties(
-                new Transform2D(
-                    new Offset() { X = 0L, Y = 0L }, 
-                    //new Extents() { Cx = 990000L, Cy = 792000L }),
-                new Extents() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight }),
-                new PresetGeometry(new AdjustValueList()) { Preset = shape });
+            
+            var shapeProperties = new ShapeProperties(
+                new Transform2D(new Offset() { X = 0L, Y = 0L }, 
+                    new Extents() {
+                        Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight
+                    }
+                    ),
+                new PresetGeometry(new AdjustValueList()) { Preset = shape }
+                );
 
             this._shapeProperties = shapeProperties;
 
             var element =
                 new Drawing(
-                    new Inline(
+
+                    //new Anchor(
+                    //    new WrapNone()
+                    //    ) { BehindDoc = true },
+
+            new Inline(
                         //new Extent() { Cx = 990000L, Cy = 792000L },
                         new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
 
@@ -142,9 +273,31 @@ namespace OfficeIMO {
                         DistanceFromRight = (UInt32Value)0U,
                         EditId = "50D07946"
                     });
+
             this._Image = element;
+            //this.Width = width.Value;
+            //this.Height = height.Value;
+            //this.EmuWidth = emuWidth;
+            //this.EmuHeight = emuHeight;
+            this.Shape = shape;
+            this.CompressionQuality = compressionQuality;
+            this.FileName = fileName;
+            this.FilePath = filePath;
+            this.RelationshipId = relationshipId;
 
             document.Images.Add(this);
+        }
+
+        /// <summary>
+        /// Extract image from Word Document and save it to file
+        /// </summary>
+        /// <param name="fileToSave"></param>
+        public void SaveToFile(string fileToSave) {
+            using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
+                var stream = this._imagePart.GetStream();
+                stream.CopyTo(outputFileStream);
+                stream.Close();
+            }
         }
     }
 }

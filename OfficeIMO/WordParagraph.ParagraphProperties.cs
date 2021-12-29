@@ -274,6 +274,5 @@ namespace OfficeIMO {
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
-
     }
 }

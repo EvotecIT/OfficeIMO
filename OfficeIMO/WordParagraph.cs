@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+﻿using System.Drawing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
 
@@ -10,6 +11,8 @@ namespace OfficeIMO {
         internal Text _text = null;
         internal Run _run = null;
         internal ParagraphProperties _paragraphProperties;
+
+        public WordImage Image { get; set; }
 
         public string Text {
             get { return _text.Text; }
@@ -115,12 +118,14 @@ namespace OfficeIMO {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
+            this.Image = wordImage;
             return paragraph;
         }
         public WordParagraph InsertImage(string filePathImage) {
             WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
+            this.Image = wordImage;
             return paragraph;
         }
     }
