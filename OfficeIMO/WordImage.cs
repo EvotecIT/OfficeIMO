@@ -22,13 +22,37 @@ namespace OfficeIMO {
 
         internal Drawing _Image;
         internal ImagePart _imagePart;
-        internal ShapeProperties _shapeProperties;
+        //internal ShapeProperties _shapeProperties;
 
-        public string RelationshipId { get; set; }
+        public BlipCompressionValues CompressionQuality {
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.BlipFill.Blip.CompressionState;
+            }
+            set { }
+        }
+
+        public string RelationshipId {
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.BlipFill.Blip.Embed;
+            }
+            set {
+
+            }
+        }
 
         public string FilePath { get; set; }
 
-        public string FileName { get; set; }
+        public string FileName {
+            get {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name;
+            }
+            set {
+                
+            }
+        }
 
         public double? Width {
             get {
@@ -167,7 +191,7 @@ namespace OfficeIMO {
             }
         }
 
-        public BlipCompressionValues CompressionQuality { get; set; }
+
 
         public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             double width;
@@ -208,7 +232,7 @@ namespace OfficeIMO {
 
             var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
 
-  //calculate size in emu
+            //calculate size in emu
             double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
             double emuHeight = height.Value * englishMetricUnitsPerInch / pixelsPerInch;
             
@@ -221,17 +245,15 @@ namespace OfficeIMO {
                 new PresetGeometry(new AdjustValueList()) { Preset = shape }
                 );
 
-            this._shapeProperties = shapeProperties;
+            //this._shapeProperties = shapeProperties;
 
-            var element =
-                new Drawing(
+            var drawing = new Drawing(
 
                     //new Anchor(
                     //    new WrapNone()
                     //    ) { BehindDoc = true },
 
             new Inline(
-                        //new Extent() { Cx = 990000L, Cy = 792000L },
                         new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
 
                         new EffectExtent() {
@@ -259,7 +281,8 @@ namespace OfficeIMO {
                                         new Blip(new BlipExtensionList(new BlipExtension() {
                                                     // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
                                                     Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
-                                                })                                        ) {
+                                                })                                        
+                                        ) {
                                             Embed = relationshipId,
                                             CompressionState = compressionQuality
                                         },
@@ -274,17 +297,29 @@ namespace OfficeIMO {
                         EditId = "50D07946"
                     });
 
-            this._Image = element;
+            this._Image = drawing;
             //this.Width = width.Value;
             //this.Height = height.Value;
             //this.EmuWidth = emuWidth;
             //this.EmuHeight = emuHeight;
             this.Shape = shape;
-            this.CompressionQuality = compressionQuality;
-            this.FileName = fileName;
+            //this.CompressionQuality = compressionQuality;
+            //this.FileName = fileName;
             this.FilePath = filePath;
-            this.RelationshipId = relationshipId;
+            //this.RelationshipId = relationshipId;
 
+            document.Images.Add(this);
+        }
+
+        public WordImage(WordDocument document, Drawing drawing) {
+            this._Image = drawing;
+            var imageParts = document._document.MainDocumentPart.ImageParts;
+            foreach (var imagePart in imageParts) {
+                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
+                if (this.RelationshipId == relationshipId) {
+                    this._imagePart = imagePart;
+                }
+            }
             document.Images.Add(this);
         }
 

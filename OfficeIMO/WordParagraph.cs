@@ -71,7 +71,13 @@ namespace OfficeIMO {
             int count = 0;
             foreach (var run in paragraph.ChildElements.OfType<Run>()) {
                 RunProperties runProperties = run.RunProperties;
-                Text text = run.ChildElements.OfType<Text>().First();
+                Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+
+                WordImage newImage = null;
+                if (drawing != null) {
+                    newImage = new WordImage(document, drawing);
+                }
 
                 if (count > 0) {
                     WordParagraph wordParagraph = new WordParagraph(this._document);
@@ -79,14 +85,24 @@ namespace OfficeIMO {
                     wordParagraph._text = text;
                     wordParagraph._paragraph = paragraph;
                     wordParagraph._runProperties = runProperties;
+
+                    wordParagraph.Image = newImage;
+
                     document.Paragraphs.Add(wordParagraph);
                 } else {
                     this._run = run;
                     this._text = text;
                     this._paragraph = paragraph;
                     this._runProperties = runProperties;
+
+                    if (newImage != null) {
+                        this.Image = newImage;
+                    }
+
                     document.Paragraphs.Add(this);
                 }
+
+           
 
                 count++;
             }
