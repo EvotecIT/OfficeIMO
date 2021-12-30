@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO {
     public partial class WordDocument : IDisposable {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+        public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
 
         public string filePath = null;
@@ -71,7 +72,7 @@ namespace OfficeIMO {
             }
         }
 
-        internal List<WordParagraph> GetParagraphs() {
+        internal List<WordParagraph> LoadDocument() {
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
                 WordParagraph wordParagraph = new WordParagraph(this, paragraph);
@@ -110,8 +111,8 @@ namespace OfficeIMO {
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
 
-            word.GetParagraphs();
-            word.GetImages();
+            word.LoadDocument();
+            //word.GetImages();
 
 
             return word;
@@ -185,6 +186,7 @@ namespace OfficeIMO {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             this._document.Body.Append(newWordParagraph._paragraph);
+            this.PageBreaks.Add(newWordParagraph);
             this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }

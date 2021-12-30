@@ -24,7 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Documents\BasicDocumentWith12.docx">
+    <None Update="Documents\BasicDocument.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\TestDocument365.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

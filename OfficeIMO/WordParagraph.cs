@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
@@ -52,6 +53,12 @@ namespace OfficeIMO {
             WordParagraph paragraph = new WordParagraph(this._document);
             paragraph.Text = text;
         }
+
+        /// <summary>
+        /// Builds paragraph list when loading from filesystem
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="paragraph"></param>
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             //_paragraph = paragraph;
             int count = 0;
@@ -75,6 +82,9 @@ namespace OfficeIMO {
                     wordParagraph.Image = newImage;
 
                     document.Paragraphs.Add(wordParagraph);
+                    if (wordParagraph.IsPageBreak) {
+                        document.PageBreaks.Add(wordParagraph);
+                    }
                 } else {
                     this._run = run;
                     this._text = text;
@@ -84,12 +94,11 @@ namespace OfficeIMO {
                     if (newImage != null) {
                         this.Image = newImage;
                     }
-
                     document.Paragraphs.Add(this);
+                    if (this.IsPageBreak) {
+                        document.PageBreaks.Add(this);
+                    }
                 }
-
-           
-
                 count++;
             }
         }
@@ -142,11 +151,19 @@ namespace OfficeIMO {
 
         public void Remove() {
             if (_paragraph != null) {
-                this._paragraph.Remove();
+                if (this._paragraph.Parent != null) {
+                    this._paragraph.Remove();
+                } else {
+                    throw new InvalidOperationException("This shouldn't happen? Why? Oh why?");
+                    //Console.WriteLine(this._run);
+                }
             } else {
                 // this happens if we continue adding to real paragraphs additional runs. In this case we don't need to,
                 // delete paragraph, but only remove Runs 
                 this._run.Remove();
+            }
+            if (IsPageBreak) {
+                this._document.PageBreaks.Remove(this);
             }
             this._document.Paragraphs.Remove(this);
         }
