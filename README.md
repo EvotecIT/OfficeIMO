@@ -30,7 +30,10 @@ but it only supports .NET Framework, and their newest community license makes th
 - If you see bad practice, please open and issue/submit PR. 
 - If you know how to do something in OpenXML that could help this project - please open an issue/submit PR
 - If you see something that could work better - please open and issue/submit PR
+- If you see something that I totally made a fool of myself - please open an issue/submit PR
+- If you see something that works not the way I think it works - please open an issue/submit PR
 
+I hope you get the drift? If it's bad - open an issue/fix it! I don't know what I'm doing!
 
 ## Examples
 
@@ -64,3 +67,4 @@ I'm using a lot of different resources to make OfficeIMO useful. Following resou
  - [English Metric Units and Open XML](http://polymathprogrammer.com/2009/10/22/english-metric-units-and-open-xml/)
  - [Open XML: add a picture](https://coders-corner.net/2015/04/11/open-xml-add-a-picture/)
  - [How do you use System.Drawing in .NET Core?](https://www.hanselman.com/blog/how-do-you-use-systemdrawing-in-net-core)
+ - [How to add section break next page using openxml?](https://stackoverflow.com/questions/20040613/how-to-add-section-break-next-page-using-openxml)
