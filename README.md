@@ -69,3 +69,4 @@ I'm using a lot of different resources to make OfficeIMO useful. Following resou
  - [Open XML: add a picture](https://coders-corner.net/2015/04/11/open-xml-add-a-picture/)
  - [How do you use System.Drawing in .NET Core?](https://www.hanselman.com/blog/how-do-you-use-systemdrawing-in-net-core)
  - [How to add section break next page using openxml?](https://stackoverflow.com/questions/20040613/how-to-add-section-break-next-page-using-openxml)
+ - [How to Preserve string with formatting in OpenXML Paragraph, Run, Text?](https://stackoverflow.com/questions/40246590/how-to-preserve-string-with-formatting-in-openxml-paragraph-run-text?rq=1)

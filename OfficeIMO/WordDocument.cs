@@ -19,7 +19,7 @@ namespace OfficeIMO {
         }
 
         internal WordprocessingDocument _wordprocessingDocument = null;
-        internal Document _document = null;
+        public Document _document = null;
 
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
@@ -176,7 +176,29 @@ namespace OfficeIMO {
         public WordParagraph InsertParagraph(string text) {
             return InsertParagraph().InsertText(text);
         }
+        
+        public WordParagraph InsertPageBreak() {
+            WordParagraph newWordParagraph = new WordParagraph {
+                _run = new Run(new Break() { Type = BreakValues.Page }),
+                _document = this
+            };
+            newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
+            this._document.Body.Append(newWordParagraph._paragraph);
+            this.Paragraphs.Add(newWordParagraph);
+            return newWordParagraph;
+        }
+        public WordParagraph InsertBreak(BreakValues breakType = BreakValues.Page) {
+            WordParagraph newWordParagraph = new WordParagraph {
+                _run = new Run(new Break() {Type = breakType }),
+                _document = this
+            };
+            newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
+
+            this._document.Body.Append(newWordParagraph._paragraph);
+            this.Paragraphs.Add(newWordParagraph);
+            return newWordParagraph;
+        }
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
                 //this._wordprocessingDocument.Close();

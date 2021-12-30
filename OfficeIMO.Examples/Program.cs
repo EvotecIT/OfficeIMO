@@ -19,6 +19,7 @@ namespace OfficeIMO.Examples {
             string templatesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
+            string filePath;
 
             //Console.WriteLine("[*] Creating standard document (empty)");
             //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
@@ -39,10 +40,14 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Read Basic Word");
             //Example_ReadWord(true);
 
-            Console.WriteLine("[*] Read Basic Word with Images");
-            Example_ReadWordWithImages();
+            //Console.WriteLine("[*] Read Basic Word with Images");
+            //Example_ReadWordWithImages();
 
+            Console.WriteLine("[*] Creating standard document with some sections");
+            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithSections.docx");
+            Example_SectionsToDocument(filePath, true);
         }
+
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Title = "This is my title";
@@ -237,6 +242,42 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("+ Document images: " + document.Images.Count);
             
             document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath,"random.jpg"));
+        }
+        private static void Example_SectionsToDocument(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Title = "This is my title";
+                document.Creator = "Przemysław Kłys";
+                document.Keywords = "word, docx, test";
+
+                var paragraph = document.InsertParagraph("Test 1");
+
+                //paragraph = new WordParagraph(document);
+                //WordSection section = new WordSection(document, paragraph);
+
+            
+
+                //document._document.Body.Append(PageBreakParagraph);
+                //document._document.Body.InsertBefore(PageBreakParagraph, paragraph._paragraph);
+
+                document.InsertPageBreak();
+
+                paragraph.Text = "Test 2";
+
+                paragraph = document.InsertParagraph("Test 2");
+
+                // Now lets remove paragraph with page break
+                document.Paragraphs[1].Remove();
+
+                // Now lets remove 1st paragraph
+                document.Paragraphs[0].Remove();
+
+                document.InsertPageBreak();
+
+                document.InsertParagraph().Text = "Some text on next page";
+                
+                document.Save(openWord);
+
+            }
         }
     }
 }

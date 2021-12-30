@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
 
 namespace OfficeIMO {
     public partial class WordParagraph {
@@ -41,31 +42,13 @@ namespace OfficeIMO {
             }
         }
 
+        public WordParagraph() {
+
+        }
         public WordParagraph(string text) {
             WordParagraph paragraph = new WordParagraph(this._document);
             paragraph.Text = text;
         }
-
-
-        //public List<WordParagraph> GetParagraphs(List<Paragraph> list)
-        //{
-        //    var listWord = new List<WordParagraph>();
-        //    //var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
-        //    foreach (Paragraph paragraph in list)
-        //    {
-
-        //        WordParagraph wordParagraph = new WordParagraph();
-
-        //        //listWord.Add(wordParagraph);
-        //        // foreach (var element in paragraph.ChildElements.OfType<Run>())
-        //        // {
-        //        //     
-        //        //    }
-        //    }
-
-        //    return listWord;
-        //}
-
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             //_paragraph = paragraph;
             int count = 0;
@@ -143,6 +126,11 @@ namespace OfficeIMO {
             _run.Append(wordImage._Image);
             this.Image = wordImage;
             return paragraph;
+        }
+
+        public void Remove() {
+            this._paragraph.Remove();
+            this._document.Paragraphs.Remove(this);
         }
     }
 }
