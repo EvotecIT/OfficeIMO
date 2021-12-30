@@ -34,6 +34,7 @@ but it only supports .NET Framework, and their newest community license makes th
 - If you see something that works not the way I think it works - please open an issue/submit PR
 
 I hope you get the drift? If it's bad - open an issue/fix it! I don't know what I'm doing!
+The main thing is - it has to work with .NET Framework 4.7, .NET Standard 2.0 and up
 
 ## Examples
 
