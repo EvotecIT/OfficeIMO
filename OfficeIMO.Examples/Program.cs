@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Helper;
@@ -25,6 +26,10 @@ namespace OfficeIMO.Examples {
             //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
             //Example_BasicEmptyWord(filePath, false);
 
+            Console.WriteLine("[*] Creating standard document with paragraph");
+            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
+            Example_BasicWord(filePath, true);
+
             //Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
             //Example_BasicDocumentProperties(filePath, false);
@@ -43,9 +48,9 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Read Basic Word with Images");
             //Example_ReadWordWithImages();
 
-            Console.WriteLine("[*] Creating standard document with some sections");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithSections.docx");
-            Example_SectionsToDocument(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
+            //Example_SectionsToDocument(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -56,6 +61,23 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
+        private static void Example_BasicWord(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("Basic paragraph");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertParagraph("2nd paragraph");
+                paragraph.Bold = true;
+                paragraph = paragraph.AppendText(" continue?");
+                paragraph.Underline = UnderlineValues.DashLong;
+                paragraph = paragraph.AppendText("More text");
+                paragraph.Color = System.Drawing.Color.CornflowerBlue.ToHexColor();
+
+                document.Save(openWord);
+            }
+        }
+
         private static void Example_BasicDocumentProperties(string filePath,bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Title = "This is my title";
@@ -274,7 +296,19 @@ namespace OfficeIMO.Examples {
                 document.InsertPageBreak();
 
                 document.InsertParagraph().Text = "Some text on next page";
-                
+
+                var paragraph1 = document.InsertParagraph("Test").AppendText("Test2");
+                paragraph1.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph1.AppendText("Test3");
+                //paragraph1.AppendText("Text4 - Which we will remove");
+
+                //document.Paragraphs.Last().Remove();
+
+                paragraph = document.InsertParagraph("Last paragraph");
+                paragraph.Bold = true;
+                paragraph = paragraph.AppendText(" continue?");
+                paragraph.Underline = UnderlineValues.DashLong;
+
                 document.Save(openWord);
 
             }

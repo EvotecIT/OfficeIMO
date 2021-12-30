@@ -8,7 +8,7 @@
     <VersionPrefix>0.1.1</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <SignAssembly>True</SignAssembly>
+    <SignAssembly>False</SignAssembly>
     <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysButViaDomain.pfx</AssemblyOriginatorKeyFile>
     
     <Company>Evotec</Company>

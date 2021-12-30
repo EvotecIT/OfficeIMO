@@ -1,17 +1,20 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
 
 namespace OfficeIMO {
     public partial class WordParagraph {
-        internal WordDocument _document = null;
-        internal Paragraph _paragraph = null;
-        internal RunProperties _runProperties = null;
-        internal Text _text = null;
-        internal Run _run = null;
+        internal WordDocument _document;
+        internal Paragraph _paragraph;
+        internal RunProperties _runProperties;
+        internal Text _text;
+        internal Run _run;
         internal ParagraphProperties _paragraphProperties;
+        internal WordParagraph _linkedParagraph;
 
         public WordImage Image { get; set; }
 
@@ -109,10 +112,19 @@ namespace OfficeIMO {
         public WordParagraph AppendText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, false);
             wordParagraph.Text = text;
-            this._paragraph.Append(wordParagraph._run);
+          
+            // this ensures that we keep track of matching runs with real paragraphs
+            wordParagraph._linkedParagraph = this;
+
+            if (this._linkedParagraph != null) {
+                this._linkedParagraph._paragraph.Append(wordParagraph._run);
+            } else {
+                this._paragraph.Append(wordParagraph._run);
+            }
+            //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
             return wordParagraph;
         }
-
+        
         public WordParagraph InsertImage(string filePathImage, double? width, double? height) {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
@@ -129,7 +141,13 @@ namespace OfficeIMO {
         }
 
         public void Remove() {
-            this._paragraph.Remove();
+            if (_paragraph != null) {
+                this._paragraph.Remove();
+            } else {
+                // this happens if we continue adding to real paragraphs additional runs. In this case we don't need to,
+                // delete paragraph, but only remove Runs 
+                this._run.Remove();
+            }
             this._document.Paragraphs.Remove(this);
         }
     }
