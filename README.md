@@ -25,6 +25,13 @@ but thought it may be useful for others.
 I used to use DocX library (which I co-authored) to create Word documents, 
 but it only supports .NET Framework, and their newest community license makes the project unusuable.
 
+*As I am not really a developer, and I hardly know what I'm doing if you know how to help out - please do.*
+
+- If you see bad practice, please open and issue/submit PR. 
+- If you know how to do something in OpenXML that could help this project - please open an issue/submit PR
+- If you see something that could work better - please open and issue/submit PR
+
+
 ## Examples
 
 ### Basic Document with few document properties and paragraph
@@ -49,15 +56,11 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
 ## Learning resources: 
 
-As I am not really a developer, and I hardly know what I'm doing I'm using a lot of different resources to make OfficeIMO useful.
-Following resources may come useful to understand some concepts if you're going to dive into sources.
+I'm using a lot of different resources to make OfficeIMO useful. Following resources may come useful to understand some concepts if you're going to dive into sources.
 
+ - [Packages and general (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/packages-and-general)
+ - [Word processing (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/word-processing)
  - [Points, inches and Emus: Measuring units in Office Open XML](https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/)
  - [English Metric Units and Open XML](http://polymathprogrammer.com/2009/10/22/english-metric-units-and-open-xml/)
  - [Open XML: add a picture](https://coders-corner.net/2015/04/11/open-xml-add-a-picture/)
-
-## Relevant resources:
-
-While not directly related I required this knowledge to get this up and running
-
  - [How do you use System.Drawing in .NET Core?](https://www.hanselman.com/blog/how-do-you-use-systemdrawing-in-net-core)
