@@ -46,9 +46,6 @@ namespace OfficeIMO {
             }
         }
 
-        public WordParagraph() {
-
-        }
         public WordParagraph(string text) {
             WordParagraph paragraph = new WordParagraph(this._document);
             paragraph.Text = text;

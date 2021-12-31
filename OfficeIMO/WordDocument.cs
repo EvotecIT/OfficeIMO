@@ -13,14 +13,22 @@ namespace OfficeIMO {
         public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
 
-        public string filePath = null;
+
+        public string FilePath {
+            get;
+            set;
+        }
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
         }
 
         internal WordprocessingDocument _wordprocessingDocument = null;
-        public Document _document = null;
+        internal Document _document = null;
+
+
+
+
 
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
@@ -60,9 +68,14 @@ namespace OfficeIMO {
                 wordDocument.AddMainDocumentPart();
                 wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
                 wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
-                //OfficeIMO.Word.WordDocument.AddDefaultStyleDefinitions(wordDocument, null);
 
-                word.filePath = filePath;
+
+
+                //wordDocument.AddHeadersAndFooters(word);
+
+
+
+                word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart.Document;
 
@@ -71,7 +84,7 @@ namespace OfficeIMO {
                 return word;
             }
         }
-
+        
         internal List<WordParagraph> LoadDocument() {
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
@@ -107,14 +120,12 @@ namespace OfficeIMO {
             };
 
             WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
-            word.filePath = filePath;
+            word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
 
             word.LoadDocument();
             //word.GetImages();
-
-
             return word;
         }
         
@@ -139,7 +150,7 @@ namespace OfficeIMO {
 
             if (openWord) {
                 if (filePath == "") {
-                    filePath = this.filePath;
+                    filePath = this.FilePath;
                 }
 
                 ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {

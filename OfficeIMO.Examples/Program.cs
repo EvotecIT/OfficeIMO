@@ -48,9 +48,14 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Read Basic Word with Images");
             //Example_ReadWordWithImages();
 
-            Console.WriteLine("[*] Creating standard document with page breaks and removing them");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
-            Example_PageBreaks(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
+            //Example_PageBreaks(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            Example_BasicWordWithHeaderAndFooter(filePath, true);
+
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -77,7 +82,6 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
         private static void Example_BasicDocumentProperties(string filePath,bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Title = "This is my title";
@@ -338,6 +342,61 @@ namespace OfficeIMO.Examples {
 
                 document.Save(openWord);
 
+            }
+        }
+        private static void Example_BasicWordWithHeaderAndFooter(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                //document.AddHeadersAndFooters();
+                //document.DifferentFirstPage = true;
+                //document.DifferentOddAndEvenPages = true;
+
+                var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
+                paragraphInFooterFirst.Text = "This is a test on first";
+
+                var count = document.Footer.First.Paragraphs.Count;
+
+                var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
+                paragraphInFooterOdd.Text = "This is a test odd";
+
+
+                var paragraphHeader = document.Header.Odd.InsertParagraph();
+                paragraphHeader.Text = "Header - ODD";
+
+                var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
+                paragraphInFooterEven.Text = "This is a test - Even";
+
+
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                document.Save(openWord);
             }
         }
     }
