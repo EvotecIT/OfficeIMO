@@ -6,7 +6,7 @@
     <AssemblyTitle>OfficeIMO</AssemblyTitle>
 
     <VersionPrefix>0.1.1</VersionPrefix>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <SignAssembly>False</SignAssembly>
     <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysButViaDomain.pfx</AssemblyOriginatorKeyFile>
@@ -15,7 +15,7 @@
     <Authors>Przemyslaw Klys</Authors>
 
     <PackageId>OfficeIMO</PackageId>
-    <PackageTags>word;office;openxml;net47;net48;net50;netstandard;netstandard2.0</PackageTags>
+    <PackageTags>word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
     <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
     <DelaySign>False</DelaySign>
