@@ -347,8 +347,8 @@ namespace OfficeIMO.Examples {
         private static void Example_BasicWordWithHeaderAndFooter(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                //document.DifferentFirstPage = true;
-                //document.DifferentOddAndEvenPages = true;
+                document.DifferentFirstPage = true;
+                document.DifferentOddAndEvenPages = true;
 
                 var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
                 paragraphInFooterFirst.Text = "This is a test on first";
