@@ -61,6 +61,68 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 }
 ```
 
+### Basic Document with Headers/Footers (first, odd, even)
+
+This short example shows how to add headers and footers to Word Document.
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.AddHeadersAndFooters();
+    document.DifferentFirstPage = true;
+    document.DifferentOddAndEvenPages = true;
+
+    var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
+    paragraphInFooterFirst.Text = "This is a test on first";
+
+    var count = document.Footer.First.Paragraphs.Count;
+
+    var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
+    paragraphInFooterOdd.Text = "This is a test odd";
+
+
+    var paragraphHeader = document.Header.Odd.InsertParagraph();
+    paragraphHeader.Text = "Header - ODD";
+
+    var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
+    paragraphInFooterEven.Text = "This is a test - Even";
+
+
+    var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+    paragraph.ParagraphAlignment = JustificationValues.Center;
+    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+    paragraph = document.InsertPageBreak();
+
+    paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+    paragraph.ParagraphAlignment = JustificationValues.Center;
+    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+    paragraph = document.InsertPageBreak();
+
+    paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+    paragraph.ParagraphAlignment = JustificationValues.Center;
+    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+    paragraph = document.InsertPageBreak();
+
+    paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+    paragraph.ParagraphAlignment = JustificationValues.Center;
+    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+    paragraph = document.InsertPageBreak();
+
+    paragraph = document.InsertParagraph("Basic paragraph - Page 5");
+    paragraph.ParagraphAlignment = JustificationValues.Center;
+    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+    paragraph = document.InsertPageBreak();
+
+    document.Save(false);
+}
+```
+
+
+
 ## Learning resources:
 
 I'm using a lot of different resources to make OfficeIMO useful. Following resources may come useful to understand some concepts if you're going to dive into sources.
