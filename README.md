@@ -3,6 +3,7 @@
 <p align="center">
   <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://dev.azure.com/evotecpl/OfficeIMO/_apis/build/status/EvotecIT.OfficeIMO"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg"></a>
+  <img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO">
 </p>
 
 <p align="center">
@@ -18,23 +19,25 @@
 
 ## What it's all about
 
-This is a small project that allows to create Microsoft Word documents (.docx) using .NET Standard.
+This is a small project (under development) that allows to create Microsoft Word documents (.docx) using .NET.
 It was created because working with OpenXML is way too hard for me, and time consuming.
-I originally created it for using within PowerShell module called PSWriteOffice, 
+I originally created it for using within PowerShell module called PSWriteOffice,
 but thought it may be useful for others.
-I used to use DocX library (which I co-authored) to create Word documents, 
+I used to use DocX library (which I co-authored, before it was taken over by Xceed) to create Word documents,
 but it only supports .NET Framework, and their newest community license makes the project unusuable.
 
 *As I am not really a developer, and I hardly know what I'm doing if you know how to help out - please do.*
 
-- If you see bad practice, please open and issue/submit PR. 
+- If you see bad practice, please open and issue/submit PR.
 - If you know how to do something in OpenXML that could help this project - please open an issue/submit PR
 - If you see something that could work better - please open and issue/submit PR
 - If you see something that I totally made a fool of myself - please open an issue/submit PR
 - If you see something that works not the way I think it works - please open an issue/submit PR
 
 I hope you get the drift? If it's bad - open an issue/fix it! I don't know what I'm doing!
-The main thing is - it has to work with .NET Framework 4.7, .NET Standard 2.0 and up
+The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 and so on.
+
+**This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
 
 ## Examples
 
@@ -58,7 +61,7 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 }
 ```
 
-## Learning resources: 
+## Learning resources:
 
 I'm using a lot of different resources to make OfficeIMO useful. Following resources may come useful to understand some concepts if you're going to dive into sources.
 
