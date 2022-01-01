@@ -16,6 +16,7 @@ namespace OfficeIMO {
         internal Run _run;
         internal ParagraphProperties _paragraphProperties;
         internal WordParagraph _linkedParagraph;
+        internal WordSection _section;
 
         public WordImage Image { get; set; }
 
@@ -163,6 +164,21 @@ namespace OfficeIMO {
                 this._document.PageBreaks.Remove(this);
             }
             this._document.Paragraphs.Remove(this);
+        }
+
+        public WordParagraph InsertParagraphAfterSelf() {
+            WordParagraph paragraph = new WordParagraph(null, true);
+            this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            this._document.Paragraphs.Add(paragraph);
+            
+            return paragraph;
+        }
+
+        public WordParagraph InsertParagraphBeforeSelf() {
+            WordParagraph paragraph = new WordParagraph(null, true);
+            this._paragraph.InsertBeforeSelf(paragraph._paragraph);
+            //document.Paragraphs.Add(paragraph);
+            return paragraph;
         }
     }
 }

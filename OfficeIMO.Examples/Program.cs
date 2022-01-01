@@ -4,6 +4,8 @@ using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Helper;
+using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
+using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 
 namespace OfficeIMO.Examples {
     internal class Program {
@@ -51,11 +53,17 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             //Example_PageBreaks(filePath, true);
+            
+            Console.WriteLine("[*] Creating standard document with Sections");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
+            Example_BasicWordWithSections(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
-            Example_BasicWordWithHeaderAndFooter(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            //Example_BasicWordWithHeaderAndFooter(filePath, true);
 
+            Console.WriteLine("[*] Loading basic document");
+            Example_Load(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -350,6 +358,10 @@ namespace OfficeIMO.Examples {
                 document.DifferentFirstPage = true;
                 document.DifferentOddAndEvenPages = true;
 
+
+
+
+
                 var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
                 paragraphInFooterFirst.Text = "This is a test on first";
 
@@ -396,8 +408,141 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.InsertPageBreak();
 
+
+                Paragraph paragraph232 = new Paragraph();
+
+                ParagraphProperties paragraphProperties220 = new ParagraphProperties();
+
+                SectionProperties sectionProperties1 = new SectionProperties();
+                SectionType sectionType1 = new SectionType() { Val = SectionMarkValues.NextPage };
+
+                sectionProperties1.Append(sectionType1);
+
+                paragraphProperties220.Append(sectionProperties1);
+
+                paragraph232.Append(paragraphProperties220);
+
+                document._document.MainDocumentPart.Document.Body.Append(paragraph232);
+
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                //paragraph = document.InsertPageBreak();
+
+
+
+                paragraph232 = new Paragraph();
+                paragraphProperties220 = new ParagraphProperties();
+
+                sectionProperties1 = new SectionProperties();
+                sectionType1 = new SectionType() { Val = SectionMarkValues.NextPage };
+
+                sectionProperties1.Append(sectionType1);
+
+                paragraphProperties220.Append(sectionProperties1);
+
+                paragraph232.Append(paragraphProperties220);
+
+                document._document.MainDocumentPart.Document.Body.Append(paragraph232);
+
+                document.AddHeadersAndFooters();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Section 3.1");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Section 3.2");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                paragraph = document.InsertPageBreak();
+                document.DifferentFirstPage = true;
+
+                paragraph = document.Footer.Odd.InsertParagraph();
+                paragraph.Text = "Lets see";
+
                 document.Save(openWord);
             }
         }
+        private static void Example_BasicWordWithSections(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.InsertParagraph("Test 1");
+                var section1 = document.InsertSection(SectionMarkValues.NextPage);
+
+                document.InsertParagraph("Test 2");
+                var section2 = document.InsertSection(SectionMarkValues.Continuous);
+
+                document.InsertParagraph("Test 3");
+                var section3 = document.InsertSection(SectionMarkValues.NextPage);
+                section3.InsertParagraph("Paragraph added to section number 3");
+                section3.InsertParagraph("Continue adding paragraphs to section 3");
+
+                // 4 section, 5 paragraphs, 0 pagebreaks
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+                
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                // additional sections
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
+
+                // change same paragraph using section
+                document.Sections[1].Paragraphs[0].Bold = true;
+                // or Paragraphs list for the whole document
+                document.Paragraphs[1].Color = "7178a8";
+
+                var paragraph = section1.InsertParagraph("We missed paragraph on 1 section (2nd page)");
+                var newParagraph = paragraph.InsertParagraphAfterSelf();
+                newParagraph.Text = "Some more text, after paragraph we just added.";
+                newParagraph.Bold = true;
+
+
+                Console.WriteLine("+ Paragraphs (repeated): " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks (repeated): " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections   (repeated): " + document.Sections.Count);
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0 (repeated): " + document.Sections[0].Paragraphs.Count);
+                // additional sections
+                Console.WriteLine("+ Paragraphs section 1 (repeated): " + document.Sections[1].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 2 (repeated): " + document.Sections[2].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 3 (repeated): " + document.Sections[3].Paragraphs.Count);
+
+
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_Load(string filePath, bool openWord) {
+            filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\DocumentWithSection.docx";
+            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\EmptyDocumentWithSection.docx";
+
+            using (WordDocument document = WordDocument.Load(filePath, true)) {
+                Console.WriteLine("+ Document Path: " + document.FilePath);
+                Console.WriteLine("+ Document Title: " + document.Title);
+                Console.WriteLine("+ Document Author: " + document.Creator);
+
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                document.Dispose();
+            }
+        }
+
     }
 }

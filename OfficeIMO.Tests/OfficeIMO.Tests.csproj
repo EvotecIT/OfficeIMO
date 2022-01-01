@@ -26,6 +26,18 @@
     <None Update="Documents\BasicDocument.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\BasicDocumentWithSections.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\DocumentWithSection.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\EmptyDocument.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\EmptyDocumentWithSection.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\TestDocument365.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -12,7 +12,7 @@ namespace OfficeIMO {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
         public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
-
+        public readonly List<WordSection> Sections = new List<WordSection>();
 
         public string FilePath {
             get;
@@ -24,12 +24,8 @@ namespace OfficeIMO {
         }
 
         internal WordprocessingDocument _wordprocessingDocument = null;
-        internal Document _document = null;
-
-
-
-
-
+        public Document _document = null;
+        
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
 
@@ -43,7 +39,6 @@ namespace OfficeIMO {
                     //word._memory = mem;
                     wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
                 }
-
                 //ExtendedFilePropertiesPart extendedFilePropertiesPart1 = wordDocument.AddNewPart<ExtendedFilePropertiesPart>("rId3");
                 //GenerateExtendedFilePropertiesPart1Content(extendedFilePropertiesPart1);
 
@@ -69,42 +64,58 @@ namespace OfficeIMO {
                 wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
                 wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
 
-
-
                 //wordDocument.AddHeadersAndFooters(word);
-
-
-
+                
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart.Document;
+
+                WordSection wordSection = new WordSection(word);
 
                 return word;
             } catch {
                 return word;
             }
         }
-        
-        internal List<WordParagraph> LoadDocument() {
+
+        private List<WordParagraph> LoadDocument() {
+            // add a section thats assigned to top of the document
+            WordSection wordSection = new WordSection(this);
+
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
                 WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+                if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                    // find sections added via section page breaks
+                    //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
+                    //if (sectionType != null) {
+                    //    if (sectionType.Val == SectionMarkValues.NextPage) {
+                    //        wordSection = new WordSection(this, paragraph);
+                    //    }
+                    //} else {
+                    //    wordSection.Paragraphs.Add(wordParagraph);
+                    //}
+                    wordSection = new WordSection(this, paragraph);
+                    Debug.WriteLine(wordSection.Paragraphs.Count);
+                } else {
+                    wordSection.Paragraphs.Add(wordParagraph);
+                }
+                Debug.WriteLine(wordSection.Paragraphs.Count);
             }
             return this.Paragraphs;
         }
+        //internal List<WordImage> GetImages() {
+        //    var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
+        //    var drawings = this._wordprocessingDocument.MainDocumentPart.Document.Descendants<Drawing>().ToList();
+        //    var imageParts = this._wordprocessingDocument.MainDocumentPart.ImageParts;
+        //    foreach (Paragraph paragraph in list) {
+        //        //paragraph.ChildElements
+        //        //WordImage wordImage = new WordImage();
+        //        //WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+        //    }
 
-        internal List<WordImage> GetImages() {
-            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
-            var drawings = this._wordprocessingDocument.MainDocumentPart.Document.Descendants<Drawing>().ToList();
-            var imageParts = this._wordprocessingDocument.MainDocumentPart.ImageParts;
-            foreach (Paragraph paragraph in list) {
-                //paragraph.ChildElements
-                //WordImage wordImage = new WordImage();
-                //WordParagraph wordParagraph = new WordParagraph(this, paragraph);
-            }
-
-            return this.Images;
-        }
+        //    return this.Images;
+        //}
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
@@ -181,6 +192,8 @@ namespace OfficeIMO {
                 this.Paragraphs.Add(wordParagraph);
             }
 
+            this._currentSection.Paragraphs.Add(wordParagraph);
+            wordParagraph._section = this._currentSection;
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -218,5 +231,42 @@ namespace OfficeIMO {
                 this._wordprocessingDocument.Dispose();
             }
         }
+
+
+        public WordSection InsertSection(SectionMarkValues sectionMark = SectionMarkValues.NextPage) {
+            WordSection wordSection = new WordSection {
+                _document = this
+            };
+
+            this._currentSection = wordSection;
+
+            Paragraph paragraph = new Paragraph();
+
+            ParagraphProperties paragraphProperties = new ParagraphProperties();
+
+            SectionProperties sectionProperties = new SectionProperties();
+
+            SectionType sectionType = new SectionType() { Val = sectionMark };
+
+            sectionProperties.Append(sectionType);
+
+            paragraphProperties.Append(sectionProperties);
+
+            paragraph.Append(paragraphProperties);
+
+            
+            this._document.MainDocumentPart.Document.Body.Append(paragraph);
+
+            wordSection._sectionProperties = sectionProperties;
+
+            this.Sections.Add(wordSection);
+
+            //// this is added for tracking current section of the document
+            //this._currentSection = wordSection;
+
+            return wordSection;
+        }
+
+        public WordSection _currentSection { get; set; }
     }
 }

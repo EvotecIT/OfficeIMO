@@ -35,7 +35,7 @@ namespace OfficeIMO {
                         return;
                     } else {
                         _document.Body.Append(
-                            WordHeadersAndFooters.AddSectionProperties()
+                           //WordHeadersAndFooters.AddSectionProperties()
                         );
                     }
                 }
