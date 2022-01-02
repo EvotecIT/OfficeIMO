@@ -2,11 +2,14 @@
 
 <p align="center">
   <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://dev.azure.com/evotecpl/OfficeIMO/_apis/build/status/EvotecIT.OfficeIMO"></a>
-  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg"></a>
-  <img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO">
+  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/dt/officeIMO?label=nuget%20downloads"></a>
+  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO"></a>
+  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.7.2-red.svg"></a>
+  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg"></a>
 </p>
 
 <p align="center">
+  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/top/evotecit/OfficeIMO.svg"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/code-size/evotecit/OfficeIMO.svg"></a>
 </p>
@@ -92,7 +95,7 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
     paragraph = document.InsertPageBreak();
-
+!
     paragraph = document.InsertParagraph("Basic paragraph - Page 2");
     paragraph.ParagraphAlignment = JustificationValues.Center;
     paragraph.Color = System.Drawing.Color.Red.ToHexColor();
@@ -120,8 +123,6 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.Save(false);
 }
 ```
-
-
 
 ## Learning resources:
 
