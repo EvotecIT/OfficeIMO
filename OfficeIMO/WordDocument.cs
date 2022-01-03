@@ -180,7 +180,7 @@ namespace OfficeIMO {
 
         /// <summary>
         /// This moves section within body from top to bottom to allow footers/headers to move
-        /// Needs more work
+        /// Needs more work, but this is what Word does all the time
         /// </summary>
         public void MoveSectionProperties() {
             var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
