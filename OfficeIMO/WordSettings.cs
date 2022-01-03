@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -52,19 +53,19 @@ namespace OfficeIMO {
         }
 
         public WordSettings(WordDocument document) {
-            var documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
-            if (documentSettingsPart == null) {
-                documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
-            }
-            var settings = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-            if (settings == null) {
-                settings = new Settings();
-                settings.Save(documentSettingsPart);
-            }
+            if (document.FileOpenAccess != FileAccess.Read) {
+                var documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
+                if (documentSettingsPart == null) {
+                    documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>();
+                }
 
+                var settings = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                if (settings == null) {
+                    settings = new Settings();
+                    settings.Save(documentSettingsPart);
+                }
+            }
             _document = document;
-            //_settings = settings;
-
             document.Settings = this;
         }
         

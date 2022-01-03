@@ -10,8 +10,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Templates\BasicDocument.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\BasicDocumentWithImages.docx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Images\BackgroundImage.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

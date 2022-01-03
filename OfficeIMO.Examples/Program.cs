@@ -50,8 +50,8 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
             //Example_AddingImages(filePath, false);
 
-            //Console.WriteLine("[*] Read Basic Word");
-            //Example_ReadWord(true);
+            Console.WriteLine("[*] Read Basic Word");
+            Example_ReadWord(true);
 
             //Console.WriteLine("[*] Read Basic Word with Images");
             //Example_ReadWordWithImages();
@@ -64,9 +64,13 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
             //Example_BasicWordWithSections(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
-            Example_BasicWordWithHeaderAndFooter(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
+            //Example_PageOrientation(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            //Example_BasicWordWithHeaderAndFooter(filePath, true);
 
             //Console.WriteLine("[*] Loading basic document");
             //Example_Load(filePath, true);
@@ -277,7 +281,8 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
             Console.WriteLine("+ Document Title: " + document.Title);
             Console.WriteLine("+ Document Author: " + document.Creator);
-
+            Console.WriteLine("+ FileOpen: " + document.FileOpenAccess);
+            
             document.Dispose();
         }
 
@@ -366,7 +371,7 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_BasicWordWithHeaderAndFooter(string filePath, bool openWord) {
+        private static void Example_BasicWordWithHeaderAndFooter1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 document.Sections[0].ColumnsSpace = 50;
@@ -495,6 +500,76 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
+
+        private static void Example_PageOrientation(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);
+
+                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+
+                Console.WriteLine("+ Page Orientation (middle): " + document.PageOrientation);
+                
+                document.PageOrientation = PageOrientationValues.Portrait;
+
+                Console.WriteLine("+ Page Orientation (ending): " + document.PageOrientation);
+
+                document.InsertParagraph("Test");
+                
+                document.Save(openWord);
+            }
+        }
+    
+
+        private static void Example_BasicWordWithHeaderAndFooter(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+
+                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+
+                var paragraphInHeader = document.Header.Default.InsertParagraph();
+                paragraphInHeader.Text = "Default Header / Section 0";
+                
+                document.InsertPageBreak();
+
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                var section2 = document.InsertSection();
+                section2.AddHeadersAndFooters();
+                
+                var paragraghInHeaderSection1 = section2.Header.Default.InsertParagraph();
+                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                
+                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                var section3 = document.InsertSection();
+                section3.AddHeadersAndFooters();
+
+                var paragraghInHeaderSection3 = section3.Header.Default.InsertParagraph();
+                paragraghInHeaderSection3.Text = "Weird shit? 2";
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                // additional sections
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                //Console.WriteLine("+ Paragraphs section 2: " + document.Sections[0].Paragraphs.Count);
+                //Console.WriteLine("+ Paragraphs section 3: " + document.Sections[0].Paragraphs.Count);
+                document.Save(openWord);
+            }
+        }
+
 
         private static void Example_BasicWordWithSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {

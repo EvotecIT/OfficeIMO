@@ -49,8 +49,7 @@ namespace OfficeIMO.Word {
                             pgSz.Width = height;
                             pgSz.Height = width;
 
-                            PageMargin pgMar =
-                                sectPr.Descendants<PageMargin>().FirstOrDefault();
+                            PageMargin pgMar = sectPr.Descendants<PageMargin>().FirstOrDefault();
                             if (pgMar != null) {
                                 // Rotate margins. Printer settings control how far you 
                                 // rotate when switching to landscape mode. Not having those

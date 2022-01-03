@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
-    public class WordSection {
+    public partial class WordSection {
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
         public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
@@ -23,49 +23,7 @@ namespace OfficeIMO {
         //internal Footer _footerFirst;
         //internal Footer _footerDefault;
         //internal Footer _footerEven;
-        public int? ColumnsSpace {
-            get {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    return null;
-                }
 
-                if (columns.Space != null) {
-                    return int.Parse(columns.Space);
-                }
-
-                return null;
-            }
-            set {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    columns = new Columns();
-                }
-                columns.Space = value.ToString();
-            }
-        }
-
-        public int? ColumnCount {
-            get {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    return null;
-                }
-
-                if (columns.ColumnCount != null) {
-                    return int.Parse(columns.ColumnCount);
-                }
-
-                return null;
-            }
-            set {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
-                if (columns == null) {
-                    columns = new Columns();
-                }
-                if (value != null) columns.ColumnCount = (Int16Value) value.Value;
-            }
-        }
 
 
         public WordDocument _document;
@@ -73,14 +31,21 @@ namespace OfficeIMO {
 
         public WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
-            PageMargin pageMargin1;
+
+            WordSection lastSection;
+            if (this._document.Sections.Count > 0) {
+                lastSection = this._document.Sections[this._document.Sections.Count - 1];
+                //lastSection._sectionProperties.
+            }
+
+            //PageMargin pageMargin1;
             if (paragraph != null) {
                 var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
                 if (sectionProperties == null) {
                     return;
                 }
                 this._sectionProperties = sectionProperties;
-                pageMargin1 = new PageMargin() { Top = 40, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
+                //pageMargin1 = new PageMargin() { Top = 40, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
 
             } else {
                 var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
@@ -88,18 +53,17 @@ namespace OfficeIMO {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
                 this._sectionProperties = sectionProperties;
-                 pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
-
+                // pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
             }
 
             // defaults 
-            PageSize pageSize1 = new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U };
-            Columns columns1 = new Columns() { Space = "720" };
-            DocGrid docGrid1 = new DocGrid() { LinePitch = 360 };
-            this._sectionProperties.Append(pageSize1);
-            this._sectionProperties.Append(pageMargin1);
-            this._sectionProperties.Append(columns1);
-            this._sectionProperties.Append(docGrid1);
+            //PageSize pageSize1 = new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U };
+            //Columns columns1 = new Columns() { Space = "720" };
+            //DocGrid docGrid1 = new DocGrid() { LinePitch = 360 };
+            //this._sectionProperties.Append(pageSize1);
+            //this._sectionProperties.Append(pageMargin1);
+            //this._sectionProperties.Append(columns1);
+            //this._sectionProperties.Append(docGrid1);
             
             wordDocument.Sections.Add(this);
 

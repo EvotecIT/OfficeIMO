@@ -1,4 +1,8 @@
-﻿namespace OfficeIMO {
+﻿using System.Xml;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+namespace OfficeIMO {
     public enum CapsStyle {
         /// <summary>
         /// No caps, characters as written.

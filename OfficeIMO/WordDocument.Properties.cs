@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace OfficeIMO {
     public partial class WordDocument {
@@ -99,6 +100,12 @@ namespace OfficeIMO {
             }
             set {
                 _wordprocessingDocument.PackageProperties.LastPrinted = value;
+            }
+        }
+
+        public FileAccess FileOpenAccess {
+            get {
+                return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess;
             }
         }
     }

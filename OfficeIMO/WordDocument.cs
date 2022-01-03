@@ -134,6 +134,7 @@ namespace OfficeIMO {
         }
 
         public void Save(string filePath, bool openWord) {
+            MoveSectionProperties();
             if (this._wordprocessingDocument != null) {
                 try {
                     if (filePath != "") {
@@ -173,11 +174,19 @@ namespace OfficeIMO {
         }
 
         public void Save(bool openWord) {
+            
+            this.Save("", openWord);
+        }
+
+        /// <summary>
+        /// This moves section within body from top to bottom to allow footers/headers to move
+        /// Needs more work
+        /// </summary>
+        public void MoveSectionProperties() {
             var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
             var sectionProperties = this._wordprocessingDocument.MainDocumentPart.Document.Body.Elements<SectionProperties>().Last();
             body.RemoveChild(sectionProperties);
             body.Append(sectionProperties);
-            this.Save("", openWord);
         }
 
         public WordParagraph InsertParagraph(WordParagraph wordParagraph = null) {
