@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO {
     public class WordHeaders {
-        public WordHeader Odd {
+        public WordHeader Default {
             get;
             set;
         }

@@ -8,28 +8,28 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO {
     public class WordFooter {
         public readonly List<WordParagraph> Paragraphs = new List<WordParagraph>();
-        private readonly string _type;
+        private readonly HeaderFooterValues _type;
         private readonly Footer _footerFirst;
-        private readonly Footer _footerOdd;
+        private readonly Footer _footerDefault;
         private readonly Footer _footerEven;
         
-        internal WordFooter(WordDocument document, string type) {
-            if (type == "first") {
-                _footerFirst = document._footerFirst;
-            } else if (type == "odd") {
-                _footerOdd = document._footerOdd;
-            } else if (type == "even") {
-                _footerEven = document._footerEven;
+        internal WordFooter(WordDocument document, HeaderFooterValues type, Footer footerPartFooter) {
+            if (type == HeaderFooterValues.First) {
+                _footerFirst = footerPartFooter;
+            } else if (type == HeaderFooterValues.Default) {
+                _footerDefault = footerPartFooter;
+            } else if (type == HeaderFooterValues.Even) {
+                _footerEven = footerPartFooter;
             }
             _type = type;
         }
         public WordParagraph InsertParagraph() {
             var wordParagraph = new WordParagraph();
-            if (_type == "first") {
+            if (_type == HeaderFooterValues.First) {
                 _footerFirst.Append(wordParagraph._paragraph);
-            } else if (_type == "odd") {
-                _footerOdd.Append(wordParagraph._paragraph);
-            } else if (_type == "even") {
+            } else if (_type == HeaderFooterValues.Default) {
+                _footerDefault.Append(wordParagraph._paragraph);
+            } else if (_type == HeaderFooterValues.Even) {
                 _footerEven.Append(wordParagraph._paragraph);
             }
             this.Paragraphs.Add(wordParagraph);

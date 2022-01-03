@@ -38,6 +38,12 @@
     <None Update="Documents\EmptyDocumentWithSection.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\EmptyDocumentWithSectionAndHeader.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\EmptyDocumentWithSectionAndHeaderSameAsPrevious.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\TestDocument365.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

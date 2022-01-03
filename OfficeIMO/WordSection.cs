@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -11,86 +12,138 @@ namespace OfficeIMO {
         public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
 
-        public readonly WordFooters Footer = new WordFooters();
-        public readonly WordHeaders Header = new WordHeaders();
+        public WordFooters Footer = new WordFooters();
+        public WordHeaders Header = new WordHeaders();
 
-        // internal header properties for easy usage
-        internal Header _headerFirst;
-        internal Header _headerEven;
-        internal Header _headerOdd;
-        // internal footer properties for easy usage
-        internal Footer _footerFirst;
-        internal Footer _footerOdd;
-        internal Footer _footerEven;
+        //// internal header properties for easy usage
+        //internal Header _headerFirst;
+        //internal Header _headerEven;
+        //internal Header _headerDefault;
+        //// internal footer properties for easy usage
+        //internal Footer _footerFirst;
+        //internal Footer _footerDefault;
+        //internal Footer _footerEven;
+        public int? ColumnsSpace {
+            get {
+                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                if (columns == null) {
+                    return null;
+                }
 
-   
+                if (columns.Space != null) {
+                    return int.Parse(columns.Space);
+                }
+
+                return null;
+            }
+            set {
+                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = new Columns();
+                }
+                columns.Space = value.ToString();
+            }
+        }
+
+        public int? ColumnCount {
+            get {
+                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                if (columns == null) {
+                    return null;
+                }
+
+                if (columns.ColumnCount != null) {
+                    return int.Parse(columns.ColumnCount);
+                }
+
+                return null;
+            }
+            set {
+                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = new Columns();
+                }
+                if (value != null) columns.ColumnCount = (Int16Value) value.Value;
+            }
+        }
+
+
         public WordDocument _document;
         public SectionProperties _sectionProperties;
 
-        public WordSection() {
-
-        }
         public WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
+            PageMargin pageMargin1;
             if (paragraph != null) {
-                
                 var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
                 if (sectionProperties == null) {
                     return;
                 }
                 this._sectionProperties = sectionProperties;
+                pageMargin1 = new PageMargin() { Top = 40, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
+
             } else {
                 var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
-                    wordDocument._wordprocessingDocument.AddSectionProperties();
+                    sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
                 this._sectionProperties = sectionProperties;
+                 pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
+
             }
+
+            // defaults 
+            PageSize pageSize1 = new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U };
+            Columns columns1 = new Columns() { Space = "720" };
+            DocGrid docGrid1 = new DocGrid() { LinePitch = 360 };
+            this._sectionProperties.Append(pageSize1);
+            this._sectionProperties.Append(pageMargin1);
+            this._sectionProperties.Append(columns1);
+            this._sectionProperties.Append(docGrid1);
+            
             wordDocument.Sections.Add(this);
 
             // this is added for tracking current section of the document
             wordDocument._currentSection = this;
         }
-        
-        //public bool DifferentFirstPage {
-        //    get {
-        //        var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-        //        if (sectionProperties != null) {
-        //            var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-        //            if (titlePage != null) {
-        //                return true;
-        //            }
-        //        }
-        //        return false;
-        //    }
-        //    set {
-        //        var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-        //        if (sectionProperties == null) {
-        //            if (value == false) {
-        //                // section properties doesn't exists, so we don't do anything
-        //                return;
-        //            } else {
-        //                _document.Body.Append(
-        //                //WordHeadersAndFooters.AddSectionProperties()
-        //                );
-        //            }
-        //        }
 
-        //        sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().First();
-        //        var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-        //        if (value == false) {
-        //            if (titlePage == null) {
-        //                return;
-        //            } else {
-        //                titlePage.Remove();
-        //            }
-        //        } else {
-        //            sectionProperties.Append(new TitlePage());
-        //        }
+        public bool DifferentFirstPage {
+            get {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties != null) {
+                    var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
+                    if (titlePage != null) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            set {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties == null) {
+                    if (value == false) {
+                        // section properties doesn't exists, so we don't do anything
+                        return;
+                    } else {
+                        throw new InvalidOperationException("this is bad");
+                    }
+                }
 
-        //    }
+                sectionProperties = _sectionProperties;
+                var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
+                if (value == false) {
+                    if (titlePage == null) {
+                        return;
+                    } else {
+                        titlePage.Remove();
+                    }
+                } else {
+                    sectionProperties.Append(new TitlePage());
+                }
 
-        //}
+            }
+
+        }
 
         //public bool DifferentOddAndEvenPages {
         //    get {

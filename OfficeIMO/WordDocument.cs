@@ -14,10 +14,9 @@ namespace OfficeIMO {
         public List<WordImage> Images = new List<WordImage>();
         public readonly List<WordSection> Sections = new List<WordSection>();
 
-        public string FilePath {
-            get;
-            set;
-        }
+        public string FilePath { get; set; }
+
+        public WordSettings Settings;
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -25,7 +24,7 @@ namespace OfficeIMO {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
-        
+
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
 
@@ -65,11 +64,12 @@ namespace OfficeIMO {
                 wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
 
                 //wordDocument.AddHeadersAndFooters(word);
-                
+
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart.Document;
 
+                WordSettings wordSettings = new WordSettings(word);
                 WordSection wordSection = new WordSection(word);
 
                 return word;
@@ -79,8 +79,11 @@ namespace OfficeIMO {
         }
 
         private List<WordParagraph> LoadDocument() {
+            // add settings if not existing
+            new WordSettings(this);
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this);
+
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
@@ -100,22 +103,12 @@ namespace OfficeIMO {
                 } else {
                     wordSection.Paragraphs.Add(wordParagraph);
                 }
+
                 Debug.WriteLine(wordSection.Paragraphs.Count);
             }
+
             return this.Paragraphs;
         }
-        //internal List<WordImage> GetImages() {
-        //    var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
-        //    var drawings = this._wordprocessingDocument.MainDocumentPart.Document.Descendants<Drawing>().ToList();
-        //    var imageParts = this._wordprocessingDocument.MainDocumentPart.ImageParts;
-        //    foreach (Paragraph paragraph in list) {
-        //        //paragraph.ChildElements
-        //        //WordImage wordImage = new WordImage();
-        //        //WordParagraph wordParagraph = new WordParagraph(this, paragraph);
-        //    }
-
-        //    return this.Images;
-        //}
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
@@ -139,7 +132,7 @@ namespace OfficeIMO {
             //word.GetImages();
             return word;
         }
-        
+
         public void Save(string filePath, bool openWord) {
             if (this._wordprocessingDocument != null) {
                 try {
@@ -180,6 +173,10 @@ namespace OfficeIMO {
         }
 
         public void Save(bool openWord) {
+            var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
+            var sectionProperties = this._wordprocessingDocument.MainDocumentPart.Document.Body.Elements<SectionProperties>().Last();
+            body.RemoveChild(sectionProperties);
+            body.Append(sectionProperties);
             this.Save("", openWord);
         }
 
@@ -201,10 +198,10 @@ namespace OfficeIMO {
         public WordParagraph InsertParagraph(string text) {
             return InsertParagraph().InsertText(text);
         }
-        
+
         public WordParagraph InsertPageBreak() {
             WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() { Type = BreakValues.Page }),
+                _run = new Run(new Break() {Type = BreakValues.Page}),
                 _document = this
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
@@ -214,9 +211,10 @@ namespace OfficeIMO {
             this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }
+
         public WordParagraph InsertBreak(BreakValues breakType = BreakValues.Page) {
             WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() {Type = breakType }),
+                _run = new Run(new Break() {Type = breakType}),
                 _document = this
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
@@ -225,6 +223,7 @@ namespace OfficeIMO {
             this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }
+
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
                 //this._wordprocessingDocument.Close();
@@ -232,37 +231,28 @@ namespace OfficeIMO {
             }
         }
 
-
-        public WordSection InsertSection(SectionMarkValues sectionMark = SectionMarkValues.NextPage) {
-            WordSection wordSection = new WordSection {
-                _document = this
-            };
-
-            this._currentSection = wordSection;
-
+        public WordSection InsertSection(SectionMarkValues? sectionMark = null) {
+            //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
             Paragraph paragraph = new Paragraph();
 
             ParagraphProperties paragraphProperties = new ParagraphProperties();
 
             SectionProperties sectionProperties = new SectionProperties();
+            // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
 
-            SectionType sectionType = new SectionType() { Val = sectionMark };
-
-            sectionProperties.Append(sectionType);
+            if (sectionMark != null) {
+                SectionType sectionType = new SectionType() {Val = sectionMark};
+                sectionProperties.Append(sectionType);
+            }
 
             paragraphProperties.Append(sectionProperties);
-
             paragraph.Append(paragraphProperties);
 
-            
+
             this._document.MainDocumentPart.Document.Body.Append(paragraph);
 
-            wordSection._sectionProperties = sectionProperties;
 
-            this.Sections.Add(wordSection);
-
-            //// this is added for tracking current section of the document
-            //this._currentSection = wordSection;
+            WordSection wordSection = new WordSection(this, paragraph);
 
             return wordSection;
         }

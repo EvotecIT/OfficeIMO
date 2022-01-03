@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -7,14 +8,31 @@ namespace OfficeIMO {
         // internal header properties for easy usage
         internal Header _headerFirst;
         internal Header _headerEven;
-        internal Header _headerOdd;
+        internal Header _headerDefault;
         // internal footer properties for easy usage
         internal Footer _footerFirst;
-        internal Footer _footerOdd;
+        internal Footer _footerDefault;
         internal Footer _footerEven;
 
-        public readonly WordFooters Footer = new WordFooters();
-        public readonly WordHeaders Header = new WordHeaders();
+        //public readonly WordFooters Footer = new WordFooters();
+        //public readonly WordHeaders Header = new WordHeaders();
+
+        public WordHeaders Header {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
+                }
+                return this.Sections[0].Header;
+            }
+        }
+        public WordFooters Footer {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
+                }
+                return this.Sections[0].Footer;
+            }
+        }
 
         public bool DifferentFirstPage {
             get {
@@ -55,7 +73,6 @@ namespace OfficeIMO {
             }
 
         }
-
         public bool DifferentOddAndEvenPages {
             get {
                 var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();

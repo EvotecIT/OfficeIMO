@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO {
     public class WordFooters {
-        public WordFooter Odd {
+        public WordFooter Default {
             get;
             set;
         }

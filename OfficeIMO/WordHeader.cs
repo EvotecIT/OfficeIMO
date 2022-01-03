@@ -6,28 +6,28 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO {
     public class WordHeader {
         public readonly List<WordParagraph> Paragraphs = new List<WordParagraph>();
-        private readonly string _type;
+        private readonly HeaderFooterValues _type;
         private readonly Header _headerFirst;
-        private readonly Header _headerOdd;
+        private readonly Header _headerDefault;
         private readonly Header _headerEven;
 
-        internal WordHeader(WordDocument document, string type) {
-            if (type == "first") {
-                _headerFirst = document._headerFirst;
-            } else if (type == "odd") {
-                _headerOdd = document._headerOdd;
-            } else if (type == "even") {
-                _headerEven = document._headerEven;
+        internal WordHeader(WordDocument document, HeaderFooterValues type, Header headerPartHeader) {
+            if (type == HeaderFooterValues.First) {
+                _headerFirst = headerPartHeader;
+            } else if (type == HeaderFooterValues.Default) {
+                _headerDefault = headerPartHeader;
+            } else if (type == HeaderFooterValues.Even) {
+                _headerEven = headerPartHeader;
             }
             _type = type;
         }
         public WordParagraph InsertParagraph() {
             var wordParagraph = new WordParagraph();
-            if (_type == "first") {
+            if (_type == HeaderFooterValues.First) {
                 _headerFirst.Append(wordParagraph._paragraph);
-            } else if (_type == "odd") {
-                _headerOdd.Append(wordParagraph._paragraph);
-            } else if (_type == "even") {
+            } else if (_type == HeaderFooterValues.Default) {
+                _headerDefault.Append(wordParagraph._paragraph);
+            } else if (_type == HeaderFooterValues.Even) {
                 _headerEven.Append(wordParagraph._paragraph);
             }
             this.Paragraphs.Add(wordParagraph);

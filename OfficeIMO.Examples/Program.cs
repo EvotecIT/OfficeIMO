@@ -1,11 +1,16 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Helper;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace OfficeIMO.Examples {
     internal class Program {
@@ -17,6 +22,7 @@ namespace OfficeIMO.Examples {
                 Directory.CreateDirectory(path);
             }
         }
+
         static void Main(string[] args) {
             //string folderPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "documents");
             string templatesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
@@ -53,17 +59,19 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             //Example_PageBreaks(filePath, true);
-            
-            Console.WriteLine("[*] Creating standard document with Sections");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
-            Example_BasicWordWithSections(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
-            //Example_BasicWordWithHeaderAndFooter(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Sections");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
+            //Example_BasicWordWithSections(filePath, true);
 
-            Console.WriteLine("[*] Loading basic document");
-            Example_Load(filePath, true);
+            Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            Example_BasicWordWithHeaderAndFooter(filePath, true);
+
+            //Console.WriteLine("[*] Loading basic document");
+            //Example_Load(filePath, true);
+
+            //OpenAndAddTextToWordDocument();
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -74,6 +82,7 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
+
         private static void Example_BasicWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.InsertParagraph("Basic paragraph");
@@ -90,7 +99,8 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-        private static void Example_BasicDocumentProperties(string filePath,bool openWord) {
+
+        private static void Example_BasicDocumentProperties(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Title = "This is my title";
                 document.Creator = "Przemysław Kłys";
@@ -103,6 +113,7 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
+
         private static void Example_MultipleParagraphsViaDifferentWays(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create()) {
                 var paragraph = document.InsertParagraph("This paragraph starts with some text");
@@ -199,6 +210,7 @@ namespace OfficeIMO.Examples {
                 document.Save(filePath, openWord);
             }
         }
+
         private static void Example_AddingImages(string filePath, bool openWord) {
             //string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             //string imagePaths = System.IO.Path.Combine(baseDirectory, "Images");
@@ -256,17 +268,19 @@ namespace OfficeIMO.Examples {
 
             document.Save(true);
         }
+
         private static void Example_ReadWord(bool openWord) {
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
             WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), true);
-            
+
             Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
             Console.WriteLine("+ Document Title: " + document.Title);
             Console.WriteLine("+ Document Author: " + document.Creator);
 
             document.Dispose();
         }
+
         private static void Example_ReadWordWithImages() {
             string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
@@ -274,9 +288,10 @@ namespace OfficeIMO.Examples {
             WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocumentWithImages.docx"), true);
             Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
             Console.WriteLine("+ Document images: " + document.Images.Count);
-            
-            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath,"random.jpg"));
+
+            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
         }
+
         private static void Example_PageBreaks(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Title = "This is my title";
@@ -288,7 +303,6 @@ namespace OfficeIMO.Examples {
                 //paragraph = new WordParagraph(document);
                 //WordSection section = new WordSection(document, paragraph);
 
-            
 
                 //document._document.Body.Append(PageBreakParagraph);
                 //document._document.Body.InsertBefore(PageBreakParagraph, paragraph._paragraph);
@@ -333,7 +347,7 @@ namespace OfficeIMO.Examples {
 
                 // remove last paragraph
                 document.Paragraphs.Last().Remove();
-                
+
                 paragraph = document.InsertParagraph("2nd paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AppendText(" continue?");
@@ -344,118 +358,113 @@ namespace OfficeIMO.Examples {
                 // remove paragraph
                 int countParagraphs = document.Paragraphs.Count;
                 document.Paragraphs[countParagraphs - 2].Remove();
-                
+
                 // remove first page break
                 document.PageBreaks[0].Remove();
 
                 document.Save(openWord);
-
             }
         }
+
         private static void Example_BasicWordWithHeaderAndFooter(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Sections[0].ColumnsSpace = 50;
+                Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
+                Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
+
+                //document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+                //document.Settings.ZoomPercentage = 30;
+
+                Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
+                Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
+
                 document.AddHeadersAndFooters();
                 document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
+                //document.DifferentOddAndEvenPages = false;
+                //var paragraphInFooter = document.Footer.Default.InsertParagraph();
+                //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
+
+                var paragraphInHeader = document.Header.Default.InsertParagraph();
+                paragraphInHeader.Text = "Default Header / Section 0";
+
+                paragraphInHeader = document.Header.First.InsertParagraph();
+                paragraphInHeader.Text = "First Header / Section 0";
+
+                //var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
+                //paragraphInFooterFirst.Text = "This is a test on first";
+
+                //var count = document.Footer.First.Paragraphs.Count;
+
+                //var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
+                //paragraphInFooterOdd.Text = "This is a test odd";
 
 
+                //var paragraphHeader = document.Header.Odd.InsertParagraph();
+                //paragraphHeader.Text = "Header - ODD";
 
-
-
-                var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
-                paragraphInFooterFirst.Text = "This is a test on first";
-
-                var count = document.Footer.First.Paragraphs.Count;
-
-                var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
-                paragraphInFooterOdd.Text = "This is a test odd";
-
-
-                var paragraphHeader = document.Header.Odd.InsertParagraph();
-                paragraphHeader.Text = "Header - ODD";
-
-                var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
-                paragraphInFooterEven.Text = "This is a test - Even";
+                //var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
+                //paragraphInFooterEven.Text = "This is a test - Even";
 
 
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                //paragraph = document.InsertPageBreak();
 
                 paragraph = document.InsertParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                //paragraph = document.InsertPageBreak();
 
                 paragraph = document.InsertParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                //paragraph = document.InsertPageBreak();
 
                 paragraph = document.InsertParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-                paragraph = document.InsertPageBreak();
-
-                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-                paragraph = document.InsertPageBreak();
-
-
-                Paragraph paragraph232 = new Paragraph();
-
-                ParagraphProperties paragraphProperties220 = new ParagraphProperties();
-
-                SectionProperties sectionProperties1 = new SectionProperties();
-                SectionType sectionType1 = new SectionType() { Val = SectionMarkValues.NextPage };
-
-                sectionProperties1.Append(sectionType1);
-
-                paragraphProperties220.Append(sectionProperties1);
-
-                paragraph232.Append(paragraphProperties220);
-
-                document._document.MainDocumentPart.Document.Body.Append(paragraph232);
-
-
-                paragraph = document.InsertPageBreak();
-
-                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-                paragraph = document.InsertPageBreak();
-
-                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //paragraph = document.InsertPageBreak();
 
+                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
+                //var section2 = document.InsertSection(SectionMarkValues.NextPage);
+                var section2 = document.InsertSection();
+                section2.AddHeadersAndFooters();
+                section2.DifferentFirstPage = true;
+                
 
-                paragraph232 = new Paragraph();
-                paragraphProperties220 = new ParagraphProperties();
+                // Add header to section
+                //var paragraghInHeaderSection = section2.Header.First.InsertParagraph();
+                //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                sectionProperties1 = new SectionProperties();
-                sectionType1 = new SectionType() { Val = SectionMarkValues.NextPage };
+                var paragraghInHeaderSection1 = section2.Header.Default.InsertParagraph();
+                paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                sectionProperties1.Append(sectionType1);
+                paragraghInHeaderSection1 = section2.Header.First.InsertParagraph();
+                paragraghInHeaderSection1.Text = "Weird shit 2?";
+               // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraphProperties220.Append(sectionProperties1);
+                paragraghInHeaderSection1 = section2.Header.Even.InsertParagraph();
+                paragraghInHeaderSection1.Text = "Weird shit? 3";
 
-                paragraph232.Append(paragraphProperties220);
+                paragraph = document.InsertParagraph("Basic paragraph - Page 6");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document._document.MainDocumentPart.Document.Body.Append(paragraph232);
+                paragraph = document.InsertPageBreak();
 
-                document.AddHeadersAndFooters();
+                paragraph = document.InsertParagraph("Basic paragraph - Page 7");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
 
                 paragraph = document.InsertParagraph("Basic paragraph - Section 3.1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
@@ -468,14 +477,25 @@ namespace OfficeIMO.Examples {
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 paragraph = document.InsertPageBreak();
-                document.DifferentFirstPage = true;
 
-                paragraph = document.Footer.Odd.InsertParagraph();
-                paragraph.Text = "Lets see";
+                //paragraph = document.Footer.Odd.InsertParagraph();
+                //paragraph.Text = "Lets see";
 
+                // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                // additional sections
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                //Console.WriteLine("+ Paragraphs section 2: " + document.Sections[0].Paragraphs.Count);
+                //Console.WriteLine("+ Paragraphs section 3: " + document.Sections[0].Paragraphs.Count);
                 document.Save(openWord);
             }
         }
+
         private static void Example_BasicWordWithSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.InsertParagraph("Test 1");
@@ -493,7 +513,7 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
                 Console.WriteLine("+ Sections: " + document.Sections.Count);
-                
+
                 // primary section (for the whole document)
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 // additional sections
@@ -544,5 +564,106 @@ namespace OfficeIMO.Examples {
             }
         }
 
+
+        public static void OpenAndAddTextToWordDocument() {
+            string path = @"C:\Users\przemyslaw.klys\OneDrive - Evotec\Desktop\TEstoor.docx";
+            string strtxt = "OpenXML SDK";
+            // Open a WordprocessingDocument for editing using the filepath.
+           WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Open(path, true);
+            //WordprocessingDocument wordprocessingDocument = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+
+            MainDocumentPart part = wordprocessingDocument.MainDocumentPart;
+            Body body = part.Document.Body;
+            //create a new footer Id=rIdf2
+            FooterPart footerPart2 = part.AddNewPart<FooterPart>("rIdf2");
+            GenerateFooterPartContent(footerPart2);
+            //create a new header Id=rIdh2
+            HeaderPart headerPart2 = part.AddNewPart<HeaderPart>("rIdh2");
+            GenerateHeaderPartContent(headerPart2);
+            //replace the attribute of SectionProperties to add new footer and header
+            SectionProperties lxml = body.GetFirstChild<SectionProperties>();
+
+           lxml.GetFirstChild<HeaderReference>().Remove();
+            lxml.GetFirstChild<FooterReference>().Remove();
+            HeaderReference headerReference1 = new HeaderReference() {Type = HeaderFooterValues.Default, Id = "rIdh2"};
+            FooterReference footerReference1 = new FooterReference() {Type = HeaderFooterValues.Default, Id = "rIdf2"};
+            lxml.Append(headerReference1);
+            lxml.Append(footerReference1);
+            //add the correlation of last Paragraph
+            OpenXmlElement oxl = body.ChildElements.GetItem(body.ChildElements.Count - 2);
+            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            //SectionProperties sectionProperties1 = new SectionProperties() {RsidR = oxl.GetAttribute("rsidR", oxl.NamespaceUri).Value};
+            SectionProperties sectionProperties1 = new SectionProperties() {  };
+            HeaderReference headerReference2 = new HeaderReference() {Type = HeaderFooterValues.Default, Id = part.GetIdOfPart(part.HeaderParts.FirstOrDefault())};
+            FooterReference footerReference2 = new FooterReference() {Type = HeaderFooterValues.Default, Id = part.GetIdOfPart(part.FooterParts.FirstOrDefault())};
+            PageSize pageSize1 = new PageSize() {Width = (UInt32Value) 12240U, Height = (UInt32Value) 15840U};
+            PageMargin pageMargin1 = new PageMargin() {Top = 1440, Right = (UInt32Value) 1440U, Bottom = 1440, Left = (UInt32Value) 1440U, Header = (UInt32Value) 720U, Footer = (UInt32Value) 720U, Gutter = (UInt32Value) 0U};
+            Columns columns1 = new Columns() {Space = "720"};
+            DocGrid docGrid1 = new DocGrid() {LinePitch = 360};
+            sectionProperties1.Append(headerReference2);
+            sectionProperties1.Append(footerReference2);
+            sectionProperties1.Append(pageSize1);
+            sectionProperties1.Append(pageMargin1);
+            sectionProperties1.Append(columns1);
+            sectionProperties1.Append(docGrid1);
+            paragraphProperties1.Append(sectionProperties1);
+            oxl.InsertAt<ParagraphProperties>(paragraphProperties1, 0);
+            body.InsertBefore<Paragraph>(GenerateParagraph(strtxt, oxl.GetAttribute("rsidRDefault", oxl.NamespaceUri).Value), body.GetFirstChild<SectionProperties>());
+            part.Document.Save();
+            wordprocessingDocument.Close();
+        }
+
+        //Generate new Paragraph
+        public static Paragraph GenerateParagraph(string text, string rsidR) {
+            Paragraph paragraph1 = new Paragraph() {RsidParagraphAddition = rsidR};
+            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            Tabs tabs1 = new Tabs();
+            TabStop tabStop1 = new TabStop() {Val = TabStopValues.Left, Position = 5583};
+            tabs1.Append(tabStop1);
+            paragraphProperties1.Append(tabs1);
+            Run run1 = new Run();
+            Text text1 = new Text();
+            text1.Text = text;
+            run1.Append(text1);
+            Run run2 = new Run();
+            TabChar tabChar1 = new TabChar();
+            run2.Append(tabChar1);
+            paragraph1.Append(paragraphProperties1);
+            paragraph1.Append(run1);
+            paragraph1.Append(run2);
+            return paragraph1;
+        }
+
+        static void GenerateHeaderPartContent(HeaderPart hpart) {
+            Header header1 = new Header();
+            Paragraph paragraph1 = new Paragraph();
+            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() {Val = "Header"};
+            paragraphProperties1.Append(paragraphStyleId1);
+            Run run1 = new Run();
+            Text text1 = new Text();
+            text1.Text = "";
+            run1.Append(text1);
+            paragraph1.Append(paragraphProperties1);
+            paragraph1.Append(run1);
+            header1.Append(paragraph1);
+            hpart.Header = header1;
+        }
+
+        static void GenerateFooterPartContent(FooterPart fpart) {
+            Footer footer1 = new Footer();
+            Paragraph paragraph1 = new Paragraph();
+            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() {Val = "Footer"};
+            paragraphProperties1.Append(paragraphStyleId1);
+            Run run1 = new Run();
+            Text text1 = new Text();
+            text1.Text = "";
+            run1.Append(text1);
+            paragraph1.Append(paragraphProperties1);
+            paragraph1.Append(run1);
+            footer1.Append(paragraph1);
+            fpart.Footer = footer1;
+        }
     }
 }
