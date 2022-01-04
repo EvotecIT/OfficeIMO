@@ -12,6 +12,7 @@
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/top/evotecit/OfficeIMO.svg"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/code-size/evotecit/OfficeIMO.svg"></a>
+  <a href="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51"><img src="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg" alt="wakatime"></a>
 </p>
 
 <p align="center">
@@ -41,6 +42,42 @@ I hope you get the drift? If it's bad - open an issue/fix it! I don't know what 
 The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 and so on.
 
 **This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
+
+## Features
+
+- [x] Word basics
+  - [x] Create
+  - [x] Load
+  - [x] Save
+  - [ ] SaveAs (not working correcly in edge cases)
+- [x] Word properties
+  - [ ] Reading
+  - [ ] Setting
+- [x] Sections
+  - [x] Add Paragraphs
+  - [ ] Add Headers and Footers
+  - [ ] Remove Headers and Footers
+  - [ ] Remove Paragraphs
+  - [ ] Remove Sections
+- [ ] Headers and Footers in document (not including sections)
+  - [ ] Add Default, Odd, Even, First
+- [x] Paragraphs/Text and make it bold, underlined, colored and so on
+- [x] Paragraphs and change alignment
+- [ ] Tables
+  - [ ] Add rows and columns
+  - [ ] Add cells
+  - [ ] Add cell properties
+- [x] Images/Pictures (limited support - jpg only / inline type only)
+  - [x] Add images from file to Word
+  - [x] Save image from Word to File
+  - [ ] Other image types
+  - [ ] Other location types
+- [ ] Hyperlinks
+- [ ] Bookmarks
+- [ ] Comments
+- [ ] Fields
+- [ ] Shapes
+- [ ] Charts
 
 ## Examples
 
