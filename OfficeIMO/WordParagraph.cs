@@ -43,7 +43,8 @@ namespace OfficeIMO {
             }
 
             if (document != null) {
-                document.Paragraphs.Add(this);
+                document._currentSection.Paragraphs.Add(this);
+                //document.Paragraphs.Add(this);
             }
         }
 
@@ -59,6 +60,13 @@ namespace OfficeIMO {
         /// <param name="paragraph"></param>
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             //_paragraph = paragraph;
+            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
+
+                this._paragraph = paragraph;
+                return;
+            }
+
             int count = 0;
             foreach (var run in paragraph.ChildElements.OfType<Run>()) {
                 RunProperties runProperties = run.RunProperties;
@@ -79,9 +87,11 @@ namespace OfficeIMO {
 
                     wordParagraph.Image = newImage;
 
-                    document.Paragraphs.Add(wordParagraph);
+                    //document.Paragraphs.Add(wordParagraph);
+                    document._currentSection.Paragraphs.Add(this);
                     if (wordParagraph.IsPageBreak) {
-                        document.PageBreaks.Add(wordParagraph);
+                        //document.PageBreaks.Add(wordParagraph);
+                        document._currentSection.PageBreaks.Add(this);
                     }
                 } else {
                     this._run = run;
@@ -92,9 +102,11 @@ namespace OfficeIMO {
                     if (newImage != null) {
                         this.Image = newImage;
                     }
-                    document.Paragraphs.Add(this);
+                    //document.Paragraphs.Add(this);
+                    //document._currentSection.Paragraphs.Add(this);
                     if (this.IsPageBreak) {
-                        document.PageBreaks.Add(this);
+                        //document.PageBreaks.Add(this);
+                        document._currentSection.PageBreaks.Add(this);
                     }
                 }
                 count++;

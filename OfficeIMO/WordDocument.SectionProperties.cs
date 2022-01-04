@@ -6,7 +6,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public partial class WordDocument {
-
         public PageOrientationValues PageOrientation {
             get {
                 if (this.Sections.Count > 1) {

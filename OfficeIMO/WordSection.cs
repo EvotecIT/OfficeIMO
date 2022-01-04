@@ -174,7 +174,8 @@ namespace OfficeIMO {
                 var paragraph = lastParagraphWithinSection.InsertParagraphAfterSelf();
                 paragraph._document = this._document;
                 paragraph._section = this;
-                this.Paragraphs.Add(paragraph);
+                
+                //this.Paragraphs.Add(paragraph);
                 paragraph.Text = text;
                 return paragraph;
                 //paragraph._paragraph.InsertAfterSelf(new )
@@ -184,7 +185,7 @@ namespace OfficeIMO {
             }
 
             //this._document.InsertParagraph(text);
-            //_document._currentSection.InsertParagraph("test");
+           // _document._currentSection.InsertParagraph("test");
         }
     }
 }

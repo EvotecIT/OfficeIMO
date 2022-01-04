@@ -9,14 +9,40 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public partial class WordDocument : IDisposable {
-        public List<WordParagraph> Paragraphs = new List<WordParagraph>();
-        public List<WordParagraph> PageBreaks = new List<WordParagraph>();
+        //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+
+        public List<WordParagraph> Paragraphs {
+            get {
+                //if (this.Sections.Count > 1) {
+                //    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
+                //}
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Paragraphs);
+                }
+
+                return list;
+            }
+        }
+        public List<WordParagraph> PageBreaks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.PageBreaks);
+                }
+
+                return list;
+            }
+        }
+
+        //public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
         public readonly List<WordSection> Sections = new List<WordSection>();
 
         public string FilePath { get; set; }
 
         public WordSettings Settings;
+        public BuiltinDocumentProperties BuiltinDocumentProperties;
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -24,6 +50,12 @@ namespace OfficeIMO {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
+
+        public FileAccess FileOpenAccess {
+            get {
+                return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess;
+            }
+        }
 
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
@@ -70,6 +102,7 @@ namespace OfficeIMO {
                 word._document = wordDocument.MainDocumentPart.Document;
 
                 WordSettings wordSettings = new WordSettings(word);
+                BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
                 WordSection wordSection = new WordSection(word);
 
                 return word;
@@ -78,13 +111,13 @@ namespace OfficeIMO {
             }
         }
 
-        private List<WordParagraph> LoadDocument() {
+        private void LoadDocument() {
             // add settings if not existing
-            new WordSettings(this);
+            var wordSettings = new WordSettings(this);
+            BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(this);
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this);
-
-
+            
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
                 WordParagraph wordParagraph = new WordParagraph(this, paragraph);
@@ -99,15 +132,15 @@ namespace OfficeIMO {
                     //    wordSection.Paragraphs.Add(wordParagraph);
                     //}
                     wordSection = new WordSection(this, paragraph);
-                    Debug.WriteLine(wordSection.Paragraphs.Count);
+                   // Debug.WriteLine(wordSection.Paragraphs.Count);
                 } else {
                     wordSection.Paragraphs.Add(wordParagraph);
                 }
 
-                Debug.WriteLine(wordSection.Paragraphs.Count);
+                //Debug.WriteLine(wordSection.Paragraphs.Count);
             }
 
-            return this.Paragraphs;
+           // return this.Paragraphs;
         }
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
@@ -195,11 +228,11 @@ namespace OfficeIMO {
                 wordParagraph = new WordParagraph(this);
             } else {
                 // since we created paragraph without adding it to document, we now need to add it to document
-                this.Paragraphs.Add(wordParagraph);
+                //this.Paragraphs.Add(wordParagraph);
             }
 
-            this._currentSection.Paragraphs.Add(wordParagraph);
-            wordParagraph._section = this._currentSection;
+            //this._currentSection.Paragraphs.Add(wordParagraph);
+           // wordParagraph._section = this._currentSection;
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -216,8 +249,11 @@ namespace OfficeIMO {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             this._document.Body.Append(newWordParagraph._paragraph);
-            this.PageBreaks.Add(newWordParagraph);
-            this.Paragraphs.Add(newWordParagraph);
+            
+            this._currentSection.PageBreaks.Add(newWordParagraph);
+            this._currentSection.Paragraphs.Add(newWordParagraph);
+            //this.PageBreaks.Add(newWordParagraph); 
+            //this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }
 
@@ -259,7 +295,7 @@ namespace OfficeIMO {
 
 
             this._document.MainDocumentPart.Document.Body.Append(paragraph);
-
+            
 
             WordSection wordSection = new WordSection(this, paragraph);
 
