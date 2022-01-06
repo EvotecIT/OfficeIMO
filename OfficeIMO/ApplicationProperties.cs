@@ -11,73 +11,146 @@ namespace OfficeIMO {
 
         public string Application {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application = new Application();
+                }
+
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application.Text = value;
             }
         }
         public string ApplicationVersion {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion = new ApplicationVersion();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion.Text = value;
             }
         }
         public string Paragraphs {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs = new Paragraphs();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text = value;
             }
         }
         public string Characters {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs = new Paragraphs();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters.Text = value;
             }
         }
         public string CharactersWithSpaces {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces = new CharactersWithSpaces();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces.Text = value;
             }
         }
         public string Company {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company == null) {
+                    return "";
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company.Text;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company = new Company();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company.Text = value;
             }
         }
         public DigitalSignature DigitalSignature {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = new DigitalSignature();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = value;
             }
         }
         public DocumentSecurity DocumentSecurity {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity = new DocumentSecurity();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity = value;
             }
         }
@@ -87,6 +160,9 @@ namespace OfficeIMO {
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs = new HeadingPairs();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs = value;
             }
         }
@@ -228,6 +304,7 @@ namespace OfficeIMO {
         private void CreateExtendedFileProperties() {
             if (_wordprocessingDocument.ExtendedFilePropertiesPart == null) {
                 _wordprocessingDocument.AddExtendedFilePropertiesPart();
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties = new Properties();
             }
         }
     }

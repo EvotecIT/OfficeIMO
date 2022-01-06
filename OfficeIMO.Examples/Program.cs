@@ -14,7 +14,7 @@ using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace OfficeIMO.Examples {
-    internal class Program {
+    internal static class Program {
         private static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);

@@ -83,6 +83,10 @@ namespace OfficeIMO.Tests {
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Evotec"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
+                Assert.True(document.ApplicationProperties.Application == "", "Application not matching?");
+
+                document.ApplicationProperties.Application = "OfficeIMO C#";
+                document.ApplicationProperties.ApplicationVersion = "1.1.0";
 
                 //Assert.True(document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
                 //Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
@@ -94,6 +98,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title");
                 Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category");
+
+                Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
+                Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx"))) {
@@ -114,6 +121,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
                 Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+
+                Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
+                Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
                 document.Save();
             }
 
@@ -132,6 +142,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
                 Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+
+                Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
+                Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
                 document.Save();
             }
         }
