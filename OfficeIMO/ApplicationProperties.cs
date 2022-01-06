@@ -156,6 +156,12 @@ namespace OfficeIMO {
         }
         public HeadingPairs HeadingPairs {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs;
             }
             set {
@@ -168,129 +174,245 @@ namespace OfficeIMO {
         }
         public HiddenSlides HiddenSlides {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides = new HiddenSlides();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides = value;
             }
         }
         public HyperlinkBase HyperlinkBase {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase = new HyperlinkBase();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase = value;
             }
         }
         public HyperlinkList HyperlinkList {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList = new HyperlinkList();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList = value;
             }
         }
         public Lines Lines {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines = new Lines();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines = value;
             }
         }
         public Manager Manager {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager = new Manager();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager = value;
             }
         }
         public HyperlinksChanged HyperlinksChanged {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged = new HyperlinksChanged();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged = value;
             }
         }
         public Notes Notes {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes = new Notes();
+                }
+
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes = value;
             }
         }
         public MultimediaClips MultimediaClips {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips = new MultimediaClips();
+                }
+
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips = value;
             }
         }
         public TotalTime TotalTime {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime = new TotalTime();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime = value;
             }
         }
         public ScaleCrop ScaleCrop {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop = new ScaleCrop();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop = value;
             }
         }
         public PresentationFormat PresentationFormat {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat = new PresentationFormat();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat = value;
             }
         }
         public Template Template {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template = new Template();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template = value;
             }
         }
 
         public SharedDocument SharedDocument {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument = new SharedDocument();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument = value;
             }
         }
 
         public Words Words {
             get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return null;
+                }
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words;
             }
             set {
                 CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words = new Words();
+                }
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words = value;
             }
         }

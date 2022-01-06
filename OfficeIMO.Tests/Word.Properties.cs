@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests {
                 document.ApplicationProperties.ApplicationVersion = "1.1.0";
 
                 //Assert.True(document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
-                //Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
-                //Assert.True(document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
 
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
