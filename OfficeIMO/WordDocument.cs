@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -20,7 +21,6 @@ namespace OfficeIMO {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Paragraphs);
                 }
-
                 return list;
             }
         }
@@ -43,6 +43,11 @@ namespace OfficeIMO {
 
         public WordSettings Settings;
         public BuiltinDocumentProperties BuiltinDocumentProperties;
+        //public CustomDocumentProperties CustomDocumentProperties;
+
+        public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
+        public WordCustomProperties _customDocumentProperties;
+
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -50,6 +55,7 @@ namespace OfficeIMO {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
+      
 
         public FileAccess FileOpenAccess {
             get {
@@ -103,6 +109,7 @@ namespace OfficeIMO {
 
                 WordSettings wordSettings = new WordSettings(word);
                 BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
+                //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
                 WordSection wordSection = new WordSection(word);
 
                 return word;
@@ -114,7 +121,9 @@ namespace OfficeIMO {
         private void LoadDocument() {
             // add settings if not existing
             var wordSettings = new WordSettings(this);
-            BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(this);
+            var builtinDocumentProperties = new BuiltinDocumentProperties(this);
+            var wordCustomProperties = new WordCustomProperties(this);
+            //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this);
             
@@ -132,15 +141,8 @@ namespace OfficeIMO {
                     //    wordSection.Paragraphs.Add(wordParagraph);
                     //}
                     wordSection = new WordSection(this, paragraph);
-                   // Debug.WriteLine(wordSection.Paragraphs.Count);
-                } else {
-                    wordSection.Paragraphs.Add(wordParagraph);
-                }
-
-                //Debug.WriteLine(wordSection.Paragraphs.Count);
+                } 
             }
-
-           // return this.Paragraphs;
         }
 
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
@@ -156,18 +158,24 @@ namespace OfficeIMO {
                 AutoSave = autoSave
             };
 
-            WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
+            // this seems to solve an issue where custom properties wouldn't want to save when opening file
+            // no problem with creating empty
+            FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
+            var package = Package.Open(filePath, fileMode);
+            //WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
+            WordprocessingDocument wordDocument = WordprocessingDocument.Open(package, openSettings);
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
 
             word.LoadDocument();
-            //word.GetImages();
             return word;
         }
-
+        
         public void Save(string filePath, bool openWord) {
             MoveSectionProperties();
+            //CreateCustomProperty1(this);
+            WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
             if (this._wordprocessingDocument != null) {
                 try {
                     if (filePath != "") {
@@ -185,6 +193,7 @@ namespace OfficeIMO {
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
+
 
             if (openWord) {
                 if (filePath == "") {

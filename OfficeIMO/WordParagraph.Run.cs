@@ -6,7 +6,15 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public partial class WordParagraph {
+        public bool IsEmpty {
+            get {
+                if (_run == null) {
+                    return true;
+                }
 
+                return false;
+            }
+        }
         public bool IsPageBreak {
             get {
                 var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();

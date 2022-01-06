@@ -3,6 +3,14 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
+    public enum PropertyTypes : int {
+        Undefined,
+        YesNo,
+        Text,
+        DateTime,
+        NumberInteger,
+        NumberDouble
+    }
     public enum CapsStyle {
         /// <summary>
         /// No caps, characters as written.

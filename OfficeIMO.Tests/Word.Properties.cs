@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -49,6 +50,89 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
                 Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+            }
+        }
+        [Fact]
+        public void Test_CreatingDocumentWithCustomProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.BuiltinDocumentProperties.Title = "This is a test for Title";
+                document.BuiltinDocumentProperties.Category = "This is a test for Category";
+
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+
+                string date = "7/7/2011 10:48";
+                DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
+
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = dateTime });
+                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Evotec"));
+                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+
+
+                //Assert.True(document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                //Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                //Assert.True(document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
+                Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title");
+                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category");
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx"))) {
+                string date = "7/7/2011 10:48";
+                DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
+
+                //Assert.True((DateTime) document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                Assert.True((bool) document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string) document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+
+                document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
+
+                Assert.True((string) document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
+
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);
+                Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
+                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx"))) {
+
+                string date = "7/7/2011 10:48";
+                DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
+
+                //Assert.True((DateTime)document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
+
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);
+                Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
+                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+                document.Save();
             }
         }
     }

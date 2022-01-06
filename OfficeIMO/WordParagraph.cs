@@ -68,48 +68,57 @@ namespace OfficeIMO {
             }
 
             int count = 0;
-            foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-                RunProperties runProperties = run.RunProperties;
-                Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+            var listRuns = paragraph.ChildElements.OfType<Run>();
+            if (listRuns.Any()) {
+                foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+                    RunProperties runProperties = run.RunProperties;
+                    Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
 
-                WordImage newImage = null;
-                if (drawing != null) {
-                    newImage = new WordImage(document, drawing);
+                    WordImage newImage = null;
+                    if (drawing != null) {
+                        newImage = new WordImage(document, drawing);
+                    }
+
+                    if (count > 0) {
+                        WordParagraph wordParagraph = new WordParagraph(this._document);
+                        wordParagraph._run = run;
+                        wordParagraph._text = text;
+                        wordParagraph._paragraph = paragraph;
+                        wordParagraph._runProperties = runProperties;
+
+                        wordParagraph.Image = newImage;
+
+                        //document.Paragraphs.Add(wordParagraph);
+                        document._currentSection.Paragraphs.Add(wordParagraph);
+                        if (wordParagraph.IsPageBreak) {
+                            //document.PageBreaks.Add(wordParagraph);
+                            document._currentSection.PageBreaks.Add(wordParagraph);
+                        }
+                    } else {
+                        this._run = run;
+                        this._text = text;
+                        this._paragraph = paragraph;
+                        this._runProperties = runProperties;
+
+                        if (newImage != null) {
+                            this.Image = newImage;
+                        }
+                        //document.Paragraphs.Add(this);
+                        //document._currentSection.Paragraphs.Add(this);
+
+                        document._currentSection.Paragraphs.Add(this);
+                        if (this.IsPageBreak) {
+                            //document.PageBreaks.Add(this);
+                            document._currentSection.PageBreaks.Add(this);
+                        }
+                    }
+
+                    count++;
                 }
-
-                if (count > 0) {
-                    WordParagraph wordParagraph = new WordParagraph(this._document);
-                    wordParagraph._run = run;
-                    wordParagraph._text = text;
-                    wordParagraph._paragraph = paragraph;
-                    wordParagraph._runProperties = runProperties;
-
-                    wordParagraph.Image = newImage;
-
-                    //document.Paragraphs.Add(wordParagraph);
-                    document._currentSection.Paragraphs.Add(this);
-                    if (wordParagraph.IsPageBreak) {
-                        //document.PageBreaks.Add(wordParagraph);
-                        document._currentSection.PageBreaks.Add(this);
-                    }
-                } else {
-                    this._run = run;
-                    this._text = text;
-                    this._paragraph = paragraph;
-                    this._runProperties = runProperties;
-
-                    if (newImage != null) {
-                        this.Image = newImage;
-                    }
-                    //document.Paragraphs.Add(this);
-                    //document._currentSection.Paragraphs.Add(this);
-                    if (this.IsPageBreak) {
-                        //document.PageBreaks.Add(this);
-                        document._currentSection.PageBreaks.Add(this);
-                    }
-                }
-                count++;
+            } else {
+                // this is an empty paragraph so we add it
+                document._currentSection.Paragraphs.Add(this);
             }
         }
 

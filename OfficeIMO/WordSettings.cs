@@ -52,6 +52,37 @@ namespace OfficeIMO {
             }
         }
 
+        public bool UpdateFieldsOnOpen {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var updateFieldsOnOpen = settings.GetFirstChild<UpdateFieldsOnOpen>();
+                if (updateFieldsOnOpen == null) {
+                    return false;
+                }
+                return updateFieldsOnOpen.Val;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var updateFieldsOnOpen = settings.GetFirstChild<UpdateFieldsOnOpen>();
+                if (updateFieldsOnOpen == null) {
+                    updateFieldsOnOpen = new UpdateFieldsOnOpen();
+                }
+
+                updateFieldsOnOpen.Val = value;
+                settings.PrependChild<UpdateFieldsOnOpen>(updateFieldsOnOpen);
+                //settings.Save();
+            }
+        }
+
+        ////Open Word Setting File
+        //DocumentSettingsPart settingsPart = xmlDOc.MainDocumentPart.GetPartsOfType<DocumentSettingsPart>().First();
+        ////Update Fields
+        //UpdateFieldsOnOpen updateFields = new UpdateFieldsOnOpen();
+        //updateFields.Val = new OnOffValue(true);
+
+        //settingsPart.Settings.PrependChild<UpdateFieldsOnOpen>(updateFields);
+        //settingsPart.Settings.Save();
+
         public WordSettings(WordDocument document) {
             if (document.FileOpenAccess != FileAccess.Read) {
                 var documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;

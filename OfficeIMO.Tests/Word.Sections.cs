@@ -30,6 +30,8 @@ namespace OfficeIMO.Tests {
                 // There is only one PageBreak in this document.
                 Assert.True(document.Sections.Count == 1);
 
+                Assert.True(document.Paragraphs[0].IsEmpty == true, "Paragraph is not empty");
+
                 // This table has 12 Paragraphs.
                 //Assert.True(t0.Paragraphs.Count() == 12);
             }
@@ -39,6 +41,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "EmptyDocumentWithSection.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs is wrong.");
+
+                Assert.True(document.Paragraphs[0].IsEmpty == true, "Paragraph is not empty");
 
                 // There is only one PageBreak in this document.
                 Assert.True(document.Sections.Count == 2, "Number of sections is wrong.");
@@ -74,6 +78,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.InsertParagraph("Test 1");
 
+                Assert.True(document.Paragraphs[0].IsEmpty == false, "Paragraph is empty");
+
                 var section1 = document.InsertSection();
                 section1.InsertParagraph("Test 1");
 
@@ -95,6 +101,9 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections.docx"))) {
                 // There is only one Paragraph at the document level.
+
+                Assert.True(document.Paragraphs[0].IsEmpty == false, "Paragraph is empty");
+
                 Assert.True(document.Paragraphs.Count == 4, "Number of paragraphs during load is wrong.");
                 Assert.True(document.Sections.Count == 4, "Number of sections during load is wrong.");
 

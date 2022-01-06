@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Helper;
+using Color = System.Drawing.Color;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
@@ -64,9 +65,9 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks1.docx");
             //Example_PageBreaks1(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with sections");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections.docx");
-            Example_BasicSections(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with sections");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections.docx");
+            //Example_BasicSections(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with Sections");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
@@ -87,8 +88,17 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Loading basic document");
             //Example_Load(filePath, true);
 
+            //Console.WriteLine("[*] Creating standard document with paragraphs");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
+            //Example_BasicParagraphs(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with custom properties");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with custom properties.docx");
+            Example_BasicCustomProperties(filePath, true);
+
             //OpenAndAddTextToWordDocument();
         }
+
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -596,16 +606,17 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.InsertParagraph("Test 1 - Should be before 1st section");
+                document.InsertParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
                 
                 var section1 = document.InsertSection();
-                section1.InsertParagraph("Test 1 - Should be after 1st section");
+                section1.InsertParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
                 
                 document.InsertParagraph("Test 2 - Should be after 1st section");
                 var section2 = document.InsertSection();
 
                 document.InsertParagraph("Test 3 - Should be after 2nd section");
-                document.InsertParagraph("Test 4 - Should be after 2nd section");
+                document.InsertParagraph("Test 4 - Should be after 2nd section").SetBold().AppendText(" more text").SetColor(Color.DarkSalmon);
+
                 var section3 = document.InsertSection();
 
                 var para = document.InsertParagraph("Test 5 -");
@@ -613,6 +624,21 @@ namespace OfficeIMO.Examples {
                 para.Bold = true;
 
                 document.InsertPageBreak();
+
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
+
+                paragraph.SetBold().SetFontFamily("Tahoma");
+                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
+
+                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
+
+                paragraph.SetBold().SetFontFamily("Tahoma");
+                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
+
 
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
@@ -637,6 +663,40 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
 
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicParagraphs(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
+
+                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+
+                
+                Console.WriteLine("+ Color: " + paragraph.Color);
+                Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);
+                Console.WriteLine("+ Color 1: " + document.Paragraphs[1].Color);
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);
+                Console.WriteLine("+ Color 1: " + document.Paragraphs[1].Color);
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                // primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 document.Save(openWord);
             }
         }
@@ -690,8 +750,7 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
-
+        
         private static void Example_BasicWordWithSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.InsertParagraph("Test 1");
@@ -759,5 +818,36 @@ namespace OfficeIMO.Examples {
                 document.Dispose();
             }
         }
+        private static void Example_BasicCustomProperties(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+
+                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
+                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
+                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
+                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
+                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
+                
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath, false)) {
+                Console.WriteLine("* Loading document...");
+                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
+                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
+                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
+                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
+                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.GetEnumerator());
+
+                document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
+
+                document.Save(openWord);
+            }
+        }
+
     }
 }
