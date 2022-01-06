@@ -92,11 +92,19 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
             //Example_BasicParagraphs(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with custom properties");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with custom properties.docx");
-            Example_BasicCustomProperties(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with custom properties");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with custom properties.docx");
+            //Example_BasicCustomProperties(filePath, true);
 
-            //OpenAndAddTextToWordDocument();
+            //Console.WriteLine("[*] Creating standard document and validate it");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document for validation.docx");
+            //Example_ValidateDocument(filePath);
+
+            //Console.WriteLine("[*] Creating standard document and validate it without saving");
+            //Example_ValidateDocument_BeforeSave();
+
+            Console.WriteLine("[*] Loading standard document to check properties");
+            Example_LoadDocumentWithProperties(true);
         }
 
 
@@ -802,8 +810,10 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_Load(string filePath, bool openWord) {
-            filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\DocumentWithSection.docx";
+        private static void Example_Load(bool openWord = false) {
+            string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
+            string filePath = System.IO.Path.Combine(folderPath, "DocumentWithSection.docx");
+            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\DocumentWithSection.docx";
             //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\EmptyDocumentWithSection.docx";
 
             using (WordDocument document = WordDocument.Load(filePath, true)) {
@@ -814,8 +824,27 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
                 Console.WriteLine("+ Sections: " + document.Sections.Count);
+                
+                document.Open(openWord);
+            }
+        }
 
-                document.Dispose();
+        private static void Example_LoadDocumentWithProperties(bool openWord = false) {
+            string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
+            string filePath = System.IO.Path.Combine(folderPath, "DocumentWithBuiltinAndCustomProperties.docx");
+
+            using (WordDocument document = WordDocument.Load(filePath, true)) {
+                Console.WriteLine("+ Document Path: " + document.FilePath);
+                Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
+                Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
+
+                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
+                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
+
+                Console.WriteLine(document.ApplicationProperties.ApplicationVersion);
+
+                document.Open(openWord);
             }
         }
         private static void Example_BasicCustomProperties(string filePath, bool openWord) {
@@ -849,5 +878,43 @@ namespace OfficeIMO.Examples {
             }
         }
 
+        private static void Example_ValidateDocument(string filePath) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+
+                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
+                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
+                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
+                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
+                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
+
+                document.Save();
+            }
+            Validation.ValidateWordDocument(filePath);
+        }
+
+        private static void Example_ValidateDocument_BeforeSave() {
+            using (WordDocument document = WordDocument.Create()) {
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+
+                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
+                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
+                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
+                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
+                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
+
+                document.ValidateDocument();
+            }
+        }
     }
 }

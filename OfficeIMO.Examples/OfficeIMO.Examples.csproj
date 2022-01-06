@@ -28,6 +28,9 @@
     <None Update="Images\PrzemyslawKlysAndKulkozaurr.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\DocumentWithBuiltinAndCustomProperties.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

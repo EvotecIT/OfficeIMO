@@ -6,6 +6,7 @@ using System.IO.Packaging;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
@@ -42,8 +43,9 @@ namespace OfficeIMO {
         public string FilePath { get; set; }
 
         public WordSettings Settings;
+
+        public ApplicationProperties ApplicationProperties;
         public BuiltinDocumentProperties BuiltinDocumentProperties;
-        //public CustomDocumentProperties CustomDocumentProperties;
 
         public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         public WordCustomProperties _customDocumentProperties;
@@ -107,7 +109,9 @@ namespace OfficeIMO {
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart.Document;
 
+
                 WordSettings wordSettings = new WordSettings(word);
+                ApplicationProperties applicationProperties = new ApplicationProperties(word);
                 BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
                 //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
                 WordSection wordSection = new WordSection(word);
@@ -121,6 +125,7 @@ namespace OfficeIMO {
         private void LoadDocument() {
             // add settings if not existing
             var wordSettings = new WordSettings(this);
+            var applicationProperties = new ApplicationProperties(this);
             var builtinDocumentProperties = new BuiltinDocumentProperties(this);
             var wordCustomProperties = new WordCustomProperties(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
@@ -171,6 +176,22 @@ namespace OfficeIMO {
             word.LoadDocument();
             return word;
         }
+
+        public void Open(bool openWord = true) {
+            this.Open("",openWord);
+        }
+
+        public void Open(string filePath = "", bool openWord = true) {
+            if (openWord) {
+                if (filePath == "") {
+                    filePath = this.FilePath;
+                }
+                ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
+                    UseShellExecute = true
+                };
+                Process.Start(startInfo);
+            }
+        }
         
         public void Save(string filePath, bool openWord) {
             MoveSectionProperties();
@@ -194,17 +215,7 @@ namespace OfficeIMO {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-
-            if (openWord) {
-                if (filePath == "") {
-                    filePath = this.FilePath;
-                }
-
-                ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
-            }
+            this.Open(filePath, openWord);
         }
 
         public void Save() {
@@ -312,5 +323,29 @@ namespace OfficeIMO {
         }
 
         public WordSection _currentSection { get; set; }
+
+
+        public bool ValidateDocument() {
+            bool foundIssue = false;
+            try {
+                OpenXmlValidator validator = new OpenXmlValidator();
+                int count = 0;
+                foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
+                    count++;
+                    Console.WriteLine("Error " + count);
+                    Console.WriteLine("Description: " + error.Description);
+                    Console.WriteLine("ErrorType: " + error.ErrorType);
+                    Console.WriteLine("Node: " + error.Node);
+                    Console.WriteLine("Path: " + error.Path.XPath);
+                    Console.WriteLine("Part: " + error.Part.Uri);
+                    Console.WriteLine("-------------------------------------------");
+                    foundIssue = true;
+                }
+                Console.WriteLine("count={0}", count);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            return foundIssue;
+        }
     }
 }
