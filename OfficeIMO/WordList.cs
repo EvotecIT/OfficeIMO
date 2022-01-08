@@ -73,9 +73,20 @@ namespace OfficeIMO {
             //return numbering;
         }
 
-        public void AddList(ListStyles style) {
-            _numberId = _document._listNumbers;
+        public void CreateNumberingDefinition(WordDocument document) {
+            NumberingDefinitionsPart numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+            if (numberingDefinitionsPart == null) {
+                numberingDefinitionsPart = _wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+            }
+            
+            //_numberingDefinitionsPart = numberingDefinitionsPart;
+        }
 
+        public void AddList(ListStyles style) {
+            CreateNumberingDefinition(_document);
+            
+            _numberId = _document._listNumbers;
+            
             Numbering numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
             if (numbering == null) {
                 numbering = new Numbering();
@@ -99,6 +110,7 @@ namespace OfficeIMO {
         }
 
         public void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
+            CreateNumberingDefinition(_document);
             if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering == null) {
                 Numbering numbering = new Numbering();
                 numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);

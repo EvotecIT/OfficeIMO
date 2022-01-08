@@ -28,9 +28,9 @@ namespace OfficeIMO.Examples {
             //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
             //Example_BasicEmptyWord(filePath, false);
 
-            //Console.WriteLine("[*] Creating standard document with paragraph");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
-            //Example_BasicWord(filePath, true);
+            Console.WriteLine("[*] Creating standard document with paragraph");
+            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
+            Example_BasicWord(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
@@ -109,7 +109,12 @@ namespace OfficeIMO.Examples {
 
             Console.WriteLine("[*] Loading standard document with lists");
             filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
-            Example_BasicLists2Load(filePath, true);
+            Example_BasicLists2Load(filePath, false);
+
+
+            Console.WriteLine("[*] Creating standard document with tables");
+            filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
+            Example_BasicTables1(filePath, false);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1139,6 +1144,17 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ List element 0 text: " + document.Lists[0].ListItems[0].Text);
                 Console.WriteLine("+ List element 1 text: " + document.Lists[0].ListItems[1].Text);
                 Console.WriteLine("+ List element 2 text: " + document.Lists[0].ListItems[2].Text);
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicTables1(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                
+
                 document.Save(openWord);
             }
         }

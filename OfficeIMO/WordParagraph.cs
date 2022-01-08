@@ -22,7 +22,7 @@ namespace OfficeIMO {
 
         public bool IsListItem {
             get {
-                if (_paragraphProperties.NumberingProperties != null) {
+                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
                     return true;
                 } else {
                     return false;
@@ -32,14 +32,14 @@ namespace OfficeIMO {
 
         public int? ListItemLevel {
             get {
-                if (_paragraphProperties.NumberingProperties != null) {
+                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
                     return _paragraphProperties.NumberingProperties.NumberingLevelReference.Val;
                 } else {
                     return null;
                 }
             }
             set {
-                if (_paragraphProperties.NumberingProperties != null) {
+                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
                     if (_paragraphProperties.NumberingProperties.NumberingLevelReference != null) {
                         _paragraphProperties.NumberingProperties.NumberingLevelReference.Val = value;
                     }
@@ -50,7 +50,7 @@ namespace OfficeIMO {
         }
         private int? _listNumberId {
             get {
-                if (_paragraphProperties.NumberingProperties != null) {
+                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
                     return _paragraphProperties.NumberingProperties.NumberingId.Val;
                 } else {
                     return null;
@@ -111,10 +111,10 @@ namespace OfficeIMO {
             }
         }
 
-        public WordParagraph(string text) {
-            WordParagraph paragraph = new WordParagraph(this._document);
-            paragraph.Text = text;
-        }
+        //public WordParagraph(string text) {
+        //    WordParagraph paragraph = new WordParagraph(this._document);
+        //    paragraph.Text = text;
+        //}
 
         /// <summary>
         /// Builds paragraph list when loading from filesystem
@@ -154,7 +154,7 @@ namespace OfficeIMO {
 
                         wordParagraph.Image = newImage;
 
-                        document._currentSection.Paragraphs.Add(wordParagraph);
+                        //document._currentSection.Paragraphs.Add(wordParagraph);
                         if (wordParagraph.IsPageBreak) {
                             document._currentSection.PageBreaks.Add(wordParagraph);
                         }
@@ -172,9 +172,9 @@ namespace OfficeIMO {
                         if (newImage != null) {
                             this.Image = newImage;
                         }
-                        document._currentSection.Paragraphs.Add(this);
+                        this._document._currentSection.Paragraphs.Add(this);
                         if (this.IsPageBreak) {
-                            document._currentSection.PageBreaks.Add(this);
+                            this._document._currentSection.PageBreaks.Add(this);
                         }
                         if (this.IsListItem) {
                             LoadListToDocument(document, this);

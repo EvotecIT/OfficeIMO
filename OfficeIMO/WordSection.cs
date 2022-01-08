@@ -17,6 +17,7 @@ namespace OfficeIMO {
 
         //public IEnumerable<WordList> Lists { get; set; }
         public List<WordList> Lists = new List<WordList>();
+        public List<WordTable> Tables = new List<WordTable>();
         //// internal header properties for easy usage
         //internal Header _headerFirst;
         //internal Header _headerEven;

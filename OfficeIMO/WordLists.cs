@@ -14,11 +14,11 @@ namespace OfficeIMO {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
 
-            NumberingDefinitionsPart numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
-            if (numberingDefinitionsPart == null) {
-                numberingDefinitionsPart = _wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
-            }
-            _numberingDefinitionsPart = numberingDefinitionsPart;
+            //NumberingDefinitionsPart numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+            //if (numberingDefinitionsPart == null) {
+            //    numberingDefinitionsPart = _wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+            //}
+            //_numberingDefinitionsPart = numberingDefinitionsPart;
 
         }
     }
