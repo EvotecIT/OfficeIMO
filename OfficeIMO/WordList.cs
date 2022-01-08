@@ -12,7 +12,7 @@ namespace OfficeIMO {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;
         private WordSection _section;
-        private int _numberId;
+        internal int _numberId;
         private bool _continueNumbering;
 
         public List<WordParagraph> ListItems = new List<WordParagraph>();
@@ -40,14 +40,26 @@ namespace OfficeIMO {
             //        new Text("world!") {Space = SpaceProcessingModeValues.Preserve}));
         }
 
-        public WordList(WordDocument wordDocument, WordSection section, bool continueNumbering = false) {
+        public WordList(WordDocument wordDocument, WordSection section) {
             _document = wordDocument;
             _wordprocessingDocument = wordDocument._wordprocessingDocument;
             _section = section;
-            _continueNumbering = continueNumbering;
+            //_continueNumbering = continueNumbering;
             section.Lists.Add(this);
 
             _document._listNumbers++;
+        }
+
+        public WordList(WordDocument wordDocument, WordSection section, int numberId) {
+            _document = wordDocument;
+            _wordprocessingDocument = wordDocument._wordprocessingDocument;
+            _section = section;
+            _numberId = numberId;
+            //_continueNumbering = continueNumbering;
+            section.Lists.Add(this);
+
+            _document._listNumbers++;
+            _document._listNumbersUsed.Add(numberId);
         }
 
         public void BuiltinStyle(ListStyles style, ref AbstractNum abstractNum, ref NumberingInstance numberingInstance) {
@@ -82,7 +94,7 @@ namespace OfficeIMO {
 
 
             _document._ListAbstractNum.Add(abstractNum);
-            _document._listInstances.Add(numberingInstance);
+            _document._listNumberingInstances.Add(numberingInstance);
             //numbering.Append(numberingInstance, abstractNum);
         }
 

@@ -30,6 +30,34 @@ namespace OfficeIMO {
             }
         }
 
+        public int? ListItemLevel {
+            get {
+                if (_paragraphProperties.NumberingProperties != null) {
+                    return _paragraphProperties.NumberingProperties.NumberingLevelReference.Val;
+                } else {
+                    return null;
+                }
+            }
+            set {
+                if (_paragraphProperties.NumberingProperties != null) {
+                    if (_paragraphProperties.NumberingProperties.NumberingLevelReference != null) {
+                        _paragraphProperties.NumberingProperties.NumberingLevelReference.Val = value;
+                    }
+                } else {
+                    // should throw?
+                }
+            }
+        }
+        private int? _listNumberId {
+            get {
+                if (_paragraphProperties.NumberingProperties != null) {
+                    return _paragraphProperties.NumberingProperties.NumberingId.Val;
+                } else {
+                    return null;
+                }
+            }
+        }
+
         internal WordList _list;
 
         public string Text {
@@ -117,35 +145,39 @@ namespace OfficeIMO {
 
                     if (count > 0) {
                         WordParagraph wordParagraph = new WordParagraph(this._document);
+                        wordParagraph._document = document;
                         wordParagraph._run = run;
                         wordParagraph._text = text;
                         wordParagraph._paragraph = paragraph;
+                        wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
                         wordParagraph._runProperties = runProperties;
 
                         wordParagraph.Image = newImage;
 
-                        //document.Paragraphs.Add(wordParagraph);
                         document._currentSection.Paragraphs.Add(wordParagraph);
                         if (wordParagraph.IsPageBreak) {
-                            //document.PageBreaks.Add(wordParagraph);
                             document._currentSection.PageBreaks.Add(wordParagraph);
                         }
+                        if (wordParagraph.IsListItem) {
+                            LoadListToDocument(document, wordParagraph);
+                        }
                     } else {
+                        this._document = document;
                         this._run = run;
                         this._text = text;
                         this._paragraph = paragraph;
+                        this._paragraphProperties = paragraph.ParagraphProperties;
                         this._runProperties = runProperties;
 
                         if (newImage != null) {
                             this.Image = newImage;
                         }
-                        //document.Paragraphs.Add(this);
-                        //document._currentSection.Paragraphs.Add(this);
-
                         document._currentSection.Paragraphs.Add(this);
                         if (this.IsPageBreak) {
-                            //document.PageBreaks.Add(this);
                             document._currentSection.PageBreaks.Add(this);
+                        }
+                        if (this.IsListItem) {
+                            LoadListToDocument(document, this);
                         }
                     }
 
@@ -154,6 +186,26 @@ namespace OfficeIMO {
             } else {
                 // this is an empty paragraph so we add it
                 document._currentSection.Paragraphs.Add(this);
+            }
+        }
+
+        private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
+            if (wordParagraph.IsListItem) {
+                int? listId = wordParagraph._listNumberId;
+                if (listId != null) {
+                    if (!_document._listNumbersUsed.Contains(listId.Value)) {
+                        WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
+                        list.ListItems.Add(wordParagraph);
+                    } else {
+                        foreach (WordList list in _document.Lists) {
+                            if (list._numberId == listId.Value) {
+                                list.ListItems.Add(wordParagraph);
+                            }
+                        }
+                    }
+                } else {
+                    throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
+                }
             }
         }
 

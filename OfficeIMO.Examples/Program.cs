@@ -12,8 +12,8 @@ namespace OfficeIMO.Examples {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
             } else {
-               // Directory.Delete(path, true);
-               // Directory.CreateDirectory(path);
+                // Directory.Delete(path, true);
+                // Directory.CreateDirectory(path);
             }
         }
 
@@ -99,13 +99,19 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Loading standard document to check properties");
             //Example_LoadDocumentWithProperties(true);
 
-            Console.WriteLine("[*] Creating standard document with paragraphs");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Lists1.docx");
-            Example_BasicLists(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with lists");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Lists1.docx");
+            //Example_BasicLists(filePath, false);
             filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
-            Example_BasicLists2(filePath, true);
+            Example_BasicLists2(filePath, false);
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Lists3.docx");
+            //Example_BasicLists3(filePath, false);
+
+            Console.WriteLine("[*] Loading standard document with lists");
+            filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
+            Example_BasicLists2Load(filePath, true);
         }
-        
+
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Title = "This is my title";
@@ -310,7 +316,7 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
             Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
             Console.WriteLine("+ FileOpen: " + document.FileOpenAccess);
-            
+
             document.Dispose();
         }
 
@@ -401,7 +407,6 @@ namespace OfficeIMO.Examples {
 
         private static void Example_PageBreaks1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 var paragraph = document.InsertParagraph("Test 1");
                 paragraph.Text = "Test 2";
 
@@ -419,7 +424,6 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicWordWithHeaderAndFooter1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.Sections[0].ColumnsSpace = 50;
                 Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
                 Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
@@ -490,7 +494,7 @@ namespace OfficeIMO.Examples {
                 var section2 = document.InsertSection();
                 section2.AddHeadersAndFooters();
                 section2.DifferentFirstPage = true;
-                
+
 
                 // Add header to section
                 //var paragraghInHeaderSection = section2.Header.First.InsertParagraph();
@@ -501,7 +505,7 @@ namespace OfficeIMO.Examples {
 
                 paragraghInHeaderSection1 = section2.Header.First.InsertParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
-               // paragraghInHeaderSection1.InsertText("ok?");
+                // paragraghInHeaderSection1.InsertText("ok?");
 
                 paragraghInHeaderSection1 = section2.Header.Even.InsertParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
@@ -554,26 +558,24 @@ namespace OfficeIMO.Examples {
                 document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
 
                 Console.WriteLine("+ Page Orientation (middle): " + document.PageOrientation);
-                
+
                 document.PageOrientation = PageOrientationValues.Portrait;
 
                 Console.WriteLine("+ Page Orientation (ending): " + document.PageOrientation);
 
                 document.InsertParagraph("Test");
-                
+
                 document.Save(openWord);
             }
         }
 
         private static void Example_BasicWordWithHeaderAndFooterWithoutSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.BuiltinDocumentProperties.Title = "This is a test for Title";
                 document.BuiltinDocumentProperties.Category = "This is a test for Category";
-                
+
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
-
 
 
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
@@ -613,10 +615,10 @@ namespace OfficeIMO.Examples {
         private static void Example_BasicSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.InsertParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
-                
+
                 var section1 = document.InsertSection();
                 section1.InsertParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
-                
+
                 document.InsertParagraph("Test 2 - Should be after 1st section");
                 var section2 = document.InsertSection();
 
@@ -658,6 +660,7 @@ namespace OfficeIMO.Examples {
 
                 document.Save();
             }
+
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
@@ -681,7 +684,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
-                
+
                 Console.WriteLine("+ Color: " + paragraph.Color);
                 Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);
                 Console.WriteLine("+ Color 1: " + document.Paragraphs[1].Color);
@@ -694,6 +697,7 @@ namespace OfficeIMO.Examples {
 
                 document.Save();
             }
+
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);
                 Console.WriteLine("+ Color 1: " + document.Paragraphs[1].Color);
@@ -715,7 +719,7 @@ namespace OfficeIMO.Examples {
 
                 var paragraphInHeader = document.Header.Default.InsertParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
-                
+
                 document.InsertPageBreak();
 
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
@@ -724,10 +728,10 @@ namespace OfficeIMO.Examples {
 
                 var section2 = document.InsertSection();
                 section2.AddHeadersAndFooters();
-                
+
                 var paragraghInHeaderSection1 = section2.Header.Default.InsertParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
-                
+
                 paragraph = document.InsertParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
@@ -756,7 +760,7 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-        
+
         private static void Example_BasicWordWithSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.InsertParagraph("Test 1");
@@ -822,7 +826,7 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
                 Console.WriteLine("+ Sections: " + document.Sections.Count);
-                
+
                 document.Open(openWord);
             }
         }
@@ -845,12 +849,13 @@ namespace OfficeIMO.Examples {
                 document.Open(openWord);
             }
         }
+
         private static void Example_BasicCustomProperties(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -859,9 +864,10 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
                 Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
                 Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
-                
+
                 document.Save();
             }
+
             using (WordDocument document = WordDocument.Load(filePath, false)) {
                 Console.WriteLine("* Loading document...");
                 Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
@@ -881,7 +887,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -893,6 +899,7 @@ namespace OfficeIMO.Examples {
 
                 document.Save();
             }
+
             Validation.ValidateWordDocument(filePath);
         }
 
@@ -901,7 +908,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -932,7 +939,7 @@ namespace OfficeIMO.Examples {
                 paragraph.SetItalic();
 
                 paragraph = document.InsertParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
-                
+
                 WordList wordList1 = document.AddList(ListStyles.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList1.AddItem("Temp 2.1", 1).SetColor(Color.Brown);
@@ -968,11 +975,10 @@ namespace OfficeIMO.Examples {
                 wordList4.AddItem("Text 2.2", 1).SetColor(Color.Brown);
                 wordList4.AddItem("Text 2.3", 1).SetColor(Color.Brown);
                 wordList4.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
-                
+
                 document.Save(openWord);
             }
         }
-
 
         private static void Example_BasicLists2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -990,6 +996,9 @@ namespace OfficeIMO.Examples {
                 wordList2.AddItem("Temp 2");
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);
+                wordList2.AddItem("Text 3", 2);
+
+                wordList2.ListItems[3].ListItemLevel = 0;
 
                 paragraph = document.InsertParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
@@ -1004,35 +1013,132 @@ namespace OfficeIMO.Examples {
                 wordList4.AddItem("Text 1");
                 wordList4.AddItem("Text 2");
                 wordList4.AddItem("Text 3");
-                
+
                 paragraph = document.InsertParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList5 = document.AddList(ListStyles.BulletedChars);
                 wordList5.AddItem("Text 5");
                 wordList5.AddItem("Text 2", 1);
                 wordList5.AddItem("Text 3", 2);
-                
+
                 paragraph = document.InsertParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
-                
+
                 WordList wordList6 = document.AddList(ListStyles.Heading1ai);
                 wordList6.AddItem("Text 6");
                 wordList6.AddItem("Text 2", 1);
                 wordList6.AddItem("Text 3", 2);
 
                 paragraph = document.InsertParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
-                
+
                 WordList wordList7 = document.AddList(ListStyles.Headings111Shifted);
                 wordList7.AddItem("Text 7");
                 wordList7.AddItem("Text 2", 1);
                 wordList7.AddItem("Text 3", 2);
 
                 paragraph = document.InsertParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
-                
+
                 WordList wordList8 = document.AddList(ListStyles.Bulleted);
                 wordList8.AddItem("Text 8");
                 wordList8.AddItem("Text 8.1", 1);
                 wordList8.AddItem("Text 8.2", 2);
+                wordList8.AddItem("Text 8.3", 2);
+                wordList8.AddItem("Text 8.4", 0);
+                wordList8.AddItem("Text 8.5", 0);
+                wordList8.AddItem("Text 8.6", 1);
 
+                Console.WriteLine("+ Paragraphs count: " + document.Paragraphs.Count);
+                Console.WriteLine("+ Lists count: " + document.Lists.Count);
+
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicLists3(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.InsertParagraph("This is 1st list");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordList wordList1 = document.AddList(ListStyles.Headings111);
+                wordList1.AddItem("Text 1");
+                wordList1.AddItem("Text 2", 1);
+                wordList1.AddItem("Text 3", 2);
+
+                paragraph = document.InsertParagraph("This is 2nd list");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordList wordList2 = document.AddList(ListStyles.Headings111);
+                wordList2.AddItem("Text 1");
+                wordList2.AddItem("Text 2", 1);
+                wordList2.AddItem("Text 3", 2);
+
+                paragraph = document.InsertParagraph("This is 3rd list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordList wordList3 = document.AddList(ListStyles.Bulleted);
+                wordList3.AddItem("Text 8.1", 1);
+                wordList3.AddItem("Text 8.2", 2);
+                wordList3.AddItem("Text 8.3", 2);
+                wordList3.AddItem("Text 8.4", 0);
+                wordList3.AddItem("Text 8.5", 0);
+                wordList3.AddItem("Text 8.6", 1);
+                wordList3.AddItem("Text 8");
+
+                paragraph = document.InsertParagraph("This is 4th list").SetColor(Color.Aqua).SetUnderline(UnderlineValues.Double);
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordList wordList4 = document.AddList(ListStyles.Bulleted);
+                wordList4.AddItem("Text 8");
+                wordList4.AddItem("Text 8.1", 1);
+                wordList4.AddItem("Text 8.2", 2);
+                wordList4.AddItem("Text 8.3", 2);
+                wordList4.AddItem("Text 8.4", 0);
+                wordList4.AddItem("Text 8.5", 0);
+                wordList4.AddItem("Text 8.6", 1);
+
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicLists2Load(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Load(filePath)) {
+
+                // change on loaded document
+                document.Lists[1].ListItems[3].ListItemLevel = 1;
+
+                var paragraph = document.InsertParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
+                
+                WordList wordList8 = document.AddList(ListStyles.Bulleted);
+                wordList8.AddItem("Text 9");
+                wordList8.AddItem("Text 9.1", 1);
+                wordList8.AddItem("Text 9.2", 2);
+                wordList8.AddItem("Text 9.3", 2);
+                wordList8.AddItem("Text 9.4", 0);
+                wordList8.AddItem("Text 9.5", 0);
+                wordList8.AddItem("Text 9.6", 1);
+
+                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList2 = document.AddList(ListStyles.Headings111);
+                wordList2.AddItem("Temp 10");
+                wordList2.AddItem("Text 10.1", 1);
+
+                paragraph = document.InsertParagraph("Paragraph in the middle of the list").SetColor(Color.Aquamarine); //.SetUnderline(UnderlineValues.Double);
+
+                wordList2.AddItem("Text 10.2", 2);
+                wordList2.AddItem("Text 10.3", 2);
+
+                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList3 = document.AddList(ListStyles.Headings111);
+                wordList3.AddItem("Temp 11");
+                wordList3.AddItem("Text 11.1", 1);
+
+                Console.WriteLine("+ Paragraphs count: " + document.Paragraphs.Count);
+                Console.WriteLine("+ Lists count: " + document.Lists.Count);
+
+                Console.WriteLine("+ List element 0 text: " + document.Lists[0].ListItems[0].Text);
+                Console.WriteLine("+ List element 1 text: " + document.Lists[0].ListItems[1].Text);
+                Console.WriteLine("+ List element 2 text: " + document.Lists[0].ListItems[2].Text);
                 document.Save(openWord);
             }
         }

@@ -56,6 +56,9 @@
     <None Update="Documents\List Library Table Styles.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\ListsCreatedByWord.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\TestDocument365.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

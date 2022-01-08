@@ -13,7 +13,8 @@ namespace OfficeIMO {
     public partial class WordDocument : IDisposable {
         internal int _listNumbers;
 
-        internal List<NumberingInstance> _listInstances = new List<NumberingInstance>();
+        internal List<int> _listNumbersUsed = new List<int>();
+        internal List<NumberingInstance> _listNumberingInstances = new List<NumberingInstance>();
         internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
 
         //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
@@ -147,7 +148,9 @@ namespace OfficeIMO {
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this);
-            
+
+            LoadNumbering();
+
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
             foreach (Paragraph paragraph in list) {
                 WordParagraph wordParagraph = new WordParagraph(this, paragraph);
@@ -208,19 +211,49 @@ namespace OfficeIMO {
                 Process.Start(startInfo);
             }
         }
-        
-        public void Save(string filePath, bool openWord) {
-            MoveSectionProperties();
-            //CreateCustomProperty1(this);
-            WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
 
+
+        public void LoadNumbering() {
             Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-            foreach (AbstractNum abstractNum in _ListAbstractNum) {
-                numbering.Append(abstractNum);
+            if (numbering == null) {
+
+            } else {
+                var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
+                foreach (AbstractNum abstractNum in tempAbstractNumList) {
+                    _ListAbstractNum.Add(abstractNum);
+                }
+                var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+                foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
+                    _listNumberingInstances.Add(numberingInstance);
+                }
             }
-            foreach (NumberingInstance numberingInstance in _listInstances) {
+        }
+
+        public void SaveNumbering() {
+            // it seems the order of numbering instance/abstractnums in numbering matters...
+            Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+            numbering.RemoveAllChildren();
+            //var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
+            //foreach (AbstractNum abstractNum in tempAbstractNumList) {
+            //    abstractNum.Remove();
+            //}
+            //var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+            //foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
+            //    numberingInstance.Remove();
+            //}
+            //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+            numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+            foreach (AbstractNum abstractNum in _ListAbstractNum) {
+                numbering.Append(abstractNum); }
+            foreach (NumberingInstance numberingInstance in _listNumberingInstances) {
                 numbering.Append(numberingInstance);
             }
+        }
+
+        public void Save(string filePath, bool openWord) {
+            MoveSectionProperties();
+            SaveNumbering();
+            WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
 
             if (this._wordprocessingDocument != null) {
                 try {
@@ -373,8 +406,8 @@ namespace OfficeIMO {
             return foundIssue;
         }
 
-        public WordList AddList(CustomListStyles style, bool continueNumbering = false) {
-            WordList wordList = new WordList(this, this._currentSection, continueNumbering);
+        public WordList AddList(CustomListStyles style) {
+            WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style, "o", 0);
             return wordList;
         }
