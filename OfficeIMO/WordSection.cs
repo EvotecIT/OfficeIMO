@@ -15,6 +15,8 @@ namespace OfficeIMO {
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
+        //public IEnumerable<WordList> Lists { get; set; }
+        public List<WordList> Lists = new List<WordList>();
         //// internal header properties for easy usage
         //internal Header _headerFirst;
         //internal Header _headerEven;
@@ -108,6 +110,8 @@ namespace OfficeIMO {
             }
 
         }
+
+        
 
         //public bool DifferentOddAndEvenPages {
         //    get {

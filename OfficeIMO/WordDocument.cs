@@ -11,6 +11,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public partial class WordDocument : IDisposable {
+        internal int _listNumbers;
+
+        internal List<NumberingInstance> _listInstances = new List<NumberingInstance>();
+        internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
+
         //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
 
         public List<WordParagraph> Paragraphs {
@@ -35,6 +40,16 @@ namespace OfficeIMO {
                 return list;
             }
         }
+        public List<WordList> Lists {
+            get {
+                List<WordList> list = new List<WordList>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Lists);
+                }
+
+                return list;
+            }
+        }
 
         //public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
@@ -49,7 +64,7 @@ namespace OfficeIMO {
 
         public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         public WordCustomProperties _customDocumentProperties;
-
+        internal WordLists WordLists;
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -115,6 +130,7 @@ namespace OfficeIMO {
                 BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
                 //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
                 WordSection wordSection = new WordSection(word);
+                WordLists wordLists = new WordLists(word);
 
                 return word;
             } catch {
@@ -197,6 +213,15 @@ namespace OfficeIMO {
             MoveSectionProperties();
             //CreateCustomProperty1(this);
             WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
+
+            Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+            foreach (AbstractNum abstractNum in _ListAbstractNum) {
+                numbering.Append(abstractNum);
+            }
+            foreach (NumberingInstance numberingInstance in _listInstances) {
+                numbering.Append(numberingInstance);
+            }
+
             if (this._wordprocessingDocument != null) {
                 try {
                     if (filePath != "") {
@@ -346,6 +371,17 @@ namespace OfficeIMO {
                 Console.WriteLine(ex.Message);
             }
             return foundIssue;
+        }
+
+        public WordList AddList(CustomListStyles style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this, this._currentSection, continueNumbering);
+            wordList.AddList(style, "o", 0);
+            return wordList;
+        }
+        public WordList AddList(ListStyles style) {
+            WordList wordList = new WordList(this, this._currentSection);
+            wordList.AddList(style);
+            return wordList;
         }
     }
 }

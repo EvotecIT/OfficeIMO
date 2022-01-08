@@ -20,6 +20,18 @@ namespace OfficeIMO {
 
         public WordImage Image { get; set; }
 
+        public bool IsListItem {
+            get {
+                if (_paragraphProperties.NumberingProperties != null) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        internal WordList _list;
+
         public string Text {
             get { return _text.Text; }
             set { _text.Text = value; }
@@ -34,6 +46,29 @@ namespace OfficeIMO {
                 Space = SpaceProcessingModeValues.Preserve
             };
             this._paragraphProperties = new ParagraphProperties();
+            this._run.AppendChild(_runProperties);
+            this._run.AppendChild(_text);
+            if (newParagraph) {
+                this._paragraph = new Paragraph();
+                this._paragraph.AppendChild(_paragraphProperties);
+                this._paragraph.AppendChild(_run);
+            }
+
+            if (document != null) {
+                document._currentSection.Paragraphs.Add(this);
+                //document.Paragraphs.Add(this);
+            }
+        }
+
+        public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run) {
+            this._document = document;
+            this._run = run;
+            this._runProperties = runProperties;
+            this._text = new Text {
+                // this ensures spaces are preserved between runs
+                Space = SpaceProcessingModeValues.Preserve
+            };
+            this._paragraphProperties = paragraphProperties;
             this._run.AppendChild(_runProperties);
             this._run.AppendChild(_text);
             if (newParagraph) {
@@ -183,6 +218,13 @@ namespace OfficeIMO {
             }
             if (IsPageBreak) {
                 this._document.PageBreaks.Remove(this);
+            }
+
+            if (IsListItem) {
+                if (this._list != null) {
+                    this._list.ListItems.Remove(this);
+                    this._list = null;
+                }
             }
             this._document.Paragraphs.Remove(this);
         }

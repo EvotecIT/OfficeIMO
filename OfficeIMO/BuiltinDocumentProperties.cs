@@ -7,8 +7,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public class BuiltinDocumentProperties {
-        internal WordprocessingDocument _wordprocessingDocument = null;
-        public WordDocument _document = null;
+        private WordprocessingDocument _wordprocessingDocument;
+        private WordDocument _document;
 
         public BuiltinDocumentProperties(WordDocument document) {
             _document = document;
