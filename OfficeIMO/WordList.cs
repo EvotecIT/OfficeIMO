@@ -62,7 +62,7 @@ namespace OfficeIMO {
             _document._listNumbersUsed.Add(numberId);
         }
 
-        public void BuiltinStyle(ListStyles style, ref AbstractNum abstractNum, ref NumberingInstance numberingInstance) {
+        private void BuiltinStyle(ListStyles style, ref AbstractNum abstractNum, ref NumberingInstance numberingInstance) {
             abstractNum = ListStyle.GetStyle(style);
             AbstractNumId abstractNumId = new AbstractNumId();
             abstractNumId.Val = abstractNum.AbstractNumberId;
@@ -73,7 +73,7 @@ namespace OfficeIMO {
             //return numbering;
         }
 
-        public void CreateNumberingDefinition(WordDocument document) {
+        private void CreateNumberingDefinition(WordDocument document) {
             NumberingDefinitionsPart numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
             if (numberingDefinitionsPart == null) {
                 numberingDefinitionsPart = _wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
@@ -82,7 +82,7 @@ namespace OfficeIMO {
             //_numberingDefinitionsPart = numberingDefinitionsPart;
         }
 
-        public void AddList(ListStyles style) {
+        internal void AddList(ListStyles style) {
             CreateNumberingDefinition(_document);
             
             _numberId = _document._listNumbers;
@@ -109,7 +109,7 @@ namespace OfficeIMO {
             //numbering.Append(numberingInstance, abstractNum);
         }
 
-        public void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
+        internal void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
             CreateNumberingDefinition(_document);
             if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering == null) {
                 Numbering numbering = new Numbering();
@@ -158,12 +158,13 @@ namespace OfficeIMO {
             Text textProperty = new Text() {Space = SpaceProcessingModeValues.Preserve};
             RunProperties runProperties = new RunProperties();
             ParagraphStyleId paragraphStyleId = new ParagraphStyleId() { Val = "ListParagraph" };
-            ParagraphProperties paragraphProperties = new ParagraphProperties(
-                new NumberingProperties(
-                    new NumberingLevelReference() {Val = level},
-                    new NumberingId() {Val =  this._numberId }
-                    ));
+            NumberingProperties numberingProperties = new NumberingProperties(
+                new NumberingLevelReference() {Val = level},
+                new NumberingId() {Val = this._numberId}
+            );
+            ParagraphProperties paragraphProperties = new ParagraphProperties();
             paragraphProperties.Append(paragraphStyleId);
+            paragraphProperties.Append(numberingProperties);
 
             Run run = new Run();
 

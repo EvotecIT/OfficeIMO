@@ -1,18 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
-using BottomBorder = DocumentFormat.OpenXml.Wordprocessing.BottomBorder;
-using LeftBorder = DocumentFormat.OpenXml.Wordprocessing.LeftBorder;
-using RightBorder = DocumentFormat.OpenXml.Wordprocessing.RightBorder;
-using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
-using TopBorder = DocumentFormat.OpenXml.Wordprocessing.TopBorder;
 
 namespace OfficeIMO {
     public class WordTable {
+        public List<WordParagraph> Paragraphs {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        list.AddRange(cell.Paragraphs);
+                    }
+                }
+                return list;
+            }
+        }
+
         public List<WordTableRow> Rows = new List<WordTableRow>();
         internal Table _table;
         internal TableProperties _tableProperties;
