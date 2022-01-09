@@ -136,6 +136,8 @@ namespace OfficeIMO {
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart.Document;
 
+                StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
 
                 WordSettings wordSettings = new WordSettings(word);
                 ApplicationProperties applicationProperties = new ApplicationProperties(word);
@@ -445,8 +447,8 @@ namespace OfficeIMO {
             return wordList;
         }
 
-        public WordTable AddTable(int rows, int columns) {
-            WordTable wordTable = new WordTable(this, this._currentSection, rows, columns);
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(this, this._currentSection, rows, columns, tableStyle);
             return wordTable;
         }
     }

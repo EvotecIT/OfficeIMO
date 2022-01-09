@@ -314,7 +314,7 @@ namespace OfficeIMO {
 
             documentSettingsPart1.Settings = settings1;
         }
-        
+
         // Generates content of styleDefinitionsPart1.
         private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
             Styles styles1 = new Styles() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh" } };
@@ -1131,35 +1131,6 @@ namespace OfficeIMO {
             style2.Append(semiHidden1);
             style2.Append(unhideWhenUsed1);
 
-            Style style3 = new Style() { Type = StyleValues.Table, StyleId = "TableNormal", Default = true };
-            StyleName styleName3 = new StyleName() { Val = "Normal Table" };
-            UIPriority uIPriority2 = new UIPriority() { Val = 99 };
-            SemiHidden semiHidden2 = new SemiHidden();
-            UnhideWhenUsed unhideWhenUsed2 = new UnhideWhenUsed();
-
-            StyleTableProperties styleTableProperties1 = new StyleTableProperties();
-            TableIndentation tableIndentation1 = new TableIndentation() { Width = 0, Type = TableWidthUnitValues.Dxa };
-
-            TableCellMarginDefault tableCellMarginDefault1 = new TableCellMarginDefault();
-            TopMargin topMargin1 = new TopMargin() { Width = "0", Type = TableWidthUnitValues.Dxa };
-            TableCellLeftMargin tableCellLeftMargin1 = new TableCellLeftMargin() { Width = 108, Type = TableWidthValues.Dxa };
-            BottomMargin bottomMargin1 = new BottomMargin() { Width = "0", Type = TableWidthUnitValues.Dxa };
-            TableCellRightMargin tableCellRightMargin1 = new TableCellRightMargin() { Width = 108, Type = TableWidthValues.Dxa };
-
-            tableCellMarginDefault1.Append(topMargin1);
-            tableCellMarginDefault1.Append(tableCellLeftMargin1);
-            tableCellMarginDefault1.Append(bottomMargin1);
-            tableCellMarginDefault1.Append(tableCellRightMargin1);
-
-            styleTableProperties1.Append(tableIndentation1);
-            styleTableProperties1.Append(tableCellMarginDefault1);
-
-            style3.Append(styleName3);
-            style3.Append(uIPriority2);
-            style3.Append(semiHidden2);
-            style3.Append(unhideWhenUsed2);
-            style3.Append(styleTableProperties1);
-
             Style style4 = new Style() { Type = StyleValues.Numbering, StyleId = "NoList", Default = true };
             StyleName styleName4 = new StyleName() { Val = "No List" };
             UIPriority uIPriority3 = new UIPriority() { Val = 99 };
@@ -1171,12 +1142,129 @@ namespace OfficeIMO {
             style4.Append(semiHidden3);
             style4.Append(unhideWhenUsed3);
 
+            
             styles1.Append(docDefaults1);
             styles1.Append(latentStyles1);
-            styles1.Append(style1);
-            styles1.Append(style2);
-            styles1.Append(style3);
-            styles1.Append(style4);
+
+            styles1.Append(WordTableStyles.GenerateStyleTableNormal());
+            styles1.Append(WordTableStyles.GenerateStyleTableGrid());
+            styles1.Append(WordTableStyles.GenerateStylePlainTable1());
+            styles1.Append(WordTableStyles.GenerateStylePlainTable2());
+            styles1.Append(WordTableStyles.GenerateStylePlainTable3());
+            styles1.Append(WordTableStyles.GenerateStylePlainTable4());
+            styles1.Append(WordTableStyles.GenerateStylePlainTable5());
+            styles1.Append(WordTableStyles.GenerateStyleTableGridLight());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1Light());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5Dark());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6Colorful());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7Colorful());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable1Light());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable5Dark());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable6Colorful());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent6());
+
+            styles1.Append(WordTableStyles.GenerateStyleListTable7Colorful());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent1());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent2());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent3());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent4());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent5());
+            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent6());
 
             styleDefinitionsPart1.Styles = styles1;
         }

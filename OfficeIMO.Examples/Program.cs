@@ -102,22 +102,26 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Creating standard document with lists");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists1.docx");
             //Example_BasicLists(filePath, false);
-            filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
-            Example_BasicLists2(filePath, false);
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
+            //Example_BasicLists2(filePath, false);
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists3.docx");
             //Example_BasicLists3(filePath, false);
 
-            Console.WriteLine("[*] Loading standard document with lists");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
-            Example_BasicLists2Load(filePath, false);
+            //Console.WriteLine("[*] Loading standard document with lists");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
+            //Example_BasicLists2Load(filePath, false);
 
 
             Console.WriteLine("[*] Creating standard document with tables");
             filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
-            Example_BasicTables1(filePath, false);
-            Console.WriteLine("[*] Loading standard document with tables");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
-            Example_BasicTablesLoad1(filePath, true);
+            Example_BasicTables1(filePath, true);
+            //Console.WriteLine("[*] Loading standard document with tables");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
+            //Example_BasicTablesLoad1(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with all table styles");
+            filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
+            Example_AllTables(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1156,11 +1160,15 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordTable wordTable = document.AddTable(3,4);
+                WordTable wordTable = document.AddTable(3,4, WordTableStyle.PlainTable1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
+                Console.WriteLine(wordTable.Style);
+
+                // lets overwrite style
+                wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
 
                 document.Save(openWord);
             }
@@ -1170,7 +1178,17 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordTable wordTable = document.AddTable(3, 4);
+                WordTable wordTable = document.AddTable(3, 4,WordTableStyle.GridTable1LightAccent5);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent6);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent3);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
@@ -1178,6 +1196,27 @@ namespace OfficeIMO.Examples {
                 WordTable wordTableFromEarlier = document.Tables[0];
                 wordTableFromEarlier.Rows[1].Cells[1].Paragraphs[0].Text = "Middle table";
                 
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_AllTables(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                //var listOfTablesStyles = Enum.GetValues(typeof(WordTableStyle)).Cast<WordTableStyle>();
+                var listOfTablesStyles = (WordTableStyle[]) Enum.GetValues(typeof(WordTableStyle));
+                foreach (var tableStyle in listOfTablesStyles) {
+                    var paragraph = document.InsertParagraph(tableStyle.ToString());
+                    paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                    WordTable wordTable = document.AddTable(4, 4, tableStyle);
+                    wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                    wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                    wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                    wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+                }
+
+                Console.WriteLine("+ Tables count: " + document.Tables.Count);
+
                 document.Save(openWord);
             }
         }
