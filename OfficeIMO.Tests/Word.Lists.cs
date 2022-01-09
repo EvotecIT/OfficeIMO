@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].IsListItem == true, "Paragraph is list item 1");
                 Assert.True(document.Paragraphs[2].IsListItem == true, "Paragraph is list item 1");
                 Assert.True(document.Paragraphs[3].IsListItem == true, "Paragraph is list item 2");
-                Assert.True(document.Paragraphs[3].Text == "Text 3" ,"Paragraph text match");
+                Assert.True(document.Paragraphs[3].Text == "Text 3", "Paragraph text match");
 
                 Assert.True(document.Lists[0].ListItems[0].Text == "Text 1", "Paragraph text match");
                 Assert.True(document.Lists[0].ListItems[1].Text == "Text 2", "Paragraph text match");
@@ -91,6 +91,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 28, "Number of paragraphs on 1st section is wrong.");
                 document.Save(false);
             }
+
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx"))) {
                 Assert.True(document.Paragraphs[0].IsListItem == false, "Paragraph is empty");
                 Assert.True(document.Paragraphs[1].IsListItem == true, "Paragraph is list item 1");
@@ -102,7 +103,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists[0].ListItems[1].Text == "Text 2", "Paragraph text match");
                 Assert.True(document.Lists[0].ListItems[2].Text == "Text 3", "Paragraph text match");
                 Assert.True(document.Lists[0].ListItems[2].ListItemLevel == 2, "Level doesn't match");
-                
+
                 document.Lists[0].ListItems[2].ListItemLevel = 1;
                 document.Lists[0].ListItems[2].Text = "Text 4";
 
@@ -135,7 +136,7 @@ namespace OfficeIMO.Tests {
                 WordList wordList3 = document.AddList(ListStyles.Headings111);
                 wordList3.AddItem("Temp 11");
                 wordList3.AddItem("Text 11.1", 1);
-                
+
                 Assert.True(document.Lists.Count == 10, "List count matches");
 
                 Assert.True(document.Paragraphs.Count == 45, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
@@ -145,12 +146,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 45, "Number of paragraphs on 1st section is wrong.");
                 document.Save();
             }
+
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx"))) {
                 Assert.True(document.Paragraphs[0].IsListItem == false, "Paragraph is empty");
                 Assert.True(document.Paragraphs[1].IsListItem == true, "Paragraph is list item 1");
                 Assert.True(document.Paragraphs[2].IsListItem == true, "Paragraph is list item 1");
                 Assert.True(document.Paragraphs[3].IsListItem == true, "Paragraph is list item 2");
-                
+
 
                 Assert.True(document.Lists[0].ListItems[0].Text == "Text 1", "Paragraph text match");
                 Assert.True(document.Lists[0].ListItems[1].Text == "Text 2", "Paragraph text match");
@@ -169,5 +171,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 45, "Number of paragraphs on 1st section is wrong.");
                 document.Save();
             }
-        } }
+        }
+    }
 }

@@ -117,11 +117,12 @@ namespace OfficeIMO {
         //}
 
         /// <summary>
-        /// Builds paragraph list when loading from filesystem
+        /// Used during loading of documents / tables only
         /// </summary>
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
-        public WordParagraph(WordDocument document, Paragraph paragraph) {
+        /// <param name="addToSectionParagraphs"></param>
+        public WordParagraph(WordDocument document, Paragraph paragraph, bool addToSectionParagraphs = true) {
             //_paragraph = paragraph;
             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                 // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
@@ -172,10 +173,15 @@ namespace OfficeIMO {
                         if (newImage != null) {
                             this.Image = newImage;
                         }
-                        this._document._currentSection.Paragraphs.Add(this);
-                        if (this.IsPageBreak) {
-                            this._document._currentSection.PageBreaks.Add(this);
+
+                        // this is to prevent adding Tables Paragraphs to section Paragraphs
+                        if (addToSectionParagraphs == true) {
+                            this._document._currentSection.Paragraphs.Add(this);
+                            if (this.IsPageBreak) {
+                                this._document._currentSection.PageBreaks.Add(this);
+                            }
                         }
+
                         if (this.IsListItem) {
                             LoadListToDocument(document, this);
                         }

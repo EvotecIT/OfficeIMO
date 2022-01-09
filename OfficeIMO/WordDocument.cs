@@ -162,21 +162,30 @@ namespace OfficeIMO {
 
             LoadNumbering();
 
-            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>().ToList();
-            foreach (Paragraph paragraph in list) {
-                WordParagraph wordParagraph = new WordParagraph(this, paragraph);
-                if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                    // find sections added via section page breaks
-                    //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
-                    //if (sectionType != null) {
-                    //    if (sectionType.Val == SectionMarkValues.NextPage) {
-                    //        wordSection = new WordSection(this, paragraph);
-                    //    }
-                    //} else {
-                    //    wordSection.Paragraphs.Add(wordParagraph);
-                    //}
-                    wordSection = new WordSection(this, paragraph);
-                } 
+            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
+            foreach (var element in list) {
+                if (element is Paragraph) {
+                    Paragraph paragraph = (Paragraph) element;
+                    WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+                    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                        // find sections added via section page breaks
+                        //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
+                        //if (sectionType != null) {
+                        //    if (sectionType.Val == SectionMarkValues.NextPage) {
+                        //        wordSection = new WordSection(this, paragraph);
+                        //    }
+                        //} else {
+                        //    wordSection.Paragraphs.Add(wordParagraph);
+                        //}
+                        wordSection = new WordSection(this, paragraph);
+                    }
+                } else if (element is Table) {
+                    WordTable wordTable = new WordTable(this, wordSection, (Table) element);
+                } else if (element is SectionProperties sectionProperties) {
+                    // we don't do anything as we already created it above - i think
+                } else {
+                    throw new NotImplementedException("This isn't implemented yet");
+                }
             }
         }
 
@@ -436,9 +445,8 @@ namespace OfficeIMO {
             return wordList;
         }
 
-        public WordTable AddTable() {
-            WordTable wordTable = new WordTable(this, this._currentSection);
-
+        public WordTable AddTable(int rows, int columns) {
+            WordTable wordTable = new WordTable(this, this._currentSection, rows, columns);
             return wordTable;
         }
     }
