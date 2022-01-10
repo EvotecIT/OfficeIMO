@@ -198,6 +198,8 @@ namespace OfficeIMO {
                     // we don't do anything as we already created it above - i think
                 } else if (element is SdtBlock sdtBlock) {
                     // we don't do anything as we load stuff with get on demand
+                } else if (element is OpenXmlUnknownElement) {
+                    // this happens when adding dirty element - mainly during TOC Update() function
                 } else {
                     throw new NotImplementedException("This isn't implemented yet");
                 }

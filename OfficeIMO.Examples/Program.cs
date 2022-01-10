@@ -1327,7 +1327,8 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicTOC(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.UpdateFieldsOnOpen = true;
+                // Standard way to open document and be asked about Updating Fields including TOC
+                //document.Settings.UpdateFieldsOnOpen = true;
 
                 WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
                 wordTableContent.Text = "This is Table of Contents";
@@ -1341,7 +1342,10 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(wordTableContent.Text);
                 Console.WriteLine(wordTableContent.TextNoContent);
 
-                document.Save();
+                // i am not sure if this is even working properly, seems so, but seems bad idea
+                wordTableContent.Update();
+
+                document.Save(openWord);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
