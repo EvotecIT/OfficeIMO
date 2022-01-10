@@ -28,9 +28,11 @@ namespace OfficeIMO {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Paragraphs);
                 }
+
                 return list;
             }
         }
+
         public List<WordParagraph> PageBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -41,6 +43,7 @@ namespace OfficeIMO {
                 return list;
             }
         }
+
         public List<WordList> Lists {
             get {
                 List<WordList> list = new List<WordList>();
@@ -84,72 +87,69 @@ namespace OfficeIMO {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
-      
+
 
         public FileAccess FileOpenAccess {
-            get {
-                return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess;
-            }
+            get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
         }
 
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
 
             WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
-            try {
-                WordprocessingDocument wordDocument;
-                if (filePath != "") {
-                    wordDocument = WordprocessingDocument.Create(filePath, documentType, autoSave);
-                } else {
-                    MemoryStream mem = new MemoryStream();
-                    //word._memory = mem;
-                    wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
-                }
-                //ExtendedFilePropertiesPart extendedFilePropertiesPart1 = wordDocument.AddNewPart<ExtendedFilePropertiesPart>("rId3");
-                //GenerateExtendedFilePropertiesPart1Content(extendedFilePropertiesPart1);
+            WordprocessingDocument wordDocument;
 
-                //MainDocumentPart mainDocumentPart1 = wordDocument.AddMainDocumentPart();
-                //GenerateMainDocumentPart1Content(mainDocumentPart1);
-
-                //WebSettingsPart webSettingsPart1 = mainDocumentPart1.AddNewPart<WebSettingsPart>("rId3");
-                //GenerateWebSettingsPart1Content(webSettingsPart1);
-
-                //DocumentSettingsPart documentSettingsPart1 = mainDocumentPart1.AddNewPart<DocumentSettingsPart>("rId2");
-                //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
-
-                //StyleDefinitionsPart styleDefinitionsPart1 = mainDocumentPart1.AddNewPart<StyleDefinitionsPart>("rId1");
-                //GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-                //ThemePart themePart1 = mainDocumentPart1.AddNewPart<ThemePart>("rId5");
-                //GenerateThemePart1Content(themePart1);
-
-                //FontTablePart fontTablePart1 = mainDocumentPart1.AddNewPart<FontTablePart>("rId4");
-                //GenerateFontTablePart1Content(fontTablePart1);
-
-                wordDocument.AddMainDocumentPart();
-                wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
-                wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
-
-                //wordDocument.AddHeadersAndFooters(word);
-
-                word.FilePath = filePath;
-                word._wordprocessingDocument = wordDocument;
-                word._document = wordDocument.MainDocumentPart.Document;
-
-                StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
-                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-                WordSettings wordSettings = new WordSettings(word);
-                ApplicationProperties applicationProperties = new ApplicationProperties(word);
-                BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
-                //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
-                WordSection wordSection = new WordSection(word);
-               // WordLists wordLists = new WordLists(word);
-
-                return word;
-            } catch {
-                return word;
+            if (filePath != "") {
+                wordDocument = WordprocessingDocument.Create(filePath, documentType, autoSave);
+            } else {
+                MemoryStream mem = new MemoryStream();
+                //word._memory = mem;
+                wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
             }
+
+
+            //ExtendedFilePropertiesPart extendedFilePropertiesPart1 = wordDocument.AddNewPart<ExtendedFilePropertiesPart>("rId3");
+            //GenerateExtendedFilePropertiesPart1Content(extendedFilePropertiesPart1);
+
+            //MainDocumentPart mainDocumentPart1 = wordDocument.AddMainDocumentPart();
+            //GenerateMainDocumentPart1Content(mainDocumentPart1);
+
+            //WebSettingsPart webSettingsPart1 = mainDocumentPart1.AddNewPart<WebSettingsPart>("rId3");
+            //GenerateWebSettingsPart1Content(webSettingsPart1);
+
+            //DocumentSettingsPart documentSettingsPart1 = mainDocumentPart1.AddNewPart<DocumentSettingsPart>("rId2");
+            //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
+
+            //StyleDefinitionsPart styleDefinitionsPart1 = mainDocumentPart1.AddNewPart<StyleDefinitionsPart>("rId1");
+            //GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+
+            //ThemePart themePart1 = mainDocumentPart1.AddNewPart<ThemePart>("rId5");
+            //GenerateThemePart1Content(themePart1);
+
+            //FontTablePart fontTablePart1 = mainDocumentPart1.AddNewPart<FontTablePart>("rId4");
+            //GenerateFontTablePart1Content(fontTablePart1);
+
+            wordDocument.AddMainDocumentPart();
+            wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
+            wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
+
+            //wordDocument.AddHeadersAndFooters(word);
+
+            word.FilePath = filePath;
+            word._wordprocessingDocument = wordDocument;
+            word._document = wordDocument.MainDocumentPart.Document;
+
+            StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+            GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+
+            WordSettings wordSettings = new WordSettings(word);
+            ApplicationProperties applicationProperties = new ApplicationProperties(word);
+            BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
+            //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
+            WordSection wordSection = new WordSection(word);
+            // WordLists wordLists = new WordLists(word);
+
+            return word;
         }
 
         private void LoadDocument() {
@@ -219,7 +219,7 @@ namespace OfficeIMO {
         }
 
         public void Open(bool openWord = true) {
-            this.Open("",openWord);
+            this.Open("", openWord);
         }
 
         public void Open(string filePath = "", bool openWord = true) {
@@ -227,6 +227,7 @@ namespace OfficeIMO {
                 if (filePath == "") {
                     filePath = this.FilePath;
                 }
+
                 ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
                     UseShellExecute = true
                 };
@@ -239,7 +240,6 @@ namespace OfficeIMO {
             if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
                 Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
                 if (numbering == null) {
-
                 } else {
                     var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
                     foreach (AbstractNum abstractNum in tempAbstractNumList) {
@@ -274,7 +274,9 @@ namespace OfficeIMO {
             //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
 
             foreach (AbstractNum abstractNum in _ListAbstractNum) {
-                _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum); }
+                _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
+            }
+
             foreach (NumberingInstance numberingInstance in _listNumberingInstances) {
                 _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(numberingInstance);
             }
@@ -315,7 +317,6 @@ namespace OfficeIMO {
         }
 
         public void Save(bool openWord) {
-            
             this.Save("", openWord);
         }
 
@@ -340,7 +341,7 @@ namespace OfficeIMO {
             }
 
             //this._currentSection.Paragraphs.Add(wordParagraph);
-           // wordParagraph._section = this._currentSection;
+            // wordParagraph._section = this._currentSection;
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -357,7 +358,7 @@ namespace OfficeIMO {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             this._document.Body.Append(newWordParagraph._paragraph);
-            
+
             this._currentSection.PageBreaks.Add(newWordParagraph);
             this._currentSection.Paragraphs.Add(newWordParagraph);
             //this.PageBreaks.Add(newWordParagraph); 
@@ -403,7 +404,7 @@ namespace OfficeIMO {
 
 
             this._document.MainDocumentPart.Document.Body.Append(paragraph);
-            
+
 
             WordSection wordSection = new WordSection(this, paragraph);
 
@@ -429,10 +430,12 @@ namespace OfficeIMO {
                     Console.WriteLine("-------------------------------------------");
                     foundIssue = true;
                 }
+
                 Console.WriteLine("count={0}", count);
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+
             return foundIssue;
         }
 
@@ -441,6 +444,7 @@ namespace OfficeIMO {
             wordList.AddList(style, "o", 0);
             return wordList;
         }
+
         public WordList AddList(ListStyles style) {
             WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style);

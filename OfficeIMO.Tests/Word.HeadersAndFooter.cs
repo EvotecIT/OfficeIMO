@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFooters() {
-            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault.docx");
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 document.AddHeadersAndFooters();
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 
                 document.Save(false);
             }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault1.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Default Header / Section 0", "Text for default header is wrong (section 0) (load)");
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         }
         [Fact]
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFootersOddEven() {
-            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault.docx");
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault2.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save(false);
             }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault2.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Header.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFootersOddEvenFirst() {
-            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst.docx");
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save(false);
             }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst1.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Header.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");

@@ -102,6 +102,39 @@ namespace OfficeIMO {
             }
         }
 
+        private static void AddHeaderRef(WordDocument document, WordSection section, SectionProperties sectionProperties, HeaderFooterValues headerFooterValue) {
+           
+            var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
+
+            var header = new Header();
+            header.Save(headerPart);
+
+            if (headerPart != null) {
+                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
+                //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
+
+                if (id != null) {
+                    var headerReference = new HeaderReference() {
+                        Type = headerFooterValue,
+                        Id = id
+                    };
+                    sectionProperties.Append(headerReference);
+                }
+            }
+
+            if (headerFooterValue == HeaderFooterValues.Default) {
+                    //  section._headerDefault = headerPart.Header;
+                    section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+
+                } else if (headerFooterValue == HeaderFooterValues.First) {
+                    //  section._headerFirst = headerPart.Header;
+                    section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
+                } else {
+                    // section._headerEven = headerPart.Header;
+                    section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
+                }
+        }
+
         private static void AddHeaderReference1(WordDocument document, SectionProperties sectionProperties, HeaderFooterValues headerFooterValue, WordSection section = null) {
             var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
 

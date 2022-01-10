@@ -74,6 +74,10 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
             //Example_PageOrientation(filePath, true);
 
+            Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
+            Example_BasicWordWithHeaderAndFooter0(filePath, true);
+
             //Console.WriteLine("[*] Creating standard document with Headers and Footers including Sections");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
             //Example_BasicWordWithHeaderAndFooter(filePath, true);
@@ -112,16 +116,16 @@ namespace OfficeIMO.Examples {
             //Example_BasicLists2Load(filePath, false);
 
 
-            Console.WriteLine("[*] Creating standard document with tables");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
-            Example_BasicTables1(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with tables");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
+            //Example_BasicTables1(filePath, true);
             //Console.WriteLine("[*] Loading standard document with tables");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
             //Example_BasicTablesLoad1(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with all table styles");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
-            Example_AllTables(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with all table styles");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
+            //Example_AllTables(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -433,6 +437,47 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
+
+        private static void Example_BasicWordWithHeaderAndFooter0(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+
+                document.Header.Default.InsertParagraph().SetColor(Color.Red).SetText("Test Header");
+
+                document.Footer.Default.InsertParagraph().SetColor(Color.Blue).SetText("Test Footer");
+
+                Console.WriteLine("Header Default Count: " + document.Header.Default.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + document.Header.Even.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + document.Header.First.Paragraphs.Count);
+
+                Console.WriteLine("Header text: " + document.Header.Default.Paragraphs[0].Text);
+
+                Console.WriteLine("Footer Default Count: " + document.Footer.Default.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + document.Footer.Even.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + document.Footer.First.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + document.Footer.Default.Paragraphs[0].Text);
+
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Console.WriteLine("Header Default Count: " + document.Header.Default.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + document.Header.Even.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + document.Header.First.Paragraphs.Count);
+
+                Console.WriteLine("Header text: " + document.Header.Default.Paragraphs[0].Text);
+
+                Console.WriteLine("Footer Default Count: " + document.Footer.Default.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + document.Footer.Even.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + document.Footer.First.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + document.Footer.Default.Paragraphs[0].Text);
+
+                document.Save(openWord);
+            }
+
+        }
+
 
         private static void Example_BasicWordWithHeaderAndFooter1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {

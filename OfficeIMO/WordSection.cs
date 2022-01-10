@@ -26,14 +26,14 @@ namespace OfficeIMO {
         //internal Footer _footerFirst;
         //internal Footer _footerDefault;
         //internal Footer _footerEven;
-
-
-
-        public WordDocument _document;
-        public SectionProperties _sectionProperties;
+        
+        internal WordDocument _document;
+        internal SectionProperties _sectionProperties;
+        internal WordprocessingDocument _wordprocessingDocument;
 
         public WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
+            this._wordprocessingDocument = wordDocument._wordprocessingDocument;
 
             WordSection lastSection;
             if (this._document.Sections.Count > 0) {
@@ -72,6 +72,29 @@ namespace OfficeIMO {
 
             // this is added for tracking current section of the document
             wordDocument._currentSection = this;
+
+            var listSectionEntries = this._sectionProperties.ChildElements.ToList();
+            foreach (var element in listSectionEntries) {
+                if (element is HeaderReference) {
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                } else if (element is FooterReference) {
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                } else if (element is PageSize) {
+
+                } else if (element is PageMargin) {
+
+                } else if (element is Columns) {
+
+                } else if (element is DocGrid) {
+
+                } else if (element is SectionType) {
+
+                } else if (element is TitlePage) {
+
+                } else {
+                    throw new NotImplementedException("This isn't implemented yet?");
+                }
+            }
         }
 
         public bool DifferentFirstPage {
@@ -112,7 +135,15 @@ namespace OfficeIMO {
 
         }
 
-        
+        public static HeaderFooterValues GetType(string type) {
+            if (type == "default") {
+                return HeaderFooterValues.Default;
+            } else if (type == "even") {
+                return HeaderFooterValues.Even;
+            } else {
+                return HeaderFooterValues.First;
+            }
+        }
 
         //public bool DifferentOddAndEvenPages {
         //    get {
