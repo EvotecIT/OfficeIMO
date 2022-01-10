@@ -66,11 +66,9 @@ namespace OfficeIMO {
                 var updateFieldsOnOpen = settings.GetFirstChild<UpdateFieldsOnOpen>();
                 if (updateFieldsOnOpen == null) {
                     updateFieldsOnOpen = new UpdateFieldsOnOpen();
+                    settings.PrependChild<UpdateFieldsOnOpen>(updateFieldsOnOpen);
                 }
-
                 updateFieldsOnOpen.Val = value;
-                settings.PrependChild<UpdateFieldsOnOpen>(updateFieldsOnOpen);
-                //settings.Save();
             }
         }
 
