@@ -36,7 +36,7 @@ namespace OfficeIMO {
             _tableCellProperties = tableCell.TableCellProperties;
 
             foreach (Paragraph paragraph in tableCell.ChildElements.OfType<Paragraph>().ToList()) {
-                WordParagraph wordParagraph = new WordParagraph(document, paragraph, false);
+                WordParagraph wordParagraph = new WordParagraph(document, paragraph, null);
                 this.Paragraphs.Add(wordParagraph);
             }
         }

@@ -15,17 +15,26 @@ namespace OfficeIMO {
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
-        //public IEnumerable<WordList> Lists { get; set; }
         public List<WordList> Lists = new List<WordList>();
+        
+        //public List<WordList> Lists {
+        //    get {
+        //        List<WordList> returnList = new List<WordList>();
+        //        foreach (WordParagraph paragraph in this.Paragraphs) {
+        //            if (paragraph.IsListItem) {
+        //                if (!_document._listNumbersUsed.Contains(paragraph._listNumberId.Value)) {
+        //                    WordList list = new WordList(paragraph._document, paragraph._section, paragraph._listNumberId.Value);
+        //                    returnList.Add(list);
+        //                    _document._listNumbersUsed.Add(paragraph._listNumberId.Value);
+        //                }
+        //            }
+        //        }
+
+        //        return returnList;
+        //    }
+        //}
+
         public List<WordTable> Tables = new List<WordTable>();
-        //// internal header properties for easy usage
-        //internal Header _headerFirst;
-        //internal Header _headerEven;
-        //internal Header _headerDefault;
-        //// internal footer properties for easy usage
-        //internal Footer _footerFirst;
-        //internal Footer _footerDefault;
-        //internal Footer _footerEven;
         
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;

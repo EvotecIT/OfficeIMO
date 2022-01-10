@@ -13,7 +13,7 @@ namespace OfficeIMO {
                 if (_header != null) {
                     var list = _header.ChildElements.OfType<Paragraph>();
                     foreach (var paragraph in list) {
-                        paragraphs.Add(new WordParagraph(_document, paragraph, false));
+                        paragraphs.Add(new WordParagraph(_document, paragraph, null));
                     }
                 }
 

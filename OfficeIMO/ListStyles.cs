@@ -229,7 +229,7 @@ namespace OfficeIMO {
 
         private static AbstractNum Headings111 {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() {AbstractNumberId = 1};
+                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 1 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() {Val = "21351BF1"};
                 MultiLevelType multiLevelType1 = new MultiLevelType() {Val = MultiLevelValues.Multilevel};

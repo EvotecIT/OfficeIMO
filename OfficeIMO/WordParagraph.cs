@@ -48,7 +48,7 @@ namespace OfficeIMO {
                 }
             }
         }
-        private int? _listNumberId {
+        internal int? _listNumberId {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
                     return _paragraphProperties.NumberingProperties.NumberingId.Val;
@@ -84,12 +84,16 @@ namespace OfficeIMO {
 
             if (document != null) {
                 document._currentSection.Paragraphs.Add(this);
+                this._section = document._currentSection;
                 //document.Paragraphs.Add(this);
             }
+
+
         }
 
-        public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run) {
+        public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section) {
             this._document = document;
+            this._section = section;
             this._run = run;
             this._runProperties = runProperties;
             this._text = new Text {
@@ -106,7 +110,8 @@ namespace OfficeIMO {
             }
 
             if (document != null) {
-                document._currentSection.Paragraphs.Add(this);
+               // document._currentSection.Paragraphs.Add(this);
+                section.Paragraphs.Add(this);
                 //document.Paragraphs.Add(this);
             }
         }
@@ -122,7 +127,7 @@ namespace OfficeIMO {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="addToSectionParagraphs"></param>
-        public WordParagraph(WordDocument document, Paragraph paragraph, bool addToSectionParagraphs = true) {
+        public WordParagraph(WordDocument document, Paragraph paragraph, WordSection section = null) {
             //_paragraph = paragraph;
             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                 // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
@@ -152,6 +157,7 @@ namespace OfficeIMO {
                         wordParagraph._paragraph = paragraph;
                         wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
                         wordParagraph._runProperties = runProperties;
+                        wordParagraph._section = section;
 
                         wordParagraph.Image = newImage;
 
@@ -169,16 +175,17 @@ namespace OfficeIMO {
                         this._paragraph = paragraph;
                         this._paragraphProperties = paragraph.ParagraphProperties;
                         this._runProperties = runProperties;
+                        this._section = section;
 
                         if (newImage != null) {
                             this.Image = newImage;
                         }
 
                         // this is to prevent adding Tables Paragraphs to section Paragraphs
-                        if (addToSectionParagraphs == true) {
-                            this._document._currentSection.Paragraphs.Add(this);
+                        if (section != null) {
+                            section.Paragraphs.Add(this);
                             if (this.IsPageBreak) {
-                                this._document._currentSection.PageBreaks.Add(this);
+                                section.PageBreaks.Add(this);
                             }
                         }
 
@@ -192,6 +199,7 @@ namespace OfficeIMO {
             } else {
                 // this is an empty paragraph so we add it
                 document._currentSection.Paragraphs.Add(this);
+                this._section = document._currentSection;
             }
         }
 
@@ -202,6 +210,8 @@ namespace OfficeIMO {
                     if (!_document._listNumbersUsed.Contains(listId.Value)) {
                         WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
                         list.ListItems.Add(wordParagraph);
+                        _document._listNumbersUsed.Add(listId.Value);
+                        _document._currentSection.Lists.Add(list);
                     } else {
                         foreach (WordList list in _document.Lists) {
                             if (list._numberId == listId.Value) {
@@ -216,16 +226,6 @@ namespace OfficeIMO {
         }
 
         public WordParagraph InsertText(string text) {
-            //DocumentFormat.OpenXml.Wordprocessing.Run run = new DocumentFormat.OpenXml.Wordprocessing.Run();
-            //DocumentFormat.OpenXml.Wordprocessing.Text textProp = new DocumentFormat.OpenXml.Wordprocessing.Text();
-            //textProp.Text = text;
-            //run.AppendChild(textProp);
-            //this.paragraph.Append(run);
-            //return this;
-
-            // WordParagraph paragraph = new WordParagraph();
-            //this.paragraph.Text = text;
-            //return this.paragraph;
             this._text.Text = text;
             return this;
         }

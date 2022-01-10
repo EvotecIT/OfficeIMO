@@ -74,9 +74,9 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
             //Example_PageOrientation(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
-            Example_BasicWordWithHeaderAndFooter0(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
+            //Example_BasicWordWithHeaderAndFooter0(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with Headers and Footers including Sections");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
@@ -103,13 +103,16 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Loading standard document to check properties");
             //Example_LoadDocumentWithProperties(true);
 
-            //Console.WriteLine("[*] Creating standard document with lists");
+            Console.WriteLine("[*] Creating standard document with lists");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists1.docx");
             //Example_BasicLists(filePath, false);
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
             //Example_BasicLists2(filePath, false);
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists3.docx");
             //Example_BasicLists3(filePath, false);
+
+            filePath = System.IO.Path.Combine(folderPath, "Document with Lists4.docx");
+            Example_BasicLists4(filePath, true);
 
             //Console.WriteLine("[*] Loading standard document with lists");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists2.docx");
@@ -126,6 +129,8 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Creating standard document with all table styles");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
             //Example_AllTables(filePath, true);
+
+
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -477,8 +482,7 @@ namespace OfficeIMO.Examples {
             }
 
         }
-
-
+        
         private static void Example_BasicWordWithHeaderAndFooter1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].ColumnsSpace = 50;
@@ -1261,6 +1265,56 @@ namespace OfficeIMO.Examples {
                 }
 
                 Console.WriteLine("+ Tables count: " + document.Tables.Count);
+
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicLists4(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var listOfListStyles = (ListStyles[]) Enum.GetValues(typeof(ListStyles));
+                foreach (var listStyle in listOfListStyles) {
+                    var paragraph = document.InsertParagraph(listStyle.ToString());
+                    paragraph.SetColor(Color.Red).SetBold();
+                    paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                    if (listStyle == ListStyles.Chapters) {
+                        // chapters supports only 0 level in lists
+                        WordList wordList1 = document.AddList(listStyle);
+                        wordList1.AddItem("Text 1");
+                        wordList1.AddItem("Text 2");
+                        wordList1.AddItem("Text 3");
+                        wordList1.AddItem("Text 4");
+                        wordList1.AddItem("Text 5");
+                        wordList1.AddItem("Text 6");
+                        wordList1.AddItem("Text 7");
+                        wordList1.AddItem("Text 8");
+                        wordList1.AddItem("Text 9");
+                        wordList1.AddItem("Text 10");
+                    } else {
+                        // all other lists have up to 9 level
+                        WordList wordList1 = document.AddList(listStyle);
+                        wordList1.AddItem("Text 1", 0);
+                        wordList1.AddItem("Text 2", 1);
+                        wordList1.AddItem("Text 3", 2);
+                        wordList1.AddItem("Text 4", 3);
+                        wordList1.AddItem("Text 5", 4);
+                        wordList1.AddItem("Text 6", 5);
+                        wordList1.AddItem("Text 7", 6);
+                        wordList1.AddItem("Text 8", 7);
+                        wordList1.AddItem("Text 9", 8);
+                    }
+                }
+
+                Console.WriteLine("+ Lists Count: " + document.Lists.Count);
+                Console.WriteLine("+ Lists Count: " + document.Sections[0].Lists.Count);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                // change on loaded document
+                document.Lists[0].ListItems[3].ListItemLevel = 1;
+
 
                 document.Save(openWord);
             }

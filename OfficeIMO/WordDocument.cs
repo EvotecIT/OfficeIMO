@@ -11,11 +11,13 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public partial class WordDocument : IDisposable {
-        internal int _listNumbers;
-
         internal List<int> _listNumbersUsed = new List<int>();
-        internal List<NumberingInstance> _listNumberingInstances = new List<NumberingInstance>();
-        internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
+
+        //internal int _listNumbers;
+
+        //internal List<int> _listNumbersUsed = new List<int>();
+        //internal List<NumberingInstance> _listNumberingInstances = new List<NumberingInstance>();
+        //internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
 
         //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
 
@@ -162,13 +164,13 @@ namespace OfficeIMO {
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this);
 
-            LoadNumbering();
+            //LoadNumbering();
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph) element;
-                    WordParagraph wordParagraph = new WordParagraph(this, paragraph);
+                    WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
                     if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                         // find sections added via section page breaks
                         //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
@@ -243,12 +245,12 @@ namespace OfficeIMO {
                 } else {
                     var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
                     foreach (AbstractNum abstractNum in tempAbstractNumList) {
-                        _ListAbstractNum.Add(abstractNum);
+                       // _ListAbstractNum.Add(abstractNum);
                     }
 
                     var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
                     foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-                        _listNumberingInstances.Add(numberingInstance);
+                        //_listNumberingInstances.Add(numberingInstance);
                     }
                 }
             }
@@ -256,29 +258,44 @@ namespace OfficeIMO {
 
         public void SaveNumbering() {
             // it seems the order of numbering instance/abstractnums in numbering matters...
+            List<AbstractNum> listAbstractNum = new List<AbstractNum>();
+            List<NumberingInstance> listNumberingInstance = new List<NumberingInstance>();
+
             if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                if (numbering != null) {
-                    numbering.RemoveAllChildren();
+                var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
+                foreach (AbstractNum abstractNum in tempAbstractNumList) {
+                    listAbstractNum.Add(abstractNum);
                 }
-            }
 
-            //var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-            //foreach (AbstractNum abstractNum in tempAbstractNumList) {
-            //    abstractNum.Remove();
-            //}
-            //var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-            //foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-            //    numberingInstance.Remove();
-            //}
-            //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+                var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+                foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
+                    listNumberingInstance.Add(numberingInstance);
+                }
 
-            foreach (AbstractNum abstractNum in _ListAbstractNum) {
-                _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
-            }
+                if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                    Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                    if (numbering != null) {
+                        numbering.RemoveAllChildren();
+                    }
+                }
 
-            foreach (NumberingInstance numberingInstance in _listNumberingInstances) {
-                _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(numberingInstance);
+                //var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
+                //foreach (AbstractNum abstractNum in tempAbstractNumList) {
+                //    abstractNum.Remove();
+                //}
+                //var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+                //foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
+                //    numberingInstance.Remove();
+                //}
+                //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+
+                foreach (AbstractNum abstractNum in listAbstractNum) {
+                    _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
+                }
+
+                foreach (NumberingInstance numberingInstance in listNumberingInstance) {
+                    _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(numberingInstance);
+                }
             }
         }
 
@@ -439,11 +456,11 @@ namespace OfficeIMO {
             return foundIssue;
         }
 
-        public WordList AddList(CustomListStyles style) {
-            WordList wordList = new WordList(this, this._currentSection);
-            wordList.AddList(style, "o", 0);
-            return wordList;
-        }
+        //public WordList AddList(CustomListStyles style) {
+        //    WordList wordList = new WordList(this, this._currentSection);
+        //    wordList.AddList(style, "o", 0);
+        //    return wordList;
+        //}
 
         public WordList AddList(ListStyles style) {
             WordList wordList = new WordList(this, this._currentSection);
