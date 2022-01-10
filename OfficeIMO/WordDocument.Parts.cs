@@ -1266,6 +1266,9 @@ namespace OfficeIMO {
             styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent5());
             styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent6());
 
+            styles1.Append(WordStyle.GetStyle(WordStyles.Heading1));
+            styles1.Append(WordStyle.GetStyle(WordStyles.Heading2));
+
             styleDefinitionsPart1.Styles = styles1;
         }
 

@@ -4,6 +4,7 @@ using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
 
@@ -57,6 +58,29 @@ namespace OfficeIMO {
                 }
             }
         }
+
+
+        public string Heading {
+            get {
+                if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
+                    return _paragraphProperties.ParagraphStyleId.Val;
+                }
+
+                return "";
+            }
+            set {
+                if (_paragraphProperties == null) {
+                    _paragraphProperties = new ParagraphProperties();
+                }
+
+                if (_paragraphProperties.ParagraphStyleId == null) {
+                    _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
+                }
+
+                _paragraphProperties.ParagraphStyleId.Val = value;
+            }
+        }
+
 
         internal WordList _list;
 

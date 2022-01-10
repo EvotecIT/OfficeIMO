@@ -20,6 +20,15 @@ namespace OfficeIMO {
         //internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
 
         //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+        public WordTableOfContent TableOfContent {
+            get {
+                SdtBlock sdtBlock = _document.Body.ChildElements.OfType<SdtBlock>().FirstOrDefault();
+                if (sdtBlock != null) {
+                    return new WordTableOfContent(this, sdtBlock);
+                }
+                return null;
+            }
+        }
 
         public List<WordParagraph> Paragraphs {
             get {
@@ -187,6 +196,8 @@ namespace OfficeIMO {
                     WordTable wordTable = new WordTable(this, wordSection, (Table) element);
                 } else if (element is SectionProperties sectionProperties) {
                     // we don't do anything as we already created it above - i think
+                } else if (element is SdtBlock sdtBlock) {
+                    // we don't do anything as we load stuff with get on demand
                 } else {
                     throw new NotImplementedException("This isn't implemented yet");
                 }
@@ -471,6 +482,11 @@ namespace OfficeIMO {
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, this._currentSection, rows, columns, tableStyle);
             return wordTable;
+        }
+
+        public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
+            WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
+            return wordTableContent;
         }
     }
 }
