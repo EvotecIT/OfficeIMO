@@ -1336,7 +1336,7 @@ namespace OfficeIMO.Examples {
                 var listOfStyles = (WordStyles[]) Enum.GetValues(typeof(WordStyles));
                 foreach (var style in listOfStyles) {
                     var paragraph = document.InsertParagraph(style.ToString());
-                    paragraph.ParagraphAlignment = JustificationValues.Center;
+                    //paragraph.ParagraphAlignment = JustificationValues.Center;
                     paragraph.Style = style;
 
 

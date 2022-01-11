@@ -1266,8 +1266,16 @@ namespace OfficeIMO {
             styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent5());
             styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent6());
 
-            styles1.Append(WordStyle.GetStyle(WordStyles.Heading1));
-            styles1.Append(WordStyle.GetStyle(WordStyles.Heading2));
+            // TODO: load all styles to document, probably we should load those in use
+            var listOfStyles = (WordStyles[])Enum.GetValues(typeof(WordStyles));
+            foreach (var style in listOfStyles) {
+                styles1.Append(WordStyle.GetStyle(style));
+            }
+
+            var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
+            foreach (var style in listOfCharStyles) {
+                styles1.Append(WordCharacterStyle.GetStyle(style));
+            }
 
             styleDefinitionsPart1.Styles = styles1;
         }
