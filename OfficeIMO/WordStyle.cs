@@ -18,6 +18,15 @@ namespace OfficeIMO {
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }
+
+        public static string ToStringStyle(this WordStyles style) {
+            switch (style) {
+                case WordStyles.Normal: return "Normal";
+                case WordStyles.Heading1: return "Heading1";
+                case WordStyles.Heading2: return "Heading2";
+            }
+            throw new ArgumentOutOfRangeException(nameof(style));
+        }
         public static WordStyles GetStyle(string style) {
             switch (style) {
                 case "Normal": return WordStyles.Normal;

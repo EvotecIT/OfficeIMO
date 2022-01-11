@@ -60,24 +60,26 @@ namespace OfficeIMO {
         }
 
 
-        public string Heading {
+        public WordStyles? Style {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
-                    return _paragraphProperties.ParagraphStyleId.Val;
+                    return WordStyle.GetStyle(_paragraphProperties.ParagraphStyleId.Val);
                 }
 
-                return "";
+                return null;
             }
             set {
-                if (_paragraphProperties == null) {
-                    _paragraphProperties = new ParagraphProperties();
-                }
+                if (value != null) {
+                    if (_paragraphProperties == null) {
+                        _paragraphProperties = new ParagraphProperties();
+                    }
 
-                if (_paragraphProperties.ParagraphStyleId == null) {
-                    _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
-                }
+                    if (_paragraphProperties.ParagraphStyleId == null) {
+                        _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
+                    }
 
-                _paragraphProperties.ParagraphStyleId.Val = value;
+                    _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                }
             }
         }
 
