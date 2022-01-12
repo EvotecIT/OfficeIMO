@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordTable wordTable = document.AddTable(3, 4);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
 
                 var listOfTablesStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
                 foreach (var tableStyle in listOfTablesStyles) {
-                    var paragraph = document.InsertParagraph(tableStyle.ToString());
+                    var paragraph = document.AddParagraph(tableStyle.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
 
                     WordTable wordTable = document.AddTable(4, 4, tableStyle);

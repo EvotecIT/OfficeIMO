@@ -25,9 +25,9 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.UpdateFieldsOnOpen = true;
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                var paragraph = document.InsertParagraph("Test Heading 1");
+                var paragraph = document.AddParagraph("Test Heading 1");
                 paragraph.Style = WordParagraphStyles.Heading1;
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "UpdateFieldsOnOpen should be set");

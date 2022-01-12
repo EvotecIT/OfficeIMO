@@ -251,25 +251,25 @@ namespace OfficeIMO {
         }
 
 
-        public void LoadNumbering() {
-            if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                if (numbering == null) {
-                } else {
-                    var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-                    foreach (AbstractNum abstractNum in tempAbstractNumList) {
-                       // _ListAbstractNum.Add(abstractNum);
-                    }
+        //private void LoadNumbering() {
+        //    if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+        //        Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+        //        if (numbering == null) {
+        //        } else {
+        //            var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
+        //            foreach (AbstractNum abstractNum in tempAbstractNumList) {
+        //               // _ListAbstractNum.Add(abstractNum);
+        //            }
 
-                    var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-                    foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-                        //_listNumberingInstances.Add(numberingInstance);
-                    }
-                }
-            }
-        }
+        //            var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+        //            foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
+        //                //_listNumberingInstances.Add(numberingInstance);
+        //            }
+        //        }
+        //    }
+        //}
 
-        public void SaveNumbering() {
+        private void SaveNumbering() {
             // it seems the order of numbering instance/abstractnums in numbering matters...
             List<AbstractNum> listAbstractNum = new List<AbstractNum>();
             List<NumberingInstance> listNumberingInstance = new List<NumberingInstance>();
@@ -354,14 +354,14 @@ namespace OfficeIMO {
         /// This moves section within body from top to bottom to allow footers/headers to move
         /// Needs more work, but this is what Word does all the time
         /// </summary>
-        public void MoveSectionProperties() {
+        private void MoveSectionProperties() {
             var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
             var sectionProperties = this._wordprocessingDocument.MainDocumentPart.Document.Body.Elements<SectionProperties>().Last();
             body.RemoveChild(sectionProperties);
             body.Append(sectionProperties);
         }
 
-        public WordParagraph InsertParagraph(WordParagraph wordParagraph = null) {
+        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this);
@@ -376,11 +376,11 @@ namespace OfficeIMO {
             return wordParagraph;
         }
 
-        public WordParagraph InsertParagraph(string text) {
-            return InsertParagraph().InsertText(text);
+        public WordParagraph AddParagraph(string text) {
+            return AddParagraph().SetText(text);
         }
 
-        public WordParagraph InsertPageBreak() {
+        public WordParagraph AddPageBreak() {
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() {Type = BreakValues.Page}),
                 _document = this
@@ -396,7 +396,7 @@ namespace OfficeIMO {
             return newWordParagraph;
         }
 
-        public WordParagraph InsertBreak(BreakValues breakType = BreakValues.Page) {
+        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() {Type = breakType}),
                 _document = this
@@ -415,7 +415,7 @@ namespace OfficeIMO {
             }
         }
 
-        public WordSection InsertSection(SectionMarkValues? sectionMark = null) {
+        public WordSection AddSection(SectionMarkValues? sectionMark = null) {
             //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
             Paragraph paragraph = new Paragraph();
 

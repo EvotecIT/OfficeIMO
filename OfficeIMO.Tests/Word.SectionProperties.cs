@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.PageOrientation == PageOrientationValues.Portrait, "Middle page orientation should be portrait when using document");
                 
-                document.InsertParagraph("Test");
+                document.AddParagraph("Test");
 
                 document.PageOrientation = PageOrientationValues.Landscape;
                 Assert.True(document.PageOrientation == PageOrientationValues.Landscape, "End page orientation should be landscape when using document");

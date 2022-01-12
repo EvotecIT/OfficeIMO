@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithLists() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("First List");
+                var paragraph = document.AddParagraph("First List");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 Assert.True(document.Paragraphs[0].IsEmpty == false, "Paragraph is empty");
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Lists.Count == 1, "List count matches");
 
-                paragraph = document.InsertParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(ListStyles.ArticleSections);
                 wordList2.AddItem("Temp 2");
@@ -47,35 +47,35 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Lists.Count == 2, "List count matches");
 
-                paragraph = document.InsertParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(ListStyles.BulletedChars);
                 wordList3.AddItem("Text 3");
                 wordList3.AddItem("Text 2", 1);
                 wordList3.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList4 = document.AddList(ListStyles.Headings111);
                 wordList4.AddItem("Text 4");
                 wordList4.AddItem("Text 2", 1);
                 wordList4.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList5 = document.AddList(ListStyles.Headings111Shifted);
                 wordList5.AddItem("Text 5");
                 wordList5.AddItem("Text 2", 1);
                 wordList5.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList6 = document.AddList(ListStyles.Chapters);
                 wordList6.AddItem("Text 6");
                 wordList6.AddItem("Text 2");
                 wordList6.AddItem("Text 3");
 
-                paragraph = document.InsertParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList7 = document.AddList(ListStyles.HeadingIA1);
                 wordList7.AddItem("Text 7");
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Lists[0].ListItems[2].ListItemLevel == 1, "Level doesn't match");
 
-                var paragraph = document.InsertParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
+                var paragraph = document.AddParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList8 = document.AddList(ListStyles.Bulleted);
                 wordList8.AddItem("Text 9");
@@ -120,18 +120,18 @@ namespace OfficeIMO.Tests {
                 wordList8.AddItem("Text 9.5", 0);
                 wordList8.AddItem("Text 9.6", 1);
 
-                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(ListStyles.Headings111);
                 wordList2.AddItem("Temp 10");
                 wordList2.AddItem("Text 10.1", 1);
 
-                paragraph = document.InsertParagraph("Paragraph in the middle of the list").SetColor(Color.Aquamarine); //.SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("Paragraph in the middle of the list").SetColor(Color.Aquamarine); //.SetUnderline(UnderlineValues.Double);
 
                 wordList2.AddItem("Text 10.2", 2);
                 wordList2.AddItem("Text 10.3", 2);
 
-                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(ListStyles.Headings111);
                 wordList3.AddItem("Temp 11");

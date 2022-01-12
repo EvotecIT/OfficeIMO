@@ -16,14 +16,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithPropertiesMinimum.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
-                paragraph.AppendText(" this is more continuation").SetItalic().SetCapsStyle(CapsStyle.Caps);
+                paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(CapsStyle.Caps);
 
                 Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Blue.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
@@ -69,24 +69,24 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Yellow.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
+                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
 
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
                 Assert.True(document.Paragraphs.Count == 6, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
@@ -149,15 +149,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                var paragraph = document.InsertParagraph().SetText("Basic paragraph - Page 1").SetColorHex("#FF0000").SetStrike();
+                var paragraph = document.AddParagraph().SetText("Basic paragraph - Page 1").SetColorHex("#FF0000").SetStrike();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph().SetColorHex("#FFFF00").SetSpacing(20).SetDoubleStrike();
+                paragraph = document.AddParagraph().SetColorHex("#FFFF00").SetSpacing(20).SetDoubleStrike();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph().SetColorHex("").SetStyle(WordParagraphStyles.Heading4).SetText("Style with Heading4").SetColorHex("#FFFF00");
+                paragraph = document.AddParagraph().SetColorHex("").SetStyle(WordParagraphStyles.Heading4).SetText("Style with Heading4").SetColorHex("#FFFF00");
 
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
                 var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
                 foreach (var style in listOfStyles) {
-                    var paragraph = document.InsertParagraph(style.ToString());
+                    var paragraph = document.AddParagraph(style.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
                     paragraph.Style = style;
                 }

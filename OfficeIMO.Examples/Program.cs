@@ -154,15 +154,15 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicWord(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph");
+                var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertParagraph("2nd paragraph");
+                paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
-                paragraph = paragraph.AppendText(" continue?");
+                paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
-                paragraph = paragraph.AppendText("More text");
+                paragraph = paragraph.AddText("More text");
                 paragraph.Color = System.Drawing.Color.CornflowerBlue.ToHexColor();
 
                 document.Save(openWord);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Examples {
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
-                var paragraph = document.InsertParagraph("Basic paragraph");
+                var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -185,89 +185,89 @@ namespace OfficeIMO.Examples {
 
         private static void Example_MultipleParagraphsViaDifferentWays(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create()) {
-                var paragraph = document.InsertParagraph("This paragraph starts with some text");
+                var paragraph = document.AddParagraph("This paragraph starts with some text");
                 paragraph.Bold = true;
                 paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
-                paragraph = document.InsertParagraph("1st Test Second Paragraph");
+                paragraph = document.AddParagraph("1st Test Second Paragraph");
 
-                paragraph = document.InsertParagraph();
+                paragraph = document.AddParagraph();
                 paragraph.Text = "2nd Test Third Paragraph, ";
                 paragraph.Underline = UnderlineValues.None;
-                var paragraph2 = paragraph.AppendText("3rd continuing?");
+                var paragraph2 = paragraph.AddText("3rd continuing?");
                 paragraph2.Underline = UnderlineValues.Double;
                 paragraph2.Bold = true;
                 paragraph2.Spacing = 200;
 
-                document.InsertParagraph().InsertText("4th Fourth paragraph with text").Bold = true;
+                document.AddParagraph().SetText("4th Fourth paragraph with text").Bold = true;
 
                 WordParagraph paragraph1 = new WordParagraph() {
                     Text = "Fifth paragraph",
                     Italic = true,
                     Bold = true
                 };
-                document.InsertParagraph(paragraph1);
+                document.AddParagraph(paragraph1);
 
-                paragraph = document.InsertParagraph("5th Test gmarmmar, this shouldnt show up as baddly written.");
+                paragraph = document.AddParagraph("5th Test gmarmmar, this shouldnt show up as baddly written.");
                 paragraph.DoNotCheckSpellingOrGrammar = true;
                 paragraph.CapsStyle = CapsStyle.Caps;
 
-                paragraph = document.InsertParagraph("6th Test gmarmmar, this should show up as baddly written.");
+                paragraph = document.AddParagraph("6th Test gmarmmar, this should show up as baddly written.");
                 paragraph.DoNotCheckSpellingOrGrammar = false;
                 paragraph.CapsStyle = CapsStyle.SmallCaps;
 
-                paragraph = document.InsertParagraph("7th Highlight me?");
+                paragraph = document.AddParagraph("7th Highlight me?");
                 paragraph.Highlight = HighlightColorValues.Yellow;
                 paragraph.FontSize = 15;
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
 
-                paragraph = document.InsertParagraph("8th This text should be colored.");
+                paragraph = document.AddParagraph("8th This text should be colored.");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.IndentationAfter = 1400;
 
 
-                paragraph = document.InsertParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
+                paragraph = document.AddParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
                 paragraph.Bold = true;
                 paragraph.Color = "#FF0000";
                 paragraph.IndentationBefore = 720;
                 paragraph.IndentationFirstLine = 1400;
 
 
-                paragraph = document.InsertParagraph("9th This text should be colored and Arial.");
+                paragraph = document.AddParagraph("9th This text should be colored and Arial.");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Arial";
                 paragraph.VerticalCharacterAlignmentOnLine = VerticalTextAlignmentValues.Bottom;
 
-                paragraph = document.InsertParagraph("10th This text should be colored and Tahoma.");
+                paragraph = document.AddParagraph("10th This text should be colored and Tahoma.");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.FontSize = 20;
                 paragraph.LineSpacingBefore = 300;
 
-                paragraph = document.InsertParagraph("12th This text should be colored and Tahoma and text direction changed");
+                paragraph = document.AddParagraph("12th This text should be colored and Tahoma and text direction changed");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.FontSize = 10;
                 paragraph.TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
 
-                paragraph = document.InsertParagraph("Spacing Test 1");
+                paragraph = document.AddParagraph("Spacing Test 1");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.LineSpacingAfter = 720;
 
-                paragraph = document.InsertParagraph("Spacing Test 2");
+                paragraph = document.AddParagraph("Spacing Test 2");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
 
 
-                paragraph = document.InsertParagraph("Spacing Test 3");
+                paragraph = document.AddParagraph("Spacing Test 3");
                 paragraph.Bold = true;
                 paragraph.Color = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
@@ -289,35 +289,35 @@ namespace OfficeIMO.Examples {
             document.BuiltinDocumentProperties.Title = "This is sparta";
             document.BuiltinDocumentProperties.Creator = "Przemek";
 
-            var paragraph = document.InsertParagraph("This paragraph starts with some text");
+            var paragraph = document.AddParagraph("This paragraph starts with some text");
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
 
             // lets add image to paragraph
-            paragraph.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
+            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
             //paragraph.Image.WrapText = true; // WrapSideValues.Both;
 
-            var paragraph5 = paragraph.AppendText("and more text");
+            var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
 
 
-            document.InsertParagraph("This adds another picture with 500x500");
+            document.AddParagraph("This adds another picture with 500x500");
 
             var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
-            WordParagraph paragraph2 = document.InsertParagraph();
-            paragraph2.InsertImage(filePathImage, 500, 500);
+            WordParagraph paragraph2 = document.AddParagraph();
+            paragraph2.AddImage(filePathImage, 500, 500);
             //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
             paragraph2.Image.Rotation = 180;
             paragraph2.Image.Shape = ShapeTypeValues.ActionButtonMovie;
 
 
-            document.InsertParagraph("This adds another picture with 100x100");
+            document.AddParagraph("This adds another picture with 100x100");
 
-            WordParagraph paragraph3 = document.InsertParagraph();
-            paragraph3.InsertImage(filePathImage, 100, 100);
+            WordParagraph paragraph3 = document.AddParagraph();
+            paragraph3.AddImage(filePathImage, 100, 100);
 
             // we add paragraph with an image
-            WordParagraph paragraph4 = document.InsertParagraph();
-            paragraph4.InsertImage(filePathImage);
+            WordParagraph paragraph4 = document.AddParagraph();
+            paragraph4.AddImage(filePathImage);
 
             // we can get the height of the image from paragraph
             Console.WriteLine("This document has image, which has height of: " + paragraph4.Image.Height + " pixels (I think) ;-)");
@@ -368,7 +368,7 @@ namespace OfficeIMO.Examples {
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
-                var paragraph = document.InsertParagraph("Test 1");
+                var paragraph = document.AddParagraph("Test 1");
 
                 //paragraph = new WordParagraph(document);
                 //WordSection section = new WordSection(document, paragraph);
@@ -377,11 +377,11 @@ namespace OfficeIMO.Examples {
                 //document._document.Body.Append(PageBreakParagraph);
                 //document._document.Body.InsertBefore(PageBreakParagraph, paragraph._paragraph);
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
                 paragraph.Text = "Test 2";
 
-                paragraph = document.InsertParagraph("Test 2");
+                paragraph = document.AddParagraph("Test 2");
 
                 // Now lets remove paragraph with page break
                 document.Paragraphs[1].Remove();
@@ -389,40 +389,40 @@ namespace OfficeIMO.Examples {
                 // Now lets remove 1st paragraph
                 document.Paragraphs[0].Remove();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                document.InsertParagraph().Text = "Some text on next page";
+                document.AddParagraph().Text = "Some text on next page";
 
-                var paragraph1 = document.InsertParagraph("Test").AppendText("Test2");
+                var paragraph1 = document.AddParagraph("Test").AddText("Test2");
                 paragraph1.Color = System.Drawing.Color.Red.ToHexColor();
-                paragraph1.AppendText("Test3");
+                paragraph1.AddText("Test3");
 
-                paragraph = document.InsertParagraph("Some paragraph");
+                paragraph = document.AddParagraph("Some paragraph");
                 paragraph.Bold = true;
-                paragraph = paragraph.AppendText(" continue?");
+                paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph");
+                paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertParagraph("2nd paragraph");
+                paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
-                paragraph = paragraph.AppendText(" continue?");
+                paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
-                paragraph = paragraph.AppendText(" More text");
+                paragraph = paragraph.AddText(" More text");
                 paragraph.Color = System.Drawing.Color.CornflowerBlue.ToHexColor();
 
                 // remove last paragraph
                 document.Paragraphs.Last().Remove();
 
-                paragraph = document.InsertParagraph("2nd paragraph");
+                paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
-                paragraph = paragraph.AppendText(" continue?");
+                paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
-                paragraph = paragraph.AppendText(" More text");
+                paragraph = paragraph.AddText(" More text");
                 paragraph.Color = System.Drawing.Color.CornflowerBlue.ToHexColor();
 
                 // remove paragraph
@@ -438,14 +438,14 @@ namespace OfficeIMO.Examples {
 
         private static void Example_PageBreaks1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Test 1");
+                var paragraph = document.AddParagraph("Test 1");
                 paragraph.Text = "Test 2";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                var paragraph1 = document.InsertParagraph("Test 1");
+                var paragraph1 = document.AddParagraph("Test 1");
                 paragraph1.Text = "Test 3";
 
 
@@ -457,9 +457,9 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                document.Header.Default.InsertParagraph().SetColor(Color.Red).SetText("Test Header");
+                document.Header.Default.AddParagraph().SetColor(Color.Red).SetText("Test Header");
 
-                document.Footer.Default.InsertParagraph().SetColor(Color.Blue).SetText("Test Footer");
+                document.Footer.Default.AddParagraph().SetColor(Color.Blue).SetText("Test Footer");
 
                 Console.WriteLine("Header Default Count: " + document.Header.Default.Paragraphs.Count);
                 Console.WriteLine("Header Even Count: " + document.Header.Even.Paragraphs.Count);
@@ -511,10 +511,10 @@ namespace OfficeIMO.Examples {
                 //var paragraphInFooter = document.Footer.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var paragraphInHeader = document.Header.Default.InsertParagraph();
+                var paragraphInHeader = document.Header.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                paragraphInHeader = document.Header.First.InsertParagraph();
+                paragraphInHeader = document.Header.First.AddParagraph();
                 paragraphInHeader.Text = "First Header / Section 0";
 
                 //var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
@@ -533,36 +533,36 @@ namespace OfficeIMO.Examples {
                 //paragraphInFooterEven.Text = "This is a test - Even";
 
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //paragraph = document.InsertPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //paragraph = document.InsertPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //paragraph = document.InsertPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //paragraph = document.InsertPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 5");
+                paragraph = document.AddParagraph("Basic paragraph - Page 5");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
                 //var section2 = document.InsertSection(SectionMarkValues.NextPage);
-                var section2 = document.InsertSection();
+                var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
                 section2.DifferentFirstPage = true;
 
@@ -571,38 +571,38 @@ namespace OfficeIMO.Examples {
                 //var paragraghInHeaderSection = section2.Header.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var paragraghInHeaderSection1 = section2.Header.Default.InsertParagraph();
+                var paragraghInHeaderSection1 = section2.Header.Default.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraghInHeaderSection1 = section2.Header.First.InsertParagraph();
+                paragraghInHeaderSection1 = section2.Header.First.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraghInHeaderSection1 = section2.Header.Even.InsertParagraph();
+                paragraghInHeaderSection1 = section2.Header.Even.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 6");
+                paragraph = document.AddParagraph("Basic paragraph - Page 6");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                paragraph = document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 7");
+                paragraph = document.AddParagraph("Basic paragraph - Page 7");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
 
-                paragraph = document.InsertParagraph("Basic paragraph - Section 3.1");
+                paragraph = document.AddParagraph("Basic paragraph - Section 3.1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                paragraph = document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Section 3.2");
+                paragraph = document.AddParagraph("Basic paragraph - Section 3.2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                paragraph = document.InsertPageBreak();
+                paragraph = document.AddPageBreak();
 
                 //paragraph = document.Footer.Odd.InsertParagraph();
                 //paragraph.Text = "Lets see";
@@ -634,7 +634,7 @@ namespace OfficeIMO.Examples {
 
                 Console.WriteLine("+ Page Orientation (ending): " + document.PageOrientation);
 
-                document.InsertParagraph("Test");
+                document.AddParagraph("Test");
 
                 document.Save(openWord);
             }
@@ -649,25 +649,25 @@ namespace OfficeIMO.Examples {
                 document.DifferentOddAndEvenPages = true;
 
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var paragraphInHeaderO = document.Header.Default.InsertParagraph();
+                var paragraphInHeaderO = document.Header.Default.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header.Even.InsertParagraph();
+                var paragraphInHeaderE = document.Header.Even.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -685,38 +685,38 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.InsertParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
+                document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
 
-                var section1 = document.InsertSection();
+                var section1 = document.AddSection();
                 section1.InsertParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
 
-                document.InsertParagraph("Test 2 - Should be after 1st section");
-                var section2 = document.InsertSection();
+                document.AddParagraph("Test 2 - Should be after 1st section");
+                var section2 = document.AddSection();
 
-                document.InsertParagraph("Test 3 - Should be after 2nd section");
-                document.InsertParagraph("Test 4 - Should be after 2nd section").SetBold().AppendText(" more text").SetColor(Color.DarkSalmon);
+                document.AddParagraph("Test 3 - Should be after 2nd section");
+                document.AddParagraph("Test 4 - Should be after 2nd section").SetBold().AddText(" more text").SetColor(Color.DarkSalmon);
 
-                var section3 = document.InsertSection();
+                var section3 = document.AddSection();
 
-                var para = document.InsertParagraph("Test 5 -");
-                para = para.AppendText(" and more text");
+                var para = document.AddParagraph("Test 5 -");
+                para = para.AddText(" and more text");
                 para.Bold = true;
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
+                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
+                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
 
 
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
@@ -749,11 +749,11 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicParagraphs(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
 
-                paragraph.AppendText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
 
                 Console.WriteLine("+ Color: " + paragraph.Color);
@@ -788,32 +788,32 @@ namespace OfficeIMO.Examples {
 
                 document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
 
-                var paragraphInHeader = document.Header.Default.InsertParagraph();
+                var paragraphInHeader = document.Header.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var section2 = document.InsertSection();
+                var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection1 = section2.Header.Default.InsertParagraph();
+                var paragraghInHeaderSection1 = section2.Header.Default.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var section3 = document.InsertSection();
+                var section3 = document.AddSection();
                 section3.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection3 = section3.Header.Default.InsertParagraph();
+                var paragraghInHeaderSection3 = section3.Header.Default.AddParagraph();
                 paragraghInHeaderSection3.Text = "Weird shit? 2";
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -834,14 +834,14 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicWordWithSections(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.InsertParagraph("Test 1");
-                var section1 = document.InsertSection(SectionMarkValues.NextPage);
+                document.AddParagraph("Test 1");
+                var section1 = document.AddSection(SectionMarkValues.NextPage);
 
-                document.InsertParagraph("Test 2");
-                var section2 = document.InsertSection(SectionMarkValues.Continuous);
+                document.AddParagraph("Test 2");
+                var section2 = document.AddSection(SectionMarkValues.Continuous);
 
-                document.InsertParagraph("Test 3");
-                var section3 = document.InsertSection(SectionMarkValues.NextPage);
+                document.AddParagraph("Test 3");
+                var section3 = document.AddSection(SectionMarkValues.NextPage);
                 section3.InsertParagraph("Paragraph added to section number 3");
                 section3.InsertParagraph("Continue adding paragraphs to section 3");
 
@@ -863,7 +863,7 @@ namespace OfficeIMO.Examples {
                 document.Paragraphs[1].Color = "7178a8";
 
                 var paragraph = section1.InsertParagraph("We missed paragraph on 1 section (2nd page)");
-                var newParagraph = paragraph.InsertParagraphAfterSelf();
+                var newParagraph = paragraph.AddParagraphAfterSelf();
                 newParagraph.Text = "Some more text, after paragraph we just added.";
                 newParagraph.Bold = true;
 
@@ -923,7 +923,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicCustomProperties(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
@@ -955,7 +955,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_ValidateDocument(string filePath) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
@@ -976,7 +976,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_ValidateDocument_BeforeSave() {
             using (WordDocument document = WordDocument.Create()) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
@@ -995,7 +995,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList = document.AddList(ListStyles.Headings111);
@@ -1009,7 +1009,7 @@ namespace OfficeIMO.Examples {
                 paragraph.Bold = true;
                 paragraph.SetItalic();
 
-                paragraph = document.InsertParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList1 = document.AddList(ListStyles.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Examples {
                 wordList1.ListItems[1].Remove();
                 paragraph = wordList1.AddItem("Temp 3");
 
-                paragraph = document.InsertParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(ListStyles.BulletedChars);
                 wordList2.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -1029,7 +1029,7 @@ namespace OfficeIMO.Examples {
                 wordList2.AddItem("Text 2.3", 1).SetColor(Color.Brown);
                 wordList2.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
 
-                paragraph = document.InsertParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(ListStyles.Heading1ai);
                 wordList3.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -1038,7 +1038,7 @@ namespace OfficeIMO.Examples {
                 wordList3.AddItem("Text 2.3", 1).SetColor(Color.Brown);
                 wordList3.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
 
-                paragraph = document.InsertParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList4 = document.AddList(ListStyles.Headings111Shifted);
                 wordList4.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
@@ -1053,7 +1053,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList1 = document.AddList(ListStyles.ArticleSections);
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Examples {
                 wordList1.AddItem("Text 2", 1);
                 wordList1.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(ListStyles.Headings111);
                 wordList2.AddItem("Temp 2");
@@ -1071,42 +1071,42 @@ namespace OfficeIMO.Examples {
 
                 wordList2.ListItems[3].ListItemLevel = 0;
 
-                paragraph = document.InsertParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(ListStyles.HeadingIA1);
                 wordList3.AddItem("Text 3");
                 wordList3.AddItem("Text 2", 1);
                 wordList3.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList4 = document.AddList(ListStyles.Chapters); // Chapters support only level 0
                 wordList4.AddItem("Text 1");
                 wordList4.AddItem("Text 2");
                 wordList4.AddItem("Text 3");
 
-                paragraph = document.InsertParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList5 = document.AddList(ListStyles.BulletedChars);
                 wordList5.AddItem("Text 5");
                 wordList5.AddItem("Text 2", 1);
                 wordList5.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList6 = document.AddList(ListStyles.Heading1ai);
                 wordList6.AddItem("Text 6");
                 wordList6.AddItem("Text 2", 1);
                 wordList6.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList7 = document.AddList(ListStyles.Headings111Shifted);
                 wordList7.AddItem("Text 7");
                 wordList7.AddItem("Text 2", 1);
                 wordList7.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList8 = document.AddList(ListStyles.Bulleted);
                 wordList8.AddItem("Text 8");
@@ -1126,7 +1126,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists3(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("This is 1st list");
+                var paragraph = document.AddParagraph("This is 1st list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList1 = document.AddList(ListStyles.Headings111);
@@ -1134,7 +1134,7 @@ namespace OfficeIMO.Examples {
                 wordList1.AddItem("Text 2", 1);
                 wordList1.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 2nd list");
+                paragraph = document.AddParagraph("This is 2nd list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList2 = document.AddList(ListStyles.Headings111);
@@ -1142,7 +1142,7 @@ namespace OfficeIMO.Examples {
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);
 
-                paragraph = document.InsertParagraph("This is 3rd list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 3rd list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList3 = document.AddList(ListStyles.Bulleted);
@@ -1154,7 +1154,7 @@ namespace OfficeIMO.Examples {
                 wordList3.AddItem("Text 8.6", 1);
                 wordList3.AddItem("Text 8");
 
-                paragraph = document.InsertParagraph("This is 4th list").SetColor(Color.Aqua).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 4th list").SetColor(Color.Aqua).SetUnderline(UnderlineValues.Double);
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList4 = document.AddList(ListStyles.Bulleted);
@@ -1175,7 +1175,7 @@ namespace OfficeIMO.Examples {
                 // change on loaded document
                 document.Lists[1].ListItems[3].ListItemLevel = 1;
 
-                var paragraph = document.InsertParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
+                var paragraph = document.AddParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList8 = document.AddList(ListStyles.Bulleted);
                 wordList8.AddItem("Text 9");
@@ -1186,18 +1186,18 @@ namespace OfficeIMO.Examples {
                 wordList8.AddItem("Text 9.5", 0);
                 wordList8.AddItem("Text 9.6", 1);
 
-                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(ListStyles.Headings111);
                 wordList2.AddItem("Temp 10");
                 wordList2.AddItem("Text 10.1", 1);
 
-                paragraph = document.InsertParagraph("Paragraph in the middle of the list").SetColor(Color.Aquamarine); //.SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("Paragraph in the middle of the list").SetColor(Color.Aquamarine); //.SetUnderline(UnderlineValues.Double);
 
                 wordList2.AddItem("Text 10.2", 2);
                 wordList2.AddItem("Text 10.3", 2);
 
-                paragraph = document.InsertParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
+                paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(ListStyles.Headings111);
                 wordList3.AddItem("Temp 11");
@@ -1215,7 +1215,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicTables1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
@@ -1234,7 +1234,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicTablesLoad1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 4");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent5);
@@ -1264,7 +1264,7 @@ namespace OfficeIMO.Examples {
                 //var listOfTablesStyles = Enum.GetValues(typeof(WordTableStyle)).Cast<WordTableStyle>();
                 var listOfTablesStyles = (WordTableStyle[]) Enum.GetValues(typeof(WordTableStyle));
                 foreach (var tableStyle in listOfTablesStyles) {
-                    var paragraph = document.InsertParagraph(tableStyle.ToString());
+                    var paragraph = document.AddParagraph(tableStyle.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
 
                     WordTable wordTable = document.AddTable(4, 4, tableStyle);
@@ -1284,7 +1284,7 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var listOfListStyles = (ListStyles[]) Enum.GetValues(typeof(ListStyles));
                 foreach (var listStyle in listOfListStyles) {
-                    var paragraph = document.InsertParagraph(listStyle.ToString());
+                    var paragraph = document.AddParagraph(listStyle.ToString());
                     paragraph.SetColor(Color.Red).SetBold();
                     paragraph.ParagraphAlignment = JustificationValues.Center;
 
@@ -1335,7 +1335,7 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var listOfStyles = (WordParagraphStyles[]) Enum.GetValues(typeof(WordParagraphStyles));
                 foreach (var style in listOfStyles) {
-                    var paragraph = document.InsertParagraph(style.ToString());
+                    var paragraph = document.AddParagraph(style.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
                     paragraph.Style = style;
                 }
@@ -1359,9 +1359,9 @@ namespace OfficeIMO.Examples {
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                var paragraph = document.InsertParagraph("Test");
+                var paragraph = document.AddParagraph("Test");
                 paragraph.Style = WordParagraphStyles.Heading1;
 
                 Console.WriteLine(wordTableContent.Text);
@@ -1389,13 +1389,13 @@ namespace OfficeIMO.Examples {
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
                 WordList wordList = document.AddList(ListStyles.Headings111);
                 wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
                 
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
                 wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
 

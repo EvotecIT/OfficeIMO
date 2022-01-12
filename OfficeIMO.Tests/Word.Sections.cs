@@ -76,18 +76,18 @@ namespace OfficeIMO.Tests {
             //}
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.InsertParagraph("Test 1");
+                document.AddParagraph("Test 1");
 
                 Assert.True(document.Paragraphs[0].IsEmpty == false, "Paragraph is empty");
 
-                var section1 = document.InsertSection();
+                var section1 = document.AddSection();
                 section1.InsertParagraph("Test 1");
 
-                document.InsertParagraph("Test 2");
-                var section2 = document.InsertSection();
+                document.AddParagraph("Test 2");
+                var section2 = document.AddSection();
 
-                document.InsertParagraph("Test 3");
-                var section3 = document.InsertSection();
+                document.AddParagraph("Test 3");
+                var section3 = document.AddSection();
 
                 Assert.True(document.Paragraphs.Count == 4, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
 

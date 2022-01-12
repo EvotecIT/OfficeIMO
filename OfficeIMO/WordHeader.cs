@@ -62,7 +62,7 @@ namespace OfficeIMO {
             //}
             _type = type;
         }
-        public WordParagraph InsertParagraph() {
+        public WordParagraph AddParagraph() {
             var wordParagraph = new WordParagraph();
             //if (_type == HeaderFooterValues.First) {
             //    _headerFirst.Append(wordParagraph._paragraph);

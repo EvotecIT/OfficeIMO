@@ -17,22 +17,22 @@ namespace OfficeIMO.Tests {
 
                 document.AddHeadersAndFooters();
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var paragraphInHeader = document.Header.Default.InsertParagraph();
+                var paragraphInHeader = document.Header.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -63,25 +63,25 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var paragraphInHeaderO = document.Header.Default.InsertParagraph();
+                var paragraphInHeaderO = document.Header.Default.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header.Even.InsertParagraph();
+                var paragraphInHeaderE = document.Header.Even.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -122,28 +122,28 @@ namespace OfficeIMO.Tests {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                var paragraphInHeaderF = document.Header.First.InsertParagraph();
+                var paragraphInHeaderF = document.Header.First.AddParagraph();
                 paragraphInHeaderF.Text = "First Header / Section 0";
 
-                var paragraphInHeaderO = document.Header.Default.InsertParagraph();
+                var paragraphInHeaderO = document.Header.Default.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header.Even.InsertParagraph();
+                var paragraphInHeaderE = document.Header.Even.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 

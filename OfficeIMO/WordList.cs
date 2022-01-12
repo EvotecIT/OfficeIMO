@@ -149,7 +149,7 @@ namespace OfficeIMO {
             WordParagraph wordParagraph = new WordParagraph(_document, true, paragraphProperties, runProperties, run, _section);
             wordParagraph.Text = text;
 
-            _document.InsertParagraph(wordParagraph);
+            _document.AddParagraph(wordParagraph);
 
             ListItems.Add(wordParagraph);
 

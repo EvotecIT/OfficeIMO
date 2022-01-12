@@ -210,13 +210,13 @@ namespace OfficeIMO {
         public WordParagraph InsertParagraph(string text) {
             if (this.Paragraphs.Count == 0) {
 
-                var paragraph = this._document.InsertParagraph(text);
+                var paragraph = this._document.AddParagraph(text);
                 paragraph._section = this;
                 return paragraph;
             } else {
                 var lastParagraphWithinSection = this.Paragraphs.Last();
 
-                var paragraph = lastParagraphWithinSection.InsertParagraphAfterSelf();
+                var paragraph = lastParagraphWithinSection.AddParagraphAfterSelf();
                 paragraph._document = this._document;
                 paragraph._section = this;
                 

@@ -251,12 +251,7 @@ namespace OfficeIMO {
             }
         }
 
-        public WordParagraph InsertText(string text) {
-            this._text.Text = text;
-            return this;
-        }
-
-        public WordParagraph AppendText(string text) {
+        public WordParagraph AddText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, false);
             wordParagraph.Text = text;
           
@@ -272,14 +267,14 @@ namespace OfficeIMO {
             return wordParagraph;
         }
         
-        public WordParagraph InsertImage(string filePathImage, double? width, double? height) {
+        public WordParagraph AddImage(string filePathImage, double? width, double? height) {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
             this.Image = wordImage;
             return paragraph;
         }
-        public WordParagraph InsertImage(string filePathImage) {
+        public WordParagraph AddImage(string filePathImage) {
             WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
@@ -313,7 +308,7 @@ namespace OfficeIMO {
             this._document.Paragraphs.Remove(this);
         }
 
-        public WordParagraph InsertParagraphAfterSelf() {
+        public WordParagraph AddParagraphAfterSelf() {
             WordParagraph paragraph = new WordParagraph(null, true);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             this._document.Paragraphs.Add(paragraph);
@@ -321,7 +316,7 @@ namespace OfficeIMO {
             return paragraph;
         }
 
-        public WordParagraph InsertParagraphBeforeSelf() {
+        public WordParagraph AddParagraphBeforeSelf() {
             WordParagraph paragraph = new WordParagraph(null, true);
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);

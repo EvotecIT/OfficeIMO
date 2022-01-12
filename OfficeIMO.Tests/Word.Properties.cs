@@ -19,19 +19,19 @@ namespace OfficeIMO.Tests {
                 document.BuiltinDocumentProperties.Title = "This is a test for Title";
                 document.BuiltinDocumentProperties.Category = "This is a test for Category";
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -60,19 +60,19 @@ namespace OfficeIMO.Tests {
                 document.BuiltinDocumentProperties.Title = "This is a test for Title";
                 document.BuiltinDocumentProperties.Category = "This is a test for Category";
 
-                var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
+                var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 2");
+                paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
-                document.InsertPageBreak();
+                document.AddPageBreak();
 
-                paragraph = document.InsertParagraph("Basic paragraph - Page 3");
+                paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
