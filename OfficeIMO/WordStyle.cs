@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
-    public enum WordStyles {
+    public enum WordParagraphStyles {
         Normal,
         Heading1,
         Heading2,
@@ -18,53 +18,53 @@ namespace OfficeIMO {
         Heading9,
     }
 
-    public static class WordStyle {
-        public static Style GetStyle(WordStyles style) {
+    public static class WordParagraphStyle {
+        public static Style GetStyle(WordParagraphStyles style) {
             switch (style) {
-                case WordStyles.Normal: return StyleNormal;
-                case WordStyles.Heading1: return StyleHeading1;
-                case WordStyles.Heading2: return StyleHeading2;
-                case WordStyles.Heading3: return StyleHeading3;
-                case WordStyles.Heading4: return StyleHeading4;
-                case WordStyles.Heading5: return StyleHeading5;
-                case WordStyles.Heading6: return StyleHeading6;
-                case WordStyles.Heading7: return StyleHeading7;
-                case WordStyles.Heading8: return StyleHeading8;
-                case WordStyles.Heading9: return StyleHeading9;
+                case WordParagraphStyles.Normal: return StyleNormal;
+                case WordParagraphStyles.Heading1: return StyleHeading1;
+                case WordParagraphStyles.Heading2: return StyleHeading2;
+                case WordParagraphStyles.Heading3: return StyleHeading3;
+                case WordParagraphStyles.Heading4: return StyleHeading4;
+                case WordParagraphStyles.Heading5: return StyleHeading5;
+                case WordParagraphStyles.Heading6: return StyleHeading6;
+                case WordParagraphStyles.Heading7: return StyleHeading7;
+                case WordParagraphStyles.Heading8: return StyleHeading8;
+                case WordParagraphStyles.Heading9: return StyleHeading9;
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
-        public static string ToStringStyle(this WordStyles style) {
+        public static string ToStringStyle(this WordParagraphStyles style) {
             switch (style) {
-                case WordStyles.Normal: return "Normal";
-                case WordStyles.Heading1: return "Heading1";
-                case WordStyles.Heading2: return "Heading2";
-                case WordStyles.Heading3: return "Heading3";
-                case WordStyles.Heading4: return "Heading4";
-                case WordStyles.Heading5: return "Heading5";
-                case WordStyles.Heading6: return "Heading6";
-                case WordStyles.Heading7: return "Heading7";
-                case WordStyles.Heading8: return "Heading8";
-                case WordStyles.Heading9: return "Heading9";
+                case WordParagraphStyles.Normal: return "Normal";
+                case WordParagraphStyles.Heading1: return "Heading1";
+                case WordParagraphStyles.Heading2: return "Heading2";
+                case WordParagraphStyles.Heading3: return "Heading3";
+                case WordParagraphStyles.Heading4: return "Heading4";
+                case WordParagraphStyles.Heading5: return "Heading5";
+                case WordParagraphStyles.Heading6: return "Heading6";
+                case WordParagraphStyles.Heading7: return "Heading7";
+                case WordParagraphStyles.Heading8: return "Heading8";
+                case WordParagraphStyles.Heading9: return "Heading9";
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
-        public static WordStyles GetStyle(string style) {
+        public static WordParagraphStyles GetStyle(string style) {
             switch (style) {
-                case "Normal": return WordStyles.Normal;
-                case "Heading1": return WordStyles.Heading1;
-                case "Heading2": return WordStyles.Heading2;
-                case "Heading3": return WordStyles.Heading3;
-                case "Heading4": return WordStyles.Heading4;
-                case "Heading5": return WordStyles.Heading5;
-                case "Heading6": return WordStyles.Heading6;
-                case "Heading7": return WordStyles.Heading7;
-                case "Heading8": return WordStyles.Heading8;
-                case "Heading9": return WordStyles.Heading9;
+                case "Normal": return WordParagraphStyles.Normal;
+                case "Heading1": return WordParagraphStyles.Heading1;
+                case "Heading2": return WordParagraphStyles.Heading2;
+                case "Heading3": return WordParagraphStyles.Heading3;
+                case "Heading4": return WordParagraphStyles.Heading4;
+                case "Heading5": return WordParagraphStyles.Heading5;
+                case "Heading6": return WordParagraphStyles.Heading6;
+                case "Heading7": return WordParagraphStyles.Heading7;
+                case "Heading8": return WordParagraphStyles.Heading8;
+                case "Heading9": return WordParagraphStyles.Heading9;
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
@@ -193,18 +193,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 2};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 2};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 2};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -251,18 +251,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 3};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 3};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 3};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -309,18 +309,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 4};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 4};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 4};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -363,18 +363,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 5};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 5};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 5};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -417,18 +417,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 6};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 6};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 6};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -475,18 +475,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 7};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 7};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 7};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 
@@ -533,18 +533,18 @@ namespace OfficeIMO {
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
 
-                NumberingProperties numberingProperties1 = new NumberingProperties();
-                NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 8};
-                NumberingId numberingId1 = new NumberingId() {Val = 4};
+                //NumberingProperties numberingProperties1 = new NumberingProperties();
+                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 8};
+                //NumberingId numberingId1 = new NumberingId() {Val = 4};
 
-                numberingProperties1.Append(numberingLevelReference1);
-                numberingProperties1.Append(numberingId1);
+                //numberingProperties1.Append(numberingLevelReference1);
+                //numberingProperties1.Append(numberingId1);
                 SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
                 OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 8};
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(numberingProperties1);
+                //styleParagraphProperties1.Append(numberingProperties1);
                 styleParagraphProperties1.Append(spacingBetweenLines1);
                 styleParagraphProperties1.Append(outlineLevel1);
 

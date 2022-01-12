@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public enum WordCharacterStyles {
+        DefaultParagraphFont,
         Heading1Char,
         Heading2Char,
         Heading3Char,
@@ -17,6 +18,7 @@ namespace OfficeIMO {
     public static class WordCharacterStyle {
         public static Style GetStyle(WordCharacterStyles style) {
             switch (style) {
+                case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
                 case WordCharacterStyles.Heading1Char: return StyleHeading1;
                 case WordCharacterStyles.Heading2Char: return StyleHeading2;
                 case WordCharacterStyles.Heading3Char: return StyleHeading3;
@@ -33,6 +35,7 @@ namespace OfficeIMO {
 
         public static string ToStringStyle(this WordCharacterStyles style) {
             switch (style) {
+                case WordCharacterStyles.DefaultParagraphFont: return "DefaultParagraphFont";
                 case WordCharacterStyles.Heading1Char: return "Heading1Char";
                 case WordCharacterStyles.Heading2Char: return "Heading2Char";
                 case WordCharacterStyles.Heading3Char: return "Heading3Char";
@@ -49,6 +52,7 @@ namespace OfficeIMO {
 
         public static WordCharacterStyles GetStyle(string style) {
             switch (style) {
+                case "DefaultParagraphFont": return WordCharacterStyles.DefaultParagraphFont;
                 case "Heading1Char": return WordCharacterStyles.Heading1Char;
                 case "Heading2Char": return WordCharacterStyles.Heading2Char;
                 case "Heading3Char": return WordCharacterStyles.Heading3Char;
@@ -60,6 +64,22 @@ namespace OfficeIMO {
                 case "Heading9Char": return WordCharacterStyles.Heading9Char;
             }
             throw new ArgumentOutOfRangeException(nameof(style));
+        }
+
+        private static Style DefaultParagraphFont {
+            get {
+                Style style1 = new Style() { Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true };
+                StyleName styleName1 = new StyleName() { Val = "Default Paragraph Font" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 1 };
+                SemiHidden semiHidden1 = new SemiHidden();
+                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+
+                style1.Append(styleName1);
+                style1.Append(uIPriority1);
+                style1.Append(semiHidden1);
+                style1.Append(unhideWhenUsed1);
+                return style1;
+            }
         }
 
         private static Style StyleHeading1 {

@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 document.InsertPageBreak();
 
                 var paragraph = document.InsertParagraph("Test Heading 1");
-                paragraph.Heading = "Heading1";
+                paragraph.Style = WordParagraphStyles.Heading1;
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "UpdateFieldsOnOpen should be set");
                 Assert.True(document.TableOfContent != null, "TableOfContent Should be set");

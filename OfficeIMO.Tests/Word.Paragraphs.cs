@@ -144,5 +144,121 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
             }
         }
+        [Fact]
+        public void Test_CreatingDocumentWithParagraphsAndSomeStyles() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                var paragraph = document.InsertParagraph().SetText("Basic paragraph - Page 1").SetColorHex("#FF0000").SetStrike();
+
+                document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph().SetColorHex("#FFFF00").SetSpacing(20).SetDoubleStrike();
+
+                document.InsertPageBreak();
+
+                paragraph = document.InsertParagraph().SetColorHex("").SetStyle(WordParagraphStyles.Heading4).SetText("Style with Heading4").SetColorHex("#FFFF00");
+
+                Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
+                Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+
+                Assert.True(document.Paragraphs[0].Strike == true, "Strike should be set");
+                Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
+                Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
+                Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0], "1st paragraph of 1st section should be the same 2");
+                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
+                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
+                Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
+                Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
+                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
+                Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
+                Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
+                Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx"))) {
+                Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
+                Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+                Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
+
+                Assert.True(document.Paragraphs[0].Strike == true, "Strike should be set");
+                Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
+                Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
+                Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0], "1st paragraph of 1st section should be the same 2");
+                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
+                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
+                Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
+                Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
+                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
+                Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
+                Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
+                Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
+            }
+        }
+        [Fact]
+        public void Test_CreatingWordDocumentWithAllParagraphStyles() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllParagraphStyles.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Tables.Count == 0, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
+                foreach (var style in listOfStyles) {
+                    var paragraph = document.InsertParagraph(style.ToString());
+                    paragraph.ParagraphAlignment = JustificationValues.Center;
+                    paragraph.Style = style;
+                }
+
+                var count = 0;
+                foreach (var style in listOfStyles) {
+                    Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    count++;
+                }
+
+                Assert.True(listOfStyles.Length == document.Paragraphs.Count, "Paragraph count should match styles count");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllParagraphStyles.docx"))) {
+                
+                var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
+                var count = 0;
+                foreach (var style in listOfStyles) {
+                    Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    count++;
+                }
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllParagraphStyles.docx"))) {
+                var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
+                var count = 0;
+                foreach (var style in listOfStyles) {
+                    Assert.True(document.Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    Assert.True(document.Sections[0].Paragraphs[count].Style == style, "Style should match for every paragraph");
+                    Assert.True(document.Sections[0].Paragraphs[count].ParagraphAlignment == JustificationValues.Center, "Alignment should match");
+                    count++;
+                }
+                document.Save();
+            }
+        }
+
     }
 }

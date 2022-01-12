@@ -55,5 +55,9 @@ namespace OfficeIMO {
             this.Text = text;
             return this;
         }
+        public WordParagraph SetStyle(WordParagraphStyles style) {
+            this.Style = style;
+            return this;
+        }
     }
 }

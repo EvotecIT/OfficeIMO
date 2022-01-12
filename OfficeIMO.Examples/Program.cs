@@ -132,12 +132,15 @@ namespace OfficeIMO.Examples {
 
             Console.WriteLine("[*] Creating standard document with Paragraph Styles");
             filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
-            Example_BasicParagraphStyles(filePath, true);
+            Example_BasicParagraphStyles(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with TOC");
+            Console.WriteLine("[*] Creating standard document with TOC - 1");
             filePath = System.IO.Path.Combine(folderPath, "Document with TOC1.docx");
-            Example_BasicTOC(filePath, false);
+            Example_BasicTOC1(filePath, true);
 
+            Console.WriteLine("[*] Creating standard document with TOC - 2");
+            filePath = System.IO.Path.Combine(folderPath, "Document with TOC2.docx");
+            Example_BasicTOC2(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -488,7 +491,6 @@ namespace OfficeIMO.Examples {
 
                 document.Save(openWord);
             }
-
         }
 
         private static void Example_BasicWordWithHeaderAndFooter1(string filePath, bool openWord) {
@@ -1170,7 +1172,6 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists2Load(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Load(filePath)) {
-
                 // change on loaded document
                 document.Lists[1].ListItems[3].ListItemLevel = 1;
 
@@ -1332,15 +1333,13 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicParagraphStyles(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
-                var listOfStyles = (WordStyles[]) Enum.GetValues(typeof(WordStyles));
+                var listOfStyles = (WordParagraphStyles[]) Enum.GetValues(typeof(WordParagraphStyles));
                 foreach (var style in listOfStyles) {
                     var paragraph = document.InsertParagraph(style.ToString());
-                    //paragraph.ParagraphAlignment = JustificationValues.Center;
+                    paragraph.ParagraphAlignment = JustificationValues.Center;
                     paragraph.Style = style;
-
-
                 }
+
                 document.Save(openWord);
             }
             //using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1351,43 +1350,63 @@ namespace OfficeIMO.Examples {
         }
 
 
+        private static void Example_BasicTOC1(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                // Standard way to open document and be asked about Updating Fields including TOC
+                document.Settings.UpdateFieldsOnOpen = true;
+
+                WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
+                wordTableContent.Text = "This is Table of Contents";
+                wordTableContent.TextNoContent = "Ooopsi, no content";
+
+                document.InsertPageBreak();
+
+                var paragraph = document.InsertParagraph("Test");
+                paragraph.Style = WordParagraphStyles.Heading1;
+
+                Console.WriteLine(wordTableContent.Text);
+                Console.WriteLine(wordTableContent.TextNoContent);
+
+                //// i am not sure if this is even working properly, seems so, but seems bad idea
+                //wordTableContent.Update();
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
 
 
+                document.Save(openWord);
+            }
+        }
 
-        private static void Example_BasicTOC(string filePath, bool openWord) {
-                    using (WordDocument document = WordDocument.Create(filePath)) {
-                        // Standard way to open document and be asked about Updating Fields including TOC
-                        //document.Settings.UpdateFieldsOnOpen = true;
+        private static void Example_BasicTOC2(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                // Standard way to open document and be asked about Updating Fields including TOC
+                document.Settings.UpdateFieldsOnOpen = true;
 
-                        //WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
-                        //wordTableContent.Text = "This is Table of Contents";
-                        //wordTableContent.TextNoContent = "Ooopsi, no content";
+                WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
+                wordTableContent.Text = "This is Table of Contents";
+                wordTableContent.TextNoContent = "Ooopsi, no content";
 
-                        //document.InsertPageBreak();
+                document.InsertPageBreak();
 
-                        //var paragraph =  document.InsertParagraph("Test");
-                        //paragraph.Heading = "Heading1";
+                WordList wordList = document.AddList(ListStyles.Headings111);
+                wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
+                
 
-                        //Console.WriteLine(wordTableContent.Text);
-                        //Console.WriteLine(wordTableContent.TextNoContent);
+                document.InsertPageBreak();
 
-                        //// i am not sure if this is even working properly, seems so, but seems bad idea
-                        //wordTableContent.Update();
+                wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
 
-                        //document.Save(openWord);
+                document.Save();
+            }
 
-                        var paragraph = document.InsertParagraph("To jest ");
-                        paragraph.AppendText("zwykly").SetColor(Color.Blue).AppendText("text").SetColor(Color.Red);
-                        document.Save(openWord);
-                    }
-
-                    //using (WordDocument document = WordDocument.Load(filePath)) {
+            using (WordDocument document = WordDocument.Load(filePath)) {
 
 
-                    //    //document.Save(openWord);
-                    //}
-                }
-        
-        
+                document.Save(openWord);
+            }
+        }
     }
 }

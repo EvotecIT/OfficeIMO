@@ -1120,16 +1120,16 @@ namespace OfficeIMO {
             style1.Append(styleName1);
             style1.Append(primaryStyle1);
 
-            Style style2 = new Style() { Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true };
-            StyleName styleName2 = new StyleName() { Val = "Default Paragraph Font" };
-            UIPriority uIPriority1 = new UIPriority() { Val = 1 };
-            SemiHidden semiHidden1 = new SemiHidden();
-            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            //Style style2 = new Style() { Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true };
+            //StyleName styleName2 = new StyleName() { Val = "Default Paragraph Font" };
+            //UIPriority uIPriority1 = new UIPriority() { Val = 1 };
+            //SemiHidden semiHidden1 = new SemiHidden();
+            //UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
 
-            style2.Append(styleName2);
-            style2.Append(uIPriority1);
-            style2.Append(semiHidden1);
-            style2.Append(unhideWhenUsed1);
+            //style2.Append(styleName2);
+            //style2.Append(uIPriority1);
+            //style2.Append(semiHidden1);
+            //style2.Append(unhideWhenUsed1);
 
             Style style4 = new Style() { Type = StyleValues.Numbering, StyleId = "NoList", Default = true };
             StyleName styleName4 = new StyleName() { Val = "No List" };
@@ -1267,11 +1267,11 @@ namespace OfficeIMO {
             styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent6());
 
             // TODO: load all styles to document, probably we should load those in use
-            var listOfStyles = (WordStyles[])Enum.GetValues(typeof(WordStyles));
+            var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
             foreach (var style in listOfStyles) {
-                styles1.Append(WordStyle.GetStyle(style));
+                styles1.Append(WordParagraphStyle.GetStyle(style));
             }
-
+            // TODO: load only needed character styles
             var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
             foreach (var style in listOfCharStyles) {
                 styles1.Append(WordCharacterStyle.GetStyle(style));

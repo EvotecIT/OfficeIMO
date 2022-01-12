@@ -60,10 +60,10 @@ namespace OfficeIMO {
         }
 
 
-        public WordStyles? Style {
+        public WordParagraphStyles? Style {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
-                    return WordStyle.GetStyle(_paragraphProperties.ParagraphStyleId.Val);
+                    return WordParagraphStyle.GetStyle(_paragraphProperties.ParagraphStyleId.Val);
                 }
 
                 return null;
