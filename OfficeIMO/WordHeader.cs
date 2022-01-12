@@ -22,7 +22,7 @@ namespace OfficeIMO {
         }
         private readonly HeaderFooterValues _type;
         private readonly HeaderPart _headerPart;
-        private readonly Header _header;
+        internal readonly Header _header;
         private string _id;
         private WordDocument _document;
 
@@ -74,6 +74,11 @@ namespace OfficeIMO {
             _header.Append(wordParagraph._paragraph);
             //this.Paragraphs.Add(wordParagraph);
             return wordParagraph;
+        }
+
+        public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
+            var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
+            return pageNumber;
         }
     }
 }

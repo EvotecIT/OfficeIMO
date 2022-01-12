@@ -130,17 +130,22 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
             //Example_AllTables(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Paragraph Styles");
-            filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
-            Example_BasicParagraphStyles(filePath, false);
+            //Console.WriteLine("[*] Creating standard document with Paragraph Styles");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
+            //Example_BasicParagraphStyles(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with TOC - 1");
-            filePath = System.IO.Path.Combine(folderPath, "Document with TOC1.docx");
-            Example_BasicTOC1(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with TOC - 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC1.docx");
+            //Example_BasicTOC1(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with TOC - 2");
-            filePath = System.IO.Path.Combine(folderPath, "Document with TOC2.docx");
-            Example_BasicTOC2(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with TOC - 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC2.docx");
+            //Example_BasicTOC2(filePath, false);
+
+
+            Console.WriteLine("[*] Creating standard document with Page Numbers 1");
+            filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers.docx");
+            Example_PageNumbers1(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1399,6 +1404,34 @@ namespace OfficeIMO.Examples {
 
                 wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
 
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+
+
+                document.Save(openWord);
+            }
+        }
+
+
+        private static void Example_PageNumbers1(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+
+                //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
+                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+                pageNumber.ParagraphAlignment = JustificationValues.Center;
+                
+                document.AddPageBreak();
+
+                WordList wordList = document.AddList(ListStyles.Headings111);
+                wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
+                
+                document.AddPageBreak();
+
+                wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
+                
                 document.Save();
             }
 

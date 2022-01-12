@@ -21,7 +21,7 @@ namespace OfficeIMO {
             }
         }
         private readonly FooterPart _footerPart;
-        private readonly Footer _footer;
+        internal readonly Footer _footer;
         private string _id;
         private WordDocument _document;
         private readonly HeaderFooterValues _type;
@@ -80,6 +80,10 @@ namespace OfficeIMO {
             _footer.Append(wordParagraph._paragraph);
             //this.Paragraphs.Add(wordParagraph);
             return wordParagraph;
+        }
+        public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
+            var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
+            return pageNumber;
         }
     }
 }
