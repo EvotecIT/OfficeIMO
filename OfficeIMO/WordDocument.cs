@@ -90,7 +90,7 @@ namespace OfficeIMO {
 
         public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         public WordCustomProperties _customDocumentProperties;
-        internal WordLists WordLists;
+        //internal WordLists WordLists;
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
