@@ -1003,7 +1003,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList = document.AddList(ListStyles.Headings111);
+                WordList wordList = document.AddList(WordListStyle.Headings111);
                 wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown);
                 wordList.AddItem("Text 2.2", 1).SetColor(Color.Brown);
@@ -1016,7 +1016,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList1 = document.AddList(ListStyles.HeadingIA1);
+                WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList1.AddItem("Temp 2.1", 1).SetColor(Color.Brown);
                 wordList1.AddItem("Temp 2.2", 1).SetColor(Color.Brown);
@@ -1027,7 +1027,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList2 = document.AddList(ListStyles.BulletedChars);
+                WordList wordList2 = document.AddList(WordListStyle.BulletedChars);
                 wordList2.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList2.AddItem("Text 2.1", 1).SetColor(Color.Brown);
                 wordList2.AddItem("Text 2.2", 1).SetColor(Color.Brown);
@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList3 = document.AddList(ListStyles.Heading1ai);
+                WordList wordList3 = document.AddList(WordListStyle.Heading1ai);
                 wordList3.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList3.AddItem("Text 2.1", 1).SetColor(Color.Brown);
                 wordList3.AddItem("Text 2.2", 1).SetColor(Color.Brown);
@@ -1045,7 +1045,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList4 = document.AddList(ListStyles.Headings111Shifted);
+                WordList wordList4 = document.AddList(WordListStyle.Headings111Shifted);
                 wordList4.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList4.AddItem("Text 2.1", 1).SetColor(Color.Brown);
                 wordList4.AddItem("Text 2.2", 1).SetColor(Color.Brown);
@@ -1061,14 +1061,14 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList1 = document.AddList(ListStyles.ArticleSections);
+                WordList wordList1 = document.AddList(WordListStyle.ArticleSections);
                 wordList1.AddItem("Text 1");
                 wordList1.AddItem("Text 2", 1);
                 wordList1.AddItem("Text 3", 2);
 
                 paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList2 = document.AddList(ListStyles.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Headings111);
                 wordList2.AddItem("Temp 2");
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);
@@ -1078,42 +1078,42 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList3 = document.AddList(ListStyles.HeadingIA1);
+                WordList wordList3 = document.AddList(WordListStyle.HeadingIA1);
                 wordList3.AddItem("Text 3");
                 wordList3.AddItem("Text 2", 1);
                 wordList3.AddItem("Text 3", 2);
 
                 paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList4 = document.AddList(ListStyles.Chapters); // Chapters support only level 0
+                WordList wordList4 = document.AddList(WordListStyle.Chapters); // Chapters support only level 0
                 wordList4.AddItem("Text 1");
                 wordList4.AddItem("Text 2");
                 wordList4.AddItem("Text 3");
 
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList5 = document.AddList(ListStyles.BulletedChars);
+                WordList wordList5 = document.AddList(WordListStyle.BulletedChars);
                 wordList5.AddItem("Text 5");
                 wordList5.AddItem("Text 2", 1);
                 wordList5.AddItem("Text 3", 2);
 
                 paragraph = document.AddParagraph("This is 6th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList6 = document.AddList(ListStyles.Heading1ai);
+                WordList wordList6 = document.AddList(WordListStyle.Heading1ai);
                 wordList6.AddItem("Text 6");
                 wordList6.AddItem("Text 2", 1);
                 wordList6.AddItem("Text 3", 2);
 
                 paragraph = document.AddParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList7 = document.AddList(ListStyles.Headings111Shifted);
+                WordList wordList7 = document.AddList(WordListStyle.Headings111Shifted);
                 wordList7.AddItem("Text 7");
                 wordList7.AddItem("Text 2", 1);
                 wordList7.AddItem("Text 3", 2);
 
                 paragraph = document.AddParagraph("This is 7th list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList8 = document.AddList(ListStyles.Bulleted);
+                WordList wordList8 = document.AddList(WordListStyle.Bulleted);
                 wordList8.AddItem("Text 8");
                 wordList8.AddItem("Text 8.1", 1);
                 wordList8.AddItem("Text 8.2", 2);
@@ -1134,7 +1134,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("This is 1st list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList1 = document.AddList(ListStyles.Headings111);
+                WordList wordList1 = document.AddList(WordListStyle.Headings111);
                 wordList1.AddItem("Text 1");
                 wordList1.AddItem("Text 2", 1);
                 wordList1.AddItem("Text 3", 2);
@@ -1142,7 +1142,7 @@ namespace OfficeIMO.Examples {
                 paragraph = document.AddParagraph("This is 2nd list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList2 = document.AddList(ListStyles.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Headings111);
                 wordList2.AddItem("Text 1");
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);
@@ -1150,7 +1150,7 @@ namespace OfficeIMO.Examples {
                 paragraph = document.AddParagraph("This is 3rd list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList3 = document.AddList(ListStyles.Bulleted);
+                WordList wordList3 = document.AddList(WordListStyle.Bulleted);
                 wordList3.AddItem("Text 8.1", 1);
                 wordList3.AddItem("Text 8.2", 2);
                 wordList3.AddItem("Text 8.3", 2);
@@ -1162,7 +1162,7 @@ namespace OfficeIMO.Examples {
                 paragraph = document.AddParagraph("This is 4th list").SetColor(Color.Aqua).SetUnderline(UnderlineValues.Double);
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList4 = document.AddList(ListStyles.Bulleted);
+                WordList wordList4 = document.AddList(WordListStyle.Bulleted);
                 wordList4.AddItem("Text 8");
                 wordList4.AddItem("Text 8.1", 1);
                 wordList4.AddItem("Text 8.2", 2);
@@ -1182,7 +1182,7 @@ namespace OfficeIMO.Examples {
 
                 var paragraph = document.AddParagraph("This is 9th list").SetColor(Color.MediumAquamarine).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList8 = document.AddList(ListStyles.Bulleted);
+                WordList wordList8 = document.AddList(WordListStyle.Bulleted);
                 wordList8.AddItem("Text 9");
                 wordList8.AddItem("Text 9.1", 1);
                 wordList8.AddItem("Text 9.2", 2);
@@ -1193,7 +1193,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList2 = document.AddList(ListStyles.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Headings111);
                 wordList2.AddItem("Temp 10");
                 wordList2.AddItem("Text 10.1", 1);
 
@@ -1204,7 +1204,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList3 = document.AddList(ListStyles.Headings111);
+                WordList wordList3 = document.AddList(WordListStyle.Headings111);
                 wordList3.AddItem("Temp 11");
                 wordList3.AddItem("Text 11.1", 1);
 
@@ -1287,13 +1287,13 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists4(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var listOfListStyles = (ListStyles[]) Enum.GetValues(typeof(ListStyles));
+                var listOfListStyles = (WordListStyle[]) Enum.GetValues(typeof(WordListStyle));
                 foreach (var listStyle in listOfListStyles) {
                     var paragraph = document.AddParagraph(listStyle.ToString());
                     paragraph.SetColor(Color.Red).SetBold();
                     paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                    if (listStyle == ListStyles.Chapters) {
+                    if (listStyle == WordListStyle.Chapters) {
                         // chapters supports only 0 level in lists
                         WordList wordList1 = document.AddList(listStyle);
                         wordList1.AddItem("Text 1");
@@ -1394,7 +1394,7 @@ namespace OfficeIMO.Examples {
 
                 document.AddPageBreak();
 
-                WordList wordList = document.AddList(ListStyles.Headings111);
+                WordList wordList = document.AddList(WordListStyle.Headings111);
                 wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
 
                 document.AddPageBreak();
@@ -1421,7 +1421,7 @@ namespace OfficeIMO.Examples {
 
                 document.AddPageBreak();
 
-                var wordListToc = document.AddTableOfContentList(ListStyles.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
                 wordListToc.AddItem("This is first item");
 
@@ -1441,7 +1441,7 @@ namespace OfficeIMO.Examples {
                 para.CapsStyle = CapsStyle.Caps;
                 para.Highlight = HighlightColorValues.DarkMagenta;
 
-                var wordList = document.AddList(ListStyles.Bulleted);
+                var wordList = document.AddList(WordListStyle.Bulleted);
 
                 wordList.AddItem("List Item 1");
                 wordList.AddItem("List Item 2");

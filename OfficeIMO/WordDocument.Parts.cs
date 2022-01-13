@@ -314,21 +314,8 @@ namespace OfficeIMO {
 
             documentSettingsPart1.Settings = settings1;
         }
-
-        // Generates content of styleDefinitionsPart1.
-        private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
-            Styles styles1 = new Styles() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh" } };
-            styles1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            styles1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            styles1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-            styles1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            styles1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
-            styles1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
-            styles1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
-            styles1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
-            styles1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
-            styles1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
-
+        
+        private static DocDefaults GenerateDocDefaults() {
             DocDefaults docDefaults1 = new DocDefaults();
 
             RunPropertiesDefault runPropertiesDefault1 = new RunPropertiesDefault();
@@ -357,7 +344,9 @@ namespace OfficeIMO {
 
             docDefaults1.Append(runPropertiesDefault1);
             docDefaults1.Append(paragraphPropertiesDefault1);
-
+            return docDefaults1;
+        }
+        private static LatentStyles GenerateLatentStyles() {
             LatentStyles latentStyles1 = new LatentStyles() { DefaultLockedState = false, DefaultUiPriority = 99, DefaultSemiHidden = false, DefaultUnhideWhenUsed = false, DefaultPrimaryStyle = false, Count = 376 };
             LatentStyleExceptionInfo latentStyleExceptionInfo1 = new LatentStyleExceptionInfo() { Name = "Normal", UiPriority = 0, PrimaryStyle = true };
             LatentStyleExceptionInfo latentStyleExceptionInfo2 = new LatentStyleExceptionInfo() { Name = "heading 1", UiPriority = 9, PrimaryStyle = true };
@@ -1112,24 +1101,45 @@ namespace OfficeIMO {
             latentStyles1.Append(latentStyleExceptionInfo374);
             latentStyles1.Append(latentStyleExceptionInfo375);
             latentStyles1.Append(latentStyleExceptionInfo376);
+            return latentStyles1;
+        }
 
-            Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Normal", Default = true };
-            StyleName styleName1 = new StyleName() { Val = "Normal" };
-            PrimaryStyle primaryStyle1 = new PrimaryStyle();
+        // Generates content of styleDefinitionsPart1.
+        private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
+            Styles styles1 = new Styles() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh" } };
+            styles1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+            styles1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            styles1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+            styles1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+            styles1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            styles1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
+            styles1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
+            styles1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
+            styles1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
+            styles1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
+            
+            var docDefaults1 = GenerateDocDefaults();
+            LatentStyles latentStyles1 = GenerateLatentStyles();
 
-            style1.Append(styleName1);
-            style1.Append(primaryStyle1);
+            styles1.Append(docDefaults1);
+            styles1.Append(latentStyles1);
 
-            //Style style2 = new Style() { Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true };
-            //StyleName styleName2 = new StyleName() { Val = "Default Paragraph Font" };
-            //UIPriority uIPriority1 = new UIPriority() { Val = 1 };
-            //SemiHidden semiHidden1 = new SemiHidden();
-            //UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            // TODO: load all styles to document, probably we should load those in use
+            var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
+            foreach (var style in listOfTableStyles) {
+                styles1.Append(WordTableStyles.GetStyleDefinition(style));
+            }
+            // TODO: load all styles to document, probably we should load those in use
+            var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
+            foreach (var style in listOfStyles) {
+                styles1.Append(WordParagraphStyle.GetStyleDefinition(style));
+            }
+            // TODO: load only needed character styles
+            var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
+            foreach (var style in listOfCharStyles) {
+                styles1.Append(WordCharacterStyle.GetStyleDefinition(style));
+            }
 
-            //style2.Append(styleName2);
-            //style2.Append(uIPriority1);
-            //style2.Append(semiHidden1);
-            //style2.Append(unhideWhenUsed1);
 
             Style style4 = new Style() { Type = StyleValues.Numbering, StyleId = "NoList", Default = true };
             StyleName styleName4 = new StyleName() { Val = "No List" };
@@ -1141,141 +1151,6 @@ namespace OfficeIMO {
             style4.Append(uIPriority3);
             style4.Append(semiHidden3);
             style4.Append(unhideWhenUsed3);
-
-            
-            styles1.Append(docDefaults1);
-            styles1.Append(latentStyles1);
-
-            styles1.Append(WordTableStyles.GenerateStyleTableNormal());
-            styles1.Append(WordTableStyles.GenerateStyleTableGrid());
-            styles1.Append(WordTableStyles.GenerateStylePlainTable1());
-            styles1.Append(WordTableStyles.GenerateStylePlainTable2());
-            styles1.Append(WordTableStyles.GenerateStylePlainTable3());
-            styles1.Append(WordTableStyles.GenerateStylePlainTable4());
-            styles1.Append(WordTableStyles.GenerateStylePlainTable5());
-            styles1.Append(WordTableStyles.GenerateStyleTableGridLight());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1Light());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable1LightAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable2Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable3Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable4Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5Dark());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable5DarkAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6Colorful());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable6ColorfulAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7Colorful());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleGridTable7ColorfulAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable1Light());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable1LightAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable2Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable3Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable4Accent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable5Dark());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable5DarkAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable6Colorful());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable6ColorfulAccent6());
-
-            styles1.Append(WordTableStyles.GenerateStyleListTable7Colorful());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent1());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent2());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent3());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent4());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent5());
-            styles1.Append(WordTableStyles.GenerateStyleListTable7ColorfulAccent6());
-
-            // TODO: load all styles to document, probably we should load those in use
-            var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
-            foreach (var style in listOfStyles) {
-                styles1.Append(WordParagraphStyle.GetStyle(style));
-            }
-            // TODO: load only needed character styles
-            var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
-            foreach (var style in listOfCharStyles) {
-                styles1.Append(WordCharacterStyle.GetStyle(style));
-            }
 
             styleDefinitionsPart1.Styles = styles1;
         }

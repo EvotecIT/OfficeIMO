@@ -91,14 +91,14 @@ namespace OfficeIMO {
             }
         }
 
-        internal void AddList(ListStyles style) {
+        internal void AddList(WordListStyle style) {
             CreateNumberingDefinition(_document);
             var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
 
             _abstractId = GetNextAbstractNum(numbering);
             _numberId = GetNextNumberingInstance(numbering);
 
-            AbstractNum abstractNum = ListStyle.GetStyle(style);
+            AbstractNum abstractNum = WordListStyles.GetStyle(style);
             abstractNum.AbstractNumberId = _abstractId;
             AbstractNumId abstractNumId = new AbstractNumId();
             abstractNumId.Val = _abstractId;

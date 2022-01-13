@@ -475,13 +475,13 @@ namespace OfficeIMO {
         //    return wordList;
         //}
 
-        public WordList AddList(ListStyles style) {
+        public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style);
             return wordList;
         }
 
-        public WordList AddTableOfContentList(ListStyles style) {
+        public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, this._currentSection, true);
             wordList.AddList(style);
             return wordList;

@@ -6,8 +6,8 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO {
     public class ApplicationProperties {
-        public WordprocessingDocument _wordprocessingDocument = null;
-        public WordDocument _document = null;
+        private readonly WordprocessingDocument _wordprocessingDocument = null;
+        private readonly WordDocument _document = null;
 
         public string Application {
             get {

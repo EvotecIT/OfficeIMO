@@ -20,7 +20,7 @@ namespace OfficeIMO {
     }
 
     public static class WordParagraphStyle {
-        public static Style GetStyle(WordParagraphStyles style) {
+        public static Style GetStyleDefinition(WordParagraphStyles style) {
             switch (style) {
                 case WordParagraphStyles.Normal: return StyleNormal;
                 case WordParagraphStyles.Heading1: return StyleHeading1;

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
-    public enum ListStyles {
+    public enum WordListStyle {
         Bulleted,
         ArticleSections,
         Headings111,
@@ -15,17 +15,17 @@ namespace OfficeIMO {
         Heading1ai,
         Headings111Shifted
     }
-    public static class ListStyle {
-        public static AbstractNum GetStyle(ListStyles style) {
+    public static class WordListStyles {
+        public static AbstractNum GetStyle(WordListStyle style) {
             switch (style) {
-                case ListStyles.Bulleted: return Bulleted;
-                case ListStyles.ArticleSections: return ArticleSections;
-                case ListStyles.Headings111: return Headings111;
-                case ListStyles.HeadingIA1: return HeadingIA1;
-                case ListStyles.Chapters: return Chapters;
-                case ListStyles.BulletedChars: return BulletedChars;
-                case ListStyles.Heading1ai: return Heading1ai;
-                case ListStyles.Headings111Shifted: return Headings111Shifted;
+                case WordListStyle.Bulleted: return Bulleted;
+                case WordListStyle.ArticleSections: return ArticleSections;
+                case WordListStyle.Headings111: return Headings111;
+                case WordListStyle.HeadingIA1: return HeadingIA1;
+                case WordListStyle.Chapters: return Chapters;
+                case WordListStyle.BulletedChars: return BulletedChars;
+                case WordListStyle.Heading1ai: return Heading1ai;
+                case WordListStyle.Headings111Shifted: return Headings111Shifted;
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }

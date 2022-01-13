@@ -16,7 +16,7 @@ namespace OfficeIMO {
     }
 
     public static class WordCharacterStyle {
-        public static Style GetStyle(WordCharacterStyles style) {
+        public static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
                 case WordCharacterStyles.Heading1Char: return StyleHeading1;

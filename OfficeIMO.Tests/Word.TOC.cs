@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
                 document.AddPageBreak();
 
-                var wordListToc = document.AddTableOfContentList(ListStyles.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
                 Assert.True(document.Lists.Count == 1, "Lists count should be 1, just TOC");
 
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 para.CapsStyle = CapsStyle.Caps;
                 para.Highlight = HighlightColorValues.DarkMagenta;
 
-                var wordList = document.AddList(ListStyles.Bulleted);
+                var wordList = document.AddList(WordListStyle.Bulleted);
                 wordList.AddItem("List Item 1");
                 wordList.AddItem("List Item 2");
                 wordList.AddItem("List Item 3");
