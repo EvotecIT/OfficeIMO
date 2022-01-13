@@ -16,6 +16,7 @@ namespace OfficeIMO {
         Heading7,
         Heading8,
         Heading9,
+        ListParagraph
     }
 
     public static class WordParagraphStyle {
@@ -31,6 +32,7 @@ namespace OfficeIMO {
                 case WordParagraphStyles.Heading7: return StyleHeading7;
                 case WordParagraphStyles.Heading8: return StyleHeading8;
                 case WordParagraphStyles.Heading9: return StyleHeading9;
+                case WordParagraphStyles.ListParagraph: return StyleListParagraph;
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
@@ -48,6 +50,7 @@ namespace OfficeIMO {
                 case WordParagraphStyles.Heading7: return "Heading7";
                 case WordParagraphStyles.Heading8: return "Heading8";
                 case WordParagraphStyles.Heading9: return "Heading9";
+                case WordParagraphStyles.ListParagraph: return "ListParagraph";
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
@@ -65,11 +68,18 @@ namespace OfficeIMO {
                 case "Heading7": return WordParagraphStyles.Heading7;
                 case "Heading8": return WordParagraphStyles.Heading8;
                 case "Heading9": return WordParagraphStyles.Heading9;
+                case "ListParagraph": return WordParagraphStyles.ListParagraph;
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
         }
-        public static WordParagraphStyles GetStyle(int level) {
+        /// <summary>
+        /// This method is used to simplify creating TOC List with Headings
+        /// </summary>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        internal static WordParagraphStyles GetStyle(int level) {
             switch (level) {
                 case 0: return WordParagraphStyles.Heading1;
                 case 1: return WordParagraphStyles.Heading2;
@@ -83,7 +93,6 @@ namespace OfficeIMO {
             }
             throw new ArgumentOutOfRangeException("Level too high or too low: " + level + ". Only between 0 and 8 is possible.");
         }
-
         private static Style StyleNormal {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Normal", Default = true};
@@ -95,7 +104,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading1 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading1"};
@@ -141,7 +149,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading2 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading2"};
@@ -189,7 +196,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading3 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading3"};
@@ -247,7 +253,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading4 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading4"};
@@ -305,7 +310,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading5 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading5"};
@@ -359,7 +363,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading6 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading6"};
@@ -413,7 +416,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading7 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading7"};
@@ -471,7 +473,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading8 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading8"};
@@ -529,7 +530,6 @@ namespace OfficeIMO {
                 return style1;
             }
         }
-
         private static Style StyleHeading9 {
             get {
                 Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading9"};
@@ -591,5 +591,32 @@ namespace OfficeIMO {
                 return style1;
             }
         }
+        private static Style StyleListParagraph {
+            get {
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "ListParagraph" };
+                StyleName styleName1 = new StyleName() { Val = "List Paragraph" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 34 };
+                PrimaryStyle primaryStyle1 = new PrimaryStyle();
+                Rsid rsid1 = new Rsid() { Val = "00353172" };
+
+                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
+                Indentation indentation1 = new Indentation() { Left = "720" };
+                ContextualSpacing contextualSpacing1 = new ContextualSpacing();
+
+                styleParagraphProperties1.Append(indentation1);
+                styleParagraphProperties1.Append(contextualSpacing1);
+
+                style1.Append(styleName1);
+                style1.Append(basedOn1);
+                style1.Append(uIPriority1);
+                style1.Append(primaryStyle1);
+                style1.Append(rsid1);
+                style1.Append(styleParagraphProperties1);
+                return style1;
+
+            }
+        }
+
     }
 }

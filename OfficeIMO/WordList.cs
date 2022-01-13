@@ -10,12 +10,31 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO {
     public class WordList {
-        private WordprocessingDocument _wordprocessingDocument;
+        private readonly WordprocessingDocument _wordprocessingDocument;
         private readonly WordDocument _document;
-        private WordSection _section;
+        private readonly WordSection _section;
         private int _abstractId;
         internal int _numberId;
-        private bool _isToc;
+        
+        /// <summary>
+        /// This provides a way to set items to be treated with heading style
+        /// </summary>
+        private readonly bool _isToc;
+
+        /// <summary>
+        /// This provides a way to set it teams to be treated with heading style during load 
+        /// </summary>
+        public bool IsToc {
+            get {
+                foreach (var paragraph in ListItems) {
+                    var style = paragraph.Style.ToString();
+                    if (style.Remove(style.Length - 1) == "Heading") {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
 
         public List<WordParagraph> ListItems = new List<WordParagraph>();
 
@@ -142,10 +161,6 @@ namespace OfficeIMO {
                 new NumberingLevelReference() {Val = level},
                 new NumberingId() {Val = this._numberId}
             );
-
-
-
-
             ParagraphProperties paragraphProperties = new ParagraphProperties();
             paragraphProperties.Append(paragraphStyleId);
             paragraphProperties.Append(numberingProperties);
@@ -154,8 +169,9 @@ namespace OfficeIMO {
 
             WordParagraph wordParagraph = new WordParagraph(_document, true, paragraphProperties, runProperties, run, _section);
             wordParagraph.Text = text;
+
             // this simplifies TOC for user usage
-            if (_isToc) {
+            if (_isToc || IsToc) {
                 wordParagraph.Style = WordParagraphStyle.GetStyle(level);
             }
 

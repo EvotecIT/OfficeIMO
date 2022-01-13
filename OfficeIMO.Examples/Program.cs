@@ -1379,8 +1379,6 @@ namespace OfficeIMO.Examples {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-
-
                 document.Save(openWord);
             }
         }
@@ -1398,7 +1396,7 @@ namespace OfficeIMO.Examples {
 
                 WordList wordList = document.AddList(ListStyles.Headings111);
                 wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
-                
+
                 document.AddPageBreak();
 
                 wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
@@ -1407,8 +1405,6 @@ namespace OfficeIMO.Examples {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-
-
                 document.Save(openWord);
             }
         }
@@ -1422,7 +1418,7 @@ namespace OfficeIMO.Examples {
                 //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
                 var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 pageNumber.ParagraphAlignment = JustificationValues.Center;
-                
+
                 document.AddPageBreak();
 
                 var wordListToc = document.AddTableOfContentList(ListStyles.Headings111);
@@ -1437,24 +1433,51 @@ namespace OfficeIMO.Examples {
 
                 wordListToc.AddItem("Text 2.1", 1);
 
-                
                 wordListToc.AddItem("Text 2.1", 1);
 
+                wordListToc.AddItem("Text 2.2", 2);
 
-                wordListToc.AddItem("Text 2.1", 2);
+                var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
+                para.CapsStyle = CapsStyle.Caps;
+                para.Highlight = HighlightColorValues.DarkMagenta;
 
+                var wordList = document.AddList(ListStyles.Bulleted);
 
-                wordListToc.AddItem("Text 2.1", 2);
+                wordList.AddItem("List Item 1");
+                wordList.AddItem("List Item 2");
+                wordList.AddItem("List Item 3");
+                wordList.AddItem("List Item 3.1",1);
+                wordList.AddItem("List Item 3.2",1);
+                wordList.AddItem("List Item 3.3",2);
 
+                wordListToc.AddItem("Text 2.3", 2);
 
-                wordListToc.AddItem("Text 2.1", 3);
+                wordListToc.AddItem("Text 3.3", 3);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
+                // we loaded document, lets add some text to continue 
+                document.AddParagraph().SetColor(Color.CornflowerBlue).SetText("This is some text");
 
+                // we loaded document, lets add page break to continue
+                document.AddPageBreak();
 
+                // lets find a list which has items which suggest it's a TOC attached list
+                WordList wordListToc = null;
+                foreach (var list in document.Lists) {
+                    if (list.IsToc) {
+                        wordListToc = list;
+                    }
+                }
+
+                // finally lets add another list item
+                if (wordListToc != null) {
+                    wordListToc.AddItem("Text 4.4", 2);
+                }
+
+                document.Settings.UpdateFieldsOnOpen = true;
                 document.Save(openWord);
             }
         }

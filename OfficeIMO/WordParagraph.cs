@@ -87,7 +87,12 @@ namespace OfficeIMO {
         internal WordList _list;
 
         public string Text {
-            get { return _text.Text; }
+            get {
+                if (_text == null) {
+                    return "";
+                }
+                return _text.Text;
+            }
             set { _text.Text = value; }
         }
         

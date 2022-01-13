@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Color = System.Drawing.Color;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
@@ -77,5 +78,105 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTOCAndList() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOCandList.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Settings.UpdateFieldsOnOpen == false, "Update field settings should be turned off for new document");
+
+                document.Settings.UpdateFieldsOnOpen = true;
+                document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
+                document.AddHeadersAndFooters();
+                //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
+                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+                pageNumber.ParagraphAlignment = JustificationValues.Center;
+
+                document.AddPageBreak();
+
+                var wordListToc = document.AddTableOfContentList(ListStyles.Headings111);
+
+                Assert.True(document.Lists.Count == 1, "Lists count should be 1, just TOC");
+
+                wordListToc.AddItem("This is first item");
+
+                wordListToc.AddItem("This is second item");
+
+                document.AddPageBreak();
+
+                wordListToc.AddItem("Text 2.1", 1);
+
+                wordListToc.AddItem("Text 2.1", 1);
+
+                wordListToc.AddItem("Text 2.1", 1);
+
+                wordListToc.AddItem("Text 2.2", 2);
+
+                var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
+                para.CapsStyle = CapsStyle.Caps;
+                para.Highlight = HighlightColorValues.DarkMagenta;
+
+                var wordList = document.AddList(ListStyles.Bulleted);
+                wordList.AddItem("List Item 1");
+                wordList.AddItem("List Item 2");
+                wordList.AddItem("List Item 3");
+                wordList.AddItem("List Item 3.1", 1);
+                wordList.AddItem("List Item 3.2", 1);
+                wordList.AddItem("List Item 3.3", 2);
+
+                wordListToc.AddItem("Text 2.3", 2);
+
+                wordListToc.AddItem("Text 3.3", 3);
+
+                Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true, "Update field settings should be turned on when it was enabled");
+                Assert.True(document.Paragraphs.Count == 17, "All paragraphs including from lists and toc should be here");
+                Assert.True(document.PageBreaks.Count == 2, "All page breaks should be shown");
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true, "Update field settings should be turned on when it was enabled");
+                Assert.True(document.Paragraphs.Count == 17, "All paragraphs including from lists and toc should be here");
+                Assert.True(document.PageBreaks.Count == 2, "All page breaks should be shown");
+
+                // we loaded document, lets add some text to continue 
+                document.AddParagraph().SetColor(Color.CornflowerBlue).SetText("This is some text");
+
+                // we loaded document, lets add page break to continue
+                document.AddPageBreak();
+
+                // lets find a list which has items which suggest it's a TOC attached list
+                WordList wordListToc = null;
+                foreach (var list in document.Lists) {
+                    if (list.IsToc) {
+                        wordListToc = list;
+                    }
+                }
+
+                // finally lets add another list item
+                if (wordListToc != null) {
+                    wordListToc.AddItem("Text 4.4", 2);
+                }
+                
+                document.Settings.UpdateFieldsOnOpen = true;
+
+                Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true, "Update field settings should be turned on when it was enabled");
+                Assert.True(document.Paragraphs.Count == 20, "All paragraphs including from lists and toc should be here");
+                Assert.True(document.PageBreaks.Count == 3, "All page breaks should be shown");
+
+                Assert.True(document.Lists[0].IsToc == true, "This list should be TOC");
+                Assert.True(document.Lists[1].IsToc == false, "This list should not be TOC");
+                Assert.True(document.Lists[0].ListItems[0].Text == document.Paragraphs[1].Text, "Text should be identical");
+
+                Assert.True(document.Lists[0].ListItems[document.Lists[0].ListItems.Count - 1].Text == document.Paragraphs[document.Paragraphs.Count - 1].Text, "Text should be identical");
+                
+                document.Save(false);
+            }
+        }
+
     }
 }
