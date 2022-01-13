@@ -1399,7 +1399,6 @@ namespace OfficeIMO.Examples {
                 WordList wordList = document.AddList(ListStyles.Headings111);
                 wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
                 
-
                 document.AddPageBreak();
 
                 wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
@@ -1417,21 +1416,39 @@ namespace OfficeIMO.Examples {
 
         private static void Example_PageNumbers1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Settings.UpdateFieldsOnOpen = true;
+                document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
-
                 //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
                 var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 pageNumber.ParagraphAlignment = JustificationValues.Center;
                 
                 document.AddPageBreak();
 
-                WordList wordList = document.AddList(ListStyles.Headings111);
-                wordList.AddItem("Text 1").Style = WordParagraphStyles.Heading1;
-                
+                var wordListToc = document.AddTableOfContentList(ListStyles.Headings111);
+
+                wordListToc.AddItem("This is first item");
+
+                wordListToc.AddItem("This is second item");
+
                 document.AddPageBreak();
 
-                wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown).Style = WordParagraphStyles.Heading2;
+                wordListToc.AddItem("Text 2.1", 1);
+
+                wordListToc.AddItem("Text 2.1", 1);
+
                 
+                wordListToc.AddItem("Text 2.1", 1);
+
+
+                wordListToc.AddItem("Text 2.1", 2);
+
+
+                wordListToc.AddItem("Text 2.1", 2);
+
+
+                wordListToc.AddItem("Text 2.1", 3);
+
                 document.Save();
             }
 

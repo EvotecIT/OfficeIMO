@@ -481,6 +481,12 @@ namespace OfficeIMO {
             return wordList;
         }
 
+        public WordList AddTableOfContentList(ListStyles style) {
+            WordList wordList = new WordList(this, this._currentSection, true);
+            wordList.AddList(style);
+            return wordList;
+        }
+
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, this._currentSection, rows, columns, tableStyle);
             return wordTable;

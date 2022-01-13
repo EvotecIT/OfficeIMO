@@ -15,13 +15,15 @@ namespace OfficeIMO {
         private WordSection _section;
         private int _abstractId;
         internal int _numberId;
+        private bool _isToc;
 
         public List<WordParagraph> ListItems = new List<WordParagraph>();
 
-        public WordList(WordDocument wordDocument, WordSection section) {
+        public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
             _document = wordDocument;
             _wordprocessingDocument = wordDocument._wordprocessingDocument;
             _section = section;
+            _isToc = isToc;
             section.Lists.Add(this);
         }
 
@@ -140,6 +142,10 @@ namespace OfficeIMO {
                 new NumberingLevelReference() {Val = level},
                 new NumberingId() {Val = this._numberId}
             );
+
+
+
+
             ParagraphProperties paragraphProperties = new ParagraphProperties();
             paragraphProperties.Append(paragraphStyleId);
             paragraphProperties.Append(numberingProperties);
@@ -148,6 +154,10 @@ namespace OfficeIMO {
 
             WordParagraph wordParagraph = new WordParagraph(_document, true, paragraphProperties, runProperties, run, _section);
             wordParagraph.Text = text;
+            // this simplifies TOC for user usage
+            if (_isToc) {
+                wordParagraph.Style = WordParagraphStyle.GetStyle(level);
+            }
 
             _document.AddParagraph(wordParagraph);
 

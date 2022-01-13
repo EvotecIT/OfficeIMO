@@ -12,8 +12,8 @@ namespace OfficeIMO {
     }
 
     public class WordTableOfContent {
-        private WordDocument _document;
-        private SdtBlock _sdtBlock;
+        private readonly WordDocument _document;
+        private readonly SdtBlock _sdtBlock;
 
         public string Text {
             get {

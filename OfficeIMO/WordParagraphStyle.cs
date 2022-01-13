@@ -69,6 +69,20 @@ namespace OfficeIMO {
 
             throw new ArgumentOutOfRangeException(nameof(style));
         }
+        public static WordParagraphStyles GetStyle(int level) {
+            switch (level) {
+                case 0: return WordParagraphStyles.Heading1;
+                case 1: return WordParagraphStyles.Heading2;
+                case 2: return WordParagraphStyles.Heading3;
+                case 3: return WordParagraphStyles.Heading4;
+                case 4: return WordParagraphStyles.Heading5;
+                case 5: return WordParagraphStyles.Heading6;
+                case 6: return WordParagraphStyles.Heading7;
+                case 7: return WordParagraphStyles.Heading8;
+                case 8: return WordParagraphStyles.Heading9;
+            }
+            throw new ArgumentOutOfRangeException("Level too high or too low: " + level + ". Only between 0 and 8 is possible.");
+        }
 
         private static Style StyleNormal {
             get {
