@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -37,14 +38,45 @@ namespace OfficeIMO {
         public List<WordTable> Tables = new List<WordTable>();
         
         internal WordDocument _document;
-        internal SectionProperties _sectionProperties;
+        public SectionProperties _sectionProperties;
         internal WordprocessingDocument _wordprocessingDocument;
+
+
+        private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
+            if (newSectionProperties.ChildElements.Count == 0) {
+                var listSectionEntries = sectionProperties.ChildElements.ToList();
+                foreach (var element in listSectionEntries) {
+                    newSectionProperties.Append(element.CloneNode(true));
+                    //if (element is HeaderReference) {
+                    //    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                    //} else if (element is FooterReference) {
+                    //    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                    //} else if (element is PageSize) {
+
+                    //} else if (element is PageMargin) {
+
+                    //} else if (element is Columns) {
+
+                    //} else if (element is DocGrid) {
+
+                    //} else if (element is SectionType) {
+
+                    //} else if (element is TitlePage) {
+
+                    //} else {
+                    //    throw new NotImplementedException("This isn't implemented yet?");
+                    //}
+                }
+                //sectionProperties.RemoveAllChildren();
+                //newSectionProperties.Append(listSectionEntries);
+            }
+        }
 
         public WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
 
-            WordSection lastSection;
+            WordSection lastSection = null;
             if (this._document.Sections.Count > 0) {
                 lastSection = this._document.Sections[this._document.Sections.Count - 1];
                 //lastSection._sectionProperties.
@@ -66,6 +98,16 @@ namespace OfficeIMO {
                 }
                 this._sectionProperties = sectionProperties;
                 // pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
+            }
+
+            if (paragraph != null) {
+               var temporarySectionProperties = lastSection._sectionProperties;
+               if (temporarySectionProperties != null) {
+                   CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
+                   var old = this._sectionProperties;
+                    this._sectionProperties = lastSection._sectionProperties;
+                   lastSection._sectionProperties = old;
+               }
             }
 
             // defaults 
@@ -104,6 +146,8 @@ namespace OfficeIMO {
                     throw new NotImplementedException("This isn't implemented yet?");
                 }
             }
+
+            Debug.WriteLine(this._sectionProperties.ChildElements.Count);
         }
 
         public bool DifferentFirstPage {
@@ -207,7 +251,7 @@ namespace OfficeIMO {
         //    }
         //}
 
-        public WordParagraph InsertParagraph(string text) {
+        public WordParagraph AddParagraph(string text) {
             if (this.Paragraphs.Count == 0) {
 
                 var paragraph = this._document.AddParagraph(text);
@@ -219,18 +263,11 @@ namespace OfficeIMO {
                 var paragraph = lastParagraphWithinSection.AddParagraphAfterSelf();
                 paragraph._document = this._document;
                 paragraph._section = this;
-                
-                //this.Paragraphs.Add(paragraph);
+                this.Paragraphs.Add(paragraph);
                 paragraph.Text = text;
                 return paragraph;
-                //paragraph._paragraph.InsertAfterSelf(new )
-                //paragraph.InsertText(text);
-                //_sectionProperties.Parent.Ap
-                //return paragraph.InsertParagraphAfterSelf();
+        
             }
-
-            //this._document.InsertParagraph(text);
-           // _document._currentSection.InsertParagraph("test");
         }
     }
 }

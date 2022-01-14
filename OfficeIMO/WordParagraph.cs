@@ -314,15 +314,15 @@ namespace OfficeIMO {
         }
 
         public WordParagraph AddParagraphAfterSelf() {
-            WordParagraph paragraph = new WordParagraph(null, true);
+            WordParagraph paragraph = new WordParagraph(this._document, true);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
-            this._document.Paragraphs.Add(paragraph);
+            //this._document.Paragraphs.Add(paragraph);
             
             return paragraph;
         }
 
         public WordParagraph AddParagraphBeforeSelf() {
-            WordParagraph paragraph = new WordParagraph(null, true);
+            WordParagraph paragraph = new WordParagraph(this._document, true);
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);
             return paragraph;

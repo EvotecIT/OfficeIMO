@@ -111,6 +111,7 @@ namespace OfficeIMO {
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
+                //System.IO.IOException: 'The process cannot access the file 'C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\Basic Document with some sections 1.docx' because it is being used by another process.'
                 wordDocument = WordprocessingDocument.Create(filePath, documentType, autoSave);
             } else {
                 MemoryStream mem = new MemoryStream();
@@ -228,7 +229,6 @@ namespace OfficeIMO {
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
-
             word.LoadDocument();
             return word;
         }
@@ -268,6 +268,19 @@ namespace OfficeIMO {
         //        }
         //    }
         //}
+        private void SaveSections() {
+            WordSection temporarySection = null;
+            if (this.Sections.Count > 0) {
+                for (int i = 0; i < Sections.Count; i++) {
+                    if (temporarySection != null) {
+
+                    } else {
+                        temporarySection = Sections[i];
+                        Sections[i]._sectionProperties.Remove();
+                    }
+                }
+            }
+        }
 
         private void SaveNumbering() {
             // it seems the order of numbering instance/abstractnums in numbering matters...

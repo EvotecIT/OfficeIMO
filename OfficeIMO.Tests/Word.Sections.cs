@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Linq;
+using Color = System.Drawing.Color;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -81,7 +83,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsEmpty == false, "Paragraph is empty");
 
                 var section1 = document.AddSection();
-                section1.InsertParagraph("Test 1");
+                section1.AddParagraph("Test 1");
 
                 document.AddParagraph("Test 2");
                 var section2 = document.AddSection();
@@ -111,6 +113,125 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Paragraphs.Count == 2, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 0, "Number of paragraphs on 4th section is wrong.");
+            }
+        }
+        [Fact]
+        public void Test_CreatingWordDocumentWithSectionsPageOrientation() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
+
+                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.AddParagraph("Test Section1").SetColor(Color.LightPink);
+
+                var section1 = document.AddSection();
+                section1.PageOrientation = PageOrientationValues.Portrait;
+
+                section1.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
+
+                var section2 = document.AddSection();
+
+                section2.AddParagraph("Test Section3").SetFontFamily("Tahoma").SetFontSize(20);
+
+                section2.PageOrientation = PageOrientationValues.Landscape;
+
+                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 3, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
+
+                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
+                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 3, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
+
+                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+
+                var section1 = document.AddSection();
+                section1.AddParagraph("Test Section4");
+
+                var section2 = document.AddSection();
+                section2.AddParagraph("Test Section5");
+
+                var section3 = document.AddSection();
+                section3.AddParagraph("Test Section6");
+                section3.PageOrientation = PageOrientationValues.Portrait;
+
+                Assert.True(document.Paragraphs.Count == 6, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
+                Assert.True(document.Sections[3].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[5].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
+
+                Assert.True(document.Sections[0].Paragraphs[0].Text == "Test Section1", "Paragraph text must match.");
+                Assert.True(document.Sections[1].Paragraphs[0].Text == "Test Section2", "Paragraph text must match.");
+                Assert.True(document.Sections[2].Paragraphs[0].Text == "Test Section3", "Paragraph text must match.");
+                Assert.True(document.Sections[3].Paragraphs[0].Text == "Test Section4", "Paragraph text must match.");
+                Assert.True(document.Sections[4].Paragraphs[0].Text == "Test Section5", "Paragraph text must match.");
+                Assert.True(document.Sections[5].Paragraphs[0].Text == "Test Section6", "Paragraph text must match.");
+
+                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[3].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[4].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[5].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+
+                document.AddParagraph("This goes to last section 1");
+                document.AddParagraph("This goes to last section 2");
+
+                section1.AddParagraph("This goes to section 4");
+
+                Assert.True(document.Sections[5].Paragraphs[1].Text == "This goes to last section 1", "Paragraph text must match.");
+                Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
+                Assert.True(document.Sections[3].Paragraphs[1].Text == "This goes to section 4", "Paragraph text must match.");
+                
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
+
+                Assert.True(document.Paragraphs.Count == 9, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
+                Assert.True(document.Sections[3].Paragraphs.Count == 2, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[5].Paragraphs.Count == 3, "Number of paragraphs on 3rd section is wrong.");
+
+                Assert.True(document.Sections[0].Paragraphs[0].Text == "Test Section1", "Paragraph text must match.");
+                Assert.True(document.Sections[1].Paragraphs[0].Text == "Test Section2", "Paragraph text must match.");
+                Assert.True(document.Sections[2].Paragraphs[0].Text == "Test Section3", "Paragraph text must match.");
+                Assert.True(document.Sections[3].Paragraphs[0].Text == "Test Section4", "Paragraph text must match.");
+                Assert.True(document.Sections[4].Paragraphs[0].Text == "Test Section5", "Paragraph text must match.");
+                Assert.True(document.Sections[5].Paragraphs[0].Text == "Test Section6", "Paragraph text must match.");
+
+                Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[3].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[4].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+                Assert.True(document.Sections[5].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
+                
+                Assert.True(document.Sections[5].Paragraphs[1].Text == "This goes to last section 1", "Paragraph text must match.");
+                Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
+                Assert.True(document.Sections[3].Paragraphs[1].Text == "This goes to section 4", "Paragraph text must match.");
+
             }
         }
     }

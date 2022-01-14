@@ -25,16 +25,29 @@ namespace OfficeIMO {
                 if (pageSize == null) {
                     // we need to setup default values for A4 
                     pageSize = PageSizes.A4;
+                    pageSize.Orient = PageOrientationValues.Portrait;
                     _sectionProperties.Append(pageSize);
                 }
-                if (this.PageOrientation != value) {
-                    // changing orientation is not enough, we need to change width with height and vice versa
-                    var width = pageSize.Width;
-                    var height = pageSize.Height;
-                    pageSize.Width = height;
-                    pageSize.Height = width;
+
+                if (pageSize.Orient == null) {
 
                     pageSize.Orient = value;
+
+                    //var width = pageSize.Width;
+                    //var height = pageSize.Height;
+
+                    //pageSize.Width = height;
+                    //pageSize.Height = width;
+                } else {
+                    if (pageSize.Orient != value) {
+                        // changing orientation is not enough, we need to change width with height and vice versa
+                        var width = pageSize.Width;
+                        var height = pageSize.Height;
+                        pageSize.Width = height;
+                        pageSize.Height = width;
+
+                        pageSize.Orient = value;
+                    }
                 }
             }
         }

@@ -143,9 +143,14 @@ namespace OfficeIMO.Examples {
             //Example_BasicTOC2(filePath, false);
 
 
-            Console.WriteLine("[*] Creating standard document with Page Numbers 1");
-            filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers.docx");
-            Example_PageNumbers1(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Page Numbers 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers.docx");
+            //Example_PageNumbers1(filePath, true);
+
+
+            Console.WriteLine("[*] Creating standard document with sections 2");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 1.docx");
+            Example_BasicSections2(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -693,7 +698,7 @@ namespace OfficeIMO.Examples {
                 document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
-                section1.InsertParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
 
                 document.AddParagraph("Test 2 - Should be after 1st section");
                 var section2 = document.AddSection();
@@ -847,8 +852,8 @@ namespace OfficeIMO.Examples {
 
                 document.AddParagraph("Test 3");
                 var section3 = document.AddSection(SectionMarkValues.NextPage);
-                section3.InsertParagraph("Paragraph added to section number 3");
-                section3.InsertParagraph("Continue adding paragraphs to section 3");
+                section3.AddParagraph("Paragraph added to section number 3");
+                section3.AddParagraph("Continue adding paragraphs to section 3");
 
                 // 4 section, 5 paragraphs, 0 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
@@ -867,7 +872,7 @@ namespace OfficeIMO.Examples {
                 // or Paragraphs list for the whole document
                 document.Paragraphs[1].Color = "7178a8";
 
-                var paragraph = section1.InsertParagraph("We missed paragraph on 1 section (2nd page)");
+                var paragraph = section1.AddParagraph("We missed paragraph on 1 section (2nd page)");
                 var newParagraph = paragraph.AddParagraphAfterSelf();
                 newParagraph.Text = "Some more text, after paragraph we just added.";
                 newParagraph.Bold = true;
@@ -1478,6 +1483,84 @@ namespace OfficeIMO.Examples {
                 }
 
                 document.Settings.UpdateFieldsOnOpen = true;
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicSections2(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
+
+                var section1 = document.AddSection();
+
+                section1.PageOrientation = PageOrientationValues.Portrait;
+
+                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
+
+                var section2 = document.AddSection();
+
+                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
+
+                section2.PageOrientation = PageOrientationValues.Landscape;
+
+                //// primary section (for the whole document)
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
+                
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+
+                Console.WriteLine(document.Sections[1]._sectionProperties.ChildElements.Count);
+
+                Console.WriteLine("Loaded document information:");
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
+
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
+
+
+                var section1 = document.AddSection();
+                section1.AddParagraph("Test Section4");
+
+                var section2 = document.AddSection();
+                section2.AddParagraph("Test Section5");
+
+                var section3 = document.AddSection();
+                section3.AddParagraph("Test Section6");
+                section3.PageOrientation = PageOrientationValues.Portrait;
+
+                Console.WriteLine("Loaded document information:");
+                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 4: " + document.Sections[4].Paragraphs.Count);
+                Console.WriteLine("+ Paragraphs section 5: " + document.Sections[5].Paragraphs.Count);
+
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 3: " + document.Sections[3].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 4: " + document.Sections[4].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 5: " + document.Sections[5].PageOrientation);
+
+                
+                section1.AddParagraph("This goes to section 4");
+
+                Console.WriteLine("+ Paragraphs section 3 Text: " + document.Sections[3].Paragraphs[0].Text);
+                Console.WriteLine("+ Paragraphs section 3 Count: " + document.Sections[3].Paragraphs.Count);
+
                 document.Save(openWord);
             }
         }
