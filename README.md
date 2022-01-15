@@ -2,6 +2,7 @@
 
 <p align="center">
   <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a>
+  <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a>
   <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/dt/officeIMO?label=nuget%20downloads"></a>
   <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO"></a>
   <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.7.2-red.svg"></a>
