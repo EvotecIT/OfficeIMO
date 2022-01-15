@@ -6,7 +6,7 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 variables:
   solution: '**/*.sln'
@@ -31,7 +31,6 @@ steps:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*OfficeIMO.Tests.dll
-      !**\*TestAdapter.dll
       !**\obj\**
     searchFolder: '$(System.DefaultWorkingDirectory)'
     publishRunAttachments: false
