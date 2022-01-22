@@ -254,16 +254,16 @@ namespace OfficeIMO {
         public WordParagraph AddParagraph(string text) {
             if (this.Paragraphs.Count == 0) {
 
-                var paragraph = this._document.AddParagraph(text);
+                WordParagraph paragraph = this._document.AddParagraph(text);
                 paragraph._section = this;
                 return paragraph;
             } else {
-                var lastParagraphWithinSection = this.Paragraphs.Last();
+                WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
 
-                var paragraph = lastParagraphWithinSection.AddParagraphAfterSelf();
+                WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
                 paragraph._document = this._document;
                 paragraph._section = this;
-                this.Paragraphs.Add(paragraph);
+                //this.Paragraphs.Add(paragraph);
                 paragraph.Text = text;
                 return paragraph;
         

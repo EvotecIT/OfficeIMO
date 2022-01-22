@@ -95,7 +95,31 @@ namespace OfficeIMO {
             }
             set { _text.Text = value; }
         }
-        
+
+        public WordParagraph(WordSection section, bool newParagraph = true) {
+            this._document = section._document;
+            this._section = section;
+
+            this._run = new Run();
+            this._runProperties = new RunProperties();
+
+            this._run = new Run();
+            this._runProperties = new RunProperties();
+            this._text = new Text {
+                // this ensures spaces are preserved between runs
+                Space = SpaceProcessingModeValues.Preserve
+            };
+            this._paragraphProperties = new ParagraphProperties();
+            this._run.AppendChild(_runProperties);
+            this._run.AppendChild(_text);
+            if (newParagraph) {
+                this._paragraph = new Paragraph();
+                this._paragraph.AppendChild(_paragraphProperties);
+                this._paragraph.AppendChild(_run);
+            }
+            section.Paragraphs.Add(this);
+        }
+
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
             this._document = document;
             this._run = new Run();
@@ -318,6 +342,16 @@ namespace OfficeIMO {
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             //this._document.Paragraphs.Add(paragraph);
             
+            return paragraph;
+        }
+
+        public WordParagraph AddParagraphAfterSelf(WordSection section) {
+            //WordParagraph paragraph = new WordParagraph(section._document, true);
+            WordParagraph paragraph = new WordParagraph(section, true);
+
+            this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            //this._document.Paragraphs.Add(paragraph);
+
             return paragraph;
         }
 

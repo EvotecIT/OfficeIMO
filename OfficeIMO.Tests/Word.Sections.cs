@@ -131,36 +131,54 @@ namespace OfficeIMO.Tests {
 
                 section1.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
 
+                section1.ColumnCount = 2;
+                for (int i = 0; i < 50; i++) {
+                    section1.AddParagraph("Test Section2 - Multicolumn");
+                }
+
                 var section2 = document.AddSection();
 
                 section2.AddParagraph("Test Section3").SetFontFamily("Tahoma").SetFontSize(20);
 
                 section2.PageOrientation = PageOrientationValues.Landscape;
 
-                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 53, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 3, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
 
                 Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
                 Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
                 Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
+
+                Assert.True(document.Sections[0].ColumnCount == null, "Columns count for section should match");
+                Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
+                Assert.True(document.Sections[2].ColumnCount == 2, "Columns count for section should match");
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
-                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 53, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 3, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
 
                 Assert.True(document.Sections[0].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
                 Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
                 Assert.True(document.Sections[2].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
 
+                Assert.True(document.Sections[0].ColumnCount == null, "Columns count for section should match");
+                Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
+                Assert.True(document.Sections[2].ColumnCount == 2, "Columns count for section should match");
+
+
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Section4");
+                // when adding section column count, page orientation is copied from section before
+                // we reset it to one
+                section1.ColumnCount = 1;
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Section5");
@@ -169,10 +187,10 @@ namespace OfficeIMO.Tests {
                 section3.AddParagraph("Test Section6");
                 section3.PageOrientation = PageOrientationValues.Portrait;
 
-                Assert.True(document.Paragraphs.Count == 6, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 56, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
@@ -205,10 +223,10 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
 
-                Assert.True(document.Paragraphs.Count == 9, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 59, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
+                Assert.True(document.Sections[1].Paragraphs.Count == 51, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 2, "Number of paragraphs on 1st section is wrong.");
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
@@ -232,6 +250,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
                 Assert.True(document.Sections[3].Paragraphs[1].Text == "This goes to section 4", "Paragraph text must match.");
 
+                Assert.True(document.Sections[0].ColumnCount == null, "Columns count for section should match");
+                Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
+                Assert.True(document.Sections[2].ColumnCount == 2, "Columns count for section should match");
+                Assert.True(document.Sections[3].ColumnCount == 1, "Columns count for section should match");
+                Assert.True(document.Sections[4].ColumnCount == 1, "Columns count for section should match");
+                Assert.True(document.Sections[5].ColumnCount == 1, "Columns count for section should match");
             }
         }
     }

@@ -30,8 +30,8 @@ namespace OfficeIMO {
                 }
 
                 if (pageSize.Orient == null) {
-
-                    pageSize.Orient = value;
+                    throw new InvalidOperationException("This shouldn't happen");
+                    //pageSize.Orient = value;
 
                     //var width = pageSize.Width;
                     //var height = pageSize.Height;
