@@ -36,3 +36,4 @@ steps:
     searchFolder: '$(System.DefaultWorkingDirectory)'
     publishRunAttachments: false
     codeCoverageEnabled: true
+    runSettingsFile: CodeCoverage.runsettings
