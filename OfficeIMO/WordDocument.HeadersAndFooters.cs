@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 
 namespace OfficeIMO {
     public partial class WordDocument {
@@ -36,64 +37,83 @@ namespace OfficeIMO {
 
         public bool DifferentFirstPage {
             get {
-                var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                if (sectionProperties != null) {
-                    var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-                    if (titlePage != null) {
-                        return true;
-                    }
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
-                return false;
+                return this.Sections[0].DifferentFirstPage;
             }
             set {
-                var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                if (sectionProperties == null) {
-                    if (value == false) {
-                        // section properties doesn't exists, so we don't do anything
-                        return;
-                    } else {
-                        _document.Body.Append(
-                           //WordHeadersAndFooters.AddSectionProperties()
-                        );
-                    }
-                }
-
-                sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().First();
-                var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-                if (value == false) {
-                    if (titlePage == null) {
-                        return;
-                    } else {
-                        titlePage.Remove();
-                    }
-                } else {
-                    sectionProperties.Append(new TitlePage());
-                }
-
+                this.Sections[0].DifferentFirstPage = value;
             }
+
+            //get {
+            //    var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+            //    if (sectionProperties != null) {
+            //        var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
+            //        if (titlePage != null) {
+            //            return true;
+            //        }
+            //    }
+            //    return false;
+            //}
+            //set {
+            //    var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+            //    if (sectionProperties == null) {
+            //        if (value == false) {
+            //            // section properties doesn't exists, so we don't do anything
+            //            return;
+            //        } else {
+            //            _document.Body.Append(
+            //               //WordHeadersAndFooters.AddSectionProperties()
+            //            );
+            //        }
+            //    }
+
+            //    sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().First();
+            //    var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
+            //    if (value == false) {
+            //        if (titlePage == null) {
+            //            return;
+            //        } else {
+            //            titlePage.Remove();
+            //        }
+            //    } else {
+            //        sectionProperties.Append(new TitlePage());
+            //    }
+
+            //}
 
         }
         public bool DifferentOddAndEvenPages {
             get {
-                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (settings != null) {
-                    return true;
-                } else {
-                    return false;
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
+                return this.Sections[0].DifferentOddAndEvenPages;
             }
             set {
-                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (value == false) {
-
-                } else {
-                    if (settings == null) {
-                        _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-                    } else {
-                        // noting to do, already enabled
-                    }
-                }
+                this.Sections[0].DifferentOddAndEvenPages = value;
             }
+            //get {
+            //    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+            //    if (settings != null) {
+            //        return true;
+            //    } else {
+            //        return false;
+            //    }
+            //}
+            //set {
+            //    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+            //    if (value == false) {
+
+            //    } else {
+            //        if (settings == null) {
+            //            _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
+            //        } else {
+            //            // noting to do, already enabled
+            //        }
+            //    }
+            //}
         }
 
     }

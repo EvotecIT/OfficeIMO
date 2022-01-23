@@ -6,6 +6,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 
 namespace OfficeIMO {
     public partial class WordSection {
@@ -38,8 +39,8 @@ namespace OfficeIMO {
         public List<WordTable> Tables = new List<WordTable>();
         
         internal WordDocument _document;
-        public SectionProperties _sectionProperties;
-        internal WordprocessingDocument _wordprocessingDocument;
+        internal SectionProperties _sectionProperties;
+        private WordprocessingDocument _wordprocessingDocument;
 
 
         /// <summary>
@@ -85,7 +86,14 @@ namespace OfficeIMO {
             }
         }
 
-        public WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
+        /// <summary>
+        /// Used to load WordSection withing word document
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="sectionProperties"></param>
+        /// <param name="paragraph"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        internal WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             if (sectionProperties != null) {
@@ -129,7 +137,13 @@ namespace OfficeIMO {
             }
         }
 
-        public WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
+
+        /// <summary>
+        /// Used for creating WordSection in new documents
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="paragraph"></param>
+        internal WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
 
@@ -243,44 +257,48 @@ namespace OfficeIMO {
                     }
                 } else {
                     sectionProperties.Append(new TitlePage());
+                    WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.First);
+                    WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.First);
                 }
 
             }
-
         }
 
-        public static HeaderFooterValues GetType(string type) {
-            if (type == "default") {
-                return HeaderFooterValues.Default;
-            } else if (type == "even") {
-                return HeaderFooterValues.Even;
-            } else {
-                return HeaderFooterValues.First;
+        public bool DifferentOddAndEvenPages {
+            get {
+                if (this == this._document.Sections[0]) {
+                    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                    if (settings != null) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    throw new NotImplementedException("Not implemented for other sections");
+                    return false;
+                }
+            }
+            set {
+                var sectionProperties = _sectionProperties;
+                WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.Even);
+                WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.Even);
+
+                if (this == this._document.Sections[0]) {
+                    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                    if (value == false) {
+
+                    } else {
+                        if (settings == null) {
+                            _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
+                        } else {
+                            // noting to do, already enabled
+                        }
+                    }
+                } else {
+     
+                }
             }
         }
-
-        //public bool DifferentOddAndEvenPages {
-        //    get {
-        //        var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-        //        if (settings != null) {
-        //            return true;
-        //        } else {
-        //            return false;
-        //        }
-        //    }
-        //    set {
-        //        var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-        //        if (value == false) {
-
-        //        } else {
-        //            if (settings == null) {
-        //                _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-        //            } else {
-        //                // noting to do, already enabled
-        //            }
-        //        }
-        //    }
-        //}
 
         //public WordSection(WordDocument document) {
         //    WordParagraph paragraph = new WordParagraph();
@@ -311,7 +329,15 @@ namespace OfficeIMO {
         //        myMainPart.Document.Save();
         //    }
         //}
-
+        internal static HeaderFooterValues GetType(string type) {
+            if (type == "default") {
+                return HeaderFooterValues.Default;
+            } else if (type == "even") {
+                return HeaderFooterValues.Even;
+            } else {
+                return HeaderFooterValues.First;
+            }
+        }
         public WordParagraph AddParagraph(string text) {
             if (this.Paragraphs.Count == 0) {
 
