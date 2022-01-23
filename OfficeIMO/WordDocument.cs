@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -188,7 +189,7 @@ namespace OfficeIMO {
             ApplicationProperties applicationProperties = new ApplicationProperties(word);
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
-            WordSection wordSection = new WordSection(word);
+            WordSection wordSection = new WordSection(word, null);
             // WordLists wordLists = new WordLists(word);
 
             return word;
@@ -202,9 +203,7 @@ namespace OfficeIMO {
             var wordCustomProperties = new WordCustomProperties(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section thats assigned to top of the document
-            WordSection wordSection = new WordSection(this);
-
-            //LoadNumbering();
+            WordSection wordSection = new WordSection(this, null, null);
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
@@ -221,7 +220,7 @@ namespace OfficeIMO {
                         //} else {
                         //    wordSection.Paragraphs.Add(wordParagraph);
                         //}
-                        wordSection = new WordSection(this, paragraph);
+                        wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
                     }
                 } else if (element is Table) {
                     WordTable wordTable = new WordTable(this, wordSection, (Table) element);
@@ -233,6 +232,37 @@ namespace OfficeIMO {
                     // this happens when adding dirty element - mainly during TOC Update() function
                 } else {
                     throw new NotImplementedException("This isn't implemented yet");
+                }
+            }
+            RearrangeSectionsAfterLoad();
+        }
+
+        private void RearrangeSectionsAfterLoad() {
+            if (Sections.Count > 0) {
+               //var firstElement = Sections[0];
+                var firstElementHeader = Sections[0].Header;
+                var firstElementFooter = Sections[0].Footer;
+                var firstElementSection = Sections[0]._sectionProperties;
+
+                for (int i = 0; i < Sections.Count; i++) {
+                    var element = Sections[i];
+                    //var tempFooter = element.Footer;
+                    //var tempHeader = element.Header;
+                    //var tempSectionProp = element._sectionProperties;
+
+                    if (i + 1 < Sections.Count) {
+                        Sections[i].Footer = Sections[i + 1].Footer;
+                        Sections[i].Header = Sections[i + 1].Header;
+                        Sections[i]._sectionProperties = Sections[i + 1]._sectionProperties;
+
+                        Sections[i + 1].Footer = element.Footer;
+                        Sections[i + 1].Header = element.Header;
+                        Sections[i + 1]._sectionProperties = element._sectionProperties;
+                    } else {
+                        Sections[i].Footer = firstElementFooter;
+                        Sections[i].Header = firstElementHeader;
+                        Sections[i]._sectionProperties = firstElementSection;
+                    }
                 }
             }
         }

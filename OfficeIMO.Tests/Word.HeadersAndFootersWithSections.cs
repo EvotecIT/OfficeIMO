@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Header.Default.Paragraphs[0].Text == "Test Section 1 - Header", "Text for section header is wrong (section 1)");
 
 
-                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during read is wrong (load). Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs during read is wrong (load). Current: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during read is wrong (load). Current: " + document.PageBreaks.Count);
                 Assert.True(document.Sections.Count == 3, "Number of sections during read is wrong. (load)");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong (load). Current: " + document.Sections[0].Paragraphs.Count);

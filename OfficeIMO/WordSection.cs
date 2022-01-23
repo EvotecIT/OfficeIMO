@@ -42,33 +42,90 @@ namespace OfficeIMO {
         internal WordprocessingDocument _wordprocessingDocument;
 
 
+        /// <summary>
+        /// This method moves headers and footers and title page to section before it.
+        /// It also copies copies all other parts of sections (PageSize,PageMargin and others) to section before it.
+        /// This is because headers/footers when applied to section apply to the rest of the document
+        /// unless there are headers/footers on next section.
+        /// On the other hand page size doesn't apply to other sections
+        /// and word uses default values. 
+        /// </summary>
+        /// <param name="sectionProperties"></param>
+        /// <param name="newSectionProperties"></param>
         private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
             if (newSectionProperties.ChildElements.Count == 0) {
                 var listSectionEntries = sectionProperties.ChildElements.ToList();
                 foreach (var element in listSectionEntries) {
-                    newSectionProperties.Append(element.CloneNode(true));
-                    //if (element is HeaderReference) {
-                    //    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
-                    //} else if (element is FooterReference) {
-                    //    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                    if (element is HeaderReference) {
+                        newSectionProperties.Append(element.CloneNode(true));
+                        sectionProperties.RemoveChild(element);
+                    } else if (element is FooterReference) {
+                        newSectionProperties.Append(element.CloneNode(true));
+                        sectionProperties.RemoveChild(element);
                     //} else if (element is PageSize) {
-
+                    //    newSectionProperties.Append(element.CloneNode(true));
                     //} else if (element is PageMargin) {
-
+                    //    newSectionProperties.Append(element.CloneNode(true));
                     //} else if (element is Columns) {
-
+                    //    newSectionProperties.Append(element.CloneNode(true));
                     //} else if (element is DocGrid) {
-
+                    //    newSectionProperties.Append(element.CloneNode(true));
                     //} else if (element is SectionType) {
-
-                    //} else if (element is TitlePage) {
-
-                    //} else {
-                    //    throw new NotImplementedException("This isn't implemented yet?");
-                    //}
+                    //    newSectionProperties.Append(element.CloneNode(true));
+                    } else if (element is TitlePage) {
+                        newSectionProperties.Append(element.CloneNode(true));
+                        sectionProperties.RemoveChild(element);
+                    } else {
+                        newSectionProperties.Append(element.CloneNode(true));
+                        //throw new NotImplementedException("This isn't implemented yet?");
+                    }
                 }
                 //sectionProperties.RemoveAllChildren();
                 //newSectionProperties.Append(listSectionEntries);
+            }
+        }
+
+        public WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
+            this._document = wordDocument;
+            this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            if (sectionProperties != null) {
+                this._sectionProperties = sectionProperties;
+            } else {
+                sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                if (sectionProperties == null) {
+                    // most likely not necessary during load - but lets see
+                    // would require a broken document created by some app
+                    sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
+                }
+                this._sectionProperties = sectionProperties;
+            }
+
+            wordDocument.Sections.Add(this);
+
+            // this is added for tracking current section of the document
+            wordDocument._currentSection = this;
+
+            var listSectionEntries = this._sectionProperties.ChildElements.ToList();
+            foreach (var element in listSectionEntries) {
+                if (element is HeaderReference) {
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                } else if (element is FooterReference) {
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                } else if (element is PageSize) {
+
+                } else if (element is PageMargin) {
+
+                } else if (element is Columns) {
+
+                } else if (element is DocGrid) {
+
+                } else if (element is SectionType) {
+
+                } else if (element is TitlePage) {
+
+                } else {
+                    throw new NotImplementedException("This isn't implemented yet?");
+                }
             }
         }
 
@@ -100,14 +157,15 @@ namespace OfficeIMO {
                 // pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
             }
 
+            //var listSectionEntries1 = this._sectionProperties.ChildElements.ToList();
             if (paragraph != null) {
                var temporarySectionProperties = lastSection._sectionProperties;
                if (temporarySectionProperties != null) {
-                   CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
-                   var old = this._sectionProperties;
+                    CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
+                    var old = this._sectionProperties;
                     this._sectionProperties = lastSection._sectionProperties;
-                   lastSection._sectionProperties = old;
-               }
+                    lastSection._sectionProperties = old;
+                }
             }
 
             // defaults 
@@ -124,30 +182,33 @@ namespace OfficeIMO {
             // this is added for tracking current section of the document
             wordDocument._currentSection = this;
 
-            var listSectionEntries = this._sectionProperties.ChildElements.ToList();
-            foreach (var element in listSectionEntries) {
-                if (element is HeaderReference) {
-                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
-                } else if (element is FooterReference) {
-                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
-                } else if (element is PageSize) {
+            //if (lastSection != null) {
+            //    var listSectionEntries = lastSection._sectionProperties.ChildElements.ToList();
+            //    //var listSectionEntries = this._sectionProperties.ChildElements.ToList();
+            //    foreach (var element in listSectionEntries) {
+            //        if (element is HeaderReference) {
+            //            WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference) element);
+            //        } else if (element is FooterReference) {
+            //            WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference) element);
+            //        } else if (element is PageSize) {
 
-                } else if (element is PageMargin) {
+            //        } else if (element is PageMargin) {
 
-                } else if (element is Columns) {
+            //        } else if (element is Columns) {
 
-                } else if (element is DocGrid) {
+            //        } else if (element is DocGrid) {
 
-                } else if (element is SectionType) {
+            //        } else if (element is SectionType) {
 
-                } else if (element is TitlePage) {
+            //        } else if (element is TitlePage) {
 
-                } else {
-                    throw new NotImplementedException("This isn't implemented yet?");
-                }
-            }
+            //        } else {
+            //            throw new NotImplementedException("This isn't implemented yet?");
+            //        }
+            //    }
+            //}
 
-            Debug.WriteLine(this._sectionProperties.ChildElements.Count);
+            //Debug.WriteLine(this._sectionProperties.ChildElements.Count);
         }
 
         public bool DifferentFirstPage {
