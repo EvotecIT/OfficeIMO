@@ -79,6 +79,10 @@ namespace OfficeIMO.Tests {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = System.Drawing.Color.Yellow.ToHexColor();
 
+                Assert.True(paragraph.DoNotCheckSpellingOrGrammar == false, "DoNotCheckSpellingOrGrammar should not be set.");
+                paragraph.DoNotCheckSpellingOrGrammar = true;
+                Assert.True(paragraph.DoNotCheckSpellingOrGrammar == true, "DoNotCheckSpellingOrGrammar should be set.");
+
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
@@ -100,7 +104,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].DoNotCheckSpellingOrGrammar == true, "3rd paragraph DoNotCheckSpellingOrGrammar should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
+                Assert.True(document.Paragraphs[3].DoNotCheckSpellingOrGrammar == false, "4th paragraph DoNotCheckSpellingOrGrammar should not be set");
                 Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Blue.ToHexColor(), "5th paragraph color should be the same");
                 Assert.True(document.Paragraphs[4].Bold == true, "5th paragraph should be bold");
                 Assert.True(document.Paragraphs[4].FontFamily == "Tahoma", "5th paragraph should be set with Tahoma");

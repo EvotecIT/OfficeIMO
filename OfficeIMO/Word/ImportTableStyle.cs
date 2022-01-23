@@ -8,8 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     internal class ImportTableStyle {
-
-        internal static XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        private static XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
         internal static void ImportTableStyles(string sourcefilepath, string destinationfilepath) {
             using (var repeaterSourceDocument = WordprocessingDocument.Open(sourcefilepath, true)) {

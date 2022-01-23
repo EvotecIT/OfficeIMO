@@ -173,7 +173,7 @@ I'm using a lot of different resources to make OfficeIMO useful. Following resou
 
  - [Packages and general (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/packages-and-general)
  - [Word processing (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/word-processing)
- - [Word 2007 Visual How Tos](https://docs.microsoft.com/en-us/previous-versions/office/developer/office-2007/gg537324(v=office.12)
+ - https://docs.microsoft.com/en-us/previous-versions/office/developer/office-2007/gg537324(v=office.12)
  - [Office 2010 Visual How Tos](https://docs.microsoft.com/en-us/previous-versions/office/developer/office-2010/ff467945(v=office.14))
  - [Points, inches and Emus: Measuring units in Office Open XML](https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/)
  - [English Metric Units and Open XML](http://polymathprogrammer.com/2009/10/22/english-metric-units-and-open-xml/)
