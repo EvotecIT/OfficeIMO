@@ -1702,6 +1702,9 @@ namespace OfficeIMO.Examples {
         }
         private static void Example_SectionsWithHeadersDefault(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Settings.Language = "pl-PL";
+
                 document.Sections[0].PageOrientation = PageOrientationValues.Portrait;
                 document.AddParagraph("Test Section0");
                 document.AddHeadersAndFooters();
@@ -1753,6 +1756,9 @@ namespace OfficeIMO.Examples {
                 document.Sections[1].Header.Even.AddParagraph().SetText("Test Section 1 - Even Header");
                 document.Sections[1].Footer.Even.AddParagraph().SetText("Test Section 1 - Even Footer");
 
+                document.Settings.ProtectionPassword = "ThisIsTest";
+                document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+                document.Settings.RemoveProtection();
                 document.Save(openWord);
             }
         }

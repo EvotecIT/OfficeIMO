@@ -325,6 +325,7 @@ namespace OfficeIMO {
             FontSize fontSize1 = new FontSize() { Val = "22" };
             FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "22" };
             Languages languages1 = new Languages() { Val = "en-US", EastAsia = "en-US", Bidi = "ar-SA" };
+            //Languages languages1 = new Languages() { Val = "pl-PL", EastAsia = "pl-PL", Bidi = "ar-SA" };
 
             runPropertiesBaseStyle1.Append(runFonts1);
             runPropertiesBaseStyle1.Append(fontSize1);
