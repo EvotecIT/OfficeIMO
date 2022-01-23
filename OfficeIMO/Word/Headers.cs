@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class Headers {
+    public static class Headers {
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;

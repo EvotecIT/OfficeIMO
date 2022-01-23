@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class Footers {
+    public static class Footers {
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
