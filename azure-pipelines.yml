@@ -16,6 +16,12 @@ variables:
 steps:
 - task: NuGetToolInstaller@1
 
+- task: UseDotNet@2
+  displayName: Use .NET 6.0
+  inputs:
+    packageType: 'sdk'
+    version: '6.0.x'
+
 - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
