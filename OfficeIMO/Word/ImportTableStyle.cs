@@ -17,8 +17,9 @@ namespace OfficeIMO.Word {
                 var repeaterSourceDocumentPackagePart = repeaterSourceDocument.MainDocumentPart.OpenXmlPackage.Package.GetPart(new Uri("/word/styles.xml", UriKind.Relative));
 
                 //Get styles.xml
-                using (TextReader tr = new StreamReader(repeaterSourceDocumentPackagePart.GetStream()))
+                using (TextReader tr = new StreamReader(repeaterSourceDocumentPackagePart.GetStream())) {
                     source_style_doc = XDocument.Load(tr);
+                }
 
                 var tableStylesFromRepeaterSource = source_style_doc.Descendants(w + "style").Where(x => x.Attribute(w + "type").Value == "table").Select(x => x).ToList();
 
@@ -39,8 +40,9 @@ namespace OfficeIMO.Word {
                     }
 
                     //Save the style.xml of targetFile
-                    using (TextWriter tw = new StreamWriter(destpart.GetStream(FileMode.Create)))
+                    using (TextWriter tw = new StreamWriter(destpart.GetStream(FileMode.Create))) {
                         dest_style_doc.Save(tw, SaveOptions.None);
+                    }
 
                 }
             }
