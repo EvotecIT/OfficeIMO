@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Helper;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -254,6 +253,99 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
+            }
+        }
+        [Fact]
+        public void Test_CreatingWordDocumentHeadersAndFootersAndDeletingHeadersAndFooters() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+                document.AddParagraph("Test Section0");
+                document.AddHeadersAndFooters();
+
+                document.Header.Default.AddParagraph().SetText("Test Section 0 - Header");
+                document.Footer.Default.AddParagraph().SetText("Test Section 0 - Footer");
+
+                Assert.True(document.Header.First == null);
+                Assert.True(document.Footer.First == null);
+
+                document.DifferentFirstPage = true;
+
+                Assert.True(document.Header.First != null);
+                Assert.True(document.Footer.First != null);
+                document.Header.First.AddParagraph().SetText("Test Section 0 - First Header");
+                document.Footer.First.AddParagraph().SetText("Test Section 0 - First Footer");
+
+                Assert.True(document.Header.Even == null);
+                Assert.True(document.Footer.Even == null);
+
+                document.DifferentOddAndEvenPages = true;
+
+                Assert.True(document.Header.Even != null);
+                Assert.True(document.Footer.Even != null);
+
+                document.Header.Even.AddParagraph().SetText("Test Section 0 - Header Even");
+                document.Footer.Even.AddParagraph().SetText("Test Section 0 - Footer Even");
+
+
+                var section1 = document.AddSection();
+                section1.AddHeadersAndFooters();
+                section1.DifferentFirstPage = true;
+                section1.DifferentOddAndEvenPages = true;
+
+                section1.Header.Default.AddParagraph().SetText("Test Section 0 - Header");
+                section1.Footer.Default.AddParagraph().SetText("Test Section 0 - Footer");
+                section1.Header.First.AddParagraph().SetText("Test Section 0 - First Header");
+                section1.Footer.First.AddParagraph().SetText("Test Section 0 - First Footer");
+                section1.Header.Even.AddParagraph().SetText("Test Section 0 - Header Even");
+                section1.Footer.Even.AddParagraph().SetText("Test Section 0 - Footer Even");
+
+
+                Assert.True(document.Header.Default.Paragraphs[0].Text == "Test Section 0 - Header");
+                Assert.True(document.Footer.Default.Paragraphs[0].Text == "Test Section 0 - Footer");
+                Assert.True(document.Header.First.Paragraphs[0].Text == "Test Section 0 - First Header");
+                Assert.True(document.Footer.First.Paragraphs[0].Text == "Test Section 0 - First Footer");
+                Assert.True(document.Header.Even.Paragraphs[0].Text == "Test Section 0 - Header Even");
+                Assert.True(document.Footer.Even.Paragraphs[0].Text == "Test Section 0 - Footer Even");
+
+                Assert.True(document.Header.Default.Paragraphs.Count == 1);
+                Assert.True(document.Footer.Default.Paragraphs.Count == 1);
+                Assert.True(document.Header.First.Paragraphs.Count == 1);
+                Assert.True(document.Footer.First.Paragraphs.Count == 1);
+                Assert.True(document.Header.Even.Paragraphs.Count == 1);
+                Assert.True(document.Footer.Even.Paragraphs.Count == 1);
+
+                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
+                Assert.True(document.Sections.Count == 2, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
+
+                document.Save(false);
+            }
+
+            // One liner fixes
+            WordHelpers.RemoveHeadersAndFooters(filePath);
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx"))) {
+
+                Assert.True(document.Header.Default == null);
+                Assert.True(document.Footer.Default == null);
+                Assert.True(document.Header.First == null);
+                Assert.True(document.Footer.First== null);
+                Assert.True(document.Header.Even== null);
+                Assert.True(document.Footer.Even == null );
+
+                Assert.True(document.Sections[1].Header.Default == null);
+                Assert.True(document.Sections[1].Footer.Default == null);
+                Assert.True(document.Sections[1].Header.First == null);
+                Assert.True(document.Sections[1].Footer.First == null);
+                Assert.True(document.Sections[1].Header.Even == null);
+                Assert.True(document.Sections[1].Footer.Even == null);
+
+                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
+                Assert.True(document.Sections.Count == 2, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
             }
         }

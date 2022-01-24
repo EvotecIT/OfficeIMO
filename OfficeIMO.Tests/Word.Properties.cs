@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Helper;
 using Xunit;
 
 namespace OfficeIMO.Tests {
