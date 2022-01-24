@@ -18,12 +18,18 @@ namespace OfficeIMO.Tests {
                 // There is only one PageBreak in this document.
                 Assert.True(document.PageBreaks.Count() == 1,"Page breaks not matching. Current: " + document.PageBreaks.Count);
 
-    
+
                 Assert.True(document.Sections[0].Paragraphs.Count == 6, "Paragraphs not matching. Current: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Sections not matching. Current: " + document.Sections.Count);
 
                 Assert.True(document.PageOrientation == PageOrientationValues.Portrait, "Page orientation. Current: " + document.PageOrientation);
                 //Assert.True(document.Settings == PageOrientationValues.Portrait, "Page orientation. Current: " + document.PageOrientation);
+
+
+                // TODO add revisions to accept and check those really got accepted
+                document.AcceptRevisions("Przemysław Kłys");
+
+                document.AcceptRevisions();
             }
         }
     }
