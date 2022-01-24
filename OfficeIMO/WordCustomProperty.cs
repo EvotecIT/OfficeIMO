@@ -53,6 +53,16 @@ namespace OfficeIMO {
             }
         }
 
+        public bool? Bool {
+            get {
+                if ((Value) is bool) {
+                    return (bool)Value;
+                }
+
+                return null;
+            }
+        }
+
         public WordCustomProperty(Object value, PropertyTypes propertyType) {
             this.PropertyType = propertyType;
             this.Value = value;
@@ -79,13 +89,13 @@ namespace OfficeIMO {
         }
         public WordCustomProperty() {}
 
-        public WordCustomProperty(CustomDocumentProperty customDocumentProperty) {
+        internal WordCustomProperty(CustomDocumentProperty customDocumentProperty) {
             if (customDocumentProperty != null) {
                 if (customDocumentProperty.VTInt32 != null) {
                     this.Value = int.Parse(customDocumentProperty.VTInt32.Text);
                     this.PropertyType = PropertyTypes.NumberInteger;
                 } else if (customDocumentProperty.VTFileTime != null) {
-                    this.Value = DateTime.Parse(customDocumentProperty.VTFileTime.Text);
+                    this.Value = DateTime.Parse(customDocumentProperty.VTFileTime.Text).ToUniversalTime();
                     this.PropertyType = PropertyTypes.DateTime;
                 } else if (customDocumentProperty.VTFloat != null) {
                     this.Value = double.Parse(customDocumentProperty.VTFloat.Text);

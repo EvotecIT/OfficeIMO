@@ -197,7 +197,7 @@ namespace OfficeIMO {
                     // The date/time value passed in should 
                     // represent a UTC date/time.
                     if ((propertyValue) is DateTime) {
-                        newProp.VTFileTime = new VTFileTime(string.Format("{0:s}Z", Convert.ToDateTime(propertyValue)));
+                        newProp.VTFileTime = new VTFileTime(string.Format("{0:s}Z", Convert.ToDateTime(propertyValue).ToUniversalTime()));
                         propSet = true;
                     }
 
