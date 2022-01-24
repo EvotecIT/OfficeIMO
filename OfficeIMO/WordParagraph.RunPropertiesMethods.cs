@@ -1,5 +1,4 @@
 ﻿using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Helper;
 
 namespace OfficeIMO {
     public partial class WordParagraph {

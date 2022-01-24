@@ -1,6 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Helper;
 using System;
 using System.IO;
 using System.Linq;
@@ -160,15 +159,20 @@ namespace OfficeIMO.Examples {
             //Console.WriteLine("[*] Creating standard document with sections 4");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 3.docx");
             //Example_SectionsWithParagraphs(filePath, true);
-           
-            
-            Console.WriteLine("[*] Creating standard document with sections and headers / footers");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections and headers footers testing.docx");
-            Example_SectionsWithHeadersDefault(filePath, true);
+
+
+            //Console.WriteLine("[*] Creating standard document with sections and headers / footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections and headers footers testing.docx");
+            //Example_SectionsWithHeadersDefault(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with sections and headers / footers");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections and headers footers.docx");
             //Example_SectionsWithHeaders(filePath, true);
+
+
+            Console.WriteLine("[*] Creating standard document with comments");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
+            Example_PlayingWithComments(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1715,6 +1719,8 @@ namespace OfficeIMO.Examples {
                 document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
                 document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
 
+                document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
+                
                 document.AddPageBreak();
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -1859,5 +1865,24 @@ namespace OfficeIMO.Examples {
             }
         }
 
+        private static void Example_PlayingWithComments(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test Section");
+               
+                document.Paragraphs[0].AddComment("Przemysław","PK","This is my comment");
+
+
+                document.AddParagraph("Test Section - another line");
+
+                document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
+
+                document.Save(false);
+
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+            
+                document.Save(true);
+            }
+        }
     }
 }
