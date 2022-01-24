@@ -51,6 +51,8 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 ## Features
 
+Here's a list of features currently supported and those that are planned. It's not a closed list, more of TODO.
+
 - [x] Word basics
   - [x] Create
   - [x] Load
@@ -92,6 +94,14 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 - [ ] Fields
 - [ ] Shapes
 - [ ] Charts
+
+
+## Features (oneliners):
+
+This list of features is for times when you want to quickly fix something rather than playing with full features.
+This features are available as part of `WordHelpers` class.
+
+- [x] Remove Headers and Footers from a file
 
 ## Examples
 
