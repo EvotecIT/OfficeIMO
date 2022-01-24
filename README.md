@@ -54,25 +54,30 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 - [x] Word basics
   - [x] Create
   - [x] Load
-  - [x] Save
+  - [x] Save (autoopen on save as an option)
   - [ ] SaveAs (not working correcly in edge cases)
 - [x] Word properties
-  - [ ] Reading
-  - [ ] Setting
+  - [x] Reading
+  - [x] Setting
 - [x] Sections
   - [x] Add Paragraphs
-  - [ ] Add Headers and Footers
-  - [ ] Remove Headers and Footers
+  - [x] Add Headers and Footers (Odd/Even/First)
+  - [ ] Remove Headers and Footers (Odd/Even/First)
   - [ ] Remove Paragraphs
   - [ ] Remove Sections
-- [ ] Headers and Footers in document (not including sections)
-  - [ ] Add Default, Odd, Even, First
+- [x] Headers and Footers in document (not including sections)
+  - [x] Add Default, Odd, Even, First
+  - [ ] Remove Default, Odd, Even, First
 - [x] Paragraphs/Text and make it bold, underlined, colored and so on
 - [x] Paragraphs and change alignment
-- [ ] Tables
-  - [ ] Add rows and columns
-  - [ ] Add cells
-  - [ ] Add cell properties
+- [x] Tables
+  - [x] Add rows and columns
+  - [x] Add cells
+  - [x] Add cell properties
+  - [ ] Remove rows
+  - [ ] Remove columns
+  - [ ] Remove cells
+  - [ ] Others
 - [x] Images/Pictures (limited support - jpg only / inline type only)
   - [x] Add images from file to Word
   - [x] Save image from Word to File
@@ -81,6 +86,9 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 - [ ] Hyperlinks
 - [ ] Bookmarks
 - [ ] Comments
+  - [x] Add comments
+  - [ ] Remove comments
+  - [ ] Track comments
 - [ ] Fields
 - [ ] Shapes
 - [ ] Charts
@@ -92,14 +100,14 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 This short example show how to create Word Document with just one paragraph with Text and few document properties.
 
 ```csharp
-string filePath = "C:\\Support\\GitHub\\PSWriteOffice\\Examples\\Documents\\BasicDocument.docx";
+string filePath = @"C:\Support\GitHub\PSWriteOffice\Examples\Documents\BasicDocument.docx";
 
 using (WordDocument document = WordDocument.Create(filePath)) {
     document.Title = "This is my title";
     document.Creator = "Przemysław Kłys";
     document.Keywords = "word, docx, test";
 
-    var paragraph = document.InsertParagraph("Basic paragraph");
+    var paragraph = document.AddParagraph("Basic paragraph");
     paragraph.ParagraphAlignment = JustificationValues.Center;
     paragraph.Color = System.Drawing.Color.Red.ToHexColor();
 
@@ -113,57 +121,58 @@ This short example shows how to add headers and footers to Word Document.
 
 ```csharp
 using (WordDocument document = WordDocument.Create(filePath)) {
+    document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+    document.AddParagraph("Test Section0");
     document.AddHeadersAndFooters();
     document.DifferentFirstPage = true;
     document.DifferentOddAndEvenPages = true;
 
-    var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
-    paragraphInFooterFirst.Text = "This is a test on first";
+    document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
+    document.Sections[0].Header.Default.AddParagraph().SetText("Test Section 0 - Header");
+    document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
 
-    var count = document.Footer.First.Paragraphs.Count;
+    document.AddPageBreak();
+    document.AddPageBreak();
+    document.AddPageBreak();
+    document.AddPageBreak();
 
-    var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
-    paragraphInFooterOdd.Text = "This is a test odd";
+    var section1 = document.AddSection();
+    section1.PageOrientation = PageOrientationValues.Portrait;
+    section1.AddParagraph("Test Section1");
+    section1.AddHeadersAndFooters();
+    section1.Header.Default.AddParagraph().SetText("Test Section 1 - Header");
+    section1.DifferentFirstPage = true;
+    section1.Header.First.AddParagraph().SetText("Test Section 1 - First Header");
 
+    document.AddPageBreak();
+    document.AddPageBreak();
+    document.AddPageBreak();
+    document.AddPageBreak();
 
-    var paragraphHeader = document.Header.Odd.InsertParagraph();
-    paragraphHeader.Text = "Header - ODD";
+    var section2 = document.AddSection();
+    section2.AddParagraph("Test Section2");
+    section2.PageOrientation = PageOrientationValues.Landscape;
+    section2.AddHeadersAndFooters();
+    section2.Header.Default.AddParagraph().SetText("Test Section 2 - Header");
 
-    var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
-    paragraphInFooterEven.Text = "This is a test - Even";
+    document.AddParagraph("Test Section2 - Paragraph 1");
 
+    var section3 = document.AddSection();
+    section3.AddParagraph("Test Section3");
+    section3.AddHeadersAndFooters();
+    section3.Header.Default.AddParagraph().SetText("Test Section 3 - Header");
 
-    var paragraph = document.InsertParagraph("Basic paragraph - Page 1");
-    paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+    Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
+    Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
+    Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
+    Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
+    Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
 
-    paragraph = document.InsertPageBreak();
-!
-    paragraph = document.InsertParagraph("Basic paragraph - Page 2");
-    paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-    paragraph = document.InsertPageBreak();
-
-    paragraph = document.InsertParagraph("Basic paragraph - Page 3");
-    paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-    paragraph = document.InsertPageBreak();
-
-    paragraph = document.InsertParagraph("Basic paragraph - Page 4");
-    paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-    paragraph = document.InsertPageBreak();
-
-    paragraph = document.InsertParagraph("Basic paragraph - Page 5");
-    paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
-
-    paragraph = document.InsertPageBreak();
-
-    document.Save(false);
+    Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
+    Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
+    Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
+    Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
+    document.Save(true);
 }
 ```
 
@@ -178,6 +187,5 @@ I'm using a lot of different resources to make OfficeIMO useful. Following resou
  - [Points, inches and Emus: Measuring units in Office Open XML](https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/)
  - [English Metric Units and Open XML](http://polymathprogrammer.com/2009/10/22/english-metric-units-and-open-xml/)
  - [Open XML: add a picture](https://coders-corner.net/2015/04/11/open-xml-add-a-picture/)
- - [How do you use System.Drawing in .NET Core?](https://www.hanselman.com/blog/how-do-you-use-systemdrawing-in-net-core)
  - [How to add section break next page using openxml?](https://stackoverflow.com/questions/20040613/how-to-add-section-break-next-page-using-openxml)
  - [How to Preserve string with formatting in OpenXML Paragraph, Run, Text?](https://stackoverflow.com/questions/40246590/how-to-preserve-string-with-formatting-in-openxml-paragraph-run-text?rq=1)
