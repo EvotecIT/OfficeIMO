@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO {
     public partial class WordParagraph {
@@ -49,6 +50,7 @@ namespace OfficeIMO {
                 }
             }
         }
+
         internal int? _listNumberId {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -91,6 +93,7 @@ namespace OfficeIMO {
                 if (_text == null) {
                     return "";
                 }
+
                 return _text.Text;
             }
             set { _text.Text = value; }
@@ -117,6 +120,7 @@ namespace OfficeIMO {
                 this._paragraph.AppendChild(_paragraphProperties);
                 this._paragraph.AppendChild(_run);
             }
+
             section.Paragraphs.Add(this);
         }
 
@@ -142,8 +146,6 @@ namespace OfficeIMO {
                 this._section = document._currentSection;
                 //document.Paragraphs.Add(this);
             }
-
-
         }
 
         public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section) {
@@ -165,7 +167,7 @@ namespace OfficeIMO {
             }
 
             if (document != null) {
-               // document._currentSection.Paragraphs.Add(this);
+                // document._currentSection.Paragraphs.Add(this);
                 section.Paragraphs.Add(this);
                 //document.Paragraphs.Add(this);
             }
@@ -220,6 +222,7 @@ namespace OfficeIMO {
                         if (wordParagraph.IsPageBreak) {
                             document._currentSection.PageBreaks.Add(wordParagraph);
                         }
+
                         if (wordParagraph.IsListItem) {
                             LoadListToDocument(document, wordParagraph);
                         }
@@ -283,7 +286,7 @@ namespace OfficeIMO {
         public WordParagraph AddText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, false);
             wordParagraph.Text = text;
-          
+
             // this ensures that we keep track of matching runs with real paragraphs
             wordParagraph._linkedParagraph = this;
 
@@ -292,10 +295,11 @@ namespace OfficeIMO {
             } else {
                 this._paragraph.Append(wordParagraph._run);
             }
+
             //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
             return wordParagraph;
         }
-        
+
         public WordParagraph AddImage(string filePathImage, double? width, double? height) {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
@@ -303,6 +307,7 @@ namespace OfficeIMO {
             this.Image = wordImage;
             return paragraph;
         }
+
         public WordParagraph AddImage(string filePathImage) {
             WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
@@ -324,6 +329,7 @@ namespace OfficeIMO {
                 // delete paragraph, but only remove Runs 
                 this._run.Remove();
             }
+
             if (IsPageBreak) {
                 this._document.PageBreaks.Remove(this);
             }
@@ -334,6 +340,7 @@ namespace OfficeIMO {
                     this._list = null;
                 }
             }
+
             this._document.Paragraphs.Remove(this);
         }
 
@@ -341,7 +348,7 @@ namespace OfficeIMO {
             WordParagraph paragraph = new WordParagraph(this._document, true);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             //this._document.Paragraphs.Add(paragraph);
-            
+
             return paragraph;
         }
 
@@ -360,6 +367,55 @@ namespace OfficeIMO {
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);
             return paragraph;
+        }
+
+        /// <summary>
+        /// Add a comment to paragraph
+        /// </summary>
+        /// <param name="author"></param>
+        /// <param name="initials"></param>
+        /// <param name="comment"></param>
+        public void AddComment(string author, string initials, string comment) {
+            Comments comments = null;
+            string id = "0";
+
+            // Verify that the document contains a 
+            // WordProcessingCommentsPart part; if not, add a new one.
+            if (this._document._wordprocessingDocument.MainDocumentPart.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
+                comments = this._document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
+                if (comments.HasChildren) {
+                    // Obtain an unused ID.
+                    id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
+                }
+            } else {
+                // No WordprocessingCommentsPart part exists, so add one to the package.
+                WordprocessingCommentsPart commentPart = this._document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
+                commentPart.Comments = new Comments();
+                comments = commentPart.Comments;
+            }
+
+            // Compose a new Comment and add it to the Comments part.
+            Paragraph p = new Paragraph(new Run(new Text(comment)));
+            Comment cmt =
+                new Comment() {
+                    Id = id,
+                    Author = author,
+                    Initials = initials,
+                    Date = DateTime.Now
+                };
+            cmt.AppendChild(p);
+            comments.AppendChild(cmt);
+            comments.Save();
+
+            // Specify the text range for the Comment. 
+            // Insert the new CommentRangeStart before the first run of paragraph.
+            this._paragraph.InsertBefore(new CommentRangeStart() {Id = id}, this._paragraph.GetFirstChild<Run>());
+
+            // Insert the new CommentRangeEnd after last run of paragraph.
+            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() {Id = id}, this._paragraph.Elements<Run>().Last());
+
+            // Compose a run with CommentReference and insert it.
+            this._paragraph.InsertAfter(new Run(new CommentReference() {Id = id}), cmtEnd);
         }
     }
 }
