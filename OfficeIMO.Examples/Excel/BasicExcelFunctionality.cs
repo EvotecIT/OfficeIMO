@@ -12,15 +12,14 @@ namespace OfficeIMO.Examples.Excel {
             
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
 
-                document.AddWorkSheet();
+                ExcelSheet sheet = document.AddWorkSheet("Test");
+
 
                 document.Save(openExcel);
             }
         }
         public static void BasicExcel_Example2(string filePath, bool openExcel) {
             using (ExcelDocument document = ExcelDocument.Create(filePath, "WorkSheet1")) {
-
-
 
                 document.Save(openExcel);
             }

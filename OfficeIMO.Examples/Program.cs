@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Examples.Excel;
+using OfficeIMO.Word;
 using Color = System.Drawing.Color;
 
 namespace OfficeIMO.Examples {

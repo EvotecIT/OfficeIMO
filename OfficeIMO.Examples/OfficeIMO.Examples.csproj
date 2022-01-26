@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
-    <ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
 
   <ItemGroup>
