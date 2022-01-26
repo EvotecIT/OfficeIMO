@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Examples.Excel;
 using Color = System.Drawing.Color;
 
 namespace OfficeIMO.Examples {
@@ -170,9 +171,18 @@ namespace OfficeIMO.Examples {
             //Example_SectionsWithHeaders(filePath, true);
 
 
-            Console.WriteLine("[*] Creating standard document with comments");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
-            Example_PlayingWithComments(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with comments");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
+            //Example_PlayingWithComments(filePath, true);
+
+            Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
+            BasicExcelFunctionality.BasicExcel_Example1(filePath, true);
+
+
+            Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
+            BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {

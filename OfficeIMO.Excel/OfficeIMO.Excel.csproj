@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>An Open Source cross-platform .NET library providing an easy way to create Word documents.</Description>
-    <AssemblyName>OfficeIMO</AssemblyName>
-    <AssemblyTitle>OfficeIMO</AssemblyTitle>
+    <Description>An Open Source cross-platform .NET library providing an easy way to create Excel documents.</Description>
+    <AssemblyName>OfficeIMO.Excel</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
     <VersionPrefix>0.1.1</VersionPrefix>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
@@ -14,7 +14,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
-    <PackageId>OfficeIMO</PackageId>
+    <PackageId>OfficeIMO.Excel</PackageId>
     <PackageTags>word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
     <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
@@ -23,22 +23,21 @@
     <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
-    <DebugType>portable</DebugType>
+    <DebugType>none</DebugType>
 
     <!--
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies
     -->
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.12.3" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+  </ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png">
@@ -46,10 +45,4 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="2.12.3" />
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
-  </ItemGroup>
-
 </Project>

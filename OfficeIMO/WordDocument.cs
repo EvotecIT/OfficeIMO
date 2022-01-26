@@ -298,16 +298,10 @@ namespace OfficeIMO {
         }
 
         public void Open(string filePath = "", bool openWord = true) {
-            if (openWord) {
-                if (filePath == "") {
-                    filePath = this.FilePath;
-                }
-
-                ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
+            if (filePath == "") {
+                filePath = this.FilePath;
             }
+            Helpers.Open(filePath, openWord);
         }
 
 
