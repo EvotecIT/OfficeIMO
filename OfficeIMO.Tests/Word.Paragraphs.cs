@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 using Xunit;
 using Color = System.Drawing.Color;
 

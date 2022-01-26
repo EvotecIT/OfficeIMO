@@ -19,7 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Documents\BasicDocumentWithSections.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\BasicExcel.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Documents\DocumentWithSection.docx">
@@ -65,7 +69,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Tests\" />
+    <Folder Include="ExcelTests\" />
+    <Folder Include="WordTests\" />
   </ItemGroup>
 
 </Project>

@@ -1,11 +1,12 @@
 ﻿using System.IO;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_SimpleWordDocumentCreation() {
-            var filePath = Path.Combine(_directoryDocuments, "TestFileTemporary.docx");
+            var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary.docx");
 
             var path = File.Exists(filePath);
             Assert.False(path); // MUST BE FALSE

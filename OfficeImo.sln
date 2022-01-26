@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO", "OfficeIMO\OfficeIMO.csproj", "{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Word", "OfficeIMO.Word\OfficeIMO.Word.csproj", "{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Examples", "OfficeIMO.Examples\OfficeIMO.Examples.csproj", "{B437E21F-3A63-45C3-9098-7BA302AB7301}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -12,6 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Examples", "Offic
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Tests", "OfficeIMO.Tests\OfficeIMO.Tests.csproj", "{CC1AF4F4-1BA1-4639-8434-09E3F543DB09}"
 	ProjectSection(ProjectDependencies) = postProject
+		{80B77D75-D25C-4168-B6A3-FA58DB118EF8} = {80B77D75-D25C-4168-B6A3-FA58DB118EF8}
 		{FDCF73EE-953A-4063-AFA1-C6C395C8B9CD} = {FDCF73EE-953A-4063-AFA1-C6C395C8B9CD}
 	EndProjectSection
 EndProject
@@ -25,7 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

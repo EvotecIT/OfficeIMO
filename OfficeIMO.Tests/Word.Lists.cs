@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = System.Drawing.Color;
+using OfficeIMO.Word;
 using Xunit;
+using Color = System.Drawing.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
