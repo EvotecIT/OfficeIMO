@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.IO.Packaging;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -27,6 +29,34 @@ namespace OfficeIMO.Excel {
 
             return document;
         }
+        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+            if (filePath != null) {
+                if (!File.Exists(filePath)) {
+                    throw new FileNotFoundException("File doesn't exists", filePath);
+                }
+            }
+            ExcelDocument document = new ExcelDocument();
+            document.FilePath = filePath;
+
+            var openSettings = new OpenSettings {
+                AutoSave = autoSave
+            };
+
+            FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
+            var package = Package.Open(filePath, fileMode);
+
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(package, openSettings);
+
+            document._spreadsheetDocument = spreadSheetDocument;
+
+            // Add a WorkbookPart to the document.
+            WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
+            workbookpart.Workbook = new Workbook();
+
+            document._workBookPart = workbookpart;
+
+            return document;
+        }
 
         public static ExcelDocument Create(string filePath, string workSheetName) {
             ExcelDocument excelDocument = Create(filePath);
@@ -35,7 +65,7 @@ namespace OfficeIMO.Excel {
         }
 
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            ExcelSheet excelSheet = new ExcelSheet(_workBookPart, _spreadsheetDocument);
+            ExcelSheet excelSheet = new ExcelSheet(_workBookPart, _spreadsheetDocument, workSheetName);
 
             return excelSheet;
         }

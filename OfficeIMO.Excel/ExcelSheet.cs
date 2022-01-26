@@ -11,8 +11,11 @@ namespace OfficeIMO.Excel {
         public string Name;
         public UInt32Value Id;
 
-        public ExcelSheet(WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name = "Sheet1") {
-            int id = 1;
+        public ExcelSheet(WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
+            UInt32Value id = 1;
+            if (name == "") {
+                name = "Sheet1";
+            }
             
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
@@ -24,7 +27,7 @@ namespace OfficeIMO.Excel {
             // Append a new worksheet and associate it with the workbook.
             Sheet sheet = new Sheet() {
                 Id = spreadSheetDocument.WorkbookPart.GetIdOfPart(worksheetPart),
-               // SheetId = id,
+                SheetId = id,
                 Name = name
             };
             sheets.Append(sheet);
