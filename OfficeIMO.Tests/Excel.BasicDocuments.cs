@@ -8,7 +8,11 @@ namespace OfficeIMO.Tests {
         public void Test_SimpleExcelDocumentCreation() {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary.xlsx");
 
+
+
             var path = File.Exists(filePath);
+            File.Delete(filePath);
+
             Assert.False(path); // MUST BE FALSE
 
             ExcelDocument document = ExcelDocument.Create(filePath);
@@ -17,6 +21,9 @@ namespace OfficeIMO.Tests {
 
             path = File.Exists(filePath);
             Assert.True(path);
+            document.Dispose();
+
+            File.Delete(filePath);
         }
 
         [Fact]
@@ -24,6 +31,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(Path.Combine(_directoryWithFiles, "BasicExcel.xlsx"))) {
 
                 Assert.True(document.FilePath != null);
+                Assert.True(document.Sheets.Count == 4);
                 
                 document.Save();
             }

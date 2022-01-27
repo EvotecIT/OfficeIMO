@@ -10,6 +10,13 @@ namespace OfficeIMO.Excel {
         private readonly Sheet _sheet;
         public string Name;
         public UInt32Value Id;
+        private readonly WorksheetPart _worksheetPart;
+
+        public ExcelSheet(WorksheetPart worksheetPart) {
+
+            _worksheetPart = worksheetPart;
+
+        }
 
         public ExcelSheet(WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
             UInt32Value id = 1;
@@ -35,6 +42,7 @@ namespace OfficeIMO.Excel {
             this._sheet = sheet;
             this.Name = name;
             this.Id = sheet.SheetId;
+            this._worksheetPart = worksheetPart;
 
         }
     }

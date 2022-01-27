@@ -1,12 +1,28 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable {
+        public List<ExcelSheet> Sheets {
+            get {
+                List<ExcelSheet> listExcel = new List<ExcelSheet>();
+
+                var list = _spreadsheetDocument.WorkbookPart.WorksheetParts.ToList();
+                foreach (WorksheetPart sheet in list) {
+                    ExcelSheet excelSheet = new ExcelSheet(sheet);
+                    listExcel.Add(excelSheet);
+                }
+
+                return listExcel;
+            }
+        }
+
         public SpreadsheetDocument _spreadsheetDocument;
         private WorkbookPart _workBookPart;
         public string FilePath;
@@ -49,11 +65,11 @@ namespace OfficeIMO.Excel {
 
             document._spreadsheetDocument = spreadSheetDocument;
 
-            // Add a WorkbookPart to the document.
-            WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
-            workbookpart.Workbook = new Workbook();
-
-            document._workBookPart = workbookpart;
+            //// Add a WorkbookPart to the document.
+            //WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
+            //workbookpart.Workbook = new Workbook();
+            
+            document._workBookPart = document._spreadsheetDocument.WorkbookPart;
 
             return document;
         }

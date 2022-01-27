@@ -9,6 +9,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary.docx");
 
             var path = File.Exists(filePath);
+            File.Delete(filePath);
             Assert.False(path); // MUST BE FALSE
 
             WordDocument document = WordDocument.Create(filePath);
@@ -17,6 +18,9 @@ namespace OfficeIMO.Tests {
 
             path = File.Exists(filePath);
             Assert.True(path);
+
+            document.Dispose();
+            File.Delete(filePath);
         }
 
         [Fact]

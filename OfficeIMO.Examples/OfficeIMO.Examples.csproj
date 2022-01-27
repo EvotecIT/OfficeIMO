@@ -29,6 +29,9 @@
     <None Update="Images\PrzemyslawKlysAndKulkozaurr.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\BasicExcel.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\DocumentWithBuiltinAndCustomProperties.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

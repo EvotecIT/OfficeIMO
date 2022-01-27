@@ -184,6 +184,9 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
             filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
             BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
+
+            Console.WriteLine("[*] Excel - Reading standard Excel Document 1");
+            BasicExcelFunctionality.BasicExcel_Example3(true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
