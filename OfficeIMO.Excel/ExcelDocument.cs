@@ -9,21 +9,28 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable {
+        internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
+
         public List<ExcelSheet> Sheets {
             get {
                 List<ExcelSheet> listExcel = new List<ExcelSheet>();
-
-                var list = _spreadsheetDocument.WorkbookPart.WorksheetParts.ToList();
-                foreach (WorksheetPart sheet in list) {
-                    ExcelSheet excelSheet = new ExcelSheet(sheet);
-                    listExcel.Add(excelSheet);
-                }
+                if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
+                    var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
+                    
+                        
+                        foreach (Sheet s in elements) {
+                            ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
+                            id.Add(s.SheetId);
+                            listExcel.Add(excelSheet);
+                        }
+                    }
+                
 
                 return listExcel;
             }
         }
 
-        public SpreadsheetDocument _spreadsheetDocument;
+        public SpreadsheetDocument _spreadSheetDocument;
         private WorkbookPart _workBookPart;
         public string FilePath;
 
@@ -35,7 +42,7 @@ namespace OfficeIMO.Excel {
             // By default, AutoSave = true, Editable = true, and Type = xlsx.
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
             
-            document._spreadsheetDocument = spreadSheetDocument;
+            document._spreadSheetDocument = spreadSheetDocument;
 
             // Add a WorkbookPart to the document.
             WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
@@ -63,13 +70,13 @@ namespace OfficeIMO.Excel {
 
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(package, openSettings);
 
-            document._spreadsheetDocument = spreadSheetDocument;
+            document._spreadSheetDocument = spreadSheetDocument;
 
             //// Add a WorkbookPart to the document.
             //WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
             //workbookpart.Workbook = new Workbook();
             
-            document._workBookPart = document._spreadsheetDocument.WorkbookPart;
+            document._workBookPart = document._spreadSheetDocument.WorkbookPart;
 
             return document;
         }
@@ -81,7 +88,7 @@ namespace OfficeIMO.Excel {
         }
 
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            ExcelSheet excelSheet = new ExcelSheet(_workBookPart, _spreadsheetDocument, workSheetName);
+            ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
 
             return excelSheet;
         }
@@ -94,7 +101,7 @@ namespace OfficeIMO.Excel {
         }
 
         public void Close() {
-            this._spreadsheetDocument.Close();
+            this._spreadSheetDocument.Close();
         }
 
         public void Save(string filePath, bool openExcel) {
@@ -112,8 +119,8 @@ namespace OfficeIMO.Excel {
         }
 
         public void Dispose() {
-            if (this._spreadsheetDocument != null) {
-                this._spreadsheetDocument.Dispose();
+            if (this._spreadSheetDocument != null) {
+                this._spreadSheetDocument.Dispose();
             }
         }
     }

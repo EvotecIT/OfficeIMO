@@ -13,10 +13,13 @@ namespace OfficeIMO.Examples.Excel {
             
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
 
-                ExcelSheet sheet = document.AddWorkSheet("Test");
+                ExcelSheet sheet1 = document.AddWorkSheet("Test");
 
+                ExcelSheet sheet2 = document.AddWorkSheet("Test2");
 
-                document.Save(false);
+                ExcelSheet sheet3 = document.AddWorkSheet("Test3");
+
+                document.Save(true);
             }
         }
         public static void BasicExcel_Example2(string filePath, bool openExcel) {
