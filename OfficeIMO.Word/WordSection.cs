@@ -43,6 +43,137 @@ namespace OfficeIMO.Word {
         private WordprocessingDocument _wordprocessingDocument;
 
 
+        public UInt32Value MarginLeft {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Left;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Left = value;
+            }
+        }
+        public UInt32Value MarginRight {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Right;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Right = value;
+            }
+        }
+        public int? MarginTop {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Top;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Top = value;
+            }
+        }
+        public int? MarginBottom {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Bottom;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Bottom = value;
+            }
+        }
+
+        public UInt32Value HeaderDistance {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Header;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Header = value;
+            }
+        }
+
+        public UInt32Value FooterDistance {
+            get {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Footer;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Footer = value;
+            }
+        }
+
+        public WordSection SetMargins(PageMargin pageMargins) {
+
+            var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+            if (pageMargin == null) {
+                _sectionProperties.Append(pageMargins);
+               // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+            } else {
+                pageMargin.Remove();
+                _sectionProperties.Append(pageMargins);
+            }
+            return this;
+        }
+
+
         /// <summary>
         /// This method moves headers and footers and title page to section before it.
         /// It also copies copies all other parts of sections (PageSize,PageMargin and others) to section before it.

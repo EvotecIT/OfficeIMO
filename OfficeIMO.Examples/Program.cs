@@ -176,17 +176,22 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
             //Example_PlayingWithComments(filePath, true);
 
-            Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
-            BasicExcelFunctionality.BasicExcel_Example1(filePath, true);
+            //Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
+            //BasicExcelFunctionality.BasicExcel_Example1(filePath, true);
 
 
-            Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
-            BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
+            //Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
+            //BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
 
-            Console.WriteLine("[*] Excel - Reading standard Excel Document 1");
-            BasicExcelFunctionality.BasicExcel_Example3(true);
+            //Console.WriteLine("[*] Excel - Reading standard Excel Document 1");
+            //BasicExcelFunctionality.BasicExcel_Example3(true);
+
+
+            Console.WriteLine("[*] Creating standard document with margins and sizes");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
+            Example_BasicWordMarginsSizes(filePath, true);
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1898,5 +1903,43 @@ namespace OfficeIMO.Examples {
                 document.Save(true);
             }
         }
+        private static void Example_BasicWordMarginsSizes(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.AddParagraph("Section 0");
+                document.Sections[0].SetMargins(PageMargins.Normal);
+
+                document.AddSection();
+                document.Sections[1].SetMargins(PageMargins.Narrow);
+                document.AddParagraph("Section 1");
+
+                document.AddSection();
+                document.Sections[2].SetMargins(PageMargins.Mirrored);
+                document.AddParagraph("Section 2");
+
+                document.AddSection();
+                document.Sections[3].SetMargins(PageMargins.Moderate);
+                document.AddParagraph("Section 3");
+
+                document.AddSection();
+                document.Sections[4].SetMargins(PageMargins.Wide);
+                document.AddParagraph("Section 4");
+                
+                //Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);
+
+                //document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+
+                //Console.WriteLine("+ Page Orientation (middle): " + document.PageOrientation);
+
+                //document.PageOrientation = PageOrientationValues.Portrait;
+
+                //Console.WriteLine("+ Page Orientation (ending): " + document.PageOrientation);
+
+                //document.AddParagraph("Test");
+
+                document.Save(openWord);
+            }
+        }
+
     }
 }

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public static class PageMargins {
+    public class PageMargins {
         public static PageMargin Normal {
             get {
                 return new PageMargin() {
@@ -34,17 +34,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public static PageMargin Moderate {
-            get {
-                return new PageMargin() {
-                    Top = 1440, Right = (UInt32Value) 1080U,
-                    Bottom = 1440, Left = (UInt32Value) 1080U,
-                    Header = (UInt32Value) 720U,
-                    Footer = (UInt32Value) 720U,
-                    Gutter = (UInt32Value) 0U
-                };
-            }
-        }
+        public static PageMargin Moderate => new PageMargin() {
+                Top = 1440, Right = (UInt32Value) 1080U,
+                Bottom = 1440, Left = (UInt32Value) 1080U,
+                Header = (UInt32Value) 720U,
+                Footer = (UInt32Value) 720U,
+                Gutter = (UInt32Value) 0U
+            };
 
         public static PageMargin Narrow {
             get {

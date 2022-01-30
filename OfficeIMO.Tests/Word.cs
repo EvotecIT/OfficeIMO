@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         private readonly string _directoryWithFiles;
 
         public Word() {
-            _directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "DocXTests", "documents");
+            _directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
             TestsHelper.Setup(_directoryDocuments); // prepare temp documents directory 
             _directoryWithFiles = TestsHelper.DirectoryWithFiles;
         }
