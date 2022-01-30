@@ -384,6 +384,12 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 5");
                 document.Sections[5].SetMargins(PageMargins.Normal);
 
+
+                document.AddSection();
+                document.AddParagraph("Section 6");
+                document.Sections[6].SetMargins(PageMargins.Office2003Default);
+
+                
                 // Normal
                 Assert.True(document.Sections[5].MarginLeft == 1440);
                 Assert.True(document.Sections[5].MarginRight == 1440);
@@ -392,17 +398,26 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[5].HeaderDistance == 720);
                 Assert.True(document.Sections[5].FooterDistance == 720);
 
+                // Office2003Default
+                Assert.True(document.Sections[6].MarginLeft == 1800);
+                Assert.True(document.Sections[6].MarginRight == 1800);
+                Assert.True(document.Sections[6].MarginTop == 1440);
+                Assert.True(document.Sections[6].MarginBottom == 1440);
+                Assert.True(document.Sections[6].HeaderDistance == 720);
+                Assert.True(document.Sections[6].FooterDistance == 720);
+
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMargins.docx"))) {
-                Assert.True(document.Paragraphs.Count == 6, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
-                Assert.True(document.Sections.Count == 6, "Number of sections during creation is wrong.");
+                Assert.True(document.Paragraphs.Count == 7, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 7, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
                 Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 1, "Number of paragraphs on 4th section is wrong.");
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
                 Assert.True(document.Sections[5].Paragraphs.Count == 1, "Number of paragraphs on 6th section is wrong.");
+                Assert.True(document.Sections[6].Paragraphs.Count == 1, "Number of paragraphs on 6th section is wrong.");
 
                 // Normal
                 Assert.True(document.Sections[0].MarginLeft == 1440);
@@ -451,6 +466,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[5].MarginBottom == 1440);
                 Assert.True(document.Sections[5].HeaderDistance == 720);
                 Assert.True(document.Sections[5].FooterDistance == 720);
+
+                // Office2003Default
+                Assert.True(document.Sections[6].MarginLeft == 1800);
+                Assert.True(document.Sections[6].MarginRight == 1800);
+                Assert.True(document.Sections[6].MarginTop == 1440);
+                Assert.True(document.Sections[6].MarginBottom == 1440);
+                Assert.True(document.Sections[6].HeaderDistance == 720);
+                Assert.True(document.Sections[6].FooterDistance == 720);
             }
         }
     }

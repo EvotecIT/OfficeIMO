@@ -29,8 +29,9 @@ namespace OfficeIMO.Word {
                     var destpart = targetFileToImportTableStyles.MainDocumentPart.OpenXmlPackage.Package.GetPart(new Uri("/word/styles.xml", UriKind.Relative));
 
                     //Get styles.xml
-                    using (TextReader trd = new StreamReader(destpart.GetStream()))
+                    using (TextReader trd = new StreamReader(destpart.GetStream())) {
                         dest_style_doc = XDocument.Load(trd);
+                    }
 
                     //Add all the style elements from source document styles.xml 
                     foreach (var styleelement in tableStylesFromRepeaterSource) {

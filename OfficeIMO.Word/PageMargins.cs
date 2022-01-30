@@ -65,5 +65,18 @@ namespace OfficeIMO.Word {
                 };
             }
         }
+
+        public static PageMargin Office2003Default {
+            get {
+                return new PageMargin() {
+                    Top = 1440, 
+                    Right = (UInt32Value)1800U, 
+                    Bottom = 1440, Left = (UInt32Value)1800U, 
+                    Header = (UInt32Value)720U, 
+                    Footer = (UInt32Value)720U,
+                    Gutter = (UInt32Value)0U
+                };
+            }
+        }
     }
 }
