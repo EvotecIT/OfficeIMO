@@ -9,7 +9,8 @@ namespace OfficeIMO.Word {
         /// <param name="c"></param>
         /// <returns></returns>
         public static string ToHexColor(this System.Drawing.Color c) {
-            return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+            return c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+            //return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
         }
         /// <summary>
         /// Converts Color to RGB Color

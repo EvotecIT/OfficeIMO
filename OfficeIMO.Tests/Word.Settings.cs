@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using Color = System.Drawing.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -20,6 +21,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.Language == "pl-PL");
 
+                document.Settings.SetBackgroundColor(Color.BlueViolet);
+
+                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -33,13 +38,16 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.RemoveProtection();
 
+                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+
+                document.Settings.SetBackgroundColor("FFA07A");
 
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
                 Assert.True(document.Settings.ProtectionType == null);
-                
+                Assert.True(document.Settings.BackgroundColor == "FFA07A");
                 document.Save();
             }
         }

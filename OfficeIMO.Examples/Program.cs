@@ -1971,7 +1971,9 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(document.Sections[1].Margins.Left.Value);
                 Console.WriteLine(document.Sections[1].Margins.Right.Value);
 
-                document.Save(false);
+                document.Settings.SetBackgroundColor(Color.BlueViolet);
+
+                document.Save(openWord);
             }
         }
 

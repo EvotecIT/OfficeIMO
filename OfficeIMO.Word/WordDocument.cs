@@ -191,9 +191,6 @@ namespace OfficeIMO.Word {
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
             WordSection wordSection = new WordSection(word, null);
-         
-            // WordLists wordLists = new WordLists(word);
-
             return word;
         }
 
@@ -511,7 +508,6 @@ namespace OfficeIMO.Word {
         }
 
         public WordSection _currentSection { get; set; }
-
 
         public bool ValidateDocument() {
             bool foundIssue = false;

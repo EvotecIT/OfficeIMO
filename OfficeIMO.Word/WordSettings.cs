@@ -172,5 +172,30 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        public string BackgroundColor {
+            get {
+                if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground != null) {
+                    return _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color;
+                }
+
+                return null;
+            }
+            set {
+                _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.DisplayBackgroundShape = new DisplayBackgroundShape();
+                if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground == null) {
+                    _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground = new DocumentBackground();
+                }
+                _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color = value;
+            }
+        }
+        public WordSettings SetBackgroundColor(string backgroundColor) {
+            this.BackgroundColor = backgroundColor;
+            return this;
+        }
+        public WordSettings SetBackgroundColor(System.Drawing.Color backgroundColor) {
+            this.BackgroundColor = backgroundColor.ToHexColor();
+            return this;
+        }
+
     }
 }
