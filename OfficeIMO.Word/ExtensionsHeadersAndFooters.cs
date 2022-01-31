@@ -8,7 +8,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordHeadersAndFooters {
-
         public static void AddHeadersAndFooters(this WordSection section) {
             var document = section._document;
 
@@ -42,15 +41,15 @@ namespace OfficeIMO.Word {
             //AddHeaderReference1(document, section._sectionProperties, HeaderFooterValues.First, section);
             //AddFooterReference1(document, section._sectionProperties, HeaderFooterValues.First, section);
         }
-        public static void AddHeadersAndFooters(this WordDocument document) {
 
+        public static void AddHeadersAndFooters(this WordDocument document) {
             AddHeaderReference1(document, document.Sections[0], HeaderFooterValues.Default);
             AddFooterReference1(document, document.Sections[0], HeaderFooterValues.Default);
             //AddHeaderReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.Even);
             //AddFooterReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.Even);
             //AddHeaderReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.First);
             //AddFooterReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.First);
-       }
+        }
 
         public static void CreateHeadersAndFooters(this WordDocument document) {
             //var firstPageHeaderPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
@@ -86,8 +85,6 @@ namespace OfficeIMO.Word {
             //document.Header.Even = new WordHeader(document, HeaderFooterValues.Even);
             //document.Header.Default = new WordHeader(document, HeaderFooterValues.Default);
             //document.Header.First = new WordHeader(document, HeaderFooterValues.First);
-
-         
         }
 
         //public static SectionProperties GetSectionProperties(this WordDocument document) {
@@ -98,12 +95,10 @@ namespace OfficeIMO.Word {
         private static void GetHeaderReference(this WordDocument document, WordSection section) {
             IEnumerable<HeaderPart> headerPart = document._wordprocessingDocument.MainDocumentPart.HeaderParts;
             foreach (HeaderPart header in headerPart) {
-
             }
         }
 
         private static void AddHeaderRef(WordDocument document, WordSection section, SectionProperties sectionProperties, HeaderFooterValues headerFooterValue) {
-           
             var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
 
             var header = new Header();
@@ -123,72 +118,18 @@ namespace OfficeIMO.Word {
             }
 
             if (headerFooterValue == HeaderFooterValues.Default) {
-                    //  section._headerDefault = headerPart.Header;
-                    section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
-
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                    //  section._headerFirst = headerPart.Header;
-                    section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
-                } else {
-                    // section._headerEven = headerPart.Header;
-                    section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
-                }
+                //  section._headerDefault = headerPart.Header;
+                section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+            } else if (headerFooterValue == HeaderFooterValues.First) {
+                //  section._headerFirst = headerPart.Header;
+                section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
+            } else {
+                // section._headerEven = headerPart.Header;
+                section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
+            }
         }
 
         internal static void AddHeaderReference1(WordDocument document, SectionProperties sectionProperties, HeaderFooterValues headerFooterValue, WordSection section = null) {
-            foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
-                if (element.Type == headerFooterValue) {
-                    // we found the header reference already exists; we do nothing;
-                    return;
-                }
-            }
-
-            var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
-
-            var header = new Header();
-            header.Save(headerPart);
-
-            if (headerPart != null) {
-                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
-                //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
-
-                if (id != null) {
-                    var headerReference = new HeaderReference() {
-                        Type = headerFooterValue,
-                        Id = id
-                    };
-                    sectionProperties.Append(headerReference);
-                }
-            }
-
-            if (section == null) {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                   // document._headerDefault = headerPart.Header;
-                    document.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                   // document._headerFirst = headerPart.Header;
-                    document.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
-                } else {
-                   // document._headerEven = headerPart.Header;
-                    document.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
-                }
-            } else {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                  //  section._headerDefault = headerPart.Header;
-                    section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
-                   
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                  //  section._headerFirst = headerPart.Header;
-                    section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
-                } else {
-                   // section._headerEven = headerPart.Header;
-                    section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
-                }
-            }
-        }
-        internal static void AddHeaderReference1(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
-            var sectionProperties = section._sectionProperties;
-            
             foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
                 if (element.Type == headerFooterValue) {
                     // we found the header reference already exists; we do nothing;
@@ -229,7 +170,59 @@ namespace OfficeIMO.Word {
                 if (headerFooterValue == HeaderFooterValues.Default) {
                     //  section._headerDefault = headerPart.Header;
                     section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+                } else if (headerFooterValue == HeaderFooterValues.First) {
+                    //  section._headerFirst = headerPart.Header;
+                    section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
+                } else {
+                    // section._headerEven = headerPart.Header;
+                    section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
+                }
+            }
+        }
 
+        internal static void AddHeaderReference1(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+            var sectionProperties = section._sectionProperties;
+
+            foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
+                if (element.Type == headerFooterValue) {
+                    // we found the header reference already exists; we do nothing;
+                    return;
+                }
+            }
+
+            var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
+
+            var header = new Header();
+            header.Save(headerPart);
+
+            if (headerPart != null) {
+                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
+                //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
+
+                if (id != null) {
+                    var headerReference = new HeaderReference() {
+                        Type = headerFooterValue,
+                        Id = id
+                    };
+                    sectionProperties.Append(headerReference);
+                }
+            }
+
+            if (section == null) {
+                if (headerFooterValue == HeaderFooterValues.Default) {
+                    // document._headerDefault = headerPart.Header;
+                    document.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+                } else if (headerFooterValue == HeaderFooterValues.First) {
+                    // document._headerFirst = headerPart.Header;
+                    document.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
+                } else {
+                    // document._headerEven = headerPart.Header;
+                    document.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
+                }
+            } else {
+                if (headerFooterValue == HeaderFooterValues.Default) {
+                    //  section._headerDefault = headerPart.Header;
+                    section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
                 } else if (headerFooterValue == HeaderFooterValues.First) {
                     //  section._headerFirst = headerPart.Header;
                     section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
@@ -267,6 +260,7 @@ namespace OfficeIMO.Word {
                     sectionProperties.Append(footerReference);
                 }
             }
+
             if (section == null) {
                 if (headerFooterValue == HeaderFooterValues.Default) {
                     //document._footerDefault = footerPart.Footer;
@@ -291,90 +285,90 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public static void CreateHeadersAndFooters(this WordSection section) {
 
+        public static void CreateHeadersAndFooters(this WordSection section) {
         }
 
 
         private static Document GenerateMainDocumentPart() {
             var element = new Document(
-                    new Body(
-                        new Paragraph(
-                            new Run(
-                                new Text("Page 1 content"))
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new Break() { Type = BreakValues.Page })
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new LastRenderedPageBreak(),
-                                new Text("Page 2 content"))
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new Break() { Type = BreakValues.Page })
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new LastRenderedPageBreak(),
-                                new Text("Page 3 content"))
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new Break() { Type = BreakValues.Page })
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new LastRenderedPageBreak(),
-                                new Text("Page 4 content"))
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new Break() { Type = BreakValues.Page })
-                        ),
-                        new Paragraph(
-                            new Run(
-                                new LastRenderedPageBreak(),
-                                new Text("Page 5 content"))
-                        ),
-                        new SectionProperties(
-                            new HeaderReference() {
-                                Type = HeaderFooterValues.First,
-                                Id = "rId2"
-                            },
-                            new FooterReference() {
-                                Type = HeaderFooterValues.First,
-                                Id = "rId3"
-                            },
-                            new HeaderReference() {
-                                Type = HeaderFooterValues.Even,
-                                Id = "rId4"
-                            },
-                            new FooterReference() {
-                                Type = HeaderFooterValues.Even,
-                                Id = "rId5"
-                            },
-                            new HeaderReference() {
-                                Type = HeaderFooterValues.Default,
-                                Id = "rId6"
-                            },
-                            new FooterReference() {
-                                Type = HeaderFooterValues.Default,
-                                Id = "rId7"
-                            },
-                            new PageMargin() {
-                                Top = 1440,
-                                Right = (UInt32Value)1440UL,
-                                Bottom = 1440,
-                                Left = (UInt32Value)1440UL,
-                                Header = (UInt32Value)720UL,
-                                Footer = (UInt32Value)720UL,
-                                Gutter = (UInt32Value)0UL
-                            },
-                            new TitlePage()
-                        )));
+                new Body(
+                    new Paragraph(
+                        new Run(
+                            new Text("Page 1 content"))
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new Break() {Type = BreakValues.Page})
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new LastRenderedPageBreak(),
+                            new Text("Page 2 content"))
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new Break() {Type = BreakValues.Page})
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new LastRenderedPageBreak(),
+                            new Text("Page 3 content"))
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new Break() {Type = BreakValues.Page})
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new LastRenderedPageBreak(),
+                            new Text("Page 4 content"))
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new Break() {Type = BreakValues.Page})
+                    ),
+                    new Paragraph(
+                        new Run(
+                            new LastRenderedPageBreak(),
+                            new Text("Page 5 content"))
+                    ),
+                    new SectionProperties(
+                        new HeaderReference() {
+                            Type = HeaderFooterValues.First,
+                            Id = "rId2"
+                        },
+                        new FooterReference() {
+                            Type = HeaderFooterValues.First,
+                            Id = "rId3"
+                        },
+                        new HeaderReference() {
+                            Type = HeaderFooterValues.Even,
+                            Id = "rId4"
+                        },
+                        new FooterReference() {
+                            Type = HeaderFooterValues.Even,
+                            Id = "rId5"
+                        },
+                        new HeaderReference() {
+                            Type = HeaderFooterValues.Default,
+                            Id = "rId6"
+                        },
+                        new FooterReference() {
+                            Type = HeaderFooterValues.Default,
+                            Id = "rId7"
+                        },
+                        new PageMargin() {
+                            Top = 1440,
+                            Right = (UInt32Value) 1440UL,
+                            Bottom = 1440,
+                            Left = (UInt32Value) 1440UL,
+                            Header = (UInt32Value) 720UL,
+                            Footer = (UInt32Value) 720UL,
+                            Gutter = (UInt32Value) 0UL
+                        },
+                        new TitlePage()
+                    )));
 
             return element;
         }
@@ -409,6 +403,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
         private static void AddHeaderReference(WordDocument document, SectionProperties sectionProperties, HeaderPart headerPart, HeaderFooterValues headerFooterValue) {
             if (headerPart != null) {
                 var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
