@@ -18,7 +18,10 @@ namespace OfficeIMO.Word {
         public WordHeaders Header = new WordHeaders();
 
         public List<WordList> Lists = new List<WordList>();
-        
+
+        public WordBorders Borders; // = new WordBorders();
+        public WordMargins Margins; // = new WordMargins();
+
         //public List<WordList> Lists {
         //    get {
         //        List<WordList> returnList = new List<WordList>();
@@ -37,139 +40,22 @@ namespace OfficeIMO.Word {
         //}
 
         public List<WordTable> Tables = new List<WordTable>();
-        
+
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;
         private WordprocessingDocument _wordprocessingDocument;
 
 
-        public UInt32Value MarginLeft {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Left;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Left = value;
-            }
-        }
-        public UInt32Value MarginRight {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Right;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Right = value;
-            }
-        }
-        public int? MarginTop {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Top;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Top = value;
-            }
-        }
-        public int? MarginBottom {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Bottom;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Bottom = value;
-            }
-        }
-
-        public UInt32Value HeaderDistance {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Header;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Header = value;
-            }
-        }
-
-        public UInt32Value FooterDistance {
-            get {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Footer;
-                }
-
-                return null;
-            }
-            set {
-                var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin == null) {
-                    _sectionProperties.Append(PageMargins.Normal);
-                    pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-                }
-
-                pageMargin.Footer = value;
-            }
-        }
-
         public WordSection SetMargins(PageMargin pageMargins) {
-
             var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
             if (pageMargin == null) {
                 _sectionProperties.Append(pageMargins);
-               // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
+                // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
             } else {
                 pageMargin.Remove();
                 _sectionProperties.Append(pageMargins);
             }
+
             return this;
         }
 
@@ -194,16 +80,17 @@ namespace OfficeIMO.Word {
                     } else if (element is FooterReference) {
                         newSectionProperties.Append(element.CloneNode(true));
                         sectionProperties.RemoveChild(element);
-                    //} else if (element is PageSize) {
-                    //    newSectionProperties.Append(element.CloneNode(true));
-                    //} else if (element is PageMargin) {
-                    //    newSectionProperties.Append(element.CloneNode(true));
-                    //} else if (element is Columns) {
-                    //    newSectionProperties.Append(element.CloneNode(true));
-                    //} else if (element is DocGrid) {
-                    //    newSectionProperties.Append(element.CloneNode(true));
-                    //} else if (element is SectionType) {
-                    //    newSectionProperties.Append(element.CloneNode(true));
+                        //} else if (element is PageSize) {
+                        //    newSectionProperties.Append(element.CloneNode(true));
+                    } else if (element is PageMargin) {
+                        newSectionProperties.Append(element.CloneNode(true));
+                        //sectionProperties.RemoveChild(element);
+                        //} else if (element is Columns) {
+                        //    newSectionProperties.Append(element.CloneNode(true));
+                        //} else if (element is DocGrid) {
+                        //    newSectionProperties.Append(element.CloneNode(true));
+                        //} else if (element is SectionType) {
+                        //    newSectionProperties.Append(element.CloneNode(true));
                     } else if (element is TitlePage) {
                         newSectionProperties.Append(element.CloneNode(true));
                         sectionProperties.RemoveChild(element);
@@ -236,6 +123,7 @@ namespace OfficeIMO.Word {
                     // would require a broken document created by some app
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
+
                 this._sectionProperties = sectionProperties;
             }
 
@@ -247,25 +135,21 @@ namespace OfficeIMO.Word {
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
                 if (element is HeaderReference) {
-                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference) element);
                 } else if (element is FooterReference) {
-                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference) element);
                 } else if (element is PageSize) {
-
                 } else if (element is PageMargin) {
-
                 } else if (element is Columns) {
-
                 } else if (element is DocGrid) {
-
                 } else if (element is SectionType) {
-
                 } else if (element is TitlePage) {
-
                 } else {
                     throw new NotImplementedException("This isn't implemented yet?");
                 }
             }
+
+            this.Margins = new WordMargins(wordDocument, this);
         }
 
 
@@ -278,82 +162,46 @@ namespace OfficeIMO.Word {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
 
-            WordSection lastSection = null;
-            if (this._document.Sections.Count > 0) {
-                lastSection = this._document.Sections[this._document.Sections.Count - 1];
-                //lastSection._sectionProperties.
-            }
-
-            //PageMargin pageMargin1;
             if (paragraph != null) {
                 var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
                 if (sectionProperties == null) {
                     return;
                 }
-                this._sectionProperties = sectionProperties;
-                //pageMargin1 = new PageMargin() { Top = 40, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
 
-            } else {
+                this._sectionProperties = sectionProperties;
+           } else {
                 var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
                 this._sectionProperties = sectionProperties;
-                // pageMargin1 = new PageMargin() { Top = 2040, Right = (UInt32Value)1440U, Bottom = 1440, Left = (UInt32Value)1440U, Header = (UInt32Value)720U, Footer = (UInt32Value)720U, Gutter = (UInt32Value)0U };
-            }
+           }
+            
+            if (this._document.Sections.Count > 0) {
+                WordSection lastSection = this._document.Sections[this._document.Sections.Count - 1];
+                //lastSection._sectionProperties.
 
-            //var listSectionEntries1 = this._sectionProperties.ChildElements.ToList();
-            if (paragraph != null) {
-               var temporarySectionProperties = lastSection._sectionProperties;
-               if (temporarySectionProperties != null) {
+                var temporarySectionProperties = lastSection._sectionProperties;
+                if (temporarySectionProperties != null) {
+                 
                     CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
                     var old = this._sectionProperties;
+
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
+
+                   
                 }
             }
 
-            // defaults 
-            //PageSize pageSize1 = new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U };
-            //Columns columns1 = new Columns() { Space = "720" };
-            //DocGrid docGrid1 = new DocGrid() { LinePitch = 360 };
-            //this._sectionProperties.Append(pageSize1);
-            //this._sectionProperties.Append(pageMargin1);
-            //this._sectionProperties.Append(columns1);
-            //this._sectionProperties.Append(docGrid1);
-            
+          
+            this.Margins = new WordMargins(wordDocument, this);
+
             wordDocument.Sections.Add(this);
 
             // this is added for tracking current section of the document
             wordDocument._currentSection = this;
 
-            //if (lastSection != null) {
-            //    var listSectionEntries = lastSection._sectionProperties.ChildElements.ToList();
-            //    //var listSectionEntries = this._sectionProperties.ChildElements.ToList();
-            //    foreach (var element in listSectionEntries) {
-            //        if (element is HeaderReference) {
-            //            WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference) element);
-            //        } else if (element is FooterReference) {
-            //            WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference) element);
-            //        } else if (element is PageSize) {
-
-            //        } else if (element is PageMargin) {
-
-            //        } else if (element is Columns) {
-
-            //        } else if (element is DocGrid) {
-
-            //        } else if (element is SectionType) {
-
-            //        } else if (element is TitlePage) {
-
-            //        } else {
-            //            throw new NotImplementedException("This isn't implemented yet?");
-            //        }
-            //    }
-            //}
-
-            //Debug.WriteLine(this._sectionProperties.ChildElements.Count);
         }
 
         public bool DifferentFirstPage {
@@ -365,6 +213,7 @@ namespace OfficeIMO.Word {
                         return true;
                     }
                 }
+
                 return false;
             }
             set {
@@ -391,7 +240,6 @@ namespace OfficeIMO.Word {
                     WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.First);
                     WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.First);
                 }
-
             }
         }
 
@@ -417,7 +265,6 @@ namespace OfficeIMO.Word {
                 if (this == this._document.Sections[0]) {
                     var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                     if (value == false) {
-
                     } else {
                         if (settings == null) {
                             _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
@@ -426,7 +273,6 @@ namespace OfficeIMO.Word {
                         }
                     }
                 } else {
-     
                 }
             }
         }
@@ -469,9 +315,9 @@ namespace OfficeIMO.Word {
                 return HeaderFooterValues.First;
             }
         }
+
         public WordParagraph AddParagraph(string text) {
             if (this.Paragraphs.Count == 0) {
-
                 WordParagraph paragraph = this._document.AddParagraph(text);
                 paragraph._section = this;
                 return paragraph;
@@ -484,8 +330,11 @@ namespace OfficeIMO.Word {
                 //this.Paragraphs.Add(paragraph);
                 paragraph.Text = text;
                 return paragraph;
-        
             }
+        }
+
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
+            return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
         }
     }
 }

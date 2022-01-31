@@ -189,9 +189,14 @@ namespace OfficeIMO.Examples {
             //BasicExcelFunctionality.BasicExcel_Example3(true);
 
 
-            Console.WriteLine("[*] Creating standard document with margins and sizes");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
-            Example_BasicWordMarginsSizes(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with margins and sizes");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
+            //Example_BasicWordMarginsSizes(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with watermark");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark.docx");
+            Example_BasicWordWatermark(filePath, true);
+
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -1938,6 +1943,35 @@ namespace OfficeIMO.Examples {
                 //document.AddParagraph("Test");
 
                 document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicWordWatermark(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.AddParagraph("Section 0");
+                document.AddHeadersAndFooters();
+                document.Sections[0].SetMargins(PageMargins.Normal);
+
+                Console.WriteLine(document.Sections[0].Margins.MarginLeft.Value);
+                Console.WriteLine(document.Sections[0].Margins.MarginRight.Value);
+
+                //document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
+
+                document.AddSection();
+                document.Sections[1].AddHeadersAndFooters();
+                document.Sections[1].SetMargins(PageMargins.Moderate);
+
+                Console.WriteLine( "----");
+                //document.Sections[1].AddWatermark(WordWatermarkStyle.Image);
+
+                Console.WriteLine(document.Sections[0].Margins.MarginLeft.Value);
+                Console.WriteLine(document.Sections[0].Margins.MarginRight.Value);
+
+                Console.WriteLine(document.Sections[1].Margins.MarginLeft.Value);
+                Console.WriteLine(document.Sections[1].Margins.MarginRight.Value);
+
+                document.Save(false);
             }
         }
 
