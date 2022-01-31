@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
             _section = wordSection;
         }
-        public UInt32Value MarginLeft {
+        public UInt32Value Left {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin != null) {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
                 pageMargin.Left = value;
             }
         }
-        public UInt32Value MarginRight {
+        public UInt32Value Right {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin != null) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
                 pageMargin.Right = value;
             }
         }
-        public int? MarginTop {
+        public int? Top {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin != null) {
@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
                 pageMargin.Top = value;
             }
         }
-        public int? MarginBottom {
+        public int? Bottom {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin != null) {
@@ -127,6 +127,25 @@ namespace OfficeIMO.Word {
                 }
 
                 pageMargin.Footer = value;
+            }
+        }
+        public UInt32Value Gutter {
+            get {
+                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin != null) {
+                    return pageMargin.Gutter;
+                }
+
+                return null;
+            }
+            set {
+                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
+                if (pageMargin == null) {
+                    _section._sectionProperties.Append(PageMargins.Normal);
+                    pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
+                }
+
+                pageMargin.Gutter = value;
             }
         }
     }

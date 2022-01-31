@@ -1953,8 +1953,8 @@ namespace OfficeIMO.Examples {
                 document.AddHeadersAndFooters();
                 document.Sections[0].SetMargins(PageMargins.Normal);
 
-                Console.WriteLine(document.Sections[0].Margins.MarginLeft.Value);
-                Console.WriteLine(document.Sections[0].Margins.MarginRight.Value);
+                Console.WriteLine(document.Sections[0].Margins.Left.Value);
+                Console.WriteLine(document.Sections[0].Margins.Right.Value);
 
                 //document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
 
@@ -1965,11 +1965,11 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine( "----");
                 //document.Sections[1].AddWatermark(WordWatermarkStyle.Image);
 
-                Console.WriteLine(document.Sections[0].Margins.MarginLeft.Value);
-                Console.WriteLine(document.Sections[0].Margins.MarginRight.Value);
+                Console.WriteLine(document.Sections[0].Margins.Left.Value);
+                Console.WriteLine(document.Sections[0].Margins.Right.Value);
 
-                Console.WriteLine(document.Sections[1].Margins.MarginLeft.Value);
-                Console.WriteLine(document.Sections[1].Margins.MarginRight.Value);
+                Console.WriteLine(document.Sections[1].Margins.Left.Value);
+                Console.WriteLine(document.Sections[1].Margins.Right.Value);
 
                 document.Save(false);
             }

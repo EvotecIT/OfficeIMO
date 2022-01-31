@@ -290,42 +290,42 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
                 
                 // Normal
-                Assert.True(document.Sections[0].Margins.MarginLeft == 1440);
-                Assert.True(document.Sections[0].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[0].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[0].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[0].Margins.Left == 1440);
+                Assert.True(document.Sections[0].Margins.Right == 1440);
+                Assert.True(document.Sections[0].Margins.Top == 1440);
+                Assert.True(document.Sections[0].Margins.Bottom == 1440);
                 Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[0].Margins.FooterDistance == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.MarginLeft == 720);
-                Assert.True(document.Sections[1].Margins.MarginRight == 720);
-                Assert.True(document.Sections[1].Margins.MarginTop == 720);
-                Assert.True(document.Sections[1].Margins.MarginBottom == 720);
+                Assert.True(document.Sections[1].Margins.Left == 720);
+                Assert.True(document.Sections[1].Margins.Right == 720);
+                Assert.True(document.Sections[1].Margins.Top == 720);
+                Assert.True(document.Sections[1].Margins.Bottom == 720);
                 Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[1].Margins.FooterDistance == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.MarginLeft == 1800);
-                Assert.True(document.Sections[2].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[2].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[2].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[2].Margins.Left == 1800);
+                Assert.True(document.Sections[2].Margins.Right == 1440);
+                Assert.True(document.Sections[2].Margins.Top == 1440);
+                Assert.True(document.Sections[2].Margins.Bottom == 1440);
                 Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[2].Margins.FooterDistance == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.MarginLeft == 1080);
-                Assert.True(document.Sections[3].Margins.MarginRight == 1080);
-                Assert.True(document.Sections[3].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[3].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[3].Margins.Left == 1080);
+                Assert.True(document.Sections[3].Margins.Right == 1080);
+                Assert.True(document.Sections[3].Margins.Top == 1440);
+                Assert.True(document.Sections[3].Margins.Bottom == 1440);
                 Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[3].Margins.FooterDistance == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.MarginLeft == 2880);
-                Assert.True(document.Sections[4].Margins.MarginRight == 2880);
-                Assert.True(document.Sections[4].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[4].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[4].Margins.Left == 2880);
+                Assert.True(document.Sections[4].Margins.Right == 2880);
+                Assert.True(document.Sections[4].Margins.Top == 1440);
+                Assert.True(document.Sections[4].Margins.Bottom == 1440);
                 Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[4].Margins.FooterDistance == 720);
 
@@ -341,42 +341,42 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
 
                 // Normal
-                Assert.True(document.Sections[0].Margins.MarginLeft == 1440);
-                Assert.True(document.Sections[0].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[0].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[0].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[0].Margins.Left == 1440);
+                Assert.True(document.Sections[0].Margins.Right == 1440);
+                Assert.True(document.Sections[0].Margins.Top == 1440);
+                Assert.True(document.Sections[0].Margins.Bottom == 1440);
                 Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[0].Margins.FooterDistance == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.MarginLeft == 720);
-                Assert.True(document.Sections[1].Margins.MarginRight == 720);
-                Assert.True(document.Sections[1].Margins.MarginTop == 720);
-                Assert.True(document.Sections[1].Margins.MarginBottom == 720);
+                Assert.True(document.Sections[1].Margins.Left == 720);
+                Assert.True(document.Sections[1].Margins.Right == 720);
+                Assert.True(document.Sections[1].Margins.Top == 720);
+                Assert.True(document.Sections[1].Margins.Bottom == 720);
                 Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[1].Margins.FooterDistance == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.MarginLeft == 1800);
-                Assert.True(document.Sections[2].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[2].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[2].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[2].Margins.Left == 1800);
+                Assert.True(document.Sections[2].Margins.Right == 1440);
+                Assert.True(document.Sections[2].Margins.Top == 1440);
+                Assert.True(document.Sections[2].Margins.Bottom == 1440);
                 Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[2].Margins.FooterDistance == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.MarginLeft == 1080);
-                Assert.True(document.Sections[3].Margins.MarginRight == 1080);
-                Assert.True(document.Sections[3].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[3].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[3].Margins.Left == 1080);
+                Assert.True(document.Sections[3].Margins.Right == 1080);
+                Assert.True(document.Sections[3].Margins.Top == 1440);
+                Assert.True(document.Sections[3].Margins.Bottom == 1440);
                 Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[3].Margins.FooterDistance == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.MarginLeft == 2880);
-                Assert.True(document.Sections[4].Margins.MarginRight == 2880);
-                Assert.True(document.Sections[4].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[4].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[4].Margins.Left == 2880);
+                Assert.True(document.Sections[4].Margins.Right == 2880);
+                Assert.True(document.Sections[4].Margins.Top == 1440);
+                Assert.True(document.Sections[4].Margins.Bottom == 1440);
                 Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[4].Margins.FooterDistance == 720);
 
@@ -391,18 +391,18 @@ namespace OfficeIMO.Tests {
 
                 
                 // Normal
-                Assert.True(document.Sections[5].Margins.MarginLeft == 1440);
-                Assert.True(document.Sections[5].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[5].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[5].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[5].Margins.Left == 1440);
+                Assert.True(document.Sections[5].Margins.Right == 1440);
+                Assert.True(document.Sections[5].Margins.Top == 1440);
+                Assert.True(document.Sections[5].Margins.Bottom == 1440);
                 Assert.True(document.Sections[5].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[5].Margins.FooterDistance == 720);
 
                 // Office2003Default
-                Assert.True(document.Sections[6].Margins.MarginLeft == 1800);
-                Assert.True(document.Sections[6].Margins.MarginRight == 1800);
-                Assert.True(document.Sections[6].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[6].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[6].Margins.Left == 1800);
+                Assert.True(document.Sections[6].Margins.Right == 1800);
+                Assert.True(document.Sections[6].Margins.Top == 1440);
+                Assert.True(document.Sections[6].Margins.Bottom == 1440);
                 Assert.True(document.Sections[6].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[6].Margins.FooterDistance == 720);
 
@@ -420,58 +420,58 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[6].Paragraphs.Count == 1, "Number of paragraphs on 6th section is wrong.");
 
                 // Normal
-                Assert.True(document.Sections[0].Margins.MarginLeft == 1440);
-                Assert.True(document.Sections[0].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[0].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[0].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[0].Margins.Left == 1440);
+                Assert.True(document.Sections[0].Margins.Right == 1440);
+                Assert.True(document.Sections[0].Margins.Top == 1440);
+                Assert.True(document.Sections[0].Margins.Bottom == 1440);
                 Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[0].Margins.FooterDistance == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.MarginLeft == 720);
-                Assert.True(document.Sections[1].Margins.MarginRight == 720);
-                Assert.True(document.Sections[1].Margins.MarginTop == 720);
-                Assert.True(document.Sections[1].Margins.MarginBottom == 720);
+                Assert.True(document.Sections[1].Margins.Left == 720);
+                Assert.True(document.Sections[1].Margins.Right == 720);
+                Assert.True(document.Sections[1].Margins.Top == 720);
+                Assert.True(document.Sections[1].Margins.Bottom == 720);
                 Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[1].Margins.FooterDistance == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.MarginLeft == 1800);
-                Assert.True(document.Sections[2].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[2].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[2].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[2].Margins.Left == 1800);
+                Assert.True(document.Sections[2].Margins.Right == 1440);
+                Assert.True(document.Sections[2].Margins.Top == 1440);
+                Assert.True(document.Sections[2].Margins.Bottom == 1440);
                 Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[2].Margins.FooterDistance == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.MarginLeft == 1080);
-                Assert.True(document.Sections[3].Margins.MarginRight == 1080);
-                Assert.True(document.Sections[3].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[3].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[3].Margins.Left == 1080);
+                Assert.True(document.Sections[3].Margins.Right == 1080);
+                Assert.True(document.Sections[3].Margins.Top == 1440);
+                Assert.True(document.Sections[3].Margins.Bottom == 1440);
                 Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[3].Margins.FooterDistance == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.MarginLeft == 2880);
-                Assert.True(document.Sections[4].Margins.MarginRight == 2880);
-                Assert.True(document.Sections[4].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[4].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[4].Margins.Left == 2880);
+                Assert.True(document.Sections[4].Margins.Right == 2880);
+                Assert.True(document.Sections[4].Margins.Top == 1440);
+                Assert.True(document.Sections[4].Margins.Bottom == 1440);
                 Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[4].Margins.FooterDistance == 720);
 
                 // Normal
-                Assert.True(document.Sections[5].Margins.MarginLeft == 1440);
-                Assert.True(document.Sections[5].Margins.MarginRight == 1440);
-                Assert.True(document.Sections[5].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[5].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[5].Margins.Left == 1440);
+                Assert.True(document.Sections[5].Margins.Right == 1440);
+                Assert.True(document.Sections[5].Margins.Top == 1440);
+                Assert.True(document.Sections[5].Margins.Bottom == 1440);
                 Assert.True(document.Sections[5].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[5].Margins.FooterDistance == 720);
 
                 // Office2003Default
-                Assert.True(document.Sections[6].Margins.MarginLeft == 1800);
-                Assert.True(document.Sections[6].Margins.MarginRight == 1800);
-                Assert.True(document.Sections[6].Margins.MarginTop == 1440);
-                Assert.True(document.Sections[6].Margins.MarginBottom == 1440);
+                Assert.True(document.Sections[6].Margins.Left == 1800);
+                Assert.True(document.Sections[6].Margins.Right == 1800);
+                Assert.True(document.Sections[6].Margins.Top == 1440);
+                Assert.True(document.Sections[6].Margins.Bottom == 1440);
                 Assert.True(document.Sections[6].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[6].Margins.FooterDistance == 720);
             }
