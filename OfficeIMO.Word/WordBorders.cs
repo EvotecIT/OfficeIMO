@@ -9,20 +9,17 @@ namespace OfficeIMO.Word {
         None,
         Custom,
         Box,
-        B3D,
         Shadow
     }
+
     public class WordBorders {
         private readonly WordDocument _document;
         private readonly WordSection _section;
-
-
 
         public WordBorders(WordDocument wordDocument, WordSection wordSection) {
             _document = wordDocument;
             _section = wordSection;
         }
-
 
         public UInt32Value LeftSize {
             get {
@@ -36,15 +33,18 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.LeftBorder == null) {
                     pageBorder.LeftBorder = new LeftBorder();
                 }
+
                 pageBorder.LeftBorder.Size = value;
             }
         }
+
         public string LeftColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -57,23 +57,23 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.LeftBorder == null) {
                     pageBorder.LeftBorder = new LeftBorder();
                 }
+
                 pageBorder.LeftBorder.Color = value.Replace("#", "");
             }
         }
+
         public System.Drawing.Color LeftColor {
-            get {
-                return System.Drawing.ColorTranslator.FromHtml("#" + LeftColorHex);
-            }
-            set {
-                this.LeftColorHex = value.ToHexColor();
-            }
+            get { return System.Drawing.ColorTranslator.FromHtml("#" + LeftColorHex); }
+            set { this.LeftColorHex = value.ToHexColor(); }
         }
+
         public BorderValues? LeftStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
 
@@ -110,15 +110,18 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.RightBorder == null) {
                     pageBorder.RightBorder = new RightBorder();
                 }
+
                 pageBorder.RightBorder.Size = value;
             }
         }
+
         public string RightColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -131,23 +134,23 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.RightBorder == null) {
                     pageBorder.RightBorder = new RightBorder();
                 }
+
                 pageBorder.RightBorder.Color = value.Replace("#", "");
             }
         }
+
         public System.Drawing.Color RightColor {
-            get {
-                return System.Drawing.ColorTranslator.FromHtml("#" + RightColorHex);
-            }
-            set {
-                this.RightColorHex = value.ToHexColor();
-            }
+            get { return System.Drawing.ColorTranslator.FromHtml("#" + RightColorHex); }
+            set { this.RightColorHex = value.ToHexColor(); }
         }
+
         public BorderValues? RightStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -160,7 +163,7 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
 
@@ -184,15 +187,18 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.TopBorder == null) {
                     pageBorder.TopBorder = new TopBorder();
                 }
+
                 pageBorder.TopBorder.Size = value;
             }
         }
+
         public string TopColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -205,23 +211,23 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.TopBorder == null) {
                     pageBorder.TopBorder = new TopBorder();
                 }
+
                 pageBorder.TopBorder.Color = value.Replace("#", "");
             }
         }
+
         public System.Drawing.Color TopColor {
-            get {
-                return System.Drawing.ColorTranslator.FromHtml("#" + TopColorHex);
-            }
-            set {
-                this.TopColorHex = value.ToHexColor();
-            }
+            get { return System.Drawing.ColorTranslator.FromHtml("#" + TopColorHex); }
+            set { this.TopColorHex = value.ToHexColor(); }
         }
+
         public BorderValues? TopStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -234,7 +240,7 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
 
@@ -258,15 +264,18 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.BottomBorder == null) {
                     pageBorder.BottomBorder = new BottomBorder();
                 }
+
                 pageBorder.BottomBorder.Size = value;
             }
         }
+
         public string BottomColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -279,23 +288,23 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
+
                 if (pageBorder.BottomBorder == null) {
                     pageBorder.BottomBorder = new BottomBorder();
                 }
+
                 pageBorder.BottomBorder.Color = value.Replace("#", "");
             }
         }
+
         public System.Drawing.Color BottomColor {
-            get {
-                return System.Drawing.ColorTranslator.FromHtml("#" + BottomColorHex);
-            }
-            set {
-                this.BottomColorHex = value.ToHexColor();
-            }
+            get { return System.Drawing.ColorTranslator.FromHtml("#" + BottomColorHex); }
+            set { this.BottomColorHex = value.ToHexColor(); }
         }
+
         public BorderValues? BottomStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -308,7 +317,7 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(WordBordersSettings.Custom);
+                    _section._sectionProperties.Append(Custom);
                     pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 }
 
@@ -321,7 +330,7 @@ namespace OfficeIMO.Word {
         }
 
         public void SetBorder(WordBorder wordBorder) {
-            var pageBorderSettings = WordBordersSettings.GetDefault(wordBorder);
+            var pageBorderSettings = GetDefault(wordBorder);
             if (pageBorderSettings == null) {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
@@ -343,9 +352,34 @@ namespace OfficeIMO.Word {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
                     foreach (WordBorder wordBorder in Enum.GetValues(typeof(WordBorder))) {
-                        var pageBordersBuiltin = WordBordersSettings.GetDefault(wordBorder);
-                        if (pageBordersBuiltin == pageBorder) {
-                            //if (pageBordersBuiltin == pageBorder) {
+                        if (wordBorder == WordBorder.None) {
+                            continue;
+                        }
+
+                        var pageBordersBuiltin = GetDefault(wordBorder);
+
+                        if ((pageBordersBuiltin.LeftBorder == null && pageBorder.LeftBorder == null) &&
+                            (pageBordersBuiltin.RightBorder == null && pageBorder.RightBorder == null) &&
+                            (pageBordersBuiltin.TopBorder == null && pageBorder.TopBorder == null) &&
+                            (pageBordersBuiltin.BottomBorder == null && pageBorder.BottomBorder == null)) {
+                            return wordBorder;
+                        }
+                        if (pageBordersBuiltin.LeftBorder != null && pageBorder.LeftBorder != null &&
+                            pageBordersBuiltin.RightBorder != null && pageBorder.RightBorder != null &&
+                            pageBordersBuiltin.TopBorder != null && pageBorder.TopBorder != null &&
+                            pageBordersBuiltin.BottomBorder != null && pageBorder.BottomBorder != null &&
+                            pageBordersBuiltin.LeftBorder.Shadow == pageBorder.LeftBorder.Shadow &&
+                            pageBordersBuiltin.RightBorder.Shadow == pageBorder.RightBorder.Shadow &&
+                            pageBordersBuiltin.TopBorder.Shadow == pageBorder.TopBorder.Shadow &&
+                            pageBordersBuiltin.BottomBorder.Shadow == pageBorder.BottomBorder.Shadow &&
+                            pageBordersBuiltin.LeftBorder.Color == pageBorder.LeftBorder.Color &&
+                            pageBordersBuiltin.RightBorder.Color == pageBorder.RightBorder.Color &&
+                            pageBordersBuiltin.TopBorder.Color == pageBorder.TopBorder.Color &&
+                            pageBordersBuiltin.BottomBorder.Color == pageBorder.BottomBorder.Color &&
+                            pageBordersBuiltin.LeftBorder.Size == pageBorder.LeftBorder.Size &&
+                            pageBordersBuiltin.RightBorder.Size == pageBorder.RightBorder.Size &&
+                            pageBordersBuiltin.TopBorder.Size == pageBorder.TopBorder.Size &&
+                            pageBordersBuiltin.BottomBorder.Size == pageBorder.BottomBorder.Size) {
                             return wordBorder;
                         }
                     }
@@ -357,14 +391,10 @@ namespace OfficeIMO.Word {
             }
             set => SetBorder(value);
         }
-    }
 
-    internal static class WordBordersSettings {
-
-        public static PageBorders GetDefault(WordBorder border) {
+        private static PageBorders GetDefault(WordBorder border) {
             switch (border) {
                 case WordBorder.Box: return Box;
-                case WordBorder.B3D: return B3D;
                 case WordBorder.Shadow: return Shadow;
                 case WordBorder.None: return null;
                 case WordBorder.Custom: return Custom;
@@ -373,10 +403,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(border));
         }
 
-        internal static PageBorders Custom {
-            get { return new PageBorders(); }
-        }
-        internal static PageBorders Box {
+        private static PageBorders Custom => new PageBorders();
+
+        private static PageBorders Box {
             get {
                 PageBorders pageBorders1 = new PageBorders() { OffsetFrom = PageBorderOffsetValues.Page };
                 TopBorder topBorder1 = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
@@ -391,22 +420,8 @@ namespace OfficeIMO.Word {
                 return pageBorders1;
             }
         }
-        internal static PageBorders B3D {
-            get {
-                PageBorders pageBorders1 = new PageBorders() { OffsetFrom = PageBorderOffsetValues.Page };
-                TopBorder topBorder1 = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                LeftBorder leftBorder1 = new LeftBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                BottomBorder bottomBorder1 = new BottomBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                RightBorder rightBorder1 = new RightBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
 
-                pageBorders1.Append(topBorder1);
-                pageBorders1.Append(leftBorder1);
-                pageBorders1.Append(bottomBorder1);
-                pageBorders1.Append(rightBorder1);
-                return pageBorders1;
-            }
-        }
-        internal static PageBorders Shadow {
+        private static PageBorders Shadow {
             get {
                 PageBorders pageBorders1 = new PageBorders() { OffsetFrom = PageBorderOffsetValues.Page };
                 TopBorder topBorder1 = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U, Shadow = true };

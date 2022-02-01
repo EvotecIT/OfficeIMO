@@ -196,5 +196,47 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithBordersBuiltin() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithBordersBuiltin.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Sections[0].SetBorders(WordBorder.Box);
+                Assert.True(document.Sections[0].Borders.Type == WordBorder.Box);
+                document.AddSection().SetBorders(WordBorder.Shadow);
+                Assert.True(document.Sections[1].Borders.Type == WordBorder.Shadow);
+                document.AddSection().SetBorders(WordBorder.Shadow);
+                Assert.True(document.Sections[2].Borders.Type == WordBorder.Shadow);
+                document.AddSection();
+                Assert.True(document.Sections[3].Borders.Type == WordBorder.Shadow);
+                document.Sections[3].SetBorders(WordBorder.None);
+                Assert.True(document.Sections[3].Borders.Type == WordBorder.None);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBordersBuiltin.docx"))) {
+                Assert.True(document.Sections[0].Borders.Type == WordBorder.Box);
+                Assert.True(document.Sections[1].Borders.Type == WordBorder.Shadow);
+                Assert.True(document.Sections[2].Borders.Type == WordBorder.Shadow);
+                Assert.True(document.Sections[3].Borders.Type == WordBorder.None);
+
+                document.AddSection().SetBorders(WordBorder.Box);
+                Assert.True(document.Sections[4].Borders.Type == WordBorder.Box);
+                document.Sections[2].Borders.Type = WordBorder.None;
+                Assert.True(document.Sections[2].Borders.Type == WordBorder.None);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBordersBuiltin.docx"))) {
+                Assert.True(document.Sections[0].Borders.Type == WordBorder.Box);
+                Assert.True(document.Sections[1].Borders.Type == WordBorder.Shadow);
+                Assert.True(document.Sections[2].Borders.Type == WordBorder.None);
+                Assert.True(document.Sections[3].Borders.Type == WordBorder.None);
+                Assert.True(document.Sections[4].Borders.Type == WordBorder.Box);
+
+                document.Save();
+            }
+        }
     }
 }

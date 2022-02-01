@@ -2006,7 +2006,6 @@ namespace OfficeIMO.Examples {
             }
         }
 
-
         private static void Example_BasicPageBorders2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
