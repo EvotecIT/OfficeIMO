@@ -193,9 +193,18 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
             //Example_BasicWordMarginsSizes(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with watermark");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark.docx");
-            Example_BasicWordWatermark(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with watermark");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark.docx");
+            //Example_BasicWordWatermark(filePath, true);
+
+
+            Console.WriteLine("[*] Creating standard document with page borders 1");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 1.docx");
+            Example_BasicPageBorders1(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with page borders 2");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
+            Example_BasicPageBorders2(filePath, true);
 
         }
 
@@ -982,7 +991,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -1014,7 +1023,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -1035,7 +1044,7 @@ namespace OfficeIMO.Examples {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
@@ -1318,7 +1327,7 @@ namespace OfficeIMO.Examples {
         private static void Example_AllTables(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 //var listOfTablesStyles = Enum.GetValues(typeof(WordTableStyle)).Cast<WordTableStyle>();
-                var listOfTablesStyles = (WordTableStyle[]) Enum.GetValues(typeof(WordTableStyle));
+                var listOfTablesStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
                 foreach (var tableStyle in listOfTablesStyles) {
                     var paragraph = document.AddParagraph(tableStyle.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
@@ -1338,7 +1347,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicLists4(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var listOfListStyles = (WordListStyle[]) Enum.GetValues(typeof(WordListStyle));
+                var listOfListStyles = (WordListStyle[])Enum.GetValues(typeof(WordListStyle));
                 foreach (var listStyle in listOfListStyles) {
                     var paragraph = document.AddParagraph(listStyle.ToString());
                     paragraph.SetColor(Color.Red).SetBold();
@@ -1389,7 +1398,7 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicParagraphStyles(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var listOfStyles = (WordParagraphStyles[]) Enum.GetValues(typeof(WordParagraphStyles));
+                var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
                 foreach (var style in listOfStyles) {
                     var paragraph = document.AddParagraph(style.ToString());
                     paragraph.ParagraphAlignment = JustificationValues.Center;
@@ -1497,9 +1506,9 @@ namespace OfficeIMO.Examples {
                 wordList.AddItem("List Item 1");
                 wordList.AddItem("List Item 2");
                 wordList.AddItem("List Item 3");
-                wordList.AddItem("List Item 3.1",1);
-                wordList.AddItem("List Item 3.2",1);
-                wordList.AddItem("List Item 3.3",2);
+                wordList.AddItem("List Item 3.1", 1);
+                wordList.AddItem("List Item 3.2", 1);
+                wordList.AddItem("List Item 3.3", 2);
 
                 wordListToc.AddItem("Text 2.3", 2);
 
@@ -1554,7 +1563,7 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-                
+
                 Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
                 Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
                 Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
@@ -1599,7 +1608,7 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("+ PageOrientation section 4: " + document.Sections[4].PageOrientation);
                 Console.WriteLine("+ PageOrientation section 5: " + document.Sections[5].PageOrientation);
 
-                
+
                 section1.AddParagraph("This goes to section 4");
 
                 Console.WriteLine("+ Paragraphs section 3 Text: " + document.Sections[3].Paragraphs[0].Text);
@@ -1667,7 +1676,7 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-        
+
         private static void Example_SectionsWithParagraphs(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
@@ -1684,7 +1693,7 @@ namespace OfficeIMO.Examples {
 
                 section2.PageOrientation = PageOrientationValues.Landscape;
 
-                
+
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
                 Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
                 Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
@@ -1744,7 +1753,7 @@ namespace OfficeIMO.Examples {
                 document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
-                
+
                 document.AddPageBreak();
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -1806,7 +1815,7 @@ namespace OfficeIMO.Examples {
                 document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
 
                 document.AddPageBreak();
-                
+
 
                 document.AddPageBreak();
 
@@ -1892,8 +1901,8 @@ namespace OfficeIMO.Examples {
         private static void Example_PlayingWithComments(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test Section");
-               
-                document.Paragraphs[0].AddComment("Przemysław","PK","This is my comment");
+
+                document.Paragraphs[0].AddComment("Przemysław", "PK", "This is my comment");
 
 
                 document.AddParagraph("Test Section - another line");
@@ -1904,7 +1913,7 @@ namespace OfficeIMO.Examples {
 
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-            
+
                 document.Save(true);
             }
         }
@@ -1929,7 +1938,7 @@ namespace OfficeIMO.Examples {
                 document.AddSection();
                 document.Sections[4].SetMargins(PageMargins.Wide);
                 document.AddParagraph("Section 4");
-                
+
                 //Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);
 
                 //document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
@@ -1956,13 +1965,13 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
                 Console.WriteLine(document.Sections[0].Margins.Right.Value);
 
-                //document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
+                document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
 
                 document.AddSection();
                 document.Sections[1].AddHeadersAndFooters();
                 document.Sections[1].SetMargins(PageMargins.Moderate);
 
-                Console.WriteLine( "----");
+                Console.WriteLine("----");
                 //document.Sections[1].AddWatermark(WordWatermarkStyle.Image);
 
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
@@ -1971,7 +1980,43 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(document.Sections[1].Margins.Left.Value);
                 Console.WriteLine(document.Sections[1].Margins.Right.Value);
 
-                document.Settings.SetBackgroundColor(Color.BlueViolet);
+                document.Settings.SetBackgroundColor(Color.Azure);
+
+                document.Save(openWord);
+            }
+        }
+
+        private static void Example_BasicPageBorders1(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Section 0");
+
+                document.Sections[0].Borders.LeftStyle = BorderValues.BabyPacifier;
+                document.Sections[0].Borders.LeftColor = System.Drawing.Color.Aqua;
+
+                document.Sections[0].Borders.RightStyle = BorderValues.BirdsFlight;
+                document.Sections[0].Borders.RightColor = System.Drawing.Color.Red;
+
+                document.Sections[0].Borders.TopStyle = BorderValues.SharksTeeth;
+                document.Sections[0].Borders.TopColor = System.Drawing.Color.GreenYellow;
+
+                document.Sections[0].Borders.BottomStyle = BorderValues.Thick;
+                document.Sections[0].Borders.BottomColor = System.Drawing.Color.Blue;
+
+                document.Save(false);
+            }
+        }
+
+
+        private static void Example_BasicPageBorders2(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Section 0");
+
+                document.Sections[0].SetBorders(WordBorder.Box);
+
+                document.AddSection();
+                document.Sections[1].SetBorders(WordBorder.Shadow);
+
+                Console.WriteLine(document.Sections[1].Borders.Type);
 
                 document.Save(openWord);
             }

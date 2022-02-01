@@ -19,8 +19,8 @@ namespace OfficeIMO.Word {
 
         public List<WordList> Lists = new List<WordList>();
 
-        public WordBorders Borders; // = new WordBorders();
-        public WordMargins Margins; // = new WordMargins();
+        public WordBorders Borders;
+        public WordMargins Margins;
 
         //public List<WordList> Lists {
         //    get {
@@ -135,11 +135,12 @@ namespace OfficeIMO.Word {
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
                 if (element is HeaderReference) {
-                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference) element);
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
                 } else if (element is FooterReference) {
-                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference) element);
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
                 } else if (element is PageSize) {
                 } else if (element is PageMargin) {
+                } else if (element is PageBorders) {
                 } else if (element is Columns) {
                 } else if (element is DocGrid) {
                 } else if (element is SectionType) {
@@ -150,6 +151,7 @@ namespace OfficeIMO.Word {
             }
 
             this.Margins = new WordMargins(wordDocument, this);
+            this.Borders = new WordBorders(wordDocument, this);
         }
 
 
@@ -169,33 +171,34 @@ namespace OfficeIMO.Word {
                 }
 
                 this._sectionProperties = sectionProperties;
-           } else {
+            } else {
                 var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
                 this._sectionProperties = sectionProperties;
-           }
-            
+            }
+
             if (this._document.Sections.Count > 0) {
                 WordSection lastSection = this._document.Sections[this._document.Sections.Count - 1];
                 //lastSection._sectionProperties.
 
                 var temporarySectionProperties = lastSection._sectionProperties;
                 if (temporarySectionProperties != null) {
-                 
+
                     CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
                     var old = this._sectionProperties;
 
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
 
-                   
+
                 }
             }
 
-          
+
             this.Margins = new WordMargins(wordDocument, this);
+            this.Borders = new WordBorders(wordDocument, this);
 
             wordDocument.Sections.Add(this);
 
@@ -335,6 +338,12 @@ namespace OfficeIMO.Word {
 
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
             return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
+        }
+
+        public WordSection SetBorders(WordBorder wordBorder) {
+            this.Borders.SetBorder(wordBorder);
+
+            return this;
         }
     }
 }

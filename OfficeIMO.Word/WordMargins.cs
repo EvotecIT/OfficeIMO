@@ -89,7 +89,6 @@ namespace OfficeIMO.Word {
                 pageMargin.Bottom = value;
             }
         }
-
         public UInt32Value HeaderDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -109,7 +108,6 @@ namespace OfficeIMO.Word {
                 pageMargin.Header = value;
             }
         }
-
         public UInt32Value FooterDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();

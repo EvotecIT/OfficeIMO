@@ -68,9 +68,4 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ExcelTests\" />
-    <Folder Include="WordTests\" />
-  </ItemGroup>
-
 </Project>

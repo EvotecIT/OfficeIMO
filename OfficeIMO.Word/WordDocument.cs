@@ -191,6 +191,7 @@ namespace OfficeIMO.Word {
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
             WordSection wordSection = new WordSection(word, null);
+            WordBackground wordBackground = new WordBackground(word);
             return word;
         }
 
@@ -200,6 +201,7 @@ namespace OfficeIMO.Word {
             var applicationProperties = new ApplicationProperties(this);
             var builtinDocumentProperties = new BuiltinDocumentProperties(this);
             var wordCustomProperties = new WordCustomProperties(this);
+            var wordBackground = new WordBackground(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section thats assigned to top of the document
             WordSection wordSection = new WordSection(this, null, null);
@@ -207,7 +209,7 @@ namespace OfficeIMO.Word {
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
-                    Paragraph paragraph = (Paragraph) element;
+                    Paragraph paragraph = (Paragraph)element;
                     WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
                     if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                         // find sections added via section page breaks
@@ -222,7 +224,7 @@ namespace OfficeIMO.Word {
                         wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
                     }
                 } else if (element is Table) {
-                    WordTable wordTable = new WordTable(this, wordSection, (Table) element);
+                    WordTable wordTable = new WordTable(this, wordSection, (Table)element);
                 } else if (element is SectionProperties sectionProperties) {
                     // we don't do anything as we already created it above - i think
                 } else if (element is SdtBlock sdtBlock) {
@@ -238,7 +240,7 @@ namespace OfficeIMO.Word {
 
         private void RearrangeSectionsAfterLoad() {
             if (Sections.Count > 0) {
-               //var firstElement = Sections[0];
+                //var firstElement = Sections[0];
                 var firstElementHeader = Sections[0].Header;
                 var firstElementFooter = Sections[0].Footer;
                 var firstElementSection = Sections[0]._sectionProperties;
@@ -393,7 +395,8 @@ namespace OfficeIMO.Word {
                     }
                 } catch {
                     throw;
-                } finally {
+                }
+                finally {
                     this._wordprocessingDocument.Close();
                     this._wordprocessingDocument.Dispose();
                 }
@@ -448,7 +451,7 @@ namespace OfficeIMO.Word {
 
         public WordParagraph AddPageBreak() {
             WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() {Type = BreakValues.Page}),
+                _run = new Run(new Break() { Type = BreakValues.Page }),
                 _document = this
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
@@ -464,7 +467,7 @@ namespace OfficeIMO.Word {
 
         public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
             WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() {Type = breakType}),
+                _run = new Run(new Break() { Type = breakType }),
                 _document = this
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
@@ -491,7 +494,7 @@ namespace OfficeIMO.Word {
             // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
 
             if (sectionMark != null) {
-                SectionType sectionType = new SectionType() {Val = sectionMark};
+                SectionType sectionType = new SectionType() { Val = sectionMark };
                 sectionProperties.Append(sectionType);
             }
 
@@ -508,6 +511,7 @@ namespace OfficeIMO.Word {
         }
 
         public WordSection _currentSection { get; set; }
+        public WordBackground Background { get; set; }
 
         public bool ValidateDocument() {
             bool foundIssue = false;

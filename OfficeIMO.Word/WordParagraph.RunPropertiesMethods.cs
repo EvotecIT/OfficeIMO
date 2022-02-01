@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
             return this;
         }
         public WordParagraph SetColorHex(string color) {
-            this.Color = color;
+            this.Color = color.Replace("#", "");
             return this;
         }
         public WordParagraph SetColor(System.Drawing.Color color) {
