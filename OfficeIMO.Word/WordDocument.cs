@@ -72,11 +72,16 @@ namespace OfficeIMO.Word {
         public List<WordTable> Tables {
             get {
                 List<WordTable> list = new List<WordTable>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Tables);
+                //foreach (var section in this.Sections) {
+                //    list.AddRange(section.Tables);
+                //}
+
+                foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
+                    list.Add(new WordTable(this, null, table));
                 }
 
                 return list;
+
             }
         }
 

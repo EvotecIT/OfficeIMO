@@ -203,7 +203,9 @@ namespace OfficeIMO.Word {
                 //this.Rows.Add(tableRow);
             }
 
-            section.Tables.Add(this);
+            if (section != null) {
+                section.Tables.Add(this);
+            }
         }
 
         public WordTable(WordDocument document, WordSection section, int rows, int columns, WordTableStyle tableStyle) {
@@ -275,6 +277,10 @@ namespace OfficeIMO.Word {
         private void Add(WordTableRow row) {
             _table.Append(row._tableRow);
             // this.Rows.Add(row);
+        }
+
+        public void Remove() {
+            _table.Remove();
         }
     }
 }

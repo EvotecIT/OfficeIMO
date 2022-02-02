@@ -1342,6 +1342,18 @@ namespace OfficeIMO.Examples {
                 // lets overwrite style
                 wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
 
+                Console.WriteLine("----");
+                Console.WriteLine(document.Tables.Count);
+
+                WordTable wordTable1 = document.AddTable(3, 4, WordTableStyle.GridTable5DarkAccent5);
+
+                Console.WriteLine(document.Tables.Count);
+
+                WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.GridTable5DarkAccent5);
+                wordTable2.Remove();
+
+                Console.WriteLine(document.Tables.Count);
+
                 document.Save(openWord);
             }
         }
