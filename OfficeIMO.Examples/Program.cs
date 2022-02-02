@@ -1366,7 +1366,13 @@ namespace OfficeIMO.Examples {
                 wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "Some test 1";
                 wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 2";
                 wordTable.Rows[0].Cells[3].Paragraphs[0].Text = "Some test 3";
-                wordTable.Rows[0].Cells[1].Merge(2, true);
+                wordTable.Rows[0].Cells[1].MergeHorizontally(2, true);
+
+                // we unmerge the cells
+                //wordTable.Rows[0].Cells[2].HorizontalMerge = null;
+                //wordTable.Rows[0].Cells[3].HorizontalMerge = null;
+                // bring back from merge
+                wordTable.Rows[0].Cells[1].SplitHorizontally(2);
 
                 Console.WriteLine(document.Tables.Count);
                 document.Save(openWord);

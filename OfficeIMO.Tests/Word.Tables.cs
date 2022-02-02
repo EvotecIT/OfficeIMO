@@ -218,5 +218,101 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesWithMerging() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Some test";
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "Some test 1";
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 2";
+                wordTable.Rows[0].Cells[3].Paragraphs[0].Text = "Some test 3";
+
+
+                Assert.True(document.Tables.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+
+                wordTable.Rows[0].Cells[1].MergeHorizontally(2, true);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Some test 1");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Some test 2");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[2].Text == "Some test 3");
+
+                // should be empty paragraphs
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs[0].Text == "");
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs[0].Text == "");
+
+                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == MergedCellValues.Restart);
+                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == MergedCellValues.Continue);
+
+                WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Some test";
+                wordTable2.Rows[0].Cells[1].Paragraphs[0].Text = "Some test 1";
+                wordTable2.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 2";
+                wordTable2.Rows[0].Cells[3].Paragraphs[0].Text = "Some test 3";
+                wordTable2.Rows[0].Cells[1].MergeHorizontally(2, false);
+
+                Assert.True(document.Tables[1].Rows[0].Cells[1].Paragraphs.Count == 1);
+                Assert.True(document.Tables[1].Rows[0].Cells[1].Paragraphs.Count == 1);
+                Assert.True(document.Tables[1].Rows[0].Cells[1].Paragraphs.Count == 1);
+
+                Assert.True(document.Tables[1].Rows[0].Cells[1].Paragraphs[0].Text == "Some test 1");
+
+                // should be empty paragraphs
+                Assert.True(document.Tables[1].Rows[0].Cells[2].Paragraphs[0].Text == "");
+                Assert.True(document.Tables[1].Rows[0].Cells[3].Paragraphs[0].Text == "");
+
+
+
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
+                var wordTable = document.Tables[0];
+
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Some test 1");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Some test 2");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[2].Text == "Some test 3");
+                // should be empty paragraphs
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs[0].Text == "");
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs[0].Text == "");
+
+                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == MergedCellValues.Restart);
+                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == MergedCellValues.Continue);
+
+                document.Tables[0].Rows[0].Cells[1].SplitHorizontally(2);
+
+                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == null);
+                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == null);
+                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == null);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
+                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
+
+                document.Save();
+            }
+        }
+
     }
 }

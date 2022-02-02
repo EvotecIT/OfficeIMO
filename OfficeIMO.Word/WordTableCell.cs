@@ -73,8 +73,10 @@ namespace OfficeIMO.Word {
                             if (wordParagraph.IsListItem) {
                                 //LoadListToDocument(document, this);
                             }
+
                             list.Add(wordParagraph);
                         }
+
                         count++;
                     }
                 } else {
@@ -91,6 +93,47 @@ namespace OfficeIMO.Word {
         private readonly WordTable _wordTable;
         private readonly WordTableRow _wordTableRow;
         private readonly WordDocument _document;
+
+        public MergedCellValues? HorizontalMerge {
+            get {
+                if (_tableCellProperties.HorizontalMerge != null) {
+                    return _tableCellProperties.HorizontalMerge.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value == null) {
+                    _tableCellProperties.HorizontalMerge.Remove();
+                } else {
+                    if (_tableCellProperties.HorizontalMerge == null) {
+                        _tableCellProperties.HorizontalMerge = new HorizontalMerge();
+                    }
+
+                    _tableCellProperties.HorizontalMerge.Val = value;
+                }
+            }
+        }
+        public MergedCellValues? VerticalMerge {
+            get {
+                if (_tableCellProperties.VerticalMerge != null) {
+                    return _tableCellProperties.VerticalMerge.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value == null) {
+                    _tableCellProperties.VerticalMerge.Remove();
+                } else {
+                    if (_tableCellProperties.VerticalMerge == null) {
+                        _tableCellProperties.VerticalMerge = new VerticalMerge();
+                    }
+
+                    _tableCellProperties.VerticalMerge.Val = value;
+                }
+            }
+        }
 
         public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
             TableCell tableCell = new TableCell();
@@ -141,13 +184,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="cellsCount"></param>
         /// <param name="copyParagraphs"></param>
-        public void Merge(int cellsCount, bool copyParagraphs = false) {
+        public void MergeHorizontally(int cellsCount, bool copyParagraphs = false) {
             var temporaryCell = _tableCell;
             _tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge {
                 Val = MergedCellValues.Restart
             };
-
-            var index = _wordTableRow.Cells.IndexOf(this);
 
             for (int i = 0; i < cellsCount; i++) {
                 if (_tableCell != null) {
@@ -161,6 +202,7 @@ namespace OfficeIMO.Word {
                                 paragraph.Remove();
                                 temporaryCell.Append(paragraph);
                             }
+
                             // but tableCell requires at least one empty paragraph so we provide that request
                             _tableCell.Append(new Paragraph());
                         } else {
@@ -169,9 +211,11 @@ namespace OfficeIMO.Word {
                             foreach (var paragraph in paragraphs) {
                                 paragraph.Remove();
                             }
+
                             // but tableCell requires at least one empty paragraph so we provide that request
                             _tableCell.Append(new Paragraph());
                         }
+
                         // then for every table cell we need to continue merging until cellsCount
                         _tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge {
                             Val = MergedCellValues.Continue
@@ -180,6 +224,26 @@ namespace OfficeIMO.Word {
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Splits (unmerge) cells that were merged 
+        /// </summary>
+        /// <param name="cellsCount"></param>
+        public void SplitHorizontally(int cellsCount) {
+            if (_tableCell.TableCellProperties.HorizontalMerge != null) {
+                _tableCell.TableCellProperties.HorizontalMerge.Remove();
+            }
+            for (int i = 0; i < cellsCount; i++) {
+                if (_tableCell != null) {
+                    _tableCell = (TableCell)_tableCell.NextSibling();
+                    if (_tableCell != null) {
+                        if (_tableCell.TableCellProperties.HorizontalMerge != null) {
+                            _tableCell.TableCellProperties.HorizontalMerge.Remove();
+                        }
+                    }
+                }
+            }
         }
     }
 }
