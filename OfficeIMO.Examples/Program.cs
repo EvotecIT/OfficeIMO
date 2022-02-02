@@ -1334,9 +1334,6 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(wordTable.Rows.Count);
 
                 wordTable.Rows[8].Cells[1].Paragraphs[0].Text = "This should be in row 8th";
-
-                //wordTable.AddRow();
-                //wordTable.AddRow();
                 wordTable.Rows[1].Cells[2].Paragraphs[2].Text = "Change me";
                 wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(Color.Green);
                 // lets overwrite style
@@ -1354,8 +1351,16 @@ namespace OfficeIMO.Examples {
 
                 Console.WriteLine(document.Tables.Count);
 
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+
+                document.Tables[1].Remove();
+                Console.WriteLine(document.Tables.Count);
                 document.Save(openWord);
             }
+
         }
 
         private static void Example_BasicTablesLoad1(string filePath, bool openWord) {
