@@ -142,11 +142,13 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
-        internal Table _table;
-        internal TableProperties _tableProperties;
-        internal WordDocument _document;
+
+        private Table _table;
+        private TableProperties _tableProperties;
+
+        private WordDocument _document;
         //internal string Text;
-        internal WordSection _section;
+        private WordSection _section;
 
 
 
