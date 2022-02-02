@@ -17,6 +17,8 @@ namespace OfficeIMO.Tests {
 
                 document.Sections[0].Borders.LeftStyle = BorderValues.BabyPacifier;
                 document.Sections[0].Borders.LeftColor = System.Drawing.Color.Aqua;
+                document.Sections[0].Borders.LeftSpace = 10;
+                document.Sections[0].Borders.LeftSize = 24;
 
                 document.Sections[0].Borders.RightStyle = BorderValues.BirdsFlight;
                 document.Sections[0].Borders.RightColor = System.Drawing.Color.Red;
@@ -26,50 +28,93 @@ namespace OfficeIMO.Tests {
 
                 document.Sections[0].Borders.BottomStyle = BorderValues.Thick;
                 document.Sections[0].Borders.BottomColor = System.Drawing.Color.Blue;
+                document.Sections[0].Borders.BottomSpace = 15;
+                document.Sections[0].Borders.BottomSize = 18;
+
 
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == System.Drawing.Color.Aqua.ToHexColor());
+                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
+                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == System.Drawing.Color.Red.ToHexColor());
+                Assert.True(document.Sections[0].Borders.RightSpace == null);
+                Assert.True(document.Sections[0].Borders.RightSize == null);
+
                 Assert.True(document.Sections[0].Borders.TopStyle == BorderValues.SharksTeeth);
                 Assert.True(document.Sections[0].Borders.TopColor.ToHexColor() == System.Drawing.Color.GreenYellow.ToHexColor());
+                Assert.True(document.Sections[0].Borders.TopSpace == null);
+                Assert.True(document.Sections[0].Borders.TopSize == null);
+
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == System.Drawing.Color.Blue.ToHexColor());
+                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
+                Assert.True(document.Sections[0].Borders.BottomSize == 18);
+
 
                 document.AddSection();
 
                 document.Sections[1].Borders.LeftStyle = BorderValues.BabyRattle;
                 document.Sections[1].Borders.LeftColor = System.Drawing.Color.LightYellow;
+                document.Sections[1].Borders.LeftShadow = true;
+                document.Sections[1].Borders.LeftFrame = true;
+
 
                 document.Sections[1].Borders.RightStyle = BorderValues.ChainLink;
                 document.Sections[1].Borders.RightColor = System.Drawing.Color.GreenYellow;
+                document.Sections[1].Borders.RightShadow = true;
+                document.Sections[1].Borders.RightFrame = false;
 
                 document.Sections[1].Borders.TopStyle = BorderValues.Dashed;
                 document.Sections[1].Borders.TopColor = System.Drawing.Color.OrangeRed;
 
                 document.Sections[1].Borders.BottomStyle = BorderValues.DashSmallGap;
                 document.Sections[1].Borders.BottomColor = System.Drawing.Color.DarkOliveGreen;
+                document.Sections[1].Borders.BottomShadow = false;
 
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == System.Drawing.Color.Aqua.ToHexColor());
+                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
+                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == System.Drawing.Color.Red.ToHexColor());
+                Assert.True(document.Sections[0].Borders.RightSpace == null);
+                Assert.True(document.Sections[0].Borders.RightSize == null);
+
                 Assert.True(document.Sections[0].Borders.TopStyle == BorderValues.SharksTeeth);
                 Assert.True(document.Sections[0].Borders.TopColor.ToHexColor() == System.Drawing.Color.GreenYellow.ToHexColor());
+                Assert.True(document.Sections[0].Borders.TopSpace == null);
+                Assert.True(document.Sections[0].Borders.TopSize == null);
+
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == System.Drawing.Color.Blue.ToHexColor());
+                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
+                Assert.True(document.Sections[0].Borders.BottomSize == 18);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == BorderValues.BabyRattle);
                 Assert.True(document.Sections[1].Borders.LeftColor.ToHexColor() == System.Drawing.Color.LightYellow.ToHexColor());
+                Assert.True(document.Sections[1].Borders.LeftShadow == true);
+                Assert.True(document.Sections[1].Borders.LeftFrame == true);
+
                 Assert.True(document.Sections[1].Borders.RightStyle == BorderValues.ChainLink);
                 Assert.True(document.Sections[1].Borders.RightColor.ToHexColor() == System.Drawing.Color.GreenYellow.ToHexColor());
+                Assert.True(document.Sections[1].Borders.RightShadow == true);
+                Assert.True(document.Sections[1].Borders.RightFrame == false);
+
                 Assert.True(document.Sections[1].Borders.TopStyle == BorderValues.Dashed);
                 Assert.True(document.Sections[1].Borders.TopColor.ToHexColor() == System.Drawing.Color.OrangeRed.ToHexColor());
+                Assert.True(document.Sections[1].Borders.TopShadow == null);
+                Assert.True(document.Sections[1].Borders.TopFrame == null);
+
                 Assert.True(document.Sections[1].Borders.BottomStyle == BorderValues.DashSmallGap);
                 Assert.True(document.Sections[1].Borders.BottomColor.ToHexColor() == System.Drawing.Color.DarkOliveGreen.ToHexColor());
+                Assert.True(document.Sections[1].Borders.BottomShadow == false);
+                Assert.True(document.Sections[1].Borders.BottomFrame == null);
 
                 Assert.True(document.Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Borders.LeftColor.ToHexColor() == System.Drawing.Color.Aqua.ToHexColor());
@@ -88,12 +133,23 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == System.Drawing.Color.Aqua.ToHexColor());
+                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
+                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == System.Drawing.Color.Red.ToHexColor());
+                Assert.True(document.Sections[0].Borders.RightSpace == null);
+                Assert.True(document.Sections[0].Borders.RightSize == null);
+
                 Assert.True(document.Sections[0].Borders.TopStyle == BorderValues.SharksTeeth);
                 Assert.True(document.Sections[0].Borders.TopColor.ToHexColor() == System.Drawing.Color.GreenYellow.ToHexColor());
+                Assert.True(document.Sections[0].Borders.TopSpace == null);
+                Assert.True(document.Sections[0].Borders.TopSize == null);
+
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == System.Drawing.Color.Blue.ToHexColor());
+                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
+                Assert.True(document.Sections[0].Borders.BottomSize == 18);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == BorderValues.BabyRattle);
@@ -192,6 +248,21 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Borders.TopColor.ToHexColor() == System.Drawing.Color.DarkKhaki.ToHexColor());
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.BasicWhiteDashes);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == System.Drawing.Color.LightSkyBlue.ToHexColor());
+
+                Assert.True(document.Sections[0].Borders.LeftColorHex == System.Drawing.Color.OrangeRed.ToHexColor());
+                Assert.True(document.Sections[0].Borders.RightColorHex == System.Drawing.Color.Goldenrod.ToHexColor());
+                Assert.True(document.Sections[0].Borders.TopColorHex == System.Drawing.Color.DarkKhaki.ToHexColor());
+                Assert.True(document.Sections[0].Borders.BottomColorHex == System.Drawing.Color.LightSkyBlue.ToHexColor());
+
+                document.Borders.LeftColorHex = System.Drawing.Color.Yellow.ToHexColor();
+                document.Borders.RightColorHex = System.Drawing.Color.DarkOliveGreen.ToHexColor();
+                document.Borders.TopColorHex = System.Drawing.Color.LightSkyBlue.ToHexColor();
+                document.Borders.BottomColorHex = System.Drawing.Color.Beige.ToHexColor();
+
+                Assert.True(document.Sections[0].Borders.LeftColorHex == System.Drawing.Color.Yellow.ToHexColor());
+                Assert.True(document.Sections[0].Borders.RightColorHex == System.Drawing.Color.DarkOliveGreen.ToHexColor());
+                Assert.True(document.Sections[0].Borders.TopColorHex == System.Drawing.Color.LightSkyBlue.ToHexColor());
+                Assert.True(document.Sections[0].Borders.BottomColorHex == System.Drawing.Color.Beige.ToHexColor());
 
                 document.Save();
             }

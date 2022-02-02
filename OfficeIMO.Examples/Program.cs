@@ -1990,19 +1990,24 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
 
-                document.Sections[0].Borders.LeftStyle = BorderValues.BabyPacifier;
+                document.Sections[0].Borders.LeftStyle = BorderValues.PalmsColor;
                 document.Sections[0].Borders.LeftColor = System.Drawing.Color.Aqua;
+                document.Sections[0].Borders.LeftSpace = 24;
+                document.Sections[0].Borders.LeftSize = 24;
 
-                document.Sections[0].Borders.RightStyle = BorderValues.BirdsFlight;
+                document.Sections[0].Borders.RightStyle = BorderValues.BabyPacifier;
                 document.Sections[0].Borders.RightColor = System.Drawing.Color.Red;
+                document.Sections[0].Borders.RightSize = 12;
 
                 document.Sections[0].Borders.TopStyle = BorderValues.SharksTeeth;
                 document.Sections[0].Borders.TopColor = System.Drawing.Color.GreenYellow;
+                document.Sections[0].Borders.TopSize = 10;
 
                 document.Sections[0].Borders.BottomStyle = BorderValues.Thick;
                 document.Sections[0].Borders.BottomColor = System.Drawing.Color.Blue;
+                document.Sections[0].Borders.BottomSize = 15;
 
-                document.Save(false);
+                document.Save(openWord);
             }
         }
 
@@ -2017,7 +2022,7 @@ namespace OfficeIMO.Examples {
 
                 Console.WriteLine(document.Sections[1].Borders.Type);
 
-                document.Save(openWord);
+                document.Save(false);
             }
         }
 

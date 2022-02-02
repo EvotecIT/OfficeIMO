@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly WordSection _section;
 
-        public WordBorders(WordDocument wordDocument, WordSection wordSection) {
+        internal WordBorders(WordDocument wordDocument, WordSection wordSection) {
             _document = wordDocument;
             _section = wordSection;
         }
@@ -98,6 +98,78 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public UInt32Value LeftSpace {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null) {
+                    return pageBorder.LeftBorder.Space;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.LeftBorder == null) {
+                    pageBorder.LeftBorder = new LeftBorder();
+                }
+
+                pageBorder.LeftBorder.Space = value;
+            }
+        }
+
+        public bool? LeftShadow {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.LeftBorder.Shadow != null) {
+                    return pageBorder.LeftBorder.Shadow;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.LeftBorder == null) {
+                    pageBorder.LeftBorder = new LeftBorder();
+                }
+
+                pageBorder.LeftBorder.Shadow = value;
+            }
+        }
+
+        public bool? LeftFrame {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.LeftBorder.Frame != null) {
+                    return pageBorder.LeftBorder.Frame;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.LeftBorder == null) {
+                    pageBorder.LeftBorder = new LeftBorder();
+                }
+
+                pageBorder.LeftBorder.Frame = value;
+            }
+        }
+
         public UInt32Value RightSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -172,6 +244,78 @@ namespace OfficeIMO.Word {
                 }
 
                 pageBorder.RightBorder.Val = value;
+            }
+        }
+
+        public UInt32Value RightSpace {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null) {
+                    return pageBorder.RightBorder.Space;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.RightBorder == null) {
+                    pageBorder.RightBorder = new RightBorder();
+                }
+
+                pageBorder.RightBorder.Space = value;
+            }
+        }
+
+        public bool? RightShadow {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.RightBorder.Shadow != null) {
+                    return pageBorder.RightBorder.Shadow;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.RightBorder == null) {
+                    pageBorder.RightBorder = new RightBorder();
+                }
+
+                pageBorder.RightBorder.Shadow = value;
+            }
+        }
+
+        public bool? RightFrame {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.RightBorder.Frame != null) {
+                    return pageBorder.RightBorder.Frame;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.RightBorder == null) {
+                    pageBorder.RightBorder = new RightBorder();
+                }
+
+                pageBorder.RightBorder.Frame = value;
             }
         }
 
@@ -252,6 +396,79 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public UInt32Value TopSpace {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null) {
+                    return pageBorder.TopBorder.Space;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.TopBorder == null) {
+                    pageBorder.TopBorder = new TopBorder();
+                }
+
+                pageBorder.TopBorder.Space = value;
+            }
+        }
+
+        public bool? TopShadow {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.TopBorder.Shadow != null) {
+                    return pageBorder.TopBorder.Shadow;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.TopBorder == null) {
+                    pageBorder.TopBorder = new TopBorder();
+                }
+
+                pageBorder.TopBorder.Shadow = value;
+            }
+        }
+
+        public bool? TopFrame {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.TopBorder.Frame != null) {
+                    return pageBorder.TopBorder.Frame;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.TopBorder == null) {
+                    pageBorder.TopBorder = new TopBorder();
+                }
+
+                pageBorder.TopBorder.Frame = value;
+            }
+        }
+
+
         public UInt32Value BottomSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -329,7 +546,80 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public void SetBorder(WordBorder wordBorder) {
+        public UInt32Value BottomSpace {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null) {
+                    return pageBorder.BottomBorder.Space;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.BottomBorder == null) {
+                    pageBorder.BottomBorder = new BottomBorder();
+                }
+
+                pageBorder.BottomBorder.Space = value;
+            }
+        }
+
+        public bool? BottomShadow {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.BottomBorder.Shadow != null) {
+                    return pageBorder.BottomBorder.Shadow;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.BottomBorder == null) {
+                    pageBorder.BottomBorder = new BottomBorder();
+                }
+
+                pageBorder.BottomBorder.Shadow = value;
+            }
+        }
+
+        public bool? BottomFrame {
+            get {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder != null && pageBorder.BottomBorder.Frame != null) {
+                    return pageBorder.BottomBorder.Frame;
+                }
+
+                return null;
+            }
+            set {
+                var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                if (pageBorder == null) {
+                    _section._sectionProperties.Append(Custom);
+                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                }
+
+                if (pageBorder.BottomBorder == null) {
+                    pageBorder.BottomBorder = new BottomBorder();
+                }
+
+                pageBorder.BottomBorder.Frame = value;
+            }
+        }
+
+
+        internal void SetBorder(WordBorder wordBorder) {
             var pageBorderSettings = GetDefault(wordBorder);
             if (pageBorderSettings == null) {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -364,6 +654,7 @@ namespace OfficeIMO.Word {
                             (pageBordersBuiltin.BottomBorder == null && pageBorder.BottomBorder == null)) {
                             return wordBorder;
                         }
+
                         if (pageBordersBuiltin.LeftBorder != null && pageBorder.LeftBorder != null &&
                             pageBordersBuiltin.RightBorder != null && pageBorder.RightBorder != null &&
                             pageBordersBuiltin.TopBorder != null && pageBorder.TopBorder != null &&
