@@ -43,10 +43,10 @@ namespace OfficeIMO.Word {
                 //this.Cells.Add(wordCell);
             }
         }
-        public void Add(WordTableCell cell) {
-            _tableRow.Append(cell._tableCell);
-            //this.Cells.Add(cell);
-        }
+        //public void Add(WordTableCell cell) {
+        //    _tableRow.Append(cell._tableCell);
+        //    //this.Cells.Add(cell);
+        //}
         public void Remove() {
             _tableRow.Remove();
             //_wordTable.Rows.Remove(this);

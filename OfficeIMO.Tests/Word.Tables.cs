@@ -2,6 +2,7 @@
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using Color = System.Drawing.Color;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -68,6 +69,19 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable2.Rows[5].CellsCount == 5);
                 Assert.True(wordTable2.Paragraphs.Count == 29, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].Text = "Test 3";
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 1");
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 2");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[0].Text == "Test 3");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[1].Text == "More text which means another paragraph 1");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Text == "More text which means another paragraph 2");
+
+                wordTable2.Rows[2].Cells[2].Paragraphs[2].Text = "Change me";
+                wordTable2.Rows[2].Cells[2].Paragraphs[2].SetColor(Color.Green);
+
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Text == "Change me");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Color == Color.Green.ToHexColor());
+
 
                 document.Save();
             }
@@ -85,7 +99,7 @@ namespace OfficeIMO.Tests {
 
                 var wordTable2 = document.Tables[1];
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table matches. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable2.Paragraphs.Count == 29, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
+                Assert.True(wordTable2.Paragraphs.Count == 31, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
 
 

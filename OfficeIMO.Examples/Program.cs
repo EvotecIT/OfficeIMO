@@ -1321,10 +1321,10 @@ namespace OfficeIMO.Examples {
                 wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "This should be in row 1st - 2nd column";
                 wordTable.Rows[1].Cells[3].Paragraphs[0].Text = "This should be in row 1st - 3rd column";
                 wordTable.Rows[1].Cells[2].Remove();
-                //wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 1");
-                //wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 2");
+                wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 1");
+                wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 2");
 
-                //Console.WriteLine(wordTable.Rows[1].Cells[2].Paragraphs.Count);
+                Console.WriteLine(wordTable.Rows[1].Cells[2].Paragraphs.Count);
 
                 Console.WriteLine(wordTable.Rows.Count);
                 wordTable.AddRow();
@@ -1337,8 +1337,8 @@ namespace OfficeIMO.Examples {
 
                 //wordTable.AddRow();
                 //wordTable.AddRow();
-                // wordTable.Rows[1].Cells[2].Paragraphs[2].Text = "Change me";
-                // wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(Color.Green);
+                wordTable.Rows[1].Cells[2].Paragraphs[2].Text = "Change me";
+                wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(Color.Green);
                 // lets overwrite style
                 wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
 
