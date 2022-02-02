@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -132,6 +133,52 @@ namespace OfficeIMO.Word {
         public void Remove() {
             _tableCell.Remove();
             //_wordTableRow.Cells.Remove(this);
+        }
+
+        /// <summary>
+        /// Merges two or more cells/columns together.
+        /// Provides ability to move or delete content of merged cells into single cell
+        /// </summary>
+        /// <param name="cellsCount"></param>
+        /// <param name="copyParagraphs"></param>
+        public void Merge(int cellsCount, bool copyParagraphs = false) {
+            var temporaryCell = _tableCell;
+            _tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge {
+                Val = MergedCellValues.Restart
+            };
+
+            var index = _wordTableRow.Cells.IndexOf(this);
+
+            for (int i = 0; i < cellsCount; i++) {
+                if (_tableCell != null) {
+                    _tableCell = (TableCell)_tableCell.NextSibling();
+                    if (_tableCell != null) {
+                        if (copyParagraphs) {
+                            // lets find all paragraphs and move them to first table cell
+                            var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                            foreach (var paragraph in paragraphs) {
+                                // moving paragraphs
+                                paragraph.Remove();
+                                temporaryCell.Append(paragraph);
+                            }
+                            // but tableCell requires at least one empty paragraph so we provide that request
+                            _tableCell.Append(new Paragraph());
+                        } else {
+                            // lets find all paragraphs and delete them
+                            var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                            foreach (var paragraph in paragraphs) {
+                                paragraph.Remove();
+                            }
+                            // but tableCell requires at least one empty paragraph so we provide that request
+                            _tableCell.Append(new Paragraph());
+                        }
+                        // then for every table cell we need to continue merging until cellsCount
+                        _tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge {
+                            Val = MergedCellValues.Continue
+                        };
+                    }
+                }
+            }
 
         }
     }

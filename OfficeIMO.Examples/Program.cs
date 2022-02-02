@@ -1357,6 +1357,17 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 document.Tables[1].Remove();
+
+                document.AddParagraph("This new table should have cells merged");
+
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Some test";
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "Some test 1";
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 2";
+                wordTable.Rows[0].Cells[3].Paragraphs[0].Text = "Some test 3";
+                wordTable.Rows[0].Cells[1].Merge(2, true);
+
                 Console.WriteLine(document.Tables.Count);
                 document.Save(openWord);
             }
