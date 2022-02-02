@@ -128,12 +128,27 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public readonly List<WordTableRow> Rows = new List<WordTableRow>();
+        public int RowsCount => this.Rows.Count;
+
+        public List<WordTableRow> Rows {
+            get {
+                var list = new List<WordTableRow>();
+
+                foreach (TableRow row in _table.ChildElements.OfType<TableRow>()) {
+                    WordTableRow tableRow = new WordTableRow(this, row, _document);
+                    list.Add(tableRow);
+                }
+
+                return list;
+            }
+        }
         internal Table _table;
         internal TableProperties _tableProperties;
         internal WordDocument _document;
         //internal string Text;
         internal WordSection _section;
+
+
 
         private void GenerateTable(WordDocument document, WordSection section, WordTableStyle tableStyle) {
             // Create an empty table.
@@ -159,7 +174,7 @@ namespace OfficeIMO.Word {
             tableProperties1.Append(tableStyle1);
             tableProperties1.Append(tableWidth1);
             tableProperties1.Append(tableLook1);
-            
+
 
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
@@ -170,6 +185,12 @@ namespace OfficeIMO.Word {
             _section = section;
         }
 
+        /// <summary>
+        /// Used during load of the document
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="section"></param>
+        /// <param name="table"></param>
         public WordTable(WordDocument document, WordSection section, Table table) {
             _table = table;
             _tableProperties = table.ChildElements.OfType<TableProperties>().FirstOrDefault();
@@ -178,8 +199,8 @@ namespace OfficeIMO.Word {
 
 
             foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
-                WordTableRow tableRow = new WordTableRow(row, document);
-                this.Rows.Add(tableRow);
+                WordTableRow tableRow = new WordTableRow(this, row, document);
+                //this.Rows.Add(tableRow);
             }
 
             section.Tables.Add(this);
@@ -188,15 +209,15 @@ namespace OfficeIMO.Word {
         public WordTable(WordDocument document, WordSection section, int rows, int columns, WordTableStyle tableStyle) {
 
             this.GenerateTable(document, section, tableStyle);
-            
+
             //WordTable table = new WordTable(document, section);
             //this.Text = "TEst";
             for (int i = 0; i < rows; i++) {
-                WordTableRow row = new WordTableRow();
-                this.Add(row);
+                WordTableRow row = new WordTableRow(document, this);
+                this._table.Append(row._tableRow);
                 for (int j = 0; j < columns; j++) {
-                    WordTableCell cell = new WordTableCell();
-                    row.Add(cell);
+                    WordTableCell cell = new WordTableCell(document, this, row);
+                    //row.Add(cell);
                 }
             }
 
@@ -230,9 +251,30 @@ namespace OfficeIMO.Word {
             section.Tables.Add(this);
         }
 
+        public void AddRow(int cellsCount = 0) {
+            WordTableRow row = new WordTableRow(_document, this);
+            _table.Append(row._tableRow);
+            AddCells(row, cellsCount);
+        }
+
+        private void AddCells(WordTableRow row, int cellsCount = 0) {
+            if (cellsCount == 0) {
+                // we try to get the last row and fill it with same number of cells
+                cellsCount = this.Rows[this.RowsCount - 2].CellsCount;
+            }
+            for (int j = 0; j < cellsCount; j++) {
+                WordTableCell cell = new WordTableCell(_document, this, row);
+            }
+        }
+
+        public void AddRow(int rowsCount, int cellsCount) {
+            for (int i = 0; i < rowsCount; i++) {
+                AddRow(cellsCount);
+            }
+        }
         private void Add(WordTableRow row) {
             _table.Append(row._tableRow);
-            this.Rows.Add(row);
+            // this.Rows.Add(row);
         }
     }
 }

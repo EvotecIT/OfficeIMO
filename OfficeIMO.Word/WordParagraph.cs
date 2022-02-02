@@ -183,7 +183,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
-        /// <param name="addToSectionParagraphs"></param>
+        /// <param name="section"></param>
         public WordParagraph(WordDocument document, Paragraph paragraph, WordSection section = null) {
             //_paragraph = paragraph;
             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
@@ -409,13 +409,13 @@ namespace OfficeIMO.Word {
 
             // Specify the text range for the Comment. 
             // Insert the new CommentRangeStart before the first run of paragraph.
-            this._paragraph.InsertBefore(new CommentRangeStart() {Id = id}, this._paragraph.GetFirstChild<Run>());
+            this._paragraph.InsertBefore(new CommentRangeStart() { Id = id }, this._paragraph.GetFirstChild<Run>());
 
             // Insert the new CommentRangeEnd after last run of paragraph.
-            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() {Id = id}, this._paragraph.Elements<Run>().Last());
+            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() { Id = id }, this._paragraph.Elements<Run>().Last());
 
             // Compose a run with CommentReference and insert it.
-            this._paragraph.InsertAfter(new Run(new CommentReference() {Id = id}), cmtEnd);
+            this._paragraph.InsertAfter(new Run(new CommentReference() { Id = id }), cmtEnd);
         }
     }
 }

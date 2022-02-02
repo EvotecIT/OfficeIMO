@@ -131,6 +131,10 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Document with Table Styles.docx");
             //Example_AllTables(filePath, true);
 
+            Console.WriteLine("[*] Creating standard document with tables");
+            filePath = System.IO.Path.Combine(folderPath, "Document with Tables.docx");
+            Example_Tables(filePath, true);
+
             //Console.WriteLine("[*] Creating standard document with Paragraph Styles");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
             //Example_BasicParagraphStyles(filePath, false);
@@ -198,13 +202,13 @@ namespace OfficeIMO.Examples {
             //Example_BasicWordWatermark(filePath, true);
 
 
-            Console.WriteLine("[*] Creating standard document with page borders 1");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 1.docx");
-            Example_BasicPageBorders1(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with page borders 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 1.docx");
+            //Example_BasicPageBorders1(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with page borders 2");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
-            Example_BasicPageBorders2(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with page borders 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
+            //Example_BasicPageBorders2(filePath, true);
 
         }
 
@@ -1297,6 +1301,51 @@ namespace OfficeIMO.Examples {
             }
         }
 
+        private static void Example_Tables(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                Console.WriteLine(wordTable.Style);
+                Console.WriteLine(wordTable.Rows.Count);
+
+                wordTable.Rows[1].Remove();
+
+                Console.WriteLine(wordTable.Rows.Count);
+                wordTable.Rows[1].Cells[1].Paragraphs[0].Text = "This should be in row 1st";
+                wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "This should be in row 1st - 2nd column";
+                wordTable.Rows[1].Cells[3].Paragraphs[0].Text = "This should be in row 1st - 3rd column";
+                wordTable.Rows[1].Cells[2].Remove();
+                //wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 1");
+                //wordTable.Rows[1].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 2");
+
+                //Console.WriteLine(wordTable.Rows[1].Cells[2].Paragraphs.Count);
+
+                Console.WriteLine(wordTable.Rows.Count);
+                wordTable.AddRow();
+                wordTable.AddRow(7);
+                wordTable.AddRow();
+                wordTable.AddRow(5, 5);
+                Console.WriteLine(wordTable.Rows.Count);
+
+                wordTable.Rows[8].Cells[1].Paragraphs[0].Text = "This should be in row 8th";
+
+                //wordTable.AddRow();
+                //wordTable.AddRow();
+                // wordTable.Rows[1].Cells[2].Paragraphs[2].Text = "Change me";
+                // wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(Color.Green);
+                // lets overwrite style
+                wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
+
+                document.Save(openWord);
+            }
+        }
+
         private static void Example_BasicTablesLoad1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
@@ -2013,6 +2062,9 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicPageBorders2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Background.SetColor(Color.DarkSeaGreen);
+
                 document.AddParagraph("Section 0");
 
                 document.Sections[0].SetBorders(WordBorder.Box);
@@ -2022,7 +2074,7 @@ namespace OfficeIMO.Examples {
 
                 Console.WriteLine(document.Sections[1].Borders.Type);
 
-                document.Save(false);
+                document.Save(openWord);
             }
         }
 
