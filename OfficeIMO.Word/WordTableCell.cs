@@ -179,7 +179,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Merges two or more cells/columns together.
+        /// Merges two or more cells together horizontally.
         /// Provides ability to move or delete content of merged cells into single cell
         /// </summary>
         /// <param name="cellsCount"></param>
@@ -246,6 +246,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Merges two or more cells together vertically 
+        /// </summary>
+        /// <param name="cellsCount"></param>
+        /// <param name="copyParagraphs"></param>
         public void MergeVertically(int cellsCount, bool copyParagraphs = false) {
             var temporaryCell = _tableCell;
             _tableCell.TableCellProperties.VerticalMerge = new VerticalMerge {
