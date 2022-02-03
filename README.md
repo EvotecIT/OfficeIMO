@@ -51,7 +51,7 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 ## Features
 
-Here's a list of features currently supported and those that are planned. It's not a closed list, more of TODO.
+Here's a list of features currently supported and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
 
 - [x] Word basics
   - [x] Create
@@ -59,8 +59,8 @@ Here's a list of features currently supported and those that are planned. It's n
   - [x] Save (autoopen on save as an option)
   - [ ] SaveAs (not working correcly in edge cases)
 - [x] Word properties
-  - [x] Reading
-  - [x] Setting
+  - [x] Reading basic and custom properties
+  - [x] Setting basic and custom properties
 - [x] Sections
   - [x] Add Paragraphs
   - [x] Add Headers and Footers (Odd/Even/First)
@@ -76,10 +76,12 @@ Here's a list of features currently supported and those that are planned. It's n
   - [x] Add rows and columns
   - [x] Add cells
   - [x] Add cell properties
-  - [ ] Remove rows
-  - [ ] Remove columns
-  - [ ] Remove cells
-  - [ ] Others
+  - [x] Remove rows
+  - [x] Remove cells
+  - [x] Others
+    - [x] Merge cells (vertically, horizontally)
+    - [ ] Split cells (vertically)
+    - [x] Split cells (horizontally)
 - [x] Images/Pictures (limited support - jpg only / inline type only)
   - [x] Add images from file to Word
   - [x] Save image from Word to File
@@ -94,6 +96,16 @@ Here's a list of features currently supported and those that are planned. It's n
 - [ ] Fields
 - [ ] Shapes
 - [ ] Charts
+- [ ] Lists
+  - [x] Add lists
+  - [ ] Remove lists
+- [ ] Table of contents
+  - [x] Add TOC
+- [x] Borders
+- [x] Background
+- [ ] Watermarks
+  - [x] Add watermark
+  - [ ] Remove watermark
 
 
 ## Features (oneliners):
