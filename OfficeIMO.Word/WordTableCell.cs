@@ -245,5 +245,58 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public void MergeVertically(int cellsCount, bool copyParagraphs = false) {
+            var temporaryCell = _tableCell;
+            _tableCell.TableCellProperties.VerticalMerge = new VerticalMerge {
+                Val = MergedCellValues.Restart
+            };
+            var tableRow = _tableCell.Parent;
+            var indexOfCell = tableRow.ChildElements.ToList().IndexOf(_tableCell);
+
+            for (int i = 0; i < cellsCount; i++) {
+                if (_tableCell != null) {
+                    if (tableRow != null) {
+                        tableRow = tableRow.NextSibling();
+                        if (tableRow != null) {
+                            // we need to find cell with proper index
+                            var tableCells = tableRow.ChildElements.OfType<TableCell>().ToList()[indexOfCell];
+                            if (tableCells != null) {
+                                _tableCell = tableCells;
+                                if (_tableCell != null) {
+                                    if (copyParagraphs) {
+                                        // lets find all paragraphs and move them to first table cell
+                                        var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                                        foreach (var paragraph in paragraphs) {
+                                            // moving paragraphs
+                                            paragraph.Remove();
+                                            temporaryCell.Append(paragraph);
+                                        }
+
+                                        // but tableCell requires at least one empty paragraph so we provide that request
+                                        _tableCell.Append(new Paragraph());
+                                    } else {
+                                        // lets find all paragraphs and delete them
+                                        var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                                        foreach (var paragraph in paragraphs) {
+                                            paragraph.Remove();
+                                        }
+
+                                        // but tableCell requires at least one empty paragraph so we provide that request
+                                        _tableCell.Append(new Paragraph());
+                                    }
+
+                                    // then for every table cell we need to continue merging until cellsCount
+                                    _tableCell.TableCellProperties.VerticalMerge = new VerticalMerge {
+                                        Val = MergedCellValues.Continue
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
     }
 }

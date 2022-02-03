@@ -310,6 +310,46 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
 
+                document.AddParagraph("Another table");
+
+                var wordTable = document.AddTable(7, 4, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 0";
+                wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "Some test 1";
+                wordTable.Rows[2].Cells[2].Paragraphs[0].Text = "Some test 2";
+                wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";
+                wordTable.Rows[0].Cells[2].MergeVertically(2, true);
+
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == MergedCellValues.Restart);
+                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[3].Cells[2].VerticalMerge == null);
+                Assert.True(wordTable.Rows[4].Cells[2].VerticalMerge == null);
+                Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[0].Text == "Some test 0");
+                Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[1].Text == "Some test 1");
+                Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[2].Text == "Some test 2");
+                Assert.True(wordTable.Rows[1].Cells[2].Paragraphs[0].Text == "");
+                Assert.True(wordTable.Rows[2].Cells[2].Paragraphs[0].Text == "");
+
+                wordTable = document.AddTable(7, 4, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 0";
+                wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "Some test 1";
+                wordTable.Rows[2].Cells[2].Paragraphs[0].Text = "Some test 2";
+                wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";
+                wordTable.Rows[0].Cells[2].MergeVertically(2, false);
+
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalMerge == MergedCellValues.Restart);
+                Assert.True(wordTable.Rows[1].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[2].Cells[2].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[3].Cells[2].VerticalMerge == null);
+                Assert.True(wordTable.Rows[4].Cells[2].VerticalMerge == null);
+                Assert.True(wordTable.Rows[0].Cells[2].Paragraphs[0].Text == "Some test 0");
+                Assert.True(wordTable.Rows[0].Cells[2].Paragraphs.Count == 1);
+                Assert.True(wordTable.Rows[1].Cells[2].Paragraphs[0].Text == "");
+                Assert.True(wordTable.Rows[2].Cells[2].Paragraphs[0].Text == "");
+
+
                 document.Save();
             }
         }
