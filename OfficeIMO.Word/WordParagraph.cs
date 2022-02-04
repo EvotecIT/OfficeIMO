@@ -417,5 +417,30 @@ namespace OfficeIMO.Word {
             // Compose a run with CommentReference and insert it.
             this._paragraph.InsertAfter(new Run(new CommentReference() { Id = id }), cmtEnd);
         }
+
+        /// <summary>
+        /// Add horizontal line (sometimes known as horizontal rule) to document
+        /// </summary>
+        /// <param name="lineType"></param>
+        /// <param name="color"></param>
+        /// <param name="size"></param>
+        /// <param name="space"></param>
+        /// <returns></returns>
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
+            this._paragraphProperties.ParagraphBorders = new ParagraphBorders();
+            this._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
+                Val = lineType,
+                Size = size,
+                Space = space,
+                Color = color != null ? color.Value.ToHexColor() : "auto"
+            };
+
+            //newWordParagraph._paragraph = new Paragraph(newWordParagraph._paragraphProperties);
+
+            //this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(this._paragraph);
+            //this._currentSection.PageBreaks.Add(newWordParagraph);
+            //this._currentSection.Paragraphs.Add(newWordParagraph);
+            return this;
+        }
     }
 }

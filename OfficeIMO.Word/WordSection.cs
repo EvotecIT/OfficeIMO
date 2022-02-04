@@ -319,7 +319,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordParagraph AddParagraph(string text) {
+        public WordParagraph AddParagraph(string text = "") {
             if (this.Paragraphs.Count == 0) {
                 WordParagraph paragraph = this._document.AddParagraph(text);
                 paragraph._section = this;
@@ -344,6 +344,11 @@ namespace OfficeIMO.Word {
             this.Borders.SetBorder(wordBorder);
 
             return this;
+        }
+
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
+
+            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
     }
 }

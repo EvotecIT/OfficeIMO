@@ -568,5 +568,33 @@ namespace OfficeIMO.Word {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
             return wordTableContent;
         }
+
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
+            //WordParagraph newWordParagraph = new WordParagraph {
+            //    //_paragraphProperties = new ParagraphProperties(),
+            //    _document = this
+            //};
+            //newWordParagraph._paragraphProperties.ParagraphBorders = new ParagraphBorders();
+            //newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
+            //    Val = lineType,
+            //    Size = (UInt32Value)12U,
+            //    Space = (UInt32Value)1U
+            //};
+            //if (color != null) {
+            //    newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder.Color = color.Value.ToHexColor();
+            //} else {
+            //    newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder.Color = "auto";
+            //}
+
+            ////newWordParagraph._paragraph = new Paragraph(newWordParagraph._paragraphProperties);
+
+            //this._document.Body.Append(newWordParagraph._paragraph);
+            ////this._currentSection.PageBreaks.Add(newWordParagraph);
+            ////this._currentSection.Paragraphs.Add(newWordParagraph);
+
+
+
+            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        }
     }
 }

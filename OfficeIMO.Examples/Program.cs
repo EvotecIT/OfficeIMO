@@ -1386,6 +1386,23 @@ namespace OfficeIMO.Examples {
                 wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";
                 wordTable.Rows[0].Cells[2].MergeVertically(2, true);
 
+
+                document.AddHorizontalLine(BorderValues.Double, Color.Green);
+
+
+                document.AddParagraph("Test");
+
+
+                var paragraph = document.AddParagraph().AddHorizontalLine();
+
+                document.AddPageBreak();
+
+                var section = document.AddSection();
+
+                section.AddParagraph("This is a big test");
+
+                section.AddHorizontalLine(BorderValues.BalloonsHotAir, null, 24, 24);
+
                 document.Save(openWord);
             }
 
@@ -1575,6 +1592,10 @@ namespace OfficeIMO.Examples {
 
                 document.AddPageBreak();
 
+                document.AddHorizontalLine(BorderValues.Double);
+
+                document.Sections[0].AddHorizontalLine();
+
                 var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
                 wordListToc.AddItem("This is first item");
@@ -1612,7 +1633,7 @@ namespace OfficeIMO.Examples {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                // we loaded document, lets add some text to continue 
+                // we loaded document, lets add some text to continue
                 document.AddParagraph().SetColor(Color.CornflowerBlue).SetText("This is some text");
 
                 // we loaded document, lets add page break to continue
