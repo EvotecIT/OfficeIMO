@@ -10,15 +10,13 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordSection {
         public List<WordParagraph> Paragraphs {
-            get {
-                return GetParagraphsList();
-            }
+            get { return GetParagraphsList(); }
         }
+
         public List<WordParagraph> PageBreaks {
-            get {
-                return Paragraphs.Where(p => p.IsPageBreak).ToList();
-            }
+            get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
+
         public List<WordImage> Images = new List<WordImage>();
 
         public WordFooters Footer = new WordFooters();
@@ -46,9 +44,7 @@ namespace OfficeIMO.Word {
         }
 
         public List<WordTable> Tables {
-            get {
-                return GetTablesList();
-            }
+            get { return GetTablesList(); }
         }
 
         internal WordDocument _document;
@@ -128,6 +124,7 @@ namespace OfficeIMO.Word {
                 if (sectionProperties == null) {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
+
                 this._sectionProperties = sectionProperties;
             }
 
@@ -136,7 +133,6 @@ namespace OfficeIMO.Word {
 
                 var temporarySectionProperties = lastSection._sectionProperties;
                 if (temporarySectionProperties != null) {
-
                     CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
                     var old = this._sectionProperties;
 
@@ -225,35 +221,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        //public WordSection(WordDocument document) {
-        //    WordParagraph paragraph = new WordParagraph();
-        //    WordSection section = new WordSection(document, paragraph);
-        //}
-        //public WordSection(WordDocument document, WordParagraph paragraph) {
-        //    ParagraphProperties paragraphProperties = new ParagraphProperties();
-
-        //    SectionProperties sectionProperties = new SectionProperties();
-        //    SectionType sectionType = new SectionType() {Val = SectionMarkValues.NextPage};
-
-
-        //    sectionProperties.Append(sectionType);
-        //    paragraphProperties.Append(sectionProperties);
-        //    paragraph._paragraph.Append(paragraphProperties);
-        //}
-        //private static void AddSectionBreakToTheDocument(string fileName) {
-        //    using (WordprocessingDocument mydoc = WordprocessingDocument.Open(fileName, true)) {
-        //        MainDocumentPart myMainPart = mydoc.MainDocumentPart;
-        //        Paragraph paragraphSectionBreak = new Paragraph();
-        //        ParagraphProperties paragraphSectionBreakProperties = new ParagraphProperties();
-        //        SectionProperties SectionBreakProperties = new SectionProperties();
-        //        SectionType SectionBreakType = new SectionType() { Val = SectionMarkValues.NextPage };
-        //        SectionBreakProperties.Append(SectionBreakType);
-        //        paragraphSectionBreakProperties.Append(SectionBreakProperties);
-        //        paragraphSectionBreak.Append(paragraphSectionBreakProperties);
-        //        myMainPart.Document.Body.InsertAfter(paragraphSectionBreak, myMainPart.Document.Body.LastChild);
-        //        myMainPart.Document.Save();
-        //    }
-        //}
         internal static HeaderFooterValues GetType(string type) {
             if (type == "default") {
                 return HeaderFooterValues.Default;

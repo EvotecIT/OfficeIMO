@@ -91,6 +91,7 @@ namespace OfficeIMO.Word {
 
             return list;
         }
+
         private List<WordParagraph> GetParagraphsList() {
             Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
             var count = 0;
@@ -107,6 +108,7 @@ namespace OfficeIMO.Word {
                                 if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
                                     foundCount = count;
                                 }
+
                                 count++;
                                 dataSections[count] = new List<Paragraph>();
                             } else {
@@ -114,6 +116,7 @@ namespace OfficeIMO.Word {
                             }
                         }
                     }
+
                     if (foundCount < 0) {
                         var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                         if (sectionProperties == _sectionProperties) {
@@ -122,8 +125,10 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+
             return ConvertParagraphsToWordParagraphs(dataSections[foundCount]);
         }
+
         private List<WordTable> GetTablesList() {
             Dictionary<int, List<WordTable>> dataSections = new Dictionary<int, List<WordTable>>();
             var count = 0;
@@ -140,6 +145,7 @@ namespace OfficeIMO.Word {
                                 if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
                                     foundCount = count;
                                 }
+
                                 count++;
                                 dataSections[count] = new List<WordTable>();
                             }
@@ -148,6 +154,7 @@ namespace OfficeIMO.Word {
                             dataSections[count].Add(wordTable);
                         }
                     }
+
                     var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                     if (sectionProperties == _sectionProperties) {
                         foundCount = count;
@@ -157,6 +164,7 @@ namespace OfficeIMO.Word {
 
             return dataSections[foundCount];
         }
+
         /// <summary>
         /// This method moves headers and footers and title page to section before it.
         /// It also copies copies all other parts of sections (PageSize,PageMargin and others) to section before it.
@@ -200,6 +208,5 @@ namespace OfficeIMO.Word {
                 //newSectionProperties.Append(listSectionEntries);
             }
         }
-
     }
 }
