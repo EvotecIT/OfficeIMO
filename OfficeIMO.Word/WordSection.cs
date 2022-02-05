@@ -10,40 +10,296 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
-        public List<WordParagraph> Paragraphs = new List<WordParagraph>();
-        public List<WordParagraph> PageBreaks = new List<WordParagraph>();
+
+
+        private List<WordParagraph> GetParagraphs(IEnumerable<Paragraph> paragraphs) {
+            var list = new List<WordParagraph>();
+            foreach (Paragraph paragraph in paragraphs) {
+                //WordParagraph wordParagraph = new WordParagraph(_document, paragraph, null);
+
+                int count = 0;
+                var listRuns = paragraph.ChildElements.OfType<Run>();
+                if (listRuns.Any()) {
+                    foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+                        RunProperties runProperties = run.RunProperties;
+                        Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                        Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+
+                        WordImage newImage = null;
+                        if (drawing != null) {
+                            newImage = new WordImage(_document, drawing);
+                        }
+
+                        WordParagraph wordParagraph; // = new WordParagraph(_document, false);
+                        if (count > 0) {
+                            wordParagraph = new WordParagraph(_document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
+
+
+                            //wordParagraph = new WordParagraph(_document);
+                            //wordParagraph._document = _document;
+                            //wordParagraph._run = run;
+                            //wordParagraph._text = text;
+                            //wordParagraph._paragraph = paragraph;
+                            //wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
+                            //wordParagraph._runProperties = runProperties;
+                            //wordParagraph._section = section;
+
+                            wordParagraph.Image = newImage;
+
+                            if (wordParagraph.IsPageBreak) {
+                                // document._currentSection.PageBreaks.Add(wordParagraph);
+                            }
+
+                            if (wordParagraph.IsListItem) {
+                                //LoadListToDocument(document, wordParagraph);
+                            }
+
+                            list.Add(wordParagraph);
+                        } else {
+                            // wordParagraph._document = document;
+                            wordParagraph = new WordParagraph(_document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
+                            //wordParagraph._run = run;
+                            //wordParagraph._text = text;
+                            //wordParagraph._paragraph = paragraph;
+                            //wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
+                            //wordParagraph._runProperties = runProperties;
+                            // wordParagraph._section = section;
+
+                            if (newImage != null) {
+                                wordParagraph.Image = newImage;
+                            }
+
+                            // this is to prevent adding Tables Paragraphs to section Paragraphs
+                            //if (section != null) {
+                            // section.Paragraphs.Add(this);
+                            if (wordParagraph.IsPageBreak) {
+                                // section.PageBreaks.Add(this);
+                            }
+                            //}
+
+                            if (wordParagraph.IsListItem) {
+                                //LoadListToDocument(document, this);
+                            }
+
+                            list.Add(wordParagraph);
+                        }
+
+                        count++;
+                    }
+                } else {
+                    // add empty word paragraph
+                    list.Add(new WordParagraph(_document, false, paragraph, null, null, null));
+                }
+            }
+
+            return list;
+        }
+
+        private List<WordParagraph> GetPargraphsTestOld() {
+            // List<WordSection> listSections1 = new List<WordSection>();
+            //Dictionary<int, WordSection> listSections = new Dictionary<int, WordSection>();
+            Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
+            var count = 0;
+
+            dataSections[count] = new List<Paragraph>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+
+                                //listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
+
+                                //if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                //    foundCount = count;
+                                //}
+                                if (paragraph == _paragraph) {
+                                    foundCount = count;
+                                }
+                                count++;
+                                dataSections[count] = new List<Paragraph>();
+                            } else {
+                                dataSections[count].Add(paragraph);
+                            }
+                        } else if (element is SectionProperties) {
+                            // if (element == _sectionProperties) {
+                            //    foundCount = count;
+                            // }
+                            //var section = new WordSection(this, (SectionProperties)element, null);
+                            //listSections1.Add(section);
+                        }
+                    }
+
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        //if (sectionProperties == _sectionProperties) {
+                        foundCount = count;
+                        //}
+                    }
+                }
+            }
+            return GetParagraphs(dataSections[foundCount]);
+        }
+
+        private List<WordParagraph> GetPargraphsTest() {
+            // List<WordSection> listSections1 = new List<WordSection>();
+            //Dictionary<int, WordSection> listSections = new Dictionary<int, WordSection>();
+            Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
+            var count = 0;
+
+            dataSections[count] = new List<Paragraph>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+
+                                //listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
+
+                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                    foundCount = count;
+                                }
+                                //if (paragraph == _paragraph) {
+                                //   foundCount = count;
+                                //}
+                                count++;
+                                dataSections[count] = new List<Paragraph>();
+                            } else {
+                                dataSections[count].Add(paragraph);
+                            }
+                        } else if (element is SectionProperties) {
+                            // if (element == _sectionProperties) {
+                            //    foundCount = count;
+                            // }
+                            //var section = new WordSection(this, (SectionProperties)element, null);
+                            //listSections1.Add(section);
+                        }
+                    }
+
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (sectionProperties == _sectionProperties) {
+                            foundCount = count;
+                        }
+                    }
+                }
+            }
+            return GetParagraphs(dataSections[foundCount]);
+        }
+
+        private List<WordTable> GetTables() {
+            // List<WordSection> listSections1 = new List<WordSection>();
+            //Dictionary<int, WordSection> listSections = new Dictionary<int, WordSection>();
+            Dictionary<int, List<WordTable>> dataSections = new Dictionary<int, List<WordTable>>();
+            var count = 0;
+
+            dataSections[count] = new List<WordTable>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                    foundCount = count;
+                                }
+                                count++;
+                                dataSections[count] = new List<WordTable>();
+                            }
+                        } else if (element is Table) {
+                            WordTable wordTable = new WordTable(_document, null, (Table)element);
+                            dataSections[count].Add(wordTable);
+                        }
+                    }
+                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    if (sectionProperties == _sectionProperties) {
+                        foundCount = count;
+                    }
+                }
+            }
+
+            return dataSections[foundCount];
+        }
+
+        //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+
+        public List<WordParagraph> Paragraphs {
+            get {
+                return GetPargraphsTest();
+            }
+        }
+        public List<WordParagraph> TestParagraphs {
+            get {
+                return new List<WordParagraph>();
+            }
+        }
+        public List<WordParagraph> PageBreaks {
+            get {
+                //return new List<WordParagraph>();
+                return Paragraphs.Where(p => p.IsPageBreak).ToList();
+            }
+        }
         public List<WordImage> Images = new List<WordImage>();
 
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
-        public List<WordList> Lists = new List<WordList>();
+        //public List<WordList> Lists = new List<WordList>();
 
         public WordBorders Borders;
         public WordMargins Margins;
 
-        //public List<WordList> Lists {
-        //    get {
-        //        List<WordList> returnList = new List<WordList>();
-        //        foreach (WordParagraph paragraph in this.Paragraphs) {
-        //            if (paragraph.IsListItem) {
-        //                if (!_document._listNumbersUsed.Contains(paragraph._listNumberId.Value)) {
-        //                    WordList list = new WordList(paragraph._document, paragraph._section, paragraph._listNumberId.Value);
-        //                    returnList.Add(list);
-        //                    _document._listNumbersUsed.Add(paragraph._listNumberId.Value);
-        //                }
-        //            }
-        //        }
+        public List<WordList> Lists {
+            get {
+                Dictionary<int, List<WordList>> dataLists = new Dictionary<int, List<WordList>>();
 
-        //        return returnList;
-        //    }
-        //}
+                List<WordList> returnList = new List<WordList>();
+                if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                    var ids = new List<int>();
+                    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                        //ids.Add(element.NumberID);
 
-        public List<WordTable> Tables = new List<WordTable>();
+                        WordList list = new WordList(_document, this, element.NumberID);
+                        returnList.Add(list);
+                    }
+
+                    //foreach (WordParagraph paragraph in this.Paragraphs) {
+                    //    if (paragraph.IsListItem) {
+                    //        if (!_document._listNumbersUsed.Contains(paragraph._listNumberId.Value)) {
+                    //            WordList list = new WordList(paragraph._document, paragraph._section, paragraph._listNumberId.Value);
+                    //            returnList.Add(list);
+                    //            _document._listNumbersUsed.Add(paragraph._listNumberId.Value);
+                    //        }
+                    //    }
+                    //}
+
+                }
+
+                return returnList;
+            }
+        }
+
+        public List<WordTable> Tables {
+            get {
+                return GetTables();
+                //return new List<WordTable>();
+            }
+        }
 
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;
         private WordprocessingDocument _wordprocessingDocument;
+        private readonly Paragraph _paragraph;
+        private int _sectionNumber;
 
 
         public WordSection SetMargins(PageMargin pageMargins) {
@@ -114,6 +370,7 @@ namespace OfficeIMO.Word {
         internal WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._paragraph = paragraph;
             if (sectionProperties != null) {
                 this._sectionProperties = sectionProperties;
             } else {
@@ -130,7 +387,7 @@ namespace OfficeIMO.Word {
             wordDocument.Sections.Add(this);
 
             // this is added for tracking current section of the document
-            wordDocument._currentSection = this;
+            //wordDocument._currentSection = this;
 
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
@@ -163,6 +420,7 @@ namespace OfficeIMO.Word {
         internal WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._paragraph = paragraph;
 
             if (paragraph != null) {
                 var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
@@ -191,8 +449,6 @@ namespace OfficeIMO.Word {
 
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
-
-
                 }
             }
 
@@ -203,7 +459,7 @@ namespace OfficeIMO.Word {
             wordDocument.Sections.Add(this);
 
             // this is added for tracking current section of the document
-            wordDocument._currentSection = this;
+            //wordDocument._currentSection = this;
 
         }
 
@@ -320,6 +576,43 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraph(string text = "") {
+            //WordParagraph wordParagraph = new WordParagraph(_document, true);
+            //rdParagraph.Text = text;
+
+            //if (this._paragraph == null) {
+            //    this._document.AddParagraph(wordParagraph);
+            //} else {
+
+            //    // this._paragraph.InsertBeforeSelf(wordParagraph._paragraph);
+            //    WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
+            //    wordParagraph = lastParagraphWithinSection.AddParagraphAfterSelf();
+            //    wordParagraph.Text = text;
+            //    //paragraph._section = this;
+
+            //}
+            //return wordParagraph;
+
+
+            //if (this.Paragraphs.Count == 0) {
+            //    //WordParagraph paragraph = this._document.AddParagraph(text);
+            //    WordParagraph paragraph = new WordParagraph(_document, true);
+            //    paragraph.Text = text;
+
+            //    this._paragraph.InsertBeforeSelf(paragraph._paragraph);
+
+            //    //paragraph._section = this;
+            //    return paragraph;
+            //} else {
+            //    WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
+
+            //    WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
+            //    paragraph._document = this._document;
+            //    // paragraph._section = this;
+            //    //this.Paragraphs.Add(paragraph);
+            //    paragraph.Text = text;
+            //    return paragraph;
+            //}
+
             if (this.Paragraphs.Count == 0) {
                 WordParagraph paragraph = this._document.AddParagraph(text);
                 paragraph._section = this;

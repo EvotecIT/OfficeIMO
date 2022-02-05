@@ -206,7 +206,7 @@ namespace OfficeIMO.Word {
             }
 
             if (section != null) {
-                section.Tables.Add(this);
+                //section.Tables.Add(this);
             }
         }
 

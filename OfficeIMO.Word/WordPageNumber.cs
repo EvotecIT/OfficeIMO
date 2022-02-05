@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
         private WordFooter _wordFooter;
         private WordParagraph _wordParagraph;
 
-        public JustificationValues ParagraphAlignment {
+        public JustificationValues? ParagraphAlignment {
             get {
                 return this._wordParagraph.ParagraphAlignment;
             }
@@ -77,7 +77,7 @@ namespace OfficeIMO.Word {
             if (_sdtBlock != null) {
                 var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
                 foreach (var paragraph in paragraphs) {
-                   this._wordParagraph = new WordParagraph(_document, paragraph);
+                    this._wordParagraph = new WordParagraph(_document, paragraph);
                 }
             }
             wordHeader._header.Append(_sdtBlock);

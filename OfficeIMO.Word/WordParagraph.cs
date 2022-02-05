@@ -96,18 +96,43 @@ namespace OfficeIMO.Word {
 
                 return _text.Text;
             }
-            set { _text.Text = value; }
+            set {
+                VerifyText();
+                _text.Text = value;
+            }
+        }
+
+        public Run VerifyRun() {
+            if (this._run == null) {
+                this._run = new Run();
+                this._paragraph.Append(_run);
+            }
+            return this._run;
+        }
+
+        public Text VerifyText() {
+            if (_text == null) {
+                var run = VerifyRun();
+
+                this._text = new Text {
+                    // this ensures spaces are preserved between runs
+                    Space = SpaceProcessingModeValues.Preserve
+                };
+                this._run.Append(_text);
+            }
+
+            return this._text;
         }
 
         public WordParagraph(WordSection section, bool newParagraph = true) {
             this._document = section._document;
-            this._section = section;
+            // this._section = section;
 
             this._run = new Run();
             this._runProperties = new RunProperties();
 
-            this._run = new Run();
-            this._runProperties = new RunProperties();
+            //this._run = new Run();
+            //this._runProperties = new RunProperties();
             this._text = new Text {
                 // this ensures spaces are preserved between runs
                 Space = SpaceProcessingModeValues.Preserve
@@ -121,7 +146,7 @@ namespace OfficeIMO.Word {
                 this._paragraph.AppendChild(_run);
             }
 
-            section.Paragraphs.Add(this);
+            //section.Paragraphs.Add(this);
         }
 
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
@@ -142,33 +167,43 @@ namespace OfficeIMO.Word {
             }
 
             if (document != null) {
-                document._currentSection.Paragraphs.Add(this);
-                this._section = document._currentSection;
+                //  document._currentSection.Paragraphs.Add(this);
+                //this._section = document._currentSection;
                 //document.Paragraphs.Add(this);
             }
         }
 
-        public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section) {
+        public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
             this._document = document;
             this._section = section;
             this._run = run;
             this._runProperties = runProperties;
-            this._text = new Text {
-                // this ensures spaces are preserved between runs
-                Space = SpaceProcessingModeValues.Preserve
-            };
+            this._paragraph = paragraph;
+            //this._text = new Text {
+            //    // this ensures spaces are preserved between runs
+            //    Space = SpaceProcessingModeValues.Preserve
+            //};
+
+            if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
             this._paragraphProperties = paragraphProperties;
-            this._run.AppendChild(_runProperties);
-            this._run.AppendChild(_text);
+            if (this._run != null) {
+                //  this._run.AppendChild(_runProperties);
+                // this._run.AppendChild(_text);
+            }
+
             if (newParagraph) {
                 this._paragraph = new Paragraph();
-                this._paragraph.AppendChild(_paragraphProperties);
-                this._paragraph.AppendChild(_run);
+
+                if (_paragraphProperties != null) {
+                    //this._paragraph.ParagraphProperties = _paragraphProperties;
+                    this._paragraph.AppendChild(_paragraphProperties);
+                }
+                if (_run != null) this._paragraph.AppendChild(_run);
             }
 
             if (document != null) {
                 // document._currentSection.Paragraphs.Add(this);
-                section.Paragraphs.Add(this);
+                //section.Paragraphs.Add(this);
                 //document.Paragraphs.Add(this);
             }
         }

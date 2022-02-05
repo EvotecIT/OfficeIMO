@@ -76,8 +76,12 @@ namespace OfficeIMO.Word {
                 //    list.AddRange(section.Tables);
                 //}
 
-                foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
-                    list.Add(new WordTable(this, null, table));
+                //foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
+                //    list.Add(new WordTable(this, null, table));
+                //}
+
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Tables);
                 }
 
                 return list;
@@ -85,9 +89,53 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private List<WordSection> GetSections() {
+            List<WordSection> listSections1 = new List<WordSection>();
+            //Dictionary<int, WordSection> listSections = new Dictionary<int, WordSection>();
+            //Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
+            //var count = 0;
+
+            //dataSections[count] = new List<Paragraph>();
+
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                //count++;
+                                //dataSections[count] = new List<Paragraph>();
+
+                                listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
+
+                            } else {
+                                //dataSections[count].Add(paragraph);
+                            }
+                        } else if (element is SectionProperties sectionProperties) {
+                            //var section = new WordSection(this, (SectionProperties)element, null);
+                            //listSections1.Add(section);
+                        }
+                    }
+                    var sectionProp = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    var section = new WordSection(this, sectionProp, null);
+                    listSections1.Add(section);
+                }
+            }
+
+            return listSections1;
+        }
+
         //public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
-        public readonly List<WordSection> Sections = new List<WordSection>();
+        //public readonly List<WordSection> Sections = new List<WordSection>();
+        public List<WordSection> Sections = new List<WordSection>();
+
+        public List<WordSection> SectionsGenerated {
+            get {
+                return GetSections();
+            }
+        }
 
         public string FilePath { get; set; }
 
@@ -206,14 +254,14 @@ namespace OfficeIMO.Word {
             var wordCustomProperties = new WordCustomProperties(this);
             var wordBackground = new WordBackground(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
-            // add a section thats assigned to top of the document
+            // add a section that's assigned to top of the document
             WordSection wordSection = new WordSection(this, null, null);
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
-                    WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
+                    // WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
                     if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                         // find sections added via section page breaks
                         //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
@@ -227,7 +275,7 @@ namespace OfficeIMO.Word {
                         wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
                     }
                 } else if (element is Table) {
-                    WordTable wordTable = new WordTable(this, wordSection, (Table)element);
+                    // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
                 } else if (element is SectionProperties sectionProperties) {
                     // we don't do anything as we already created it above - i think
                 } else if (element is SdtBlock sdtBlock) {
@@ -461,8 +509,8 @@ namespace OfficeIMO.Word {
 
             this._document.Body.Append(newWordParagraph._paragraph);
 
-            this._currentSection.PageBreaks.Add(newWordParagraph);
-            this._currentSection.Paragraphs.Add(newWordParagraph);
+            //this._currentSection.PageBreaks.Add(newWordParagraph);
+            //this._currentSection.Paragraphs.Add(newWordParagraph);
             //this.PageBreaks.Add(newWordParagraph); 
             //this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
@@ -510,10 +558,20 @@ namespace OfficeIMO.Word {
 
             WordSection wordSection = new WordSection(this, paragraph);
 
+            //this.Sections.Add(wordSection);
+            //WordSection wordSection = new WordSection(this, sectionProperties);
+
+            //var wordSection = this.Sections.Last();
             return wordSection;
         }
 
-        public WordSection _currentSection { get; set; }
+        internal WordSection _currentSection {
+            get {
+                return this.Sections.Last();
+            }
+        }
+
+
         public WordBackground Background { get; set; }
 
         public bool ValidateDocument() {

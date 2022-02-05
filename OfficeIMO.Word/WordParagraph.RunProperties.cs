@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
 
         public bool Bold {
             get {
-                if (_runProperties.Bold != null) {
+                if (_runProperties != null && _runProperties.Bold != null) {
                     return true;
                 } else {
                     return false;
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
 
         public bool Italic {
             get {
-                if (_runProperties.Italic != null) {
+                if (_runProperties != null && _runProperties.Italic != null) {
                     return true;
                 } else {
                     return false;
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word {
 
         public UnderlineValues? Underline {
             get {
-                if (_runProperties.Underline.Val != null) {
+                if (_runProperties != null && _runProperties.Underline != null) {
                     return _runProperties.Underline.Val;
                 } else {
                     return null;
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
 
         public bool DoNotCheckSpellingOrGrammar {
             get {
-                if (_runProperties.NoProof != null) {
+                if (_runProperties != null && _runProperties.NoProof != null) {
                     return true;
                 } else {
                     return false;
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
 
         public int? Spacing {
             get {
-                if (_runProperties.Spacing != null) {
+                if (_runProperties != null && _runProperties.Spacing != null) {
                     return _runProperties.Spacing.Val;
                 } else {
                     return null;
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
 
         public bool Strike {
             get {
-                if (_runProperties.Strike != null) {
+                if (_runProperties != null && _runProperties.Strike != null) {
                     return true;
                 } else {
                     return false;
@@ -117,7 +117,7 @@ namespace OfficeIMO.Word {
 
         public bool DoubleStrike {
             get {
-                if (_runProperties.DoubleStrike != null) {
+                if (_runProperties != null && _runProperties.DoubleStrike != null) {
                     return true;
                 } else {
                     return false;
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
         }
         public int? FontSize {
             get {
-                if (_runProperties.FontSize != null) {
+                if (_runProperties != null && _runProperties.FontSize != null) {
                     var fontSizeInHalfPoint = int.Parse(_runProperties.FontSize.Val);
                     return fontSizeInHalfPoint / 2;
                 } else {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Word {
 
         public string Color {
             get {
-                if (_runProperties.Color != null) {
+                if (_runProperties != null && _runProperties.Color != null) {
                     return _runProperties.Color.Val;
                 } else {
                     return "";
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
 
         public HighlightColorValues? Highlight {
             get {
-                if (_runProperties.Highlight != null) {
+                if (_runProperties != null && _runProperties.Highlight != null) {
                     return _runProperties.Highlight.Val;
                 } else {
                     return null;
@@ -189,9 +189,9 @@ namespace OfficeIMO.Word {
 
         public CapsStyle CapsStyle {
             get {
-                if (_runProperties.Caps != null) {
+                if (_runProperties != null && _runProperties.Caps != null) {
                     return CapsStyle.Caps;
-                } else if (_runProperties.SmallCaps != null) {
+                } else if (_runProperties != null && _runProperties.SmallCaps != null) {
                     return CapsStyle.SmallCaps;
                 } else {
                     return CapsStyle.None;
@@ -211,7 +211,7 @@ namespace OfficeIMO.Word {
 
         public string FontFamily {
             get {
-                if (_runProperties.RunFonts != null) {
+                if (_runProperties != null && _runProperties.RunFonts != null) {
                     return _runProperties.RunFonts.Ascii;
                 } else {
                     return null;
