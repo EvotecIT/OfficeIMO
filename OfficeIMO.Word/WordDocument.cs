@@ -47,6 +47,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordComment> Comments {
+            get {
+                return WordComment.GetAllComments(this);
+            }
+        }
         public List<WordList> Lists {
             get {
                 List<WordList> list = new List<WordList>();

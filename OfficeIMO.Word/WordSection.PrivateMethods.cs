@@ -9,7 +9,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
-        private List<WordParagraph> ConvertParagraphsToWordParagraphs(IEnumerable<Paragraph> paragraphs) {
+        internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
             foreach (Paragraph paragraph in paragraphs) {
                 //WordParagraph wordParagraph = new WordParagraph(_document, paragraph, null);
@@ -24,12 +24,12 @@ namespace OfficeIMO.Word {
 
                         WordImage newImage = null;
                         if (drawing != null) {
-                            newImage = new WordImage(_document, drawing);
+                            newImage = new WordImage(document, drawing);
                         }
 
                         WordParagraph wordParagraph; // = new WordParagraph(_document, false);
                         if (count > 0) {
-                            wordParagraph = new WordParagraph(_document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
+                            wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
 
 
                             //wordParagraph = new WordParagraph(_document);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                             list.Add(wordParagraph);
                         } else {
                             // wordParagraph._document = document;
-                            wordParagraph = new WordParagraph(_document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
+                            wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
                             //wordParagraph._run = run;
                             //wordParagraph._text = text;
                             //wordParagraph._paragraph = paragraph;
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
                     }
                 } else {
                     // add empty word paragraph
-                    list.Add(new WordParagraph(_document, false, paragraph, null, null, null));
+                    list.Add(new WordParagraph(document, false, paragraph, null, null, null));
                 }
             }
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return ConvertParagraphsToWordParagraphs(dataSections[foundCount]);
+            return ConvertParagraphsToWordParagraphs(_document, dataSections[foundCount]);
         }
 
         private List<WordTable> GetTablesList() {
