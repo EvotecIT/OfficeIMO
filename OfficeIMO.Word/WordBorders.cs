@@ -670,7 +670,11 @@ namespace OfficeIMO.Word {
                             pageBordersBuiltin.LeftBorder.Size == pageBorder.LeftBorder.Size &&
                             pageBordersBuiltin.RightBorder.Size == pageBorder.RightBorder.Size &&
                             pageBordersBuiltin.TopBorder.Size == pageBorder.TopBorder.Size &&
-                            pageBordersBuiltin.BottomBorder.Size == pageBorder.BottomBorder.Size) {
+                            pageBordersBuiltin.BottomBorder.Size == pageBorder.BottomBorder.Size &&
+                            pageBordersBuiltin.LeftBorder.Space == pageBorder.LeftBorder.Space &&
+                            pageBordersBuiltin.RightBorder.Space == pageBorder.RightBorder.Space &&
+                            pageBordersBuiltin.TopBorder.Space == pageBorder.TopBorder.Space &&
+                            pageBordersBuiltin.BottomBorder.Space == pageBorder.BottomBorder.Space) {
                             return wordBorder;
                         }
                     }
