@@ -270,5 +270,112 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_CreatingWordDocumentWithParagraphsSections() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithParagraphsSections.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 1, "Sections count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                document.AddParagraph("Testing...").AddText(" how this stuff works...").AddText(" or maybe it doesn't ").SetColor(Color.Red);
+                document.AddParagraph("Ok");
+                document.AddParagraph("Testing2...").AddText(" how this stuff works2...");
+
+                document.AddSection();
+                document.AddParagraph("Testing3...").AddText(" how this stuff works3...");
+                document.AddParagraph("Testing4...").AddText(" how this stuff works4...").AddText("Ok see 1");
+
+                document.AddSection();
+
+                document.AddParagraph("Testing5...").AddText(" how this stuff works5...");
+                document.AddParagraph("Testing6...").AddText(" how this stuff works6...").AddText("Ok see");
+
+                document.AddSection();
+
+                Assert.True(document.Sections[0].Paragraphs.Count == 6);
+                Assert.True(document.Sections[1].Paragraphs.Count == 5);
+                Assert.True(document.Sections[2].Paragraphs.Count == 5);
+                Assert.True(document.Sections[3].Paragraphs.Count == 0);
+
+                Assert.True(document.Paragraphs.Count == 16, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 4, "Sections count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+
+                document.Paragraphs[1].Remove();
+
+                Assert.True(document.Paragraphs.Count == 15, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+
+                Assert.True(document.Paragraphs[0].Text == "Testing...");
+                Assert.True(document.Paragraphs[1].Text == " or maybe it doesn't ");
+
+                foreach (var paragraph in document.Paragraphs) {
+                    if (paragraph.Text == " how this stuff works4...") {
+                        paragraph.Remove();
+                    }
+                }
+                Assert.True(document.Paragraphs.Count == 14, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+
+                Assert.True(document.Paragraphs[7].Text == "Testing4...");
+                Assert.True(document.Paragraphs[8].Text == "Ok see 1");
+
+                Assert.True(document.Sections[0].Paragraphs.Count == 5);
+                Assert.True(document.Sections[1].Paragraphs.Count == 4);
+                Assert.True(document.Sections[2].Paragraphs.Count == 5);
+                Assert.True(document.Sections[3].Paragraphs.Count == 0);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithParagraphsSections.docx"))) {
+                Assert.True(document.Paragraphs.Count == 14, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 4, "Sections count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                Assert.True(document.Paragraphs[0].Text == "Testing...");
+                Assert.True(document.Paragraphs[1].Text == " or maybe it doesn't ");
+                Assert.True(document.Paragraphs[7].Text == "Testing4...");
+                Assert.True(document.Paragraphs[8].Text == "Ok see 1");
+                Assert.True(document.Paragraphs[2].Text == "Ok");
+                Assert.True(document.Paragraphs[3].Text == "Testing2...");
+
+
+                Assert.True(document.Sections[0].Paragraphs.Count == 5);
+                Assert.True(document.Sections[1].Paragraphs.Count == 4);
+                Assert.True(document.Sections[2].Paragraphs.Count == 5);
+                Assert.True(document.Sections[3].Paragraphs.Count == 0);
+
+                document.Paragraphs[2].Remove();
+
+                Assert.True(document.Paragraphs[2].Text == "Testing2...");
+                Assert.True(document.Paragraphs[3].Text == " how this stuff works2...");
+                Assert.True(document.Paragraphs.Count == 13, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+
+
+                Assert.True(document.Sections[0].Paragraphs.Count == 4);
+                Assert.True(document.Sections[1].Paragraphs.Count == 4);
+                Assert.True(document.Sections[2].Paragraphs.Count == 5);
+                Assert.True(document.Sections[3].Paragraphs.Count == 0);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithParagraphsSections.docx"))) {
+                Assert.True(document.Sections.Count == 4, "Sections count matches");
+                Assert.True(document.Tables.Count == 0, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+                Assert.True(document.Paragraphs[2].Text == "Testing2...");
+                Assert.True(document.Paragraphs[3].Text == " how this stuff works2...");
+                Assert.True(document.Paragraphs.Count == 13, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+
+                Assert.True(document.Sections[0].Paragraphs.Count == 4);
+                Assert.True(document.Sections[1].Paragraphs.Count == 4);
+                Assert.True(document.Sections[2].Paragraphs.Count == 5);
+                Assert.True(document.Sections[3].Paragraphs.Count == 0);
+                document.Save();
+            }
+        }
+
     }
 }

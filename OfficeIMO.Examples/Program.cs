@@ -244,6 +244,8 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicWord2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Settings.ZoomPercentage = 150;
                 var paragraph = document.AddParagraph("Basic paragraph");
 
                 var section1 = document.AddSection();
@@ -254,7 +256,9 @@ namespace OfficeIMO.Examples {
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Last Section - 1");
                 section1.AddParagraph("Test Middle Section - 2");
-                document.AddParagraph("Test 1");
+                var test = document.AddParagraph("Test 1 - to delete");
+                test.Remove();
+
 
                 document.Sections[2].AddParagraph("Test 0 - Section Last");
                 document.Sections[1].AddParagraph("Test 1");

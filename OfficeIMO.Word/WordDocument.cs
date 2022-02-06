@@ -16,13 +16,6 @@ namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
 
-        //internal int _listNumbers;
-
-        //internal List<int> _listNumbersUsed = new List<int>();
-        //internal List<NumberingInstance> _listNumberingInstances = new List<NumberingInstance>();
-        //internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
-
-        //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
         public WordTableOfContent TableOfContent {
             get {
                 SdtBlock sdtBlock = _document.Body.ChildElements.OfType<SdtBlock>().FirstOrDefault();
@@ -35,14 +28,10 @@ namespace OfficeIMO.Word {
 
         public List<WordParagraph> Paragraphs {
             get {
-                //if (this.Sections.Count > 1) {
-                //    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                //}
                 List<WordParagraph> list = new List<WordParagraph>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Paragraphs);
                 }
-
                 return list;
             }
         }
@@ -91,12 +80,6 @@ namespace OfficeIMO.Word {
 
         private List<WordSection> GetSections() {
             List<WordSection> listSections1 = new List<WordSection>();
-            //Dictionary<int, WordSection> listSections = new Dictionary<int, WordSection>();
-            //Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
-            //var count = 0;
-
-            //dataSections[count] = new List<Paragraph>();
-
             if (_wordprocessingDocument.MainDocumentPart.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
@@ -104,17 +87,8 @@ namespace OfficeIMO.Word {
                         if (element is Paragraph) {
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                //count++;
-                                //dataSections[count] = new List<Paragraph>();
-
                                 listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
-
-                            } else {
-                                //dataSections[count].Add(paragraph);
                             }
-                        } else if (element is SectionProperties sectionProperties) {
-                            //var section = new WordSection(this, (SectionProperties)element, null);
-                            //listSections1.Add(section);
                         }
                     }
                     var sectionProp = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
@@ -122,7 +96,6 @@ namespace OfficeIMO.Word {
                     listSections1.Add(section);
                 }
             }
-
             return listSections1;
         }
 
@@ -144,9 +117,7 @@ namespace OfficeIMO.Word {
         public ApplicationProperties ApplicationProperties;
         public BuiltinDocumentProperties BuiltinDocumentProperties;
 
-        public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
-        public WordCustomProperties _customDocumentProperties;
-        //internal WordLists WordLists;
+        public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -154,6 +125,7 @@ namespace OfficeIMO.Word {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
+        public WordCustomProperties _customDocumentProperties;
 
 
         public FileAccess FileOpenAccess {
