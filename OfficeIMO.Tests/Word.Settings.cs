@@ -25,6 +25,16 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.BackgroundColor == "8A2BE2");
 
+                document.Settings.ZoomPercentage = 150;
+
+                Assert.True(document.Settings.ZoomPercentage == 150);
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+
+                document.Settings.UpdateFieldsOnOpen = true;
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true);
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -42,12 +52,44 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor("FFA07A");
 
+                Assert.True(document.Settings.ZoomPercentage == 150);
+
+                document.Settings.ZoomPercentage = 100;
+
+                Assert.True(document.Settings.ZoomPercentage == 100);
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true);
+
+                document.Settings.UpdateFieldsOnOpen = false;
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
                 Assert.True(document.Settings.ProtectionType == null);
                 Assert.True(document.Settings.BackgroundColor == "FFA07A");
+                Assert.True(document.Settings.ZoomPercentage == 100);
+                Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
+
+                document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+
+                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.BestFit);
+
+                document.Settings.ZoomPreset = PresetZoomValues.FullPage;
+
+                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.FullPage);
+
+                document.Settings.ZoomPreset = PresetZoomValues.None;
+
+                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.None);
+
+                document.Settings.ZoomPreset = PresetZoomValues.TextFit;
+
+                Assert.True(document.Settings.ZoomPreset == PresetZoomValues.TextFit);
+
                 document.Save();
             }
         }
