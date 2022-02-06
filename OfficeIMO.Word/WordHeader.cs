@@ -9,15 +9,16 @@ namespace OfficeIMO.Word {
     public class WordHeader {
         public List<WordParagraph> Paragraphs {
             get {
-                List<WordParagraph> paragraphs = new List<WordParagraph>();
+                //List<WordParagraph> paragraphs = new List<WordParagraph>();
                 if (_header != null) {
-                    var list = _header.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in list) {
-                        paragraphs.Add(new WordParagraph(_document, paragraph, null));
-                    }
+                    //var list = _header.ChildElements.OfType<Paragraph>();
+                    //foreach (var paragraph in list) {
+                    //    paragraphs.Add(new WordParagraph(_document, paragraph));
+                    //}
+                    return WordSection.ConvertParagraphsToWordParagraphs(_document, _header.ChildElements.OfType<Paragraph>());
                 }
 
-                return paragraphs;
+                return new List<WordParagraph>(); ;
             }
         }
         private readonly HeaderFooterValues _type;

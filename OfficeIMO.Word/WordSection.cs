@@ -6,103 +6,70 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
-        public List<WordParagraph> Paragraphs = new List<WordParagraph>();
-        public List<WordParagraph> PageBreaks = new List<WordParagraph>();
+        public List<WordParagraph> Paragraphs => GetParagraphsList();
+
+        public List<WordParagraph> PageBreaks {
+            get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
+        }
+
+        public List<WordParagraph> HyperLinks {
+            get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
+        }
+
+        public List<WordParagraph> Fields {
+            get { return Paragraphs.Where(p => p.IsField).ToList(); }
+        }
+
+        public List<WordParagraph> Bookmarks {
+            get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
+        }
+
+        public List<WordParagraph> Equations {
+            get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
+        }
+
+        public List<WordParagraph> StructuredDocumentTags {
+            get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
+        }
+
         public List<WordImage> Images = new List<WordImage>();
 
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
-        public List<WordList> Lists = new List<WordList>();
-
         public WordBorders Borders;
         public WordMargins Margins;
 
-        //public List<WordList> Lists {
-        //    get {
-        //        List<WordList> returnList = new List<WordList>();
-        //        foreach (WordParagraph paragraph in this.Paragraphs) {
-        //            if (paragraph.IsListItem) {
-        //                if (!_document._listNumbersUsed.Contains(paragraph._listNumberId.Value)) {
-        //                    WordList list = new WordList(paragraph._document, paragraph._section, paragraph._listNumberId.Value);
-        //                    returnList.Add(list);
-        //                    _document._listNumbersUsed.Add(paragraph._listNumberId.Value);
-        //                }
-        //            }
-        //        }
+        public List<WordList> Lists {
+            get {
+                Dictionary<int, List<WordList>> dataLists = new Dictionary<int, List<WordList>>();
 
-        //        return returnList;
-        //    }
-        //}
+                List<WordList> returnList = new List<WordList>();
+                if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                    var ids = new List<int>();
+                    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                        WordList list = new WordList(_document, this, element.NumberID);
+                        returnList.Add(list);
+                    }
+                }
 
-        public List<WordTable> Tables = new List<WordTable>();
+                return returnList;
+            }
+        }
+
+        public List<WordTable> Tables {
+            get { return GetTablesList(); }
+        }
 
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;
         private WordprocessingDocument _wordprocessingDocument;
+        private readonly Paragraph _paragraph;
 
-
-        public WordSection SetMargins(PageMargin pageMargins) {
-            var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-            if (pageMargin == null) {
-                _sectionProperties.Append(pageMargins);
-                // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-            } else {
-                pageMargin.Remove();
-                _sectionProperties.Append(pageMargins);
-            }
-
-            return this;
-        }
-
-
-        /// <summary>
-        /// This method moves headers and footers and title page to section before it.
-        /// It also copies copies all other parts of sections (PageSize,PageMargin and others) to section before it.
-        /// This is because headers/footers when applied to section apply to the rest of the document
-        /// unless there are headers/footers on next section.
-        /// On the other hand page size doesn't apply to other sections
-        /// and word uses default values. 
-        /// </summary>
-        /// <param name="sectionProperties"></param>
-        /// <param name="newSectionProperties"></param>
-        private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
-            if (newSectionProperties.ChildElements.Count == 0) {
-                var listSectionEntries = sectionProperties.ChildElements.ToList();
-                foreach (var element in listSectionEntries) {
-                    if (element is HeaderReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
-                    } else if (element is FooterReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
-                        //} else if (element is PageSize) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                    } else if (element is PageMargin) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        //sectionProperties.RemoveChild(element);
-                        //} else if (element is Columns) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                        //} else if (element is DocGrid) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                        //} else if (element is SectionType) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
-                    } else if (element is TitlePage) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
-                    } else {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        //throw new NotImplementedException("This isn't implemented yet?");
-                    }
-                }
-                //sectionProperties.RemoveAllChildren();
-                //newSectionProperties.Append(listSectionEntries);
-            }
-        }
 
         /// <summary>
         /// Used to load WordSection withing word document
@@ -114,6 +81,7 @@ namespace OfficeIMO.Word {
         internal WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._paragraph = paragraph;
             if (sectionProperties != null) {
                 this._sectionProperties = sectionProperties;
             } else {
@@ -128,9 +96,6 @@ namespace OfficeIMO.Word {
             }
 
             wordDocument.Sections.Add(this);
-
-            // this is added for tracking current section of the document
-            wordDocument._currentSection = this;
 
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
@@ -163,6 +128,7 @@ namespace OfficeIMO.Word {
         internal WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._paragraph = paragraph;
 
             if (paragraph != null) {
                 var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
@@ -176,23 +142,20 @@ namespace OfficeIMO.Word {
                 if (sectionProperties == null) {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
+
                 this._sectionProperties = sectionProperties;
             }
 
             if (this._document.Sections.Count > 0) {
                 WordSection lastSection = this._document.Sections[this._document.Sections.Count - 1];
-                //lastSection._sectionProperties.
 
                 var temporarySectionProperties = lastSection._sectionProperties;
                 if (temporarySectionProperties != null) {
-
                     CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
                     var old = this._sectionProperties;
 
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
-
-
                 }
             }
 
@@ -201,10 +164,6 @@ namespace OfficeIMO.Word {
             this.Borders = new WordBorders(wordDocument, this);
 
             wordDocument.Sections.Add(this);
-
-            // this is added for tracking current section of the document
-            wordDocument._currentSection = this;
-
         }
 
         public bool DifferentFirstPage {
@@ -280,35 +239,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        //public WordSection(WordDocument document) {
-        //    WordParagraph paragraph = new WordParagraph();
-        //    WordSection section = new WordSection(document, paragraph);
-        //}
-        //public WordSection(WordDocument document, WordParagraph paragraph) {
-        //    ParagraphProperties paragraphProperties = new ParagraphProperties();
-
-        //    SectionProperties sectionProperties = new SectionProperties();
-        //    SectionType sectionType = new SectionType() {Val = SectionMarkValues.NextPage};
-
-
-        //    sectionProperties.Append(sectionType);
-        //    paragraphProperties.Append(sectionProperties);
-        //    paragraph._paragraph.Append(paragraphProperties);
-        //}
-        //private static void AddSectionBreakToTheDocument(string fileName) {
-        //    using (WordprocessingDocument mydoc = WordprocessingDocument.Open(fileName, true)) {
-        //        MainDocumentPart myMainPart = mydoc.MainDocumentPart;
-        //        Paragraph paragraphSectionBreak = new Paragraph();
-        //        ParagraphProperties paragraphSectionBreakProperties = new ParagraphProperties();
-        //        SectionProperties SectionBreakProperties = new SectionProperties();
-        //        SectionType SectionBreakType = new SectionType() { Val = SectionMarkValues.NextPage };
-        //        SectionBreakProperties.Append(SectionBreakType);
-        //        paragraphSectionBreakProperties.Append(SectionBreakProperties);
-        //        paragraphSectionBreak.Append(paragraphSectionBreakProperties);
-        //        myMainPart.Document.Body.InsertAfter(paragraphSectionBreak, myMainPart.Document.Body.LastChild);
-        //        myMainPart.Document.Save();
-        //    }
-        //}
         internal static HeaderFooterValues GetType(string type) {
             if (type == "default") {
                 return HeaderFooterValues.Default;
@@ -317,38 +247,6 @@ namespace OfficeIMO.Word {
             } else {
                 return HeaderFooterValues.First;
             }
-        }
-
-        public WordParagraph AddParagraph(string text = "") {
-            if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph(text);
-                paragraph._section = this;
-                return paragraph;
-            } else {
-                WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
-
-                WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
-                paragraph._document = this._document;
-                paragraph._section = this;
-                //this.Paragraphs.Add(paragraph);
-                paragraph.Text = text;
-                return paragraph;
-            }
-        }
-
-        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
-            return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
-        }
-
-        public WordSection SetBorders(WordBorder wordBorder) {
-            this.Borders.SetBorder(wordBorder);
-
-            return this;
-        }
-
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
-
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
     }
 }

@@ -16,13 +16,6 @@ namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
 
-        //internal int _listNumbers;
-
-        //internal List<int> _listNumbersUsed = new List<int>();
-        //internal List<NumberingInstance> _listNumberingInstances = new List<NumberingInstance>();
-        //internal List<AbstractNum> _ListAbstractNum = new List<AbstractNum>();
-
-        //public List<WordParagraph> Paragraphs = new List<WordParagraph>();
         public WordTableOfContent TableOfContent {
             get {
                 SdtBlock sdtBlock = _document.Body.ChildElements.OfType<SdtBlock>().FirstOrDefault();
@@ -35,14 +28,10 @@ namespace OfficeIMO.Word {
 
         public List<WordParagraph> Paragraphs {
             get {
-                //if (this.Sections.Count > 1) {
-                //    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                //}
                 List<WordParagraph> list = new List<WordParagraph>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Paragraphs);
                 }
-
                 return list;
             }
         }
@@ -58,6 +47,65 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> HyperLinks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.HyperLinks);
+                }
+
+                return list;
+            }
+        }
+        public List<WordParagraph> Fields {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Fields);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> Bookmarks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Bookmarks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> Equations {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Equations);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> StructuredDocumentTags {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.StructuredDocumentTags);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordComment> Comments {
+            get {
+                return WordComment.GetAllComments(this);
+            }
+        }
         public List<WordList> Lists {
             get {
                 List<WordList> list = new List<WordList>();
@@ -76,8 +124,12 @@ namespace OfficeIMO.Word {
                 //    list.AddRange(section.Tables);
                 //}
 
-                foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
-                    list.Add(new WordTable(this, null, table));
+                //foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
+                //    list.Add(new WordTable(this, null, table));
+                //}
+
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Tables);
                 }
 
                 return list;
@@ -85,9 +137,35 @@ namespace OfficeIMO.Word {
             }
         }
 
-        //public List<WordParagraph> PageBreaks = new List<WordParagraph>();
+        private List<WordSection> GetSections() {
+            List<WordSection> listSections1 = new List<WordSection>();
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
+                            }
+                        }
+                    }
+                    var sectionProp = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    var section = new WordSection(this, sectionProp, null);
+                    listSections1.Add(section);
+                }
+            }
+            return listSections1;
+        }
+
         public List<WordImage> Images = new List<WordImage>();
-        public readonly List<WordSection> Sections = new List<WordSection>();
+        public List<WordSection> Sections = new List<WordSection>();
+
+        public List<WordSection> SectionsGenerated {
+            get {
+                return GetSections();
+            }
+        }
 
         public string FilePath { get; set; }
 
@@ -96,9 +174,7 @@ namespace OfficeIMO.Word {
         public ApplicationProperties ApplicationProperties;
         public BuiltinDocumentProperties BuiltinDocumentProperties;
 
-        public Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
-        public WordCustomProperties _customDocumentProperties;
-        //internal WordLists WordLists;
+        public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
 
         public bool AutoSave {
             get { return _wordprocessingDocument.AutoSave; }
@@ -106,6 +182,7 @@ namespace OfficeIMO.Word {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
+        public WordCustomProperties _customDocumentProperties;
 
 
         public FileAccess FileOpenAccess {
@@ -206,14 +283,14 @@ namespace OfficeIMO.Word {
             var wordCustomProperties = new WordCustomProperties(this);
             var wordBackground = new WordBackground(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
-            // add a section thats assigned to top of the document
+            // add a section that's assigned to top of the document
             WordSection wordSection = new WordSection(this, null, null);
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
-                    WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
+                    // WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
                     if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
                         // find sections added via section page breaks
                         //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
@@ -227,7 +304,7 @@ namespace OfficeIMO.Word {
                         wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
                     }
                 } else if (element is Table) {
-                    WordTable wordTable = new WordTable(this, wordSection, (Table)element);
+                    // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
                 } else if (element is SectionProperties sectionProperties) {
                     // we don't do anything as we already created it above - i think
                 } else if (element is SdtBlock sdtBlock) {
@@ -461,8 +538,8 @@ namespace OfficeIMO.Word {
 
             this._document.Body.Append(newWordParagraph._paragraph);
 
-            this._currentSection.PageBreaks.Add(newWordParagraph);
-            this._currentSection.Paragraphs.Add(newWordParagraph);
+            //this._currentSection.PageBreaks.Add(newWordParagraph);
+            //this._currentSection.Paragraphs.Add(newWordParagraph);
             //this.PageBreaks.Add(newWordParagraph); 
             //this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
@@ -510,10 +587,20 @@ namespace OfficeIMO.Word {
 
             WordSection wordSection = new WordSection(this, paragraph);
 
+            //this.Sections.Add(wordSection);
+            //WordSection wordSection = new WordSection(this, sectionProperties);
+
+            //var wordSection = this.Sections.Last();
             return wordSection;
         }
 
-        public WordSection _currentSection { get; set; }
+        internal WordSection _currentSection {
+            get {
+                return this.Sections.Last();
+            }
+        }
+
+
         public WordBackground Background { get; set; }
 
         public bool ValidateDocument() {

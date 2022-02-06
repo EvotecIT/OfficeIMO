@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
         private readonly WordSection _section;
         private int _abstractId;
         internal int _numberId;
-        
+
         /// <summary>
         /// This provides a way to set items to be treated with heading style
         /// </summary>
@@ -36,14 +36,26 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordParagraph> ListItems = new List<WordParagraph>();
+        public List<WordParagraph> ListItems {
+            get {
+                var listItems = new List<WordParagraph>();
+                foreach (WordParagraph paragraph in this._document.Paragraphs) {
+                    if (paragraph.IsListItem) {
+                        if (_numberId == paragraph._listNumberId) {
+                            listItems.Add(paragraph);
+                        }
+                    }
+                }
+                return listItems;
+            }
+        }
 
         public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
             _document = wordDocument;
             _wordprocessingDocument = wordDocument._wordprocessingDocument;
             _section = section;
             _isToc = isToc;
-            section.Lists.Add(this);
+            // section.Lists.Add(this);
         }
 
         public WordList(WordDocument wordDocument, WordSection section, int numberId) {
@@ -66,7 +78,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private int GetNextAbstractNum(Numbering numbering) {
+        internal static int GetNextAbstractNum(Numbering numbering) {
             var ids = new List<int>();
             foreach (var element in numbering.ChildElements.OfType<AbstractNum>()) {
                 ids.Add(element.AbstractNumberId);
@@ -78,7 +90,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private int GetNextNumberingInstance(Numbering numbering) {
+        internal static int GetNextNumberingInstance(Numbering numbering) {
             var ids = new List<int>();
             foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
                 ids.Add(element.NumberID);
@@ -121,14 +133,14 @@ namespace OfficeIMO.Word {
             var numberingFormatValues = CustomListStyle.GetStyle(style);
 
             Level level = new Level(
-                new NumberingFormat() {Val = numberingFormatValues},
-                new LevelText() {Val = levelText}
+                new NumberingFormat() { Val = numberingFormatValues },
+                new LevelText() { Val = levelText }
             );
             level.LevelIndex = 1;
 
             Level level1 = new Level(
-                new NumberingFormat() {Val = numberingFormatValues},
-                new LevelText() {Val = levelText}
+                new NumberingFormat() { Val = numberingFormatValues },
+                new LevelText() { Val = levelText }
             );
             level1.LevelIndex = 2;
 
@@ -154,12 +166,12 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddItem(string text, int level = 0) {
-            Text textProperty = new Text() {Space = SpaceProcessingModeValues.Preserve};
+            Text textProperty = new Text() { Space = SpaceProcessingModeValues.Preserve };
             RunProperties runProperties = new RunProperties();
-            ParagraphStyleId paragraphStyleId = new ParagraphStyleId() {Val = "ListParagraph"};
+            ParagraphStyleId paragraphStyleId = new ParagraphStyleId() { Val = "ListParagraph" };
             NumberingProperties numberingProperties = new NumberingProperties(
-                new NumberingLevelReference() {Val = level},
-                new NumberingId() {Val = this._numberId}
+                new NumberingLevelReference() { Val = level },
+                new NumberingId() { Val = this._numberId }
             );
             ParagraphProperties paragraphProperties = new ParagraphProperties();
             paragraphProperties.Append(paragraphStyleId);
@@ -167,7 +179,7 @@ namespace OfficeIMO.Word {
 
             Run run = new Run();
 
-            WordParagraph wordParagraph = new WordParagraph(_document, true, paragraphProperties, runProperties, run, _section);
+            WordParagraph wordParagraph = new WordParagraph(_document, true, null, paragraphProperties, runProperties, run, _section);
             wordParagraph.Text = text;
 
             // this simplifies TOC for user usage
@@ -177,10 +189,10 @@ namespace OfficeIMO.Word {
 
             _document.AddParagraph(wordParagraph);
 
-            ListItems.Add(wordParagraph);
+            // ListItems.Add(wordParagraph);
 
             // we add internal tracking in the paragraph for a list
-            wordParagraph._list = this;
+            //wordParagraph._list = this;
 
             return wordParagraph;
         }

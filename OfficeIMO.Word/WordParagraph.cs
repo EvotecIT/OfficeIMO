@@ -4,10 +4,6 @@ using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
-using DocumentFormat.OpenXml.Office2013.Drawing.TimeSlicer;
-using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -86,7 +82,8 @@ namespace OfficeIMO.Word {
         }
 
 
-        internal WordList _list;
+        private WordList _list;
+        private readonly Hyperlink _hyperlink;
 
         public string Text {
             get {
@@ -96,18 +93,22 @@ namespace OfficeIMO.Word {
 
                 return _text.Text;
             }
-            set { _text.Text = value; }
+            set {
+                VerifyText();
+                _text.Text = value;
+            }
         }
+
 
         public WordParagraph(WordSection section, bool newParagraph = true) {
             this._document = section._document;
-            this._section = section;
+            // this._section = section;
 
             this._run = new Run();
             this._runProperties = new RunProperties();
 
-            this._run = new Run();
-            this._runProperties = new RunProperties();
+            //this._run = new Run();
+            //this._runProperties = new RunProperties();
             this._text = new Text {
                 // this ensures spaces are preserved between runs
                 Space = SpaceProcessingModeValues.Preserve
@@ -121,7 +122,7 @@ namespace OfficeIMO.Word {
                 this._paragraph.AppendChild(_run);
             }
 
-            section.Paragraphs.Add(this);
+            //section.Paragraphs.Add(this);
         }
 
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
@@ -142,41 +143,55 @@ namespace OfficeIMO.Word {
             }
 
             if (document != null) {
-                document._currentSection.Paragraphs.Add(this);
-                this._section = document._currentSection;
+                //  document._currentSection.Paragraphs.Add(this);
+                //this._section = document._currentSection;
                 //document.Paragraphs.Add(this);
             }
         }
 
-        public WordParagraph(WordDocument document, bool newParagraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section) {
+        public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
             this._document = document;
             this._section = section;
             this._run = run;
             this._runProperties = runProperties;
-            this._text = new Text {
-                // this ensures spaces are preserved between runs
-                Space = SpaceProcessingModeValues.Preserve
-            };
+            this._paragraph = paragraph;
+
+            if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
             this._paragraphProperties = paragraphProperties;
-            this._run.AppendChild(_runProperties);
-            this._run.AppendChild(_text);
-            if (newParagraph) {
-                this._paragraph = new Paragraph();
-                this._paragraph.AppendChild(_paragraphProperties);
-                this._paragraph.AppendChild(_run);
+            if (this._run != null) {
+                //  this._run.AppendChild(_runProperties);
+                // this._run.AppendChild(_text);
             }
 
-            if (document != null) {
-                // document._currentSection.Paragraphs.Add(this);
-                section.Paragraphs.Add(this);
-                //document.Paragraphs.Add(this);
+            if (newParagraph) {
+                this._paragraph = new Paragraph();
+                if (_paragraphProperties != null) {
+                    this._paragraph.AppendChild(_paragraphProperties);
+                }
+                if (_run != null) this._paragraph.AppendChild(_run);
             }
         }
 
-        //public WordParagraph(string text) {
-        //    WordParagraph paragraph = new WordParagraph(this._document);
-        //    paragraph.Text = text;
-        //}
+        public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
+            _document = document;
+            _paragraph = paragraph;
+            _run = run;
+            if (run != null) {
+                this._text = run.OfType<Text>().FirstOrDefault();
+
+                if (run.RunProperties != null) {
+                    _runProperties = run.RunProperties;
+                }
+
+                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                if (drawing != null) {
+                    this.Image = new WordImage(document, drawing);
+                }
+            }
+            if (paragraph.ParagraphProperties != null) {
+                _paragraphProperties = paragraph.ParagraphProperties;
+            }
+        }
 
         /// <summary>
         /// Used during loading of documents / tables only
@@ -184,263 +199,180 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="section"></param>
-        public WordParagraph(WordDocument document, Paragraph paragraph, WordSection section = null) {
-            //_paragraph = paragraph;
-            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
+        //public WordParagraph(WordDocument document, Paragraph paragraph) {
+        //    //_paragraph = paragraph;
+        //    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+        //        // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
 
-                this._paragraph = paragraph;
-                return;
-            }
+        //        this._paragraph = paragraph;
+        //        return;
+        //    }
 
-            int count = 0;
-            var listRuns = paragraph.ChildElements.OfType<Run>();
-            if (listRuns.Any()) {
-                foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-                    RunProperties runProperties = run.RunProperties;
-                    Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+        //    int count = 0;
+        //    var listRuns = paragraph.ChildElements.OfType<Run>();
+        //    if (listRuns.Any()) {
+        //        foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+        //            RunProperties runProperties = run.RunProperties;
+        //            Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
+        //            Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
 
-                    WordImage newImage = null;
-                    if (drawing != null) {
-                        newImage = new WordImage(document, drawing);
-                    }
+        //            WordImage newImage = null;
+        //            if (drawing != null) {
+        //                newImage = new WordImage(document, drawing);
+        //            }
 
-                    if (count > 0) {
-                        WordParagraph wordParagraph = new WordParagraph(this._document);
-                        wordParagraph._document = document;
-                        wordParagraph._run = run;
-                        wordParagraph._text = text;
-                        wordParagraph._paragraph = paragraph;
-                        wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-                        wordParagraph._runProperties = runProperties;
-                        wordParagraph._section = section;
+        //            if (count > 0) {
+        //                WordParagraph wordParagraph = new WordParagraph(this._document);
+        //                wordParagraph._document = document;
+        //                wordParagraph._run = run;
+        //                wordParagraph._text = text;
+        //                wordParagraph._paragraph = paragraph;
+        //                wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
+        //                wordParagraph._runProperties = runProperties;
 
-                        wordParagraph.Image = newImage;
+        //                wordParagraph.Image = newImage;
 
-                        //document._currentSection.Paragraphs.Add(wordParagraph);
-                        if (wordParagraph.IsPageBreak) {
-                            document._currentSection.PageBreaks.Add(wordParagraph);
-                        }
+        //                //document._currentSection.Paragraphs.Add(wordParagraph);
+        //                if (wordParagraph.IsPageBreak) {
+        //                    document._currentSection.PageBreaks.Add(wordParagraph);
+        //                }
 
-                        if (wordParagraph.IsListItem) {
-                            LoadListToDocument(document, wordParagraph);
-                        }
-                    } else {
-                        this._document = document;
-                        this._run = run;
-                        this._text = text;
-                        this._paragraph = paragraph;
-                        this._paragraphProperties = paragraph.ParagraphProperties;
-                        this._runProperties = runProperties;
-                        this._section = section;
+        //                if (wordParagraph.IsListItem) {
+        //                    LoadListToDocument(document, wordParagraph);
+        //                }
+        //            } else {
+        //                this._document = document;
+        //                this._run = run;
+        //                this._text = text;
+        //                this._paragraph = paragraph;
+        //                this._paragraphProperties = paragraph.ParagraphProperties;
+        //                this._runProperties = runProperties;
 
-                        if (newImage != null) {
-                            this.Image = newImage;
-                        }
+        //                if (newImage != null) {
+        //                    this.Image = newImage;
+        //                }
 
-                        // this is to prevent adding Tables Paragraphs to section Paragraphs
-                        if (section != null) {
-                            section.Paragraphs.Add(this);
-                            if (this.IsPageBreak) {
-                                section.PageBreaks.Add(this);
-                            }
-                        }
+        //                if (this.IsListItem) {
+        //                    LoadListToDocument(document, this);
+        //                }
+        //            }
 
-                        if (this.IsListItem) {
-                            LoadListToDocument(document, this);
-                        }
-                    }
+        //            count++;
+        //        }
+        //    } else {
+        //        // this is an empty paragraph so we add it
+        //        document._currentSection.Paragraphs.Add(this);
+        //        this._section = document._currentSection;
+        //    }
+        //}
 
-                    count++;
+        internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
+            _document = document;
+            _paragraph = paragraph;
+            _hyperlink = hyperlink;
+
+            this.Hyperlink = new WordHyperLink(document, paragraph, hyperlink);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, List<Run> runs) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Field = new WordField(document, paragraph, runs);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Field = new WordField(document, paragraph, simpleField);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Bookmark = new WordBookmark(document, paragraph, bookmarkStart);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Equation = new WordEquation(document, paragraph, officeMath);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.StructuredDocumentTag = new WordStructuredDocumentTag(document, paragraph, stdRun);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Equation = new WordEquation(document, paragraph, mathParagraph);
+        }
+
+        public WordStructuredDocumentTag StructuredDocumentTag { get; set; }
+
+        public WordBookmark Bookmark { get; set; }
+
+        public WordEquation Equation { get; set; }
+
+        public WordField Field { get; set; }
+        public WordHyperLink Hyperlink { get; set; }
+
+        public bool IsHyperLink {
+            get {
+                if (this.Hyperlink != null && this.Hyperlink.Url != null) {
+                    return true;
                 }
-            } else {
-                // this is an empty paragraph so we add it
-                document._currentSection.Paragraphs.Add(this);
-                this._section = document._currentSection;
+
+                return false;
             }
         }
 
-        private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
-            if (wordParagraph.IsListItem) {
-                int? listId = wordParagraph._listNumberId;
-                if (listId != null) {
-                    if (!_document._listNumbersUsed.Contains(listId.Value)) {
-                        WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
-                        list.ListItems.Add(wordParagraph);
-                        _document._listNumbersUsed.Add(listId.Value);
-                        _document._currentSection.Lists.Add(list);
-                    } else {
-                        foreach (WordList list in _document.Lists) {
-                            if (list._numberId == listId.Value) {
-                                list.ListItems.Add(wordParagraph);
-                            }
-                        }
-                    }
-                } else {
-                    throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
+        public bool IsField {
+            get {
+                if (this.Field != null && this.Field.Field != null) {
+                    return true;
                 }
+
+                return false;
             }
         }
 
-        public WordParagraph AddText(string text) {
-            WordParagraph wordParagraph = new WordParagraph(this._document, false);
-            wordParagraph.Text = text;
-
-            // this ensures that we keep track of matching runs with real paragraphs
-            wordParagraph._linkedParagraph = this;
-
-            if (this._linkedParagraph != null) {
-                this._linkedParagraph._paragraph.Append(wordParagraph._run);
-            } else {
-                this._paragraph.Append(wordParagraph._run);
-            }
-
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
-            return wordParagraph;
-        }
-
-        public WordParagraph AddImage(string filePathImage, double? width, double? height) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
-            WordParagraph paragraph = new WordParagraph(this._document);
-            _run.Append(wordImage._Image);
-            this.Image = wordImage;
-            return paragraph;
-        }
-
-        public WordParagraph AddImage(string filePathImage) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
-            WordParagraph paragraph = new WordParagraph(this._document);
-            _run.Append(wordImage._Image);
-            this.Image = wordImage;
-            return paragraph;
-        }
-
-        public void Remove() {
-            if (_paragraph != null) {
-                if (this._paragraph.Parent != null) {
-                    this._paragraph.Remove();
-                } else {
-                    throw new InvalidOperationException("This shouldn't happen? Why? Oh why?");
-                    //Console.WriteLine(this._run);
+        public bool IsBookmark {
+            get {
+                if (this.Bookmark != null && this.Bookmark.Name != null) {
+                    return true;
                 }
-            } else {
-                // this happens if we continue adding to real paragraphs additional runs. In this case we don't need to,
-                // delete paragraph, but only remove Runs 
-                this._run.Remove();
-            }
 
-            if (IsPageBreak) {
-                this._document.PageBreaks.Remove(this);
+                return false;
             }
+        }
 
-            if (IsListItem) {
-                if (this._list != null) {
-                    this._list.ListItems.Remove(this);
-                    this._list = null;
+        public bool IsEquation {
+            get {
+                if (this.Equation != null) {
+                    return true;
                 }
+
+                return false;
             }
-
-            this._document.Paragraphs.Remove(this);
         }
 
-        public WordParagraph AddParagraphAfterSelf() {
-            WordParagraph paragraph = new WordParagraph(this._document, true);
-            this._paragraph.InsertAfterSelf(paragraph._paragraph);
-            //this._document.Paragraphs.Add(paragraph);
-
-            return paragraph;
-        }
-
-        public WordParagraph AddParagraphAfterSelf(WordSection section) {
-            //WordParagraph paragraph = new WordParagraph(section._document, true);
-            WordParagraph paragraph = new WordParagraph(section, true);
-
-            this._paragraph.InsertAfterSelf(paragraph._paragraph);
-            //this._document.Paragraphs.Add(paragraph);
-
-            return paragraph;
-        }
-
-        public WordParagraph AddParagraphBeforeSelf() {
-            WordParagraph paragraph = new WordParagraph(this._document, true);
-            this._paragraph.InsertBeforeSelf(paragraph._paragraph);
-            //document.Paragraphs.Add(paragraph);
-            return paragraph;
-        }
-
-        /// <summary>
-        /// Add a comment to paragraph
-        /// </summary>
-        /// <param name="author"></param>
-        /// <param name="initials"></param>
-        /// <param name="comment"></param>
-        public void AddComment(string author, string initials, string comment) {
-            Comments comments = null;
-            string id = "0";
-
-            // Verify that the document contains a 
-            // WordProcessingCommentsPart part; if not, add a new one.
-            if (this._document._wordprocessingDocument.MainDocumentPart.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
-                comments = this._document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
-                if (comments.HasChildren) {
-                    // Obtain an unused ID.
-                    id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
+        public bool IsStructuredDocumentTag {
+            get {
+                if (this.StructuredDocumentTag != null) {
+                    return true;
                 }
-            } else {
-                // No WordprocessingCommentsPart part exists, so add one to the package.
-                WordprocessingCommentsPart commentPart = this._document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
-                commentPart.Comments = new Comments();
-                comments = commentPart.Comments;
+
+                return false;
             }
-
-            // Compose a new Comment and add it to the Comments part.
-            Paragraph p = new Paragraph(new Run(new Text(comment)));
-            Comment cmt =
-                new Comment() {
-                    Id = id,
-                    Author = author,
-                    Initials = initials,
-                    Date = DateTime.Now
-                };
-            cmt.AppendChild(p);
-            comments.AppendChild(cmt);
-            comments.Save();
-
-            // Specify the text range for the Comment. 
-            // Insert the new CommentRangeStart before the first run of paragraph.
-            this._paragraph.InsertBefore(new CommentRangeStart() { Id = id }, this._paragraph.GetFirstChild<Run>());
-
-            // Insert the new CommentRangeEnd after last run of paragraph.
-            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() { Id = id }, this._paragraph.Elements<Run>().Last());
-
-            // Compose a run with CommentReference and insert it.
-            this._paragraph.InsertAfter(new Run(new CommentReference() { Id = id }), cmtEnd);
-        }
-
-        /// <summary>
-        /// Add horizontal line (sometimes known as horizontal rule) to document
-        /// </summary>
-        /// <param name="lineType"></param>
-        /// <param name="color"></param>
-        /// <param name="size"></param>
-        /// <param name="space"></param>
-        /// <returns></returns>
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
-            this._paragraphProperties.ParagraphBorders = new ParagraphBorders();
-            this._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
-                Val = lineType,
-                Size = size,
-                Space = space,
-                Color = color != null ? color.Value.ToHexColor() : "auto"
-            };
-
-            //newWordParagraph._paragraph = new Paragraph(newWordParagraph._paragraphProperties);
-
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(this._paragraph);
-            //this._currentSection.PageBreaks.Add(newWordParagraph);
-            //this._currentSection.Paragraphs.Add(newWordParagraph);
-            return this;
         }
     }
 }

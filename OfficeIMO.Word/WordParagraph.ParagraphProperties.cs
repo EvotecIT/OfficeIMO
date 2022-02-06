@@ -13,11 +13,20 @@ namespace OfficeIMO.Word {
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
         /// </summary>
-        public JustificationValues ParagraphAlignment {
-            get { return _paragraphProperties.Justification.Val; }
+        public JustificationValues? ParagraphAlignment {
+            get {
+                if (_paragraphProperties != null)
+                    if (_paragraphProperties.Justification != null)
+                        return _paragraphProperties.Justification.Val;
+                return null;
+            }
             set {
                 DocumentFormat.OpenXml.Wordprocessing.Justification justification = new Justification();
                 justification.Val = value;
+                if (_paragraphProperties == null) {
+                    _paragraphProperties = new ParagraphProperties();
+                    _paragraph.ParagraphProperties = _paragraphProperties;
+                }
                 _paragraphProperties.Justification = justification;
             }
         }
@@ -26,11 +35,20 @@ namespace OfficeIMO.Word {
         /// Text Alignment aka Vertical Character Alignment on Line. This element specifies the vertical alignment of all text on each line displayed within a paragraph. If the line height (before any added spacing) is larger than one or more characters on the line, all characters are aligned to each other as specified by this element.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then the vertical alignment of all characters on the line shall be automatically determined by the consumer.
         /// </summary>
-        public VerticalTextAlignmentValues VerticalCharacterAlignmentOnLine {
-            get { return _paragraphProperties.TextAlignment.Val; }
+        public VerticalTextAlignmentValues? VerticalCharacterAlignmentOnLine {
+            get {
+                if (_paragraphProperties != null)
+                    if (_paragraphProperties.TextAlignment != null)
+                        return _paragraphProperties.TextAlignment.Val;
+                return null;
+            }
             set {
                 DocumentFormat.OpenXml.Wordprocessing.TextAlignment textAlignment = new TextAlignment();
                 textAlignment.Val = value;
+                if (_paragraphProperties == null) {
+                    _paragraphProperties = new ParagraphProperties();
+                    _paragraph.ParagraphProperties = _paragraphProperties;
+                }
                 _paragraphProperties.TextAlignment = textAlignment;
             }
         }
@@ -39,7 +57,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.Indentation != null) {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.Indentation.Left != "") {
                         return int.Parse(_paragraphProperties.Indentation.Left);
@@ -67,7 +85,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.Indentation != null) {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.Indentation.Right != "") {
                         return int.Parse(_paragraphProperties.Indentation.Right);
@@ -95,7 +113,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.Indentation != null) {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (_paragraphProperties.Indentation.FirstLine != "") {
                         return int.Parse(_paragraphProperties.Indentation.FirstLine);
                     } else {
@@ -122,7 +140,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.Indentation != null) {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.Indentation.Hanging != "") {
                         return int.Parse(_paragraphProperties.Indentation.Hanging);
@@ -150,7 +168,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.TextDirection != null) {
+                if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.TextDirection != null) {
                         return _paragraphProperties.TextDirection.Val;
@@ -170,7 +188,7 @@ namespace OfficeIMO.Word {
 
         public LineSpacingRuleValues? LineSpacingRule {
             get {
-                if (_paragraphProperties.SpacingBetweenLines != null) {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.LineRule != null) {
                         return _paragraphProperties.SpacingBetweenLines.LineRule;
                     } else {
@@ -197,7 +215,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.SpacingBetweenLines != null) {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.Line != "") {
                         return int.Parse(_paragraphProperties.SpacingBetweenLines.Line);
                     } else {
@@ -224,7 +242,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.SpacingBetweenLines != null) {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.SpacingBetweenLines.Before != "") {
                         return int.Parse(_paragraphProperties.SpacingBetweenLines.Before);
@@ -252,7 +270,7 @@ namespace OfficeIMO.Word {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
-                if (_paragraphProperties.SpacingBetweenLines != null) {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.After != "") {
                         return int.Parse(_paragraphProperties.SpacingBetweenLines.After);
                     } else {

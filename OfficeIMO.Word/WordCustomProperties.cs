@@ -32,15 +32,15 @@ namespace OfficeIMO.Word {
                 //_wordprocessingDocument.DeletePart(customProps.Properties);
                 //customProps = _wordprocessingDocument.AddCustomFilePropertiesPart();
                 //if (create != null) {
-                 //   customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
-               // }
+                //   customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
+                // }
             }
 
             _customProperties = customProps.Properties;
- 
+
             document._customDocumentProperties = this;
             if (create == true) {
-                CreateCustomProperty1(document);
+                CreateCustomProperty(document);
             } else {
                 foreach (CustomDocumentProperty property in _customProperties.CustomFilePropertiesPart.Properties) {
                     WordCustomProperty wordCustomProperty = new WordCustomProperty(property);
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
             return newProp;
         }
 
-        public void Add1(string name, CustomDocumentProperty newProp) {
+        private void Add(string name, CustomDocumentProperty newProp) {
             string returnValue = null;
             if (_customProperties != null) {
                 // This will trigger an exception if the property's Name 
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
                     prop.Remove();
 
                     //_customProperties.RemoveChild(prop);
-                } 
+                }
 
                 // Append the new property, and 
                 // fix up all the property ID values. 
@@ -165,124 +165,16 @@ namespace OfficeIMO.Word {
                 //this._wordprocessingDocument.CustomFilePropertiesPart.Properties = _customProperties;
             }
 
-//            return returnValue;
+            //            return returnValue;
         }
 
-        public void CreateCustomProperty1(WordDocument document) {
+        private void CreateCustomProperty(WordDocument document) {
             if (document.CustomDocumentProperties.Count > 0) {
-                //CreateCustomProperty(document);
                 foreach (var property in document.CustomDocumentProperties.Keys) {
                     var prop = Add(property, document.CustomDocumentProperties[property].Value, document.CustomDocumentProperties[property].PropertyType);
-                    Add1(property, prop);
+                    Add(property, prop);
                 }
             }
-        }
-
-        public static string SetCustomProperty(string fileName, string propertyName, object propertyValue, PropertyTypes propertyType) {
-            // Given a document name, a property name/value, and the property type, 
-            // add a custom property to a document. The method returns the original
-            // value, if it existed.
-
-            string returnValue = null;
-
-            var newProp = new CustomDocumentProperty();
-            bool propSet = false;
-
-            // Calculate the correct type.
-            switch (propertyType) {
-                case PropertyTypes.DateTime:
-
-                    // Be sure you were passed a real date, 
-                    // and if so, format in the correct way. 
-                    // The date/time value passed in should 
-                    // represent a UTC date/time.
-                    if ((propertyValue) is DateTime) {
-                        newProp.VTFileTime = new VTFileTime(string.Format("{0:s}Z", Convert.ToDateTime(propertyValue).ToUniversalTime()));
-                        propSet = true;
-                    }
-
-                    break;
-
-                case PropertyTypes.NumberInteger:
-                    if ((propertyValue) is int) {
-                        newProp.VTInt32 = new VTInt32(propertyValue.ToString());
-                        propSet = true;
-                    }
-
-                    break;
-
-                case PropertyTypes.NumberDouble:
-                    if (propertyValue is double) {
-                        newProp.VTFloat = new VTFloat(propertyValue.ToString());
-                        propSet = true;
-                    }
-
-                    break;
-
-                case PropertyTypes.Text:
-                    newProp.VTLPWSTR = new VTLPWSTR(propertyValue.ToString());
-                    propSet = true;
-
-                    break;
-
-                case PropertyTypes.YesNo:
-                    if (propertyValue is bool) {
-                        // Must be lowercase.
-                        newProp.VTBool = new VTBool(Convert.ToBoolean(propertyValue).ToString().ToLower());
-                        propSet = true;
-                    }
-
-                    break;
-            }
-
-            if (!propSet) {
-                // If the code was not able to convert the 
-                // property to a valid value, throw an exception.
-                throw new InvalidDataException("propertyValue");
-            }
-
-            // Now that you have handled the parameters, start
-            // working on the document.
-            newProp.FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
-            newProp.Name = propertyName;
-
-            using (var document = WordprocessingDocument.Open(fileName, true)) {
-                var customProps = document.CustomFilePropertiesPart;
-                if (customProps == null) {
-                    // No custom properties? Add the part, and the
-                    // collection of properties now.
-                    customProps = document.AddCustomFilePropertiesPart();
-                    customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
-                }
-
-                var props = customProps.Properties;
-                if (props != null) {
-                    // This will trigger an exception if the property's Name 
-                    // property is null, but if that happens, the property is damaged, 
-                    // and probably should raise an exception.
-                    var prop = props.Where(p => ((CustomDocumentProperty)p).Name.Value == propertyName).FirstOrDefault();
-
-                    // Does the property exist? If so, get the return value, 
-                    // and then delete the property.
-                    if (prop != null) {
-                        returnValue = prop.InnerText;
-                        prop.Remove();
-                    }
-
-                    // Append the new property, and 
-                    // fix up all the property ID values. 
-                    // The PropertyId value must start at 2.
-                    props.AppendChild(newProp);
-                    int pid = 2;
-                    foreach (CustomDocumentProperty item in props) {
-                        item.PropertyId = pid++;
-                    }
-
-                    props.Save();
-                }
-            }
-
-            return returnValue;
         }
     }
 }
