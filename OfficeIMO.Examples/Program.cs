@@ -243,46 +243,57 @@ namespace OfficeIMO.Examples {
         }
 
         private static void Example_BasicWord2(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
+            //using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Settings.ZoomPercentage = 150;
-                var paragraph = document.AddParagraph("Basic paragraph");
+            //    document.Settings.ZoomPercentage = 50;
+            //    var paragraph = document.AddParagraph("Basic paragraph");
 
-                var section1 = document.AddSection();
-                section1.AddParagraph("Test Middle Section - 1");
-                //section1 = document.Sections[1];
-                // document.AddParagraph("Test 0");
+            //    var section1 = document.AddSection();
+            //    section1.AddParagraph("Test Middle Section - 1");
+            //    //section1 = document.Sections[1];
+            //    // document.AddParagraph("Test 0");
 
-                var section2 = document.AddSection();
-                section2.AddParagraph("Test Last Section - 1");
-                section1.AddParagraph("Test Middle Section - 2");
-                var test = document.AddParagraph("Test 1 - to delete");
-                test.Remove();
+            //    var section2 = document.AddSection();
+            //    section2.AddParagraph("Test Last Section - 1");
+            //    section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
+            //    var test = document.AddParagraph("Test 1 - to delete");
+            //    test.Remove();
 
 
-                document.Sections[2].AddParagraph("Test 0 - Section Last");
-                document.Sections[1].AddParagraph("Test 1");
-                //document.Sections[1].AddParagraph("Test 2");
+            //    document.Sections[2].AddParagraph("Test 0 - Section Last");
+            //    document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
+            //    //document.Sections[1].AddParagraph("Test 2");
 
-                // section2.AddParagraph("Test 1");
-                Console.WriteLine("----");
-                Console.WriteLine("Sections: " + document.Sections.Count);
-                Console.WriteLine("----");
-                Console.WriteLine(document.Sections[0].Paragraphs.Count);
-                Console.WriteLine(document.Sections[1].Paragraphs.Count);
-                Console.WriteLine(document.Sections[2].Paragraphs.Count);
+            //    // section2.AddParagraph("Test 1");
+            //    Console.WriteLine("----");
+            //    Console.WriteLine("Sections: " + document.Sections.Count);
+            //    Console.WriteLine("----");
+            //    Console.WriteLine(document.Sections[0].Paragraphs.Count);
+            //    Console.WriteLine(document.Sections[1].Paragraphs.Count);
+            //    Console.WriteLine(document.Sections[2].Paragraphs.Count);
 
-                document.Save(false);
-            }
 
+            //    Console.WriteLine(document.Comments.Count);
+
+            //    document.Comments[0].Text = "Lets change it";
+
+
+
+            //    document.Save(false);
+            //}
+            filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\200procent1.docx";
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("----");
                 Console.WriteLine(document.Sections.Count);
                 Console.WriteLine("----");
                 Console.WriteLine(document.Sections[0].Paragraphs.Count);
-                Console.WriteLine(document.Sections[1].Paragraphs.Count);
-                Console.WriteLine(document.Sections[2].Paragraphs.Count);
+                Console.WriteLine(document.Sections[0].Paragraphs.Count);
+                Console.WriteLine(document.Sections[0].Paragraphs.Count);
+
+                Console.WriteLine(document.Sections[0].HyperLinks.Count);
+                Console.WriteLine(document.HyperLinks.Count);
+                Console.WriteLine(document.Fields.Count);
                 document.Save(true);
             }
         }

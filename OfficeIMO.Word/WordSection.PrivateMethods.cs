@@ -17,9 +17,11 @@ namespace OfficeIMO.Word {
 
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
+            Dictionary<BookmarkStart, WordBookmark> bookmarks = new Dictionary<BookmarkStart, WordBookmark>();
+
             foreach (Paragraph paragraph in paragraphs) {
-                var listRuns = paragraph.ChildElements;
-                if (listRuns.Any()) {
+                var childElements = paragraph.ChildElements;
+                if (childElements.Any()) {
                     List<Run> runList = new List<Run>();
                     bool foundField = false;
                     foreach (var element in paragraph.ChildElements) {
@@ -41,18 +43,7 @@ namespace OfficeIMO.Word {
                                     if (fieldChar.FieldCharType == FieldCharValues.Begin) {
                                         runList.Add(run);
                                         foundField = true;
-                                        //var temp = (Run)run;
-                                        //do {
-                                        //    if (temp != null) {
-                                        //        temp = (Run)temp.NextSibling();
-                                        //        if (temp != null) {
-                                        //            runList.Add(temp);
-                                        //        }
-                                        //    }
-                                        //} while (run.ChildElements.OfType<FieldChar>().FirstOrDefault().FieldCharType != FieldCharValues.End || temp != null);
                                     }
-                                    //wordParagraph = new WordParagraph(document, paragraph, runList);
-                                    //list.Add(wordParagraph);
                                 } else {
                                     wordParagraph = new WordParagraph(document, paragraph, run);
                                     list.Add(wordParagraph);
@@ -64,6 +55,26 @@ namespace OfficeIMO.Word {
                         } else if (element is SimpleField) {
                             wordParagraph = new WordParagraph(document, paragraph, (SimpleField)element);
                             list.Add(wordParagraph);
+                        } else if (element is BookmarkStart) {
+                            wordParagraph = new WordParagraph(document, paragraph, (BookmarkStart)element);
+                            list.Add(wordParagraph);
+                        } else if (element is BookmarkEnd) {
+                            // not needed, we will search for matching bookmark end in the bookmark (i guess)
+                        } else if (element is DocumentFormat.OpenXml.Math.OfficeMath) {
+                            wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.OfficeMath)element);
+                            list.Add(wordParagraph);
+                        } else if (element is DocumentFormat.OpenXml.Math.Paragraph) {
+                            wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.Paragraph)element);
+                            list.Add(wordParagraph);
+                        } else if (element is SdtRun) {
+                            wordParagraph = new WordParagraph(document, paragraph, (SdtRun)element);
+                            list.Add(wordParagraph);
+                        } else if (element is ProofError) {
+
+                        } else if (element is ParagraphProperties) {
+
+                        } else {
+                            Debug.WriteLine("Please implement me!");
                         }
                     }
                 } else {

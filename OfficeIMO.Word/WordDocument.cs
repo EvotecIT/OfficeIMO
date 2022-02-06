@@ -68,6 +68,39 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> Bookmarks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Bookmarks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> Equations {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Equations);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> StructuredDocumentTags {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.StructuredDocumentTags);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordComment> Comments {
             get {
                 return WordComment.GetAllComments(this);
@@ -125,9 +158,7 @@ namespace OfficeIMO.Word {
             return listSections1;
         }
 
-        //public List<WordParagraph> PageBreaks = new List<WordParagraph>();
         public List<WordImage> Images = new List<WordImage>();
-        //public readonly List<WordSection> Sections = new List<WordSection>();
         public List<WordSection> Sections = new List<WordSection>();
 
         public List<WordSection> SectionsGenerated {

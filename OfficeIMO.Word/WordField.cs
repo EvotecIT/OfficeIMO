@@ -28,6 +28,62 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool UpdateField {
+            get {
+                if (_simpleField != null) {
+                    return _simpleField.Dirty;
+                } else {
+                    foreach (var run in _runs) {
+                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                        if (fieldChar != null) {
+                            return fieldChar.Dirty;
+                        }
+                    }
+                }
+                return false;
+            }
+            set {
+                if (_simpleField != null) {
+                    _simpleField.Dirty = value;
+                } else {
+                    foreach (var run in _runs) {
+                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                        if (fieldChar != null) {
+                            fieldChar.Dirty = value;
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool LockField {
+            get {
+                if (_simpleField != null) {
+                    return _simpleField.FieldLock;
+                } else {
+                    foreach (var run in _runs) {
+                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                        if (fieldChar != null) {
+                            return fieldChar.FieldLock;
+                        }
+                    }
+                }
+                return false;
+            }
+            set {
+                if (_simpleField != null) {
+                    _simpleField.FieldLock = value;
+                } else {
+                    foreach (var run in _runs) {
+                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                        if (fieldChar != null) {
+                            fieldChar.FieldLock = value;
+                        }
+                    }
+                }
+            }
+        }
+
         public string Text {
             get {
                 foreach (var run in _runs) {

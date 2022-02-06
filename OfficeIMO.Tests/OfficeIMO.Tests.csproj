@@ -50,6 +50,12 @@
     <None Update="Documents\EmptyDocumentWithSectionAndHeaderSameAsPrevious.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\FieldsAndSections.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Documents\FieldsAndSectionsAdvanced.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\List Library Bullet Styles.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

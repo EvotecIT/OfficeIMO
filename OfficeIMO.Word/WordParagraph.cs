@@ -288,6 +288,40 @@ namespace OfficeIMO.Word {
             this.Field = new WordField(document, paragraph, simpleField);
         }
 
+        public WordParagraph(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Bookmark = new WordBookmark(document, paragraph, bookmarkStart);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Equation = new WordEquation(document, paragraph, officeMath);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.StructuredDocumentTag = new WordStructuredDocumentTag(document, paragraph, stdRun);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Equation = new WordEquation(document, paragraph, mathParagraph);
+        }
+
+        public WordStructuredDocumentTag StructuredDocumentTag { get; set; }
+
+        public WordBookmark Bookmark { get; set; }
+
+        public WordEquation Equation { get; set; }
+
         public WordField Field { get; set; }
         public WordHyperLink Hyperlink { get; set; }
 
@@ -304,6 +338,36 @@ namespace OfficeIMO.Word {
         public bool IsField {
             get {
                 if (this.Field != null && this.Field.Field != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsBookmark {
+            get {
+                if (this.Bookmark != null && this.Bookmark.Name != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsEquation {
+            get {
+                if (this.Equation != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsStructuredDocumentTag {
+            get {
+                if (this.StructuredDocumentTag != null) {
                     return true;
                 }
 

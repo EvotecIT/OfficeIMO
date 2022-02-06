@@ -23,6 +23,18 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
+        public List<WordParagraph> Bookmarks {
+            get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
+        }
+
+        public List<WordParagraph> Equations {
+            get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
+        }
+
+        public List<WordParagraph> StructuredDocumentTags {
+            get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
+        }
+
         public List<WordImage> Images = new List<WordImage>();
 
         public WordFooters Footer = new WordFooters();
