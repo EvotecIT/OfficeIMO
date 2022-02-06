@@ -9,57 +9,62 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+
+        internal static List<WordParagraph> ConvertRunsToWordParagraphs(WordDocument document, Run run) {
+            var list = new List<WordParagraph>();
+            return list;
+        }
+
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
             foreach (Paragraph paragraph in paragraphs) {
-                //WordParagraph wordParagraph = new WordParagraph(_document, paragraph, null);
-
-                int count = 0;
-                var listRuns = paragraph.ChildElements.OfType<Run>();
+                var listRuns = paragraph.ChildElements;
                 if (listRuns.Any()) {
-                    foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-                        RunProperties runProperties = run.RunProperties;
-                        Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                        Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
-
-                        WordImage newImage = null;
-                        if (drawing != null) {
-                            newImage = new WordImage(document, drawing);
-                        }
-
+                    List<Run> runList = new List<Run>();
+                    bool foundField = false;
+                    foreach (var element in paragraph.ChildElements) {
                         WordParagraph wordParagraph;
-                        if (count > 0) {
-                            wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
-                            wordParagraph.Image = newImage;
-
-                            if (wordParagraph.IsPageBreak) {
-                                // document._currentSection.PageBreaks.Add(wordParagraph);
+                        if (element is Run) {
+                            var run = (Run)element;
+                            var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                            if (foundField == true) {
+                                if (fieldChar != null && fieldChar.FieldCharType == FieldCharValues.End) {
+                                    foundField = false;
+                                    runList.Add(run);
+                                    wordParagraph = new WordParagraph(document, paragraph, runList);
+                                    list.Add(wordParagraph);
+                                } else {
+                                    runList.Add(run);
+                                }
+                            } else {
+                                if (fieldChar != null) {
+                                    if (fieldChar.FieldCharType == FieldCharValues.Begin) {
+                                        runList.Add(run);
+                                        foundField = true;
+                                        //var temp = (Run)run;
+                                        //do {
+                                        //    if (temp != null) {
+                                        //        temp = (Run)temp.NextSibling();
+                                        //        if (temp != null) {
+                                        //            runList.Add(temp);
+                                        //        }
+                                        //    }
+                                        //} while (run.ChildElements.OfType<FieldChar>().FirstOrDefault().FieldCharType != FieldCharValues.End || temp != null);
+                                    }
+                                    //wordParagraph = new WordParagraph(document, paragraph, runList);
+                                    //list.Add(wordParagraph);
+                                } else {
+                                    wordParagraph = new WordParagraph(document, paragraph, run);
+                                    list.Add(wordParagraph);
+                                }
                             }
-
-                            if (wordParagraph.IsListItem) {
-                                //LoadListToDocument(document, wordParagraph);
-                            }
-
+                        } else if (element is Hyperlink) {
+                            wordParagraph = new WordParagraph(document, paragraph, (Hyperlink)element);
                             list.Add(wordParagraph);
-                        } else {
-                            wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
-
-                            if (newImage != null) {
-                                wordParagraph.Image = newImage;
-                            }
-
-                            if (wordParagraph.IsPageBreak) {
-                                // section.PageBreaks.Add(this);
-                            }
-
-                            if (wordParagraph.IsListItem) {
-                                //LoadListToDocument(document, this);
-                            }
-
+                        } else if (element is SimpleField) {
+                            wordParagraph = new WordParagraph(document, paragraph, (SimpleField)element);
                             list.Add(wordParagraph);
                         }
-
-                        count++;
                     }
                 } else {
                     // add empty word paragraph

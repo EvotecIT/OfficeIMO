@@ -83,6 +83,7 @@ namespace OfficeIMO.Word {
 
 
         private WordList _list;
+        private readonly Hyperlink _hyperlink;
 
         public string Text {
             get {
@@ -154,10 +155,6 @@ namespace OfficeIMO.Word {
             this._run = run;
             this._runProperties = runProperties;
             this._paragraph = paragraph;
-            //this._text = new Text {
-            //    // this ensures spaces are preserved between runs
-            //    Space = SpaceProcessingModeValues.Preserve
-            //};
 
             if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
             this._paragraphProperties = paragraphProperties;
@@ -168,18 +165,31 @@ namespace OfficeIMO.Word {
 
             if (newParagraph) {
                 this._paragraph = new Paragraph();
-
                 if (_paragraphProperties != null) {
-                    //this._paragraph.ParagraphProperties = _paragraphProperties;
                     this._paragraph.AppendChild(_paragraphProperties);
                 }
                 if (_run != null) this._paragraph.AppendChild(_run);
             }
+        }
 
-            if (document != null) {
-                // document._currentSection.Paragraphs.Add(this);
-                //section.Paragraphs.Add(this);
-                //document.Paragraphs.Add(this);
+        public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
+            _document = document;
+            _paragraph = paragraph;
+            _run = run;
+            if (run != null) {
+                this._text = run.OfType<Text>().FirstOrDefault();
+
+                if (run.RunProperties != null) {
+                    _runProperties = run.RunProperties;
+                }
+
+                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                if (drawing != null) {
+                    this.Image = new WordImage(document, drawing);
+                }
+            }
+            if (paragraph.ParagraphProperties != null) {
+                _paragraphProperties = paragraph.ParagraphProperties;
             }
         }
 
@@ -189,83 +199,116 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="section"></param>
-        public WordParagraph(WordDocument document, Paragraph paragraph, WordSection section = null) {
-            //_paragraph = paragraph;
-            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
+        //public WordParagraph(WordDocument document, Paragraph paragraph) {
+        //    //_paragraph = paragraph;
+        //    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+        //        // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
 
-                this._paragraph = paragraph;
-                return;
-            }
+        //        this._paragraph = paragraph;
+        //        return;
+        //    }
 
-            int count = 0;
-            var listRuns = paragraph.ChildElements.OfType<Run>();
-            if (listRuns.Any()) {
-                foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-                    RunProperties runProperties = run.RunProperties;
-                    Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+        //    int count = 0;
+        //    var listRuns = paragraph.ChildElements.OfType<Run>();
+        //    if (listRuns.Any()) {
+        //        foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+        //            RunProperties runProperties = run.RunProperties;
+        //            Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
+        //            Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
 
-                    WordImage newImage = null;
-                    if (drawing != null) {
-                        newImage = new WordImage(document, drawing);
-                    }
+        //            WordImage newImage = null;
+        //            if (drawing != null) {
+        //                newImage = new WordImage(document, drawing);
+        //            }
 
-                    if (count > 0) {
-                        WordParagraph wordParagraph = new WordParagraph(this._document);
-                        wordParagraph._document = document;
-                        wordParagraph._run = run;
-                        wordParagraph._text = text;
-                        wordParagraph._paragraph = paragraph;
-                        wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-                        wordParagraph._runProperties = runProperties;
-                        wordParagraph._section = section;
+        //            if (count > 0) {
+        //                WordParagraph wordParagraph = new WordParagraph(this._document);
+        //                wordParagraph._document = document;
+        //                wordParagraph._run = run;
+        //                wordParagraph._text = text;
+        //                wordParagraph._paragraph = paragraph;
+        //                wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
+        //                wordParagraph._runProperties = runProperties;
 
-                        wordParagraph.Image = newImage;
+        //                wordParagraph.Image = newImage;
 
-                        //document._currentSection.Paragraphs.Add(wordParagraph);
-                        if (wordParagraph.IsPageBreak) {
-                            document._currentSection.PageBreaks.Add(wordParagraph);
-                        }
+        //                //document._currentSection.Paragraphs.Add(wordParagraph);
+        //                if (wordParagraph.IsPageBreak) {
+        //                    document._currentSection.PageBreaks.Add(wordParagraph);
+        //                }
 
-                        if (wordParagraph.IsListItem) {
-                            LoadListToDocument(document, wordParagraph);
-                        }
-                    } else {
-                        this._document = document;
-                        this._run = run;
-                        this._text = text;
-                        this._paragraph = paragraph;
-                        this._paragraphProperties = paragraph.ParagraphProperties;
-                        this._runProperties = runProperties;
-                        this._section = section;
+        //                if (wordParagraph.IsListItem) {
+        //                    LoadListToDocument(document, wordParagraph);
+        //                }
+        //            } else {
+        //                this._document = document;
+        //                this._run = run;
+        //                this._text = text;
+        //                this._paragraph = paragraph;
+        //                this._paragraphProperties = paragraph.ParagraphProperties;
+        //                this._runProperties = runProperties;
 
-                        if (newImage != null) {
-                            this.Image = newImage;
-                        }
+        //                if (newImage != null) {
+        //                    this.Image = newImage;
+        //                }
 
-                        // this is to prevent adding Tables Paragraphs to section Paragraphs
-                        if (section != null) {
-                            section.Paragraphs.Add(this);
-                            if (this.IsPageBreak) {
-                                section.PageBreaks.Add(this);
-                            }
-                        }
+        //                if (this.IsListItem) {
+        //                    LoadListToDocument(document, this);
+        //                }
+        //            }
 
-                        if (this.IsListItem) {
-                            LoadListToDocument(document, this);
-                        }
-                    }
+        //            count++;
+        //        }
+        //    } else {
+        //        // this is an empty paragraph so we add it
+        //        document._currentSection.Paragraphs.Add(this);
+        //        this._section = document._currentSection;
+        //    }
+        //}
 
-                    count++;
+        internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
+            _document = document;
+            _paragraph = paragraph;
+            _hyperlink = hyperlink;
+
+            this.Hyperlink = new WordHyperLink(document, paragraph, hyperlink);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, List<Run> runs) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Field = new WordField(document, paragraph, runs);
+        }
+
+        public WordParagraph(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
+            _document = document;
+            _paragraph = paragraph;
+
+            this.Field = new WordField(document, paragraph, simpleField);
+        }
+
+        public WordField Field { get; set; }
+        public WordHyperLink Hyperlink { get; set; }
+
+        public bool IsHyperLink {
+            get {
+                if (this.Hyperlink != null && this.Hyperlink.Url != null) {
+                    return true;
                 }
-            } else {
-                // this is an empty paragraph so we add it
-                document._currentSection.Paragraphs.Add(this);
-                this._section = document._currentSection;
+
+                return false;
             }
         }
 
+        public bool IsField {
+            get {
+                if (this.Field != null && this.Field.Field != null) {
+                    return true;
+                }
 
+                return false;
+            }
+        }
     }
 }

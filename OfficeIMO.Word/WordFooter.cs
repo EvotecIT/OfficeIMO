@@ -9,15 +9,17 @@ namespace OfficeIMO.Word {
     public class WordFooter {
         public List<WordParagraph> Paragraphs {
             get {
-                List<WordParagraph> paragraphs = new List<WordParagraph>();
+                //List<WordParagraph> paragraphs = new List<WordParagraph>();
                 if (_footer != null) {
-                    var list = _footer.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in list) {
-                        paragraphs.Add(new WordParagraph(_document, paragraph));
-                    }
+                    //    var list = _footer.ChildElements.OfType<Paragraph>();
+                    //    foreach (var paragraph in list) {
+                    //        paragraphs.Add(new WordParagraph(_document, paragraph));
+                    //    }
+
+                    return WordSection.ConvertParagraphsToWordParagraphs(_document, _footer.ChildElements.OfType<Paragraph>());
                 }
 
-                return paragraphs;
+                return new List<WordParagraph>(); ;
             }
         }
         private readonly FooterPart _footerPart;

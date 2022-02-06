@@ -47,6 +47,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> HyperLinks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.HyperLinks);
+                }
+
+                return list;
+            }
+        }
+        public List<WordParagraph> Fields {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Fields);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordComment> Comments {
             get {
                 return WordComment.GetAllComments(this);

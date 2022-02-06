@@ -9,12 +9,18 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
-        public List<WordParagraph> Paragraphs {
-            get { return GetParagraphsList(); }
-        }
+        public List<WordParagraph> Paragraphs => GetParagraphsList();
 
         public List<WordParagraph> PageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
+        }
+
+        public List<WordParagraph> HyperLinks {
+            get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
+        }
+
+        public List<WordParagraph> Fields {
+            get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
         public List<WordImage> Images = new List<WordImage>();

@@ -60,6 +60,7 @@ namespace OfficeIMO.Word {
         private WordHeader _wordHeader;
         private WordFooter _wordFooter;
         private WordParagraph _wordParagraph;
+        private readonly List<WordParagraph> _listParagraphs;
 
         public JustificationValues? ParagraphAlignment {
             get {
@@ -75,10 +76,12 @@ namespace OfficeIMO.Word {
             this._sdtBlock = GetStyle(wordPageNumberStyle);
 
             if (_sdtBlock != null) {
-                var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                foreach (var paragraph in paragraphs) {
-                    this._wordParagraph = new WordParagraph(_document, paragraph);
-                }
+                //var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
+                //foreach (var paragraph in paragraphs) {
+                //    this._wordParagraph = new WordParagraph(_document, paragraph);
+                //}
+                _listParagraphs = WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>());
+                this._wordParagraph = _listParagraphs[0];
             }
             wordHeader._header.Append(_sdtBlock);
         }
@@ -88,10 +91,12 @@ namespace OfficeIMO.Word {
             this._sdtBlock = GetStyle(wordPageNumberStyle);
 
             if (_sdtBlock != null) {
-                var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                foreach (var paragraph in paragraphs) {
-                    this._wordParagraph = new WordParagraph(_document, paragraph);
-                }
+                //var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
+                //foreach (var paragraph in paragraphs) {
+                //    this._wordParagraph = new WordParagraph(_document, paragraph);
+                //}
+                _listParagraphs = WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>());
+                this._wordParagraph = _listParagraphs[0];
             }
             wordFooter._footer.Append(_sdtBlock);
         }
