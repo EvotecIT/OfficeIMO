@@ -24,18 +24,26 @@ namespace OfficeIMO.Word {
         internal ImagePart _imagePart;
         //internal ShapeProperties _shapeProperties;
 
-        public BlipCompressionValues CompressionQuality {
+        public BlipCompressionValues? CompressionQuality {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                return picture.BlipFill.Blip.CompressionState;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture.BlipFill.Blip.CompressionState;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
             set { }
         }
 
         public string RelationshipId {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                return picture.BlipFill.Blip.Embed;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture.BlipFill.Blip.Embed;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
             set {
 
@@ -46,19 +54,27 @@ namespace OfficeIMO.Word {
 
         public string FileName {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
             set {
-                
+
             }
         }
 
         public double? Width {
             get {
-                var extents = _Image.Inline.Extent;
-                var cX = extents.Cx;
-                return cX / englishMetricUnitsPerInch * pixelsPerInch;
+                if (_Image.Inline != null) {
+                    var extents = _Image.Inline.Extent;
+                    var cX = extents.Cx;
+                    return cX / englishMetricUnitsPerInch * pixelsPerInch;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
             set {
                 double emuWidth = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
@@ -70,32 +86,44 @@ namespace OfficeIMO.Word {
         }
         public double? Height {
             get {
-                var extents = _Image.Inline.Extent;
-                var cY = extents.Cy;
-                return cY / englishMetricUnitsPerInch * pixelsPerInch;
+                if (_Image.Inline != null) {
+                    var extents = _Image.Inline.Extent;
+                    var cY = extents.Cy;
+                    return cY / englishMetricUnitsPerInch * pixelsPerInch;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
             set {
                 if (_Image.Inline != null) {
                     double emuHeight = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
-                    _Image.Inline.Extent.Cy = (Int64Value) emuHeight;
+                    _Image.Inline.Extent.Cy = (Int64Value)emuHeight;
                     var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     //var picture = _Image.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
-                    picture.ShapeProperties.Transform2D.Extents.Cy = (Int64Value) emuHeight;
+                    picture.ShapeProperties.Transform2D.Extents.Cy = (Int64Value)emuHeight;
                 } else {
                     Console.WriteLine("Not supported yet");
                 }
             }
         }
-        public double EmuWidth {
+        public double? EmuWidth {
             get {
-                var extents = _Image.Inline.Extent;
-                return extents.Cx;
+                if (_Image.Inline != null) {
+                    var extents = _Image.Inline.Extent;
+                    return extents.Cx;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
         }
-        public double EmuHeight {
+        public double? EmuHeight {
             get {
-                var extents = _Image.Inline.Extent;
-                return extents.Cy;
+                if (_Image.Inline != null) {
+                    var extents = _Image.Inline.Extent;
+                    return extents.Cy;
+                }
+                // TODO: we need to take care of non INLINE images
+                return null;
             }
         }
 
@@ -162,12 +190,12 @@ namespace OfficeIMO.Word {
         public bool? Wrap {
             // this doesn't work
             get {
-             
+
                 //_Image.Anchor.
                 return null;
             }
             set {
-                
+
                 if (_Image.Anchor == null) {
                     var inline = _Image.Inline.CloneNode(true);
 
@@ -181,7 +209,7 @@ namespace OfficeIMO.Word {
                     WrapNone wrapNone1 = new WrapNone();
                     anchor1.Append(wrapNone1);
                     _Image.Append(anchor1);
-                   
+
                     _Image.Inline.Remove();
 
                     _Image.Anchor.Append(clonedElements);
@@ -235,11 +263,12 @@ namespace OfficeIMO.Word {
             //calculate size in emu
             double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
             double emuHeight = height.Value * englishMetricUnitsPerInch / pixelsPerInch;
-            
+
             var shapeProperties = new ShapeProperties(
-                new Transform2D(new Offset() { X = 0L, Y = 0L }, 
+                new Transform2D(new Offset() { X = 0L, Y = 0L },
                     new Extents() {
-                        Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight
+                        Cx = (Int64Value)emuWidth,
+                        Cy = (Int64Value)emuHeight
                     }
                     ),
                 new PresetGeometry(new AdjustValueList()) { Preset = shape }
@@ -249,9 +278,9 @@ namespace OfficeIMO.Word {
 
             var drawing = new Drawing(
 
-                    //new Anchor(
-                    //    new WrapNone()
-                    //    ) { BehindDoc = true },
+            //new Anchor(
+            //    new WrapNone()
+            //    ) { BehindDoc = true },
 
             new Inline(
                         new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
@@ -279,9 +308,9 @@ namespace OfficeIMO.Word {
                                         new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
                                     new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
                                         new Blip(new BlipExtensionList(new BlipExtension() {
-                                                    // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
-                                                    Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
-                                                })                                        
+                                            // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
+                                            Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
+                                        })
                                         ) {
                                             Embed = relationshipId,
                                             CompressionState = compressionQuality
@@ -290,12 +319,12 @@ namespace OfficeIMO.Word {
                                   shapeProperties)
                             ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
                     ) {
-                        DistanceFromTop = (UInt32Value)0U,
-                        DistanceFromBottom = (UInt32Value)0U,
-                        DistanceFromLeft = (UInt32Value)0U,
-                        DistanceFromRight = (UInt32Value)0U,
-                        EditId = "50D07946"
-                    });
+                DistanceFromTop = (UInt32Value)0U,
+                DistanceFromBottom = (UInt32Value)0U,
+                DistanceFromLeft = (UInt32Value)0U,
+                DistanceFromRight = (UInt32Value)0U,
+                EditId = "50D07946"
+            });
 
             this._Image = drawing;
             //this.Width = width.Value;
@@ -308,7 +337,7 @@ namespace OfficeIMO.Word {
             this.FilePath = filePath;
             //this.RelationshipId = relationshipId;
 
-            document.Images.Add(this);
+            // document.Images.Add(this);
         }
 
         public WordImage(WordDocument document, Drawing drawing) {
@@ -320,7 +349,7 @@ namespace OfficeIMO.Word {
                     this._imagePart = imagePart;
                 }
             }
-            document.Images.Add(this);
+            //  document.Images.Add(this);
         }
 
         /// <summary>

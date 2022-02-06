@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
-            this.Image = wordImage;
+            //this.Image = wordImage;
             return paragraph;
         }
 
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
             WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
             _run.Append(wordImage._Image);
-            this.Image = wordImage;
+            //this.Image = wordImage;
             return paragraph;
         }
 

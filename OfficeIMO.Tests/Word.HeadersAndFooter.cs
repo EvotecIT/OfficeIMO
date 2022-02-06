@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.PageBreaks.Count == 2, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
-                
-                
+
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault1.docx"))) {
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong.");
             }
         }
-        
+
         [Fact]
         public void Test_CreatingWordDocumentHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx");
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
-                
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx"))) {
@@ -328,9 +328,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Header.Default == null);
                 Assert.True(document.Footer.Default == null);
                 Assert.True(document.Header.First == null);
-                Assert.True(document.Footer.First== null);
-                Assert.True(document.Header.Even== null);
-                Assert.True(document.Footer.Even == null );
+                Assert.True(document.Footer.First == null);
+                Assert.True(document.Header.Even == null);
+                Assert.True(document.Footer.Even == null);
 
                 Assert.True(document.Sections[1].Header.Default == null);
                 Assert.True(document.Sections[1].Footer.Default == null);

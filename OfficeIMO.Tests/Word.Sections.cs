@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_OpeningWordWithSections() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "BasicDocumentWithSections.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocumentWithSections.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 3);
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
         }
         [Fact]
         public void Test_OpeningWordEmptyDocument() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "EmptyDocument.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmptyDocument.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 1);
 
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         }
         [Fact]
         public void Test_OpeningWordEmptyDocumentWithSectionBreak() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "EmptyDocumentWithSection.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmptyDocumentWithSection.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs is wrong.");
 
@@ -51,11 +51,11 @@ namespace OfficeIMO.Tests {
         }
         [Fact]
         public void Test_OpeningWordDocumentWithSectionBreak() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithSection.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "DocumentWithSection.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 2, "Number of paragraphs is wrong.");
                 Assert.True(document.Sections.Count == 2, "Number of sections is wrong.");
-                
+
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs in first section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[1].Paragraphs.Count == 1, "Number of paragraphs in second section is wrong. Current: " + document.Sections[1].Paragraphs.Count);
             }
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[5].Paragraphs[1].Text == "This goes to last section 1", "Paragraph text must match.");
                 Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
                 Assert.True(document.Sections[3].Paragraphs[1].Text == "This goes to section 4", "Paragraph text must match.");
-                
+
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[3].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
                 Assert.True(document.Sections[4].PageOrientation == PageOrientationValues.Landscape, "Page orientation should match");
                 Assert.True(document.Sections[5].PageOrientation == PageOrientationValues.Portrait, "Page orientation should match");
-                
+
                 Assert.True(document.Sections[5].Paragraphs[1].Text == "This goes to last section 1", "Paragraph text must match.");
                 Assert.True(document.Sections[5].Paragraphs[2].Text == "This goes to last section 2", "Paragraph text must match.");
                 Assert.True(document.Sections[3].Paragraphs[1].Text == "This goes to section 4", "Paragraph text must match.");
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 1, "Number of paragraphs on 4th section is wrong.");
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
-                
+
                 // Normal
                 Assert.True(document.Sections[0].Margins.Left == 1440);
                 Assert.True(document.Sections[0].Margins.Right == 1440);
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 6");
                 document.Sections[6].SetMargins(PageMargins.Office2003Default);
 
-                
+
                 // Normal
                 Assert.True(document.Sections[5].Margins.Left == 1440);
                 Assert.True(document.Sections[5].Margins.Right == 1440);

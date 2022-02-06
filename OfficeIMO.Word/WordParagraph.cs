@@ -16,7 +16,18 @@ namespace OfficeIMO.Word {
         internal WordParagraph _linkedParagraph;
         internal WordSection _section;
 
-        public WordImage Image { get; set; }
+        public WordImage Image {
+            get {
+                if (_run != null) {
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        return new WordImage(_document, drawing);
+                    }
+                }
+
+                return null;
+            }
+        }
 
         public bool IsListItem {
             get {
@@ -149,6 +160,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+
+        public WordParagraph(WordDocument document, Paragraph paragraph) {
+            this._document = document;
+            this._paragraph = paragraph;
+        }
+
         public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
             this._document = document;
             this._section = section;
@@ -183,88 +200,15 @@ namespace OfficeIMO.Word {
                     _runProperties = run.RunProperties;
                 }
 
-                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                if (drawing != null) {
-                    this.Image = new WordImage(document, drawing);
-                }
+                //Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                //if (drawing != null) {
+                //    this.Image = new WordImage(document, drawing);
+                //}
             }
             if (paragraph.ParagraphProperties != null) {
                 _paragraphProperties = paragraph.ParagraphProperties;
             }
         }
-
-        /// <summary>
-        /// Used during loading of documents / tables only
-        /// </summary>
-        /// <param name="document"></param>
-        /// <param name="paragraph"></param>
-        /// <param name="section"></param>
-        //public WordParagraph(WordDocument document, Paragraph paragraph) {
-        //    //_paragraph = paragraph;
-        //    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-        //        // TODO this means it's a section and we don't want to add sections to paragraphs don't we?
-
-        //        this._paragraph = paragraph;
-        //        return;
-        //    }
-
-        //    int count = 0;
-        //    var listRuns = paragraph.ChildElements.OfType<Run>();
-        //    if (listRuns.Any()) {
-        //        foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-        //            RunProperties runProperties = run.RunProperties;
-        //            Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-        //            Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
-
-        //            WordImage newImage = null;
-        //            if (drawing != null) {
-        //                newImage = new WordImage(document, drawing);
-        //            }
-
-        //            if (count > 0) {
-        //                WordParagraph wordParagraph = new WordParagraph(this._document);
-        //                wordParagraph._document = document;
-        //                wordParagraph._run = run;
-        //                wordParagraph._text = text;
-        //                wordParagraph._paragraph = paragraph;
-        //                wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-        //                wordParagraph._runProperties = runProperties;
-
-        //                wordParagraph.Image = newImage;
-
-        //                //document._currentSection.Paragraphs.Add(wordParagraph);
-        //                if (wordParagraph.IsPageBreak) {
-        //                    document._currentSection.PageBreaks.Add(wordParagraph);
-        //                }
-
-        //                if (wordParagraph.IsListItem) {
-        //                    LoadListToDocument(document, wordParagraph);
-        //                }
-        //            } else {
-        //                this._document = document;
-        //                this._run = run;
-        //                this._text = text;
-        //                this._paragraph = paragraph;
-        //                this._paragraphProperties = paragraph.ParagraphProperties;
-        //                this._runProperties = runProperties;
-
-        //                if (newImage != null) {
-        //                    this.Image = newImage;
-        //                }
-
-        //                if (this.IsListItem) {
-        //                    LoadListToDocument(document, this);
-        //                }
-        //            }
-
-        //            count++;
-        //        }
-        //    } else {
-        //        // this is an empty paragraph so we add it
-        //        document._currentSection.Paragraphs.Add(this);
-        //        this._section = document._currentSection;
-        //    }
-        //}
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
@@ -368,6 +312,16 @@ namespace OfficeIMO.Word {
         public bool IsStructuredDocumentTag {
             get {
                 if (this.StructuredDocumentTag != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsImage {
+            get {
+                if (this.Image != null) {
                     return true;
                 }
 

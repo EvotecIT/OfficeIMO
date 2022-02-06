@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OpeningWordAndParagraphCountMatches() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "BasicDocument.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocument.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 12);
 

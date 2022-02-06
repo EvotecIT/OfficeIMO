@@ -31,12 +31,34 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain Structured Document Tags
+        /// </summary>
         public List<WordParagraph> StructuredDocumentTags {
             get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
         }
 
-        public List<WordImage> Images = new List<WordImage>();
+        /// <summary>
+        /// Provides a list of paragraphs that contain Image
+        /// </summary>
+        public List<WordParagraph> Images {
+            get { return Paragraphs.Where(p => p.IsImage).ToList(); }
+        }
 
+        /// <summary>
+        /// Exposes Images in their Image form for easy access (saving, modifying)
+        /// </summary>
+        public List<WordImage> ImagesList {
+            get {
+                List<WordImage> listImages = new List<WordImage>();
+                var paragraphsWithImages = Paragraphs.Where(p => p.IsImage).ToList();
+                foreach (var image in paragraphsWithImages) {
+                    listImages.Add(image.Image);
+                }
+
+                return listImages;
+            }
+        }
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
@@ -153,7 +175,6 @@ namespace OfficeIMO.Word {
                 if (temporarySectionProperties != null) {
                     CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
                     var old = this._sectionProperties;
-
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
                 }

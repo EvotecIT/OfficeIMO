@@ -120,52 +120,41 @@ namespace OfficeIMO.Word {
         public List<WordTable> Tables {
             get {
                 List<WordTable> list = new List<WordTable>();
-                //foreach (var section in this.Sections) {
-                //    list.AddRange(section.Tables);
-                //}
-
-                //foreach (var table in this._document.Body.ChildElements.OfType<Table>()) {
-                //    list.Add(new WordTable(this, null, table));
-                //}
-
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Tables);
                 }
 
                 return list;
-
             }
         }
 
-        private List<WordSection> GetSections() {
-            List<WordSection> listSections1 = new List<WordSection>();
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                listSections1.Add(new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph));
-                            }
-                        }
-                    }
-                    var sectionProp = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                    var section = new WordSection(this, sectionProp, null);
-                    listSections1.Add(section);
-                }
-            }
-            return listSections1;
-        }
-
-        public List<WordImage> Images = new List<WordImage>();
-        public List<WordSection> Sections = new List<WordSection>();
-
-        public List<WordSection> SectionsGenerated {
+        /// <summary>
+        /// Provides a list of paragraphs that contain Image
+        /// </summary>
+        public List<WordParagraph> Images {
             get {
-                return GetSections();
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Images);
+                }
+                return list;
             }
         }
+
+        /// <summary>
+        /// Exposes Images in their Image form for easy access (saving, modifying)
+        /// </summary>
+        public List<WordImage> ImagesList {
+            get {
+                List<WordImage> list = new List<WordImage>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ImagesList);
+                }
+                return list;
+            }
+        }
+
+        public List<WordSection> Sections = new List<WordSection>();
 
         public string FilePath { get; set; }
 
@@ -176,9 +165,7 @@ namespace OfficeIMO.Word {
 
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
 
-        public bool AutoSave {
-            get { return _wordprocessingDocument.AutoSave; }
-        }
+        public bool AutoSave => _wordprocessingDocument.AutoSave;
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
@@ -233,28 +220,6 @@ namespace OfficeIMO.Word {
                 wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
             }
 
-
-            //ExtendedFilePropertiesPart extendedFilePropertiesPart1 = wordDocument.AddNewPart<ExtendedFilePropertiesPart>("rId3");
-            //GenerateExtendedFilePropertiesPart1Content(extendedFilePropertiesPart1);
-
-            //MainDocumentPart mainDocumentPart1 = wordDocument.AddMainDocumentPart();
-            //GenerateMainDocumentPart1Content(mainDocumentPart1);
-
-            //WebSettingsPart webSettingsPart1 = mainDocumentPart1.AddNewPart<WebSettingsPart>("rId3");
-            //GenerateWebSettingsPart1Content(webSettingsPart1);
-
-            //DocumentSettingsPart documentSettingsPart1 = mainDocumentPart1.AddNewPart<DocumentSettingsPart>("rId2");
-            //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
-
-            //StyleDefinitionsPart styleDefinitionsPart1 = mainDocumentPart1.AddNewPart<StyleDefinitionsPart>("rId1");
-            //GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-            //ThemePart themePart1 = mainDocumentPart1.AddNewPart<ThemePart>("rId5");
-            //GenerateThemePart1Content(themePart1);
-
-            //FontTablePart fontTablePart1 = mainDocumentPart1.AddNewPart<FontTablePart>("rId4");
-            //GenerateFontTablePart1Content(fontTablePart1);
-
             wordDocument.AddMainDocumentPart();
             wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
             wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
@@ -284,23 +249,13 @@ namespace OfficeIMO.Word {
             var wordBackground = new WordBackground(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
-            WordSection wordSection = new WordSection(this, null, null);
+            var wordSection = new WordSection(this, null, null);
 
             var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
-                    // WordParagraph wordParagraph = new WordParagraph(this, paragraph, wordSection);
                     if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                        // find sections added via section page breaks
-                        //var sectionType = paragraph.ParagraphProperties.SectionProperties.ChildElements.OfType<SectionType>().FirstOrDefault();
-                        //if (sectionType != null) {
-                        //    if (sectionType.Val == SectionMarkValues.NextPage) {
-                        //        wordSection = new WordSection(this, paragraph);
-                        //    }
-                        //} else {
-                        //    wordSection.Paragraphs.Add(wordParagraph);
-                        //}
                         wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
                     }
                 } else if (element is Table) {
@@ -537,11 +492,6 @@ namespace OfficeIMO.Word {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             this._document.Body.Append(newWordParagraph._paragraph);
-
-            //this._currentSection.PageBreaks.Add(newWordParagraph);
-            //this._currentSection.Paragraphs.Add(newWordParagraph);
-            //this.PageBreaks.Add(newWordParagraph); 
-            //this.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }
 
@@ -587,18 +537,10 @@ namespace OfficeIMO.Word {
 
             WordSection wordSection = new WordSection(this, paragraph);
 
-            //this.Sections.Add(wordSection);
-            //WordSection wordSection = new WordSection(this, sectionProperties);
-
-            //var wordSection = this.Sections.Last();
             return wordSection;
         }
 
-        internal WordSection _currentSection {
-            get {
-                return this.Sections.Last();
-            }
-        }
+        internal WordSection _currentSection => this.Sections.Last();
 
 
         public WordBackground Background { get; set; }
@@ -628,12 +570,6 @@ namespace OfficeIMO.Word {
             return foundIssue;
         }
 
-        //public WordList AddList(CustomListStyles style) {
-        //    WordList wordList = new WordList(this, this._currentSection);
-        //    wordList.AddList(style, "o", 0);
-        //    return wordList;
-        //}
-
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style);
@@ -657,30 +593,6 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
-            //WordParagraph newWordParagraph = new WordParagraph {
-            //    //_paragraphProperties = new ParagraphProperties(),
-            //    _document = this
-            //};
-            //newWordParagraph._paragraphProperties.ParagraphBorders = new ParagraphBorders();
-            //newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
-            //    Val = lineType,
-            //    Size = (UInt32Value)12U,
-            //    Space = (UInt32Value)1U
-            //};
-            //if (color != null) {
-            //    newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder.Color = color.Value.ToHexColor();
-            //} else {
-            //    newWordParagraph._paragraphProperties.ParagraphBorders.BottomBorder.Color = "auto";
-            //}
-
-            ////newWordParagraph._paragraph = new Paragraph(newWordParagraph._paragraphProperties);
-
-            //this._document.Body.Append(newWordParagraph._paragraph);
-            ////this._currentSection.PageBreaks.Add(newWordParagraph);
-            ////this._currentSection.Paragraphs.Add(newWordParagraph);
-
-
-
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
     }

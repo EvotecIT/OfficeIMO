@@ -21,7 +21,10 @@ namespace OfficeIMO.Word {
 
             foreach (Paragraph paragraph in paragraphs) {
                 var childElements = paragraph.ChildElements;
-                if (childElements.Any()) {
+                if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
+                    // basically empty, we still want to track it, but that's about it
+                    list.Add(new WordParagraph(document, paragraph));
+                } else if (childElements.Any()) {
                     List<Run> runList = new List<Run>();
                     bool foundField = false;
                     foreach (var element in paragraph.ChildElements) {
@@ -67,19 +70,18 @@ namespace OfficeIMO.Word {
                             wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.Paragraph)element);
                             list.Add(wordParagraph);
                         } else if (element is SdtRun) {
-                            wordParagraph = new WordParagraph(document, paragraph, (SdtRun)element);
-                            list.Add(wordParagraph);
+                            list.Add(new WordParagraph(document, paragraph, (SdtRun)element));
                         } else if (element is ProofError) {
 
                         } else if (element is ParagraphProperties) {
 
                         } else {
-                            Debug.WriteLine("Please implement me!");
+                            Debug.WriteLine("Please implement me! " + element.GetType().Name);
                         }
                     }
                 } else {
                     // add empty word paragraph
-                    list.Add(new WordParagraph(document, false, paragraph, null, null, null));
+                    list.Add(new WordParagraph(document, paragraph));
                 }
             }
 

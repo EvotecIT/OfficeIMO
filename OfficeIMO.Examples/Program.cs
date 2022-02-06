@@ -458,11 +458,11 @@ namespace OfficeIMO.Examples {
             paragraph4.Image.HorizontalFlip = true;
 
             // or we can get any image and overwrite it's size
-            document.Images[0].Height = 200;
-            document.Images[0].Width = 200;
+            document.ImagesList[0].Height = 200;
+            document.ImagesList[0].Width = 200;
 
             string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-            document.Images[0].SaveToFile(fileToSave);
+            document.ImagesList[0].SaveToFile(fileToSave);
 
             document.Save(true);
         }
@@ -488,7 +488,7 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
             Console.WriteLine("+ Document images: " + document.Images.Count);
 
-            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+            document.ImagesList[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
         }
 
         private static void Example_PageBreaks(string filePath, bool openWord) {

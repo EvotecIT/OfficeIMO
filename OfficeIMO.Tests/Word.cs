@@ -1,18 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
-        public static string _directoryDocuments;
+        private readonly string _directoryDocuments;
         private readonly string _directoryWithFiles;
+        private readonly string _directoryWithImages;
+
+        public static void Setup(string path) {
+            if (!Directory.Exists(path)) {
+                Directory.CreateDirectory(path);
+            } else {
+                Directory.Delete(path, true);
+                Directory.CreateDirectory(path);
+            }
+        }
 
         public Word() {
-            _directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            TestsHelper.Setup(_directoryDocuments); // prepare temp documents directory 
-            _directoryWithFiles = TestsHelper.DirectoryWithFiles;
+            _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
+            _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments");
+            Setup(_directoryWithFiles);
         }
     }
 }

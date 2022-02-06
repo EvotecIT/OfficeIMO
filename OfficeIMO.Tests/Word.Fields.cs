@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OpeningWordWithFieldsAndHyperlinks() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "FieldsAndSections.docx"))) {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "FieldsAndSections.docx"))) {
                 Assert.True(document.Paragraphs.Count == 30);
                 Assert.True(document.Sections.Count == 2);
                 Assert.True(document.Fields.Count == 3);
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
         }
         [Fact]
         public void Test_OpeningWordWithFieldsAndHyperlinksAndEquationsAndBookmarks() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "FieldsAndSectionsAdvanced.docx"))) {
-                Assert.True(document.Paragraphs.Count == 48);
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "FieldsAndSectionsAdvanced.docx"))) {
+                Assert.True(document.Paragraphs.Count == 52);
                 Assert.True(document.Sections.Count == 2);
                 Assert.True(document.Fields.Count == 3);
                 Assert.True(document.HyperLinks.Count == 2);
@@ -49,6 +49,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.StructuredDocumentTags.Count == 2);
                 Assert.True(document.Bookmarks.Count == 3);
                 Assert.True(document.Comments.Count == 0);
+                Assert.True(document.Images.Count == 0);
 
                 Assert.True(document.Sections[0].Fields.Count == 3);
                 Assert.True(document.Sections[0].HyperLinks.Count == 2);
@@ -67,6 +68,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Fields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
                 Assert.True(document.Sections[0].Fields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
                 Assert.True(document.Sections[0].Fields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+            }
+        }
+        [Fact]
+        public void Test_OpeningWordWithImages() {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "DocumentWithImages.docx"))) {
+                Assert.True(document.Paragraphs.Count == 23);
+                Assert.True(document.Sections.Count == 1);
+                Assert.True(document.Fields.Count == 0);
+                Assert.True(document.HyperLinks.Count == 0);
+                Assert.True(document.Equations.Count == 0);
+                Assert.True(document.StructuredDocumentTags.Count == 0);
+                Assert.True(document.Bookmarks.Count == 0);
+                Assert.True(document.Comments.Count == 0);
+                Assert.True(document.Images.Count == 7);
             }
         }
 
