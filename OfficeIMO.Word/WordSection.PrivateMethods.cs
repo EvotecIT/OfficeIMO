@@ -27,20 +27,9 @@ namespace OfficeIMO.Word {
                             newImage = new WordImage(document, drawing);
                         }
 
-                        WordParagraph wordParagraph; // = new WordParagraph(_document, false);
+                        WordParagraph wordParagraph;
                         if (count > 0) {
                             wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
-
-
-                            //wordParagraph = new WordParagraph(_document);
-                            //wordParagraph._document = _document;
-                            //wordParagraph._run = run;
-                            //wordParagraph._text = text;
-                            //wordParagraph._paragraph = paragraph;
-                            //wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-                            //wordParagraph._runProperties = runProperties;
-                            //wordParagraph._section = section;
-
                             wordParagraph.Image = newImage;
 
                             if (wordParagraph.IsPageBreak) {
@@ -53,26 +42,15 @@ namespace OfficeIMO.Word {
 
                             list.Add(wordParagraph);
                         } else {
-                            // wordParagraph._document = document;
                             wordParagraph = new WordParagraph(document, false, paragraph, paragraph.ParagraphProperties, runProperties, run);
-                            //wordParagraph._run = run;
-                            //wordParagraph._text = text;
-                            //wordParagraph._paragraph = paragraph;
-                            //wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-                            //wordParagraph._runProperties = runProperties;
-                            // wordParagraph._section = section;
 
                             if (newImage != null) {
                                 wordParagraph.Image = newImage;
                             }
 
-                            // this is to prevent adding Tables Paragraphs to section Paragraphs
-                            //if (section != null) {
-                            // section.Paragraphs.Add(this);
                             if (wordParagraph.IsPageBreak) {
                                 // section.PageBreaks.Add(this);
                             }
-                            //}
 
                             if (wordParagraph.IsListItem) {
                                 //LoadListToDocument(document, this);
