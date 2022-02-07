@@ -75,7 +75,11 @@ steps:
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
-      **\*OfficeIMO.Tests.dll
+      net472\OfficeIMO.Tests.dll
+      net48\OfficeIMO.Tests.dll
+      net6.0\OfficeIMO.Tests.dll
+      net5.0\OfficeIMO.Tests.dll
+      netcoreapp3.1\OfficeIMO.Tests.dll
     searchFolder: '$(System.DefaultWorkingDirectory)'
     publishRunAttachments: false
     codeCoverageEnabled: true

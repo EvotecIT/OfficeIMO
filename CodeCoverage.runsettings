@@ -67,8 +67,6 @@
     </DataCollectors>
   </DataCollectionRunSettings>
   <RunConfiguration>
-    <TargetPlatform>x64</TargetPlatform>
-    <TargetFrameworkVersion>FrameworkCore10;Framework45</TargetFrameworkVersion>
     <MaxCpuCount>1</MaxCpuCount>
     <!-- Path relative to directory that contains .runsettings file-->
     <ResultsDirectory>.\TestResults</ResultsDirectory>
