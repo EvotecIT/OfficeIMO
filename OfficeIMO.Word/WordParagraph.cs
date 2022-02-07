@@ -26,9 +26,18 @@ namespace OfficeIMO.Word {
             }
         }
         internal Run _run;
-        internal ParagraphProperties _paragraphProperties;
-        internal WordParagraph _linkedParagraph;
-        internal WordSection _section;
+
+        internal ParagraphProperties _paragraphProperties {
+            get {
+                if (_paragraph != null && _paragraph.ParagraphProperties != null) {
+                    return _paragraph.ParagraphProperties;
+                }
+
+                return null;
+            }
+        }
+        //internal WordParagraph _linkedParagraph;
+        //internal WordSection _section;
 
         public WordImage Image {
             get {
@@ -94,13 +103,11 @@ namespace OfficeIMO.Word {
             set {
                 if (value != null) {
                     if (_paragraphProperties == null) {
-                        _paragraphProperties = new ParagraphProperties();
+                        _paragraph.ParagraphProperties = new ParagraphProperties();
                     }
-
                     if (_paragraphProperties.ParagraphStyleId == null) {
                         _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
                     }
-
                     _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
                 }
             }
@@ -137,30 +144,30 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordParagraph(WordSection section, bool newParagraph = true) {
-            this._document = section._document;
-            // this._section = section;
+        //public WordParagraph(WordSection section, bool newParagraph = true) {
+        //    this._document = section._document;
+        //    // this._section = section;
 
-            this._run = new Run();
-            //this._runProperties = new RunProperties();
+        //    this._run = new Run();
+        //    //this._runProperties = new RunProperties();
 
-            //this._run = new Run();
-            //this._runProperties = new RunProperties();
-            //this._text = new Text {
-            //    // this ensures spaces are preserved between runs
-            //    Space = SpaceProcessingModeValues.Preserve
-            //};
-            this._paragraphProperties = new ParagraphProperties();
-            //this._run.AppendChild(_runProperties);
-            this._run.AppendChild(_text);
-            if (newParagraph) {
-                this._paragraph = new Paragraph();
-                this._paragraph.AppendChild(_paragraphProperties);
-                this._paragraph.AppendChild(_run);
-            }
+        //    //this._run = new Run();
+        //    //this._runProperties = new RunProperties();
+        //    //this._text = new Text {
+        //    //    // this ensures spaces are preserved between runs
+        //    //    Space = SpaceProcessingModeValues.Preserve
+        //    //};
+        //    //this._paragraphProperties = new ParagraphProperties();
+        //    //this._run.AppendChild(_runProperties);
+        //    this._run.AppendChild(_text);
+        //    if (newParagraph) {
+        //        this._paragraph = new Paragraph();
+        //        //this._paragraph.AppendChild(_paragraphProperties);
+        //        this._paragraph.AppendChild(_run);
+        //    }
 
-            //section.Paragraphs.Add(this);
-        }
+        //    //section.Paragraphs.Add(this);
+        //}
 
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
             this._document = document;
@@ -170,20 +177,20 @@ namespace OfficeIMO.Word {
             //    // this ensures spaces are preserved between runs
             //    Space = SpaceProcessingModeValues.Preserve
             //};
-            this._paragraphProperties = new ParagraphProperties();
+            // this._paragraphProperties = new ParagraphProperties();
             //this._run.AppendChild(_runProperties);
             //this._run.AppendChild(_text);
             if (newParagraph) {
                 this._paragraph = new Paragraph();
-                this._paragraph.AppendChild(_paragraphProperties);
+                this._paragraph.AppendChild(new ParagraphProperties());
                 this._paragraph.AppendChild(_run);
             }
 
-            if (document != null) {
-                //  document._currentSection.Paragraphs.Add(this);
-                //this._section = document._currentSection;
-                //document.Paragraphs.Add(this);
-            }
+            //if (document != null) {
+            //  document._currentSection.Paragraphs.Add(this);
+            //this._section = document._currentSection;
+            //document.Paragraphs.Add(this);
+            // }
         }
 
 
@@ -192,48 +199,33 @@ namespace OfficeIMO.Word {
             this._paragraph = paragraph;
         }
 
-        public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
-            this._document = document;
-            this._section = section;
-            this._run = run;
-            //this._runProperties = runProperties;
-            this._paragraph = paragraph;
+        //public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
+        //    this._document = document;
+        //    //this._section = section;
+        //    this._run = run;
+        //    //this._runProperties = runProperties;
+        //    this._paragraph = paragraph;
 
-            //if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
-            this._paragraphProperties = paragraphProperties;
-            if (this._run != null) {
-                //  this._run.AppendChild(_runProperties);
-                // this._run.AppendChild(_text);
-            }
+        //    //if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
+        //    //this._paragraphProperties = paragraphProperties;
+        //    //if (this._run != null) {
+        //    //  this._run.AppendChild(_runProperties);
+        //    // this._run.AppendChild(_text);
+        //    //}
 
-            if (newParagraph) {
-                this._paragraph = new Paragraph();
-                if (_paragraphProperties != null) {
-                    this._paragraph.AppendChild(_paragraphProperties);
-                }
-                if (_run != null) this._paragraph.AppendChild(_run);
-            }
-        }
+        //    if (newParagraph) {
+        //        this._paragraph = new Paragraph();
+        //        if (_paragraphProperties != null) {
+        //            this._paragraph.AppendChild(_paragraphProperties);
+        //        }
+        //        if (_run != null) this._paragraph.AppendChild(_run);
+        //    }
+        //}
 
         public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
             _document = document;
             _paragraph = paragraph;
             _run = run;
-            if (run != null) {
-                //this._text = run.OfType<Text>().FirstOrDefault();
-
-                //if (run.RunProperties != null) {
-                //    _runProperties = run.RunProperties;
-                //}
-
-                //Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                //if (drawing != null) {
-                //    this.Image = new WordImage(document, drawing);
-                //}
-            }
-            if (paragraph.ParagraphProperties != null) {
-                _paragraphProperties = paragraph.ParagraphProperties;
-            }
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {

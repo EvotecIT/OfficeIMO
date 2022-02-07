@@ -178,16 +178,26 @@ namespace OfficeIMO.Word {
             paragraphProperties.Append(numberingProperties);
 
             Run run = new Run();
+            run.Append(runProperties);
+            run.Append(textProperty);
 
-            WordParagraph wordParagraph = new WordParagraph(_document, true, null, paragraphProperties, runProperties, run, _section);
+            //WordParagraph wordParagraph = new WordParagraph(_document, true, null, paragraphProperties, runProperties, run, _section);
+            //
+
+            Paragraph paragraph = new Paragraph();
+            paragraph.Append(paragraphProperties);
+            paragraph.Append(run);
+
+            this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(paragraph);
+
+            WordParagraph wordParagraph = new WordParagraph(_document, paragraph, run);
             wordParagraph.Text = text;
-
             // this simplifies TOC for user usage
             if (_isToc || IsToc) {
                 wordParagraph.Style = WordParagraphStyle.GetStyle(level);
             }
 
-            _document.AddParagraph(wordParagraph);
+            //_document.AddParagraph(wordParagraph);
 
             // ListItems.Add(wordParagraph);
 

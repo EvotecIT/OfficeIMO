@@ -97,6 +97,16 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsFields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
                 Assert.True(document.Sections[0].ParagraphsFields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
                 Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+
+                document.Fields[0].UpdateField = true;
+                document.Fields[1].UpdateField = true;
+                Assert.True(document.Fields[0].UpdateField == true);
+                Assert.True(document.Fields[1].UpdateField == true);
+                document.Fields[2].LockField = true;
+                Assert.True(document.Fields[2].LockField == true);
+                Assert.True(document.Fields[1].LockField == false);
+                Assert.True(document.Fields[0].LockField == false);
+                document.Save(false);
             }
         }
         [Fact]
@@ -111,6 +121,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks.Count == 0);
                 Assert.True(document.Comments.Count == 0);
                 Assert.True(document.Images.Count == 7);
+
+
+                document.Save(false);
             }
         }
 

@@ -21,13 +21,12 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                DocumentFormat.OpenXml.Wordprocessing.Justification justification = new Justification();
-                justification.Val = value;
                 if (_paragraphProperties == null) {
-                    _paragraphProperties = new ParagraphProperties();
-                    _paragraph.ParagraphProperties = _paragraphProperties;
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
-                _paragraphProperties.Justification = justification;
+                _paragraphProperties.Justification = new Justification {
+                    Val = value
+                };
             }
         }
 
@@ -46,8 +45,7 @@ namespace OfficeIMO.Word {
                 DocumentFormat.OpenXml.Wordprocessing.TextAlignment textAlignment = new TextAlignment();
                 textAlignment.Val = value;
                 if (_paragraphProperties == null) {
-                    _paragraphProperties = new ParagraphProperties();
-                    _paragraph.ParagraphProperties = _paragraphProperties;
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
                 _paragraphProperties.TextAlignment = textAlignment;
             }

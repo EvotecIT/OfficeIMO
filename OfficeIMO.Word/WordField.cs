@@ -31,12 +31,20 @@ namespace OfficeIMO.Word {
         public bool UpdateField {
             get {
                 if (_simpleField != null) {
-                    return _simpleField.Dirty;
+                    if (_simpleField.Dirty != null) {
+                        return _simpleField.Dirty;
+                    } else {
+                        return false;
+                    }
                 } else {
                     foreach (var run in _runs) {
                         var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
                         if (fieldChar != null) {
-                            return fieldChar.Dirty;
+                            if (fieldChar.Dirty != null) {
+                                return fieldChar.Dirty;
+                            } else {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -59,12 +67,20 @@ namespace OfficeIMO.Word {
         public bool LockField {
             get {
                 if (_simpleField != null) {
-                    return _simpleField.FieldLock;
+                    if (_simpleField.FieldLock != null) {
+                        return _simpleField.FieldLock;
+                    } else {
+                        return false;
+                    }
                 } else {
                     foreach (var run in _runs) {
                         var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
                         if (fieldChar != null) {
-                            return fieldChar.FieldLock;
+                            if (fieldChar.FieldLock != null) {
+                                return fieldChar.FieldLock;
+                            } else {
+                                return false;
+                            }
                         }
                     }
                 }

@@ -62,14 +62,14 @@ namespace OfficeIMO.Word {
 
             if (this.Paragraphs.Count == 0) {
                 WordParagraph paragraph = this._document.AddParagraph(text);
-                paragraph._section = this;
+                //paragraph._section = this;
                 return paragraph;
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
 
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
                 paragraph._document = this._document;
-                paragraph._section = this;
+                // paragraph._section = this;
                 //this.Paragraphs.Add(paragraph);
                 paragraph.Text = text;
                 return paragraph;

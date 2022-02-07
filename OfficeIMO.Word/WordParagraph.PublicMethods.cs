@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
 
         public WordParagraph AddParagraphAfterSelf(WordSection section) {
             //WordParagraph paragraph = new WordParagraph(section._document, true);
-            WordParagraph paragraph = new WordParagraph(section, true);
+            WordParagraph paragraph = new WordParagraph(section._document, true);
 
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             //this._document.Paragraphs.Add(paragraph);
