@@ -249,7 +249,11 @@ namespace OfficeIMO.Examples {
                 document.PageBreaks[7].Remove(includingParagraph: false);
                 document.PageBreaks[6].Remove();
 
+                Console.WriteLine(document.DocumentIsValid);
+                Console.WriteLine(document.DocumentValidationErrors.Count);
                 document.Save(openWord);
+
+                document.Save(@"");
             }
         }
 
@@ -1153,8 +1157,6 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
                 Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
                 Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
-
-                document.ValidateDocument();
             }
         }
 

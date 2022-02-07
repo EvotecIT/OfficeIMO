@@ -50,6 +50,35 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks.Count == 3);
                 Assert.True(document.Comments.Count == 0);
                 Assert.True(document.Images.Count == 0);
+                Assert.True(document.PageBreaks.Count == 1);
+
+                Assert.True(document.ParagraphsFields.Count == 3);
+                Assert.True(document.ParagraphsHyperLinks.Count == 2);
+                Assert.True(document.ParagraphsEquations.Count == 2);
+                Assert.True(document.ParagraphsStructuredDocumentTags.Count == 2);
+                Assert.True(document.ParagraphsBookmarks.Count == 3);
+                Assert.True(document.Comments.Count == 0);
+                Assert.True(document.ParagraphsImages.Count == 0);
+                Assert.True(document.ParagraphsPageBreaks.Count == 1);
+
+                Assert.True(document.Sections[0].ParagraphsFields.Count == 3);
+                Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 2);
+                Assert.True(document.Sections[0].ParagraphsEquations.Count == 0);
+                Assert.True(document.Sections[0].ParagraphsStructuredDocumentTags.Count == 0);
+                Assert.True(document.Sections[0].ParagraphsBookmarks.Count == 2);
+                //Assert.True(document.Sections[0].Comments.Count == 0);
+                Assert.True(document.Sections[0].ParagraphsImages.Count == 0);
+                Assert.True(document.Sections[0].ParagraphsPageBreaks.Count == 1);
+
+                Assert.True(document.Sections[1].ParagraphsFields.Count == 0);
+                Assert.True(document.Sections[1].ParagraphsHyperLinks.Count == 0);
+                Assert.True(document.Sections[1].ParagraphsEquations.Count == 2);
+                Assert.True(document.Sections[1].ParagraphsStructuredDocumentTags.Count == 2);
+                Assert.True(document.Sections[1].ParagraphsBookmarks.Count == 1);
+                //Assert.True(document.Sections[0].Comments.Count == 0);
+                Assert.True(document.Sections[1].ParagraphsImages.Count == 0);
+                Assert.True(document.Sections[1].ParagraphsPageBreaks.Count == 0);
+
 
                 Assert.True(document.Sections[0].Fields.Count == 3);
                 Assert.True(document.Sections[0].HyperLinks.Count == 2);

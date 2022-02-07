@@ -18,7 +18,8 @@ namespace OfficeIMO.Word {
 
         internal int BookmarkId {
             get {
-                List<int> bookmarksList = new List<int>() { 0 }; ;
+                List<int> bookmarksList = new List<int>() { 0 };
+                ;
                 foreach (var paragraph in this.ParagraphsBookmarks) {
                     bookmarksList.Add(paragraph.Bookmark.Id);
                 }
@@ -33,6 +34,7 @@ namespace OfficeIMO.Word {
                 if (sdtBlock != null) {
                     return new WordTableOfContent(this, sdtBlock);
                 }
+
                 return null;
             }
         }
@@ -43,6 +45,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Paragraphs);
                 }
+
                 return list;
             }
         }
@@ -68,6 +71,7 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+
         public List<WordParagraph> ParagraphsFields {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -124,10 +128,9 @@ namespace OfficeIMO.Word {
         }
 
         public List<WordComment> Comments {
-            get {
-                return WordComment.GetAllComments(this);
-            }
+            get { return WordComment.GetAllComments(this); }
         }
+
         public List<WordList> Lists {
             get {
                 List<WordList> list = new List<WordList>();
@@ -138,12 +141,14 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Bookmarks);
                 }
+
                 return list;
             }
         }
@@ -168,6 +173,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.ParagraphsImages);
                 }
+
                 return list;
             }
         }
@@ -181,6 +187,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Images);
                 }
+
                 return list;
             }
         }
@@ -191,6 +198,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Fields);
                 }
+
                 return list;
             }
         }
@@ -201,6 +209,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.HyperLinks);
                 }
+
                 return list;
             }
         }
@@ -211,6 +220,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.StructuredDocumentTags);
                 }
+
                 return list;
             }
         }
@@ -221,6 +231,7 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Equations);
                 }
+
                 return list;
             }
         }
@@ -246,7 +257,8 @@ namespace OfficeIMO.Word {
         public FileAccess FileOpenAccess {
             get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
         }
-        public static string GetUniqueFilePath(string filePath) {
+
+        private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
                 string folderPath = Path.GetDirectoryName(filePath);
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
@@ -264,8 +276,7 @@ namespace OfficeIMO.Word {
                     number++;
                     string newFileName = $"{fileName} ({number}){fileExtension}";
                     filePath = Path.Combine(folderPath, newFileName);
-                }
-                while (File.Exists(filePath));
+                } while (File.Exists(filePath));
             }
 
             return filePath;
@@ -341,6 +352,7 @@ namespace OfficeIMO.Word {
                     throw new NotImplementedException("This isn't implemented yet");
                 }
             }
+
             RearrangeSectionsAfterLoad();
         }
 
@@ -408,6 +420,7 @@ namespace OfficeIMO.Word {
             if (filePath == "") {
                 filePath = this.FilePath;
             }
+
             Helpers.Open(filePath, openWord);
         }
 
@@ -429,19 +442,19 @@ namespace OfficeIMO.Word {
         //        }
         //    }
         //}
-        private void SaveSections() {
-            WordSection temporarySection = null;
-            if (this.Sections.Count > 0) {
-                for (int i = 0; i < Sections.Count; i++) {
-                    if (temporarySection != null) {
+        //private void SaveSections() {
+        //    WordSection temporarySection = null;
+        //    if (this.Sections.Count > 0) {
+        //        for (int i = 0; i < Sections.Count; i++) {
+        //            if (temporarySection != null) {
 
-                    } else {
-                        temporarySection = Sections[i];
-                        Sections[i]._sectionProperties.Remove();
-                    }
-                }
-            }
-        }
+        //            } else {
+        //                temporarySection = Sections[i];
+        //                Sections[i]._sectionProperties.Remove();
+        //            }
+        //        }
+        //    }
+        //}
 
         private void SaveNumbering() {
             // it seems the order of numbering instance/abstractnums in numbering matters...
@@ -501,8 +514,7 @@ namespace OfficeIMO.Word {
                     }
                 } catch {
                     throw;
-                }
-                finally {
+                } finally {
                     this._wordprocessingDocument.Close();
                     this._wordprocessingDocument.Dispose();
                 }
@@ -616,29 +628,26 @@ namespace OfficeIMO.Word {
 
         public WordBackground Background { get; set; }
 
-        public bool ValidateDocument() {
-            bool foundIssue = false;
-            try {
-                OpenXmlValidator validator = new OpenXmlValidator();
-                int count = 0;
-                foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
-                    count++;
-                    Console.WriteLine("Error " + count);
-                    Console.WriteLine("Description: " + error.Description);
-                    Console.WriteLine("ErrorType: " + error.ErrorType);
-                    Console.WriteLine("Node: " + error.Node);
-                    Console.WriteLine("Path: " + error.Path.XPath);
-                    Console.WriteLine("Part: " + error.Part.Uri);
-                    Console.WriteLine("-------------------------------------------");
-                    foundIssue = true;
+        public bool DocumentIsValid {
+            get {
+                if (DocumentValidationErrors.Count > 0) {
+                    return false;
                 }
 
-                Console.WriteLine("count={0}", count);
-            } catch (Exception ex) {
-                Console.WriteLine(ex.Message);
+                return true;
             }
+        }
 
-            return foundIssue;
+        public List<ValidationErrorInfo> DocumentValidationErrors {
+            get {
+                List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+                OpenXmlValidator validator = new OpenXmlValidator();
+                foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
+                    listErrors.Add(error);
+                }
+
+                return listErrors;
+            }
         }
 
         public WordList AddList(WordListStyle style) {

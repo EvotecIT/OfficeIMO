@@ -8,9 +8,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg"></a>
-  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/top/evotecit/OfficeIMO.svg"></a>
-  <a href="https://github.com/EvotecIT/OfficeIMO"><img src="https://img.shields.io/github/languages/code-size/evotecit/OfficeIMO.svg"></a>
+  <img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg">
+  <img src="https://img.shields.io/github/languages/top/evotecit/OfficeIMO.svg">
+  <img src="https://img.shields.io/github/languages/code-size/evotecit/OfficeIMO.svg">
   <a href="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51"><img src="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg" alt="wakatime"></a>
 </p>
 
@@ -42,12 +42,14 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 **This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
 
-| Platform | Status | Code Coverage |
-| --- | --- | ---- |
-| Windows | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=19"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> |
-| Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=22"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> |
-| MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=23"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> |
+| Platform | Status | Code Coverage | .NET |
+| --- | --- | ---- | ---- |
+| Windows | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=19"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> | .NET 4.7.2, NET 4.8, .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1 |
+| Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=22"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1|
+| MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=23"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1 |
 
+Due to **System.Drawing.Common** is not supported on [non-Windows platforms](https://aka.ms/systemdrawingnonwindows), some tests fail on Linux, macOs (mainly those around images).
+Not yet sure how to address it.
 
 ## Features
 

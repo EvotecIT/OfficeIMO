@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
             } else {
-                Directory.Delete(path, true);
-                Directory.CreateDirectory(path);
+                //Directory.Delete(path, true);
+                //Directory.CreateDirectory(path);
             }
         }
 
