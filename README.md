@@ -87,13 +87,31 @@ Here's a list of features currently supported and those that are planned. It's n
   - [x] Save image from Word to File
   - [ ] Other image types
   - [ ] Other location types
-- [ ] Hyperlinks
-- [ ] Bookmarks
+- [x] Hyperlinks
+  - [ ] Add HyperLink
+  - [x] Read HyperLink
+  - [ ] Remove HyperLink
+  - [x] Change HyperLink
+- [x] PageBreaks
+  - [x] Add PageBreak
+  - [x] Read PageBreak
+  - [x] Remove PageBreak
+  - [x] Change PageBreak
+- [x] Bookmarks
+  - [x] Add Bookmark
+  - [x] Read Bookmark
+  - [x] Remove Bookmark
+  - [x] Change Bookmark
 - [ ] Comments
   - [x] Add comments
+  - [x] Read comments
   - [ ] Remove comments
   - [ ] Track comments
-- [ ] Fields
+- [x] Fields
+  - [ ] Add Field
+  - [x] Read Field
+  - [ ] Remove Field
+  - [x] Change Field
 - [ ] Shapes
 - [ ] Charts
 - [ ] Lists
