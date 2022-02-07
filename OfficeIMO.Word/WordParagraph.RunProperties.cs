@@ -20,10 +20,16 @@ namespace OfficeIMO.Word {
             }
             set {
                 VerifyRunProperties();
-                if (value != true) {
-                    _runProperties.Bold = null;
+                if (value == true) {
+                    _runProperties.Bold = new Bold();
+                    _runProperties.BoldComplexScript = new BoldComplexScript();
                 } else {
-                    _runProperties.Bold = new Bold { };
+                    if (_runProperties.BoldComplexScript != null) {
+                        _runProperties.BoldComplexScript.Remove();
+                    }
+                    if (_runProperties.Bold != null) {
+                        _runProperties.Bold.Remove();
+                    }
                 }
             }
         }
