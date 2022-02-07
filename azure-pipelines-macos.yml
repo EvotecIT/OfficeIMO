@@ -26,7 +26,7 @@ steps:
   displayName: 'Use .NET 5.0'
   inputs:
     packageType: 'sdk'
-    version: '5.0.X'
+    version: '5.0.100'
     includePreviewVersions: true
 
 - task: UseDotNet@2
