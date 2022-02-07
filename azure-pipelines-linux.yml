@@ -90,6 +90,7 @@ steps:
     arguments: '--configuration $(buildConfiguration) --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
     publishTestResults: true
     projects: '**/*.Tests.csproj'
+    testRunTitle: '$(projectName) $(solution) $(buildPlatform) $(buildConfiguration)'
 
 - task: PublishCodeCoverageResults@1
   displayName: 'Publish Code Coverage Report'

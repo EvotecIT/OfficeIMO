@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
             //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments1");
             Word.Setup(_directoryWithFiles);
         }
     }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -24,7 +25,7 @@ namespace OfficeIMO.Tests {
             _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
             //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2");
             Setup(_directoryWithFiles);
         }
     }
