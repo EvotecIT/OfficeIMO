@@ -16,6 +16,17 @@ variables:
 steps:
 - task: NuGetToolInstaller@1
 
+- task: UseDotNet@2
+  displayName: Use .NET 6.0
+  inputs:
+    packageType: 'sdk'
+    version: '6.0.x'
+
+# Add a Command To List the Current .NET SDKs (Sanity Check)
+- task: CmdLine@2
+  inputs:
+    script: 'dotnet --list-sdks'
+
 - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
@@ -30,7 +41,9 @@ steps:
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
-      **\*test*.dll
+      net6.0\OfficeIMO.Tests.dll
+      net5.0\OfficeIMO.Tests.dll
+      netcoreapp3.1\OfficeIMO.Tests.dll
       !**\*TestAdapter.dll
       !**\obj\**
     searchFolder: '$(System.DefaultWorkingDirectory)'
