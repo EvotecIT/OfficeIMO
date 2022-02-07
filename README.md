@@ -44,9 +44,9 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 | Platform | Status | Code Coverage |
 | --- | --- | ---- |
-| Windows | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> |
-| Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> |
-| MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> |
+| Windows | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=19"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> |
+| Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=22"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> |
+| MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=23"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> |
 
 
 ## Features
