@@ -68,7 +68,6 @@
   </DataCollectionRunSettings>
   <RunConfiguration>
     <TargetPlatform>x64</TargetPlatform>
-    <TargetFrameworkVersion>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworkVersion>
     <MaxCpuCount>1</MaxCpuCount>
     <!-- Path relative to directory that contains .runsettings file-->
     <ResultsDirectory>.\TestResults</ResultsDirectory>
