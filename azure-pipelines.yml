@@ -30,35 +30,52 @@ variables:
 
 steps:
 - task: NuGetToolInstaller@1
+  displayName: 'Install Nuget Tool Installer'
 
 - task: UseDotNet@2
-  displayName: Use .NET 6.0
+  displayName: 'Install .NET 6.0'
   inputs:
     packageType: 'sdk'
     version: '6.0.x'
 
+- task: UseDotNet@2
+  displayName: 'Install .NET 5.0'
+  inputs:
+    packageType: 'sdk'
+    version: '5.0.100'
+    includePreviewVersions: true
+
+- task: UseDotNet@2
+  displayName: Install .NET 3.1
+  inputs:
+    version: '3.1.x'
+    packageType: sdk
+    includePreviewVersions: false
+
 # Add a Command To List the Current .NET SDKs (Sanity Check)
 - task: CmdLine@2
+  displayName: 'List available .NET SDKs'
   inputs:
     script: 'dotnet --list-sdks'
 
 - task: NuGetCommand@2
+  displayName: Install Nuget Packages
   inputs:
     restoreSolution: '$(solution)'
 
 - task: VSBuild@1
+  displayName: Build Solution
   inputs:
     solution: '$(solution)'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
 - task: VSTest@2
+  displayName: Run Tests
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*OfficeIMO.Tests.dll
-      !**\*TestAdapter.dll
-      !**\obj\**
     searchFolder: '$(System.DefaultWorkingDirectory)'
     publishRunAttachments: false
     codeCoverageEnabled: true
