@@ -87,10 +87,13 @@ steps:
   displayName: 'Run Tests'
   inputs:
     command: 'test'
-    projects: '**/*.Tests.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
     publishTestResults: true
-    arguments: '--collect:"XPlat Code Coverage"'
-    testAssemblyVer2: |
-      net6.0\OfficeIMO.Tests.dll
-      net5.0\OfficeIMO.Tests.dll
-      netcoreapp3.1\OfficeIMO.Tests.dll
+    projects: '**/*.Tests.csproj'
+    testRunTitle: 'macOs Test Run $(buildConfiguration), CPU: $(buildPlatform)'
+
+- task: PublishCodeCoverageResults@1
+  displayName: 'Publish Code Coverage Report'
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'

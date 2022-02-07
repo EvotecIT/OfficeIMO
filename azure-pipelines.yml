@@ -70,27 +70,28 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: VSTest@2
-  displayName: Run Tests .NET Framework
-  inputs:
-    testSelector: 'testAssemblies'
-    testAssemblyVer2: |
-      **\*OfficeIMO.Tests.dll
-    searchFolder: '$(System.DefaultWorkingDirectory)'
-    publishRunAttachments: true
-    codeCoverageEnabled: true
-    runSettingsFile: CodeCoverage.runsettings
+# - task: VSTest@2
+#   displayName: Run Tests .NET Framework
+#   inputs:
+#     testSelector: 'testAssemblies'
+#     testAssemblyVer2: |
+#       **\*OfficeIMO.Tests.dll
+#     searchFolder: '$(System.DefaultWorkingDirectory)'
+#     publishRunAttachments: true
+#     codeCoverageEnabled: true
+#     runSettingsFile: CodeCoverage.runsettings
 
 - task: DotNetCoreCLI@2
   displayName: 'Run Tests'
   inputs:
     command: 'test'
-    arguments: '--configuration $(buildConfiguration) --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
+    arguments: --configuration $(buildConfiguration) --collect "Code coverage"
     publishTestResults: true
     projects: '**/*.Tests.csproj'
+    testRunTitle: 'Windows Test Run $(buildConfiguration), CPU: $(buildPlatform)'
 
-- task: PublishCodeCoverageResults@1
-  displayName: 'Publish Code Coverage Report'
-  inputs:
-    codeCoverageTool: 'Cobertura'
-    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+# - task: PublishCodeCoverageResults@1
+#   displayName: 'Publish Code Coverage Report'
+#   inputs:
+#     codeCoverageTool: 'Cobertura'
+#     summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
