@@ -262,6 +262,7 @@ namespace OfficeIMO.Examples {
 
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors.Count);
+
                 document.Save(openWord);
             }
         }
