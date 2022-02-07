@@ -45,15 +45,19 @@ namespace OfficeIMO.Word {
         public void Remove() {
             if (_paragraph != null) {
                 if (this._paragraph.Parent != null) {
-                    var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
-                    if (runs.Count == 0) {
-                        this._paragraph.Remove();
-                    } else if (runs.Count == 1) {
-                        this._paragraph.Remove();
+                    if (this.IsBookmark) {
+                        this.Bookmark.Remove();
                     } else {
-                        foreach (var run in runs) {
-                            if (run == _run) {
-                                this._run.Remove();
+                        var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
+                        if (runs.Count == 0) {
+                            this._paragraph.Remove();
+                        } else if (runs.Count == 1) {
+                            this._paragraph.Remove();
+                        } else {
+                            foreach (var run in runs) {
+                                if (run == _run) {
+                                    this._run.Remove();
+                                }
                             }
                         }
                     }
@@ -181,5 +185,14 @@ namespace OfficeIMO.Word {
             //this._currentSection.Paragraphs.Add(newWordParagraph);
             return this;
         }
+
+        public void AddBookmark(string bookmarkName) {
+            BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = this._document.BookmarkId.ToString() };
+            BookmarkEnd bme = new BookmarkEnd() { Id = this._document.BookmarkId.ToString() };
+
+            var bm = this._run.InsertAfterSelf(bms);
+            bm.InsertAfterSelf(bme);
+        }
+
     }
 }

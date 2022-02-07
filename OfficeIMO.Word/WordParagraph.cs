@@ -110,6 +110,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordPageBreak PageBreak {
+            get {
+                if (_run != null) {
+                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+                    if (brake != null && brake.Type.Value == BreakValues.Page) {
+                        return new WordPageBreak(_document, _paragraph, _run);
+                    }
+                }
+
+                return null;
+            }
+        }
 
         public WordParagraph(WordSection section, bool newParagraph = true) {
             this._document = section._document;

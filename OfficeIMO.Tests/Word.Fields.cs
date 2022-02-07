@@ -25,17 +25,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Fields.Count == 0);
                 Assert.True(document.Sections[1].HyperLinks.Count == 0);
 
-                Assert.True(document.HyperLinks[0].Hyperlink.IsEmail == false);
-                Assert.True(document.HyperLinks[1].Hyperlink.IsEmail == true);
-                Assert.True(document.HyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
+                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink.IsEmail == false);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.IsEmail == true);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
 
-                Assert.True(document.Sections[0].Fields[0].Field.Text == "Przemysław Kłys");
-                Assert.True(document.Sections[0].Fields[1].Field.Text == "FieldsAndSections.docx");
-                Assert.True(document.Sections[0].Fields[2].Field.Text == "1");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Text == "Przemysław Kłys");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Text == "FieldsAndSections.docx");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Text == "1");
 
-                Assert.True(document.Sections[0].Fields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].Fields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].Fields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
             }
         }
         [Fact]
@@ -57,17 +57,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Fields.Count == 0);
                 Assert.True(document.Sections[1].HyperLinks.Count == 0);
 
-                Assert.True(document.HyperLinks[0].Hyperlink.IsEmail == false);
-                Assert.True(document.HyperLinks[1].Hyperlink.IsEmail == true);
-                Assert.True(document.HyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
+                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink.IsEmail == false);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.IsEmail == true);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
 
-                Assert.True(document.Sections[0].Fields[0].Field.Text == "Przemysław Kłys");
-                Assert.True(document.Sections[0].Fields[1].Field.Text == "FieldsAndSections.docx");
-                Assert.True(document.Sections[0].Fields[2].Field.Text == "1");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Text == "Przemysław Kłys");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Text == "FieldsAndSections.docx");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Text == "1");
 
-                Assert.True(document.Sections[0].Fields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].Fields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].Fields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
             }
         }
         [Fact]

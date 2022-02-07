@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
                 var expectedParagraph1 = new Likeness<WordParagraph, WordParagraph>(document.Sections[0].Paragraphs[0]);
                 Assert.True(expectedParagraph1.Equals(document.Paragraphs[0]) == true);
 
-                var expectedParagraph2 = new Likeness<WordParagraph, WordParagraph>(document.Sections[0].Paragraphs[1]);
-                Assert.True(expectedParagraph2.Equals(document.Paragraphs[1]) == true);
+                var expectedParagraph2 = new Likeness<WordParagraph, WordParagraph>(document.Sections[0].Paragraphs[2]);
+                Assert.True(expectedParagraph2.Equals(document.Paragraphs[2]) == true);
 
                 Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");

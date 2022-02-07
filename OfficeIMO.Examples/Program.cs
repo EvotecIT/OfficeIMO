@@ -33,9 +33,9 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
             //Example_BasicWord(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with paragraph (2)");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs2.docx");
-            Example_BasicWord2(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with paragraph (2)");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs2.docx");
+            //Example_BasicWord2(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
@@ -214,6 +214,43 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
             //Example_BasicPageBorders2(filePath, true);
 
+
+            Console.WriteLine("[*] Creating standard document with bookmarks");
+            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
+            Example_BasicWordWithBookmarks(filePath, true);
+        }
+
+        private static void Example_BasicWordWithBookmarks(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test 1").AddBookmark("Start");
+
+                document.AddPageBreak();
+                document.AddPageBreak();
+
+                document.AddParagraph("Test 2").AddBookmark("Middle1");
+
+                document.AddPageBreak();
+                document.AddPageBreak();
+
+                document.AddParagraph("Test 3").AddBookmark("Middle0");
+
+                document.AddPageBreak();
+                document.AddPageBreak();
+
+                document.AddParagraph("Test 4").AddBookmark("EndOfDocument");
+
+                document.Bookmarks[2].Remove();
+
+                document.AddPageBreak();
+                document.AddPageBreak();
+
+                document.AddParagraph("Test 5");
+
+                document.PageBreaks[7].Remove(includingParagraph: false);
+                document.PageBreaks[6].Remove();
+
+                document.Save(openWord);
+            }
         }
 
         private static void Example_BasicEmptyWord(string filePath, bool openWord) {
@@ -276,7 +313,6 @@ namespace OfficeIMO.Examples {
             //    Console.WriteLine(document.Comments.Count);
 
             //    document.Comments[0].Text = "Lets change it";
-
 
 
             //    document.Save(false);
@@ -458,11 +494,11 @@ namespace OfficeIMO.Examples {
             paragraph4.Image.HorizontalFlip = true;
 
             // or we can get any image and overwrite it's size
-            document.ImagesList[0].Height = 200;
-            document.ImagesList[0].Width = 200;
+            document.Images[0].Height = 200;
+            document.Images[0].Width = 200;
 
             string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-            document.ImagesList[0].SaveToFile(fileToSave);
+            document.Images[0].SaveToFile(fileToSave);
 
             document.Save(true);
         }
@@ -488,7 +524,7 @@ namespace OfficeIMO.Examples {
             Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
             Console.WriteLine("+ Document images: " + document.Images.Count);
 
-            document.ImagesList[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
         }
 
         private static void Example_PageBreaks(string filePath, bool openWord) {
@@ -559,7 +595,7 @@ namespace OfficeIMO.Examples {
                 document.Paragraphs[countParagraphs - 2].Remove();
 
                 // remove first page break
-                document.PageBreaks[0].Remove();
+                document.PageBreaks[0].Remove(true);
 
                 document.Save(openWord);
             }
@@ -1415,7 +1451,6 @@ namespace OfficeIMO.Examples {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-
                 document.Tables[1].Remove();
 
                 document.AddParagraph("This new table should have cells merged");
@@ -1465,7 +1500,6 @@ namespace OfficeIMO.Examples {
 
                 document.Save(openWord);
             }
-
         }
 
         private static void Example_BasicTablesLoad1(string filePath, bool openWord) {
@@ -1747,7 +1781,6 @@ namespace OfficeIMO.Examples {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-
                 Console.WriteLine("Loaded document information:");
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
@@ -1846,6 +1879,7 @@ namespace OfficeIMO.Examples {
                 for (int i = 0; i < 11; i++) {
                     Console.WriteLine(document.Sections[3].Paragraphs[i].Text);
                 }
+
                 Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
 
                 document.Save(openWord);
@@ -1874,8 +1908,8 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
 
                 document.Save(false);
-
             }
+
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("-----");
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
@@ -1912,9 +1946,9 @@ namespace OfficeIMO.Examples {
                 document.Save(true);
             }
         }
+
         private static void Example_SectionsWithHeadersDefault(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.Settings.Language = "pl-PL";
 
                 document.Sections[0].PageOrientation = PageOrientationValues.Portrait;
@@ -1953,10 +1987,9 @@ namespace OfficeIMO.Examples {
                 //Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
                 //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
                 document.Save(false);
-
             }
-            using (WordDocument document = WordDocument.Load(filePath)) {
 
+            using (WordDocument document = WordDocument.Load(filePath)) {
                 document.Sections[1].AddHeadersAndFooters();
                 document.Sections[1].Header.Default.AddParagraph().SetText("Test Section 1 - Header");
                 document.Sections[1].Footer.Default.AddParagraph().SetText("Test Section 1 - Header");
@@ -2010,7 +2043,6 @@ namespace OfficeIMO.Examples {
                 section1.Header.First.AddParagraph().SetText("Test Section 1 - First Header");
 
 
-
                 document.AddPageBreak();
 
 
@@ -2021,8 +2053,6 @@ namespace OfficeIMO.Examples {
 
 
                 document.AddPageBreak();
-
-
 
 
                 var section2 = document.AddSection();
@@ -2032,8 +2062,6 @@ namespace OfficeIMO.Examples {
                 section2.Header.Default.AddParagraph().SetText("Test Section 2 - Header");
 
                 document.AddParagraph("Test Section2 - Paragraph 1");
-
-
 
 
                 var section3 = document.AddSection();
@@ -2053,8 +2081,8 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
                 Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
                 document.Save(false);
-
             }
+
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("-----");
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
@@ -2085,16 +2113,15 @@ namespace OfficeIMO.Examples {
                 document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
                 document.Save(false);
-
             }
-            using (WordDocument document = WordDocument.Load(filePath)) {
 
+            using (WordDocument document = WordDocument.Load(filePath)) {
                 document.Save(true);
             }
         }
+
         private static void Example_BasicWordMarginsSizes(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.AddParagraph("Section 0");
                 document.Sections[0].SetMargins(PageMargins.Normal);
 
@@ -2132,7 +2159,6 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicWordWatermark(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
                 document.Sections[0].SetMargins(PageMargins.Normal);
@@ -2188,7 +2214,6 @@ namespace OfficeIMO.Examples {
 
         private static void Example_BasicPageBorders2(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-
                 document.Background.SetColor(Color.DarkSeaGreen);
 
                 document.AddParagraph("Section 0");
@@ -2203,6 +2228,5 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
     }
 }

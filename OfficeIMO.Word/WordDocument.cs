@@ -16,6 +16,17 @@ namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
 
+        internal int BookmarkId {
+            get {
+                List<int> bookmarksList = new List<int>() { 0 }; ;
+                foreach (var paragraph in this.ParagraphsBookmarks) {
+                    bookmarksList.Add(paragraph.Bookmark.Id);
+                }
+
+                return bookmarksList.Max() + 1;
+            }
+        }
+
         public WordTableOfContent TableOfContent {
             get {
                 SdtBlock sdtBlock = _document.Body.ChildElements.OfType<SdtBlock>().FirstOrDefault();
@@ -36,65 +47,76 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordParagraph> PageBreaks {
+        public List<WordParagraph> ParagraphsPageBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsPageBreaks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsHyperLinks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsHyperLinks);
+                }
+
+                return list;
+            }
+        }
+        public List<WordParagraph> ParagraphsFields {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsFields);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsBookmarks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsBookmarks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsEquations {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsEquations);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsStructuredDocumentTags {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsStructuredDocumentTags);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordPageBreak> PageBreaks {
+            get {
+                List<WordPageBreak> list = new List<WordPageBreak>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.PageBreaks);
-                }
-
-                return list;
-            }
-        }
-
-        public List<WordParagraph> HyperLinks {
-            get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.HyperLinks);
-                }
-
-                return list;
-            }
-        }
-        public List<WordParagraph> Fields {
-            get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Fields);
-                }
-
-                return list;
-            }
-        }
-
-        public List<WordParagraph> Bookmarks {
-            get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Bookmarks);
-                }
-
-                return list;
-            }
-        }
-
-        public List<WordParagraph> Equations {
-            get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Equations);
-                }
-
-                return list;
-            }
-        }
-
-        public List<WordParagraph> StructuredDocumentTags {
-            get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.StructuredDocumentTags);
                 }
 
                 return list;
@@ -116,6 +138,15 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+        public List<WordBookmark> Bookmarks {
+            get {
+                List<WordBookmark> list = new List<WordBookmark>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Bookmarks);
+                }
+                return list;
+            }
+        }
 
         public List<WordTable> Tables {
             get {
@@ -131,11 +162,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
-        public List<WordParagraph> Images {
+        public List<WordParagraph> ParagraphsImages {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
                 foreach (var section in this.Sections) {
-                    list.AddRange(section.Images);
+                    list.AddRange(section.ParagraphsImages);
                 }
                 return list;
             }
@@ -144,11 +175,51 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Exposes Images in their Image form for easy access (saving, modifying)
         /// </summary>
-        public List<WordImage> ImagesList {
+        public List<WordImage> Images {
             get {
                 List<WordImage> list = new List<WordImage>();
                 foreach (var section in this.Sections) {
-                    list.AddRange(section.ImagesList);
+                    list.AddRange(section.Images);
+                }
+                return list;
+            }
+        }
+
+        public List<WordField> Fields {
+            get {
+                List<WordField> list = new List<WordField>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Fields);
+                }
+                return list;
+            }
+        }
+
+        public List<WordHyperLink> HyperLinks {
+            get {
+                List<WordHyperLink> list = new List<WordHyperLink>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.HyperLinks);
+                }
+                return list;
+            }
+        }
+
+        public List<WordStructuredDocumentTag> StructuredDocumentTags {
+            get {
+                List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.StructuredDocumentTags);
+                }
+                return list;
+            }
+        }
+
+        public List<WordEquation> Equations {
+            get {
+                List<WordEquation> list = new List<WordEquation>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Equations);
                 }
                 return list;
             }

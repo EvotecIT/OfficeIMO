@@ -17,32 +17,25 @@ namespace OfficeIMO.Word {
         }
         public bool IsPageBreak {
             get {
-                if (_run != null) {
-                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
-                    if (brake != null && brake.Type.Value == BreakValues.Page) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+                if (this.PageBreak != null) {
+                    return true;
                 }
 
                 return false;
             }
-        }
 
-        public BreakValues? BreakType {
-            get {
-                if (_run != null) {
-                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
-                    if (brake == null) {
-                        return null;
-                    }
+            //get {
+            //    if (_run != null) {
+            //        var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+            //        if (brake != null && brake.Type.Value == BreakValues.Page) {
+            //            return true;
+            //        } else {
+            //            return false;
+            //        }
+            //    }
 
-                    return brake.Type;
-                }
-
-                return null;
-            }
+            //    return false;
+            //}
         }
     }
 }

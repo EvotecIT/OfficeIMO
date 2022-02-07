@@ -11,54 +11,119 @@ namespace OfficeIMO.Word {
     public partial class WordSection {
         public List<WordParagraph> Paragraphs => GetParagraphsList();
 
-        public List<WordParagraph> PageBreaks {
+        public List<WordParagraph> ParagraphsPageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
 
-        public List<WordParagraph> HyperLinks {
+        public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
-        public List<WordParagraph> Fields {
+        public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
-        public List<WordParagraph> Bookmarks {
+        public List<WordParagraph> ParagraphsBookmarks {
             get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
         }
 
-        public List<WordParagraph> Equations {
+        public List<WordParagraph> ParagraphsEquations {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
         }
 
         /// <summary>
         /// Provides a list of paragraphs that contain Structured Document Tags
         /// </summary>
-        public List<WordParagraph> StructuredDocumentTags {
+        public List<WordParagraph> ParagraphsStructuredDocumentTags {
             get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
         }
 
         /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
-        public List<WordParagraph> Images {
+        public List<WordParagraph> ParagraphsImages {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
+        }
+
+        public List<WordPageBreak> PageBreaks {
+            get {
+                List<WordPageBreak> list = new List<WordPageBreak>();
+                var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.PageBreak);
+                }
+                return list;
+            }
         }
 
         /// <summary>
         /// Exposes Images in their Image form for easy access (saving, modifying)
         /// </summary>
-        public List<WordImage> ImagesList {
+        public List<WordImage> Images {
             get {
-                List<WordImage> listImages = new List<WordImage>();
-                var paragraphsWithImages = Paragraphs.Where(p => p.IsImage).ToList();
-                foreach (var image in paragraphsWithImages) {
-                    listImages.Add(image.Image);
+                List<WordImage> list = new List<WordImage>();
+                var paragraphs = Paragraphs.Where(p => p.IsImage).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Image);
                 }
-
-                return listImages;
+                return list;
             }
         }
+        public List<WordBookmark> Bookmarks {
+            get {
+                List<WordBookmark> list = new List<WordBookmark>();
+                var paragraphs = Paragraphs.Where(p => p.IsBookmark).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Bookmark);
+                }
+                return list;
+            }
+        }
+
+        public List<WordField> Fields {
+            get {
+                List<WordField> list = new List<WordField>();
+                var paragraphs = Paragraphs.Where(p => p.IsField).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Field);
+                }
+                return list;
+            }
+        }
+
+        public List<WordHyperLink> HyperLinks {
+            get {
+                List<WordHyperLink> list = new List<WordHyperLink>();
+                var paragraphs = Paragraphs.Where(p => p.IsHyperLink).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Hyperlink);
+                }
+                return list;
+            }
+        }
+
+        public List<WordEquation> Equations {
+            get {
+                List<WordEquation> list = new List<WordEquation>();
+                var paragraphs = Paragraphs.Where(p => p.IsEquation).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Equation);
+                }
+                return list;
+            }
+        }
+
+        public List<WordStructuredDocumentTag> StructuredDocumentTags {
+            get {
+                List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
+                var paragraphs = Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.StructuredDocumentTag);
+                }
+                return list;
+            }
+        }
+
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 

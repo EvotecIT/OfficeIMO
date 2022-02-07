@@ -67,14 +67,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph4.Image.Width == 50);
 
                 // or we can get any image and overwrite it's size
-                document.ImagesList[0].Height = 200;
-                document.ImagesList[0].Width = 200;
+                document.Images[0].Height = 200;
+                document.Images[0].Width = 200;
 
-                Assert.True(document.ImagesList[0].Height == 200);
-                Assert.True(document.ImagesList[0].Height == 200);
+                Assert.True(document.Images[0].Height == 200);
+                Assert.True(document.Images[0].Height == 200);
 
                 string fileToSave = System.IO.Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
-                document.ImagesList[0].SaveToFile(fileToSave);
+                document.Images[0].SaveToFile(fileToSave);
 
                 var fileInfo = new FileInfo(fileToSave);
 
