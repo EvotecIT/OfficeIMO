@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
@@ -15,15 +16,26 @@ namespace OfficeIMO.Word {
             return this._run;
         }
 
+        private RunProperties VerifyRunProperties() {
+            if (this._run != null) {
+                if (this._runProperties == null) {
+                    var text = _run.ChildElements.OfType<Text>().FirstOrDefault();
+                    if (text != null) {
+                        text.InsertBeforeSelf(new RunProperties());
+                    } else {
+                        this._run.Append(new RunProperties());
+                    }
+                }
+            }
+            return this._runProperties;
+        }
+
         private Text VerifyText() {
             if (_text == null) {
                 var run = VerifyRun();
 
-                this._text = new Text {
-                    // this ensures spaces are preserved between runs
-                    Space = SpaceProcessingModeValues.Preserve
-                };
-                this._run.Append(_text);
+                var text = new Text { Space = SpaceProcessingModeValues.Preserve }; // this ensures spaces are preserved between runs 
+                this._run.Append(text);
             }
 
             return this._text;

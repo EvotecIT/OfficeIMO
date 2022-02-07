@@ -9,8 +9,22 @@ namespace OfficeIMO.Word {
     public partial class WordParagraph {
         internal WordDocument _document;
         internal Paragraph _paragraph;
-        internal RunProperties _runProperties;
-        internal Text _text;
+
+        internal RunProperties _runProperties {
+            get {
+                return _run.RunProperties;
+            }
+        }
+
+        internal Text _text {
+            get {
+                if (_run != null) {
+                    return _run.ChildElements.OfType<Text>().FirstOrDefault();
+                }
+
+                return null;
+            }
+        }
         internal Run _run;
         internal ParagraphProperties _paragraphProperties;
         internal WordParagraph _linkedParagraph;
@@ -128,16 +142,16 @@ namespace OfficeIMO.Word {
             // this._section = section;
 
             this._run = new Run();
-            this._runProperties = new RunProperties();
+            //this._runProperties = new RunProperties();
 
             //this._run = new Run();
             //this._runProperties = new RunProperties();
-            this._text = new Text {
-                // this ensures spaces are preserved between runs
-                Space = SpaceProcessingModeValues.Preserve
-            };
+            //this._text = new Text {
+            //    // this ensures spaces are preserved between runs
+            //    Space = SpaceProcessingModeValues.Preserve
+            //};
             this._paragraphProperties = new ParagraphProperties();
-            this._run.AppendChild(_runProperties);
+            //this._run.AppendChild(_runProperties);
             this._run.AppendChild(_text);
             if (newParagraph) {
                 this._paragraph = new Paragraph();
@@ -151,14 +165,14 @@ namespace OfficeIMO.Word {
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
             this._document = document;
             this._run = new Run();
-            this._runProperties = new RunProperties();
-            this._text = new Text {
-                // this ensures spaces are preserved between runs
-                Space = SpaceProcessingModeValues.Preserve
-            };
+            //this._runProperties = new RunProperties();
+            //this._text = new Text {
+            //    // this ensures spaces are preserved between runs
+            //    Space = SpaceProcessingModeValues.Preserve
+            //};
             this._paragraphProperties = new ParagraphProperties();
-            this._run.AppendChild(_runProperties);
-            this._run.AppendChild(_text);
+            //this._run.AppendChild(_runProperties);
+            //this._run.AppendChild(_text);
             if (newParagraph) {
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(_paragraphProperties);
@@ -182,10 +196,10 @@ namespace OfficeIMO.Word {
             this._document = document;
             this._section = section;
             this._run = run;
-            this._runProperties = runProperties;
+            //this._runProperties = runProperties;
             this._paragraph = paragraph;
 
-            if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
+            //if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
             this._paragraphProperties = paragraphProperties;
             if (this._run != null) {
                 //  this._run.AppendChild(_runProperties);
@@ -206,11 +220,11 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
             _run = run;
             if (run != null) {
-                this._text = run.OfType<Text>().FirstOrDefault();
+                //this._text = run.OfType<Text>().FirstOrDefault();
 
-                if (run.RunProperties != null) {
-                    _runProperties = run.RunProperties;
-                }
+                //if (run.RunProperties != null) {
+                //    _runProperties = run.RunProperties;
+                //}
 
                 //Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
                 //if (drawing != null) {

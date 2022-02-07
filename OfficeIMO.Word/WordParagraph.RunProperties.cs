@@ -19,10 +19,11 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != true) {
                     _runProperties.Bold = null;
                 } else {
-                    _runProperties.Bold = new Bold();
+                    _runProperties.Bold = new Bold { };
                 }
             }
         }
@@ -36,10 +37,11 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != true) {
                     _runProperties.Italic = null;
                 } else {
-                    _runProperties.Italic = new Italic();
+                    _runProperties.Italic = new Italic { };
                 }
             }
         }
@@ -53,11 +55,10 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (_runProperties.Underline == null) {
                     _runProperties.Underline = new Underline();
-                } else {
                 }
-
                 _runProperties.Underline.Val = value;
             }
         }
@@ -71,6 +72,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != true) {
                     _runProperties.NoProof = null;
                 } else {
@@ -88,6 +90,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != null) {
                     Spacing spacing = new Spacing();
                     spacing.Val = value;
@@ -107,6 +110,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != true) {
                     _runProperties.Strike = null;
                 } else {
@@ -124,6 +128,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != true) {
                     _runProperties.DoubleStrike = null;
                 } else {
@@ -141,6 +146,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value != null) {
                     FontSize fontSize = new FontSize();
                     fontSize.Val = (value * 2).ToString();
@@ -160,6 +166,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 //string stringColor = value;
                 // var color = System.Drawing.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
                 if (value != "") {
@@ -181,8 +188,10 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
-                var highlight = new Highlight();
-                highlight.Val = value;
+                VerifyRunProperties();
+                var highlight = new Highlight {
+                    Val = value
+                };
                 _runProperties.Highlight = highlight;
             }
         }
@@ -198,6 +207,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 if (value == CapsStyle.None) {
                     _runProperties.Caps = null;
                     _runProperties.SmallCaps = null;
@@ -218,6 +228,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                VerifyRunProperties();
                 var runFonts = new RunFonts();
                 runFonts.Ascii = value;
                 _runProperties.RunFonts = runFonts;

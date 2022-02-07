@@ -10,17 +10,22 @@ namespace OfficeIMO.Word {
     public partial class WordParagraph {
 
         public WordParagraph AddText(string text) {
-            WordParagraph wordParagraph = new WordParagraph(this._document, false);
+            WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             wordParagraph.Text = text;
 
             // this ensures that we keep track of matching runs with real paragraphs
-            wordParagraph._linkedParagraph = this;
+            //wordParagraph._linkedParagraph = this;
 
-            if (this._linkedParagraph != null) {
-                this._linkedParagraph._paragraph.Append(wordParagraph._run);
-            } else {
-                this._paragraph.Append(wordParagraph._run);
-            }
+            //if (this._linkedParagraph != null) {
+            //    this._linkedParagraph._paragraph.Append(wordParagraph._run);
+            //} else {
+
+
+            this._paragraph.Append(wordParagraph._run);
+
+
+
+            //}
 
             //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
             return wordParagraph;

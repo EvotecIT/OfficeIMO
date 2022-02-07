@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Examples.Excel;
@@ -224,10 +225,20 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test 1").AddBookmark("Start");
 
+                var paragraph = document.AddParagraph("This is text");
+                foreach (string text in new List<string>() { "text1", "text2", "text3" }) {
+                    paragraph = paragraph.AddText(text);
+                    paragraph.Bold = true;
+                    paragraph.Italic = true;
+                    paragraph.Underline = UnderlineValues.DashDotDotHeavy;
+                }
+
                 document.AddPageBreak();
                 document.AddPageBreak();
 
                 document.AddParagraph("Test 2").AddBookmark("Middle1");
+
+                paragraph.AddText("OK baby");
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -252,8 +263,6 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors.Count);
                 document.Save(openWord);
-
-                document.Save(@"");
             }
         }
 
@@ -1137,10 +1146,10 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
                 Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
 
+                Console.WriteLine(document.DocumentIsValid);
+                Console.WriteLine(document.DocumentValidationErrors);
                 document.Save();
             }
-
-            Validation.ValidateWordDocument(filePath);
         }
 
         private static void Example_ValidateDocument_BeforeSave() {
@@ -1157,6 +1166,9 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
                 Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
                 Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
+
+                Console.WriteLine(document.DocumentIsValid);
+                Console.WriteLine(document.DocumentValidationErrors);
             }
         }
 
