@@ -3,7 +3,22 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
 
 trigger:
-- master
+  batch: true
+  branches:
+    include:
+      - master
+  paths:
+    exclude:
+      - docs
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - '*'
+  paths:
+    exclude:
+      - docs
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -16,22 +31,59 @@ variables:
 steps:
 - task: NuGetToolInstaller@1
 
+- task: UseDotNet@2
+  displayName: Use .NET 6.0
+  inputs:
+    packageType: 'sdk'
+    version: '6.0.x'
+
+- task: UseDotNet@2
+  displayName: 'Use .NET 5.0'
+  inputs:
+    packageType: 'sdk'
+    version: '5.0.100'
+    includePreviewVersions: true
+
+- task: UseDotNet@2
+  displayName: Use .NET 3.1
+  inputs:
+    version: '3.1.x'
+    packageType: sdk
+    includePreviewVersions: false
+
+# Add a Command To List the Current .NET SDKs (Sanity Check)
+- task: CmdLine@2
+  inputs:
+    script: 'dotnet --list-sdks'
+
 - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
 
-- task: VSBuild@1
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore'
   inputs:
-    solution: '$(solution)'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    command: restore
+    projects: '**/*.csproj'
 
-- task: VSTest@2
+- task: CmdLine@2
+  displayName: 'Install Global Tools...'
   inputs:
-    testSelector: 'testAssemblies'
+    targetType: 'inline'
+    script: |
+      dotnet tool install -g dotnet-reportgenerator-globaltool
+  continueOnError: true
+
+- task: DotNetCoreCLI@2
+  displayName: 'Execute Tests...'
+  inputs:
+    command: 'test'
+    projects: '**/*.Tests.csproj'
+    publishTestResults: true
+    arguments: '--collect:"XPlat Code Coverage"'
     testAssemblyVer2: |
-      **\*OfficeIMO.Tests.dll
+      net6.0\OfficeIMO.Tests.dll
+      net5.0\OfficeIMO.Tests.dll
+      netcoreapp3.1\OfficeIMO.Tests.dll
+      !**\*TestAdapter.dll
       !**\obj\**
-    searchFolder: '$(System.DefaultWorkingDirectory)'
-    publishRunAttachments: false
-    codeCoverageEnabled: true

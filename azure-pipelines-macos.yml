@@ -3,7 +3,22 @@
 # https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
 
 trigger:
-- master
+  batch: true
+  branches:
+    include:
+      - master
+  paths:
+    exclude:
+      - docs
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - '*'
+  paths:
+    exclude:
+      - docs
 
 pool:
   vmImage: 'macos-latest'
