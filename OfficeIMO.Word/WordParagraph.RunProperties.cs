@@ -62,10 +62,15 @@ namespace OfficeIMO.Word {
             }
             set {
                 VerifyRunProperties();
-                if (_runProperties.Underline == null) {
-                    _runProperties.Underline = new Underline();
+                if (value != null) {
+                    if (_runProperties.Underline == null) {
+                        _runProperties.Underline = new Underline();
+                    }
+
+                    _runProperties.Underline.Val = value;
+                } else {
+                    if (_runProperties.Underline != null) _runProperties.Underline.Remove();
                 }
-                _runProperties.Underline.Val = value;
             }
         }
 
@@ -80,7 +85,7 @@ namespace OfficeIMO.Word {
             set {
                 VerifyRunProperties();
                 if (value != true) {
-                    _runProperties.NoProof = null;
+                    if (_runProperties.NoProof != null) _runProperties.NoProof.Remove();
                 } else {
                     _runProperties.NoProof = new NoProof();
                 }
@@ -102,7 +107,7 @@ namespace OfficeIMO.Word {
                     spacing.Val = value;
                     _runProperties.Spacing = spacing;
                 } else {
-                    _runProperties.Spacing = null;
+                    if (_runProperties.Spacing != null) _runProperties.Spacing.Remove();
                 }
             }
         }
@@ -118,7 +123,7 @@ namespace OfficeIMO.Word {
             set {
                 VerifyRunProperties();
                 if (value != true) {
-                    _runProperties.Strike = null;
+                    if (_runProperties.Strike != null) _runProperties.Strike.Remove();
                 } else {
                     _runProperties.Strike = new Strike();
                 }
@@ -136,7 +141,7 @@ namespace OfficeIMO.Word {
             set {
                 VerifyRunProperties();
                 if (value != true) {
-                    _runProperties.DoubleStrike = null;
+                    if (_runProperties.DoubleStrike != null) _runProperties.DoubleStrike.Remove();
                 } else {
                     _runProperties.DoubleStrike = new DoubleStrike();
                 }
@@ -158,7 +163,7 @@ namespace OfficeIMO.Word {
                     fontSize.Val = (value * 2).ToString();
                     _runProperties.FontSize = fontSize;
                 } else {
-                    _runProperties.FontSize = null;
+                    if (_runProperties.FontSize != null) _runProperties.FontSize.Remove();
                 }
             }
         }
@@ -180,7 +185,32 @@ namespace OfficeIMO.Word {
                     color.Val = value;
                     _runProperties.Color = color;
                 } else {
-                    _runProperties.Color = null;
+                    if (_runProperties.Color != null) _runProperties.Color.Remove();
+                }
+            }
+        }
+
+        public ThemeColorValues? ThemeColor {
+            get {
+                if (_runProperties != null && _runProperties.Color != null && _runProperties.Color.ThemeColor != null) {
+                    return _runProperties.Color.ThemeColor.Value;
+                } else {
+                    return null;
+                }
+            }
+            set {
+                VerifyRunProperties();
+                //string stringColor = value;
+                // var color = System.Drawing.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
+                if (value != null) {
+                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
+                        ThemeColor = new EnumValue<ThemeColorValues> {
+                            Value = value.Value
+                        }
+                    };
+                    _runProperties.Color = color;
+                } else {
+                    if (_runProperties.Color != null) _runProperties.Color.Remove();
                 }
             }
         }

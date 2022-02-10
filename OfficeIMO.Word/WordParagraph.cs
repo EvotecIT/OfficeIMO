@@ -289,7 +289,7 @@ namespace OfficeIMO.Word {
 
         public bool IsHyperLink {
             get {
-                if (this.Hyperlink != null && this.Hyperlink.Url != null) {
+                if (this.Hyperlink != null) {
                     return true;
                 }
 

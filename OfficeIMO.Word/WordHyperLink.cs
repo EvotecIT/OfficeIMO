@@ -4,12 +4,49 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+
+    public enum TargetFrame {
+        /// <summary>
+        /// opens in the current window
+        /// </summary>
+        _top,
+        /// <summary>
+        /// Opens in the current window
+        /// </summary>
+        _self,
+        /// <summary>
+        /// opens in the parent of the current frame
+        /// </summary>
+        _parent,
+        /// <summary>
+        /// opens in a new web browser window
+        /// </summary>
+        _blank
+    }
+
     public class WordHyperLink {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Hyperlink _hyperlink;
 
-        public readonly System.Uri Url;
+        public System.Uri Uri {
+            get {
+                var list = _document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships;
+                foreach (var l in list) {
+                    if (l.Id == _hyperlink.Id) {
+                        return l.Uri;
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(value, true);
+                if (rel != null) {
+                    _hyperlink.Id = rel.Id;
+                }
+            }
+        }
 
         public List<WordParagraph> Paragraphs {
             get {
@@ -19,31 +56,113 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public bool IsEmail => Url.Scheme == Uri.UriSchemeMailto;
+        /// <summary>
+        /// Specifies a location in the target of the hyperlink, in the case in which the link is an external link.
+        /// </summary>
+        public string Id {
+            get {
+                return _hyperlink.Id;
+            }
+            set {
+                _hyperlink.Id = value;
+            }
+        }
+
+        public bool IsEmail => Uri.Scheme == Uri.UriSchemeMailto;
 
         public string EmailAddress {
             get {
                 if (IsEmail) {
-                    return Url.AbsoluteUri.Replace(Url.PathAndQuery, "").Replace("mailto:", "");
+                    return Uri.AbsoluteUri.Replace(Uri.PathAndQuery, "").Replace("mailto:", "");
                 }
 
                 return "";
             }
         }
 
-        public bool IsHttp => Url.Scheme == Uri.UriSchemeHttps || Url.Scheme == Uri.UriSchemeHttp;
+        public bool History {
+            get {
+                return _hyperlink.History;
+            }
+            set {
+                _hyperlink.History = value;
+            }
+        }
 
-        public string Scheme => Url.Scheme;
+        /// <summary>
+        /// Specifies a location in the target of the hyperlink, in the case in which the link is an external link.
+        /// </summary>
+        public string DocLocation {
+            get {
+                return _hyperlink.DocLocation;
+            }
+            set {
+                _hyperlink.DocLocation = value;
+            }
+        }
+
+        /// <summary>
+        /// Specifies the name of a bookmark within the document.
+        /// See Bookmark. If the attribute is omitted, then the default behavior is to navigate to the start of the document.
+        /// If the r:id attribute is specified, then the anchor attribute is ignored.
+        /// </summary>
+        public string Anchor {
+            get {
+                return _hyperlink.Anchor;
+            }
+            set {
+                _hyperlink.Anchor = value;
+            }
+        }
+
+        public string Tooltip {
+            get {
+                return _hyperlink.Tooltip;
+            }
+            set {
+                _hyperlink.Tooltip = value;
+            }
+        }
+
+        public TargetFrame? TargetFrame {
+            get {
+                if (_hyperlink != null) {
+                    string target = _hyperlink.TargetFrame;
+                    if (target != null) {
+                        var targetFrame = (TargetFrame)Enum.Parse(typeof(TargetFrame), target, true);
+                        return targetFrame;
+                    }
+                }
+
+                return null;
+            }
+            set {
+                _hyperlink.DocLocation = value.ToString();
+            }
+        }
+
+        public bool IsHttp => Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp;
+
+        public string Scheme => Uri.Scheme;
 
         public WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
             _paragraph = paragraph;
             _hyperlink = hyperlink;
+        }
 
-            var list = document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships;
-            foreach (var l in list) {
-                if (l.Id == _hyperlink.Id) {
-                    Url = l.Uri;
+        /// <summary>
+        /// Removes hyperlink. When specified to remove paragraph it will only do so,
+        /// if paragraph is empty or contains only paragraph properties.
+        /// </summary>
+        /// <param name="includingParagraph"></param>
+        public void Remove(bool includingParagraph = true) {
+            this._hyperlink.Remove();
+            if (includingParagraph) {
+                if (this._paragraph.ChildElements.Count == 0) {
+                    this._paragraph.Remove();
+                } else if (this._paragraph.ChildElements.Count == 1 && this._paragraph.ChildElements.OfType<ParagraphProperties>() != null) {
+                    this._paragraph.Remove();
                 }
             }
         }
