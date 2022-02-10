@@ -249,6 +249,13 @@ namespace OfficeIMO.Examples {
 
                 document.AddParagraph("Test 2").AddBookmark("TestBookmark");
 
+
+                document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+
+
+                document.HyperLinks.Last().Uri = new Uri("https://evotec.pl");
+                document.HyperLinks.Last().Anchor = "";
+
                 Console.WriteLine(document.HyperLinks.Count);
 
                 document.Save(openWord);

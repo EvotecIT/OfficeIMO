@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -45,14 +47,6 @@ namespace OfficeIMO.Word {
                 if (rel != null) {
                     _hyperlink.Id = rel.Id;
                 }
-            }
-        }
-
-        public List<WordParagraph> Paragraphs {
-            get {
-                var list = new List<WordParagraph>();
-                return list;
-                // return WordSection.ConvertParagraphsToWordParagraphs(_document, _hyperlink.ChildElements.Of);
             }
         }
 
@@ -137,13 +131,40 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                _hyperlink.DocLocation = value.ToString();
+                _hyperlink.TargetFrame = value.ToString();
             }
         }
 
         public bool IsHttp => Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp;
 
         public string Scheme => Uri.Scheme;
+
+        public string Text {
+            get {
+                var run = _hyperlink.ChildElements.OfType<Run>().FirstOrDefault();
+                if (run != null) {
+                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    if (text != null) {
+                        return text.Text;
+                    }
+                }
+                return "";
+            }
+            set {
+                var run = _hyperlink.ChildElements.OfType<Run>().FirstOrDefault();
+                if (run != null) {
+                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    if (text != null) {
+                        if (value != null) {
+                            text.Text = value;
+                        } else {
+                            text.Remove();
+                            run.Remove();
+                        }
+                    }
+                }
+            }
+        }
 
         public WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
@@ -165,6 +186,68 @@ namespace OfficeIMO.Word {
                     this._paragraph.Remove();
                 }
             }
+        }
+
+        public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            Hyperlink hyperlink = new Hyperlink() {
+                Anchor = anchor,
+                //DocLocation = "",
+                History = history,
+            };
+
+            Run run = new Run(new Text(text) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            // Styling for the hyperlink
+            if (addStyle) {
+                RunProperties runPropertiesHyperLink = new RunProperties(
+                    new RunStyle { Val = "Hyperlink", },
+                    new Underline { Val = UnderlineValues.Single },
+                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
+                );
+                run.RunProperties = runPropertiesHyperLink;
+            }
+
+            if (tooltip != "") {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            hyperlink.Append(run);
+            paragraph._paragraph.Append(hyperlink);
+            return paragraph;
+        }
+        public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
+            var rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                //DocLocation = "",
+                History = history,
+            };
+
+            Run run = new Run(new Text(text) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            // Styling for the hyperlink
+            if (addStyle) {
+                RunProperties runPropertiesHyperLink = new RunProperties(
+                    new RunStyle { Val = "Hyperlink", },
+                    new Underline { Val = UnderlineValues.Single },
+                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
+                );
+                run.RunProperties = runPropertiesHyperLink;
+            }
+
+            if (tooltip != "") {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            hyperlink.Append(run);
+            paragraph._paragraph.Append(hyperlink);
+            return paragraph;
         }
     }
 }

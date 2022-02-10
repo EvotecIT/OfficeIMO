@@ -201,65 +201,13 @@ namespace OfficeIMO.Word {
         }
 
 
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = false) {
-            // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
-            var rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
-
-            Hyperlink hyperlink = new Hyperlink() {
-                Id = rel.Id,
-                //DocLocation = "",
-                History = history,
-            };
-
-            Run run = new Run(new Text(text) {
-                Space = SpaceProcessingModeValues.Preserve
-            });
-
-            // Styling for the hyperlink
-            if (addStyle) {
-                // Styling for the hyperlink
-                RunProperties runPropertiesHyperLink = new RunProperties(
-                    new RunStyle { Val = "Hyperlink", },
-                    new Underline { Val = UnderlineValues.Single },
-                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
-                );
-                run.RunProperties = runPropertiesHyperLink;
-            }
-
-            if (tooltip != "") {
-                hyperlink.Tooltip = tooltip;
-            }
-
-            hyperlink.Append(run);
-            this._paragraph.Append(hyperlink);
+        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            var hyperlink = WordHyperLink.AddHyperLink(this, text, uri, addStyle, tooltip, history);
             return this;
         }
 
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = false) {
-            Hyperlink hyperlink = new Hyperlink() {
-                Anchor = anchor,
-                //DocLocation = "",
-                History = history,
-            };
-
-            Run run = new Run(new Text(text) {
-                Space = SpaceProcessingModeValues.Preserve
-            });
-
-            if (addStyle) {
-                // Styling for the hyperlink
-                RunProperties runPropertiesHyperLink = new RunProperties(
-                    new RunStyle { Val = "Hyperlink", },
-                    new Underline { Val = UnderlineValues.Single },
-                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
-                );
-                run.RunProperties = runPropertiesHyperLink;
-            }
-
-            if (tooltip != "") {
-                hyperlink.Tooltip = tooltip;
-            }
-            this._paragraph.Append(hyperlink);
+        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            var hyperlink = WordHyperLink.AddHyperLink(this, text, anchor, addStyle, tooltip, history);
             return this;
         }
     }

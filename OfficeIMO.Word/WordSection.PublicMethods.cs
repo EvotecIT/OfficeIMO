@@ -89,5 +89,13 @@ namespace OfficeIMO.Word {
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
+
+        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
+        }
+
+        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
+        }
     }
 }

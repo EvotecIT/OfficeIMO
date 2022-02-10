@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using SemanticComparison;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -63,11 +65,115 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsHyperLinks.Count == 4);
                 Assert.True(document.Bookmarks.Count == 1);
 
+                Assert.True(document.Sections[0].Paragraphs.Count == 14);
+                Assert.True(document.Sections[0].HyperLinks.Count == 4);
+                Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
+                Assert.True(document.Sections[0].Bookmarks.Count == 1);
+
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "HyperlinksTests.docx"))) {
+                Assert.True(document.Paragraphs.Count == 14);
+                Assert.True(document.HyperLinks.Count == 4);
+                Assert.True(document.ParagraphsHyperLinks.Count == 4);
+                Assert.True(document.Bookmarks.Count == 1);
+                Assert.True(document.Sections[0].Paragraphs.Count == 14);
+                Assert.True(document.Sections[0].HyperLinks.Count == 4);
+                Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
+                Assert.True(document.Sections[0].Bookmarks.Count == 1);
 
+                document.HyperLinks[1].Uri = new Uri("https://evotec.pl");
+
+                Assert.True(document.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+
+                Assert.True(document.HyperLinks[1].Text == " to website?");
+
+
+                var section = document.AddSection(SectionMarkValues.NextPage);
+                section.AddHyperLink("This is my website", new Uri("https://evotec.xyz"));
+                section.AddHyperLink("This is second website", new Uri("https://evotec.pl"), true, "This is tooltip for my website 1");
+                document.AddHyperLink("This is third website", new Uri("https://evotec.se"), true, "This is tooltip for my website 2");
+
+                Assert.True(section.HyperLinks[0].Text == "This is my website");
+                Assert.True(section.HyperLinks[1].Text == "This is second website");
+                Assert.True(section.HyperLinks[2].Text == "This is third website");
+                Assert.True(section.HyperLinks[0].Anchor == null);
+                Assert.True(section.HyperLinks[1].Anchor == null);
+                Assert.True(section.HyperLinks[2].Anchor == null);
+                Assert.True(section.HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
+                Assert.True(section.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+                Assert.True(section.HyperLinks[2].Uri == new Uri("https://evotec.se"));
+                Assert.True(section.HyperLinks[0].Tooltip == null);
+                Assert.True(section.HyperLinks[1].Tooltip == "This is tooltip for my website 1");
+                Assert.True(section.HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+
+                Assert.True(document.Sections[1].HyperLinks[0].Text == "This is my website");
+                Assert.True(document.Sections[1].HyperLinks[1].Text == "This is second website");
+                Assert.True(document.Sections[1].HyperLinks[2].Text == "This is third website");
+                Assert.True(document.Sections[1].HyperLinks[0].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[1].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[2].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
+                Assert.True(document.Sections[1].HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+                Assert.True(document.Sections[1].HyperLinks[2].Uri == new Uri("https://evotec.se"));
+                Assert.True(document.Sections[1].HyperLinks[0].Tooltip == null);
+                Assert.True(document.Sections[1].HyperLinks[1].Tooltip == "This is tooltip for my website 1");
+                Assert.True(document.Sections[1].HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "HyperlinksTests.docx"))) {
+                Assert.True(document.Paragraphs.Count == 20);
+                Assert.True(document.HyperLinks.Count == 7);
+                Assert.True(document.ParagraphsHyperLinks.Count == 7);
+                Assert.True(document.Bookmarks.Count == 1);
+                Assert.True(document.Sections[0].Paragraphs.Count == 14);
+                Assert.True(document.Sections[0].HyperLinks.Count == 4);
+                Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
+                Assert.True(document.Sections[0].Bookmarks.Count == 1);
+
+                var section = document.Sections[1];
+
+                Assert.True(section.HyperLinks[0].Text == "This is my website");
+                Assert.True(section.HyperLinks[1].Text == "This is second website");
+                Assert.True(section.HyperLinks[2].Text == "This is third website");
+                Assert.True(section.HyperLinks[0].Anchor == null);
+                Assert.True(section.HyperLinks[1].Anchor == null);
+                Assert.True(section.HyperLinks[2].Anchor == null);
+                Assert.True(section.HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
+                Assert.True(section.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+                Assert.True(section.HyperLinks[2].Uri == new Uri("https://evotec.se"));
+                Assert.True(section.HyperLinks[0].Tooltip == null);
+                Assert.True(section.HyperLinks[1].Tooltip == "This is tooltip for my website 1");
+                Assert.True(section.HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+
+                Assert.True(document.Sections[1].HyperLinks[0].Text == "This is my website");
+                Assert.True(document.Sections[1].HyperLinks[1].Text == "This is second website");
+                Assert.True(document.Sections[1].HyperLinks[2].Text == "This is third website");
+                Assert.True(document.Sections[1].HyperLinks[0].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[1].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[2].Anchor == null);
+                Assert.True(document.Sections[1].HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
+                Assert.True(document.Sections[1].HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+
+                document.Sections[1].HyperLinks[1].History = false;
+
+                Assert.True(document.Sections[1].HyperLinks[2].Uri == new Uri("https://evotec.se"));
+                Assert.True(document.Sections[1].HyperLinks[0].Tooltip == null);
+                Assert.True(document.Sections[1].HyperLinks[1].Tooltip == "This is tooltip for my website 1");
+                Assert.True(document.Sections[1].HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+
+                Assert.True(document.Sections[1].HyperLinks[0].IsEmail == false);
+                Assert.True(document.Sections[1].HyperLinks[0].IsHttp == true);
+                Assert.True(document.Sections[1].HyperLinks[0].Scheme == Uri.UriSchemeHttps);
+                Assert.True(document.Sections[1].HyperLinks[0].History == true);
+                Assert.True(document.Sections[1].HyperLinks[0].TargetFrame == null);
+
+
+                Assert.True(document.Sections[1].HyperLinks[1].History == false);
+
+                document.Save();
             }
         }
     }
