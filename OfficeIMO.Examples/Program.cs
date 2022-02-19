@@ -221,9 +221,26 @@ namespace OfficeIMO.Examples {
             //Example_BasicWordWithBookmarks(filePath, true);
 
 
-            Console.WriteLine("[*] Creating standard document with hyperlinks");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
-            Example_BasicWordWithHyperLinks(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with hyperlinks");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
+            //Example_BasicWordWithHyperLinks(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document and find text");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with text.docx");
+            Example_BasicDocumentFindText(filePath, true);
+        }
+
+        private static void Example_BasicDocumentFindText(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test 1").AddText(" continue ").AddText("Test 5");
+                document.AddParagraph("Temp 1");
+                document.AddParagraph("Test 2");
+                document.AddParagraph("tseT 3");
+
+                var list = document.FindText("Test");
+
+                document.Save(openWord);
+            }
         }
 
         private static void Example_BasicWordWithHyperLinks(string filePath, bool openWord) {

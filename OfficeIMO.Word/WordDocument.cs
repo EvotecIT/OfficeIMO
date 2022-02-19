@@ -456,49 +456,6 @@ namespace OfficeIMO.Word {
         //    }
         //}
 
-        private void SaveNumbering() {
-            // it seems the order of numbering instance/abstractnums in numbering matters...
-            List<AbstractNum> listAbstractNum = new List<AbstractNum>();
-            List<NumberingInstance> listNumberingInstance = new List<NumberingInstance>();
-
-            if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-                foreach (AbstractNum abstractNum in tempAbstractNumList) {
-                    listAbstractNum.Add(abstractNum);
-                }
-
-                var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-                foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-                    listNumberingInstance.Add(numberingInstance);
-                }
-
-                if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                    Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                    if (numbering != null) {
-                        numbering.RemoveAllChildren();
-                    }
-                }
-
-                //var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-                //foreach (AbstractNum abstractNum in tempAbstractNumList) {
-                //    abstractNum.Remove();
-                //}
-                //var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-                //foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-                //    numberingInstance.Remove();
-                //}
-                //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-
-                foreach (AbstractNum abstractNum in listAbstractNum) {
-                    _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
-                }
-
-                foreach (NumberingInstance numberingInstance in listNumberingInstance) {
-                    _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(numberingInstance);
-                }
-            }
-        }
-
         public void Save(string filePath, bool openWord) {
             MoveSectionProperties();
             SaveNumbering();
@@ -548,79 +505,11 @@ namespace OfficeIMO.Word {
             body.Append(sectionProperties);
         }
 
-        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
-            if (wordParagraph == null) {
-                // we create paragraph (and within that add it to document)
-                wordParagraph = new WordParagraph(this);
-            } else {
-                // since we created paragraph without adding it to document, we now need to add it to document
-                //this.Paragraphs.Add(wordParagraph);
-            }
-
-            //this._currentSection.Paragraphs.Add(wordParagraph);
-            // wordParagraph._section = this._currentSection;
-            this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
-            return wordParagraph;
-        }
-
-        public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
-        }
-
-        public WordParagraph AddPageBreak() {
-            WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() { Type = BreakValues.Page }),
-                _document = this
-            };
-            newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
-
-            this._document.Body.Append(newWordParagraph._paragraph);
-            return newWordParagraph;
-        }
-
-        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
-            WordParagraph newWordParagraph = new WordParagraph {
-                _run = new Run(new Break() { Type = breakType }),
-                _document = this
-            };
-            newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
-
-            this._document.Body.Append(newWordParagraph._paragraph);
-            this.Paragraphs.Add(newWordParagraph);
-            return newWordParagraph;
-        }
-
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
                 //this._wordprocessingDocument.Close();
                 this._wordprocessingDocument.Dispose();
             }
-        }
-
-        public WordSection AddSection(SectionMarkValues? sectionMark = null) {
-            //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
-            Paragraph paragraph = new Paragraph();
-
-            ParagraphProperties paragraphProperties = new ParagraphProperties();
-
-            SectionProperties sectionProperties = new SectionProperties();
-            // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
-
-            if (sectionMark != null) {
-                SectionType sectionType = new SectionType() { Val = sectionMark };
-                sectionProperties.Append(sectionType);
-            }
-
-            paragraphProperties.Append(sectionProperties);
-            paragraph.Append(paragraphProperties);
-
-
-            this._document.MainDocumentPart.Document.Body.Append(paragraph);
-
-
-            WordSection wordSection = new WordSection(this, paragraph);
-
-            return wordSection;
         }
 
         internal WordSection _currentSection => this.Sections.Last();
@@ -648,32 +537,6 @@ namespace OfficeIMO.Word {
 
                 return listErrors;
             }
-        }
-
-        public WordList AddList(WordListStyle style) {
-            WordList wordList = new WordList(this, this._currentSection);
-            wordList.AddList(style);
-            return wordList;
-        }
-
-        public WordList AddTableOfContentList(WordListStyle style) {
-            WordList wordList = new WordList(this, this._currentSection, true);
-            wordList.AddList(style);
-            return wordList;
-        }
-
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            WordTable wordTable = new WordTable(this, this._currentSection, rows, columns, tableStyle);
-            return wordTable;
-        }
-
-        public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
-            WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
-            return wordTableContent;
-        }
-
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
     }
 }
