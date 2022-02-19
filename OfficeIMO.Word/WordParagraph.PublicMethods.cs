@@ -192,14 +192,15 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        public void AddBookmark(string bookmarkName) {
-            BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = this._document.BookmarkId.ToString() };
-            BookmarkEnd bme = new BookmarkEnd() { Id = this._document.BookmarkId.ToString() };
-
-            var bm = this._run.InsertAfterSelf(bms);
-            bm.InsertAfterSelf(bme);
+        public WordParagraph AddBookmark(string bookmarkName) {
+            var bookmark = WordBookmark.AddBookmark(this, bookmarkName);
+            return this;
         }
 
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
+            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced);
+            return this;
+        }
 
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, uri, addStyle, tooltip, history);

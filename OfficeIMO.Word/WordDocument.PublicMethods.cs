@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -104,6 +105,14 @@ namespace OfficeIMO.Word {
             WordSection wordSection = new WordSection(this, paragraph);
 
             return wordSection;
+        }
+
+        public WordParagraph AddBookmark(string bookmarkName) {
+            return this.AddParagraph().AddBookmark(bookmarkName);
+        }
+
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
         }
 
         public List<WordParagraph> FindText(string text) {

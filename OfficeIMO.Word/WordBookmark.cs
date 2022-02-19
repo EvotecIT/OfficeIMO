@@ -46,5 +46,16 @@ namespace OfficeIMO.Word {
             this._bookmarkEnd.Remove();
             this._bookmarkStart.Remove();
         }
+
+        public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName) {
+            BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
+            BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };
+
+            var bm = paragraph._run.InsertAfterSelf(bms);
+            bm.InsertAfterSelf(bme);
+
+            paragraph._bookmarkStart = bms;
+            return paragraph;
+        }
     }
 }

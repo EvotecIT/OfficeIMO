@@ -215,8 +215,10 @@ namespace OfficeIMO.Word {
 
             hyperlink.Append(run);
             paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
             return paragraph;
         }
+
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
             var rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
@@ -247,6 +249,7 @@ namespace OfficeIMO.Word {
 
             hyperlink.Append(run);
             paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
             return paragraph;
         }
     }

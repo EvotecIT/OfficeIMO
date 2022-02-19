@@ -9,6 +9,7 @@ namespace OfficeIMO.Word {
     public class WordEquation {
         private WordDocument _document;
         private Paragraph _paragraph;
+        private DocumentFormat.OpenXml.Math.Paragraph mathParagraph;
         private readonly DocumentFormat.OpenXml.Math.OfficeMath _officeMath;
         private readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
 
@@ -23,6 +24,13 @@ namespace OfficeIMO.Word {
             this._paragraph = paragraph;
             this._mathParagraph = mathParagraph;
 
+        }
+
+        public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+            this._document = document;
+            this._paragraph = paragraph;
+            this._officeMath = officeMath;
+            this._mathParagraph = mathParagraph;
         }
     }
 }

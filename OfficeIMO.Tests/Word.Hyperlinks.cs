@@ -24,7 +24,9 @@ namespace OfficeIMO.Tests {
 
                 document.AddParagraph("Test 1");
 
-                document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+                var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+
+                Assert.True(hyperlink.Hyperlink.Text == "bookmark below");
 
                 Assert.True(document.Paragraphs.Count == 3);
                 Assert.True(document.HyperLinks.Count == 1);
@@ -36,7 +38,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.HyperLinks.Count == 2);
                 Assert.True(document.ParagraphsHyperLinks.Count == 2);
 
-                document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                var hyperlink1 = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+
+                Assert.True(hyperlink1.Hyperlink.EmailAddress == "kontakt@evotec.pl");
+
 
                 Assert.True(document.Paragraphs.Count == 7);
                 Assert.True(document.HyperLinks.Count == 3);

@@ -4,6 +4,7 @@ using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -114,8 +115,14 @@ namespace OfficeIMO.Word {
         }
 
 
-        private WordList _list;
-        private readonly Hyperlink _hyperlink;
+        internal WordList _list;
+        internal List<Run> _runs;
+        internal Hyperlink _hyperlink;
+        internal SimpleField _simpleField;
+        internal BookmarkStart _bookmarkStart;
+        internal readonly OfficeMath _officeMath;
+        internal readonly SdtRun _stdRun;
+        internal readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
 
         public string Text {
             get {
@@ -233,59 +240,106 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
             _hyperlink = hyperlink;
 
-            this.Hyperlink = new WordHyperLink(document, paragraph, hyperlink);
+            //this.Hyperlink = new WordHyperLink(document, paragraph, hyperlink);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, List<Run> runs) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, List<Run> runs) {
+            _document = document;
+            _paragraph = paragraph;
+            _runs = runs;
+            //this.Field = new WordField(document, paragraph, runs);
+        }
+
+        internal WordParagraph(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
             _document = document;
             _paragraph = paragraph;
 
-            this.Field = new WordField(document, paragraph, runs);
+            _simpleField = simpleField;
+
+            //  this.Field = new WordField(document, paragraph, simpleField);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
             _document = document;
             _paragraph = paragraph;
 
-            this.Field = new WordField(document, paragraph, simpleField);
+            _bookmarkStart = bookmarkStart;
+
+            // this.Bookmark = new WordBookmark(document, paragraph, bookmarkStart);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
             _document = document;
             _paragraph = paragraph;
 
-            this.Bookmark = new WordBookmark(document, paragraph, bookmarkStart);
+            _officeMath = officeMath;
+
+            //this.Equation = new WordEquation(document, paragraph, officeMath);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
             _document = document;
             _paragraph = paragraph;
-
-            this.Equation = new WordEquation(document, paragraph, officeMath);
+            _stdRun = stdRun;
+            //this.StructuredDocumentTag = new WordStructuredDocumentTag(document, paragraph, stdRun);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
+        internal WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
             _document = document;
             _paragraph = paragraph;
-
-            this.StructuredDocumentTag = new WordStructuredDocumentTag(document, paragraph, stdRun);
+            _mathParagraph = mathParagraph;
+            //  this.Equation = new WordEquation(document, paragraph, mathParagraph);
         }
 
-        public WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
-            _document = document;
-            _paragraph = paragraph;
+        internal WordStructuredDocumentTag StructuredDocumentTag {
+            get {
+                if (_stdRun != null) {
+                    return new WordStructuredDocumentTag(_document, _paragraph, _stdRun);
+                }
 
-            this.Equation = new WordEquation(document, paragraph, mathParagraph);
+                return null;
+            }
         }
 
-        public WordStructuredDocumentTag StructuredDocumentTag { get; set; }
+        public WordBookmark Bookmark {
+            get {
+                if (_bookmarkStart != null) {
+                    return new WordBookmark(_document, _paragraph, _bookmarkStart);
+                }
 
-        public WordBookmark Bookmark { get; set; }
+                return null;
+            }
+        }
 
-        public WordEquation Equation { get; set; }
+        public WordEquation Equation {
+            get {
+                if (_officeMath != null || _mathParagraph != null) {
+                    return new WordEquation(_document, _paragraph, _officeMath, _mathParagraph);
+                }
 
-        public WordField Field { get; set; }
-        public WordHyperLink Hyperlink { get; set; }
+                return null;
+            }
+        }
+
+        public WordField Field {
+            get {
+                if (_simpleField != null || _runs != null) {
+                    return new WordField(_document, _paragraph, _simpleField, _runs);
+                }
+
+                return null;
+            }
+        }
+
+        public WordHyperLink Hyperlink {
+            get {
+                if (_hyperlink != null) {
+                    return new WordHyperLink(_document, _paragraph, _hyperlink);
+                }
+
+                return null;
+            }
+        }
 
         public bool IsHyperLink {
             get {

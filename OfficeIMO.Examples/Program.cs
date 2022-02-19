@@ -225,12 +225,47 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
             //Example_BasicWordWithHyperLinks(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document and find text");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with text.docx");
-            Example_BasicDocumentFindText(filePath, true);
+            //Console.WriteLine("[*] Creating standard document and find text");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with text.docx");
+            //Example_BasicDocumentFindText(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with Fields");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
+            Example_AddingFields(filePath, true);
+        }
+
+        private static void Example_AddingFields(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Title = "This is my title";
+                document.AddParagraph("This is my test");
+
+                document.AddParagraph("This is page number ").AddField(WordFieldType.Page);
+
+                document.AddParagraph("Our title is ").AddField(WordFieldType.Title, WordFieldFormat.Caps);
+
+                var para = document.AddParagraph("Our author is ").AddField(WordFieldType.Author);
+                Console.WriteLine("----");
+                Console.WriteLine(document.Fields[0].FieldFormat);
+                Console.WriteLine(document.Fields[0].FieldType);
+                Console.WriteLine(document.Fields[0].Field);
+                Console.WriteLine("----");
+                Console.WriteLine(document.Fields[1].FieldFormat);
+                Console.WriteLine(document.Fields[1].FieldType);
+                Console.WriteLine(document.Fields[1].Field);
+                Console.WriteLine("----");
+                Console.WriteLine(document.Fields[2].FieldFormat);
+                Console.WriteLine(document.Fields[2].FieldType);
+                Console.WriteLine(document.Fields[2].Field);
+
+
+                document.Settings.UpdateFieldsOnOpen = true;
+                document.Save(openWord);
+            }
         }
 
         private static void Example_BasicDocumentFindText(string filePath, bool openWord) {
+            // doesn't work!!!
+
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test 1").AddText(" continue ").AddText("Test 5");
                 document.AddParagraph("Temp 1");
