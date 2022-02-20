@@ -22,6 +22,8 @@ namespace OfficeIMO.Word {
 
         internal Drawing _Image;
         internal ImagePart _imagePart;
+
+        private readonly WordDocument _document;
         //internal ShapeProperties _shapeProperties;
 
         public BlipCompressionValues? CompressionQuality {
@@ -228,7 +230,7 @@ namespace OfficeIMO.Word {
                 width = img.Width;
                 height = img.Height;
             }
-            WordImage wordImage = new WordImage(document, filePath, shape, compressionQuality);
+            //new WordImage(document, filePath, shape, compressionQuality);
         }
 
         public WordImage(WordDocument document, Paragraph paragraph) {
@@ -236,6 +238,8 @@ namespace OfficeIMO.Word {
         }
 
         public WordImage(WordDocument document, string filePath, double? width, double? height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            _document = document;
+
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
 
             //var uri = new Uri(filePath, UriKind.RelativeOrAbsolute);
@@ -341,7 +345,8 @@ namespace OfficeIMO.Word {
         }
 
         public WordImage(WordDocument document, Drawing drawing) {
-            this._Image = drawing;
+            _document = document;
+            _Image = drawing;
             var imageParts = document._document.MainDocumentPart.ImageParts;
             foreach (var imagePart in imageParts) {
                 var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
@@ -349,7 +354,6 @@ namespace OfficeIMO.Word {
                     this._imagePart = imagePart;
                 }
             }
-            //  document.Images.Add(this);
         }
 
         /// <summary>
@@ -361,6 +365,16 @@ namespace OfficeIMO.Word {
                 var stream = this._imagePart.GetStream();
                 stream.CopyTo(outputFileStream);
                 stream.Close();
+            }
+        }
+
+        public void Remove() {
+            if (this._imagePart != null) {
+                _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+            }
+
+            if (this._Image != null) {
+                this._Image.Remove();
             }
         }
     }

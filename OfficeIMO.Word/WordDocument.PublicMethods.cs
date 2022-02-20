@@ -77,6 +77,11 @@ namespace OfficeIMO.Word {
             return wordTableContent;
         }
 
+        public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
+            WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
+            return wordCoverPage;
+        }
+
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
@@ -174,4 +179,6 @@ namespace OfficeIMO.Word {
             //return list;
         }
     }
+
+
 }

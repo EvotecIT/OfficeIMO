@@ -48,5 +48,11 @@ namespace OfficeIMO.Word {
             this._paragraph = paragraph;
             this._stdRun = stdRun;
         }
+
+        public void Remove() {
+            if (this._stdRun != null) {
+                this._stdRun.Remove();
+            }
+        }
     }
 }

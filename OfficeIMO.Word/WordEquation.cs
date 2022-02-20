@@ -32,5 +32,15 @@ namespace OfficeIMO.Word {
             this._officeMath = officeMath;
             this._mathParagraph = mathParagraph;
         }
+
+        public void Remove() {
+            if (this._officeMath != null) {
+                this._officeMath.Remove();
+            }
+
+            if (this._mathParagraph != null) {
+                this._mathParagraph.Remove();
+            }
+        }
     }
 }

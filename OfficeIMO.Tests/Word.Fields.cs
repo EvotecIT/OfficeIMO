@@ -172,6 +172,15 @@ namespace OfficeIMO.Tests {
                     Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
                 }
 
+                Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 2);
+
+                foreach (var fieldType in fieldTypes) {
+                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, true);
+                    Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
+                }
+
+                Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
+
                 var fieldTypesFormats = (WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat));
 
                 foreach (var fieldType in fieldTypes) {

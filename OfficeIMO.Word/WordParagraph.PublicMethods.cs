@@ -13,21 +13,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             wordParagraph.Text = text;
-
-            // this ensures that we keep track of matching runs with real paragraphs
-            //wordParagraph._linkedParagraph = this;
-
-            //if (this._linkedParagraph != null) {
-            //    this._linkedParagraph._paragraph.Append(wordParagraph._run);
-            //} else {
-
-
             this._paragraph.Append(wordParagraph._run);
-
-
-
-            //}
-
             //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
             return wordParagraph;
         }
@@ -53,60 +39,67 @@ namespace OfficeIMO.Word {
                 if (this._paragraph.Parent != null) {
                     if (this.IsBookmark) {
                         this.Bookmark.Remove();
+                    }
+
+                    if (this.IsPageBreak) {
+                        this.PageBreak.Remove();
+                    }
+
+                    if (this.IsEquation) {
+                        this.Equation.Remove();
+                    }
+
+                    if (this.IsHyperLink) {
+                        this.Hyperlink.Remove();
+                    }
+
+                    if (this.IsListItem) {
+
+                    }
+
+                    if (this.IsImage) {
+                        this.Image.Remove();
+                    }
+
+                    if (this.IsStructuredDocumentTag) {
+                        this.StructuredDocumentTag.Remove();
+                    }
+
+                    if (this.IsField) {
+                        this.Field.Remove();
+                    }
+
+                    var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
+                    if (runs.Count == 0) {
+                        this._paragraph.Remove();
+                    } else if (runs.Count == 1) {
+                        this._paragraph.Remove();
                     } else {
-                        var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
-                        if (runs.Count == 0) {
-                            this._paragraph.Remove();
-                        } else if (runs.Count == 1) {
-                            this._paragraph.Remove();
-                        } else {
-                            foreach (var run in runs) {
-                                if (run == _run) {
-                                    this._run.Remove();
-                                }
+                        foreach (var run in runs) {
+                            if (run == _run) {
+                                this._run.Remove();
                             }
                         }
                     }
                 } else {
                     throw new InvalidOperationException("This shouldn't happen? Why? Oh why 1?");
-                    //Console.WriteLine(this._run);
                 }
             } else {
-                // this happens if we continue adding to real paragraphs additional runs. In this case we don't need to,
-                // delete paragraph, but only remove Runs 
                 // this shouldn't happen
                 throw new InvalidOperationException("This shouldn't happen? Why? Oh why 2?");
-                //this._run.Remove();
             }
-
-            //if (IsPageBreak) {
-            //    this._document.PageBreaks.Remove(this);
-            //}
-
-            //if (IsListItem) {
-            //    if (this._list != null) {
-            //        this._list.ListItems.Remove(this);
-            //        this._list = null;
-            //    }
-            //}
-
-            //this._document.Paragraphs.Remove(this);
         }
 
         public WordParagraph AddParagraphAfterSelf() {
             WordParagraph paragraph = new WordParagraph(this._document, true);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
-            //this._document.Paragraphs.Add(paragraph);
-
             return paragraph;
         }
 
         public WordParagraph AddParagraphAfterSelf(WordSection section) {
-            //WordParagraph paragraph = new WordParagraph(section._document, true);
             WordParagraph paragraph = new WordParagraph(section._document, true);
 
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
-            //this._document.Paragraphs.Add(paragraph);
 
             return paragraph;
         }
@@ -183,12 +176,6 @@ namespace OfficeIMO.Word {
                 Space = space,
                 Color = color != null ? color.Value.ToHexColor() : "auto"
             };
-
-            //newWordParagraph._paragraph = new Paragraph(newWordParagraph._paragraphProperties);
-
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(this._paragraph);
-            //this._currentSection.PageBreaks.Add(newWordParagraph);
-            //this._currentSection.Paragraphs.Add(newWordParagraph);
             return this;
         }
 

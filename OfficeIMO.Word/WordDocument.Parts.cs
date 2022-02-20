@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// At least that's what it has when you create new Word Document with Microsoft Word
         /// </summary>
         /// <param name="extendedFilePropertiesPart1"></param>
-        
+
 
         // Generates content of extendedFilePropertiesPart1.
         private static void GenerateExtendedFilePropertiesPart1Content(ExtendedFilePropertiesPart extendedFilePropertiesPart1) {
@@ -199,7 +199,7 @@ namespace OfficeIMO.Word {
         }
 
         // Generates content of documentSettingsPart1.
-        private void GenerateDocumentSettingsPart1Content(DocumentSettingsPart documentSettingsPart1) {
+        private static void GenerateDocumentSettingsPart1Content(DocumentSettingsPart documentSettingsPart1) {
             Settings settings1 = new Settings() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh" } };
             settings1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
             settings1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
@@ -314,7 +314,7 @@ namespace OfficeIMO.Word {
 
             documentSettingsPart1.Settings = settings1;
         }
-        
+
         private static DocDefaults GenerateDocDefaults() {
             DocDefaults docDefaults1 = new DocDefaults();
 
@@ -1118,7 +1118,7 @@ namespace OfficeIMO.Word {
             styles1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
             styles1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
             styles1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
-            
+
             var docDefaults1 = GenerateDocDefaults();
             LatentStyles latentStyles1 = GenerateLatentStyles();
 

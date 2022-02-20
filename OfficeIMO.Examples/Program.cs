@@ -225,13 +225,42 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
             //Example_BasicWordWithHyperLinks(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document and find text");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with text.docx");
-            //Example_BasicDocumentFindText(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Fields");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
+            //Example_AddingFields(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Fields");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
-            Example_AddingFields(filePath, true);
+            Console.WriteLine("[*] Creating standard document with Cover Page");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
+            Example_AddingCoverPage(filePath, true);
+        }
+
+        private static void Example_AddingCoverPage(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                //document.BuiltinDocumentProperties.Title = "Cover Page Templates";
+                //document.AddHeadersAndFooters();
+                //document.DifferentFirstPage = true;
+
+                document.Sections[0].SetMargins(PageMargins.Normal);
+                document.PageOrientation = PageOrientationValues.Portrait;
+
+                document.AddCoverPage(CoverPageTemplate.Austin);
+
+                //document.AddParagraph("This is my test");
+
+                //document.AddTableOfContent(TableOfContentStyle.Template1);
+
+                //var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+
+                //wordListToc.AddItem("Prepare document");
+
+                //wordListToc.AddItem("Make it shine");
+
+                //document.AddPageBreak();
+
+                //wordListToc.AddItem("More on the next page");
+
+                document.Save(openWord);
+            }
         }
 
         private static void Example_AddingFields(string filePath, bool openWord) {
@@ -256,24 +285,13 @@ namespace OfficeIMO.Examples {
                 Console.WriteLine(document.Fields[2].FieldFormat);
                 Console.WriteLine(document.Fields[2].FieldType);
                 Console.WriteLine(document.Fields[2].Field);
-
-
-                document.Settings.UpdateFieldsOnOpen = true;
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_BasicDocumentFindText(string filePath, bool openWord) {
-            // doesn't work!!!
-
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Test 1").AddText(" continue ").AddText("Test 5");
-                document.AddParagraph("Temp 1");
-                document.AddParagraph("Test 2");
-                document.AddParagraph("tseT 3");
-
-                var list = document.FindText("Test");
-
+                Console.WriteLine("----");
+                Console.WriteLine(document.Fields.Count);
+                Console.WriteLine("----");
+                document.Fields[1].Remove();
+                Console.WriteLine(document.Fields.Count);
+                Console.WriteLine("----");
+                // document.Settings.UpdateFieldsOnOpen = true;
                 document.Save(openWord);
             }
         }
@@ -387,43 +405,43 @@ namespace OfficeIMO.Examples {
         }
 
         private static void Example_BasicWord2(string filePath, bool openWord) {
-            //using (WordDocument document = WordDocument.Create(filePath)) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
 
-            //    document.Settings.ZoomPercentage = 50;
-            //    var paragraph = document.AddParagraph("Basic paragraph");
+                document.Settings.ZoomPercentage = 50;
+                var paragraph = document.AddParagraph("Basic paragraph");
 
-            //    var section1 = document.AddSection();
-            //    section1.AddParagraph("Test Middle Section - 1");
-            //    //section1 = document.Sections[1];
-            //    // document.AddParagraph("Test 0");
+                var section1 = document.AddSection();
+                section1.AddParagraph("Test Middle Section - 1");
+                //section1 = document.Sections[1];
+                // document.AddParagraph("Test 0");
 
-            //    var section2 = document.AddSection();
-            //    section2.AddParagraph("Test Last Section - 1");
-            //    section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
-            //    var test = document.AddParagraph("Test 1 - to delete");
-            //    test.Remove();
-
-
-            //    document.Sections[2].AddParagraph("Test 0 - Section Last");
-            //    document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
-            //    //document.Sections[1].AddParagraph("Test 2");
-
-            //    // section2.AddParagraph("Test 1");
-            //    Console.WriteLine("----");
-            //    Console.WriteLine("Sections: " + document.Sections.Count);
-            //    Console.WriteLine("----");
-            //    Console.WriteLine(document.Sections[0].Paragraphs.Count);
-            //    Console.WriteLine(document.Sections[1].Paragraphs.Count);
-            //    Console.WriteLine(document.Sections[2].Paragraphs.Count);
+                var section2 = document.AddSection();
+                section2.AddParagraph("Test Last Section - 1");
+                section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
+                var test = document.AddParagraph("Test 1 - to delete");
+                test.Remove();
 
 
-            //    Console.WriteLine(document.Comments.Count);
+                document.Sections[2].AddParagraph("Test 0 - Section Last");
+                document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
+                //document.Sections[1].AddParagraph("Test 2");
 
-            //    document.Comments[0].Text = "Lets change it";
+                // section2.AddParagraph("Test 1");
+                Console.WriteLine("----");
+                Console.WriteLine("Sections: " + document.Sections.Count);
+                Console.WriteLine("----");
+                Console.WriteLine(document.Sections[0].Paragraphs.Count);
+                Console.WriteLine(document.Sections[1].Paragraphs.Count);
+                Console.WriteLine(document.Sections[2].Paragraphs.Count);
 
 
-            //    document.Save(false);
-            //}
+                Console.WriteLine(document.Comments.Count);
+
+                document.Comments[0].Text = "Lets change it";
+
+
+                document.Save(false);
+            }
             filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\200procent1.docx";
 
             using (WordDocument document = WordDocument.Load(filePath)) {

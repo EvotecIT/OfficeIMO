@@ -30,9 +30,36 @@ namespace OfficeIMO.Word {
 
         public WordTableOfContent TableOfContent {
             get {
-                SdtBlock sdtBlock = _document.Body.ChildElements.OfType<SdtBlock>().FirstOrDefault();
-                if (sdtBlock != null) {
-                    return new WordTableOfContent(this, sdtBlock);
+                var sdtBlocks = _document.Body.ChildElements.OfType<SdtBlock>();
+                foreach (var sdtBlock in sdtBlocks) {
+                    if (sdtBlock != null) {
+                        var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                        if (sdtProperties != null) {
+                            var docPartGallery = sdtProperties.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+                            if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
+                                return new WordTableOfContent(this, sdtBlock);
+                            }
+                        }
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        public WordCoverPage CoverPage {
+            get {
+                var sdtBlocks = _document.Body.ChildElements.OfType<SdtBlock>();
+                foreach (var sdtBlock in sdtBlocks) {
+                    if (sdtBlock != null) {
+                        var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                        if (sdtProperties != null) {
+                            var docPartGallery = sdtProperties.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+                            if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
+                                return new WordCoverPage(this, sdtBlock);
+                            }
+                        }
+                    }
                 }
 
                 return null;
@@ -312,6 +339,19 @@ namespace OfficeIMO.Word {
 
             StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+
+            //WebSettingsPart webSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<WebSettingsPart>("rId3");
+            //GenerateWebSettingsPart1Content(webSettingsPart1);
+
+            //DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
+            //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
+
+            //FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId4");
+            //GenerateFontTablePart1Content(fontTablePart1);
+
+            //ThemePart themePart1 = wordDocument.MainDocumentPart.AddNewPart<ThemePart>("rId5");
+            //GenerateThemePart2Content(themePart1);
+
 
             WordSettings wordSettings = new WordSettings(word);
             ApplicationProperties applicationProperties = new ApplicationProperties(word);
