@@ -236,28 +236,28 @@ namespace OfficeIMO.Examples {
 
         private static void Example_AddingCoverPage(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
-                //document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                //document.AddHeadersAndFooters();
-                //document.DifferentFirstPage = true;
+                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
+                document.Settings.UpdateFieldsOnOpen = true;
 
-                document.Sections[0].SetMargins(PageMargins.Normal);
-                document.PageOrientation = PageOrientationValues.Portrait;
+                document.AddCoverPage(CoverPageTemplate.ViewMaster);
 
-                document.AddCoverPage(CoverPageTemplate.Austin);
+                document.AddTableOfContent(TableOfContentStyle.Template1);
 
-                //document.AddParagraph("This is my test");
+                document.AddPageBreak();
 
-                //document.AddTableOfContent(TableOfContentStyle.Template1);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
-                //var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                wordListToc.AddItem("Prepare document");
 
-                //wordListToc.AddItem("Prepare document");
+                document.AddParagraph("This is my test 1");
 
-                //wordListToc.AddItem("Make it shine");
+                wordListToc.AddItem("Make it shine");
 
-                //document.AddPageBreak();
+                document.AddParagraph("This is my test 2");
 
-                //wordListToc.AddItem("More on the next page");
+                document.AddPageBreak();
+
+                wordListToc.AddItem("More on the next page");
 
                 document.Save(openWord);
             }

@@ -20,13 +20,6 @@ using Thm15 = DocumentFormat.OpenXml.Office2013.Theme;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
-        /// <summary>
-        /// This section covers most likely default properties for Word Document to have when
-        /// At least that's what it has when you create new Word Document with Microsoft Word
-        /// </summary>
-        /// <param name="extendedFilePropertiesPart1"></param>
-
-
         // Generates content of extendedFilePropertiesPart1.
         private static void GenerateExtendedFilePropertiesPart1Content(ExtendedFilePropertiesPart extendedFilePropertiesPart1) {
             Ap.Properties properties1 = new Ap.Properties();

@@ -6,7 +6,17 @@ namespace OfficeIMO.Word {
         Austin,
         Banded,
         Facet,
-        FiliGree
+        Grid,
+        IonDark,
+        IonLight,
+        Element,
+        Wisp,
+        ViewMaster,
+        SliceLight,
+        SliceDark,
+        SideLine,
+        Semaphore,
+        Retrospect
     }
 
     public partial class WordCoverPage {
@@ -29,7 +39,17 @@ namespace OfficeIMO.Word {
                 case CoverPageTemplate.Austin: return CoverPageAustin;
                 case CoverPageTemplate.Banded: return CoverPageBanded;
                 case CoverPageTemplate.Facet: return CoverPageFacet;
-                case CoverPageTemplate.FiliGree: return CoverPageFiliGree;
+                case CoverPageTemplate.Grid: return CoverPageGrid;
+                case CoverPageTemplate.IonDark: return CoverPageIonDark;
+                case CoverPageTemplate.IonLight: return CoverPageIonLight;
+                case CoverPageTemplate.Element: return CoverPageElement;
+                case CoverPageTemplate.Wisp: return CoverPageWisp;
+                case CoverPageTemplate.ViewMaster: return CoverPageViewMaster;
+                case CoverPageTemplate.SliceLight: return CoverPageSliceLight;
+                case CoverPageTemplate.SliceDark: return CoverPageSliceDark;
+                case CoverPageTemplate.SideLine: return CoverPageSideLine;
+                case CoverPageTemplate.Semaphore: return CoverPageSemaphore;
+                case CoverPageTemplate.Retrospect: return CoverPageRetrospect;
             }
             throw new ArgumentOutOfRangeException(nameof(template));
         }
