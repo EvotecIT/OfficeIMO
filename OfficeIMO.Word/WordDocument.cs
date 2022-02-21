@@ -35,9 +35,12 @@ namespace OfficeIMO.Word {
                     if (sdtBlock != null) {
                         var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                         if (sdtProperties != null) {
-                            var docPartGallery = sdtProperties.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-                            if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                                return new WordTableOfContent(this, sdtBlock);
+                            var docPartObject = sdtProperties.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                            if (docPartObject != null) {
+                                var docPartGallery = docPartObject.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+                                if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
+                                    return new WordTableOfContent(this, sdtBlock);
+                                }
                             }
                         }
                     }
@@ -54,9 +57,12 @@ namespace OfficeIMO.Word {
                     if (sdtBlock != null) {
                         var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                         if (sdtProperties != null) {
-                            var docPartGallery = sdtProperties.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-                            if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
-                                return new WordCoverPage(this, sdtBlock);
+                            var docPartObject = sdtProperties.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                            if (docPartObject != null) {
+                                var docPartGallery = docPartObject.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+                                if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
+                                    return new WordCoverPage(this, sdtBlock);
+                                }
                             }
                         }
                     }
