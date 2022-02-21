@@ -237,9 +237,13 @@ namespace OfficeIMO.Examples {
         private static void Example_AddingCoverPage(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Title = "Cover Page Templates";
+                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+
+                document.ApplicationProperties.Company = "Evotec Services";
+
                 document.Settings.UpdateFieldsOnOpen = true;
 
-                document.AddCoverPage(CoverPageTemplate.ViewMaster);
+                document.AddCoverPage(CoverPageTemplate.IonDark);
 
                 document.AddTableOfContent(TableOfContentStyle.Template1);
 
