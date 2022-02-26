@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
                 return settings.Zoom.Val;
-                
+
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
             this.BackgroundColor = backgroundColor;
             return this;
         }
-        public WordSettings SetBackgroundColor(System.Drawing.Color backgroundColor) {
+        public WordSettings SetBackgroundColor(SixLabors.ImageSharp.Color backgroundColor) {
             this.BackgroundColor = backgroundColor.ToHexColor();
             return this;
         }

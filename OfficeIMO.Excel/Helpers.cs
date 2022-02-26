@@ -8,15 +8,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static string ToHexColor(this System.Drawing.Color c) {
-            return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        public static string ToHexColor(this SixLabors.ImageSharp.Color c) {
+            return c.ToHex().Remove(6);
         }
-        /// <summary>
-        /// Converts Color to RGB Color
-        /// </summary>
-        /// <param name="c"></param>
-        /// <returns></returns>
-        public static string ToRgbColor(this System.Drawing.Color c) => $"RGB({c.R}, {c.G}, {c.B})";
 
         /// <summary>
         /// Opens up any file using assigned Application

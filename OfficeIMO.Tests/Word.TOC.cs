@@ -2,7 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = System.Drawing.Color;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 if (wordListToc != null) {
                     wordListToc.AddItem("Text 4.4", 2);
                 }
-                
+
                 document.Settings.UpdateFieldsOnOpen = true;
 
                 Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists[0].ListItems[0].Text == document.Paragraphs[1].Text, "Text should be identical");
 
                 Assert.True(document.Lists[0].ListItems[document.Lists[0].ListItems.Count - 1].Text == document.Paragraphs[document.Paragraphs.Count - 1].Text, "Text should be identical");
-                
+
                 document.Save(false);
             }
         }

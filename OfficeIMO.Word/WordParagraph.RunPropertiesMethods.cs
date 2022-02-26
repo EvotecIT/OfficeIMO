@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
             this.Color = color.Replace("#", "");
             return this;
         }
-        public WordParagraph SetColor(System.Drawing.Color color) {
+        public WordParagraph SetColor(SixLabors.ImageSharp.Color color) {
             this.Color = color.ToHexColor();
             return this;
         }

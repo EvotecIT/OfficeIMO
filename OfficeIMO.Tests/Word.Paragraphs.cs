@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using SemanticComparison;
 using Xunit;
-using Color = System.Drawing.Color;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -16,18 +16,18 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
                 paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(CapsStyle.Caps);
 
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Blue.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
                 Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
 
-                Assert.True(document.Paragraphs[1].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
+                Assert.True(document.Paragraphs[1].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
                 Assert.True(document.Paragraphs[1].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
@@ -42,11 +42,11 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Blue.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
                 Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
 
-                Assert.True(document.Paragraphs[1].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
+                Assert.True(document.Paragraphs[1].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
                 Assert.True(document.Paragraphs[1].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
@@ -69,13 +69,13 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Yellow.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Yellow.ToHexColor();
 
                 Assert.True(paragraph.DoNotCheckSpellingOrGrammar == false, "DoNotCheckSpellingOrGrammar should not be set.");
                 paragraph.DoNotCheckSpellingOrGrammar = true;
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Blue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue.ToHexColor();
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
@@ -105,17 +105,17 @@ namespace OfficeIMO.Tests {
                 var expectedParagraph2 = new Likeness<WordParagraph, WordParagraph>(document.Sections[0].Paragraphs[2]);
                 Assert.True(expectedParagraph2.Equals(document.Paragraphs[2]) == true);
 
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
-                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoNotCheckSpellingOrGrammar == true, "3rd paragraph DoNotCheckSpellingOrGrammar should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[3].DoNotCheckSpellingOrGrammar == false, "4th paragraph DoNotCheckSpellingOrGrammar should not be set");
-                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Blue.ToHexColor(), "5th paragraph color should be the same");
+                Assert.True(document.Paragraphs[4].Color == SixLabors.ImageSharp.Color.Blue.ToHexColor(), "5th paragraph color should be the same");
                 Assert.True(document.Paragraphs[4].Bold == true, "5th paragraph should be bold");
                 Assert.True(document.Paragraphs[4].FontFamily == "Tahoma", "5th paragraph should be set with Tahoma");
 
-                Assert.True(document.Paragraphs[5].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[5].Color);
+                Assert.True(document.Paragraphs[5].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[5].Color);
                 Assert.True(document.Paragraphs[5].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
                 Assert.True(document.Paragraphs[5].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
@@ -136,15 +136,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
                 Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
                 //Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0], "1st paragraph of 1st section should be the same 2");
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
-                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
-                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Blue.ToHexColor(), "5th paragraph color should be the same");
+                Assert.True(document.Paragraphs[4].Color == SixLabors.ImageSharp.Color.Blue.ToHexColor(), "5th paragraph color should be the same");
                 Assert.True(document.Paragraphs[4].Bold == true, "5th paragraph should be bold");
                 Assert.True(document.Paragraphs[4].FontFamily == "Tahoma", "5th paragraph should be set with Tahoma");
 
-                Assert.True(document.Paragraphs[5].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be (load) " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[5].Color);
+                Assert.True(document.Paragraphs[5].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be (load) " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[5].Color);
                 Assert.True(document.Paragraphs[5].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
                 Assert.True(document.Paragraphs[5].Underline == UnderlineValues.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
@@ -179,13 +179,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
                 Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
                 //Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0], "1st paragraph of 1st section should be the same 2");
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
-                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
                 Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
-                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
+                Assert.True(document.Paragraphs[4].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
                 Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
@@ -202,13 +202,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Text == "Basic paragraph - Page 1", "1st paragraph text doesn't match. Current: " + document.Paragraphs[0].Text);
                 Assert.True(document.Paragraphs[0].Text == document.Sections[0].Paragraphs[0].Text, "1st paragraph of 1st section should be the same 1");
                 //Assert.True(document.Paragraphs[0] == document.Sections[0].Paragraphs[0], "1st paragraph of 1st section should be the same 2");
-                Assert.True(document.Paragraphs[0].Color == System.Drawing.Color.Red.ToHexColor(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Red.ToHexColor(), "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
-                Assert.True(document.Paragraphs[2].Color == System.Drawing.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
                 Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
-                Assert.True(document.Paragraphs[4].Color == System.Drawing.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + System.Drawing.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
+                Assert.True(document.Paragraphs[4].Color == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
                 Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);

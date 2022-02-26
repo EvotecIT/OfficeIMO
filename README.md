@@ -151,7 +151,7 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     var paragraph = document.AddParagraph("Basic paragraph");
     paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+    paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
     document.Save(true);
 }

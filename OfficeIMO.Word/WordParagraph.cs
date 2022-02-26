@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
-using DocumentFormat.OpenXml;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 
 namespace OfficeIMO.Word {

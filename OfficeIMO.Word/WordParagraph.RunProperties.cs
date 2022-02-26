@@ -1,11 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
-using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -179,7 +173,7 @@ namespace OfficeIMO.Word {
             set {
                 VerifyRunProperties();
                 //string stringColor = value;
-                // var color = System.Drawing.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
+                // var color = SixLabors.ImageSharp.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
                 if (value != "") {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
                     color.Val = value;
@@ -201,7 +195,7 @@ namespace OfficeIMO.Word {
             set {
                 VerifyRunProperties();
                 //string stringColor = value;
-                // var color = System.Drawing.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
+                // var color = SixLabors.ImageSharp.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
                 if (value != null) {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
                         ThemeColor = new EnumValue<ThemeColorValues> {

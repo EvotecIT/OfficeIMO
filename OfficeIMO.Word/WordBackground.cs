@@ -31,7 +31,7 @@ namespace OfficeIMO.Word {
             _document.Background = this;
         }
 
-        public WordBackground(WordDocument document, System.Drawing.Color color) {
+        public WordBackground(WordDocument document, SixLabors.ImageSharp.Color color) {
             _document = document;
 
             DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToHexColor() };
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
             this.Color = color.Replace("#", ""); ;
             return this;
         }
-        public WordBackground SetColor(System.Drawing.Color color) {
+        public WordBackground SetColor(SixLabors.ImageSharp.Color color) {
             this.Color = color.ToHexColor();
             return this;
         }

@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -168,7 +164,7 @@ namespace OfficeIMO.Word {
         /// <param name="size"></param>
         /// <param name="space"></param>
         /// <returns></returns>
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, System.Drawing.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             this._paragraphProperties.ParagraphBorders = new ParagraphBorders();
             this._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
                 Val = lineType,

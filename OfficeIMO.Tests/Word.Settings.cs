@@ -2,7 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = System.Drawing.Color;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {

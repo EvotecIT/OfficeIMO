@@ -9,11 +9,12 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Drawing;
+
 using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
+
 
 namespace OfficeIMO.Word {
     public class WordImage {
@@ -226,11 +227,10 @@ namespace OfficeIMO.Word {
         public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             double width;
             double height;
-            using (var img = new Bitmap(filePath)) {
+            using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
                 width = img.Width;
                 height = img.Height;
             }
-            //new WordImage(document, filePath, shape, compressionQuality);
         }
 
         public WordImage(WordDocument document, Paragraph paragraph) {
@@ -247,7 +247,7 @@ namespace OfficeIMO.Word {
             // if widht/height are not set we check ourselves 
             // but probably will need better way
             if (width == null || height == null) {
-                using (var img = new Bitmap(filePath)) {
+                using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
                     width = img.Width;
                     height = img.Height;
                 }

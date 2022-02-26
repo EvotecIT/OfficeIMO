@@ -1,11 +1,4 @@
 ﻿using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml;
-using Color = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {

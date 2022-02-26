@@ -18,21 +18,21 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
-                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count );
+                Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
@@ -59,19 +59,19 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = System.Drawing.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
 
                 string date = "7/7/2011 10:48";
                 DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
@@ -105,12 +105,12 @@ namespace OfficeIMO.Tests {
                 DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
 
                 //Assert.True((DateTime) document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
-                Assert.True((bool) document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
-                Assert.True((string) document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
 
                 document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
 
-                Assert.True((string) document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
+                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
 
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);

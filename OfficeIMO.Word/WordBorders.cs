@@ -69,8 +69,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public System.Drawing.Color LeftColor {
-            get { return System.Drawing.ColorTranslator.FromHtml("#" + LeftColorHex); }
+        public SixLabors.ImageSharp.Color LeftColor {
+            get { return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex); }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
@@ -218,8 +218,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public System.Drawing.Color RightColor {
-            get { return System.Drawing.ColorTranslator.FromHtml("#" + RightColorHex); }
+        public SixLabors.ImageSharp.Color RightColor {
+            get { return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex); }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
@@ -367,8 +367,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public System.Drawing.Color TopColor {
-            get { return System.Drawing.ColorTranslator.FromHtml("#" + TopColorHex); }
+        public SixLabors.ImageSharp.Color TopColor {
+            get { return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex); }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
@@ -517,8 +517,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public System.Drawing.Color BottomColor {
-            get { return System.Drawing.ColorTranslator.FromHtml("#" + BottomColorHex); }
+        public SixLabors.ImageSharp.Color BottomColor {
+            get { return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex); }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 
