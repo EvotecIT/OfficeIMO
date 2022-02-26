@@ -50,9 +50,6 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph4 = document.AddParagraph();
                 paragraph4.AddImage(filePathImage);
 
-                // we can get the height of the image from paragraph
-                Console.WriteLine("This document has image, which has height of: " + paragraph4.Image.Height + " pixels (I think) ;-)");
-
                 // we can also overwrite height later on
                 paragraph4.Image.Height = 50;
                 paragraph4.Image.Width = 50;
