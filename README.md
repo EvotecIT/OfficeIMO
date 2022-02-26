@@ -48,9 +48,6 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 | Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=22"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1|
 | MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build/results?buildId=23"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1 |
 
-Due to **System.Drawing.Common** is not supported on [non-Windows platforms](https://aka.ms/systemdrawingnonwindows), some tests fail on Linux, macOs (mainly those around images).
-Not yet sure how to address it.
-
 ## Features
 
 Here's a list of features currently supported and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
