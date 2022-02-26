@@ -19,6 +19,8 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public static string ToRgbColor(this System.Drawing.Color c) => $"RGB({c.R}, {c.G}, {c.B})";
 
+
+
         /// <summary>
         /// Opens up any file using assigned Application
         /// </summary>

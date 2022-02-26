@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Examples.Excel;
+using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = System.Drawing.Color;
 
@@ -233,12 +234,20 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
             //Example_AddingCoverPage(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Watermark 2");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
-            Example_BasicWordWatermark2(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Watermark 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
+            //Example_BasicWordWatermark2(filePath, true);
 
 
 
+            Console.WriteLine("[*] Load external Word Document - Sample 1");
+            LoadWordDocumentSample1.LoadWordDocument_Sample1(true);
+
+            Console.WriteLine("[*] Load external Word Document - Sample 2");
+            LoadWordDocumentSample2.LoadWordDocument_Sample2(true);
+
+            Console.WriteLine("[*] Load external Word Document - Sample 3");
+            LoadWordDocumentSample3.LoadWordDocument_Sample3(true);
 
         }
 

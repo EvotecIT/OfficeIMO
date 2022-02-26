@@ -394,6 +394,8 @@ namespace OfficeIMO.Word {
                     // we don't do anything as we load stuff with get on demand
                 } else if (element is OpenXmlUnknownElement) {
                     // this happens when adding dirty element - mainly during TOC Update() function
+                } else if (element is BookmarkEnd) {
+
                 } else {
                     throw new NotImplementedException("This isn't implemented yet");
                 }
