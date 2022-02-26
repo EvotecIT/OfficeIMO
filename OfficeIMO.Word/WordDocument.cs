@@ -397,7 +397,7 @@ namespace OfficeIMO.Word {
                 } else if (element is BookmarkEnd) {
 
                 } else {
-                    throw new NotImplementedException("This isn't implemented yet");
+                    //throw new NotImplementedException("This isn't implemented yet");
                 }
             }
 
