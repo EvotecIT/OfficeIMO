@@ -229,13 +229,71 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            Console.WriteLine("[*] Creating standard document with Cover Page");
-            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
-            Example_AddingCoverPage(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with Cover Page");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
+            //Example_AddingCoverPage(filePath, true);
+
+            Console.WriteLine("[*] Creating standard document with Watermark 2");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
+            Example_BasicWordWatermark2(filePath, true);
+
+
+
+
+        }
+
+        private static void Example_BasicWordWatermark2(string filePath, bool openWord) {
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Section 0");
+                document.AddHeadersAndFooters();
+                document.Sections[0].SetMargins(WordMargin.Normal);
+
+                Console.WriteLine(document.Sections[0].Margins.Left.Value);
+                Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+                Console.WriteLine(document.Sections[0].Margins.Type);
+
+                document.Sections[0].Margins.Type = WordMargin.Wide;
+
+
+                Console.WriteLine(document.Sections[0].Margins.Type);
+
+                document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Watermark");
+
+                document.AddSection();
+                document.Sections[1].AddHeadersAndFooters();
+                document.Sections[1].Margins.Type = WordMargin.Narrow;
+
+                Console.WriteLine("----");
+                document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Draft");
+
+                Console.WriteLine(document.Sections[0].Margins.Left.Value);
+                Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+                Console.WriteLine(document.Sections[1].Margins.Left.Value);
+                Console.WriteLine(document.Sections[1].Margins.Right.Value);
+
+                Console.WriteLine(document.Sections[1].Margins.Type);
+
+
+                document.Settings.SetBackgroundColor(Color.Azure);
+
+                document.Save(openWord);
+            }
         }
 
         private static void Example_AddingCoverPage(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Sections[0].PageSettings.PageSize = WordPageSize.A5;
+
+                document.PageSettings.PageSize = WordPageSize.A6;
+
+                Console.WriteLine(document.PageSettings.Height.ToString());
+                Console.WriteLine(document.PageSettings.Width.ToString());
+                Console.WriteLine(document.PageSettings.Code.ToString());
+                Console.WriteLine(document.PageSettings.PageSize);
+
                 document.BuiltinDocumentProperties.Title = "Cover Page Templates";
                 document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
 
@@ -2253,22 +2311,22 @@ namespace OfficeIMO.Examples {
         private static void Example_BasicWordMarginsSizes(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.Sections[0].SetMargins(PageMargins.Normal);
+                document.Sections[0].SetMargins(WordMargin.Normal);
 
                 document.AddSection();
-                document.Sections[1].SetMargins(PageMargins.Narrow);
+                document.Sections[1].SetMargins(WordMargin.Narrow);
                 document.AddParagraph("Section 1");
 
                 document.AddSection();
-                document.Sections[2].SetMargins(PageMargins.Mirrored);
+                document.Sections[2].SetMargins(WordMargin.Mirrored);
                 document.AddParagraph("Section 2");
 
                 document.AddSection();
-                document.Sections[3].SetMargins(PageMargins.Moderate);
+                document.Sections[3].SetMargins(WordMargin.Moderate);
                 document.AddParagraph("Section 3");
 
                 document.AddSection();
-                document.Sections[4].SetMargins(PageMargins.Wide);
+                document.Sections[4].SetMargins(WordMargin.Wide);
                 document.AddParagraph("Section 4");
 
                 //Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);
@@ -2291,7 +2349,7 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
-                document.Sections[0].SetMargins(PageMargins.Normal);
+                document.Sections[0].SetMargins(WordMargin.Normal);
 
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
                 Console.WriteLine(document.Sections[0].Margins.Right.Value);
@@ -2300,7 +2358,7 @@ namespace OfficeIMO.Examples {
 
                 document.AddSection();
                 document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].SetMargins(PageMargins.Moderate);
+                document.Sections[1].SetMargins(WordMargin.Moderate);
 
                 Console.WriteLine("----");
                 //document.Sections[1].AddWatermark(WordWatermarkStyle.Image);

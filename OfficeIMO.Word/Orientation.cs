@@ -61,10 +61,10 @@ namespace OfficeIMO.Word {
                                 var left = pgMar.Left.Value;
                                 var right = pgMar.Right.Value;
 
-                                pgMar.Top = new Int32Value((int) left);
-                                pgMar.Bottom = new Int32Value((int) right);
-                                pgMar.Left = new UInt32Value((uint) System.Math.Max(0, bottom));
-                                pgMar.Right = new UInt32Value((uint) System.Math.Max(0, top));
+                                pgMar.Top = new Int32Value((int)left);
+                                pgMar.Bottom = new Int32Value((int)right);
+                                pgMar.Left = new UInt32Value((uint)System.Math.Max(0, bottom));
+                                pgMar.Right = new UInt32Value((uint)System.Math.Max(0, top));
                             }
                         }
                     }

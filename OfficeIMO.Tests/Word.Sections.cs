@@ -263,22 +263,22 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
 
                 document.AddParagraph("Section 0");
-                document.Sections[0].SetMargins(PageMargins.Normal);
+                document.Sections[0].SetMargins(WordMargin.Normal);
 
                 document.AddSection();
-                document.Sections[1].SetMargins(PageMargins.Narrow);
+                document.Sections[1].SetMargins(WordMargin.Narrow);
                 document.AddParagraph("Section 1");
 
                 document.AddSection();
-                document.Sections[2].SetMargins(PageMargins.Mirrored);
+                document.Sections[2].SetMargins(WordMargin.Mirrored);
                 document.AddParagraph("Section 2");
 
                 document.AddSection();
-                document.Sections[3].SetMargins(PageMargins.Moderate);
+                document.Sections[3].SetMargins(WordMargin.Moderate);
                 document.AddParagraph("Section 3");
 
                 document.AddSection();
-                document.Sections[4].SetMargins(PageMargins.Wide);
+                document.Sections[4].SetMargins(WordMargin.Wide);
                 document.AddParagraph("Section 4");
 
                 Assert.True(document.Paragraphs.Count == 5, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
@@ -382,13 +382,12 @@ namespace OfficeIMO.Tests {
 
                 document.AddSection();
                 document.AddParagraph("Section 5");
-                document.Sections[5].SetMargins(PageMargins.Normal);
+                document.Sections[5].SetMargins(WordMargin.Normal);
 
 
                 document.AddSection();
                 document.AddParagraph("Section 6");
-                document.Sections[6].SetMargins(PageMargins.Office2003Default);
-
+                document.Sections[6].SetMargins(WordMargin.Office2003Default);
 
                 // Normal
                 Assert.True(document.Sections[5].Margins.Left == 1440);

@@ -129,6 +129,8 @@ namespace OfficeIMO.Word {
 
         public WordBorders Borders;
         public WordMargins Margins;
+        public WordPageSizes PageSettings;
+
 
         public List<WordList> Lists {
             get {
@@ -204,6 +206,7 @@ namespace OfficeIMO.Word {
 
             this.Margins = new WordMargins(wordDocument, this);
             this.Borders = new WordBorders(wordDocument, this);
+            this.PageSettings = new WordPageSizes(wordDocument, this);
         }
 
 
@@ -248,7 +251,7 @@ namespace OfficeIMO.Word {
 
             this.Margins = new WordMargins(wordDocument, this);
             this.Borders = new WordBorders(wordDocument, this);
-
+            this.PageSettings = new WordPageSizes(wordDocument, this);
             wordDocument.Sections.Add(this);
         }
 

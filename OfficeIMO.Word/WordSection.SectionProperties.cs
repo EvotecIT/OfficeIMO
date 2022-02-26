@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
                 var pageSize = _sectionProperties.Descendants<PageSize>().FirstOrDefault();
                 if (pageSize == null) {
                     // we need to setup default values for A4 
-                    pageSize = PageSizes.A4;
+                    pageSize = WordPageSizes.A4;
                     pageSize.Orient = PageOrientationValues.Portrait;
                     _sectionProperties.Append(pageSize);
                 }

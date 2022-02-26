@@ -9,17 +9,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
-        public WordSection SetMargins(PageMargin pageMargins) {
-            var pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-            if (pageMargin == null) {
-                _sectionProperties.Append(pageMargins);
-                // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-            } else {
-                pageMargin.Remove();
-                _sectionProperties.Append(pageMargins);
-            }
-
-            return this;
+        public WordSection SetMargins(WordMargin pageMargins) {
+            return WordMargins.SetMargins(this, pageMargins);
         }
 
         public WordParagraph AddParagraph(string text = "") {

@@ -56,5 +56,22 @@ namespace OfficeIMO.Word {
                 this.Sections[0].Margins = value;
             }
         }
+
+        public WordPageSizes PageSettings {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageSettings.");
+                }
+
+                return this.Sections[0].PageSettings;
+            }
+            set {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageSettings.");
+                }
+
+                this.Sections[0].PageSettings = value;
+            }
+        }
     }
 }
