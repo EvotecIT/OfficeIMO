@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
+using Paragraph = DocumentFormat.OpenXml.Math.Paragraph;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
@@ -31,9 +33,9 @@ namespace OfficeIMO.Examples {
             //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
             //Example_BasicEmptyWord(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with paragraph");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
-            Example_BasicWord(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with paragraph");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
+            //Example_BasicWord(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with paragraph (2)");
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs2.docx");
@@ -47,9 +49,9 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
             //Example_MultipleParagraphsViaDifferentWays(filePath, false);
 
-            Console.WriteLine("[*] Creating standard document with some Images");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
-            Example_AddingImages(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with some Images");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
+            //Example_AddingImages(filePath, true);
 
             //Console.WriteLine("[*] Read Basic Word");
             //Example_ReadWord(true);
@@ -217,9 +219,9 @@ namespace OfficeIMO.Examples {
             //Example_BasicPageBorders2(filePath, true);
 
 
-            //Console.WriteLine("[*] Creating standard document with bookmarks");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
-            //Example_BasicWordWithBookmarks(filePath, true);
+            Console.WriteLine("[*] Creating standard document with bookmarks");
+            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
+            Example_BasicWordWithBookmarks(filePath, true);
 
 
             //Console.WriteLine("[*] Creating standard document with hyperlinks");
@@ -240,9 +242,8 @@ namespace OfficeIMO.Examples {
 
 
 
-            //Console.WriteLine("[*] Load external Word Document - Sample 1");
-            //LoadWordDocumentSample1.LoadWordDocument_Sample1(true);
-
+            Console.WriteLine("[*] Load external Word Document - Sample 1");
+            LoadWordDocumentSample1.LoadWordDocument_Sample1(true);
             //Console.WriteLine("[*] Load external Word Document - Sample 2");
             //LoadWordDocumentSample2.LoadWordDocument_Sample2(true);
 
@@ -250,7 +251,7 @@ namespace OfficeIMO.Examples {
             //LoadWordDocumentSample3.LoadWordDocument_Sample3(true);
 
 
-
+            //OpenAndAddTextToWordDocument();
 
 
         }
