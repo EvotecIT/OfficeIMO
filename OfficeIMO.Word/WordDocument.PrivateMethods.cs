@@ -9,6 +9,7 @@ namespace OfficeIMO.Word {
             // it seems the order of numbering instance/abstractnums in numbering matters...
             List<AbstractNum> listAbstractNum = new List<AbstractNum>();
             List<NumberingInstance> listNumberingInstance = new List<NumberingInstance>();
+            List<NumberingPictureBullet> listNumberPictures = new List<NumberingPictureBullet>();
 
             if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
                 var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
@@ -21,6 +22,11 @@ namespace OfficeIMO.Word {
                     listNumberingInstance.Add(numberingInstance);
                 }
 
+                var tempNumberingPictureBullet = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingPictureBullet>();
+                foreach (NumberingPictureBullet pictureBullet in tempNumberingPictureBullet) {
+                    listNumberPictures.Add(pictureBullet);
+                }
+
                 if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
                     Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
                     if (numbering != null) {
@@ -28,15 +34,9 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                //var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-                //foreach (AbstractNum abstractNum in tempAbstractNumList) {
-                //    abstractNum.Remove();
-                //}
-                //var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-                //foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-                //    numberingInstance.Remove();
-                //}
-                //tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
+                foreach (NumberingPictureBullet pictureBullet in listNumberPictures) {
+                    _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(pictureBullet);
+                }
 
                 foreach (AbstractNum abstractNum in listAbstractNum) {
                     _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
