@@ -10,6 +10,9 @@ using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 using Paragraph = DocumentFormat.OpenXml.Math.Paragraph;
+using OfficeIMO.Examples.Word;
+using CustomAndBuiltinProperties = OfficeIMO.Examples.Word.CustomAndBuiltinProperties;
+
 
 namespace OfficeIMO.Examples {
     internal static class Program {
@@ -41,9 +44,8 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs2.docx");
             //Example_BasicWord2(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
-            //Example_BasicDocumentProperties(filePath, false);
+
+
 
             //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
@@ -53,8 +55,7 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
             //Example_AddingImages(filePath, true);
 
-            //Console.WriteLine("[*] Read Basic Word");
-            //Example_ReadWord(true);
+
 
             //Console.WriteLine("[*] Read Basic Word with Images");
             //Example_ReadWordWithImages();
@@ -91,26 +92,13 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
             //Example_BasicWordWithHeaderAndFooter(filePath, true);
 
-            //Console.WriteLine("[*] Loading basic document");
-            //Example_Load(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with paragraphs");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
             //Example_BasicParagraphs(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document with custom properties");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with custom properties.docx");
-            //Example_BasicCustomProperties(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document and validate it");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document for validation.docx");
-            //Example_ValidateDocument(filePath);
 
-            //Console.WriteLine("[*] Creating standard document and validate it without saving");
-            //Example_ValidateDocument_BeforeSave();
-
-            //Console.WriteLine("[*] Loading standard document to check properties");
-            //Example_LoadDocumentWithProperties(true);
 
             // Console.WriteLine("[*] Creating standard document with lists");
             //filePath = System.IO.Path.Combine(folderPath, "Document with Lists1.docx");
@@ -245,7 +233,15 @@ namespace OfficeIMO.Examples {
             //LoadDocuments.LoadWordDocument_Sample2(true);
             //LoadDocuments.LoadWordDocument_Sample3(true);
 
-            HeadersAndFooters.Sections1(folderPath, true);
+            //CustomAndBuiltinProperties.Example_BasicDocumentProperties(folderPath, true);
+            //CustomAndBuiltinProperties.Example_ReadWord(true);
+            //CustomAndBuiltinProperties.Example_BasicCustomProperties(folderPath, true);
+            //CustomAndBuiltinProperties.Example_ValidateDocument(folderPath);
+            //CustomAndBuiltinProperties.Example_ValidateDocument_BeforeSave();
+            //CustomAndBuiltinProperties.Example_LoadDocumentWithProperties(true);
+            //CustomAndBuiltinProperties.Example_Load(true);
+
+            //HeadersAndFooters.Sections1(folderPath, true);
         }
 
         private static void Example_BasicWordWatermark2(string filePath, bool openWord) {
@@ -531,19 +527,6 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_BasicDocumentProperties(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-
-                var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
-
-                document.Save(openWord);
-            }
-        }
 
         private static void Example_MultipleParagraphsViaDifferentWays(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create()) {
@@ -700,18 +683,7 @@ namespace OfficeIMO.Examples {
             document.Save(true);
         }
 
-        private static void Example_ReadWord(bool openWord) {
-            string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), true);
-
-            Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
-            Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
-            Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
-            Console.WriteLine("+ FileOpen: " + document.FileOpenAccess);
-
-            document.Dispose();
-        }
 
         private static void Example_ReadWordWithImages() {
             string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
@@ -1245,116 +1217,14 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_Load(bool openWord = false) {
-            string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
-            string filePath = System.IO.Path.Combine(folderPath, "DocumentWithSection.docx");
-            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\DocumentWithSection.docx";
-            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\EmptyDocumentWithSection.docx";
 
-            using (WordDocument document = WordDocument.Load(filePath, true)) {
-                Console.WriteLine("+ Document Path: " + document.FilePath);
-                Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
-                Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
 
-                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections: " + document.Sections.Count);
 
-                document.Open(openWord);
-            }
-        }
 
-        private static void Example_LoadDocumentWithProperties(bool openWord = false) {
-            string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
-            string filePath = System.IO.Path.Combine(folderPath, "DocumentWithBuiltinAndCustomProperties.docx");
 
-            using (WordDocument document = WordDocument.Load(filePath, true)) {
-                Console.WriteLine("+ Document Path: " + document.FilePath);
-                Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
-                Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
 
-                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections: " + document.Sections.Count);
 
-                Console.WriteLine(document.ApplicationProperties.ApplicationVersion);
 
-                document.Open(openWord);
-            }
-        }
-
-        private static void Example_BasicCustomProperties(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
-
-                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
-                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
-                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
-                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
-                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
-
-                document.Save();
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath, false)) {
-                Console.WriteLine("* Loading document...");
-                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
-                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
-                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
-                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
-                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.GetEnumerator());
-
-                document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
-
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_ValidateDocument(string filePath) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
-
-                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
-                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
-                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
-                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
-                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
-
-                Console.WriteLine(document.DocumentIsValid);
-                Console.WriteLine(document.DocumentValidationErrors);
-                document.Save();
-            }
-        }
-
-        private static void Example_ValidateDocument_BeforeSave() {
-            using (WordDocument document = WordDocument.Create()) {
-                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
-
-                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
-                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
-                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
-                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
-                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
-
-                Console.WriteLine(document.DocumentIsValid);
-                Console.WriteLine(document.DocumentValidationErrors);
-            }
-        }
 
         private static void Example_BasicLists(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
