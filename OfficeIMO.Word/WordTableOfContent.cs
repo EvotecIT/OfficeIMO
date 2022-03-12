@@ -89,13 +89,14 @@ namespace OfficeIMO.Word {
         public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle) {
             this._document = wordDocument;
             this._sdtBlock = GetStyle(tableOfContentStyle);
+            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
 
-            var currentStdBlock = this._document._wordprocessingDocument.MainDocumentPart.Document.Body.OfType<SdtBlock>();
-            if (currentStdBlock.ToList().Count > 0) {
-                this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 1);
-            } else {
-                this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
-            }
+            //var currentStdBlock = this._document._wordprocessingDocument.MainDocumentPart.Document.Body.OfType<SdtBlock>();
+            //if (currentStdBlock.ToList().Count > 0) {
+            //    this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 1);
+            //} else {
+            //    this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
+            //}
         }
 
         public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock) {

@@ -31,7 +31,9 @@ namespace OfficeIMO.Word {
         public WordCoverPage(WordDocument wordDocument, CoverPageTemplate coverPageTemplate) {
             _document = wordDocument;
             _sdtBlock = GetStyle(coverPageTemplate);
-            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
+            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
+
+            //this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
         }
 
         private SdtBlock GetStyle(CoverPageTemplate template) {

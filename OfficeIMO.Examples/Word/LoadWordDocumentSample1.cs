@@ -15,6 +15,16 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Sections count: " + document.Sections.Count);
                 Console.WriteLine("Tables count: " + document.Tables.Count);
                 Console.WriteLine("Paragraphs count: " + document.Paragraphs.Count);
+
+                foreach (var paragraph in document.Paragraphs) {
+                    if (paragraph.Text.StartsWith("You can do")) {
+                        paragraph.Text = "Maybe you can't!";
+                    }
+                }
+
+                // changing books from 1 to 5
+                document.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text = "5";
+
                 document.Save(openWord);
             }
         }

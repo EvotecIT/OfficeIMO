@@ -219,9 +219,9 @@ namespace OfficeIMO.Examples {
             //Example_BasicPageBorders2(filePath, true);
 
 
-            Console.WriteLine("[*] Creating standard document with bookmarks");
-            filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
-            Example_BasicWordWithBookmarks(filePath, true);
+            //Console.WriteLine("[*] Creating standard document with bookmarks");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
+            //Example_BasicWordWithBookmarks(filePath, true);
 
 
             //Console.WriteLine("[*] Creating standard document with hyperlinks");
@@ -232,9 +232,9 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document with Cover Page");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
-            //Example_AddingCoverPage(filePath, true);
+            Console.WriteLine("[*] Creating standard document with Cover Page");
+            filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
+            Example_AddingCoverPage(filePath, true);
 
             //Console.WriteLine("[*] Creating standard document with Watermark 2");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
@@ -242,18 +242,14 @@ namespace OfficeIMO.Examples {
 
 
 
-            Console.WriteLine("[*] Load external Word Document - Sample 1");
-            LoadWordDocumentSample1.LoadWordDocument_Sample1(true);
+            //Console.WriteLine("[*] Load external Word Document - Sample 1");
+            //LoadWordDocumentSample1.LoadWordDocument_Sample1(true);
+
             //Console.WriteLine("[*] Load external Word Document - Sample 2");
             //LoadWordDocumentSample2.LoadWordDocument_Sample2(true);
 
             //Console.WriteLine("[*] Load external Word Document - Sample 3");
             //LoadWordDocumentSample3.LoadWordDocument_Sample3(true);
-
-
-            //OpenAndAddTextToWordDocument();
-
-
         }
 
         private static void Example_BasicWordWatermark2(string filePath, bool openWord) {
@@ -299,9 +295,9 @@ namespace OfficeIMO.Examples {
         private static void Example_AddingCoverPage(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageSettings.PageSize = WordPageSize.A5;
+                document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
 
-                document.PageSettings.PageSize = WordPageSize.A6;
+                document.PageSettings.PageSize = WordPageSize.A4;
 
                 Console.WriteLine(document.PageSettings.Height.ToString());
                 Console.WriteLine(document.PageSettings.Width.ToString());
