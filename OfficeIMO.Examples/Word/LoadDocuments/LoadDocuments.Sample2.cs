@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
-    internal class LoadWordDocumentSample3 {
-        public static void LoadWordDocument_Sample3(bool openWord) {
+    internal static partial class LoadDocuments {
+        public static void LoadWordDocument_Sample2(bool openWord) {
+            Console.WriteLine("[*] Load external Word Document - Sample 2");
+
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample3.docx"), true)) {
+            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample2.docx"), true)) {
 
 
                 Console.WriteLine("Sections count: " + document.Sections.Count);

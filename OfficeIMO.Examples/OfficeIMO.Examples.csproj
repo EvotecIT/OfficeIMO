@@ -64,4 +64,12 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Word\Sections\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DependencyValidation.Analyzers" Version="0.11.0" />
+  </ItemGroup>
+
 </Project>

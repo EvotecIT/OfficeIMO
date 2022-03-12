@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
-    internal class LoadWordDocumentSample1 {
+    internal static partial class LoadDocuments {
         public static void LoadWordDocument_Sample1(bool openWord) {
+            Console.WriteLine("[*] Load external Word Document - Sample 1");
+
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
             string fullPath = System.IO.Path.Combine(documentPaths, "sample1.docx");
             using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample1.docx"), true)) {
