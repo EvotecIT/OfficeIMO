@@ -6,45 +6,45 @@ using System.Text;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.VariantTypes;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public class WordCustomProperties {
-        private WordprocessingDocument _wordprocessingDocument = null;
-        private WordDocument _document = null;
+        private WordprocessingDocument _wordprocessingDocument;
+        private WordDocument _document;
         private Properties _customProperties;
 
         public WordCustomProperties(WordDocument document, bool? create = null) {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
 
-            var customProps = _wordprocessingDocument.CustomFilePropertiesPart;
-            if (customProps == null) {
-                if (document.FileOpenAccess != FileAccess.Read) {
-                    // No custom properties? Add the part, and the
-                    // collection of properties now.
-                    customProps = _wordprocessingDocument.AddCustomFilePropertiesPart();
-                    customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
-                } else {
-                    throw new ArgumentException("Document is read only!");
-                }
-            } else {
-                // we could play using add / remove, but better to just rebuild?
-                //_wordprocessingDocument.DeletePart(customProps.Properties);
-                //customProps = _wordprocessingDocument.AddCustomFilePropertiesPart();
-                //if (create != null) {
-                //   customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
-                // }
-            }
-
-            _customProperties = customProps.Properties;
-
-            document._customDocumentProperties = this;
             if (create == true) {
                 CreateCustomProperty(document);
             } else {
+                LoadCustomProperties();
+            }
+        }
+
+        private void LoadCustomProperties() {
+            var customProps = _wordprocessingDocument.CustomFilePropertiesPart;
+            if (customProps != null) {
+                _customProperties = customProps.Properties;
                 foreach (CustomDocumentProperty property in _customProperties.CustomFilePropertiesPart.Properties) {
                     WordCustomProperty wordCustomProperty = new WordCustomProperty(property);
-                    document.CustomDocumentProperties.Add(property.Name, wordCustomProperty);
+                    _document.CustomDocumentProperties.Add(property.Name, wordCustomProperty);
+                }
+            }
+        }
+
+        private void CreateCustomProperties(WordDocument document) {
+            var customProps = _wordprocessingDocument.CustomFilePropertiesPart;
+            if (customProps == null) {
+                if (document.FileOpenAccess != FileAccess.Read) {
+                    customProps = _wordprocessingDocument.AddCustomFilePropertiesPart();
+                    customProps.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties();
+                    _customProperties = customProps.Properties;
+                } else {
+                    throw new ArgumentException("Document is read only!");
                 }
             }
         }
@@ -170,6 +170,7 @@ namespace OfficeIMO.Word {
 
         private void CreateCustomProperty(WordDocument document) {
             if (document.CustomDocumentProperties.Count > 0) {
+                CreateCustomProperties(document);
                 foreach (var property in document.CustomDocumentProperties.Keys) {
                     var prop = Add(property, document.CustomDocumentProperties[property].Value, document.CustomDocumentProperties[property].PropertyType);
                     Add(property, prop);

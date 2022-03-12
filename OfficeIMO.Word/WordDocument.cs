@@ -284,7 +284,7 @@ namespace OfficeIMO.Word {
 
         internal WordprocessingDocument _wordprocessingDocument = null;
         public Document _document = null;
-        public WordCustomProperties _customDocumentProperties;
+        //public WordCustomProperties _customDocumentProperties;
 
 
         public FileAccess FileOpenAccess {
