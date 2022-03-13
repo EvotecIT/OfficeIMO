@@ -94,11 +94,12 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.HyperLinks[1].Text == " to website?");
 
-
                 var section = document.AddSection(SectionMarkValues.NextPage);
                 section.AddHyperLink("This is my website", new Uri("https://evotec.xyz"));
                 section.AddHyperLink("This is second website", new Uri("https://evotec.pl"), true, "This is tooltip for my website 1");
                 document.AddHyperLink("This is third website", new Uri("https://evotec.se"), true, "This is tooltip for my website 2");
+
+                Assert.True(document.Paragraphs.Count == 17);
 
                 Assert.True(section.HyperLinks[0].Text == "This is my website");
                 Assert.True(section.HyperLinks[1].Text == "This is second website");
@@ -129,7 +130,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "HyperlinksTests.docx"))) {
-                Assert.True(document.Paragraphs.Count == 20);
+                Assert.True(document.Paragraphs.Count == 17);
                 Assert.True(document.HyperLinks.Count == 7);
                 Assert.True(document.ParagraphsHyperLinks.Count == 7);
                 Assert.True(document.Bookmarks.Count == 1);

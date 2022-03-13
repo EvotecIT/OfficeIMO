@@ -9,10 +9,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
-                wordParagraph = new WordParagraph(this);
-            } else {
-                // since we created paragraph without adding it to document, we now need to add it to document
-                //this.Paragraphs.Add(wordParagraph);
+                wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
             }
 
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);

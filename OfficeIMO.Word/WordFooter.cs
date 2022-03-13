@@ -45,8 +45,15 @@ namespace OfficeIMO.Word {
             _footer = footerPartFooter;
             _type = type;
         }
+
+        public WordParagraph AddParagraph(string text) {
+            var paragraph = AddParagraph();
+            paragraph.Text = text;
+            return paragraph;
+        }
+
         public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph(_document);
+            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: false);
             _footer.Append(wordParagraph._paragraph);
             return wordParagraph;
         }

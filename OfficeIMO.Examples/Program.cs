@@ -11,6 +11,7 @@ using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 using Paragraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeIMO.Examples.Word;
+using OfficeIMO.Examples.Word.HyperLinks;
 using CustomAndBuiltinProperties = OfficeIMO.Examples.Word.CustomAndBuiltinProperties;
 
 
@@ -241,7 +242,10 @@ namespace OfficeIMO.Examples {
             //CustomAndBuiltinProperties.Example_LoadDocumentWithProperties(true);
             //CustomAndBuiltinProperties.Example_Load(true);
 
-            HeadersAndFooters.Sections1(folderPath, true);
+
+            HyperLinks.EasyExample(folderPath, true);
+
+            //HeadersAndFooters.Sections1(folderPath, true);
         }
 
         private static void Example_BasicWordWatermark2(string filePath, bool openWord) {

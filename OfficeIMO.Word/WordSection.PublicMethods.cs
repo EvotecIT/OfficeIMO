@@ -14,55 +14,22 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraph(string text = "") {
-            //WordParagraph wordParagraph = new WordParagraph(_document, true);
-            //rdParagraph.Text = text;
-
-            //if (this._paragraph == null) {
-            //    this._document.AddParagraph(wordParagraph);
-            //} else {
-
-            //    // this._paragraph.InsertBeforeSelf(wordParagraph._paragraph);
-            //    WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
-            //    wordParagraph = lastParagraphWithinSection.AddParagraphAfterSelf();
-            //    wordParagraph.Text = text;
-            //    //paragraph._section = this;
-
-            //}
-            //return wordParagraph;
-
-
-            //if (this.Paragraphs.Count == 0) {
-            //    //WordParagraph paragraph = this._document.AddParagraph(text);
-            //    WordParagraph paragraph = new WordParagraph(_document, true);
-            //    paragraph.Text = text;
-
-            //    this._paragraph.InsertBeforeSelf(paragraph._paragraph);
-
-            //    //paragraph._section = this;
-            //    return paragraph;
-            //} else {
-            //    WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
-
-            //    WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
-            //    paragraph._document = this._document;
-            //    // paragraph._section = this;
-            //    //this.Paragraphs.Add(paragraph);
-            //    paragraph.Text = text;
-            //    return paragraph;
-            //}
-
             if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph(text);
-                //paragraph._section = this;
+                WordParagraph paragraph = this._document.AddParagraph();
+                if (text != "") {
+                    paragraph.Text = text;
+                }
+
                 return paragraph;
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
 
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
                 paragraph._document = this._document;
-                // paragraph._section = this;
-                //this.Paragraphs.Add(paragraph);
-                paragraph.Text = text;
+                if (text != "") {
+                    paragraph.Text = text;
+                }
+
                 return paragraph;
             }
         }

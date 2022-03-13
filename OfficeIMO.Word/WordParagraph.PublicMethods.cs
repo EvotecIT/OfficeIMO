@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddImage(string filePathImage, double? width, double? height) {
             WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
             WordParagraph paragraph = new WordParagraph(this._document);
+            VerifyRun();
             _run.Append(wordImage._Image);
             //this.Image = wordImage;
             return paragraph;
@@ -25,6 +26,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddImage(string filePathImage) {
             WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
             WordParagraph paragraph = new WordParagraph(this._document);
+            VerifyRun();
             _run.Append(wordImage._Image);
             //this.Image = wordImage;
             return paragraph;
@@ -87,13 +89,13 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraphAfterSelf() {
-            WordParagraph paragraph = new WordParagraph(this._document, true);
+            WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             return paragraph;
         }
 
         public WordParagraph AddParagraphAfterSelf(WordSection section) {
-            WordParagraph paragraph = new WordParagraph(section._document, true);
+            WordParagraph paragraph = new WordParagraph(section._document, true, false);
 
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
 
@@ -101,7 +103,7 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraphBeforeSelf() {
-            WordParagraph paragraph = new WordParagraph(this._document, true);
+            WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);
             return paragraph;

@@ -15,6 +15,7 @@ namespace OfficeIMO.Word {
         }
 
         private RunProperties VerifyRunProperties() {
+            VerifyRun();
             if (this._run != null) {
                 if (this._runProperties == null) {
                     var text = _run.ChildElements.OfType<Text>().FirstOrDefault();

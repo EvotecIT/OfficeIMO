@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Basic paragraph");
 
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default.AddParagraph().AddText("Section 0");
+                document.Sections[0].Header.Default.AddParagraph("Test2").AddText("Section 0");
 
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Middle1 Section - 1");
@@ -350,6 +350,43 @@ namespace OfficeIMO.Tests {
                 section3.AddParagraph("Test Last Section - 2");
                 document.AddPageBreak();
                 section3.AddParagraph("Test Last Section - 3");
+
+
+
+                document.Sections[0].Header.Default.AddParagraph("Section 0").AddBookmark("BookmarkInSection0Header1");
+                var tableHeader = document.Sections[0].Header.Default.AddTable(3, 4);
+                tableHeader.Rows[0].Cells[3].Paragraphs[0].Text = "This is sparta";
+
+                document.Sections[0].Header.Default.AddHorizontalLine();
+                document.Sections[0].Header.Default.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
+                document.Sections[0].Header.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                document.Sections[0].Header.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+
+                Assert.True(document.Sections[0].Header.Default.Paragraphs.Count == 8);
+
+                section2.Footer.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header2");
+                var tableFooter = section2.Footer.Default.AddTable(2, 3);
+                tableFooter.Rows[0].Cells[2].Paragraphs[0].Text = "This is not sparta";
+                section2.Footer.Default.AddHorizontalLine();
+                section2.Footer.Default.AddHyperLink("Link to website!", new Uri("https://evotec.pl"));
+                section2.Footer.Default.AddHyperLink("Przemysław Email Me", new Uri("mailto:contact@evotec.pl?subject=Test Subject"));
+                section2.Footer.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+
+                Assert.True(document.Sections[0].Header.Default.Paragraphs.Count == 8);
+                Assert.True(document.Sections[0].Header.Default.ParagraphsHyperLinks.Count == 2);
+                Assert.True(document.Sections[0].Header.Default.ParagraphsFields.Count == 1);
+                Assert.True(document.Sections[0].Header.Default.Tables.Count == 1);
+
+                Assert.True(document.Sections[2].Footer.Default.Paragraphs.Count == 7);
+                Assert.True(document.Sections[2].Footer.Default.ParagraphsHyperLinks.Count == 2);
+                Assert.True(document.Sections[2].Footer.Default.ParagraphsFields.Count == 1);
+                Assert.True(document.Sections[2].Footer.Default.Tables.Count == 1);
+
+                Assert.True(section2.Footer.Default.Paragraphs.Count == 7);
+                Assert.True(section2.Footer.Default.ParagraphsHyperLinks.Count == 2);
+                Assert.True(section2.Footer.Default.ParagraphsFields.Count == 1);
+                Assert.True(section2.Footer.Default.Tables.Count == 1);
+
 
                 document.Save(false);
 

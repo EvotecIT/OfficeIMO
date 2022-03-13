@@ -29,7 +29,11 @@ namespace OfficeIMO.Word {
 
         internal RunProperties _runProperties {
             get {
-                return _run.RunProperties;
+                if (_run != null) {
+                    return _run.RunProperties;
+                }
+
+                return null;
             }
         }
 
@@ -167,14 +171,18 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordParagraph(WordDocument document = null, bool newParagraph = true) {
+        public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
             this._document = document;
-            this._run = new Run();
 
             if (newParagraph) {
+
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(new ParagraphProperties());
-                this._paragraph.AppendChild(_run);
+
+                if (newRun) {
+                    this._run = new Run();
+                    this._paragraph.AppendChild(_run);
+                }
             }
         }
 
