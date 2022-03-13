@@ -6,13 +6,21 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public partial class WordHeader {
-        private readonly HeaderFooterValues _type;
-        private readonly HeaderPart _headerPart;
-        internal readonly Header _header;
-        private string _id;
-        private readonly WordDocument _document;
-
+    public class WordHeaders {
+        public WordHeader Default {
+            get;
+            set;
+        }
+        public WordHeader Even {
+            get;
+            set;
+        }
+        public WordHeader First {
+            get;
+            set;
+        }
+    }
+    public partial class WordHeader : WordHeaderFooter {
         internal WordHeader(WordDocument document, HeaderReference headerReference) {
             _document = document;
             _id = headerReference.Id;
@@ -43,22 +51,11 @@ namespace OfficeIMO.Word {
             _type = type;
         }
 
-        public WordParagraph AddParagraph(string text) {
-            var paragraph = AddParagraph();
-            paragraph.Text = text;
-            return paragraph;
-        }
-
-        public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: false);
-            _header.Append(wordParagraph._paragraph);
-            return wordParagraph;
-        }
-
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
             return pageNumber;
         }
+
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
@@ -74,32 +71,6 @@ namespace OfficeIMO.Word {
                     header.Remove();
                 }
             }
-        }
-
-
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
-            return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
-        }
-
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
-            return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
-        }
-
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
-        }
-
-        public WordParagraph AddBookmark(string bookmarkName) {
-            return this.AddParagraph().AddBookmark(bookmarkName);
-        }
-
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
-        }
-
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            WordTable wordTable = new WordTable(_document, _header, rows, columns, tableStyle);
-            return wordTable;
         }
     }
 }

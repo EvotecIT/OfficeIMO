@@ -2,22 +2,36 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public partial class WordFooter {
+    public partial class WordHeaderFooter {
+        private protected HeaderFooterValues _type;
+        private protected HeaderPart _headerPart;
+        protected internal Header _header;
+        protected internal Footer _footer;
+        protected private FooterPart _footerPart;
+        private protected string _id;
+        protected WordDocument _document;
+
         public List<WordParagraph> Paragraphs {
             get {
-                if (_footer != null) {
+                if (_header != null) {
+                    return WordSection.ConvertParagraphsToWordParagraphs(_document, _header.ChildElements.OfType<Paragraph>());
+                } else if (_footer != null) {
                     return WordSection.ConvertParagraphsToWordParagraphs(_document, _footer.ChildElements.OfType<Paragraph>());
                 }
 
-                return new List<WordParagraph>(); ;
+                return new List<WordParagraph>();
             }
         }
+
         public List<WordTable> Tables {
             get {
-                if (_footer != null) {
+                if (_header != null) {
+                    return WordSection.ConvertTableToWordTable(_document, _header.ChildElements.OfType<Table>());
+                } else if (_footer != null) {
                     return WordSection.ConvertTableToWordTable(_document, _footer.ChildElements.OfType<Table>());
                 }
 
