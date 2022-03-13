@@ -32,11 +32,11 @@ steps:
 - task: NuGetToolInstaller@1
   displayName: 'Install Nuget Tool Installer'
 
-- script: |
-    brew update
-    brew tap caskroom/cask
-    brew install mono-libgdiplus
-  displayName: "Install Mono-libgdiplus"
+# - script: |
+#     brew update
+#     brew tap caskroom/cask
+#     brew install mono-libgdiplus
+#   displayName: "Install Mono-libgdiplus"
 
 - task: UseDotNet@2
   displayName: 'Install .NET 6.0'
@@ -83,11 +83,35 @@ steps:
       dotnet tool install -g dotnet-reportgenerator-globaltool
   continueOnError: true
 
+# - task: DotNetCoreCLI@2
+#   displayName: 'Run Tests'
+#   inputs:
+#     command: 'test'
+#     arguments: --configuration $(buildConfiguration) --collect "Code coverage"
+#     publishTestResults: true
+#     projects: '**/*.Tests.csproj'
+#     testRunTitle: 'macOS Test Run $(buildConfiguration), CPU: $(buildPlatform)'
+
 - task: DotNetCoreCLI@2
-  displayName: 'Run Tests'
+  displayName: 'Run Unit Tests (.NET 3.1)'
   inputs:
     command: 'test'
-    arguments: --configuration $(buildConfiguration) --collect "Code coverage"
-    publishTestResults: true
-    projects: '**/*.Tests.csproj'
-    testRunTitle: 'macOS Test Run $(buildConfiguration), CPU: $(buildPlatform)'
+    arguments: '--framework netcoreapp3.1 /noautorsp'
+    testRunTitle: 'macOS .NET 3.1'
+  condition: succeededOrFailed()
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 5.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net5.0 /noautorsp'
+    testRunTitle: 'macOS .NET 5.0'
+  condition: succeededOrFailed()
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 6.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net6.0 /noautorsp'
+    testRunTitle: 'macOS .NET 6.0'
+  condition: succeededOrFailed()
