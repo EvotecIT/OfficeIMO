@@ -83,13 +83,17 @@ steps:
       dotnet tool install -g dotnet-reportgenerator-globaltool
   continueOnError: true
 
+#- task: DotNetCoreCLI@2
+#  displayName: 'Run Tests'
+#  inputs:
+#    command: 'test'
+#    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage"'
+#    publishTestResults: true
+#    projects: '**/*.Tests.csproj'
+
 - task: DotNetCoreCLI@2
-  displayName: 'Run Tests'
   inputs:
     command: 'test'
-    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage"'
-    publishTestResults: true
-    projects: '**/*.Tests.csproj'
 
 #- task: PublishCodeCoverageResults@1
 #  displayName: 'Publish Code Coverage Report'
