@@ -105,7 +105,7 @@ steps:
   displayName: 'Run Unit Tests (.NET 5.0)'
   inputs:
     command: 'test'
-    arguments: '--no-restore --no-build --framework net5.0 /noautorsp'
+    arguments: '--framework net5.0 /noautorsp'
     testRunTitle: 'Linux .NET 5.0'
   condition: succeededOrFailed()
 
