@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
         }
 
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            WordTable wordTable = new WordTable(this, this._currentSection, rows, columns, tableStyle);
+            WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
         }
 

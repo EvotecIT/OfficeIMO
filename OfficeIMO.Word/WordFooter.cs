@@ -6,16 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordFooter {
-        public List<WordParagraph> Paragraphs {
-            get {
-                if (_footer != null) {
-                    return WordSection.ConvertParagraphsToWordParagraphs(_document, _footer.ChildElements.OfType<Paragraph>());
-                }
+    public partial class WordFooter {
 
-                return new List<WordParagraph>(); ;
-            }
-        }
+
         private readonly FooterPart _footerPart;
         internal readonly Footer _footer;
         private string _id;
@@ -53,7 +46,7 @@ namespace OfficeIMO.Word {
             _type = type;
         }
         public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph();
+            var wordParagraph = new WordParagraph(_document);
             _footer.Append(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -77,6 +70,31 @@ namespace OfficeIMO.Word {
                     footer.Remove();
                 }
             }
+        }
+
+        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
+        }
+
+        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
+        }
+
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        }
+
+        public WordParagraph AddBookmark(string bookmarkName) {
+            return this.AddParagraph().AddBookmark(bookmarkName);
+        }
+
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
+        }
+
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(_document, _footer, rows, columns, tableStyle);
+            return wordTable;
         }
     }
 }

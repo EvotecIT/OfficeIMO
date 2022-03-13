@@ -6,16 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordHeader {
-        public List<WordParagraph> Paragraphs {
-            get {
-                if (_header != null) {
-                    return WordSection.ConvertParagraphsToWordParagraphs(_document, _header.ChildElements.OfType<Paragraph>());
-                }
-
-                return new List<WordParagraph>(); ;
-            }
-        }
+    public partial class WordHeader {
         private readonly HeaderFooterValues _type;
         private readonly HeaderPart _headerPart;
         internal readonly Header _header;
@@ -53,8 +44,6 @@ namespace OfficeIMO.Word {
         }
         public WordParagraph AddParagraph() {
             var wordParagraph = new WordParagraph(_document);
-            //wordParagraph._document = _document;
-            //wordParagraph._header = _header;
             _header.Append(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -99,6 +88,11 @@ namespace OfficeIMO.Word {
 
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
+        }
+
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(_document, _header, rows, columns, tableStyle);
+            return wordTable;
         }
     }
 }

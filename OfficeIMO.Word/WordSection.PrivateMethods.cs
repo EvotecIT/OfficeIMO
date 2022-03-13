@@ -15,6 +15,14 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        internal static List<WordTable> ConvertTableToWordTable(WordDocument document, IEnumerable<Table> tables) {
+            var list = new List<WordTable>();
+            foreach (Table table in tables) {
+                list.Add(new WordTable(document, table));
+            }
+            return list;
+        }
+
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
             Dictionary<BookmarkStart, WordBookmark> bookmarks = new Dictionary<BookmarkStart, WordBookmark>();
@@ -146,7 +154,7 @@ namespace OfficeIMO.Word {
                                 dataSections[count] = new List<WordTable>();
                             }
                         } else if (element is Table) {
-                            WordTable wordTable = new WordTable(_document, null, (Table)element);
+                            WordTable wordTable = new WordTable(_document, (Table)element);
                             dataSections[count].Add(wordTable);
                         }
                     }

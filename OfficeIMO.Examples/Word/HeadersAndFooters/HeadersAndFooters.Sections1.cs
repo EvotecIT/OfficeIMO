@@ -18,9 +18,11 @@ namespace OfficeIMO.Examples.Word {
                 var para = document.AddBookmark("Test");
 
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header");
-                //document.Sections[0].Header.Default.AddTable(3, 4);
-                //document.Sections[0].Header.Default.AddBookmark("Test2");
+                document.Sections[0].Header.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header1");
+
+                var tableHeader = document.Sections[0].Header.Default.AddTable(3, 4);
+                tableHeader.Rows[0].Cells[3].Paragraphs[0].Text = "This is sparta";
+                Console.WriteLine(document.Sections[0].Header.Default.Tables.Count);
 
                 document.Sections[0].Header.Default.AddHorizontalLine();
 
@@ -29,6 +31,20 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].Header.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
 
                 document.Sections[0].Header.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+
+
+                document.Sections[0].Footer.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header2");
+
+                var tableFooter = document.Sections[0].Footer.Default.AddTable(2, 3);
+                tableFooter.Rows[0].Cells[2].Paragraphs[0].Text = "This is not sparta";
+
+                document.Sections[0].Footer.Default.AddHorizontalLine();
+
+                document.Sections[0].Footer.Default.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
+
+                document.Sections[0].Footer.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+
+                document.Sections[0].Footer.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
 
 
                 var section1 = document.AddSection();
