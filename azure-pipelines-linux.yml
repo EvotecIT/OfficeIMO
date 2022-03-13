@@ -32,11 +32,11 @@ steps:
 - task: NuGetToolInstaller@1
   displayName: 'Install Nuget Tool Installer'
 
-- script: |
-    brew update
-    brew tap caskroom/cask
-    brew install mono-libgdiplus
-  displayName: "Install Mono-libgdiplus"
+#- script: |
+#    brew update
+#    brew tap caskroom/cask
+#    brew install mono-libgdiplus
+#  displayName: "Install Mono-libgdiplus"
 
 - task: UseDotNet@2
   displayName: 'Install .NET 6.0'
@@ -90,6 +90,12 @@ steps:
 #    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage"'
 #    publishTestResults: true
 #    projects: '**/*.Tests.csproj'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build Project'
+  inputs:
+    command: 'build'
+    arguments: '$(MSBuildArgs)'
 
 - task: DotNetCoreCLI@2
   displayName: 'Run Unit Tests (.NET 5.0)'
