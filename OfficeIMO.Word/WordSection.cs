@@ -299,18 +299,7 @@ namespace OfficeIMO.Word {
                 var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
                 var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
 
-
-                //if (this == this._document.Sections[0]) {
                 var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                //if (settings != null) {
-                //    return true;
-                //} else {
-                //    return false;
-                //}
-                //} else {
-                //    throw new NotImplementedException("Not implemented for other sections");
-                //    return false;
-                //}
                 if (headerReference == true && footerReference == true && settings != null) {
                     return true;
                 }
@@ -323,18 +312,12 @@ namespace OfficeIMO.Word {
                 WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
                 WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
-                //if (this == this._document.Sections[0]) {
                 var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                if (value == false) {
-                } else {
+                if (value != false) {
                     if (settings == null) {
                         _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-                    } else {
-                        // noting to do, already enabled
                     }
                 }
-                //} else {
-                //}
             }
         }
 
