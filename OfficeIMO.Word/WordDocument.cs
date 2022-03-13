@@ -519,10 +519,11 @@ namespace OfficeIMO.Word {
                     }
                 } catch {
                     throw;
-                } finally {
-                    this._wordprocessingDocument.Close();
-                    this._wordprocessingDocument.Dispose();
                 }
+                //finally {
+                //    this._wordprocessingDocument.Close();
+                //    this._wordprocessingDocument.Dispose();
+                //}
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
@@ -555,7 +556,7 @@ namespace OfficeIMO.Word {
 
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
-                //this._wordprocessingDocument.Close();
+                this._wordprocessingDocument.Close();
                 this._wordprocessingDocument.Dispose();
             }
         }
