@@ -87,7 +87,7 @@ steps:
   displayName: 'Run Tests'
   inputs:
     command: 'test'
-    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage" --DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
+    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage"'
     publishTestResults: true
     projects: '**/*.Tests.csproj'
 
