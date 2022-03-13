@@ -8,11 +8,19 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordHeadersAndFooters {
+        /// <summary>
+        /// Add default header and footers to section. You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
+        /// </summary>
+        /// <param name="section"></param>
         public static void AddHeadersAndFooters(this WordSection section) {
             AddHeaderReference(section._document, section, HeaderFooterValues.Default);
             AddFooterReference(section._document, section, HeaderFooterValues.Default);
         }
 
+        /// <summary>
+        /// Add default header and footers to document (section 0). You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
+        /// </summary>
+        /// <param name="document"></param>
         public static void AddHeadersAndFooters(this WordDocument document) {
             AddHeaderReference(document, document.Sections[0], HeaderFooterValues.Default);
             AddFooterReference(document, document.Sections[0], HeaderFooterValues.Default);
@@ -55,6 +63,12 @@ namespace OfficeIMO.Word {
             return false;
         }
 
+        /// <summary>
+        /// Creates Header reference in the document
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="section"></param>
+        /// <param name="headerFooterValue"></param>
         internal static void AddHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
 
@@ -83,31 +97,24 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (section == null) {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                    // document._headerDefault = headerPart.Header;
-                    document.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                    // document._headerFirst = headerPart.Header;
-                    document.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
-                } else {
-                    // document._headerEven = headerPart.Header;
-                    document.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
-                }
+            if (headerFooterValue == HeaderFooterValues.Default) {
+                //  section._headerDefault = headerPart.Header;
+                section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+            } else if (headerFooterValue == HeaderFooterValues.First) {
+                //  section._headerFirst = headerPart.Header;
+                section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
             } else {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                    //  section._headerDefault = headerPart.Header;
-                    section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                    //  section._headerFirst = headerPart.Header;
-                    section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
-                } else {
-                    // section._headerEven = headerPart.Header;
-                    section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
-                }
+                // section._headerEven = headerPart.Header;
+                section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
             }
         }
 
+        /// <summary>
+        /// Creates Footer reference in the document
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="section"></param>
+        /// <param name="headerFooterValue"></param>
         internal static void AddFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
             foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
@@ -136,31 +143,23 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (section == null) {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                    //document._footerDefault = footerPart.Footer;
-                    document.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer);
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                    //document._footerFirst = footerPart.Footer;
-                    document.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer);
-                } else {
-                    //document._footerEven = footerPart.Footer;
-                    document.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer);
-                }
+            if (headerFooterValue == HeaderFooterValues.Default) {
+                //section._footerDefault = footerPart.Footer;
+                section.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer);
+            } else if (headerFooterValue == HeaderFooterValues.First) {
+                //section._footerFirst = footerPart.Footer;
+                section.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer);
             } else {
-                if (headerFooterValue == HeaderFooterValues.Default) {
-                    //section._footerDefault = footerPart.Footer;
-                    section.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer);
-                } else if (headerFooterValue == HeaderFooterValues.First) {
-                    //section._footerFirst = footerPart.Footer;
-                    section.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer);
-                } else {
-                    //section._footerEven = footerPart.Footer;
-                    section.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer);
-                }
+                //section._footerEven = footerPart.Footer;
+                section.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer);
             }
         }
 
+        /// <summary>
+        /// Add section property to the document
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <returns></returns>
         internal static SectionProperties AddSectionProperties(this WordprocessingDocument wordDocument) {
             var sectionProperties = new SectionProperties();
             wordDocument.MainDocumentPart.Document.Body.Append(sectionProperties);
