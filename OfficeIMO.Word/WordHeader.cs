@@ -9,12 +9,7 @@ namespace OfficeIMO.Word {
     public class WordHeader {
         public List<WordParagraph> Paragraphs {
             get {
-                //List<WordParagraph> paragraphs = new List<WordParagraph>();
                 if (_header != null) {
-                    //var list = _header.ChildElements.OfType<Paragraph>();
-                    //foreach (var paragraph in list) {
-                    //    paragraphs.Add(new WordParagraph(_document, paragraph));
-                    //}
                     return WordSection.ConvertParagraphsToWordParagraphs(_document, _header.ChildElements.OfType<Paragraph>());
                 }
 
@@ -25,7 +20,7 @@ namespace OfficeIMO.Word {
         private readonly HeaderPart _headerPart;
         internal readonly Header _header;
         private string _id;
-        private WordDocument _document;
+        private readonly WordDocument _document;
 
         internal WordHeader(WordDocument document, HeaderReference headerReference) {
             _document = document;
@@ -54,26 +49,13 @@ namespace OfficeIMO.Word {
         internal WordHeader(WordDocument document, HeaderFooterValues type, Header headerPartHeader) {
             _document = document;
             _header = headerPartHeader;
-            //if (type == HeaderFooterValues.First) {
-            //    _headerFirst = headerPartHeader;
-            //} else if (type == HeaderFooterValues.Default) {
-            //    _headerDefault = headerPartHeader;
-            //} else if (type == HeaderFooterValues.Even) {
-            //    _headerEven = headerPartHeader;
-            //}
             _type = type;
         }
         public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph();
-            //if (_type == HeaderFooterValues.First) {
-            //    _headerFirst.Append(wordParagraph._paragraph);
-            //} else if (_type == HeaderFooterValues.Default) {
-            //    _headerDefault.Append(wordParagraph._paragraph);
-            //} else if (_type == HeaderFooterValues.Even) {
-            //    _headerEven.Append(wordParagraph._paragraph);
-            //}
+            var wordParagraph = new WordParagraph(_document);
+            //wordParagraph._document = _document;
+            //wordParagraph._header = _header;
             _header.Append(wordParagraph._paragraph);
-            //this.Paragraphs.Add(wordParagraph);
             return wordParagraph;
         }
 
@@ -84,7 +66,7 @@ namespace OfficeIMO.Word {
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
-            if (docPart.HeaderParts.Count() > 0) {
+            if (docPart.HeaderParts.Any()) {
                 // Remove the header
                 docPart.DeleteParts(docPart.HeaderParts);
 
@@ -96,6 +78,27 @@ namespace OfficeIMO.Word {
                     header.Remove();
                 }
             }
+        }
+
+
+        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
+        }
+
+        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
+        }
+
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        }
+
+        public WordParagraph AddBookmark(string bookmarkName) {
+            return this.AddParagraph().AddBookmark(bookmarkName);
+        }
+
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
         }
     }
 }

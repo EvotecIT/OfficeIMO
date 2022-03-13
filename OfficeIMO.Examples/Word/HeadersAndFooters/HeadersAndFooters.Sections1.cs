@@ -12,10 +12,24 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections - HeadersAndFooters.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Basic paragraph");
+                document.AddParagraph("Basic paragraph");
+                document.AddTable(1, 1);
+
+                var para = document.AddBookmark("Test");
 
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default.AddParagraph().AddText("Section 0");
+                document.Sections[0].Header.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header");
+                //document.Sections[0].Header.Default.AddTable(3, 4);
+                //document.Sections[0].Header.Default.AddBookmark("Test2");
+
+                document.Sections[0].Header.Default.AddHorizontalLine();
+
+                document.Sections[0].Header.Default.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
+
+                document.Sections[0].Header.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+
+                document.Sections[0].Header.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+
 
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Middle1 Section - 1");

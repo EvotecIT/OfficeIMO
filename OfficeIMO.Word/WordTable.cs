@@ -144,7 +144,12 @@ namespace OfficeIMO.Word {
         }
 
         private Table _table;
-        private TableProperties _tableProperties;
+
+        private TableProperties _tableProperties {
+            get {
+                return _table.ChildElements.OfType<TableProperties>().FirstOrDefault();
+            }
+        }
 
         private WordDocument _document;
         //internal string Text;
@@ -152,7 +157,7 @@ namespace OfficeIMO.Word {
 
 
 
-        private void GenerateTable(WordDocument document, WordSection section, WordTableStyle tableStyle) {
+        private Table GenerateTable(WordTableStyle tableStyle) {
             // Create an empty table.
             Table table = new Table();
 
@@ -181,10 +186,7 @@ namespace OfficeIMO.Word {
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
 
-            _document = document;
-            _tableProperties = tableProperties1;
-            _table = table;
-            _section = section;
+            return table;
         }
 
         /// <summary>
@@ -195,64 +197,29 @@ namespace OfficeIMO.Word {
         /// <param name="table"></param>
         public WordTable(WordDocument document, WordSection section, Table table) {
             _table = table;
-            _tableProperties = table.ChildElements.OfType<TableProperties>().FirstOrDefault();
             _document = document;
             _section = section;
 
-
             foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
                 WordTableRow tableRow = new WordTableRow(this, row, document);
-                //this.Rows.Add(tableRow);
-            }
-
-            if (section != null) {
-                //section.Tables.Add(this);
             }
         }
 
         public WordTable(WordDocument document, WordSection section, int rows, int columns, WordTableStyle tableStyle) {
+            _document = document;
+            _section = section;
+            _table = this.GenerateTable(tableStyle);
 
-            this.GenerateTable(document, section, tableStyle);
-
-            //WordTable table = new WordTable(document, section);
-            //this.Text = "TEst";
             for (int i = 0; i < rows; i++) {
                 WordTableRow row = new WordTableRow(document, this);
                 this._table.Append(row._tableRow);
                 for (int j = 0; j < columns; j++) {
                     WordTableCell cell = new WordTableCell(document, this, row);
-                    //row.Add(cell);
                 }
             }
 
-            //// Create a row.
-            //TableRow tr = new TableRow();
-
-            //// Create a cell.
-            //TableCell tc1 = new TableCell();
-
-            //// Specify the width property of the table cell.
-            //tc1.Append(new TableCellProperties(new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" }));
-
-            //// Specify the table cell content.
-            //tc1.Append(new Paragraph(new Run(new Text("Hello, World!"))));
-
-            //// Append the table cell to the table row.
-            //tr.Append(tc1);
-
-            //// Create a second table cell by copying the OuterXml value of the first table cell.
-            //TableCell tc2 = new TableCell(tc1.OuterXml);
-
-            //// Append the table cell to the table row.
-            //tr.Append(tc2);
-
-            //// Append the table row to the table.
-            //table._table.Append(tr);
-
             // Append the table to the document.
-            document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(this._table);
-
-            section.Tables.Add(this);
+            document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
         }
 
         public void AddRow(int cellsCount = 0) {

@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -221,7 +220,19 @@ namespace OfficeIMO.Word {
 
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
-            var rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
+
+            HyperlinkRelationship rel;
+            if (paragraph.Parent == "body") {
+                rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
+            } else if (paragraph.Parent == "header") {
+                Header header = (Header)paragraph._paragraph.Parent;
+                rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
+            } else if (paragraph.Parent == "footer") {
+                Footer footer = (Footer)paragraph._paragraph.Parent;
+                rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
+            } else {
+                throw new NotImplementedException("Where else should we add this?");
+            }
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,

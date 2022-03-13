@@ -15,8 +15,6 @@ namespace OfficeIMO.Word {
                 //this.Paragraphs.Add(wordParagraph);
             }
 
-            //this._currentSection.Paragraphs.Add(wordParagraph);
-            // wordParagraph._section = this._currentSection;
             this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -119,66 +117,5 @@ namespace OfficeIMO.Word {
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
         }
-
-        public List<WordParagraph> FindText(string text) {
-            throw new NotImplementedException("It's not implemented :-)");
-            List<WordParagraph> list = new List<WordParagraph>();
-
-
-            return list;
-            //Paragraph currentParagraph = null;
-            //foreach (var paragraph in this.Paragraphs) {
-            //    if (currentParagraph == null) {
-            //        currentParagraph = paragraph._paragraph;
-            //    } else {
-            //        if (currentParagraph != paragraph._paragraph) {
-
-            //        }
-            //    }
-
-
-            //    // paragraph.Text
-            //    // logic missing to find text that can start within some paragraph.Text, but can span across multiple paragraphs
-            //    // for example searching for text "This Is MyTest" within 4 paragraphs that may be written like
-            //    // paragraph.Text = "Thi"
-            //    // paragraph.Text = "s Is"
-            //    // paragraph.Text = " MyTes"
-            //    // paragraph.Text = "t"
-
-
-            //}
-            //Dictionary<int, List<WordParagraph>> dic = new Dictionary<int, List<WordParagraph>>();
-            //Paragraph tempParagraph = null;
-            //bool sameParagraph = false;
-            //int count = 0;
-
-            //dic[count] = new List<WordParagraph>();
-            //for (int i = 0; i < this.Paragraphs.Count - 1; i++) {
-            //    var paragraph = this.Paragraphs[i];
-            //    if (tempParagraph == null || tempParagraph == paragraph._paragraph) {
-            //        sameParagraph = true;
-            //        tempParagraph = paragraph._paragraph;
-            //    } else {
-
-            //        sameParagraph = false;
-            //        count++;
-            //        dic[count] = new List<WordParagraph>();
-            //    }
-
-            //    if (sameParagraph) {
-            //        dic[count].Add(paragraph);
-
-            //    }
-            //}
-
-            //foreach (int i in dic.Keys) {
-            //    //dic[i]
-            //}
-
-
-            //return list;
-        }
     }
-
-
 }

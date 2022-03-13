@@ -9,13 +9,7 @@ namespace OfficeIMO.Word {
     public class WordFooter {
         public List<WordParagraph> Paragraphs {
             get {
-                //List<WordParagraph> paragraphs = new List<WordParagraph>();
                 if (_footer != null) {
-                    //    var list = _footer.ChildElements.OfType<Paragraph>();
-                    //    foreach (var paragraph in list) {
-                    //        paragraphs.Add(new WordParagraph(_document, paragraph));
-                    //    }
-
                     return WordSection.ConvertParagraphsToWordParagraphs(_document, _footer.ChildElements.OfType<Paragraph>());
                 }
 
@@ -27,10 +21,6 @@ namespace OfficeIMO.Word {
         private string _id;
         private WordDocument _document;
         private readonly HeaderFooterValues _type;
-
-        //private readonly Footer _footerFirst;
-        //private readonly Footer _footerDefault;
-        //private readonly Footer _footerEven;
 
         internal WordFooter(WordDocument document, FooterReference footerReference) {
             _document = document;
@@ -60,27 +50,11 @@ namespace OfficeIMO.Word {
         internal WordFooter(WordDocument document, HeaderFooterValues type, Footer footerPartFooter) {
             _document = document;
             _footer = footerPartFooter;
-
-            //if (type == HeaderFooterValues.First) {
-            //    _footerFirst = footerPartFooter;
-            //} else if (type == HeaderFooterValues.Default) {
-            //    _footerDefault = footerPartFooter;
-            //} else if (type == HeaderFooterValues.Even) {
-            //    _footerEven = footerPartFooter;
-            //}
             _type = type;
         }
         public WordParagraph AddParagraph() {
             var wordParagraph = new WordParagraph();
-            //if (_type == HeaderFooterValues.First) {
-            //    _footerFirst.Append(wordParagraph._paragraph);
-            //} else if (_type == HeaderFooterValues.Default) {
-            //    _footerDefault.Append(wordParagraph._paragraph);
-            //} else if (_type == HeaderFooterValues.Even) {
-            //    _footerEven.Append(wordParagraph._paragraph);
-            //}
             _footer.Append(wordParagraph._paragraph);
-            //this.Paragraphs.Add(wordParagraph);
             return wordParagraph;
         }
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
@@ -91,7 +65,7 @@ namespace OfficeIMO.Word {
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
-            if (docPart.FooterParts.Count() > 0) {
+            if (docPart.FooterParts.Any()) {
                 // Remove the header
                 docPart.DeleteParts(docPart.FooterParts);
 

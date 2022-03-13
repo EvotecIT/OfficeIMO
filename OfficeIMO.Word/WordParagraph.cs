@@ -9,6 +9,24 @@ namespace OfficeIMO.Word {
         internal WordDocument _document;
         internal Paragraph _paragraph;
 
+        /// <summary>
+        /// This allows to know where the paragraph is located. Useful for hyperlinks or other stuff.
+        /// </summary>
+        internal string Parent {
+            get {
+                var test = _paragraph.Parent;
+                if (test is Body) {
+                    return "body";
+                } else if (test is Header) {
+                    return "header";
+                } else if (test is Footer) {
+                    return "footer";
+                } else {
+                    throw new NotImplementedException("There is different parent for paragraphs?");
+                }
+            }
+        }
+
         internal RunProperties _runProperties {
             get {
                 return _run.RunProperties;
@@ -149,83 +167,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        //public WordParagraph(WordSection section, bool newParagraph = true) {
-        //    this._document = section._document;
-        //    // this._section = section;
-
-        //    this._run = new Run();
-        //    //this._runProperties = new RunProperties();
-
-        //    //this._run = new Run();
-        //    //this._runProperties = new RunProperties();
-        //    //this._text = new Text {
-        //    //    // this ensures spaces are preserved between runs
-        //    //    Space = SpaceProcessingModeValues.Preserve
-        //    //};
-        //    //this._paragraphProperties = new ParagraphProperties();
-        //    //this._run.AppendChild(_runProperties);
-        //    this._run.AppendChild(_text);
-        //    if (newParagraph) {
-        //        this._paragraph = new Paragraph();
-        //        //this._paragraph.AppendChild(_paragraphProperties);
-        //        this._paragraph.AppendChild(_run);
-        //    }
-
-        //    //section.Paragraphs.Add(this);
-        //}
-
         public WordParagraph(WordDocument document = null, bool newParagraph = true) {
             this._document = document;
             this._run = new Run();
-            //this._runProperties = new RunProperties();
-            //this._text = new Text {
-            //    // this ensures spaces are preserved between runs
-            //    Space = SpaceProcessingModeValues.Preserve
-            //};
-            // this._paragraphProperties = new ParagraphProperties();
-            //this._run.AppendChild(_runProperties);
-            //this._run.AppendChild(_text);
+
             if (newParagraph) {
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(new ParagraphProperties());
                 this._paragraph.AppendChild(_run);
             }
-
-            //if (document != null) {
-            //  document._currentSection.Paragraphs.Add(this);
-            //this._section = document._currentSection;
-            //document.Paragraphs.Add(this);
-            // }
         }
-
 
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             this._document = document;
             this._paragraph = paragraph;
         }
-
-        //public WordParagraph(WordDocument document, bool newParagraph, Paragraph paragraph, ParagraphProperties paragraphProperties, RunProperties runProperties, Run run, WordSection section = null) {
-        //    this._document = document;
-        //    //this._section = section;
-        //    this._run = run;
-        //    //this._runProperties = runProperties;
-        //    this._paragraph = paragraph;
-
-        //    //if (run != null) this._text = run.OfType<Text>().FirstOrDefault();
-        //    //this._paragraphProperties = paragraphProperties;
-        //    //if (this._run != null) {
-        //    //  this._run.AppendChild(_runProperties);
-        //    // this._run.AppendChild(_text);
-        //    //}
-
-        //    if (newParagraph) {
-        //        this._paragraph = new Paragraph();
-        //        if (_paragraphProperties != null) {
-        //            this._paragraph.AppendChild(_paragraphProperties);
-        //        }
-        //        if (_run != null) this._paragraph.AppendChild(_run);
-        //    }
-        //}
 
         public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
             _document = document;
