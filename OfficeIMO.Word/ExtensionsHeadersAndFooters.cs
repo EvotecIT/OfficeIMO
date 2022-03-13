@@ -9,13 +9,13 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public static partial class WordHeadersAndFooters {
         public static void AddHeadersAndFooters(this WordSection section) {
-            AddHeaderReference1(section._document, section, HeaderFooterValues.Default);
-            AddFooterReference1(section._document, section, HeaderFooterValues.Default);
+            AddHeaderReference(section._document, section, HeaderFooterValues.Default);
+            AddFooterReference(section._document, section, HeaderFooterValues.Default);
         }
 
         public static void AddHeadersAndFooters(this WordDocument document) {
-            AddHeaderReference1(document, document.Sections[0], HeaderFooterValues.Default);
-            AddFooterReference1(document, document.Sections[0], HeaderFooterValues.Default);
+            AddHeaderReference(document, document.Sections[0], HeaderFooterValues.Default);
+            AddFooterReference(document, document.Sections[0], HeaderFooterValues.Default);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        internal static void AddHeaderReference1(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+        internal static void AddHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
 
             foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal static void AddFooterReference1(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+        internal static void AddFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
             foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
                 if (element.Type == headerFooterValue) {

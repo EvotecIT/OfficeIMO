@@ -288,8 +288,8 @@ namespace OfficeIMO.Word {
                     }
                 } else {
                     sectionProperties.Append(new TitlePage());
-                    WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.First);
-                    WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.First);
+                    WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.First);
+                    WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.First);
                 }
             }
         }
@@ -320,8 +320,8 @@ namespace OfficeIMO.Word {
             }
             set {
                 var sectionProperties = _sectionProperties;
-                WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.Even);
-                WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.Even);
+                WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
+                WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
                 //if (this == this._document.Sections[0]) {
                 var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
