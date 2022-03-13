@@ -92,8 +92,22 @@ steps:
 #    projects: '**/*.Tests.csproj'
 
 - task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 5.0)'
   inputs:
     command: 'test'
+    arguments: '--no-restore --no-build --framework net5.0 /noautorsp'
+    testRunTitle: 'Linux .NET 5.0'
+  condition: succeededOrFailed()
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 6.0)'
+  inputs:
+    command: 'test'
+    arguments: '--no-restore --no-build --framework net6.0 /noautorsp'
+    testRunTitle: 'Linux .NET 6.0'
+  condition: succeededOrFailed()
+
+
 
 #- task: PublishCodeCoverageResults@1
 #  displayName: 'Publish Code Coverage Report'
