@@ -21,11 +21,13 @@ namespace OfficeIMO.Word {
             if (create == true) {
                 CreateCustomProperty(document);
             } else {
-                LoadCustomProperties();
+                LoadCustomProperties(document);
             }
         }
 
-        private void LoadCustomProperties() {
+        private void LoadCustomProperties(WordDocument document) {
+            //CreateCustomProperties(document);
+
             var customProps = _wordprocessingDocument.CustomFilePropertiesPart;
             if (customProps != null) {
                 _customProperties = customProps.Properties;
@@ -46,6 +48,8 @@ namespace OfficeIMO.Word {
                 } else {
                     throw new ArgumentException("Document is read only!");
                 }
+            } else {
+                _customProperties = customProps.Properties;
             }
         }
 
