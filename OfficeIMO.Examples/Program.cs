@@ -241,7 +241,7 @@ namespace OfficeIMO.Examples {
             //CustomAndBuiltinProperties.Example_LoadDocumentWithProperties(true);
             //CustomAndBuiltinProperties.Example_Load(true);
 
-            //HeadersAndFooters.Sections1(folderPath, true);
+            HeadersAndFooters.Sections1(folderPath, true);
         }
 
         private static void Example_BasicWordWatermark2(string filePath, bool openWord) {

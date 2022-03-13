@@ -180,6 +180,43 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Checks for existing header reference. Allow checking if different odd and even pages are set
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="section"></param>
+        /// <param name="headerFooterValue"></param>
+        /// <returns></returns>
+        internal static bool GetHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+            var sectionProperties = section._sectionProperties;
+
+            foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
+                if (element.Type == headerFooterValue) {
+                    // we found the header reference already exists; we do nothing;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// Checks for existing footer reference. Allow checking if different odd and even pages are set
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="section"></param>
+        /// <param name="headerFooterValue"></param>
+        /// <returns></returns>
+        internal static bool GetFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
+            var sectionProperties = section._sectionProperties;
+            foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
+                if (element.Type == headerFooterValue) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         internal static void AddHeaderReference1(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
 
@@ -286,10 +323,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public static void CreateHeadersAndFooters(this WordSection section) {
-        }
-
-
         private static Document GenerateMainDocumentPart() {
             var element = new Document(
                 new Body(
@@ -299,7 +332,7 @@ namespace OfficeIMO.Word {
                     ),
                     new Paragraph(
                         new Run(
-                            new Break() {Type = BreakValues.Page})
+                            new Break() { Type = BreakValues.Page })
                     ),
                     new Paragraph(
                         new Run(
@@ -308,7 +341,7 @@ namespace OfficeIMO.Word {
                     ),
                     new Paragraph(
                         new Run(
-                            new Break() {Type = BreakValues.Page})
+                            new Break() { Type = BreakValues.Page })
                     ),
                     new Paragraph(
                         new Run(
@@ -317,7 +350,7 @@ namespace OfficeIMO.Word {
                     ),
                     new Paragraph(
                         new Run(
-                            new Break() {Type = BreakValues.Page})
+                            new Break() { Type = BreakValues.Page })
                     ),
                     new Paragraph(
                         new Run(
@@ -326,7 +359,7 @@ namespace OfficeIMO.Word {
                     ),
                     new Paragraph(
                         new Run(
-                            new Break() {Type = BreakValues.Page})
+                            new Break() { Type = BreakValues.Page })
                     ),
                     new Paragraph(
                         new Run(
@@ -360,12 +393,12 @@ namespace OfficeIMO.Word {
                         },
                         new PageMargin() {
                             Top = 1440,
-                            Right = (UInt32Value) 1440UL,
+                            Right = (UInt32Value)1440UL,
                             Bottom = 1440,
-                            Left = (UInt32Value) 1440UL,
-                            Header = (UInt32Value) 720UL,
-                            Footer = (UInt32Value) 720UL,
-                            Gutter = (UInt32Value) 0UL
+                            Left = (UInt32Value)1440UL,
+                            Header = (UInt32Value)720UL,
+                            Footer = (UInt32Value)720UL,
+                            Gutter = (UInt32Value)0UL
                         },
                         new TitlePage()
                     )));

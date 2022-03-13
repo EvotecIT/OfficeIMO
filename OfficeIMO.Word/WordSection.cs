@@ -274,7 +274,7 @@ namespace OfficeIMO.Word {
                         // section properties doesn't exists, so we don't do anything
                         return;
                     } else {
-                        throw new InvalidOperationException("this is bad");
+                        throw new InvalidOperationException("Section doesn't exits. Weird :-)");
                     }
                 }
 
@@ -296,35 +296,45 @@ namespace OfficeIMO.Word {
 
         public bool DifferentOddAndEvenPages {
             get {
-                if (this == this._document.Sections[0]) {
-                    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                    if (settings != null) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    throw new NotImplementedException("Not implemented for other sections");
-                    return false;
+                var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
+                var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
+
+
+                //if (this == this._document.Sections[0]) {
+                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                //if (settings != null) {
+                //    return true;
+                //} else {
+                //    return false;
+                //}
+                //} else {
+                //    throw new NotImplementedException("Not implemented for other sections");
+                //    return false;
+                //}
+                if (headerReference == true && footerReference == true && settings != null) {
+                    return true;
                 }
+
+                return false;
+
             }
             set {
                 var sectionProperties = _sectionProperties;
                 WordHeadersAndFooters.AddHeaderReference1(this._document, this, HeaderFooterValues.Even);
                 WordHeadersAndFooters.AddFooterReference1(this._document, this, HeaderFooterValues.Even);
 
-                if (this == this._document.Sections[0]) {
-                    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-                    if (value == false) {
-                    } else {
-                        if (settings == null) {
-                            _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-                        } else {
-                            // noting to do, already enabled
-                        }
-                    }
+                //if (this == this._document.Sections[0]) {
+                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                if (value == false) {
                 } else {
+                    if (settings == null) {
+                        _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
+                    } else {
+                        // noting to do, already enabled
+                    }
                 }
+                //} else {
+                //}
             }
         }
 
