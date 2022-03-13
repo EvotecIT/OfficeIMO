@@ -9,88 +9,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public static partial class WordHeadersAndFooters {
         public static void AddHeadersAndFooters(this WordSection section) {
-            var document = section._document;
-
-            //var index = document.Sections.IndexOf(section);
-            //var body = document._wordprocessingDocument.MainDocumentPart.Document.Body;
-            //var sectionProperties = document._wordprocessingDocument.MainDocumentPart.Document.Body.Elements<SectionProperties>().Last();
-            //var sectionBefore = document.Sections[index - 1];
-            //var Headers = sectionBefore._sectionProperties.ChildElements.OfType<HeaderReference>();
-            //var Footers = sectionBefore._sectionProperties.ChildElements.OfType<FooterReference>();
-            //var HEA = sectionBefore._sectionProperties.OfType<HeaderReference>(); //<HeaderReference>().Remove();
-
-
-            //var properties = document.Sections[index - 1]._sectionProperties;
-
-            //AddHeaderReference1(document, section._sectionProperties, HeaderFooterValues.Default, section);
-            //AddFooterReference1(document, section._sectionProperties, HeaderFooterValues.Default, section);
-
-            //var currentProperties = section._sectionProperties;
-
-            //document.Sections[index]._sectionProperties = currentProperties;
-
-            //section._sectionProperties = properties;
-
-
-            AddHeaderReference1(document, section, HeaderFooterValues.Default);
-            AddFooterReference1(document, section, HeaderFooterValues.Default);
-
-            //AddHeaderReference1(document, section._sectionProperties, HeaderFooterValues.Even, section);
-            //AddFooterReference1(document, section._sectionProperties, HeaderFooterValues.Even, section);
-
-            //AddHeaderReference1(document, section._sectionProperties, HeaderFooterValues.First, section);
-            //AddFooterReference1(document, section._sectionProperties, HeaderFooterValues.First, section);
+            AddHeaderReference1(section._document, section, HeaderFooterValues.Default);
+            AddFooterReference1(section._document, section, HeaderFooterValues.Default);
         }
 
         public static void AddHeadersAndFooters(this WordDocument document) {
             AddHeaderReference1(document, document.Sections[0], HeaderFooterValues.Default);
             AddFooterReference1(document, document.Sections[0], HeaderFooterValues.Default);
-            //AddHeaderReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.Even);
-            //AddFooterReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.Even);
-            //AddHeaderReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.First);
-            //AddFooterReference1(document, document.Sections[0]._sectionProperties, HeaderFooterValues.First);
         }
-
-        public static void CreateHeadersAndFooters(this WordDocument document) {
-            //var firstPageHeaderPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
-            //var firstPageFooterPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FooterPart>();
-            //var evenPageHeaderPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
-            //var evenPageFooterPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FooterPart>();
-            //var defaultPageHeaderPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
-            //var defaultPageFooterPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FooterPart>();
-
-            //firstPageFooterPart.AddFooters();
-            //evenPageFooterPart.AddFooters();
-            //defaultPageFooterPart.AddFooters();
-
-            //firstPageHeaderPart.AddHeaders();
-            //evenPageHeaderPart.AddHeaders();
-            //defaultPageHeaderPart.AddHeaders();
-
-            //document._footerFirst = firstPageFooterPart.Footer;
-            //document._footerDefault = defaultPageFooterPart.Footer;
-            //document._footerEven = evenPageFooterPart.Footer;
-
-            //document._headerFirst = firstPageHeaderPart.Header;
-            //document._headerEven = evenPageHeaderPart.Header;
-            //document._headerDefault = defaultPageHeaderPart.Header;
-
-            //document.Sections[0]._sectionProperties.AddHeaderFooterToSectionProperties(document, firstPageHeaderPart, defaultPageHeaderPart, evenPageHeaderPart, firstPageFooterPart, defaultPageFooterPart, evenPageFooterPart);
-
-            //// lets set proper 
-            //document.Footer.Even = new WordFooter(document, HeaderFooterValues.Even);
-            //document.Footer.Default = new WordFooter(document, HeaderFooterValues.Default);
-            //document.Footer.First = new WordFooter(document, HeaderFooterValues.First);
-
-            //document.Header.Even = new WordHeader(document, HeaderFooterValues.Even);
-            //document.Header.Default = new WordHeader(document, HeaderFooterValues.Default);
-            //document.Header.First = new WordHeader(document, HeaderFooterValues.First);
-        }
-
-        //public static SectionProperties GetSectionProperties(this WordDocument document) {
-
-
-        //}
 
         private static void GetHeaderReference(this WordDocument document, WordSection section) {
             IEnumerable<HeaderPart> headerPart = document._wordprocessingDocument.MainDocumentPart.HeaderParts;
