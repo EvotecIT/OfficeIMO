@@ -75,5 +75,8 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        public static void RemoveFooters(WordDocument document) {
+            RemoveFooters(document._wordprocessingDocument);
+        }
     }
 }

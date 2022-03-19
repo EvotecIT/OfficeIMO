@@ -72,5 +72,8 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        public static void RemoveHeaders(WordDocument document) {
+            RemoveHeaders(document._wordprocessingDocument);
+        }
     }
 }
