@@ -23,10 +23,12 @@
 ## What it's all about
 
 This is a small project (under development) that allows to create Microsoft Word documents (.docx) using .NET.
+Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but heavily simplifies it.
 It was created because working with OpenXML is way too hard for me, and time consuming.
-I originally created it for using within PowerShell module called PSWriteOffice,
-but thought it may be useful for others.
-I used to use DocX library (which I co-authored, before it was taken over by Xceed) to create Word documents,
+I originally created it for using within PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
+but thought it may be useful for others to use in the .NET community.
+
+I used to use DocX library (which I co-authored, before it was taken over by Xceed) to create Microsoft Word documents,
 but it only supports .NET Framework, and their newest community license makes the project unusuable.
 
 *As I am not really a developer, and I hardly know what I'm doing if you know how to help out - please do.*
@@ -42,15 +44,15 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 **This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
 
-| Platform | Status | Code Coverage | .NET |
-| --- | --- | ---- | ---- |
-| Windows | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> | .NET 4.7.2, NET 4.8, .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1 |
-| Linux | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1|
-| MacOs | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1 |
+| Platform | Status                                                                                                                                                                          | Code Coverage                                                                                                                                                                                                                                           | .NET                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Windows  | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19?label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> | .NET 4.7.2, NET 4.8, .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1 |
+| Linux    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
+| MacOs    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
 
 ## Features
 
-Here's a list of features currently supported and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
+Here's a list of features currently supported (and probably a lot I forgot) and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
 
 - [x] Word basics
   - [x] Create
@@ -214,17 +216,3 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.Save(true);
 }
 ```
-
-## Learning resources:
-
-I'm using a lot of different resources to make OfficeIMO useful. Following resources may come useful to understand some concepts if you're going to dive into sources.
-
- - [Packages and general (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/packages-and-general)
- - [Word processing (Open XML SDK)](https://docs.microsoft.com/en-us/office/open-xml/word-processing)
- - https://docs.microsoft.com/en-us/previous-versions/office/developer/office-2007/gg537324(v=office.12)
- - [Office 2010 Visual How Tos](https://docs.microsoft.com/en-us/previous-versions/office/developer/office-2010/ff467945(v=office.14))
- - [Points, inches and Emus: Measuring units in Office Open XML](https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/)
- - [English Metric Units and Open XML](http://polymathprogrammer.com/2009/10/22/english-metric-units-and-open-xml/)
- - [Open XML: add a picture](https://coders-corner.net/2015/04/11/open-xml-add-a-picture/)
- - [How to add section break next page using openxml?](https://stackoverflow.com/questions/20040613/how-to-add-section-break-next-page-using-openxml)
- - [How to Preserve string with formatting in OpenXML Paragraph, Run, Text?](https://stackoverflow.com/questions/40246590/how-to-preserve-string-with-formatting-in-openxml-paragraph-run-text?rq=1)
