@@ -9,11 +9,7 @@ using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
-using Paragraph = DocumentFormat.OpenXml.Math.Paragraph;
-using OfficeIMO.Examples.Word;
 using OfficeIMO.Examples.Word.HyperLinks;
-using CustomAndBuiltinProperties = OfficeIMO.Examples.Word.CustomAndBuiltinProperties;
-
 
 namespace OfficeIMO.Examples {
     internal static class Program {
@@ -221,9 +217,7 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            //Console.WriteLine("[*] Creating standard document with Cover Page");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Cover Page.docx");
-            //Example_AddingCoverPage(filePath, true);
+            CoverPages.Example_AddingCoverPage(folderPath, true);
 
             //Console.WriteLine("[*] Creating standard document with Watermark 2");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
@@ -288,48 +282,7 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_AddingCoverPage(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-
-                document.PageSettings.PageSize = WordPageSize.A4;
-
-                Console.WriteLine(document.PageSettings.Height.ToString());
-                Console.WriteLine(document.PageSettings.Width.ToString());
-                Console.WriteLine(document.PageSettings.Code.ToString());
-                Console.WriteLine(document.PageSettings.PageSize);
-
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
-
-                document.ApplicationProperties.Company = "Evotec Services";
-
-                document.Settings.UpdateFieldsOnOpen = true;
-
-                document.AddCoverPage(CoverPageTemplate.IonDark);
-
-                document.AddTableOfContent(TableOfContentStyle.Template1);
-
-                document.AddPageBreak();
-
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
-
-                wordListToc.AddItem("Prepare document");
-
-                document.AddParagraph("This is my test 1");
-
-                wordListToc.AddItem("Make it shine");
-
-                document.AddParagraph("This is my test 2");
-
-                document.AddPageBreak();
-
-                wordListToc.AddItem("More on the next page");
-
-                document.Save(openWord);
-            }
-        }
 
         private static void Example_AddingFields(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
