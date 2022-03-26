@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void OpenSettings() {
+        public void Test_Save() {
             string filePath1 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument11.docx");
             string filePath2 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument12.docx");
             string filePath3 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument13.docx");
