@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 
 namespace OfficeIMO.Word {
     public static partial class Helpers {
@@ -23,6 +24,39 @@ namespace OfficeIMO.Word {
                 };
                 Process.Start(startInfo);
             }
+        }
+        public static bool IsFileLocked(this FileInfo file) {
+            try {
+                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
+                    stream.Close();
+                }
+            } catch (IOException) {
+                //the file is unavailable because it is:
+                //still being written to
+                //or being processed by another thread
+                //or does not exist (has already been processed)
+                return true;
+            }
+
+            //file is not locked
+            return false;
+        }
+        public static bool IsFileLocked(this string fileName) {
+            try {
+                var file = new FileInfo(fileName);
+                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
+                    stream.Close();
+                }
+            } catch (IOException) {
+                //the file is unavailable because it is:
+                //still being written to
+                //or being processed by another thread
+                //or does not exist (has already been processed)
+                return true;
+            }
+
+            //file is not locked
+            return false;
         }
     }
 }

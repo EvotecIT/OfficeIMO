@@ -282,10 +282,13 @@ namespace OfficeIMO.Word {
 
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
-        internal WordprocessingDocument _wordprocessingDocument = null;
-        public Document _document = null;
+
+        // we expose them to help with integration
+        public WordprocessingDocument _wordprocessingDocument;
+        public Document _document;
         //public WordCustomProperties _customDocumentProperties;
 
+        private List<OpenXmlPackage> _openXmlPackage = new List<OpenXmlPackage>();
 
         public FileAccess FileOpenAccess {
             get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
@@ -450,8 +453,17 @@ namespace OfficeIMO.Word {
             // this seems to solve an issue where custom properties wouldn't want to save when opening file
             // no problem with creating empty
             FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
+
+
+            //MemoryStream destStream = Helpers.ReadAllBytesToMemoryStream(filePath);
+
+            //var package = Package.Open(destStream);
+
             var package = Package.Open(filePath, fileMode);
+
             //WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
+
+
             WordprocessingDocument wordDocument = WordprocessingDocument.Open(package, openSettings);
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
@@ -508,27 +520,30 @@ namespace OfficeIMO.Word {
             MoveSectionProperties();
             SaveNumbering();
             WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
-
             if (this._wordprocessingDocument != null) {
                 try {
                     if (filePath != "") {
                         // doesn't work correctly with packages
-                        this._wordprocessingDocument.SaveAs(filePath);
+                        var updatedPackage = this._wordprocessingDocument.SaveAs(filePath);
+                        //var newPackage = this._wordprocessingDocument.Clone();
+                        //newPackage.SaveAs(filePath);
+                        //updatedPackage.Save();
+                        _openXmlPackage.Add(updatedPackage);
                     } else {
                         this._wordprocessingDocument.Save();
                     }
                 } catch {
                     throw;
                 }
-                //finally {
-                //    this._wordprocessingDocument.Close();
-                //    this._wordprocessingDocument.Dispose();
-                //}
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-            this.Open(filePath, openWord);
+            if (openWord) {
+                // we need to dispose things a bit early because user wants to open it
+                this.Dispose();
+                this.Open(filePath, openWord);
+            }
         }
 
         public void Save() {
@@ -556,8 +571,21 @@ namespace OfficeIMO.Word {
 
         public void Dispose() {
             if (this._wordprocessingDocument != null) {
-                this._wordprocessingDocument.Close();
+                try {
+                    this._wordprocessingDocument.Close();
+                } catch {
+                    // ignored
+                }
                 this._wordprocessingDocument.Dispose();
+            }
+
+            foreach (var o in this._openXmlPackage) {
+                try {
+                    o.Close();
+                } catch {
+                    // ignored
+                }
+                o.Dispose();
             }
         }
 

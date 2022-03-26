@@ -29,20 +29,15 @@ namespace OfficeIMO.Examples {
             Setup(folderPath);
             string filePath;
 
-            //Console.WriteLine("[*] Creating standard document (empty)");
-            //string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
-            //Example_BasicEmptyWord(filePath, false);
 
-            //Console.WriteLine("[*] Creating standard document with paragraph");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
-            //Example_BasicWord(filePath, true);
+            //BasicDocument.Example_BasicEmptyWord(folderPath, false);
+            //BasicDocument.Example_BasicWord(folderPath, true);
+            //BasicDocument.Example_BasicWord2(folderPath, true);
 
-            //Console.WriteLine("[*] Creating standard document with paragraph (2)");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs2.docx");
-            //Example_BasicWord2(filePath, true);
-
-
-
+            //BasicDocument.Example_BasicDocument(folderPath, true);
+            //BasicDocument.Example_BasicDocumentSaveAs1(folderPath, true);
+            //BasicDocument.Example_BasicDocumentSaveAs2(folderPath, true);
+            BasicDocument.Example_BasicDocumentSaveAs3(folderPath, true);
 
             //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
@@ -217,12 +212,11 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            CoverPages.Example_AddingCoverPage(folderPath, true);
-
             //Console.WriteLine("[*] Creating standard document with Watermark 2");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
             //Example_BasicWordWatermark2(filePath, true);
 
+            //CoverPages.Example_AddingCoverPage(folderPath, true);
 
             //LoadDocuments.LoadWordDocument_Sample1(true);
             //LoadDocuments.LoadWordDocument_Sample2(true);
@@ -236,8 +230,7 @@ namespace OfficeIMO.Examples {
             //CustomAndBuiltinProperties.Example_LoadDocumentWithProperties(true);
             //CustomAndBuiltinProperties.Example_Load(true);
 
-
-            HyperLinks.EasyExample(folderPath, true);
+            //HyperLinks.EasyExample(folderPath, true);
 
             //HeadersAndFooters.Sections1(folderPath, true);
         }
@@ -398,92 +391,6 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
-        private static void Example_BasicEmptyWord(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_BasicWord(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Basic paragraph");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                Console.WriteLine(SixLabors.ImageSharp.Color.Blue.ToHexColor());
-                Console.WriteLine(SixLabors.ImageSharp.Color.Crimson.ToHexColor());
-                Console.WriteLine(SixLabors.ImageSharp.Color.Aquamarine.ToHexColor());
-
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
-
-                paragraph = document.AddParagraph("2nd paragraph");
-                paragraph.Bold = true;
-                paragraph = paragraph.AddText(" continue?");
-                paragraph.Underline = UnderlineValues.DashLong;
-                paragraph = paragraph.AddText("More text");
-                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue.ToHexColor();
-
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_BasicWord2(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-
-                document.Settings.ZoomPercentage = 50;
-                var paragraph = document.AddParagraph("Basic paragraph");
-
-                var section1 = document.AddSection();
-                section1.AddParagraph("Test Middle Section - 1");
-                //section1 = document.Sections[1];
-                // document.AddParagraph("Test 0");
-
-                var section2 = document.AddSection();
-                section2.AddParagraph("Test Last Section - 1");
-                section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
-                var test = document.AddParagraph("Test 1 - to delete");
-                test.Remove();
-
-
-                document.Sections[2].AddParagraph("Test 0 - Section Last");
-                document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
-                //document.Sections[1].AddParagraph("Test 2");
-
-                // section2.AddParagraph("Test 1");
-                Console.WriteLine("----");
-                Console.WriteLine("Sections: " + document.Sections.Count);
-                Console.WriteLine("----");
-                Console.WriteLine(document.Sections[0].Paragraphs.Count);
-                Console.WriteLine(document.Sections[1].Paragraphs.Count);
-                Console.WriteLine(document.Sections[2].Paragraphs.Count);
-
-
-                Console.WriteLine(document.Comments.Count);
-
-                document.Comments[0].Text = "Lets change it";
-
-
-                document.Save(false);
-            }
-            filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\200procent1.docx";
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("----");
-                Console.WriteLine(document.Sections.Count);
-                Console.WriteLine("----");
-                Console.WriteLine(document.Sections[0].Paragraphs.Count);
-                Console.WriteLine(document.Sections[0].Paragraphs.Count);
-                Console.WriteLine(document.Sections[0].Paragraphs.Count);
-
-                Console.WriteLine(document.Sections[0].HyperLinks.Count);
-                Console.WriteLine(document.HyperLinks.Count);
-                Console.WriteLine(document.Fields.Count);
-                document.Save(true);
-            }
-        }
-
 
         private static void Example_MultipleParagraphsViaDifferentWays(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create()) {
