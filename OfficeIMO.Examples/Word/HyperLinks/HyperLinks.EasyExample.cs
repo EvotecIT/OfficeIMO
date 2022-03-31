@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 
-namespace OfficeIMO.Examples.Word.HyperLinks {
+namespace OfficeIMO.Examples.Word {
     internal static partial class HyperLinks {
 
         public static void EasyExample(string folderPath, bool openWord) {
