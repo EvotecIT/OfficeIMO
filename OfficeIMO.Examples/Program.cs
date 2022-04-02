@@ -26,8 +26,6 @@ namespace OfficeIMO.Examples {
             string templatesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
-            string filePath;
-
 
             //BasicDocument.Example_BasicEmptyWord(folderPath, false);
             //BasicDocument.Example_BasicWord(folderPath, true);
@@ -39,7 +37,8 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicDocumentSaveAs3(folderPath, true);
 
 
-            Lists.Example_BasicLists(folderPath, true);
+            //Lists.Example_BasicLists(folderPath, true);
+            //Lists.Example_BasicLists6(folderPath, true);
             //Lists.Example_BasicLists2(folderPath, false);
             //Lists.Example_BasicLists3(folderPath, false);
             //Lists.Example_BasicLists4(folderPath, false);
@@ -48,6 +47,9 @@ namespace OfficeIMO.Examples {
             //Tables.Example_BasicTablesLoad1(folderPath, false);
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
+
+
+            PageSettings.Example_BasicSettings(folderPath, true);
 
 
             //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");

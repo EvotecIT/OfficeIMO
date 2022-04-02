@@ -41,36 +41,35 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList2 = document.AddList(WordListStyle.BulletedChars);
-                wordList2.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
-                wordList2.AddItem("Text 2.1", 1).SetColor(Color.Brown);
-                wordList2.AddItem("Text 2.2", 1).SetColor(Color.Brown);
-                wordList2.AddItem("Text 2.3", 1).SetColor(Color.Brown);
-                wordList2.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList2.AddItem("Oops 2.1", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.2", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.3", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.3.4", 2).SetColor(Color.Brown);
 
                 paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList3 = document.AddList(WordListStyle.Heading1ai);
-                wordList3.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
-                wordList3.AddItem("Text 2.1", 1).SetColor(Color.Brown);
-                wordList3.AddItem("Text 2.2", 1).SetColor(Color.Brown);
-                wordList3.AddItem("Text 2.3", 1).SetColor(Color.Brown);
-                wordList3.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
+                wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
+                wordList3.AddItem("T4thext 2.3.4", 2).SetColor(Color.Brown);
 
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList4 = document.AddList(WordListStyle.Headings111Shifted);
-                wordList4.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
-                wordList4.AddItem("Text 2.1", 1).SetColor(Color.Brown);
-                wordList4.AddItem("Text 2.2", 1).SetColor(Color.Brown);
-                wordList4.AddItem("Text 2.3", 1).SetColor(Color.Brown);
-                wordList4.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
+                wordList4.AddItem("5th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList4.AddItem("5th 2.1", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.2", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.3", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.3.4", 2).SetColor(Color.Brown);
 
 
+                document.Lists[3].ListItems[2].Text = "Overwrite Text 2.2";
                 document.Lists[4].ListItems[2].Text = "Overwrite Text 2.2";
-
-
-                document.Lists[3].AddItem("Text 2.3.5", 3).SetColor(Color.DimGrey);
-                document.Lists[2].AddItem("Text 2.3.5", 3).SetColor(Color.DimGrey);
+                document.Lists[3].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
+                document.Lists[2].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
 
 
                 document.Save(openWord);
