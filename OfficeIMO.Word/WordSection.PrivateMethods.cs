@@ -133,6 +133,44 @@ namespace OfficeIMO.Word {
             return ConvertParagraphsToWordParagraphs(_document, dataSections[foundCount]);
         }
 
+
+        /// <summary>
+        /// This method gets all lists for given document (for all sections)
+        /// </summary>
+        /// <param name="document"></param>
+        /// <returns></returns>
+        internal static List<WordList> GetAllDocumentsLists(WordDocument document) {
+            List<WordList> allLists = new List<WordList>();
+            if (document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                var numbering = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                var ids = new List<int>();
+                foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                    WordList list = new WordList(document, null, element.NumberID);
+                    allLists.Add(list);
+                }
+            }
+
+            return allLists;
+        }
+
+        /// <summary>
+        /// This method gets lists for given section. It's possible that given list spreads thru multiple sections.
+        /// Therefore sum of all sections lists doesn't necessary match all lists count for a document.
+        /// </summary>
+        /// <returns></returns>
+        private List<WordList> GetLists() {
+            List<WordList> allLists = GetAllDocumentsLists(_document);
+
+            List<WordList> lists = new List<WordList>();
+            var usedNumbers = this.ParagraphListItemsNumbers;
+            foreach (var list in allLists) {
+                if (usedNumbers.Contains(list._numberId)) {
+                    lists.Add(list);
+                }
+            }
+            return lists;
+        }
+
         private List<WordTable> GetTablesList() {
             Dictionary<int, List<WordTable>> dataSections = new Dictionary<int, List<WordTable>>();
             var count = 0;

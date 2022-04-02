@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     public class WordList {
         private readonly WordprocessingDocument _wordprocessingDocument;
         private readonly WordDocument _document;
-        private readonly WordSection _section;
+        // private readonly WordSection _section;
         private int _abstractId;
         internal int _numberId;
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
         public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
             _document = wordDocument;
             _wordprocessingDocument = wordDocument._wordprocessingDocument;
-            _section = section;
+            //_section = section;
             _isToc = isToc;
             // section.Lists.Add(this);
         }
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
         public WordList(WordDocument wordDocument, WordSection section, int numberId) {
             _document = wordDocument;
             _wordprocessingDocument = wordDocument._wordprocessingDocument;
-            _section = section;
+            //  _section = section;
             _numberId = numberId;
         }
 
@@ -181,9 +181,6 @@ namespace OfficeIMO.Word {
             run.Append(runProperties);
             run.Append(textProperty);
 
-            //WordParagraph wordParagraph = new WordParagraph(_document, true, null, paragraphProperties, runProperties, run, _section);
-            //
-
             Paragraph paragraph = new Paragraph();
             paragraph.Append(paragraphProperties);
             paragraph.Append(run);
@@ -196,13 +193,6 @@ namespace OfficeIMO.Word {
             if (_isToc || IsToc) {
                 wordParagraph.Style = WordParagraphStyle.GetStyle(level);
             }
-
-            //_document.AddParagraph(wordParagraph);
-
-            // ListItems.Add(wordParagraph);
-
-            // we add internal tracking in the paragraph for a list
-            //wordParagraph._list = this;
 
             return wordParagraph;
         }

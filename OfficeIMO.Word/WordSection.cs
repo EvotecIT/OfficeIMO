@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -13,6 +14,22 @@ namespace OfficeIMO.Word {
 
         public List<WordParagraph> ParagraphsPageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
+        }
+
+        internal List<WordParagraph> ParagraphsIsListItem {
+            get { return Paragraphs.Where(p => p.IsListItem).ToList(); }
+        }
+
+        internal List<int> ParagraphListItemsNumbers {
+            get {
+                var listNumbers = new List<int>();
+                var listItems = Paragraphs.Where(p => p.IsListItem).ToList();
+                foreach (var item in listItems) {
+                    listNumbers.Add(item._listNumberId.Value);
+                }
+
+                return listNumbers.Distinct().ToList();
+            }
         }
 
         public List<WordParagraph> ParagraphsHyperLinks {
@@ -134,7 +151,7 @@ namespace OfficeIMO.Word {
 
         public List<WordList> Lists {
             get {
-                Dictionary<int, List<WordList>> dataLists = new Dictionary<int, List<WordList>>();
+                return GetLists();
 
                 List<WordList> returnList = new List<WordList>();
                 if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
@@ -150,9 +167,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordTable> Tables {
-            get { return GetTablesList(); }
-        }
+        public List<WordTable> Tables => GetTablesList();
 
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;

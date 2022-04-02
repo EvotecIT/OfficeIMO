@@ -166,12 +166,13 @@ namespace OfficeIMO.Word {
 
         public List<WordList> Lists {
             get {
-                List<WordList> list = new List<WordList>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Lists);
-                }
+                return WordSection.GetAllDocumentsLists(this);
+                //List<WordList> list = new List<WordList>();
+                //foreach (var section in this.Sections) {
+                //    list.AddRange(section.Lists);
+                //}
 
-                return list;
+                //return list;
             }
         }
 
