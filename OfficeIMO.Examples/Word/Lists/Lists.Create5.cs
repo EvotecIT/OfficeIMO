@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.Word {
                 wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
-                wordList3.AddItem("T4thext 2.3.4", 2).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.3.4", 2).SetColor(Color.Brown);
 
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
