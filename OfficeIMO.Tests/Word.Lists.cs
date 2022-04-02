@@ -168,5 +168,139 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithLists2() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordList wordList = document.AddList(WordListStyle.Headings111);
+                wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 2.2", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 2.3", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
+                // here we set another list element but we also change it using standard paragraph change
+                paragraph = wordList.AddItem("Text 3");
+                paragraph.Bold = true;
+                paragraph.SetItalic();
+
+                Assert.True(document.Lists.Count == 1);
+
+                paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
+                wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList1.AddItem("Temp 2.1", 1).SetColor(Color.Brown);
+                wordList1.AddItem("Temp 2.2", 1).SetColor(Color.Brown);
+                wordList1.AddItem("Temp 2.3", 1).SetColor(Color.Brown);
+                wordList1.AddItem("Temp 2.3.4", 2).SetColor(Color.Brown).Remove();
+                wordList1.ListItems[1].Remove();
+                paragraph = wordList1.AddItem("Temp 3");
+
+                Assert.True(document.Lists.Count == 2);
+                Assert.True(document.Sections[0].Lists.Count == 2);
+
+                paragraph = document.AddParagraph("This is third list").SetColor(Color.Blue).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList2 = document.AddList(WordListStyle.BulletedChars);
+                wordList2.AddItem("Oops 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList2.AddItem("Oops 2.1", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.2", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.3", 1).SetColor(Color.Brown);
+                wordList2.AddItem("Oops 2.3.4", 2).SetColor(Color.Brown);
+
+                Assert.True(document.Lists.Count == 3);
+                Assert.True(document.Sections[0].Lists.Count == 3);
+
+                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList3 = document.AddList(WordListStyle.Heading1ai);
+                wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
+                wordList3.AddItem("T4thext 2.3.4", 2).SetColor(Color.Brown);
+
+                Assert.True(document.Lists.Count == 4);
+                Assert.True(document.Sections[0].Lists.Count == 4);
+
+
+                paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+
+                WordList wordList4 = document.AddList(WordListStyle.Headings111Shifted);
+                wordList4.AddItem("5th 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList4.AddItem("5th 2.1", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.2", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.3", 1).SetColor(Color.Brown);
+                wordList4.AddItem("5th 2.3.4", 2).SetColor(Color.Brown);
+
+                Assert.True(document.Lists.Count == 5);
+                Assert.True(document.Lists[0].ListItems.Count == 6);
+                Assert.True(document.Lists[1].ListItems.Count == 4);
+                Assert.True(document.Lists[2].ListItems.Count == 5);
+                Assert.True(document.Lists[3].ListItems.Count == 5);
+                Assert.True(document.Lists[4].ListItems.Count == 5);
+
+                document.Lists[3].ListItems[2].Text = "Overwrite Text 2.2";
+                document.Lists[4].ListItems[2].Text = "Overwrite Text 2.12";
+
+                Assert.True(document.Lists.Count == 5);
+
+                document.Lists[3].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
+                document.Lists[2].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
+
+                Assert.True(document.Lists.Count == 5);
+
+                Assert.True(document.Lists[0].ListItems[0].Text == "Text 1");
+                Assert.True(document.Lists[0].ListItems[1].Text == "Text 2.1");
+
+                Assert.True(document.Lists[1].ListItems[1].Text == "Temp 2.2");
+                Assert.True(document.Lists[1].ListItems[2].Text == "Temp 2.3");
+
+                Assert.True(document.Lists[2].ListItems[1].Text == "Oops 2.1");
+                Assert.True(document.Lists[2].ListItems[2].Text == "Oops 2.2");
+
+                Assert.True(document.Lists[3].ListItems[2].Text == "Overwrite Text 2.2");
+                Assert.True(document.Lists[4].ListItems[2].Text == "Overwrite Text 2.12");
+
+                Assert.True(document.Lists[2].ListItems.Count == 6);
+                Assert.True(document.Lists[3].ListItems.Count == 6);
+
+
+                var section = document.AddSection();
+                section.PageSettings.Orientation = PageOrientationValues.Landscape;
+
+                Assert.True(document.Sections[0].PageSettings.Orientation == PageOrientationValues.Portrait);
+                Assert.True(document.Sections[1].PageSettings.Orientation == PageOrientationValues.Landscape);
+
+                Assert.True(document.Lists.Count == 5);
+                Assert.True(document.Sections[0].Lists.Count == 5);
+
+
+                Assert.True(document.Sections[1].Lists.Count == 0);
+
+                WordList wordList5 = document.AddList(WordListStyle.Headings111);
+                wordList5.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList5.AddItem("Section 2.1", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
+                wordList5.AddItem("Section 2.2", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
+
+                Assert.True(document.Lists.Count == 6);
+                Assert.True(document.Sections[0].Lists.Count == 5);
+                Assert.True(document.Sections[1].Lists.Count == 1);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
+                document.Save();
+            }
+        }
     }
 }
