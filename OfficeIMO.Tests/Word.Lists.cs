@@ -227,7 +227,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Lists.Count == 4);
                 Assert.True(document.Sections[0].Lists.Count == 4);
 
-
                 paragraph = document.AddParagraph("This is five list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList4 = document.AddList(WordListStyle.Headings111Shifted);
@@ -295,10 +294,27 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
+                Assert.True(document.Lists.Count == 6);
+
+                Assert.True(document.Sections[0].Lists.Count == 5);
+                Assert.True(document.Sections[1].Lists.Count == 1);
+
+                WordList wordList6 = document.AddList(WordListStyle.Headings111);
+                wordList6.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
+                wordList6.AddItem("Section 2.1", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
+                wordList6.AddItem("Section 2.2", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
+
+                Assert.True(document.Lists.Count == 7);
+                Assert.True(document.Sections[0].Lists.Count == 5);
+                Assert.True(document.Sections[1].Lists.Count == 2);
+
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
+                Assert.True(document.Lists.Count == 7);
+                Assert.True(document.Sections[0].Lists.Count == 5);
+                Assert.True(document.Sections[1].Lists.Count == 2);
                 document.Save();
             }
         }
