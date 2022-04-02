@@ -146,25 +146,44 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public PageOrientationValues? Orientation {
-            get {
-                var pageSize = _section._sectionProperties.ChildElements.OfType<PageSize>().FirstOrDefault();
-                if (pageSize != null) {
-                    return pageSize.Orient.Value;
-                }
-
-                return null;
+        internal static PageOrientationValues GetOrientation(SectionProperties sectionProperties) {
+            var pageSize = sectionProperties.GetFirstChild<PageSize>();
+            if (pageSize == null) {
+                return PageOrientationValues.Portrait;
             }
-            set {
-                if (_section._sectionProperties != null) {
-                    var pageSize = _section._sectionProperties.ChildElements.OfType<PageSize>().FirstOrDefault();
-                    if (pageSize == null) {
-                        pageSize = new PageSize();
-                    }
 
-                    pageSize.Orient = value;
-                }
+            if (pageSize.Orient != null) {
+                return pageSize.Orient.Value;
             }
+
+            return PageOrientationValues.Portrait;
+        }
+
+        internal static void SetOrientation(SectionProperties sectionProperties, PageOrientationValues pageOrientationValue) {
+            var pageSize = sectionProperties.Descendants<PageSize>().FirstOrDefault();
+            if (pageSize == null) {
+                // we need to setup default values for A4 
+                pageSize = WordPageSizes.A4;
+                pageSize.Orient = PageOrientationValues.Portrait;
+                sectionProperties.Append(pageSize);
+            }
+            if (pageSize.Orient == null) {
+                pageSize.Orient = PageOrientationValues.Portrait;
+            }
+            if (pageSize.Orient != pageOrientationValue) {
+                // changing orientation is not enough, we need to change width with height and vice versa
+                var width = pageSize.Width;
+                var height = pageSize.Height;
+                pageSize.Width = height;
+                pageSize.Height = width;
+
+                pageSize.Orient = pageOrientationValue;
+            }
+        }
+
+        public PageOrientationValues Orientation {
+            get => GetOrientation(_section._sectionProperties);
+            set => SetOrientation(_section._sectionProperties, value);
         }
 
         public WordPageSizes(WordDocument wordDocument, WordSection wordSection) {

@@ -8,48 +8,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordSection {
         public PageOrientationValues PageOrientation {
-            get {
-                var pageSize = _sectionProperties.GetFirstChild<PageSize>();
-                if (pageSize == null) {
-                    return PageOrientationValues.Portrait;
-                }
-
-                if (pageSize.Orient != null) {
-                    return pageSize.Orient.Value;
-                }
-
-                return PageOrientationValues.Portrait;
-            }
-            set {
-                var pageSize = _sectionProperties.Descendants<PageSize>().FirstOrDefault();
-                if (pageSize == null) {
-                    // we need to setup default values for A4 
-                    pageSize = WordPageSizes.A4;
-                    pageSize.Orient = PageOrientationValues.Portrait;
-                    _sectionProperties.Append(pageSize);
-                }
-
-                if (pageSize.Orient == null) {
-                    throw new InvalidOperationException("This shouldn't happen");
-                    //pageSize.Orient = value;
-
-                    //var width = pageSize.Width;
-                    //var height = pageSize.Height;
-
-                    //pageSize.Width = height;
-                    //pageSize.Height = width;
-                } else {
-                    if (pageSize.Orient != value) {
-                        // changing orientation is not enough, we need to change width with height and vice versa
-                        var width = pageSize.Width;
-                        var height = pageSize.Height;
-                        pageSize.Width = height;
-                        pageSize.Height = width;
-
-                        pageSize.Orient = value;
-                    }
-                }
-            }
+            get => WordPageSizes.GetOrientation(_sectionProperties);
+            set => WordPageSizes.SetOrientation(_sectionProperties, value);
         }
         public int? ColumnsSpace {
             get {
