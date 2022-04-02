@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.2", 1).SetColor(Color.Brown);
                 wordList3.AddItem("4th 2.3", 1).SetColor(Color.Brown);
-                wordList3.AddItem("T4thext 2.3.4", 2).SetColor(Color.Brown);
+                wordList3.AddItem("4th 2.3.4", 2).SetColor(Color.Brown);
 
                 Assert.True(document.Lists.Count == 4);
                 Assert.True(document.Sections[0].Lists.Count == 4);

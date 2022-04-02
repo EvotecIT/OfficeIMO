@@ -68,8 +68,11 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Lists[3].ListItems[2].Text = "Overwrite Text 2.2";
                 document.Lists[4].ListItems[2].Text = "Overwrite Text 2.2";
-                document.Lists[3].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
-                document.Lists[2].AddItem("Added 2.3.5", 3).SetColor(Color.DimGrey);
+
+                paragraph = document.AddParagraph("This is continuation, we now add 2 items to two lists ").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+
+                document.Lists[3].AddItem("Added 2.3.5 to list number 4", 2).SetColor(Color.DimGrey);
+                document.Lists[2].AddItem("Added 2.3.5 to list number 3", 2).SetColor(Color.DimGrey);
 
 
                 document.Save(openWord);
