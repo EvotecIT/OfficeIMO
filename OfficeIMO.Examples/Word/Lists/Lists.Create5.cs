@@ -47,8 +47,18 @@ namespace OfficeIMO.Examples.Word {
                 wordList2.AddItem("Oops 2.3", 1).SetColor(Color.Brown);
                 wordList2.AddItem("Oops 2.3.4", 2).SetColor(Color.Brown);
 
-                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
+                Console.WriteLine("Number of lists - section 0: " + document.Sections[0].Lists.Count);
+                Console.WriteLine("Number of lists - all: " + document.Lists.Count);
 
+                document.AddSection();
+                document.Sections[1].PageSettings.Orientation = PageOrientationValues.Landscape;
+
+
+                Console.WriteLine("Number of lists - section 1: " + document.Sections[1].Lists.Count);
+                Console.WriteLine("Number of lists - all: " + document.Lists.Count);
+
+
+                paragraph = document.AddParagraph("This is fourth list").SetColor(Color.DeepPink).SetUnderline(UnderlineValues.Double);
                 WordList wordList3 = document.AddList(WordListStyle.Heading1ai);
                 wordList3.AddItem("4th 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList3.AddItem("4th 2.1", 1).SetColor(Color.Brown);
@@ -65,6 +75,8 @@ namespace OfficeIMO.Examples.Word {
                 wordList4.AddItem("5th 2.3", 1).SetColor(Color.Brown);
                 wordList4.AddItem("5th 2.3.4", 2).SetColor(Color.Brown);
 
+                Console.WriteLine("Number of lists - section 1 (after adding 2): " + document.Sections[1].Lists.Count);
+                Console.WriteLine("Number of lists - all (after adding 2): " + document.Lists.Count);
 
                 document.Lists[3].ListItems[2].Text = "Overwrite Text 2.2";
                 document.Lists[4].ListItems[2].Text = "Overwrite Text 2.2";
@@ -74,6 +86,9 @@ namespace OfficeIMO.Examples.Word {
                 document.Lists[3].AddItem("Added 2.3.5 to list number 4", 2).SetColor(Color.DimGrey);
                 document.Lists[2].AddItem("Added 2.3.5 to list number 3", 2).SetColor(Color.DimGrey);
 
+
+                Console.WriteLine("Number of lists - section 1 (after updating existing lists): " + document.Sections[1].Lists.Count);
+                Console.WriteLine("Number of lists - all (after updating existing lists): " + document.Lists.Count);
 
                 document.Save(openWord);
             }
