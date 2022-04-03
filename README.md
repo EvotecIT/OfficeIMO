@@ -1,8 +1,8 @@
 ﻿# OfficeIMO - Microsoft Word C# Library
 
 <p align="center">
-  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/dt/officeIMO?label=nuget%20downloads"></a>
-  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO"></a>
+  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads"></a>
+  <a href="https://www.nuget.org/packages/OfficeIMO"><img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO.Word"></a>
   <img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.7.2-red.svg">
   <img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg">
 </p>
