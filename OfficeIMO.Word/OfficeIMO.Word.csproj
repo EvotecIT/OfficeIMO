@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <Description>An Open Source cross-platform .NET library providing an easy way to create Word documents.</Description>
-    <AssemblyName>OfficeIMO</AssemblyName>
-    <AssemblyTitle>OfficeIMO</AssemblyTitle>
+    <AssemblyName>OfficeIMO.Word</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
-    <VersionPrefix>0.1.1</VersionPrefix>
+    <VersionPrefix>0.1.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
-    <PackageId>OfficeIMO</PackageId>
+    <PackageId>OfficeIMO.Word</PackageId>
     <PackageTags>word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
     <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
@@ -26,13 +26,24 @@
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies
     -->
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysButViaDomain.pfx</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+  <Choose>
+    <When Condition=" '$(Configuration)'=='Debug' ">
+      <PropertyGroup>
+        <SignAssembly>false</SignAssembly>
+      </PropertyGroup>
+    </When>
+    <When Condition=" '$(Configuration)'=='Release' ">
+      <PropertyGroup>
+        <SignAssembly>true</SignAssembly>
+        <DelaySign>false</DelaySign>
+        <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysEVOTEC.pfx</AssemblyOriginatorKeyFile>
+      </PropertyGroup>
+    </When>
+  </Choose>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
     <WarningLevel>4</WarningLevel>
@@ -43,7 +54,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="OfficeIMO.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
