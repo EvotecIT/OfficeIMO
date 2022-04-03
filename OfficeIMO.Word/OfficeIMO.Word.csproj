@@ -5,7 +5,7 @@
     <AssemblyName>OfficeIMO.Word</AssemblyName>
     <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
-    <VersionPrefix>0.1.3</VersionPrefix>
+    <VersionPrefix>0.1.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Evotec</Company>
@@ -28,6 +28,8 @@
     -->
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
+    <PackageReadmeFile>README.MD</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <Choose>
@@ -62,6 +64,10 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="..\Assets\README.MD">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -70,7 +76,6 @@
 
   <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.16.0" />
-    <PackageReference Include="Microsoft.DependencyValidation.Analyzers" Version="0.11.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="2.1.0" />
   </ItemGroup>
 
