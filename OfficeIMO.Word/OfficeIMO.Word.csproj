@@ -21,7 +21,6 @@
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
     <DebugType>portable</DebugType>
-
     <!--
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies
@@ -32,21 +31,6 @@
     <RepositoryType>git</RepositoryType>
     <SignAssembly>False</SignAssembly>
   </PropertyGroup>
-
-  <Choose>
-    <When Condition=" '$(Configuration)'=='Debug' ">
-      <PropertyGroup>
-        <SignAssembly>false</SignAssembly>
-      </PropertyGroup>
-    </When>
-    <When Condition=" '$(Configuration)'=='Release' ">
-      <PropertyGroup>
-        <SignAssembly>true</SignAssembly>
-        <DelaySign>true</DelaySign>
-        <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlys.pub</AssemblyOriginatorKeyFile>
-      </PropertyGroup>
-    </When>
-  </Choose>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
     <WarningLevel>4</WarningLevel>
