@@ -7,7 +7,7 @@
 
     <VersionPrefix>0.1.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
@@ -30,6 +30,7 @@
     <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
+    <SignAssembly>False</SignAssembly>
   </PropertyGroup>
 
   <Choose>
@@ -41,8 +42,8 @@
     <When Condition=" '$(Configuration)'=='Release' ">
       <PropertyGroup>
         <SignAssembly>true</SignAssembly>
-        <DelaySign>false</DelaySign>
-        <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlysEVOTEC.pfx</AssemblyOriginatorKeyFile>
+        <DelaySign>true</DelaySign>
+        <AssemblyOriginatorKeyFile>C:\Support\Important\Certificates\PrzemyslawKlys.pub</AssemblyOriginatorKeyFile>
       </PropertyGroup>
     </When>
   </Choose>
