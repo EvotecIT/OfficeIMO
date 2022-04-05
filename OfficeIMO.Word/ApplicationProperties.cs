@@ -64,6 +64,24 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text = value;
             }
         }
+        public string Pages {
+            get {
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
+                    return "";
+                }
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages == null) {
+                    return "";
+                }
+                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages.Text;
+            }
+            set {
+                CreateExtendedFileProperties();
+                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages == null) {
+                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages = new Pages();
+                }
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages.Text = value;
+            }
+        }
         public string Characters {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
