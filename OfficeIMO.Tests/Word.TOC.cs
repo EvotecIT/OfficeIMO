@@ -20,6 +20,12 @@ namespace OfficeIMO.Tests {
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
+                Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+
+                wordTableContent.Update();
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen == true);
+
                 document.Settings.UpdateFieldsOnOpen = true;
 
                 document.AddPageBreak();
