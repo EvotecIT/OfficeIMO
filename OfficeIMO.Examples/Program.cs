@@ -35,9 +35,9 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicDocumentSaveAs1(folderPath, true);
             //BasicDocument.Example_BasicDocumentSaveAs2(folderPath, true);
             //BasicDocument.Example_BasicDocumentSaveAs3(folderPath, true);
+            //BasicDocument.Example_BasicDocumentWithoutUsing(folderPath, true);
 
-
-            Lists.Example_BasicLists(folderPath, true);
+            //Lists.Example_BasicLists(folderPath, true);
             //Lists.Example_BasicLists6(folderPath, true);
             //Lists.Example_BasicLists2(folderPath, false);
             //Lists.Example_BasicLists3(folderPath, false);

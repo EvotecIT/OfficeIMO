@@ -63,5 +63,23 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(true);
             }
         }
+
+        public static void Example_BasicDocumentWithoutUsing(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Creating standard document without using");
+            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentWithSingleParagraph.docx");
+            WordDocument document = WordDocument.Create(filePath);
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+
+            document.AddParagraph("This is my test");
+
+            document.Save();
+            document.Dispose();
+
+            Helpers.Open(filePath, openWord);
+
+            Console.WriteLine("+ IsLocked " + filePath.IsFileLocked());
+        }
     }
 }
