@@ -104,14 +104,8 @@ namespace OfficeIMO.Word {
             this._sdtBlock = sdtBlock;
         }
 
-        // to replace with maybe macro?
-        // http://www.ericwhite.com/blog/updating-the-toc-in-a-wordprocessingml-document-using-an-autoopen-macro/
         public void Update() {
-            SimpleField f = new SimpleField {
-                Instruction = "sdtContent",
-                Dirty = true
-            };
-            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(f);
+            this._document.Settings.UpdateFieldsOnOpen = true;
         }
 
         private static SdtBlock GetStyle(TableOfContentStyle style) {
