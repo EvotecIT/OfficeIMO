@@ -197,6 +197,7 @@ namespace OfficeIMO.Examples {
             //Example_BasicWordWatermark2(filePath, true);
 
             //CoverPages.Example_AddingCoverPage(folderPath, true);
+            CoverPages.Example_AddingCoverPage2(folderPath, true);
 
             //LoadDocuments.LoadWordDocument_Sample1(true);
             //LoadDocuments.LoadWordDocument_Sample2(true);
