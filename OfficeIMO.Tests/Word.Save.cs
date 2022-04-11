@@ -97,5 +97,32 @@ namespace OfficeIMO.Tests {
             Assert.True(filePath3.IsFileLocked() == false);
             Assert.True(filePath4.IsFileLocked() == false);
         }
+
+        [Fact]
+        public void Test_Dispose() {
+            string filePath1 = System.IO.Path.Combine(_directoryWithFiles, "DisposeTesting.docx");
+            File.Delete(filePath1);
+
+            Assert.True(File.Exists(filePath1) == false);
+
+            WordDocument document = WordDocument.Create(filePath1);
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+
+            document.AddParagraph("This is my test");
+
+            Assert.True(filePath1.IsFileLocked() == true);
+
+            document.Save();
+
+            Assert.True(filePath1.IsFileLocked() == true);
+
+            document.Dispose();
+
+            Assert.True(filePath1.IsFileLocked() == false);
+
+            Assert.True(File.Exists(filePath1) == true);
+        }
     }
 }
