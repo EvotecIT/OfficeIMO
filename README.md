@@ -1,24 +1,15 @@
-﻿# OfficeIMO - Microsoft Word C# Library
+﻿# OfficeIMO - Microsoft Word .NET Library
 
-<p align="center">
-  <a href="https://www.nuget.org/packages/OfficeIMO.Word"><img alt="Nuget" src="https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads"></a>
-  <a href="https://www.nuget.org/packages/OfficeIMO.Word"><img alt="Nuget" src="https://img.shields.io/nuget/v/OfficeIMO.Word"></a>
-  <img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.7.2-red.svg">
-  <img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg">
-</p>
+[![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
+[![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](#)
+[![nuget downloads](https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg)](#)
 
-<p align="center">
-  <img src="https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg">
-  <img src="https://img.shields.io/github/languages/top/evotecit/OfficeIMO.svg">
-  <img src="https://img.shields.io/github/languages/code-size/evotecit/OfficeIMO.svg">
-  <a href="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51"><img src="https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg" alt="wakatime"></a>
-</p>
 
-<p align="center">
-  <a href="https://twitter.com/PrzemyslawKlys"><img src="https://img.shields.io/twitter/follow/PrzemyslawKlys.svg?label=Twitter%20%40PrzemyslawKlys&style=social"></a>
-  <a href="https://evotec.xyz/hub"><img src="https://img.shields.io/badge/Blog-evotec.xyz-2A6496.svg"></a>
-  <a href="https://www.linkedin.com/in/pklys"><img src="https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn"></a>
-</p>
+[![twitter](https://img.shields.io/twitter/follow/PrzemyslawKlys.svg?label=Twitter%20%40PrzemyslawKlys&style=social)](https://twitter.com/PrzemyslawKlys)
+[![blog](https://img.shields.io/badge/Blog-evotec.xyz-2A6496.svg)](https://evotec.xyz/hub)
+[![linked](https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn)](https://www.linkedin.com/in/pklys)
+
 
 ## What it's all about
 
@@ -54,77 +45,77 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 Here's a list of features currently supported (and probably a lot I forgot) and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
 
-- [x] Word basics
-  - [x] Create
-  - [x] Load
-  - [x] Save (autoopen on save as an option)
-  - [ ] SaveAs (not working correcly in edge cases)
-- [x] Word properties
-  - [x] Reading basic and custom properties
-  - [x] Setting basic and custom properties
-- [x] Sections
-  - [x] Add Paragraphs
-  - [x] Add Headers and Footers (Odd/Even/First)
-  - [ ] Remove Headers and Footers (Odd/Even/First)
-  - [ ] Remove Paragraphs
-  - [ ] Remove Sections
-- [x] Headers and Footers in document (not including sections)
-  - [x] Add Default, Odd, Even, First
-  - [ ] Remove Default, Odd, Even, First
-- [x] Paragraphs/Text and make it bold, underlined, colored and so on
-- [x] Paragraphs and change alignment
-- [x] Tables
-  - [x] Add rows and columns
-  - [x] Add cells
-  - [x] Add cell properties
-  - [x] Remove rows
-  - [x] Remove cells
-  - [x] Others
-    - [x] Merge cells (vertically, horizontally)
-    - [ ] Split cells (vertically)
-    - [x] Split cells (horizontally)
-- [x] Images/Pictures (limited support - jpg only / inline type only)
-  - [x] Add images from file to Word
-  - [x] Save image from Word to File
-  - [ ] Other image types
-  - [ ] Other location types
-- [x] Hyperlinks
-  - [ ] Add HyperLink
-  - [x] Read HyperLink
-  - [ ] Remove HyperLink
-  - [x] Change HyperLink
-- [x] PageBreaks
-  - [x] Add PageBreak
-  - [x] Read PageBreak
-  - [x] Remove PageBreak
-  - [x] Change PageBreak
-- [x] Bookmarks
-  - [x] Add Bookmark
-  - [x] Read Bookmark
-  - [x] Remove Bookmark
-  - [x] Change Bookmark
-- [ ] Comments
-  - [x] Add comments
-  - [x] Read comments
-  - [ ] Remove comments
-  - [ ] Track comments
-- [x] Fields
-  - [ ] Add Field
-  - [x] Read Field
-  - [ ] Remove Field
-  - [x] Change Field
-- [ ] Shapes
-- [ ] Charts
-- [ ] Lists
-  - [x] Add lists
-  - [ ] Remove lists
-- [ ] Table of contents
-  - [x] Add TOC
-- [x] Borders
-- [x] Background
-- [ ] Watermarks
-  - [x] Add watermark
-  - [ ] Remove watermark
+- ☑️ Word basics
+  - ☑️ Create
+  - ☑️ Load
+  - ☑️ Save (autoopen on save as an option)
+  - ◼️ SaveAs (not working correcly in edge cases)
+- ☑️ Word properties
+  - ☑️ Reading basic and custom properties
+  - ☑️ Setting basic and custom properties
+- ☑️ Sections
+  - ☑️ Add Paragraphs
+  - ☑️ Add Headers and Footers (Odd/Even/First)
+  - ◼️ Remove Headers and Footers (Odd/Even/First)
+  - ◼️ Remove Paragraphs
+  - ◼️ Remove Sections
+- ☑️ Headers and Footers in document (not including sections)
+  - ☑️ Add Default, Odd, Even, First
+  - ◼️ Remove Default, Odd, Even, First
+- ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
+- ☑️ Paragraphs and change alignment
+- ☑️ Tables
+  - ☑️ Add rows and columns
+  - ☑️ Add cells
+  - ☑️ Add cell properties
+  - ☑️ Remove rows
+  - ☑️ Remove cells
+  - ☑️ Others
+    - ☑️ Merge cells (vertically, horizontally)
+    - ◼️ Split cells (vertically)
+    - ☑️ Split cells (horizontally)
+- ☑️ Images/Pictures (limited support - jpg only / inline type only)
+  - ☑️ Add images from file to Word
+  - ☑️ Save image from Word to File
+  - ◼️ Other image types
+  - ◼️ Other location types
+- ☑️ Hyperlinks
+  - ◼️ Add HyperLink
+  - ☑️ Read HyperLink
+  - ◼️ Remove HyperLink
+  - ☑️ Change HyperLink
+- ☑️ PageBreaks
+  - ☑️ Add PageBreak
+  - ☑️ Read PageBreak
+  - ☑️ Remove PageBreak
+  - ☑️ Change PageBreak
+- ☑️ Bookmarks
+  - ☑️ Add Bookmark
+  - ☑️ Read Bookmark
+  - ☑️ Remove Bookmark
+  - ☑️ Change Bookmark
+- ◼️ Comments
+  - ☑️ Add comments
+  - ☑️ Read comments
+  - ◼️ Remove comments
+  - ◼️ Track comments
+- ☑️ Fields
+  - ◼️ Add Field
+  - ☑️ Read Field
+  - ◼️ Remove Field
+  - ☑️ Change Field
+- ◼️ Shapes
+- ◼️ Charts
+- ◼️ Lists
+  - ☑️ Add lists
+  - ◼️ Remove lists
+- ◼️ Table of contents
+  - ☑️ Add TOC
+- ☑️ Borders
+- ☑️ Background
+- ◼️ Watermarks
+  - ☑️ Add watermark
+  - ◼️ Remove watermark
 
 
 ## Features (oneliners):
@@ -132,7 +123,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 This list of features is for times when you want to quickly fix something rather than playing with full features.
 This features are available as part of `WordHelpers` class.
 
-- [x] Remove Headers and Footers from a file
+- ☑️ Remove Headers and Footers from a file
 
 ## Examples
 
