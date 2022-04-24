@@ -1,100 +1,158 @@
-﻿using DocumentFormat.OpenXml;
+﻿using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     public class WordPieChart : WordChart {
-        public static WordPieChart AddPieChart(WordDocument wordDocument, WordParagraph paragraph) {
-            throw new System.NotImplementedException();
+        public static WordChart AddPieChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false) {
+            _document = wordDocument;
+            _paragraph = paragraph;
+
+            // minimum required to create chart
+            var oChart = GenerateChart();
+            oChart = CreatePieChart(oChart);
+
+            // this is data for pie chart
+            List<string> categories = new List<string>() {
+                "Food", "Housing", "Mix", "Data"
+            };
+
+            PieChartSeries pieChartSeries1 = AddPieChartSeries(0, "USA", Color.AliceBlue, categories, new List<object>() { 15, 20, 30, 150 });
+            // PieChartSeries pieChartSeries2 = AddPieChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20, 20, 300, 150 });
+            //PieChartSeries pieChartSeries3 = AddPieChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13, 20, 230, 150 });
+
+            var pieChart = oChart.PlotArea.GetFirstChild<PieChart>();
+            pieChart.Append(pieChartSeries1);
+            //pieChart.Append(pieChartSeries2);
+            //pieChart.Append(pieChartSeries3);
+
+
+            // inserts chart into document
+            InsertChart(wordDocument, paragraph, oChart, roundedCorners);
+
+            return new WordChart();
         }
 
-        // Creates an RoundedCorners instance and adds its children.
-        public RoundedCorners GenerateRoundedCorners() {
-            RoundedCorners roundedCorners1 = new RoundedCorners() { Val = false };
-            return roundedCorners1;
+        internal static Chart CreatePieChart(Chart chart) {
+            PieChart pieChart1 = new PieChart();
+            DataLabels dataLabels1 = AddDataLabel();
+            pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            pieChart1.Append(dataLabels1);
+
+
+            chart.PlotArea.Append(pieChart1);
+            return chart;
         }
-        public Chart GenerateChart() {
+
+        internal static PieChartSeries AddPieChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<object> data) {
+            PieChartSeries pieChartSeries1 = new PieChartSeries();
+
+            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order1 = new Order() { Val = index };
+
+
+            SeriesText seriesText1 = new SeriesText();
+
+            var stringReference1 = AddSeries(0, series);
+            seriesText1.Append(stringReference1);
+
+            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
+            CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
+            Values values1 = AddValuesAxisData(data);
+
+            pieChartSeries1.Append(index1);
+            pieChartSeries1.Append(order1);
+            pieChartSeries1.Append(seriesText1);
+            pieChartSeries1.Append(invertIfNegative1);
+            pieChartSeries1.Append(values1);
+            pieChartSeries1.Append(categoryAxisData1);
+            return pieChartSeries1;
+        }
+
+        public static Chart GenerateChart1() {
             Chart chart1 = new Chart();
             AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
 
             PlotArea plotArea1 = new PlotArea();
             Layout layout1 = new Layout();
 
-            PieChart pieChart1 = new PieChart();
-            pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            //PieChart pieChart1 = new PieChart();
+            //pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            DataLabels dataLabels1 = AddDataLabel();
+            //DataLabels dataLabels1 = AddDataLabel();
 
-            PieChartSeries pieChartSeries1 = new PieChartSeries();
-            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = (UInt32Value)1U };
-            Order order1 = new Order() { Val = (UInt32Value)1U };
+            //PieChartSeries pieChartSeries1 = new PieChartSeries();
+            //DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = (UInt32Value)1U };
+            //Order order1 = new Order() { Val = (UInt32Value)1U };
 
-            SeriesText seriesText1 = new SeriesText();
+            //SeriesText seriesText1 = new SeriesText();
 
-            StringReference stringReference1 = new StringReference();
-            Formula formula1 = new Formula();
-            formula1.Text = "";
+            //StringReference stringReference1 = new StringReference();
+            //Formula formula1 = new Formula();
+            //formula1.Text = "";
 
-            StringCache stringCache1 = new StringCache();
+            //StringCache stringCache1 = new StringCache();
 
-            StringPoint stringPoint1 = new StringPoint() { Index = (UInt32Value)0U };
-            NumericValue numericValue1 = new NumericValue();
-            numericValue1.Text = "Brazil";
+            //StringPoint stringPoint1 = new StringPoint() { Index = (UInt32Value)0U };
+            //NumericValue numericValue1 = new NumericValue();
+            //numericValue1.Text = "Brazil";
 
-            stringPoint1.Append(numericValue1);
+            //stringPoint1.Append(numericValue1);
 
-            stringCache1.Append(stringPoint1);
+            //stringCache1.Append(stringPoint1);
 
-            stringReference1.Append(formula1);
-            stringReference1.Append(stringCache1);
+            //stringReference1.Append(formula1);
+            //stringReference1.Append(stringCache1);
 
-            seriesText1.Append(stringReference1);
-            OpenXmlUnknownElement openXmlUnknownElement1 = OpenXmlUnknownElement.CreateOpenXmlUnknownElement("<c:invertIfNegative xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\">0</c:invertIfNegative>");
+            //seriesText1.Append(stringReference1);
+            //OpenXmlUnknownElement openXmlUnknownElement1 = OpenXmlUnknownElement.CreateOpenXmlUnknownElement("<c:invertIfNegative xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\">0</c:invertIfNegative>");
 
-            CategoryAxisData categoryAxisData1 = new CategoryAxisData();
+            //CategoryAxisData categoryAxisData1 = new CategoryAxisData();
 
-            StringReference stringReference2 = new StringReference();
-            Formula formula2 = new Formula();
-            formula2.Text = "";
+            //StringReference stringReference2 = new StringReference();
+            //Formula formula2 = new Formula();
+            //formula2.Text = "";
 
-            StringCache stringCache2 = new StringCache();
-            PointCount pointCount1 = new PointCount() { Val = (UInt32Value)4U };
+            //StringCache stringCache2 = new StringCache();
+            //PointCount pointCount1 = new PointCount() { Val = (UInt32Value)4U };
 
-            StringPoint stringPoint2 = new StringPoint() { Index = (UInt32Value)0U };
-            NumericValue numericValue2 = new NumericValue();
-            numericValue2.Text = "Food";
+            //StringPoint stringPoint2 = new StringPoint() { Index = (UInt32Value)0U };
+            //NumericValue numericValue2 = new NumericValue();
+            //numericValue2.Text = "Food";
 
-            stringPoint2.Append(numericValue2);
+            //stringPoint2.Append(numericValue2);
 
-            StringPoint stringPoint3 = new StringPoint() { Index = (UInt32Value)1U };
-            NumericValue numericValue3 = new NumericValue();
-            numericValue3.Text = "Housing";
+            //StringPoint stringPoint3 = new StringPoint() { Index = (UInt32Value)1U };
+            //NumericValue numericValue3 = new NumericValue();
+            //numericValue3.Text = "Housing";
 
-            stringPoint3.Append(numericValue3);
+            //stringPoint3.Append(numericValue3);
 
-            StringPoint stringPoint4 = new StringPoint() { Index = (UInt32Value)2U };
-            NumericValue numericValue4 = new NumericValue();
-            numericValue4.Text = "Transportation";
+            //StringPoint stringPoint4 = new StringPoint() { Index = (UInt32Value)2U };
+            //NumericValue numericValue4 = new NumericValue();
+            //numericValue4.Text = "Transportation";
 
-            stringPoint4.Append(numericValue4);
+            //stringPoint4.Append(numericValue4);
 
-            StringPoint stringPoint5 = new StringPoint() { Index = (UInt32Value)3U };
-            NumericValue numericValue5 = new NumericValue();
-            numericValue5.Text = "Health Care";
+            //StringPoint stringPoint5 = new StringPoint() { Index = (UInt32Value)3U };
+            //NumericValue numericValue5 = new NumericValue();
+            //numericValue5.Text = "Health Care";
 
-            stringPoint5.Append(numericValue5);
+            //stringPoint5.Append(numericValue5);
 
-            stringCache2.Append(pointCount1);
-            stringCache2.Append(stringPoint2);
-            stringCache2.Append(stringPoint3);
-            stringCache2.Append(stringPoint4);
-            stringCache2.Append(stringPoint5);
+            //stringCache2.Append(pointCount1);
+            //stringCache2.Append(stringPoint2);
+            //stringCache2.Append(stringPoint3);
+            //stringCache2.Append(stringPoint4);
+            //stringCache2.Append(stringPoint5);
 
-            stringReference2.Append(formula2);
-            stringReference2.Append(stringCache2);
+            //stringReference2.Append(formula2);
+            //stringReference2.Append(stringCache2);
 
-            categoryAxisData1.Append(stringReference2);
+            //categoryAxisData1.Append(stringReference2);
 
             Values values1 = new Values();
 
@@ -143,18 +201,18 @@ namespace OfficeIMO.Word {
 
             values1.Append(numberReference1);
 
-            pieChartSeries1.Append(index1);
-            pieChartSeries1.Append(order1);
-            pieChartSeries1.Append(seriesText1);
-            pieChartSeries1.Append(openXmlUnknownElement1);
-            pieChartSeries1.Append(categoryAxisData1);
-            pieChartSeries1.Append(values1);
+            //pieChartSeries1.Append(index1);
+            //pieChartSeries1.Append(order1);
+            //pieChartSeries1.Append(seriesText1);
+            //pieChartSeries1.Append(openXmlUnknownElement1);
+            //pieChartSeries1.Append(categoryAxisData1);
+            //pieChartSeries1.Append(values1);
 
-            pieChart1.Append(dataLabels1);
-            pieChart1.Append(pieChartSeries1);
+            //pieChart1.Append(dataLabels1);
+            //pieChart1.Append(pieChartSeries1);
 
-            plotArea1.Append(layout1);
-            plotArea1.Append(pieChart1);
+            //plotArea1.Append(layout1);
+            //plotArea1.Append(pieChart1);
 
             Legend legend1 = AddLegend();
 

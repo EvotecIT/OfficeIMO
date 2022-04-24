@@ -201,7 +201,7 @@ namespace OfficeIMO.Examples {
             //CoverPages.Example_AddingCoverPage2(folderPath, true);
 
             // charts 
-            BarCharts.Example_AddingBarChart(folderPath, true);
+            Charts.Example_AddingMultipleCharts(folderPath, true);
 
 
             //LoadDocuments.LoadWordDocument_Sample1(true);

@@ -80,75 +80,12 @@ namespace OfficeIMO.Word {
 
         }
 
-        internal static StringReference AddBar(UInt32Value index, string series) {
-            StringReference stringReference1 = new StringReference();
-
-            Formula formula1 = new Formula();
-            formula1.Text = "";
-
-            NumericValue numericValue1 = new NumericValue();
-            numericValue1.Text = series;
-
-            StringPoint stringPoint1 = new StringPoint() { Index = index };
-
-            stringPoint1.Append(numericValue1);
-
-            StringCache stringCache1 = new StringCache();
-            stringCache1.Append(stringPoint1);
-
-            stringReference1.Append(formula1);
-            stringReference1.Append(stringCache1);
-
-            return stringReference1;
-
-        }
 
 
-        internal static CategoryAxisData AddCategoryAxisData(List<string> categories) {
-            CategoryAxisData categoryAxisData1 = new CategoryAxisData();
-
-            StringReference stringReference2 = new StringReference();
-            Formula formula2 = new Formula() { Text = "" };
-
-            StringCache stringCache2 = new StringCache();
-            int index = 0;
-            foreach (string category in categories) {
-                // AddStringPoint(count, category);
-                stringCache2.Append(
-                    new StringPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = category } }
-                );
-                index++;
-            }
-
-            stringReference2.Append(formula2);
-            stringReference2.Append(stringCache2);
-
-            categoryAxisData1.Append(stringReference2);
-
-            return categoryAxisData1;
-        }
 
 
-        internal static Values AddValuesAxisData(List<object> dataList) {
-            Formula formula3 = new Formula() { Text = "" };
-            NumberReference numberReference1 = new NumberReference();
-            NumberingCache numberingCache1 = new NumberingCache();
-            FormatCode formatCode1 = new FormatCode() { Text = "General" };
-            //PointCount pointCount2 = new PointCount() { Val = (UInt32Value)4U };
-            numberingCache1.Append(formatCode1);
-            var index = 0;
-            foreach (var data in dataList) {
-                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = data.ToString() } };
 
-                numberingCache1.Append(numericPoint);
-                index++;
-            }
-            numberReference1.Append(formula3);
-            numberReference1.Append(numberingCache1);
 
-            Values values1 = new Values() { NumberReference = numberReference1 };
-            return values1;
-        }
 
         internal static BarChartSeries AddBarChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<object> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
@@ -156,7 +93,7 @@ namespace OfficeIMO.Word {
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
             SeriesText seriesText1 = new SeriesText();
-            var stringReference1 = AddBar(0, series);
+            var stringReference1 = AddSeries(0, series);
             seriesText1.Append(stringReference1);
             InvertIfNegative invertIfNegative1 = new InvertIfNegative();
             var chartShapeProperties1 = AddShapeProperties(color);
@@ -171,9 +108,6 @@ namespace OfficeIMO.Word {
             barChartSeries1.Append(values1);
             return barChartSeries1;
         }
-
-
-
 
         private static Chart GenerateChartBar(Chart chart) {
             BarChart barChart1 = CreateBarChart();

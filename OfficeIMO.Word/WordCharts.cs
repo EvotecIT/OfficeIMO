@@ -1,4 +1,6 @@
-﻿using DocumentFormat.OpenXml;
+﻿using System;
+using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Packaging;
@@ -7,7 +9,9 @@ using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
+using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
+using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
@@ -170,6 +174,66 @@ namespace OfficeIMO.Word {
             chart1.Append(showDataLabelsOverMaximum1);
             chart1.Append(plotArea1);
             return chart1;
+        }
+
+        internal static Values AddValuesAxisData(List<object> dataList) {
+            Formula formula3 = new Formula() { Text = "" };
+            NumberReference numberReference1 = new NumberReference();
+            NumberingCache numberingCache1 = new NumberingCache();
+            FormatCode formatCode1 = new FormatCode() { Text = "General" };
+            //PointCount pointCount2 = new PointCount() { Val = (UInt32Value)4U };
+            numberingCache1.Append(formatCode1);
+            var index = 0;
+            foreach (var data in dataList) {
+                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = data.ToString() } };
+
+                numberingCache1.Append(numericPoint);
+                index++;
+            }
+            numberReference1.Append(formula3);
+            numberReference1.Append(numberingCache1);
+
+            Values values1 = new Values() { NumberReference = numberReference1 };
+            return values1;
+        }
+
+        internal static CategoryAxisData AddCategoryAxisData(List<string> categories) {
+            CategoryAxisData categoryAxisData1 = new CategoryAxisData();
+
+            StringReference stringReference2 = new StringReference();
+            Formula formula2 = new Formula() { Text = "" };
+
+            StringCache stringCache2 = new StringCache();
+            int index = 0;
+            foreach (string category in categories) {
+                // AddStringPoint(count, category);
+                stringCache2.Append(
+                    new StringPoint() { Index = Convert.ToUInt32(index), NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } }
+                );
+                index++;
+            }
+
+            stringReference2.Append(formula2);
+            stringReference2.Append(stringCache2);
+
+            categoryAxisData1.Append(stringReference2);
+
+            return categoryAxisData1;
+        }
+
+        internal static StringReference AddSeries(UInt32Value index, string series) {
+            StringReference stringReference1 = new StringReference();
+
+            Formula formula1 = new Formula() { Text = "" };
+            NumericValue numericValue1 = new NumericValue() { Text = series };
+            StringPoint stringPoint1 = new StringPoint() { Index = index };
+            StringCache stringCache1 = new StringCache();
+
+            stringPoint1.Append(numericValue1);
+            stringCache1.Append(stringPoint1);
+            stringReference1.Append(formula1);
+            stringReference1.Append(stringCache1);
+            return stringReference1;
         }
 
         internal static Drawing CreateChartDrawing(string id) {

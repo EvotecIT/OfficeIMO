@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
             return barChart;
         }
 
-        public WordPieChart AddPieChart() {
+        public WordChart AddPieChart() {
             var paragraph = this.AddParagraph();
             var pieChart = WordPieChart.AddPieChart(this, paragraph);
             return pieChart;

@@ -7,20 +7,13 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word.Charts {
-    internal static class BarCharts {
-        public static void Example_AddingBarChart(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Creating standard document with Bar Chart");
-            string filePath = System.IO.Path.Combine(folderPath, "Bar Chart Document.docx");
+    internal static class Charts {
+        public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Creating standard document with charts");
+            string filePath = System.IO.Path.Combine(folderPath, "Charts Document.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-
-
-
                 document.AddParagraph("This is a bar chart");
-
-                document.AddParagraph();
-
-
                 var barChart1 = document.AddBarChart();
                 //barChart1.BarGrouping = BarGroupingValues.Clustered;
 
@@ -28,9 +21,10 @@ namespace OfficeIMO.Examples.Word.Charts {
 
                 // var barChart2 = document.AddBarChart();
 
-                //document.AddLineChart();
+                //var lineChart = document.AddLineChart();
 
-                //document.AddPieChart();
+                document.AddParagraph("This is a pie chart");
+                var pieChart = document.AddPieChart();
 
                 //document.AddBarChart3D();
 
