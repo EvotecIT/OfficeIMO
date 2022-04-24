@@ -80,13 +80,6 @@ namespace OfficeIMO.Word {
 
         }
 
-
-
-
-
-
-
-
         internal static BarChartSeries AddBarChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<object> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
 
