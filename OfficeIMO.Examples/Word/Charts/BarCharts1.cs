@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word.Charts {
@@ -21,6 +22,8 @@ namespace OfficeIMO.Examples.Word.Charts {
 
 
                 var barChart1 = document.AddBarChart();
+
+                //barChart1.BarDirection = BarDirectionValues.Column;
 
                 // var barChart2 = document.AddBarChart();
 

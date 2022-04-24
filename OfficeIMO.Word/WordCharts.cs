@@ -10,33 +10,13 @@ using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
 
 namespace OfficeIMO.Word {
-    public class WordChart {
+    public partial class WordChart {
         protected static WordDocument _document;
         protected static WordParagraph _paragraph;
         protected static ChartPart _chartPart;
-
-        public string _id {
+        private string _id {
             get {
                 return _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
-            }
-        }
-
-        public bool RoundedCorners {
-            get {
-                var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();
-                if (roundedCorners != null) {
-                    return roundedCorners.Val;
-                }
-
-                return true;
-            }
-            set {
-                var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();
-                if (roundedCorners == null) {
-                    roundedCorners = new RoundedCorners() { Val = value };
-                }
-                roundedCorners.Val = value;
-
             }
         }
 

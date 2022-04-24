@@ -7,6 +7,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
+using OfficeIMO.Examples.Word.Charts;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -197,7 +198,11 @@ namespace OfficeIMO.Examples {
             //Example_BasicWordWatermark2(filePath, true);
 
             //CoverPages.Example_AddingCoverPage(folderPath, true);
-            CoverPages.Example_AddingCoverPage2(folderPath, true);
+            //CoverPages.Example_AddingCoverPage2(folderPath, true);
+
+            // charts 
+            BarCharts.Example_AddingBarChart(folderPath, true);
+
 
             //LoadDocuments.LoadWordDocument_Sample1(true);
             //LoadDocuments.LoadWordDocument_Sample2(true);
