@@ -22,6 +22,7 @@ namespace OfficeIMO.Examples.Word.Charts {
 
 
                 var barChart1 = document.AddBarChart();
+                //barChart1.BarGrouping = BarGroupingValues.Clustered;
 
                 //barChart1.BarDirection = BarDirectionValues.Column;
 

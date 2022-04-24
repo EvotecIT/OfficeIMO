@@ -5,6 +5,31 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
+
+        public BarGroupingValues? BarGrouping {
+            get {
+                var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                if (chart != null) {
+                    var barChart = chart.PlotArea.GetFirstChild<BarChart>();
+                    if (barChart != null) {
+                        return barChart.BarGrouping.Val;
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                if (chart != null) {
+                    var barChart = chart.PlotArea.GetFirstChild<BarChart>();
+                    if (barChart != null) {
+                        if (barChart.BarGrouping != null) {
+                            barChart.BarGrouping.Val = value;
+                        }
+                    }
+                }
+            }
+        }
         public BarDirectionValues? BarDirection {
             get {
                 var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();

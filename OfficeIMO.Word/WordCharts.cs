@@ -8,6 +8,7 @@ using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
+using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -150,6 +151,25 @@ namespace OfficeIMO.Word {
             part.ChartSpace = chartSpace1;
             part.ChartSpace.Append(new RoundedCorners() { Val = roundedCorners });
             return part;
+        }
+
+        internal static Chart GenerateChart() {
+            Chart chart1 = new Chart();
+            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
+            PlotArea plotArea1 = new PlotArea();
+            Layout layout1 = new Layout();
+            plotArea1.Append(layout1);
+            Legend legend1 = AddLegend();
+            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
+            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
+            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
+            chart1.Append(autoTitleDeleted1);
+            chart1.Append(legend1);
+            chart1.Append(plotVisibleOnly1);
+            chart1.Append(displayBlanksAs1);
+            chart1.Append(showDataLabelsOverMaximum1);
+            chart1.Append(plotArea1);
+            return chart1;
         }
 
         internal static Drawing CreateChartDrawing(string id) {
