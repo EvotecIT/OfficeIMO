@@ -14,22 +14,26 @@ namespace OfficeIMO.Examples.Word.Charts {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("This is a bar chart");
-                var barChart1 = document.AddBarChart();
+                //var barChart1 = document.AddBarChart();
                 //barChart1.BarGrouping = BarGroupingValues.Clustered;
 
                 //barChart1.BarDirection = BarDirectionValues.Column;
 
-                // var barChart2 = document.AddBarChart();
+                //var barChart2 = document.AddBarChart();
 
-                //var lineChart = document.AddLineChart();
+                //
 
                 document.AddParagraph("This is a pie chart");
-                var pieChart = document.AddPieChart();
+                //var pieChart = document.AddPieChart();
 
                 //document.AddBarChart3D();
 
                 //barChart2.RoundedCorners = true;
                 //Console.WriteLine(barChart2._id);
+
+
+                var lineChart = document.AddLineChart();
+
 
                 document.Save(openWord);
             }

@@ -26,7 +26,6 @@ namespace OfficeIMO.Word {
             List<string> categories = new List<string>() {
                 "Food", "Housing", "Mix", "Data"
             };
-
             BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<object>() { 15, 20, 30, 150 });
             BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20, 20, 300, 150 });
             BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13, 20, 230, 150 });
@@ -46,6 +45,9 @@ namespace OfficeIMO.Word {
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
+            DataLabels dataLabels1 = AddDataLabel();
+            barChart1.Append(dataLabels1);
+
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
             GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
@@ -63,7 +65,6 @@ namespace OfficeIMO.Word {
             barChart1.Append(axisId1);
             barChart1.Append(axisId2);
             barChart1.Append(overlap1);
-
             return barChart1;
         }
 
@@ -104,8 +105,7 @@ namespace OfficeIMO.Word {
 
         private static Chart GenerateChartBar(Chart chart) {
             BarChart barChart1 = CreateBarChart();
-            DataLabels dataLabels1 = AddDataLabel();
-            barChart1.Append(dataLabels1);
+
 
             CategoryAxis categoryAxis1 = AddCategoryAxis();
             ValueAxis valueAxis1 = AddValueAxis();

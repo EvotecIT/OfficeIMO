@@ -160,9 +160,9 @@ namespace OfficeIMO.Word {
         internal static Chart GenerateChart() {
             Chart chart1 = new Chart();
             AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
-            PlotArea plotArea1 = new PlotArea();
-            Layout layout1 = new Layout();
-            plotArea1.Append(layout1);
+            PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
+            //Layout layout1 = new Layout();
+            //plotArea1.Append(layout1);
             Legend legend1 = AddLegend();
             PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
             DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
