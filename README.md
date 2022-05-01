@@ -1,15 +1,17 @@
 ﻿# OfficeIMO - Microsoft Word .NET Library
 
+OfficeIMO is available as nuget from the the gallery and it's preferred way of using it.
+
 [![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](#)
 [![nuget downloads](https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg)](#)
 
+If you would like to contact me you can do so via Twitter or LinkedIn.
 
 [![twitter](https://img.shields.io/twitter/follow/PrzemyslawKlys.svg?label=Twitter%20%40PrzemyslawKlys&style=social)](https://twitter.com/PrzemyslawKlys)
 [![blog](https://img.shields.io/badge/Blog-evotec.xyz-2A6496.svg)](https://evotec.xyz/hub)
 [![linked](https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn)](https://www.linkedin.com/in/pklys)
-
 
 ## What it's all about
 
