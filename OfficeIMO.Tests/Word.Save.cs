@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(filePath4)) {
                 Assert.True(document.Paragraphs.Count == 4);
-                Assert.True(filePath3.IsFileLocked() == true);
+                Assert.True(filePath4.IsFileLocked() == true);
             }
 
             Assert.True(filePath1.IsFileLocked() == false);
