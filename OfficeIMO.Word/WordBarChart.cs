@@ -23,22 +23,22 @@ namespace OfficeIMO.Word {
             oChart = GenerateChartBar(oChart);
 
             // this is data for bar chart
-            List<string> categories = new List<string>() {
-                "Food", "Housing", "Mix", "Data"
-            };
-            //BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<object>() { 15, 20, 30, 150 });
-            //BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20, 20, 300, 150 });
-            //BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13, 20, 230, 150 });
+            //List<string> categories = new List<string>() {
+            //    "Food", "Housing", "Mix", "Data"
+            //};
+            //BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<int>() { 15, 20, 30, 150 });
+            //BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<int>() { 20, 20, 300, 150 });
+            //BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<int>() { 13, 20, 230, 150 });
 
-            BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<object>() { 15 });
-            BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20 });
-            BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13 });
+            //BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<object>() { 15 });
+            //BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20 });
+            //BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13 });
 
 
-            var barChart = oChart.PlotArea.GetFirstChild<BarChart>();
-            barChart.Append(barChartSeries1);
-            barChart.Append(barChartSeries2);
-            barChart.Append(barChartSeries3);
+            //var barChart = oChart.PlotArea.GetFirstChild<BarChart>();
+            //barChart.Append(barChartSeries1);
+            //barChart.Append(barChartSeries2);
+            //barChart.Append(barChartSeries3);
 
             // inserts chart into document
             InsertChart(wordDocument, paragraph, oChart, roundedCorners);
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        internal static BarChartSeries AddBarChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<object> data) {
+        internal static BarChartSeries AddBarChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<int> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
 
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };

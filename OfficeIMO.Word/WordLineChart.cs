@@ -15,19 +15,19 @@ namespace OfficeIMO.Word {
             var oChart = GenerateChart();
             oChart = GenerateLineChart(oChart);
 
-            // this is data for bar chart
-            List<string> categories = new List<string>() {
-                "Food", "Housing", "Mix", "Data"
-            };
+            //// this is data for bar chart
+            //List<string> categories = new List<string>() {
+            //    "Food", "Housing", "Mix", "Data"
+            //};
 
-            LineChartSeries lineChartSeries1 = AddLineChartSeries(1, "USA", SixLabors.ImageSharp.Color.AliceBlue, categories, new List<object>() { 15, 20, 30, 150 });
-            LineChartSeries lineChartSeries2 = AddLineChartSeries(2, "Brazil", SixLabors.ImageSharp.Color.Brown, categories, new List<object>() { 20, 20, 300, 150 });
-            LineChartSeries lineChartSeries3 = AddLineChartSeries(0, "Poland", SixLabors.ImageSharp.Color.Green, categories, new List<object>() { 13, 20, 230, 150 });
+            //LineChartSeries lineChartSeries1 = AddLineChartSeries(1, "USA", SixLabors.ImageSharp.Color.AliceBlue, categories, new List<double>() { 15, 20, 30, 150 });
+            //LineChartSeries lineChartSeries2 = AddLineChartSeries(2, "Brazil", SixLabors.ImageSharp.Color.Brown, categories, new List<double>() { 20, 20, 300, 150 });
+            //LineChartSeries lineChartSeries3 = AddLineChartSeries(0, "Poland", SixLabors.ImageSharp.Color.Green, categories, new List<double>() { 13, 20, 230, 150 });
 
-            var lineChart = oChart.PlotArea.GetFirstChild<LineChart>();
-            lineChart.Append(lineChartSeries1);
-            lineChart.Append(lineChartSeries2);
-            lineChart.Append(lineChartSeries3);
+            //var lineChart = oChart.PlotArea.GetFirstChild<LineChart>();
+            //lineChart.Append(lineChartSeries1);
+            //lineChart.Append(lineChartSeries2);
+            //lineChart.Append(lineChartSeries3);
 
             // inserts chart into document
             InsertChart(wordDocument, paragraph, oChart, roundedCorners);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        internal static LineChartSeries AddLineChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<object> data) {
+        internal static LineChartSeries AddLineChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<int> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };

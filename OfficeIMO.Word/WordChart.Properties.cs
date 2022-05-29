@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Office.Drawing;
+using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
-
         public BarGroupingValues? BarGrouping {
             get {
                 var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
@@ -72,6 +74,11 @@ namespace OfficeIMO.Word {
                 roundedCorners.Val = value;
 
             }
+        }
+
+        public List<string> Categories {
+            get;
+            set;
         }
     }
 }

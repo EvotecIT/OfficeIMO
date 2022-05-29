@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
@@ -19,12 +20,46 @@ namespace OfficeIMO.Word {
         protected static WordDocument _document;
         protected static WordParagraph _paragraph;
         protected static ChartPart _chartPart;
+        protected static Drawing _drawing;
+        protected static Chart _chart;
+
         private string _id {
             get {
                 return _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
             }
         }
 
+        protected UInt32Value _index {
+            get {
+                var ids = new List<UInt32Value>();
+                if (_chart != null) {
+                    var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                    var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+                    var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+                    if (lineChart != null) {
+                        var series = lineChart.ChildElements.OfType<LineChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (pieChart != null) {
+                        var series = pieChart.ChildElements.OfType<PieChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (barChart != null) {
+                        var series = barChart.ChildElements.OfType<BarChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    }
+                }
+                if (ids.Count > 0) {
+                    return ids.Max() + 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
         internal static CategoryAxis AddCategoryAxis() {
             CategoryAxis categoryAxis1 = new CategoryAxis();
             categoryAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -136,11 +171,14 @@ namespace OfficeIMO.Word {
             var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
             Drawing chartDrawing = CreateChartDrawing(id);
+            _drawing = chartDrawing;
 
             var run = new Run();
             run.Append(chartDrawing);
             paragraph._paragraph.Append(run);
             _chartPart.ChartSpace.Append(chart);
+
+            _chart = chart;
             return paragraph;
         }
 
@@ -176,7 +214,7 @@ namespace OfficeIMO.Word {
             return chart1;
         }
 
-        internal static Values AddValuesAxisData(List<object> dataList) {
+        internal static Values AddValuesAxisData(List<int> dataList) {
             Formula formula3 = new Formula() { Text = "" };
             NumberReference numberReference1 = new NumberReference();
             NumberingCache numberingCache1 = new NumberingCache();
