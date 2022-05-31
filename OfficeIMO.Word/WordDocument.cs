@@ -289,7 +289,7 @@ namespace OfficeIMO.Word {
         public Document _document;
         //public WordCustomProperties _customDocumentProperties;
 
-        private List<OpenXmlPackage> _openXmlPackage = new List<OpenXmlPackage>();
+        private FileStream _fileStream;
 
         public FileAccess FileOpenAccess {
             get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
@@ -326,18 +326,12 @@ namespace OfficeIMO.Word {
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
-                //System.IO.IOException: 'The process cannot access the file 'C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\Basic Document with some sections 1.docx' because it is being used by another process.'
-                try {
-                    wordDocument = WordprocessingDocument.Create(filePath, documentType, autoSave);
-                } catch {
-                    filePath = GetUniqueFilePath(filePath);
-                    wordDocument = WordprocessingDocument.Create(filePath, documentType, autoSave);
-                }
-            } else {
-                MemoryStream mem = new MemoryStream();
-                //word._memory = mem;
-                wordDocument = WordprocessingDocument.Create(mem, documentType, autoSave);
+                //Open the file for writing so as to get lock
+                word._fileStream = new FileStream(filePath, FileMode.Create);
             }
+
+            //Always create package in memory.
+            wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
             wordDocument.MainDocumentPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
@@ -369,10 +363,13 @@ namespace OfficeIMO.Word {
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
             WordSection wordSection = new WordSection(word, null);
             WordBackground wordBackground = new WordBackground(word);
+
+            word.Save();
             return word;
         }
 
         private void LoadDocument() {
+            Sections.Clear();
             // add settings if not existing
             var wordSettings = new WordSettings(this);
             var applicationProperties = new ApplicationProperties(this);
@@ -451,21 +448,13 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-            // this seems to solve an issue where custom properties wouldn't want to save when opening file
-            // no problem with creating empty
-            FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
+            word._fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite);
+            var memoryStream = new MemoryStream();
+            word._fileStream.CopyTo(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            
+            WordprocessingDocument wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-
-            //MemoryStream destStream = Helpers.ReadAllBytesToMemoryStream(filePath);
-
-            //var package = Package.Open(destStream);
-
-            var package = Package.Open(filePath, fileMode);
-
-            //WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, readOnly, openSettings);
-
-
-            WordprocessingDocument wordDocument = WordprocessingDocument.Open(package, openSettings);
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
@@ -517,21 +506,60 @@ namespace OfficeIMO.Word {
         //    }
         //}
 
+        private static void CopyPackageProperties(PackageProperties src, PackageProperties dest)
+        {
+            dest.Category = src.Category;
+            dest.ContentStatus = src.ContentStatus;
+            dest.ContentType = src.ContentType;
+            dest.Created = src.Created;
+            dest.Creator = src.Creator;
+            dest.Description = src.Description;
+            dest.Identifier = src.Identifier;
+            dest.Keywords = src.Keywords;
+            dest.Language = src.Language;
+            dest.LastModifiedBy = src.LastModifiedBy;
+            dest.LastPrinted = src.LastPrinted;
+            dest.Modified = src.Modified;
+            dest.Revision = src.Revision;
+            dest.Subject = src.Subject;
+            dest.Title = src.Title;
+            dest.Version = src.Version;
+        }
+
         public void Save(string filePath, bool openWord) {
             MoveSectionProperties();
             SaveNumbering();
+
             WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
             if (this._wordprocessingDocument != null) {
                 try {
+                    //Save to the memory stream
+                    this._wordprocessingDocument.Save();
+                    
+                    //Open the specified file and copy the bytes
                     if (filePath != "") {
-                        // doesn't work correctly with packages
-                        var updatedPackage = this._wordprocessingDocument.SaveAs(filePath);
-                        //var newPackage = this._wordprocessingDocument.Clone();
-                        //newPackage.SaveAs(filePath);
-                        //updatedPackage.Save();
-                        _openXmlPackage.Add(updatedPackage);
+                        //Close existing fileStream
+                        if (_fileStream != null) {
+                            _fileStream.Dispose();
+                        }
+
+                        _fileStream = new FileStream(filePath, FileMode.Create);
+                        //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
+                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
+                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                        }
+                        _fileStream.Flush();
+                        FilePath = filePath;
                     } else {
-                        this._wordprocessingDocument.Save();
+                        if (_fileStream != null) {
+                            _fileStream.Seek(0, SeekOrigin.Begin);
+                            _fileStream.SetLength(0);
+                            //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
+                            using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
+                                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                            }
+                            _fileStream.Flush();
+                        }
                     }
                 } catch {
                     throw;
@@ -541,8 +569,8 @@ namespace OfficeIMO.Word {
             }
 
             if (openWord) {
-                // we need to dispose things a bit early because user wants to open it
-                this.Dispose();
+                _fileStream.Dispose();
+                _fileStream = null;
                 this.Open(filePath, openWord);
             }
         }
@@ -571,6 +599,11 @@ namespace OfficeIMO.Word {
         }
 
         public void Dispose() {
+            if (this._wordprocessingDocument.AutoSave)
+            {
+                Save();
+            }
+            
             if (this._wordprocessingDocument != null) {
                 try {
                     this._wordprocessingDocument.Close();
@@ -580,13 +613,8 @@ namespace OfficeIMO.Word {
                 this._wordprocessingDocument.Dispose();
             }
 
-            foreach (var o in this._openXmlPackage) {
-                try {
-                    o.Close();
-                } catch {
-                    // ignored
-                }
-                o.Dispose();
+            if (_fileStream != null) {
+                _fileStream.Dispose();
             }
         }
 
