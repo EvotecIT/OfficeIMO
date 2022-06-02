@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples {
 
         static void Main(string[] args) {
             //string folderPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "documents");
-            string templatesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
+            string templatesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples {
             //Lists.Example_BasicLists2Load(folderPath, false);
             //Tables.Example_BasicTables1(folderPath, false);
             //Tables.Example_BasicTablesLoad1(folderPath, false);
-            Tables.Example_BasicTablesLoad2(folderPath, true);
+            Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
 
@@ -198,7 +198,7 @@ namespace OfficeIMO.Examples {
             //Example_BasicWordWatermark2(filePath, true);
 
             //CoverPages.Example_AddingCoverPage(folderPath, true);
-            CoverPages.Example_AddingCoverPage2(folderPath, true);
+            //CoverPages.Example_AddingCoverPage2(folderPath, true);
 
             //LoadDocuments.LoadWordDocument_Sample1(true);
             //LoadDocuments.LoadWordDocument_Sample2(true);

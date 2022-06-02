@@ -8,13 +8,20 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
-        internal static void Example_BasicTablesLoad2(string folderPath, bool openWord) {
+        internal static void Example_BasicTablesLoad2(string templatesPath, string folderPath, bool openWord) {
             Console.WriteLine("[*] Loading standard document with tables created in Word");
-            string filePath = System.IO.Path.Combine(folderPath, "DocumentWithTables.docx");
+            string filePath = System.IO.Path.Combine(templatesPath, "DocumentWithTables.docx");
             string filePath2 = System.IO.Path.Combine(folderPath, "DocumentWithTablesChanged.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine(document.Tables.Count);
 
+
+                var table = document.Tables[0];
+                Console.WriteLine("First table style: " + table.Style);
+
+                table.Style = WordTableStyle.GridTable1LightAccent4;
+
+                Console.WriteLine("First table style, after change: " + table.Style);
 
                 //var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 //paragraph.ParagraphAlignment = JustificationValues.Center;
