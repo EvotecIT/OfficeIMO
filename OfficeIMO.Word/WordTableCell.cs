@@ -7,6 +7,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public class WordTableCell {
+        public WordTableCellBorder Borders;
+
         internal TableCell _tableCell;
         internal TableCellProperties _tableCellProperties;
 
@@ -99,7 +101,6 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.HorizontalMerge != null) {
                     return _tableCellProperties.HorizontalMerge.Val;
                 }
-
                 return null;
             }
             set {
@@ -153,6 +154,8 @@ namespace OfficeIMO.Word {
 
             wordTableRow._tableRow.Append(tableCell);
 
+            this.Borders = new WordTableCellBorder(document, wordTable, wordTableRow, this);
+
             _tableCellProperties = tableCellProperties;
             _tableCell = tableCell;
             _wordTable = wordTable;
@@ -167,12 +170,17 @@ namespace OfficeIMO.Word {
             _wordTableRow = wordTableRow;
             _document = document;
 
+            this.Borders = new WordTableCellBorder(document, wordTable, wordTableRow, this);
+
             //foreach (Paragraph paragraph in tableCell.ChildElements.OfType<Paragraph>().ToList()) {
             //    WordParagraph wordParagraph = new WordParagraph(document, paragraph, null);
             //    this.Paragraphs.Add(wordParagraph);
             //}
         }
 
+        /// <summary>
+        /// Remove a cell from a table
+        /// </summary>
         public void Remove() {
             _tableCell.Remove();
             //_wordTableRow.Cells.Remove(this);
