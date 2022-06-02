@@ -452,8 +452,16 @@ namespace OfficeIMO.Word {
             var memoryStream = new MemoryStream();
             word._fileStream.CopyTo(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
-            
+
             WordprocessingDocument wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+
+            StyleDefinitionsPart styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
+            if (styleDefinitionsPart != null) {
+                AddStyleDefinitions(styleDefinitionsPart);
+            } else {
+                StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+            }
 
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
@@ -506,8 +514,7 @@ namespace OfficeIMO.Word {
         //    }
         //}
 
-        private static void CopyPackageProperties(PackageProperties src, PackageProperties dest)
-        {
+        private static void CopyPackageProperties(PackageProperties src, PackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
             dest.ContentType = src.ContentType;
@@ -535,7 +542,7 @@ namespace OfficeIMO.Word {
                 try {
                     //Save to the memory stream
                     this._wordprocessingDocument.Save();
-                    
+
                     //Open the specified file and copy the bytes
                     if (filePath != "") {
                         //Close existing fileStream
@@ -599,11 +606,10 @@ namespace OfficeIMO.Word {
         }
 
         public void Dispose() {
-            if (this._wordprocessingDocument.AutoSave)
-            {
+            if (this._wordprocessingDocument.AutoSave) {
                 Save();
             }
-            
+
             if (this._wordprocessingDocument != null) {
                 try {
                     this._wordprocessingDocument.Close();

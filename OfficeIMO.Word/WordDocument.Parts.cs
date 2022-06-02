@@ -1098,6 +1098,31 @@ namespace OfficeIMO.Word {
             return latentStyles1;
         }
 
+
+        /// <summary>
+        /// Adds table style to document if it's missing
+        /// </summary>
+        /// <param name="styles"></param>
+        private static void AddTableStyles(Styles styles) {
+            // TODO: load all styles to document, probably we should load those in use
+            var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
+            foreach (var style in listOfTableStyles) {
+                if (WordTableStyles.IsAvailableStyle(styles, style) == false) {
+                    styles.Append(WordTableStyles.GetStyleDefinition(style));
+                }
+            }
+        }
+
+        /// <summary>
+        /// This method is supposed to bring missing elements such as table styles to loaded document
+        /// </summary>
+        /// <param name="styleDefinitionsPart"></param>
+        private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
+            var styles = styleDefinitionsPart.Styles;
+
+            AddTableStyles(styles);
+        }
+
         // Generates content of styleDefinitionsPart1.
         private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
             Styles styles1 = new Styles() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh" } };
@@ -1118,11 +1143,8 @@ namespace OfficeIMO.Word {
             styles1.Append(docDefaults1);
             styles1.Append(latentStyles1);
 
-            // TODO: load all styles to document, probably we should load those in use
-            var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
-            foreach (var style in listOfTableStyles) {
-                styles1.Append(WordTableStyles.GetStyleDefinition(style));
-            }
+            AddTableStyles(styles1);
+
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
             foreach (var style in listOfStyles) {
