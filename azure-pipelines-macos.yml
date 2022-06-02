@@ -74,11 +74,11 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: DotNetCoreCLI@2
-  displayName: 'Install Nuget Packages'
-  inputs:
-    command: build
-    projects: '**/*.csproj'
+# - task: DotNetCoreCLI@2
+#   displayName: 'Install Nuget Packages'
+#   inputs:
+#     command: build
+#     projects: '**/*.csproj'
 
 - task: CmdLine@2
   displayName: 'Install Global Tools...'
