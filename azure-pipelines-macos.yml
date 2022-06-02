@@ -69,16 +69,16 @@ steps:
   inputs:
     script: 'dotnet --list-sdks'
 
-- task: NuGetCommand@2
-  displayName: Install Nuget Packages
-  inputs:
-    restoreSolution: '$(solution)'
-
-# - task: DotNetCoreCLI@2
-#   displayName: 'Install Nuget Packages'
+# - task: NuGetCommand@2
+#   displayName: Install Nuget Packages
 #   inputs:
-#     command: build
-#     projects: '**/*.csproj'
+#     restoreSolution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Install Nuget Packages'
+  inputs:
+    command: restore
+    projects: '**/*.csproj'
 
 - task: CmdLine@2
   displayName: 'Install Global Tools...'
