@@ -15,7 +15,6 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine(document.Tables.Count);
 
-
                 var table = document.Tables[0];
                 Console.WriteLine("First table style: " + table.Style);
 
@@ -23,26 +22,11 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("First table style, after change: " + table.Style);
 
-                //var paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                //paragraph.ParagraphAlignment = JustificationValues.Center;
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent5);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                //WordTable wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent5);
-                //wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
-                //wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
-                //wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
-
-                //wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent6);
-                //wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
-                //wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
-                //wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
-
-                //wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent3);
-                //wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
-                //wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
-                //wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
-
-                //WordTable wordTableFromEarlier = document.Tables[0];
-                //wordTableFromEarlier.Rows[1].Cells[1].Paragraphs[0].Text = "Middle table";
+                wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent6);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 document.Save(filePath2, openWord);
             }
