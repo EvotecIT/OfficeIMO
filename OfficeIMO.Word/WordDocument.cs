@@ -455,8 +455,13 @@ namespace OfficeIMO.Word {
 
             WordprocessingDocument wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-            StyleDefinitionsPart styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().First();
-            AddStyleDefinitions(styleDefinitionsPart);
+            StyleDefinitionsPart styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
+            if (styleDefinitionsPart != null) {
+                AddStyleDefinitions(styleDefinitionsPart);
+            } else {
+                StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+            }
 
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
