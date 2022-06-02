@@ -68,10 +68,10 @@ steps:
   inputs:
     script: 'dotnet --list-sdks'
 
-- task: NuGetCommand@2
-  displayName: Install Nuget Packages
-  inputs:
-    restoreSolution: '$(solution)'
+# - task: NuGetCommand@2
+#   displayName: Install Nuget Packages
+#   inputs:
+#     restoreSolution: '$(solution)'
 
 - task: DotNetCoreCLI@2
   displayName: 'Install Nuget Packages'
