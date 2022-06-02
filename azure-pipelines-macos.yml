@@ -77,7 +77,7 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: 'Install Nuget Packages'
   inputs:
-    command: restore
+    command: build
     projects: '**/*.csproj'
 
 - task: CmdLine@2
