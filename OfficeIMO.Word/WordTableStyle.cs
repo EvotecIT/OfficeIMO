@@ -409,7 +409,7 @@ namespace OfficeIMO.Word {
         /// <param name="styles"></param>
         /// <param name="style"></param>
         /// <returns></returns>
-        public static bool IsAvailableStyle(Styles styles, WordTableStyle style) {
+        internal static bool IsAvailableStyle(Styles styles, WordTableStyle style) {
             var listCurrentStyles = styles.OfType<Style>().ToList();
             foreach (var currentStyle in listCurrentStyles) {
                 if (currentStyle.StyleId == style.ToString()) {
