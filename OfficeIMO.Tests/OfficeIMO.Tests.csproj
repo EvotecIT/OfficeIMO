@@ -50,6 +50,9 @@
     <None Update="Documents\DocumentWithSection.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\DocumentWithTables.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\EmptyDocument.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

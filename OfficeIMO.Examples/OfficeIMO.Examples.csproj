@@ -17,6 +17,9 @@
     <None Update="Templates\DocumentWithSection.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\DocumentWithTables.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\sample1.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
