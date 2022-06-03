@@ -34,6 +34,10 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[1].Borders.LeftStyle);
                 Console.WriteLine("Border Left Color: " + wordTable.Rows[1].Cells[1].Borders.LeftColorHex);
 
+                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightColor = Color.Aqua;
+                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightSize = 24;
+                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightStyle = BorderValues.Dotted;
+
                 document.Save(openWord);
             }
         }
