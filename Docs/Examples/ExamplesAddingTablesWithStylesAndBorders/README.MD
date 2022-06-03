@@ -6,7 +6,7 @@ One can also modify style of an existing table. Missing styles will be added to 
 
 Below example shows how easily one can create table with builtin style and how to modify it, if the built-in style is not enough.
 
-![](AddingTablesWithStylesAndBorders.png)
+![](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Examples/ExamplesAddingTablesWithStylesAndBorders/AddingTablesWithStylesAndBorders.png?raw=true)
 
 Here is the C# code responsible for creation of three tables above using **OfficeIMO.Word** library.
 
