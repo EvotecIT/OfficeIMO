@@ -359,6 +359,30 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize == 16);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace == 1U);
 
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = BorderValues.DecoBlocks;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex = SixLabors.ImageSharp.Color.YellowGreen.ToHexColor();
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex == SixLabors.ImageSharp.Color.YellowGreen.ToHexColor());
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = Color.DarkSlateBlue;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize = 15;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace = 3U;
+
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle == BorderValues.DecoBlocks);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor == Color.DarkSlateBlue);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize == 15);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace == 3U);
+
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = BorderValues.DecoBlocks;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = SixLabors.ImageSharp.Color.YellowGreen.ToHexColor();
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex == SixLabors.ImageSharp.Color.YellowGreen.ToHexColor());
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = Color.DarkSlateBlue;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize = 15;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace = 3U;
+
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle == BorderValues.DecoBlocks);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor == Color.DarkSlateBlue);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize == 15);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace == 3U);
+
                 document.Save();
             }
         }
@@ -591,6 +615,31 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == Color.Aqua);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize == 16);
                 Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace == 1U);
+
+
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = BorderValues.DecoBlocks;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex = SixLabors.ImageSharp.Color.YellowGreen.ToHexColor();
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex == SixLabors.ImageSharp.Color.YellowGreen.ToHexColor());
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = Color.DarkSlateBlue;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize = 15;
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace = 3U;
+
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle == BorderValues.DecoBlocks);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor == Color.DarkSlateBlue);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize == 15);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace == 3U);
+
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = BorderValues.DecoBlocks;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = SixLabors.ImageSharp.Color.YellowGreen.ToHexColor();
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex == SixLabors.ImageSharp.Color.YellowGreen.ToHexColor());
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = Color.DarkSlateBlue;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize = 15;
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace = 3U;
+
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle == BorderValues.DecoBlocks);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor == Color.DarkSlateBlue);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize == 15);
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace == 3U);
 
                 document.Save();
             }
