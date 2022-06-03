@@ -45,10 +45,10 @@ namespace OfficeIMO.Examples {
             //Lists.Example_BasicLists2Load(folderPath, false);
             //Tables.Example_BasicTables1(folderPath, false);
             //Tables.Example_BasicTablesLoad1(folderPath, false);
-            Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
+            //Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
-
+            Tables.Example_TableBorders(folderPath, true);
 
             //PageSettings.Example_BasicSettings(folderPath, true);
 
