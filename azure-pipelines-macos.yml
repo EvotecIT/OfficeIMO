@@ -10,6 +10,11 @@ trigger:
   paths:
     exclude:
       - docs
+      - .github
+      - .vs
+      - Assets
+      - README.md
+      - CHANGELOG.MD
 
 pr:
   autoCancel: true
@@ -19,6 +24,11 @@ pr:
   paths:
     exclude:
       - docs
+      - .github
+      - .vs
+      - Assets
+      - README.md
+      - CHANGELOG.MD
 
 pool:
   vmImage: 'macos-latest'
