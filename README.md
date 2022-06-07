@@ -50,8 +50,8 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Word basics
   - ☑️ Create
   - ☑️ Load
-  - ☑️ Save (autoopen on save as an option)
-  - ◼️ SaveAs (not working correcly in edge cases)
+  - ☑️ Save (auto open on save as an option)
+  - ☑️ SaveAs (auto open on save as an option)
 - ☑️ Word properties
   - ☑️ Reading basic and custom properties
   - ☑️ Setting basic and custom properties
@@ -61,15 +61,17 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
   - ◼️ Remove Headers and Footers (Odd/Even/First)
   - ◼️ Remove Paragraphs
   - ◼️ Remove Sections
-- ☑️ Headers and Footers in document (not including sections)
+- ☑️ Headers and Footers in the document (not including sections)
   - ☑️ Add Default, Odd, Even, First
   - ◼️ Remove Default, Odd, Even, First
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
 - ☑️ Paragraphs and change alignment
 - ☑️ Tables
+  - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
   - ☑️ Add rows and columns
   - ☑️ Add cells
   - ☑️ Add cell properties
+  - ☑️ [Add and modify table cell borders](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
   - ☑️ Remove rows
   - ☑️ Remove cells
   - ☑️ Others
@@ -82,7 +84,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
   - ◼️ Other image types
   - ◼️ Other location types
 - ☑️ Hyperlinks
-  - ◼️ Add HyperLink
+  - ☑️ Add HyperLink
   - ☑️ Read HyperLink
   - ◼️ Remove HyperLink
   - ☑️ Change HyperLink
