@@ -27,9 +27,9 @@ namespace OfficeIMO.Examples {
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            //BasicDocument.Example_BasicEmptyWord(folderPath, false);
-            //BasicDocument.Example_BasicWord(folderPath, true);
-            //BasicDocument.Example_BasicWord2(folderPath, true);
+            BasicDocument.Example_BasicEmptyWord(folderPath, true);
+            BasicDocument.Example_BasicWord(folderPath, true);
+            BasicDocument.Example_BasicWord2(folderPath, true);
 
             //BasicDocument.Example_BasicDocument(folderPath, true);
             //BasicDocument.Example_BasicDocumentSaveAs1(folderPath, true);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples {
             //Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
-            Tables.Example_TableBorders(folderPath, true);
+            //Tables.Example_TableBorders(folderPath, true);
 
             //PageSettings.Example_BasicSettings(folderPath, true);
 
@@ -415,52 +415,52 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("8th This text should be colored.");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.IndentationAfter = 1400;
 
 
                 paragraph = document.AddParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
                 paragraph.Bold = true;
-                paragraph.Color = "#FF0000";
+                paragraph.ColorHex = "#FF0000";
                 paragraph.IndentationBefore = 720;
                 paragraph.IndentationFirstLine = 1400;
 
 
                 paragraph = document.AddParagraph("9th This text should be colored and Arial.");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Arial";
                 paragraph.VerticalCharacterAlignmentOnLine = VerticalTextAlignmentValues.Bottom;
 
                 paragraph = document.AddParagraph("10th This text should be colored and Tahoma.");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.FontSize = 20;
                 paragraph.LineSpacingBefore = 300;
 
                 paragraph = document.AddParagraph("12th This text should be colored and Tahoma and text direction changed");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.FontSize = 10;
                 paragraph.TextDirection = TextDirectionValues.TopToBottomRightToLeftRotated;
 
                 paragraph = document.AddParagraph("Spacing Test 1");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.LineSpacingAfter = 720;
 
                 paragraph = document.AddParagraph("Spacing Test 2");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
 
 
                 paragraph = document.AddParagraph("Spacing Test 3");
                 paragraph.Bold = true;
-                paragraph.Color = "4F48E2";
+                paragraph.ColorHex = "4F48E2";
                 paragraph.FontFamily = "Tahoma";
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.LineSpacing = 1500;
@@ -574,7 +574,7 @@ namespace OfficeIMO.Examples {
                 document.AddParagraph().Text = "Some text on next page";
 
                 var paragraph1 = document.AddParagraph("Test").AddText("Test2");
-                paragraph1.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph1.Color = SixLabors.ImageSharp.Color.Red;
                 paragraph1.AddText("Test3");
 
                 paragraph = document.AddParagraph("Some paragraph");
@@ -586,14 +586,14 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
                 paragraph = paragraph.AddText(" More text");
-                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue;
 
                 // remove last paragraph
                 document.Paragraphs.Last().Remove();
@@ -603,7 +603,7 @@ namespace OfficeIMO.Examples {
                 paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = UnderlineValues.DashLong;
                 paragraph = paragraph.AddText(" More text");
-                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue;
 
                 // remove paragraph
                 int countParagraphs = document.Paragraphs.Count;
@@ -715,31 +715,31 @@ namespace OfficeIMO.Examples {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 5");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 //var section2 = document.InsertSection(SectionMarkValues.NextPage);
                 var section2 = document.AddSection();
@@ -763,24 +763,24 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 7");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 paragraph = document.AddPageBreak();
 
@@ -831,7 +831,7 @@ namespace OfficeIMO.Examples {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var paragraphInHeaderO = document.Header.Default.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
@@ -843,13 +843,13 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
@@ -886,14 +886,14 @@ namespace OfficeIMO.Examples {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
@@ -931,7 +931,7 @@ namespace OfficeIMO.Examples {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
 
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
@@ -975,7 +975,7 @@ namespace OfficeIMO.Examples {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
@@ -985,7 +985,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var section3 = document.AddSection();
                 section3.AddHeadersAndFooters();
@@ -995,7 +995,7 @@ namespace OfficeIMO.Examples {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
@@ -1040,7 +1040,7 @@ namespace OfficeIMO.Examples {
                 // change same paragraph using section
                 document.Sections[1].Paragraphs[0].Bold = true;
                 // or Paragraphs list for the whole document
-                document.Paragraphs[1].Color = "7178a8";
+                document.Paragraphs[1].ColorHex = "7178a8";
 
                 var paragraph = section1.AddParagraph("We missed paragraph on 1 section (2nd page)");
                 var newParagraph = paragraph.AddParagraphAfterSelf();

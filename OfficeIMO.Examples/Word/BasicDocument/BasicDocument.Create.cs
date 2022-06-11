@@ -23,20 +23,20 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with paragraph");
             string filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphs.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Basic paragraph");
+                var paragraph = document.AddParagraph("Adding paragraph with some text");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 Console.WriteLine(SixLabors.ImageSharp.Color.Blue.ToHexColor());
                 Console.WriteLine(SixLabors.ImageSharp.Color.Crimson.ToHexColor());
                 Console.WriteLine(SixLabors.ImageSharp.Color.Aquamarine.ToHexColor());
 
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                paragraph = document.AddParagraph("2nd paragraph");
+                paragraph = document.AddParagraph("Adding another paragraph with some more text");
                 paragraph.Bold = true;
-                paragraph = paragraph.AddText(" continue?");
+                paragraph = paragraph.AddText(" , but now we also decided to add more text to this paragraph using different style");
                 paragraph.Underline = UnderlineValues.DashLong;
-                paragraph = paragraph.AddText("More text");
-                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue.ToHexColor();
+                paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
+                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue;
 
                 document.Save(openWord);
             }
