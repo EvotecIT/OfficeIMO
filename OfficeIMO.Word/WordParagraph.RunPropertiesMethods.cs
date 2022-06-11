@@ -35,11 +35,11 @@ namespace OfficeIMO.Word {
             return this;
         }
         public WordParagraph SetColorHex(string color) {
-            this.Color = color.Replace("#", "");
+            this.ColorHex = color;
             return this;
         }
         public WordParagraph SetColor(SixLabors.ImageSharp.Color color) {
-            this.Color = color.ToHexColor();
+            this.Color = color;
             return this;
         }
         public WordParagraph SetHighlight(HighlightColorValues highlight) {

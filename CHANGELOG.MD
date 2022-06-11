@@ -1,4 +1,24 @@
-﻿#### - 0.1.5 - 2022.06.04
+﻿#### - 0.1.6
+
+##### What's Changed
+* Rename `Color` to `ColorHex` property for Paragraphs *BREAKING CHANGE*
+* Add `Color` property for Paragraphs as `SixLabors.ImageSharp.Color` *BREAKING CHANGE*
+
+For example:
+
+```csharp
+var paragraph = document.AddParagraph("Basic paragraph");
+paragraph.ParagraphAlignment = JustificationValues.Center;
+paragraph.Color = SixLabors.ImageSharp.Color.Red;
+```
+
+```csharp
+var paragraph = document.AddParagraph("Basic paragraph");
+paragraph.ParagraphAlignment = JustificationValues.Center;
+paragraph.ColorHex = "#FFFF00";
+```
+
+#### - 0.1.5 - 2022.06.04
 
 ##### What's Changed
 * Fixes `TableOfContent.Update()`

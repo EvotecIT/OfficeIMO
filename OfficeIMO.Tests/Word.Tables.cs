@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 wordTable2.Rows[2].Cells[2].Paragraphs[2].SetColor(Color.Green);
 
                 Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Text == "Change me");
-                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Color == Color.Green.ToHexColor());
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Color == Color.Green);
 
 
                 document.Save();
