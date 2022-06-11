@@ -1,4 +1,4 @@
-﻿#### - 0.1.6
+﻿#### - 0.1.6 - 2022.06.11
 
 ##### What's Changed
 * Rename `Color` to `ColorHex` property for Paragraphs *BREAKING CHANGE*

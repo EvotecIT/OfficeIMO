@@ -20,7 +20,7 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     var paragraph = document.AddParagraph("Basic paragraph");
     paragraph.ParagraphAlignment = JustificationValues.Center;
-    paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+    paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
     document.Save(true);
 }
