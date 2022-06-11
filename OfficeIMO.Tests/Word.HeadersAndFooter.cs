@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var paragraphInHeader = document.Header.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
@@ -23,13 +23,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Default Header / Section 0", "Text for default header is wrong (section 0)");
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var paragraphInHeaderO = document.Header.Default.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
@@ -72,13 +72,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 Assert.True(document.Header.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 var paragraphInHeaderF = document.Header.First.AddParagraph();
                 paragraphInHeaderF.Text = "First Header / Section 0";
@@ -134,13 +134,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red.ToHexColor();
+                paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
                 Assert.True(document.Header.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(document.Header.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
