@@ -162,7 +162,12 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public string Color {
+        public SixLabors.ImageSharp.Color Color {
+            get { return SixLabors.ImageSharp.Color.Parse("#" + ColorHex); }
+            set { this.ColorHex = value.ToHexColor(); }
+        }
+
+        public string ColorHex {
             get {
                 if (_runProperties != null && _runProperties.Color != null) {
                     return _runProperties.Color.Val;
@@ -176,7 +181,7 @@ namespace OfficeIMO.Word {
                 // var color = SixLabors.ImageSharp.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
                 if (value != "") {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                    color.Val = value;
+                    color.Val = value.Replace("#", "");
                     _runProperties.Color = color;
                 } else {
                     if (_runProperties.Color != null) _runProperties.Color.Remove();
