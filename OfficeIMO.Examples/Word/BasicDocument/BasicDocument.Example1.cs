@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -17,21 +18,18 @@ namespace OfficeIMO.Examples.Word {
 
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Middle Section - 1");
-                //section1 = document.Sections[1];
-                // document.AddParagraph("Test 0");
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Last Section - 1");
                 section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
                 var test = document.AddParagraph("Test 1 - to delete");
                 test.Remove();
-
+                section1.PageSettings.PageSize = WordPageSize.A5;
+                section2.PageOrientation = PageOrientationValues.Landscape;
 
                 document.Sections[2].AddParagraph("Test 0 - Section Last");
                 document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
-                //document.Sections[1].AddParagraph("Test 2");
 
-                // section2.AddParagraph("Test 1");
                 Console.WriteLine("----");
                 Console.WriteLine("Sections: " + document.Sections.Count);
                 Console.WriteLine("----");
@@ -39,15 +37,11 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[1].Paragraphs.Count);
                 Console.WriteLine(document.Sections[2].Paragraphs.Count);
 
-
                 Console.WriteLine(document.Comments.Count);
 
                 document.Comments[0].Text = "Lets change it";
-
-
                 document.Save(false);
             }
-            filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Examples\bin\Debug\net5.0\Documents\200procent1.docx";
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("----");

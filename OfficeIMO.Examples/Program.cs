@@ -27,8 +27,8 @@ namespace OfficeIMO.Examples {
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            BasicDocument.Example_BasicEmptyWord(folderPath, true);
-            BasicDocument.Example_BasicWord(folderPath, true);
+            BasicDocument.Example_BasicEmptyWord(folderPath, false);
+            BasicDocument.Example_BasicWord(folderPath, false);
             BasicDocument.Example_BasicWord2(folderPath, true);
 
             //BasicDocument.Example_BasicDocument(folderPath, true);
