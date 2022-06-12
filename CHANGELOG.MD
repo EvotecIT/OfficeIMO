@@ -1,7 +1,7 @@
 ﻿#### - 0.1.7 - 2022.06.12
 
 ##### What's Changed
-* Fixes orientation of page/section if set before page size is applied
+* Fixes **PageOrientation** of page/section if set before page size is applied. In case that happens it always reverted back to `Portrait` mode which is default for newly set **PageSizes**.
 
 #### - 0.1.6 - 2022.06.11
 
