@@ -475,5 +475,31 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[6].Margins.FooterDistance == 720);
             }
         }
+
+
+        [Fact]
+        public void Test_CreatingSections() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentSections.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.AddParagraph("Test 1");
+
+                var section1 = document.AddSection();
+                section1.PageOrientation = PageOrientationValues.Landscape;
+                section1.PageSettings.PageSize = WordPageSize.A4;
+                section1.AddParagraph("Test 1");
+
+                Assert.True(section1.PageOrientation == PageOrientationValues.Landscape);
+                Assert.True(section1.PageSettings.Orientation == PageOrientationValues.Landscape);
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Landscape);
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentSections.docx"))) {
+
+
+                Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Landscape);
+            }
+        }
+
     }
 }
