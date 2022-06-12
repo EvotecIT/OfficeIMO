@@ -77,11 +77,22 @@ namespace OfficeIMO.Word {
                             return wordPageSize;
                         }
 
+                        // lets check for standard size
                         if (pageSizeBuiltin.Width != null && pageSize.Width != null &&
                             pageSizeBuiltin.Height != null && pageSize.Height != null &&
                             pageSizeBuiltin.Code != null && pageSize.Code != null &&
                             pageSizeBuiltin.Width == pageSize.Width &&
                             pageSizeBuiltin.Height == pageSize.Height &&
+                            pageSizeBuiltin.Code == pageSize.Code) {
+                            return wordPageSize;
+                        }
+
+                        // lets check for standard size, but with changed orientation
+                        if (pageSizeBuiltin.Width != null && pageSize.Width != null &&
+                            pageSizeBuiltin.Height != null && pageSize.Height != null &&
+                            pageSizeBuiltin.Code != null && pageSize.Code != null &&
+                            pageSizeBuiltin.Width == pageSize.Height &&
+                            pageSizeBuiltin.Height == pageSize.Width &&
                             pageSizeBuiltin.Code == pageSize.Code) {
                             return wordPageSize;
                         }
