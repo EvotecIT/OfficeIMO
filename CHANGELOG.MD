@@ -2,6 +2,7 @@
 
 ##### What's Changed
 * Fixes **PageOrientation** of page/section if set before page size is applied. In case that happens it always reverted back to `Portrait` mode which is default for newly set **PageSizes**.
+* Fixes **PageSize** detection when in `PageOrientationValues.Landscape` mode.
 
 #### - 0.1.6 - 2022.06.11
 
