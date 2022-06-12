@@ -1,4 +1,9 @@
-﻿#### - 0.1.6 - 2022.06.11
+﻿#### - 0.1.7 - 2022.06.12
+
+##### What's Changed
+* Fixes orientation of page/section if set before page size is applied
+
+#### - 0.1.6 - 2022.06.11
 
 ##### What's Changed
 * Rename `Color` to `ColorHex` property for Paragraphs *BREAKING CHANGE*
