@@ -106,6 +106,8 @@
 
 [WordTableCell](./officeimo.word.wordtablecell.md)
 
+[WordTableCellBorder](./officeimo.word.wordtablecellborder.md)
+
 [WordTableOfContent](./officeimo.word.wordtableofcontent.md)
 
 [WordTableRow](./officeimo.word.wordtablerow.md)

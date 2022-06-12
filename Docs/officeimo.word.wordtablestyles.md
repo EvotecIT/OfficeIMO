@@ -44,6 +44,24 @@ public static TableStyle GetStyle(WordTableStyle style)
 
 TableStyle<br>
 
+### **IsAvailableStyle(Styles, WordTableStyle)**
+
+Verifies whether table style is available in document or not
+
+```csharp
+internal static bool IsAvailableStyle(Styles styles, WordTableStyle style)
+```
+
+#### Parameters
+
+`styles` Styles<br>
+
+`style` [WordTableStyle](./officeimo.word.wordtablestyle.md)<br>
+
+#### Returns
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **GetStyleDefinition(WordTableStyle)**
 
 

@@ -10,6 +10,16 @@ public class WordTableCell
 
 Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) → [WordTableCell](./officeimo.word.wordtablecell.md)
 
+## Fields
+
+### **Borders**
+
+
+
+```csharp
+public WordTableCellBorder Borders;
+```
+
 ## Properties
 
 ### **Paragraphs**
@@ -88,7 +98,7 @@ public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wo
 
 ### **Remove()**
 
-
+Remove a cell from a table
 
 ```csharp
 public void Remove()

@@ -463,7 +463,19 @@ public Nullable<int> FontSize { get; set; }
 
 
 ```csharp
-public string Color { get; set; }
+public Color Color { get; set; }
+```
+
+#### Property Value
+
+Color<br>
+
+### **ColorHex**
+
+
+
+```csharp
+public string ColorHex { get; set; }
 ```
 
 #### Property Value
