@@ -83,15 +83,20 @@ namespace OfficeIMO.Examples.Word {
                 section1.PageOrientation = PageOrientationValues.Portrait;
                 section1.PageSettings.PageSize = WordPageSize.A5;
 
-                wordListToc.AddItem("Adding custom properties to document");
+                wordListToc.AddItem("Adding custom properties and page numbers to document");
 
                 document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
                 document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
+                // add page numbers
+                document.Footer.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+
+                // add watermark
+                document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
+
                 document.Save(openWord);
             }
-
         }
     }
 }
