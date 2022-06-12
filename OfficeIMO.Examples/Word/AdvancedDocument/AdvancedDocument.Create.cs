@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
@@ -75,19 +71,23 @@ namespace OfficeIMO.Examples.Word {
                 section.PageOrientation = PageOrientationValues.Landscape;
                 section.PageSettings.PageSize = WordPageSize.A4;
 
-                //document.Sections[1].PageOrientation = PageOrientationValues.Landscape;
-
-                Console.WriteLine(section.PageSettings.Orientation);
-
-                Console.WriteLine(document.Sections.Count);
-
-
-                wordListToc.AddItem("More on section 1");
+                wordListToc.AddItem("Adding headers / footers");
 
                 // lets add headers and footers
                 document.AddHeadersAndFooters();
 
+                // adding text to default header
                 document.Header.Default.AddParagraph("Text added to header - Default");
+
+                var section1 = document.AddSection();
+                section1.PageOrientation = PageOrientationValues.Portrait;
+                section1.PageSettings.PageSize = WordPageSize.A5;
+
+                wordListToc.AddItem("Adding custom properties to document");
+
+                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 document.Save(openWord);
             }
