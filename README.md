@@ -18,18 +18,20 @@ If you would like to contact me you can do so via Twitter or LinkedIn.
 This is a small project (under development) that allows to create Microsoft Word documents (.docx) using .NET.
 Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but heavily simplifies it.
 It was created because working with OpenXML is way too hard for me, and time consuming.
-I originally created it for using within PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
+I created it for use within the PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
 
-I used to use DocX library (which I co-authored, before it was taken over by Xceed) to create Microsoft Word documents,
-but it only supports .NET Framework, and their newest community license makes the project unusuable.
+If you want to see what it can do take a look at this [blog post](https://evotec.xyz/officeimo-free-cross-platform-microsoft-word-net-library/).
+
+I used to use the DocX library (which I co-authored before it was taken over by Xceed) to create Microsoft Word documents,
+but it only supports .NET Framework, and their newest community license makes the project unusable.
 
 *As I am not really a developer, and I hardly know what I'm doing if you know how to help out - please do.*
 
-- If you see bad practice, please open and issue/submit PR.
+- If you see bad practice, please open an issue/submit PR.
 - If you know how to do something in OpenXML that could help this project - please open an issue/submit PR
-- If you see something that could work better - please open and issue/submit PR
-- If you see something that I totally made a fool of myself - please open an issue/submit PR
+- If you see something that could work better - please open an issue/submit PR
+- If you see something that I made a fool of myself - please open an issue/submit PR
 - If you see something that works not the way I think it works - please open an issue/submit PR
 
 I hope you get the drift? If it's bad - open an issue/fix it! I don't know what I'm doing!
