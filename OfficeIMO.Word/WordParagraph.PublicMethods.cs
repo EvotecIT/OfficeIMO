@@ -116,46 +116,48 @@ namespace OfficeIMO.Word {
         /// <param name="initials"></param>
         /// <param name="comment"></param>
         public void AddComment(string author, string initials, string comment) {
-            Comments comments = null;
-            string id = "0";
+            //Comments comments = null;
+            //string id = "0";
 
-            // Verify that the document contains a 
-            // WordProcessingCommentsPart part; if not, add a new one.
-            if (this._document._wordprocessingDocument.MainDocumentPart.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
-                comments = this._document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
-                if (comments.HasChildren) {
-                    // Obtain an unused ID.
-                    id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
-                }
-            } else {
-                // No WordprocessingCommentsPart part exists, so add one to the package.
-                WordprocessingCommentsPart commentPart = this._document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
-                commentPart.Comments = new Comments();
-                comments = commentPart.Comments;
-            }
+            //// Verify that the document contains a 
+            //// WordProcessingCommentsPart part; if not, add a new one.
+            //if (this._document._wordprocessingDocument.MainDocumentPart.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
+            //    comments = this._document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
+            //    if (comments.HasChildren) {
+            //        // Obtain an unused ID.
+            //        id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
+            //    }
+            //} else {
+            //    // No WordprocessingCommentsPart part exists, so add one to the package.
+            //    WordprocessingCommentsPart commentPart = this._document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
+            //    commentPart.Comments = new Comments();
+            //    comments = commentPart.Comments;
+            //}
 
-            // Compose a new Comment and add it to the Comments part.
-            Paragraph p = new Paragraph(new Run(new Text(comment)));
-            Comment cmt =
-                new Comment() {
-                    Id = id,
-                    Author = author,
-                    Initials = initials,
-                    Date = DateTime.Now
-                };
-            cmt.AppendChild(p);
-            comments.AppendChild(cmt);
-            comments.Save();
+            //// Compose a new Comment and add it to the Comments part.
+            //Paragraph p = new Paragraph(new Run(new Text(comment)));
+            //Comment cmt =
+            //    new Comment() {
+            //        Id = id,
+            //        Author = author,
+            //        Initials = initials,
+            //        Date = DateTime.Now
+            //    };
+            //cmt.AppendChild(p);
+            //comments.AppendChild(cmt);
+            //comments.Save();
+
+            WordComment wordComment = WordComment.Create(_document, author, initials, comment);
 
             // Specify the text range for the Comment. 
             // Insert the new CommentRangeStart before the first run of paragraph.
-            this._paragraph.InsertBefore(new CommentRangeStart() { Id = id }, this._paragraph.GetFirstChild<Run>());
+            this._paragraph.InsertBefore(new CommentRangeStart() { Id = wordComment.Id }, this._paragraph.GetFirstChild<Run>());
 
             // Insert the new CommentRangeEnd after last run of paragraph.
-            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() { Id = id }, this._paragraph.Elements<Run>().Last());
+            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() { Id = wordComment.Id }, this._paragraph.Elements<Run>().Last());
 
             // Compose a run with CommentReference and insert it.
-            this._paragraph.InsertAfter(new Run(new CommentReference() { Id = id }), cmtEnd);
+            this._paragraph.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
         }
 
         /// <summary>
