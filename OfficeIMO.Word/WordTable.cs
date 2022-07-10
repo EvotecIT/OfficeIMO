@@ -217,12 +217,12 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordTableRow RowsFirst {
+        public WordTableRow FirstRow {
             get {
                 return Rows.First();
             }
         }
-        public WordTableRow RowsLast {
+        public WordTableRow LastRow {
             get {
                 return Rows.Last();
             }
