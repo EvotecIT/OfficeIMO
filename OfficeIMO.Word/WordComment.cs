@@ -2,16 +2,24 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordComment {
-
+    public partial class WordComment {
         private WordParagraph _paragraph;
         private readonly WordDocument _document;
         private readonly Comment _comment;
         private readonly List<WordParagraph> _list;
 
+        /// <summary>
+        /// ID of a comment
+        /// </summary>
+        public string Id => _comment.Id;
+
+        /// <summary>
+        /// Text content of a comment
+        /// </summary>
         public string Text {
             get {
                 return _paragraph.Text;
@@ -21,6 +29,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initials of a person who created a comment
+        /// </summary>
         public string Initials {
             get {
                 return _comment.Initials;
@@ -30,6 +41,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Full name of a person who created a comment
+        /// </summary>
         public string Author {
             get {
                 return _comment.Author;
@@ -39,35 +53,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// DateTime when the comment was created
+        /// </summary>
         public DateTime DateTime {
-            get {
-                return _comment.Date;
-            }
-            set {
-                _comment.Date = value;
-            }
-        }
-
-        private WordComment(WordDocument document, Comment comment) {
-            _document = document;
-            _comment = comment;
-
-            var paragraph = comment.ChildElements.OfType<Paragraph>();
-            List<WordParagraph> list = WordSection.ConvertParagraphsToWordParagraphs(document, paragraph);
-            _paragraph = list.Count > 1 ? list[1] : list[0];
-            _list = list;
-        }
-
-
-
-        public static List<WordComment> GetAllComments(WordDocument document) {
-            List<WordComment> comments = new List<WordComment>();
-            if (document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart != null && document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments != null) {
-                foreach (var comment in document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments.OfType<Comment>()) {
-                    comments.Add(new WordComment(document, comment));
-                }
-            }
-            return comments;
+            get => _comment.Date;
+            set => _comment.Date = value;
         }
     }
 }
