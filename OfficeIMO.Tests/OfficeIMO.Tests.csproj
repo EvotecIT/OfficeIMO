@@ -95,6 +95,9 @@
     <None Update="Documents\sample3.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\TableExamples.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\TestDocument365.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
