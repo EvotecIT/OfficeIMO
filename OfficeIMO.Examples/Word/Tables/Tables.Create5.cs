@@ -24,10 +24,9 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                //wordTable.Rows[0].Cells[0].Paragraphs[0].AddComment("Adam Kłys", "AK", "Test comment for paragraph");
+                wordTable.FirstRow.FirstCell.Paragraphs[0].AddComment("Adam Kłys", "AK", "Test comment for paragraph within a Table");
 
-                // not yet working
-                wordTable.AddComment("Przemysław Kłys", "PK", "This is a table");
+                wordTable.AddComment("Przemysław Kłys", "PK", "This is a table, and we just added comment to a whole table");
 
                 wordTable.WidthType = TableWidthUnitValues.Pct;
                 wordTable.Width = "3000";
