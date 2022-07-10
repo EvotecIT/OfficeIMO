@@ -21,6 +21,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordTableCell FirstCell {
+            get {
+                return Cells.First();
+            }
+        }
+        public WordTableCell LastCell {
+            get {
+                return Cells.Last();
+            }
+        }
+
         public int CellsCount => Cells.Count;
         private readonly WordTable _wordTable;
         private readonly WordDocument _document;
