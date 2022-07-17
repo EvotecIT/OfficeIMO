@@ -415,5 +415,61 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesAndOptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                wordTable.FirstRow.FirstCell.Paragraphs[0].AddComment("Adam Kłys", "AK", "Test comment for paragraph within a Table");
+
+                Assert.True(wordTable.FirstRow.FirstCell.ShadingFillColor == null);
+
+                wordTable.FirstRow.FirstCell.ShadingFillColor = Color.Blue;
+
+                //Assert.True(wordTable.FirstRow.FirstCell.Paragraphs[0].Comments.Count == 1);
+                Assert.True(wordTable.FirstRow.FirstCell.ShadingFillColor == Color.Blue);
+
+
+                wordTable.Rows[1].FirstCell.ShadingFillColor = Color.Red;
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
+
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == null);
+
+                wordTable.LastRow.FirstCell.ShadingPattern = ShadingPatternValues.Percent20;
+
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
+
+                var wordTable = document.Tables[0];
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+
+                wordTable.Rows[1].FirstCell.ShadingFillColorHex = "#0000FF";
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Blue);
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColorHex == "#0000FF");
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
+
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColor == Color.Blue);
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColorHex == "#0000FF");
+                document.Save();
+            }
+        }
     }
 }
