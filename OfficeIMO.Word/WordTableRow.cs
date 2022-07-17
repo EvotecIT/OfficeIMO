@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public class WordTableRow {
         internal readonly TableRow _tableRow;
 
+        /// <summary>
+        /// Return all cells for given row
+        /// </summary>
         public List<WordTableCell> Cells {
             get {
                 var list = new List<WordTableCell>();
@@ -20,17 +20,15 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+        /// <summary>
+        /// Return first cell for given row
+        /// </summary>
+        public WordTableCell FirstCell => Cells.First();
 
-        public WordTableCell FirstCell {
-            get {
-                return Cells.First();
-            }
-        }
-        public WordTableCell LastCell {
-            get {
-                return Cells.Last();
-            }
-        }
+        /// <summary>
+        /// Return last cell for given row
+        /// </summary>
+        public WordTableCell LastCell => Cells.Last();
 
         public int CellsCount => Cells.Count;
         private readonly WordTable _wordTable;
