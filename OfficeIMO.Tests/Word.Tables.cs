@@ -460,14 +460,14 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[1].FirstCell.ShadingFillColorHex = "#0000FF";
 
                 Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Blue);
-                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColorHex == "#0000FF");
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
 
                 Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColor == Color.Blue);
-                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColorHex == "#0000FF");
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
                 document.Save();
             }
         }
