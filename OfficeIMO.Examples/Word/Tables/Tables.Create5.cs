@@ -26,7 +26,15 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.FirstRow.FirstCell.Paragraphs[0].AddComment("Adam Kłys", "AK", "Test comment for paragraph within a Table");
 
+                wordTable.FirstRow.FirstCell.ShadingFillColor = Color.Blue;
+                wordTable.Rows[1].FirstCell.ShadingFillColor = Color.Red;
+
+                wordTable.LastRow.FirstCell.ShadingPattern = ShadingPatternValues.Percent20;
+
+
                 wordTable.AddComment("Przemysław Kłys", "PK", "This is a table, and we just added comment to a whole table");
+
+                wordTable.LastRow.LastCell.Paragraphs[0].Text = "Last Cell";
 
                 wordTable.WidthType = TableWidthUnitValues.Pct;
                 wordTable.Width = "3000";
