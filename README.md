@@ -23,7 +23,7 @@ but thought it may be useful for others to use in the .NET community.
 
 If you want to see what it can do take a look at this [blog post](https://evotec.xyz/officeimo-free-cross-platform-microsoft-word-net-library/).
 
-I used to use the DocX library (which I co-authored before it was taken over by Xceed) to create Microsoft Word documents,
+I used to use the DocX library (which I co-authored/maintained before it was taken over by Xceed) to create Microsoft Word documents,
 but it only supports .NET Framework, and their newest community license makes the project unusable.
 
 *As I am not really a developer, and I hardly know what I'm doing if you know how to help out - please do.*
