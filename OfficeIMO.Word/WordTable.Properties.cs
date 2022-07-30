@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordTable {
@@ -11,92 +8,75 @@ namespace OfficeIMO.Word {
             Fixed
         }
 
-        public AutoFitType? AutoFit {
-            get {
-                return AutoFitType.ToContent;
-            }
-        }
+        public AutoFitType? AutoFit => AutoFitType.ToContent;
 
         /// <summary>
-        /// Gets or sets a Title/Caption to a Table
+        ///     Gets or sets a Title/Caption to a Table
         /// </summary>
         public string Title {
             get {
-                if (_tableProperties != null && _tableProperties.TableCaption != null) {
+                if (_tableProperties != null && _tableProperties.TableCaption != null)
                     return _tableProperties.TableCaption.Val;
-                }
 
                 return null;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableCaption == null) {
-                    _tableProperties.TableCaption = new TableCaption();
-                }
-                if (value != null) {
+                if (_tableProperties.TableCaption == null) _tableProperties.TableCaption = new TableCaption();
+                if (value != null)
                     _tableProperties.TableCaption.Val = value;
-                } else {
+                else
                     _tableProperties.TableCaption.Remove();
-                }
             }
         }
 
         /// <summary>
-        /// Gets or sets Description for a Table
+        ///     Gets or sets Description for a Table
         /// </summary>
         public string Description {
             get {
-                if (_tableProperties != null && _tableProperties.TableDescription != null) {
+                if (_tableProperties != null && _tableProperties.TableDescription != null)
                     return _tableProperties.TableDescription.Val;
-                }
 
                 return null;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableDescription == null) {
+                if (_tableProperties.TableDescription == null)
                     _tableProperties.TableDescription = new TableDescription();
-                }
-                if (value != null) {
+                if (value != null)
                     _tableProperties.TableDescription.Val = value;
-                } else {
+                else
                     _tableProperties.TableDescription.Remove();
-                }
             }
         }
 
         /// <summary>
-        /// Allow table to overlap or not
+        ///     Allow table to overlap or not
         /// </summary>
         public bool AllowOverlap {
             get {
-                if (this.Position.TableOverlap == TableOverlapValues.Overlap) {
-                    return true;
-                }
+                if (Position.TableOverlap == TableOverlapValues.Overlap) return true;
                 return false;
             }
-            set => this.Position.TableOverlap = value ? TableOverlapValues.Overlap : TableOverlapValues.Never;
+            set => Position.TableOverlap = value ? TableOverlapValues.Overlap : TableOverlapValues.Never;
         }
 
         /// <summary>
-        /// Allow text to wrap around table.
+        ///     Allow text to wrap around table.
         /// </summary>
         public bool AllowTextWrap {
             get {
-                if (this.Position.VerticalAnchor == VerticalAnchorValues.Text) {
-                    return true;
-                }
+                if (Position.VerticalAnchor == VerticalAnchorValues.Text) return true;
 
                 return false;
             }
             set {
-                if (value == true) {
-                    this.Position.VerticalAnchor = VerticalAnchorValues.Text;
-                } else {
-                    this.Position.VerticalAnchor = null;
-                }
+                if (value)
+                    Position.VerticalAnchor = VerticalAnchorValues.Text;
+                else
+                    Position.VerticalAnchor = null;
             }
         }
-
     }
 }
