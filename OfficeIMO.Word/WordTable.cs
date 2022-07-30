@@ -228,9 +228,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Table _table;
+        internal Table _table;
 
-        private TableProperties _tableProperties {
+        internal TableProperties _tableProperties {
             get {
                 return _table.ChildElements.OfType<TableProperties>().FirstOrDefault();
             }
@@ -262,6 +262,8 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordTablePosition Position;
+
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
             // Create an empty table.
@@ -288,7 +290,6 @@ namespace OfficeIMO.Word {
             tableProperties1.Append(tableWidth1);
             tableProperties1.Append(tableLook1);
 
-
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
 
@@ -299,7 +300,6 @@ namespace OfficeIMO.Word {
                     WordTableCell cell = new WordTableCell(document, this, row);
                 }
             }
-
             return table;
         }
 
@@ -316,11 +316,17 @@ namespace OfficeIMO.Word {
             foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
                 WordTableRow tableRow = new WordTableRow(this, row, document);
             }
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
         }
 
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
 
             // Append the table to the document.
             document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
@@ -329,11 +335,19 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
             footer.Append(_table);
         }
         internal WordTable(WordDocument document, Header header, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
             header.Append(_table);
         }
 
@@ -358,11 +372,18 @@ namespace OfficeIMO.Word {
                 AddRow(cellsCount);
             }
         }
-        private void Add(WordTableRow row) {
+
+        /// <summary>
+        /// Adds a row to the table using WordTableRow object
+        /// </summary>
+        /// <param name="row"></param>
+        private void AddRow(WordTableRow row) {
             _table.Append(row._tableRow);
-            // this.Rows.Add(row);
         }
 
+        /// <summary>
+        /// Remove table from document
+        /// </summary>
         public void Remove() {
             _table.Remove();
         }
@@ -370,7 +391,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Generate table properties for the table if it doesn't exists
         /// </summary>
-        private void CheckTableProperties() {
+        internal void CheckTableProperties() {
             if (_tableProperties == null) {
                 _table.AppendChild(new TableProperties());
             }
