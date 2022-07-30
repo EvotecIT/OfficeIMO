@@ -40,6 +40,25 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Width = "3000";
                 wordTable.Alignment = TableRowAlignmentValues.Center;
 
+                wordTable.Title = "This is title";
+                wordTable.Description = "Description of table";
+
+
+                var paragraph1 = document.AddParagraph("Lets add another table showing text wrapping around");
+
+                WordTable wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.Width = "3000";
+
+                wordTable1.AllowTextWrap = true;
+
+                var paragraph2 = document.AddParagraph("This paragraph should continue but next to to the table");
+
                 document.Save(openWord);
             }
         }
