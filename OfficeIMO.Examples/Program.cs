@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
 
-            AdvancedDocument.Example_AdvancedWord(folderPath, true);
+            //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
             //BasicDocument.Example_BasicDocument(folderPath, true);
             //BasicDocument.Example_BasicDocumentSaveAs1(folderPath, true);
@@ -48,6 +48,9 @@ namespace OfficeIMO.Examples {
             //Tables.Example_BasicTables1(folderPath, false);
             //Tables.Example_BasicTablesLoad1(folderPath, false);
             //Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
+            Tables.Example_BasicTablesLoad3(templatesPath, false);
+            Tables.Example_TablesWidthAndAlignment(folderPath, true);
+
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
             //Tables.Example_TableBorders(folderPath, true);

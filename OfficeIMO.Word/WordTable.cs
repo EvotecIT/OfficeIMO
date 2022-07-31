@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordTable {
+    public partial class WordTable {
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -31,10 +31,113 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public TableRowAlignmentValues? Alignment {
+            get {
+                if (_tableProperties != null && _tableProperties.TableJustification != null) {
+                    return _tableProperties.TableJustification.Val;
+                }
+
+                return null;
+            }
+            set {
+                CheckTableProperties();
+                if (_tableProperties.TableJustification == null) {
+                    _tableProperties.TableJustification = new TableJustification();
+                }
+                if (value != null) {
+                    _tableProperties.TableJustification.Val = value.Value;
+                } else {
+                    _tableProperties.TableJustification.Remove();
+                }
+            }
+        }
+
+        public TableWidthUnitValues? WidthType {
+            get {
+                if (_tableProperties != null && _tableProperties.TableWidth != null) {
+                    return _tableProperties.TableWidth.Type;
+                }
+
+                return null;
+            }
+            set {
+                CheckTableProperties();
+                if (_tableProperties.TableWidth == null) {
+                    if (value == TableWidthUnitValues.Auto) {
+                        _tableProperties.TableWidth = new TableWidth() {
+                            Type = value,
+                            Width = "0"
+                        };
+                    } else {
+                        _tableProperties.TableWidth = new TableWidth() {
+                            Type = value,
+                            Width = "5000"
+                        };
+                    }
+                } else {
+                    if (value == TableWidthUnitValues.Auto) {
+                        _tableProperties.TableWidth.Type = value;
+                        _tableProperties.TableWidth.Width = "0";
+                    } else {
+                        _tableProperties.TableWidth.Type = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets width of a table
+        /// </summary>
+        public int? Width {
+            get {
+                if (_tableProperties != null && _tableProperties.TableWidth != null) {
+                    if (_tableProperties.TableWidth.Width != null) {
+                        return int.Parse(_tableProperties.TableWidth.Width);
+                    }
+                }
+                return null;
+            }
+            set {
+                CheckTableProperties();
+                if (_tableProperties.TableWidth == null) {
+                    _tableProperties.TableWidth = new TableWidth() {
+                        Type = TableWidthUnitValues.Pct,
+                        Width = value.ToString()
+                    };
+                } else {
+                    _tableProperties.TableWidth.Width = value.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets layout of a table
+        /// </summary>
+        public TableLayoutValues? LayoutType {
+            get {
+                if (_tableProperties != null && _tableProperties.TableLayout != null) {
+                    return _tableProperties.TableLayout.Type;
+                }
+                return TableLayoutValues.Autofit;
+            }
+            set {
+                CheckTableProperties();
+                if (_tableProperties.TableLayout == null) {
+                    _tableProperties.TableLayout = new TableLayout();
+                }
+                if (value != null) {
+                    _tableProperties.TableLayout.Type = value;
+                } else {
+                    _tableProperties.TableLayout.Remove();
+                }
+            }
+        }
+
         /// <summary>
         /// Specifies that the first row conditional formatting shall be applied to the table.
         /// </summary>
-        public bool? FirstRow {
+        public bool? ConditionalFormattingFirstRow {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.FirstRow;
@@ -50,7 +153,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies that the last row conditional formatting shall be applied to the table.
         /// </summary>
-        public bool? LastRow {
+        public bool? ConditionalFormattingLastRow {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.LastRow;
@@ -66,7 +169,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies that the first column conditional formatting shall be applied to the table.
         /// </summary>
-        public bool? FirstColumn {
+        public bool? ConditionalFormattingFirstColumn {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.FirstColumn;
@@ -82,7 +185,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies that the last column conditional formatting shall be applied to the table.
         /// </summary>
-        public bool? LastColumn {
+        public bool? ConditionalFormattingLastColumn {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.LastColumn;
@@ -98,7 +201,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies that the horizontal banding conditional formatting shall not be applied to the table.
         /// </summary>
-        public bool? NoHorizontalBand {
+        public bool? ConditionalFormattingNoHorizontalBand {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.NoHorizontalBand;
@@ -114,7 +217,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies that the vertical banding conditional formatting shall not be applied to the table.
         /// </summary>
-        public bool? NoVerticalBand {
+        public bool? ConditionalFormattingNoVerticalBand {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
                     return _tableProperties.TableLook.NoVerticalBand;
@@ -143,9 +246,20 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Table _table;
+        public WordTableRow FirstRow {
+            get {
+                return Rows.First();
+            }
+        }
+        public WordTableRow LastRow {
+            get {
+                return Rows.Last();
+            }
+        }
 
-        private TableProperties _tableProperties {
+        internal Table _table;
+
+        internal TableProperties _tableProperties {
             get {
                 return _table.ChildElements.OfType<TableProperties>().FirstOrDefault();
             }
@@ -177,6 +291,8 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordTablePosition Position;
+
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
             // Create an empty table.
@@ -203,7 +319,6 @@ namespace OfficeIMO.Word {
             tableProperties1.Append(tableWidth1);
             tableProperties1.Append(tableLook1);
 
-
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
 
@@ -214,7 +329,6 @@ namespace OfficeIMO.Word {
                     WordTableCell cell = new WordTableCell(document, this, row);
                 }
             }
-
             return table;
         }
 
@@ -231,11 +345,17 @@ namespace OfficeIMO.Word {
             foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
                 WordTableRow tableRow = new WordTableRow(this, row, document);
             }
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
         }
 
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
 
             // Append the table to the document.
             document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
@@ -244,11 +364,19 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
             footer.Append(_table);
         }
         internal WordTable(WordDocument document, Header header, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
             header.Append(_table);
         }
 
@@ -273,13 +401,29 @@ namespace OfficeIMO.Word {
                 AddRow(cellsCount);
             }
         }
-        private void Add(WordTableRow row) {
+
+        /// <summary>
+        /// Adds a row to the table using WordTableRow object
+        /// </summary>
+        /// <param name="row"></param>
+        private void AddRow(WordTableRow row) {
             _table.Append(row._tableRow);
-            // this.Rows.Add(row);
         }
 
+        /// <summary>
+        /// Remove table from document
+        /// </summary>
         public void Remove() {
             _table.Remove();
+        }
+
+        /// <summary>
+        /// Generate table properties for the table if it doesn't exists
+        /// </summary>
+        internal void CheckTableProperties() {
+            if (_tableProperties == null) {
+                _table.AppendChild(new TableProperties());
+            }
         }
     }
 }

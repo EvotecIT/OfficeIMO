@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     public class WordTableCell {
@@ -96,6 +97,9 @@ namespace OfficeIMO.Word {
         private readonly WordTableRow _wordTableRow;
         private readonly WordDocument _document;
 
+        /// <summary>
+        /// Gets or Sets Horizontal Merge for a Table Cell
+        /// </summary>
         public MergedCellValues? HorizontalMerge {
             get {
                 if (_tableCellProperties.HorizontalMerge != null) {
@@ -115,6 +119,10 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or Sets Vertical Merge for a Table Cell
+        /// </summary>
         public MergedCellValues? VerticalMerge {
             get {
                 if (_tableCellProperties.VerticalMerge != null) {
@@ -136,6 +144,137 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Get or set the background color of the cell using hexadecimal color code.
+        /// </summary>
+        public string ShadingFillColorHex {
+            get {
+                if (_tableCellProperties.Shading != null) {
+                    if (_tableCellProperties.Shading.Fill != null) {
+                        return _tableCellProperties.Shading.Fill.Value;
+                    }
+                }
+                return "";
+            }
+            set {
+                if (value != "") {
+                    var color = value.Replace("#", "");
+                    if (_tableCellProperties.Shading == null) {
+                        _tableCellProperties.Shading = new Shading();
+                    }
+                    _tableCellProperties.Shading.Fill = color;
+                    if (_tableCellProperties.Shading.Val == null) {
+                        _tableCellProperties.Shading.Val = ShadingPatternValues.Clear;
+                    }
+                } else {
+                    if (_tableCellProperties.Shading != null && _tableCellProperties.Shading.Fill != null) {
+                        _tableCellProperties.Shading.Remove();
+                    }
+                }
+
+            }
+        }
+
+        /// <summary>
+        /// Get or set the background pattern of a cell
+        /// </summary>
+        public ShadingPatternValues? ShadingPattern {
+            get {
+                if (_tableCellProperties.Shading != null) {
+                    return _tableCellProperties.Shading.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.Shading == null) {
+                        _tableCellProperties.Shading = new Shading();
+                    }
+                    _tableCellProperties.Shading.Val = value;
+                } else {
+                    if (_tableCellProperties.Shading != null) {
+                        _tableCellProperties.Shading.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get or set the background color of a cell using SixLabors.Color
+        /// </summary>
+        public Color? ShadingFillColor {
+            get {
+                if (ShadingFillColorHex != "") {
+                    return SixLabors.ImageSharp.Color.Parse("#" + ShadingFillColorHex);
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    this.ShadingFillColorHex = value.Value.ToHexColor();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets cell width
+        /// </summary>
+        public int? Width {
+            get {
+                if (_tableCellProperties.TableCellWidth != null) {
+                    return int.Parse(_tableCellProperties.TableCellWidth.Width);
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TableCellWidth == null) {
+                        _tableCellProperties.TableCellWidth = new TableCellWidth();
+                    }
+
+                    _tableCellProperties.TableCellWidth.Width = value.ToString();
+                } else {
+                    if (_tableCellProperties.TableCellWidth != null) {
+                        _tableCellProperties.TableCellWidth.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets text direction in a Table Cell
+        /// </summary>
+        public TextDirectionValues? TextDirection {
+            get {
+                if (_tableCellProperties.TextDirection != null) {
+                    return _tableCellProperties.TextDirection.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TextDirection == null) {
+                        _tableCellProperties.TextDirection = new TextDirection();
+                    }
+                    _tableCellProperties.TextDirection.Val = value;
+                } else {
+                    if (_tableCellProperties.TextDirection != null) {
+                        _tableCellProperties.TextDirection.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Create a WordTableCell and add it to given Table Row
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="wordTable"></param>
+        /// <param name="wordTableRow"></param>
         public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
             TableCell tableCell = new TableCell();
             TableCellProperties tableCellProperties = new TableCellProperties(new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" });
@@ -143,12 +282,7 @@ namespace OfficeIMO.Word {
             // Specify the width property of the table cell.
             tableCell.Append(tableCellProperties);
 
-            // Specify the table cell content.
-            //tableCell.Append(new Paragraph(new Run(new Text("Hello, World!"))));
-
             WordParagraph paragraph = new WordParagraph();
-            //tableCell.Append(new Paragraph(new Run(new Text("Hello, World!"))));
-            //Paragraphs.Add(paragraph);
 
             tableCell.Append(paragraph._paragraph);
 
@@ -163,7 +297,15 @@ namespace OfficeIMO.Word {
             _document = document;
         }
 
-        public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow, TableCell tableCell) {
+        /// <summary>
+        /// Create a WordTableCell and add it to given Table Row from TableCell
+        /// Mostly used for loading TableCells during Document Load
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="wordTable"></param>
+        /// <param name="wordTableRow"></param>
+        /// <param name="tableCell"></param>
+        internal WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow, TableCell tableCell) {
             _tableCell = tableCell;
             _tableCellProperties = tableCell.TableCellProperties;
             _wordTable = wordTable;
@@ -171,11 +313,6 @@ namespace OfficeIMO.Word {
             _document = document;
 
             this.Borders = new WordTableCellBorder(document, wordTable, wordTableRow, this);
-
-            //foreach (Paragraph paragraph in tableCell.ChildElements.OfType<Paragraph>().ToList()) {
-            //    WordParagraph wordParagraph = new WordParagraph(document, paragraph, null);
-            //    this.Paragraphs.Add(wordParagraph);
-            //}
         }
 
         /// <summary>
@@ -183,7 +320,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _tableCell.Remove();
-            //_wordTableRow.Cells.Remove(this);
         }
 
         /// <summary>

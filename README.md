@@ -1,6 +1,6 @@
 ﻿# OfficeIMO - Microsoft Word .NET Library
 
-OfficeIMO is available as nuget from the the gallery and it's preferred way of using it.
+OfficeIMO is available as NuGet from the gallery and its preferred way of using it.
 
 [![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)

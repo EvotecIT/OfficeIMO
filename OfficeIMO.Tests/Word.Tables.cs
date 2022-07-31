@@ -415,5 +415,195 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesAndOptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                wordTable.FirstRow.FirstCell.Paragraphs[0].AddComment("Adam Kłys", "AK", "Test comment for paragraph within a Table");
+
+                Assert.True(wordTable.FirstRow.FirstCell.ShadingFillColor == null);
+
+                wordTable.FirstRow.FirstCell.ShadingFillColor = Color.Blue;
+
+                //Assert.True(wordTable.FirstRow.FirstCell.Paragraphs[0].Comments.Count == 1);
+                Assert.True(wordTable.FirstRow.FirstCell.ShadingFillColor == Color.Blue);
+
+
+                wordTable.Rows[1].FirstCell.ShadingFillColor = Color.Red;
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
+
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == null);
+
+                wordTable.LastRow.FirstCell.ShadingPattern = ShadingPatternValues.Percent20;
+
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
+
+                var wordTable = document.Tables[0];
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
+                Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
+
+                wordTable.Rows[1].FirstCell.ShadingFillColorHex = "#0000FF";
+
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Blue);
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
+
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColor == Color.Blue);
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
+
+                document.Save();
+            }
+        }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesAndMoreOptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                var wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                Assert.True(wordTable1.Alignment == null);
+
+                wordTable1.Alignment = TableRowAlignmentValues.Center;
+
+                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+
+                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.Width = 3000;
+
+                wordTable1.Title = "This is a title of the table";
+                wordTable1.Description = "This is a table showing some features";
+
+                Assert.True(wordTable1.Description == "This is a table showing some features");
+                Assert.True(wordTable1.Title == "This is a title of the table");
+
+                Assert.True(wordTable1.AllowTextWrap == false);
+                Assert.True(wordTable1.Position.VerticalAnchor == null);
+
+                wordTable1.AllowTextWrap = true;
+
+                Assert.True(wordTable1.AllowTextWrap == true);
+                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+
+                Assert.True(wordTable1.AllowOverlap == false);
+
+
+                Assert.True(wordTable1.Position.TableOverlap == null);
+
+                wordTable1.AllowOverlap = true;
+
+                Assert.True(wordTable1.AllowOverlap == true);
+                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx"))) {
+                var wordTable1 = document.Tables[0];
+
+                // add a cell to 3rd row
+                WordTableCell cell = new WordTableCell(document, wordTable1, wordTable1.Rows[2]);
+                cell.Paragraphs[0].Text = "This cell is outside a bit";
+                cell.TextDirection = TextDirectionValues.TopToBottomLeftToRightRotated;
+
+                Assert.True(cell.TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+                Assert.True(cell.Paragraphs[0].Text == "This cell is outside a bit");
+
+                Assert.True(wordTable1.Rows[1].Cells.Count == 4);
+                Assert.True(wordTable1.Rows[2].Cells.Count == 5);
+                Assert.True(wordTable1.Rows[1].CellsCount == 4);
+                Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+
+                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+
+                Assert.True(wordTable1.AllowTextWrap == true);
+                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+
+                Assert.True(wordTable1.AllowOverlap == true);
+                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+
+                Assert.True(wordTable1.Description == "This is a table showing some features");
+                Assert.True(wordTable1.Title == "This is a title of the table");
+
+                Assert.True(wordTable1.Position.RightFromText == null);
+                Assert.True(wordTable1.Position.LeftFromText == null);
+                Assert.True(wordTable1.Position.TablePositionXAlignment == null);
+                Assert.True(wordTable1.Position.TablePositionY == null);
+                Assert.True(wordTable1.Position.HorizontalAnchor == null);
+
+
+                wordTable1.Position.LeftFromText = 100;
+
+                wordTable1.Position.RightFromText = 180;
+
+
+                wordTable1.Position.TopFromText = 50;
+
+                wordTable1.Position.BottomFromText = 130;
+
+                wordTable1.Position.TablePositionXAlignment = HorizontalAlignmentValues.Left;
+
+                wordTable1.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
+
+                wordTable1.Position.TablePositionY = 1;
+
+                document.Save();
+            }
+
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx"))) {
+                var wordTable1 = document.Tables[0];
+
+                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+
+                Assert.True(wordTable1.AllowTextWrap == true);
+                Assert.True(wordTable1.Position.VerticalAnchor == VerticalAnchorValues.Text);
+
+                Assert.True(wordTable1.AllowOverlap == true);
+                Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
+
+                Assert.True(wordTable1.Description == "This is a table showing some features");
+                Assert.True(wordTable1.Title == "This is a title of the table");
+
+                Assert.True(wordTable1.Position.RightFromText == 180);
+                Assert.True(wordTable1.Position.LeftFromText == 100);
+                Assert.True(wordTable1.Position.TopFromText == 50);
+                Assert.True(wordTable1.Position.BottomFromText == 130);
+                Assert.True(wordTable1.Position.TablePositionXAlignment == HorizontalAlignmentValues.Left);
+                Assert.True(wordTable1.Position.TablePositionY == 1);
+                Assert.True(wordTable1.Position.HorizontalAnchor == HorizontalAnchorValues.Margin);
+
+                Assert.True(wordTable1.Rows[1].Cells.Count == 4);
+                Assert.True(wordTable1.Rows[2].Cells.Count == 5);
+                Assert.True(wordTable1.Rows[1].CellsCount == 4);
+                Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+
+            }
+        }
     }
 }
