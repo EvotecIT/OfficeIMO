@@ -48,8 +48,8 @@ namespace OfficeIMO.Examples {
             //Tables.Example_BasicTables1(folderPath, false);
             //Tables.Example_BasicTablesLoad1(folderPath, false);
             //Tables.Example_BasicTablesLoad2(templatesPath, folderPath, true);
-            Tables.Example_BasicTablesLoad3(templatesPath, false);
-            Tables.Example_TablesWidthAndAlignment(folderPath, true);
+            //Tables.Example_BasicTablesLoad3(templatesPath, false);
+            //Tables.Example_TablesWidthAndAlignment(folderPath, true);
 
             //Tables.Example_AllTables(folderPath, false);
             //Tables.Example_Tables(folderPath, false);
@@ -57,150 +57,15 @@ namespace OfficeIMO.Examples {
 
             //PageSettings.Example_BasicSettings(folderPath, true);
 
+            //PageNumbers.Example_PageNumbers1(folderPath, true);
 
-            //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
-            //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
-            //Example_MultipleParagraphsViaDifferentWays(filePath, false);
-
-            //Console.WriteLine("[*] Creating standard document with some Images");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
-            //Example_AddingImages(filePath, true);
-
-
-
-            //Console.WriteLine("[*] Read Basic Word with Images");
-            //Example_ReadWordWithImages();
-
-            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
-            //Example_PageBreaks(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks1.docx");
-            //Example_PageBreaks1(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with sections");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections.docx");
-            //Example_BasicSections(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Sections");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections.docx");
-            //Example_BasicWordWithSections(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
-            //Example_BasicWordWithHeaderAndFooterWithoutSections(filePath, false);
-
-            //Console.WriteLine("[*] Creating standard document with Page Orientation");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
-            //Example_PageOrientation(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
-            //Example_BasicWordWithHeaderAndFooter0(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Headers and Footers including Sections");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
-            //Example_BasicWordWithHeaderAndFooter(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with paragraphs");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
-            //Example_BasicParagraphs(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with Paragraph Styles");
-            //filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
-            //Example_BasicParagraphStyles(filePath, false);
-
-            //Console.WriteLine("[*] Creating standard document with TOC - 1");
-            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC1.docx");
-            //Example_BasicTOC1(filePath, false);
-
-            //Console.WriteLine("[*] Creating standard document with TOC - 2");
-            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC2.docx");
-            //Example_BasicTOC2(filePath, false);
-
-
-            //Console.WriteLine("[*] Creating standard document with Page Numbers 1");
-            //filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers.docx");
-            //Example_PageNumbers1(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with sections 2");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 1.docx");
-            //Example_BasicSections2(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with sections 3 and columns");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 2.docx");
-            //Example_BasicSections3WithColumns(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with sections 4");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 3.docx");
-            //Example_SectionsWithParagraphs(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with sections and headers / footers");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections and headers footers testing.docx");
-            //Example_SectionsWithHeadersDefault(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with sections and headers / footers");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections and headers footers.docx");
-            //Example_SectionsWithHeaders(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with comments");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
-            //Example_PlayingWithComments(filePath, true);
-
-            //Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
-            //BasicExcelFunctionality.BasicExcel_Example1(filePath, true);
-
-
-            //Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
-            //BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
-
-            //Console.WriteLine("[*] Excel - Reading standard Excel Document 1");
-            //BasicExcelFunctionality.BasicExcel_Example3(true);
-
-
-            //Console.WriteLine("[*] Creating standard document with margins and sizes");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
-            //Example_BasicWordMarginsSizes(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with watermark");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark.docx");
-            //Example_BasicWordWatermark(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with page borders 1");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 1.docx");
-            //Example_BasicPageBorders1(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with page borders 2");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
-            //Example_BasicPageBorders2(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with bookmarks");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
-            //Example_BasicWordWithBookmarks(filePath, true);
-
-
-            //Console.WriteLine("[*] Creating standard document with hyperlinks");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
-            //Example_BasicWordWithHyperLinks(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Fields");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
-            //Example_AddingFields(filePath, true);
-
-            //Console.WriteLine("[*] Creating standard document with Watermark 2");
-            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
-            //Example_BasicWordWatermark2(filePath, true);
+            //Sections.Example_BasicSections(folderPath, true);
+            //Sections.Example_BasicSections2(folderPath, true);
+            //Sections.Example_BasicSections3WithColumns(folderPath, true);
+            //Sections.Example_SectionsWithParagraphs(folderPath, true);
+            //Sections.Example_SectionsWithHeadersDefault(folderPath, true);
+            //Sections.Example_SectionsWithHeaders(folderPath, true);
+            //Sections.Example_BasicWordWithSections(folderPath, true);
 
             //CoverPages.Example_AddingCoverPage(folderPath, true);
             //CoverPages.Example_AddingCoverPage2(folderPath, true);
@@ -220,6 +85,104 @@ namespace OfficeIMO.Examples {
             //HyperLinks.EasyExample(folderPath, true);
 
             //HeadersAndFooters.Sections1(folderPath, true);
+
+            //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
+            //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
+            //Example_MultipleParagraphsViaDifferentWays(filePath, false);
+
+            //Console.WriteLine("[*] Creating standard document with some Images");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
+            //Example_AddingImages(filePath, true);
+
+            //Console.WriteLine("[*] Read Basic Word with Images");
+            //Example_ReadWordWithImages();
+
+            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
+            //Example_PageBreaks(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks1.docx");
+            //Example_PageBreaks1(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            //Example_BasicWordWithHeaderAndFooterWithoutSections(filePath, false);
+
+            //Console.WriteLine("[*] Creating standard document with Page Orientation");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
+            //Example_PageOrientation(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
+            //Example_BasicWordWithHeaderAndFooter0(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Headers and Footers including Sections");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
+            //Example_BasicWordWithHeaderAndFooter(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with paragraphs");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some paragraphs.docx");
+            //Example_BasicParagraphs(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Paragraph Styles");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with Paragraph Styles.docx");
+            //Example_BasicParagraphStyles(filePath, false);
+
+            //Console.WriteLine("[*] Creating standard document with TOC - 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC1.docx");
+            //Example_BasicTOC1(filePath, false);
+
+            //Console.WriteLine("[*] Creating standard document with TOC - 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Document with TOC2.docx");
+            //Example_BasicTOC2(filePath, false);
+
+            //Console.WriteLine("[*] Creating standard document with comments");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with comments.docx");
+            //Example_PlayingWithComments(filePath, true);
+
+            //Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
+            //BasicExcelFunctionality.BasicExcel_Example1(filePath, true);
+
+            //Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
+            //BasicExcelFunctionality.BasicExcel_Example2(filePath, true);
+
+            //Console.WriteLine("[*] Excel - Reading standard Excel Document 1");
+            //BasicExcelFunctionality.BasicExcel_Example3(true);
+
+            //Console.WriteLine("[*] Creating standard document with margins and sizes");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
+            //Example_BasicWordMarginsSizes(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with watermark");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark.docx");
+            //Example_BasicWordWatermark(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with page borders 1");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 1.docx");
+            //Example_BasicPageBorders1(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with page borders 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with page borders 2.docx");
+            //Example_BasicPageBorders2(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with bookmarks");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithBookmarks.docx");
+            //Example_BasicWordWithBookmarks(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with hyperlinks");
+            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentHyperlinks.docx");
+            //Example_BasicWordWithHyperLinks(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Fields");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
+            //Example_AddingFields(filePath, true);
+
+            //Console.WriteLine("[*] Creating standard document with Watermark 2");
+            //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 2.docx");
+            //Example_BasicWordWatermark2(filePath, true);
         }
 
         private static void Example_BasicWordWatermark2(string filePath, bool openWord) {
@@ -261,8 +224,6 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
-
 
         private static void Example_AddingFields(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -533,8 +494,6 @@ namespace OfficeIMO.Examples {
 
             document.Save(true);
         }
-
-
 
         private static void Example_ReadWordWithImages() {
             string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
@@ -868,70 +827,6 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_BasicSections(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
-
-                var section1 = document.AddSection();
-                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
-
-                document.AddParagraph("Test 2 - Should be after 1st section");
-                var section2 = document.AddSection();
-
-                document.AddParagraph("Test 3 - Should be after 2nd section");
-                document.AddParagraph("Test 4 - Should be after 2nd section").SetBold().AddText(" more text").SetColor(Color.DarkSalmon);
-
-                var section3 = document.AddSection();
-
-                var para = document.AddParagraph("Test 5 -");
-                para = para.AddText(" and more text");
-                para.Bold = true;
-
-                document.AddPageBreak();
-
-                var paragraph = document.AddParagraph("Basic paragraph - Page 3");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
-
-                paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Aqua);
-
-                paragraph = document.AddParagraph("Basic paragraph - Page 4");
-                paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
-
-                paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetHighlight(HighlightColorValues.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
-
-
-                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections: " + document.Sections.Count);
-
-                // primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
-
-                document.Save();
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections: " + document.Sections.Count);
-
-                // primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
-
-                document.Save(openWord);
-            }
-        }
-
         private static void Example_BasicParagraphs(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
@@ -1017,57 +912,6 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        private static void Example_BasicWordWithSections(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Test 1");
-                var section1 = document.AddSection(SectionMarkValues.NextPage);
-
-                document.AddParagraph("Test 2");
-                var section2 = document.AddSection(SectionMarkValues.Continuous);
-
-                document.AddParagraph("Test 3");
-                var section3 = document.AddSection(SectionMarkValues.NextPage);
-                section3.AddParagraph("Paragraph added to section number 3");
-                section3.AddParagraph("Continue adding paragraphs to section 3");
-
-                // 4 section, 5 paragraphs, 0 pagebreaks
-                Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections: " + document.Sections.Count);
-
-                // primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                // additional sections
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
-
-                // change same paragraph using section
-                document.Sections[1].Paragraphs[0].Bold = true;
-                // or Paragraphs list for the whole document
-                document.Paragraphs[1].ColorHex = "7178a8";
-
-                var paragraph = section1.AddParagraph("We missed paragraph on 1 section (2nd page)");
-                var newParagraph = paragraph.AddParagraphAfterSelf();
-                newParagraph.Text = "Some more text, after paragraph we just added.";
-                newParagraph.Bold = true;
-
-
-                Console.WriteLine("+ Paragraphs (repeated): " + document.Paragraphs.Count);
-                Console.WriteLine("+ PageBreaks (repeated): " + document.PageBreaks.Count);
-                Console.WriteLine("+ Sections   (repeated): " + document.Sections.Count);
-                // primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0 (repeated): " + document.Sections[0].Paragraphs.Count);
-                // additional sections
-                Console.WriteLine("+ Paragraphs section 1 (repeated): " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2 (repeated): " + document.Sections[2].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 3 (repeated): " + document.Sections[3].Paragraphs.Count);
-
-
-                document.Save(openWord);
-            }
-        }
-
         private static void Example_BasicParagraphStyles(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
@@ -1079,13 +923,7 @@ namespace OfficeIMO.Examples {
 
                 document.Save(openWord);
             }
-            //using (WordDocument document = WordDocument.Load(filePath)) {
-
-
-            //    document.Save(openWord);
-            //}
         }
-
 
         private static void Example_BasicTOC1(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -1140,434 +978,6 @@ namespace OfficeIMO.Examples {
                 document.Save(openWord);
             }
         }
-
-
-        private static void Example_PageNumbers1(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.UpdateFieldsOnOpen = true;
-                document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
-                document.AddHeadersAndFooters();
-                //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
-                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
-                pageNumber.ParagraphAlignment = JustificationValues.Center;
-
-                document.AddPageBreak();
-
-                document.AddHorizontalLine(BorderValues.Double);
-
-                document.Sections[0].AddHorizontalLine();
-
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
-
-                wordListToc.AddItem("This is first item");
-
-                wordListToc.AddItem("This is second item");
-
-                document.AddPageBreak();
-
-                wordListToc.AddItem("Text 2.1", 1);
-
-                wordListToc.AddItem("Text 2.1", 1);
-
-                wordListToc.AddItem("Text 2.1", 1);
-
-                wordListToc.AddItem("Text 2.2", 2);
-
-                var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
-                para.CapsStyle = CapsStyle.Caps;
-                para.Highlight = HighlightColorValues.DarkMagenta;
-
-                var wordList = document.AddList(WordListStyle.Bulleted);
-
-                wordList.AddItem("List Item 1");
-                wordList.AddItem("List Item 2");
-                wordList.AddItem("List Item 3");
-                wordList.AddItem("List Item 3.1", 1);
-                wordList.AddItem("List Item 3.2", 1);
-                wordList.AddItem("List Item 3.3", 2);
-
-                wordListToc.AddItem("Text 2.3", 2);
-
-                wordListToc.AddItem("Text 3.3", 3);
-
-                document.Save();
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                // we loaded document, lets add some text to continue
-                document.AddParagraph().SetColor(Color.CornflowerBlue).SetText("This is some text");
-
-                // we loaded document, lets add page break to continue
-                document.AddPageBreak();
-
-                // lets find a list which has items which suggest it's a TOC attached list
-                WordList wordListToc = null;
-                foreach (var list in document.Lists) {
-                    if (list.IsToc) {
-                        wordListToc = list;
-                    }
-                }
-
-                // finally lets add another list item
-                if (wordListToc != null) {
-                    wordListToc.AddItem("Text 4.4", 2);
-                }
-
-                document.Settings.UpdateFieldsOnOpen = true;
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_BasicSections2(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
-                document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
-
-                var section1 = document.AddSection();
-
-                section1.PageOrientation = PageOrientationValues.Portrait;
-
-                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
-
-                var section2 = document.AddSection();
-
-                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
-
-                section2.PageOrientation = PageOrientationValues.Landscape;
-
-                //// primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
-
-                document.Save();
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("Loaded document information:");
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
-
-
-                var section1 = document.AddSection();
-                section1.AddParagraph("Test Section4");
-
-                var section2 = document.AddSection();
-                section2.AddParagraph("Test Section5");
-
-                var section3 = document.AddSection();
-                section3.AddParagraph("Test Section6");
-                section3.PageOrientation = PageOrientationValues.Portrait;
-
-                Console.WriteLine("Loaded document information:");
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 4: " + document.Sections[4].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 5: " + document.Sections[5].Paragraphs.Count);
-
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 3: " + document.Sections[3].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 4: " + document.Sections[4].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 5: " + document.Sections[5].PageOrientation);
-
-
-                section1.AddParagraph("This goes to section 4");
-
-                Console.WriteLine("+ Paragraphs section 3 Text: " + document.Sections[3].Paragraphs[0].Text);
-                Console.WriteLine("+ Paragraphs section 3 Count: " + document.Sections[3].Paragraphs.Count);
-
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_BasicSections3WithColumns(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
-                document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
-
-                var section1 = document.AddSection();
-                section1.AddParagraph("This is a text in 2nd section");
-                section1.PageOrientation = PageOrientationValues.Portrait;
-                section1.ColumnCount = 2;
-                for (int i = 0; i < 10; i++) {
-                    section1.AddParagraph("Test 3 - Should be in 2nd section");
-                }
-
-                section1.AddParagraph("Test5");
-
-                var section2 = document.AddSection();
-
-                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
-
-                section2.PageOrientation = PageOrientationValues.Landscape;
-
-                //// primary section (for the whole document)
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
-
-                Console.WriteLine("+ ColumnCount section 0: " + document.Sections[0].ColumnCount);
-                Console.WriteLine("+ ColumnCount section 1: " + document.Sections[1].ColumnCount);
-
-                document.Save(false);
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("Loaded document information:");
-                Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
-                Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
-
-                var section1 = document.AddSection();
-                section1.AddParagraph("This is a text in 2nd section");
-                section1.PageOrientation = PageOrientationValues.Portrait;
-                section1.ColumnCount = 2;
-                for (int i = 0; i < 10; i++) {
-                    section1.AddParagraph("Test 3 - Should be in 2nd section");
-                }
-
-                for (int i = 0; i < 11; i++) {
-                    Console.WriteLine(document.Sections[3].Paragraphs[i].Text);
-                }
-
-                Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
-
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_SectionsWithParagraphs(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
-                document.AddParagraph("Test Section0").SetColor(Color.LightPink);
-
-                var section1 = document.AddSection();
-                section1.PageOrientation = PageOrientationValues.Portrait;
-
-                section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(20);
-
-                var section2 = document.AddSection();
-
-                section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
-
-                section2.PageOrientation = PageOrientationValues.Landscape;
-
-
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-
-                document.Save(false);
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("-----");
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-
-
-                var section3 = document.AddSection();
-                section3.AddParagraph("Test Section3");
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-                section3.AddParagraph("Test Section3-Par1");
-                Console.WriteLine("Section 3 - Text 1: " + document.Sections[3].Paragraphs[1].Text);
-                var section4 = document.AddSection();
-                section4.AddParagraph("Test Section4");
-                var section5 = document.AddSection();
-                section5.AddParagraph("Test Section5");
-                section5.PageOrientation = PageOrientationValues.Portrait;
-
-                document.AddParagraph("Test Section5-Par1");
-                document.AddParagraph("Test Section5-Par2");
-                section3.AddParagraph("Test Section3-Par2");
-
-                Console.WriteLine("-----");
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-                Console.WriteLine("Section 4 - Text 0: " + document.Sections[4].Paragraphs[0].Text);
-                Console.WriteLine("Section 5 - Text 0: " + document.Sections[5].Paragraphs[0].Text);
-                Console.WriteLine("Section 5 - Text 1: " + document.Sections[5].Paragraphs[1].Text);
-                Console.WriteLine("Section 5 - Text 2: " + document.Sections[5].Paragraphs[2].Text);
-                Console.WriteLine("Section 3 - Text 1: " + document.Sections[3].Paragraphs[1].Text);
-                Console.WriteLine("Section 3 - Text 2: " + document.Sections[3].Paragraphs[2].Text);
-                document.Save(true);
-            }
-        }
-
-        private static void Example_SectionsWithHeadersDefault(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.Language = "pl-PL";
-
-                document.Sections[0].PageOrientation = PageOrientationValues.Portrait;
-                document.AddParagraph("Test Section0");
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
-
-                document.Sections[0].Header.Default.AddParagraph().SetText("Test Section 0 - Header");
-                document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
-
-                document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
-
-                document.AddPageBreak();
-                document.AddPageBreak();
-                document.AddPageBreak();
-                document.AddPageBreak();
-
-                document.AddSection();
-                document.Sections[1].PageOrientation = PageOrientationValues.Landscape;
-
-                document.AddPageBreak();
-                document.AddPageBreak();
-                document.AddPageBreak();
-                document.AddPageBreak();
-
-                //Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                //Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                //Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-                //Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
-                //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-
-                //Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
-                document.Save(false);
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].Header.Default.AddParagraph().SetText("Test Section 1 - Header");
-                document.Sections[1].Footer.Default.AddParagraph().SetText("Test Section 1 - Header");
-
-                document.Sections[1].DifferentFirstPage = true;
-                document.Sections[1].Header.First.AddParagraph().SetText("Test Section 1 - First Header");
-                document.Sections[1].Footer.First.AddParagraph().SetText("Test Section 1 - First Footer");
-
-                document.Sections[1].DifferentOddAndEvenPages = true;
-
-                document.Sections[1].Header.Even.AddParagraph().SetText("Test Section 1 - Even Header");
-                document.Sections[1].Footer.Even.AddParagraph().SetText("Test Section 1 - Even Footer");
-
-                document.Settings.ProtectionPassword = "ThisIsTest";
-                document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
-                document.Settings.RemoveProtection();
-                document.Save(openWord);
-            }
-        }
-
-        private static void Example_SectionsWithHeaders(string filePath, bool openWord) {
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
-                document.AddParagraph("Test Section0");
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
-
-                document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Sections[0].Header.Default.AddParagraph().SetText("Test Section 0 - Header");
-                document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                var section1 = document.AddSection();
-                section1.PageOrientation = PageOrientationValues.Portrait;
-                section1.AddParagraph("Test Section1");
-                section1.AddHeadersAndFooters();
-                section1.Header.Default.AddParagraph().SetText("Test Section 1 - Header");
-                section1.DifferentFirstPage = true;
-                section1.Header.First.AddParagraph().SetText("Test Section 1 - First Header");
-
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                document.AddPageBreak();
-
-
-                var section2 = document.AddSection();
-                section2.AddParagraph("Test Section2");
-                section2.PageOrientation = PageOrientationValues.Landscape;
-                section2.AddHeadersAndFooters();
-                section2.Header.Default.AddParagraph().SetText("Test Section 2 - Header");
-
-                document.AddParagraph("Test Section2 - Paragraph 1");
-
-
-                var section3 = document.AddSection();
-                section3.AddParagraph("Test Section3");
-                section3.AddHeadersAndFooters();
-                section3.Header.Default.AddParagraph().SetText("Test Section 3 - Header");
-
-
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
-                document.Save(false);
-            }
-
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("-----");
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
-                Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
-                Console.WriteLine("-----");
-                document.Sections[1].Header.Default.AddParagraph().SetText("Test Section 1 - Header-Par1");
-                Console.WriteLine("Section 1 - Text 1: " + document.Sections[1].Header.Default.Paragraphs[1].Text);
-                document.Save(true);
-            }
-        }
-
         private static void Example_PlayingWithComments(string filePath, bool openWord) {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test Section");
