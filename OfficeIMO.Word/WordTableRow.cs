@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -30,7 +31,42 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTableCell LastCell => Cells.Last();
 
+        /// <summary>
+        /// Gets cells count
+        /// </summary>
         public int CellsCount => Cells.Count;
+
+        /// <summary>
+        /// Gets or sets height of a row
+        /// </summary>
+        public int? Height {
+            get {
+                if (_tableRow.TableRowProperties != null) {
+                    var rowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    if (rowHeight != null) {
+                        return (int)rowHeight.Val.Value;
+                    }
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    AddTableRowProperties();
+                    var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    if (tableRowHeight == null) {
+                        _tableRow.TableRowProperties.InsertAt(new TableRowHeight(), 0);
+                        tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    }
+                    tableRowHeight.Val = (uint)value;
+                } else {
+                    var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    if (tableRowHeight != null) {
+                        tableRowHeight.Remove();
+                    }
+                }
+            }
+        }
+
         private readonly WordTable _wordTable;
         private readonly WordDocument _document;
 
@@ -49,16 +85,27 @@ namespace OfficeIMO.Word {
 
             foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
                 WordTableCell wordCell = new WordTableCell(document, wordTable, this, cell);
-                //this.Cells.Add(wordCell);
             }
         }
-        //public void Add(WordTableCell cell) {
-        //    _tableRow.Append(cell._tableCell);
-        //    //this.Cells.Add(cell);
-        //}
+
+        public void Add(WordTableCell cell) {
+            _tableRow.Append(cell._tableCell);
+        }
+
+        /// <summary>
+        /// Remove a row
+        /// </summary>
         public void Remove() {
             _tableRow.Remove();
-            //_wordTable.Rows.Remove(this);
+        }
+
+        /// <summary>
+        /// Generate table row properties for the row if it doesn't exists
+        /// </summary>
+        private void AddTableRowProperties() {
+            if (_tableRow.TableRowProperties == null) {
+                _tableRow.InsertAt(new TableRowProperties(), 0);
+            }
         }
     }
 }

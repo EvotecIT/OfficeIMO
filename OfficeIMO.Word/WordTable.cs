@@ -85,10 +85,16 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public string Width {
+
+        /// <summary>
+        /// Gets or sets width of a table
+        /// </summary>
+        public int? Width {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Width;
+                    if (_tableProperties.TableWidth.Width != null) {
+                        return int.Parse(_tableProperties.TableWidth.Width);
+                    }
                 }
                 return null;
             }
@@ -97,10 +103,33 @@ namespace OfficeIMO.Word {
                 if (_tableProperties.TableWidth == null) {
                     _tableProperties.TableWidth = new TableWidth() {
                         Type = TableWidthUnitValues.Pct,
-                        Width = value
+                        Width = value.ToString()
                     };
                 } else {
-                    _tableProperties.TableWidth.Width = value;
+                    _tableProperties.TableWidth.Width = value.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets layout of a table
+        /// </summary>
+        public TableLayoutValues? LayoutType {
+            get {
+                if (_tableProperties != null && _tableProperties.TableLayout != null) {
+                    return _tableProperties.TableLayout.Type;
+                }
+                return TableLayoutValues.Autofit;
+            }
+            set {
+                CheckTableProperties();
+                if (_tableProperties.TableLayout == null) {
+                    _tableProperties.TableLayout = new TableLayout();
+                }
+                if (value != null) {
+                    _tableProperties.TableLayout.Type = value;
+                } else {
+                    _tableProperties.TableLayout.Remove();
                 }
             }
         }

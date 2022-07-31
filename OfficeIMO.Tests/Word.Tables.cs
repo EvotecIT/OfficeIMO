@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
 
                 wordTable1.WidthType = TableWidthUnitValues.Pct;
-                wordTable1.Width = "3000";
+                wordTable1.Width = 3000;
 
                 wordTable1.Title = "This is a title of the table";
                 wordTable1.Description = "This is a table showing some features";
@@ -523,6 +523,20 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx"))) {
                 var wordTable1 = document.Tables[0];
+
+                // add a cell to 3rd row
+                WordTableCell cell = new WordTableCell(document, wordTable1, wordTable1.Rows[2]);
+                cell.Paragraphs[0].Text = "This cell is outside a bit";
+                cell.TextDirection = TextDirectionValues.TopToBottomLeftToRightRotated;
+
+                Assert.True(cell.TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
+                Assert.True(cell.Paragraphs[0].Text == "This cell is outside a bit");
+
+                Assert.True(wordTable1.Rows[1].Cells.Count == 4);
+                Assert.True(wordTable1.Rows[2].Cells.Count == 5);
+                Assert.True(wordTable1.Rows[1].CellsCount == 4);
+                Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
 
                 Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
 
@@ -582,6 +596,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Position.TablePositionXAlignment == HorizontalAlignmentValues.Left);
                 Assert.True(wordTable1.Position.TablePositionY == 1);
                 Assert.True(wordTable1.Position.HorizontalAnchor == HorizontalAnchorValues.Margin);
+
+                Assert.True(wordTable1.Rows[1].Cells.Count == 4);
+                Assert.True(wordTable1.Rows[2].Cells.Count == 5);
+                Assert.True(wordTable1.Rows[1].CellsCount == 4);
+                Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
+                Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
 
             }
         }

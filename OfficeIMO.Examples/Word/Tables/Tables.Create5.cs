@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.LastRow.LastCell.Paragraphs[0].Text = "Last Cell";
 
                 wordTable.WidthType = TableWidthUnitValues.Pct;
-                wordTable.Width = "3000";
+                wordTable.Width = 3000;
                 wordTable.Alignment = TableRowAlignmentValues.Center;
 
                 wordTable.Title = "This is title";
@@ -53,11 +53,32 @@ namespace OfficeIMO.Examples.Word {
                 wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
                 wordTable1.WidthType = TableWidthUnitValues.Pct;
-                wordTable1.Width = "3000";
+                wordTable1.Width = 3000;
 
                 wordTable1.AllowTextWrap = true;
 
                 var paragraph2 = document.AddParagraph("This paragraph should continue but next to to the table");
+
+                document.AddParagraph();
+                document.AddParagraph();
+
+                var paragraph3 = document.AddParagraph("Lets add another table showing AutoFit");
+
+                WordTable wordTable2 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable2.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable2.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable2.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                wordTable2.ColumnWidth = new List<int>() { 1716, 3817, 300, 3000 };
+                wordTable2.RowHeight = new List<int>() { 1000, 300, 500, 200 };
+
+                // add a cell to 3rd row
+                WordTableCell cell = new WordTableCell(document, wordTable2, wordTable2.Rows[2]);
+                cell.Paragraphs[0].Text = "This cell is outside a bit";
+                cell.TextDirection = TextDirectionValues.TopToBottomLeftToRightRotated;
+
+                wordTable2.LayoutType = TableLayoutValues.Fixed;
 
                 document.Save(openWord);
             }
