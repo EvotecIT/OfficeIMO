@@ -1,4 +1,7 @@
-﻿#### - 0.2.0 - 2022.07.31
+﻿#### - 0.2.1 - 2022.07.31
+- Added basic support for Charts [#14](https://github.com/EvotecIT/OfficeIMO/pull/14)
+
+#### - 0.2.0 - 2022.07.31
 
 - Added MIT License [#28](https://github.com/EvotecIT/OfficeIMO/pull/28)
 
