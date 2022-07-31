@@ -50,6 +50,31 @@ namespace OfficeIMO.Word {
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
+
+        public WordChart AddBarChart() {
+            var paragraph = this.AddParagraph();
+            var barChart = WordBarChart.AddBarChart(this, paragraph);
+            return barChart;
+        }
+
+        public WordChart AddLineChart() {
+            var paragraph = this.AddParagraph();
+            var lineChart = WordLineChart.AddLineChart(this, paragraph);
+            return lineChart;
+        }
+
+        public WordBarChart3D AddBarChart3D() {
+            var paragraph = this.AddParagraph();
+            var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
+            return barChart;
+        }
+
+        public WordChart AddPieChart() {
+            var paragraph = this.AddParagraph();
+            var pieChart = WordPieChart.AddPieChart(this, paragraph);
+            return pieChart;
+        }
+
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style);
