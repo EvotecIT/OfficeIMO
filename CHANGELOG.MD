@@ -1,4 +1,56 @@
-﻿#### - 0.1.7 - 2022.06.12
+﻿#### - 0.2.0 - 2022.07.31
+
+- Added MIT License [#28](https://github.com/EvotecIT/OfficeIMO/pull/28)
+
+- Adds new properties for Tables by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] Alignment
+  - [x] WidthType
+  - [x] Width
+  - [x] ShadingFillColor
+  - [x] ShadingFillColorHex
+  - [x] ShadingFillPatern
+  - [x] Title
+  - [x] Description
+  - [x] AllowOverlap
+  - [x] AllowTextWrap
+  - [x] ColumnWidth
+  - [x] RowHeight
+
+- Add table positioning along with properties by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] LeftFromText
+  - [x] RightFromText
+  - [x] BottomFromText
+  - [x] TopFromText
+  - [x] HorizontalAnchor
+  - [x] TablePositionY
+  - [x] TablePositionX
+  - [x] TablePositionYAlignment
+  - [x] TablePositionXAlignment
+  - [x] TableOverlap
+
+- Adds new properties for TableRow by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] FirstCell
+  - [x] LastCell
+
+- Renames some properties to better name them by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - FirstRow -> ConditionalFormattingFirstRow
+  - LastRow -> ConditionalFormattingLastRow
+  - FirstColumn -> ConditionalFormattingFirstColumn
+  - LastColumn -> ConditionalFormattingLastColumn
+  - NoHorizontalBand -> ConditionalFormattingNoHorizontalBand
+  - NoVerticalBand -> ConditionalFormattingNoVerticalBand
+
+- Adds new properties for Table by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] FirstRow
+  - [x] LastRow
+
+- Adds new methods for Table by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] AddComment(author, initials,comment)
+
+- Adds new properties for TableCell by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
+  - [x] TextDirection
+
+#### - 0.1.7 - 2022.06.12
 
 ##### What's Changed
 * Fixes **PageOrientation** of page/section if set before page size is applied. In case that happens it always reverted back to `Portrait` mode which is default for newly set **PageSizes**.
