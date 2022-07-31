@@ -73,8 +73,4 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Word\Sections\" />
-  </ItemGroup>
-
 </Project>
