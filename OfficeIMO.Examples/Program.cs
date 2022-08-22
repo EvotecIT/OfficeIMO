@@ -55,6 +55,8 @@ namespace OfficeIMO.Examples {
             //Tables.Example_Tables(folderPath, false);
             //Tables.Example_TableBorders(folderPath, true);
 
+            Tables.Example_NestedTables(folderPath, true);
+
             //PageSettings.Example_BasicSettings(folderPath, true);
 
             //PageNumbers.Example_PageNumbers1(folderPath, true);
@@ -86,7 +88,7 @@ namespace OfficeIMO.Examples {
 
             //HeadersAndFooters.Sections1(folderPath, true);
 
-            Charts.Example_AddingMultipleCharts(folderPath, true);
+            //Charts.Example_AddingMultipleCharts(folderPath, true);
 
             //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
