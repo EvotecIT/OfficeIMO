@@ -24,8 +24,9 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                wordTable.Rows[2].Cells[0].AddTable(2, 2, WordTableStyle.GridTable2Accent2);
+                wordTable.Rows[0].Cells[0].AddTable(3, 2, WordTableStyle.GridTable2Accent2);
 
+                wordTable.Rows[0].Cells[1].AddTable(3, 2, WordTableStyle.GridTable2Accent5, true);
 
                 document.Save(openWord);
             }
