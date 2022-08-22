@@ -447,5 +447,10 @@ namespace OfficeIMO.Word {
             }
 
         }
+
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(this._document, _tableCell, rows, columns, tableStyle);
+            return wordTable;
+        }
     }
 }

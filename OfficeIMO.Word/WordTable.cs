@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -359,6 +360,17 @@ namespace OfficeIMO.Word {
 
             // Append the table to the document.
             document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+        }
+
+        public WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
+            _document = document;
+
+            _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
+            wordTableCell.Append(_table);
         }
 
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
