@@ -448,8 +448,25 @@ namespace OfficeIMO.Word {
 
         }
 
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        /// <summary>
+        /// Add table to a table cell (nested table)
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <param name="columns"></param>
+        /// <param name="tableStyle"></param>
+        /// <param name="removePrecedingParagraph"></param>
+        /// <returns></returns>
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, bool removePrecedingParagraph = false) {
+            if (removePrecedingParagraph) {
+                var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
+                if (paragraph != null) {
+                    paragraph.Remove();
+                }
+            }
+            //this.Paragraphs[this.Paragraphs.Count - 1].Remove();
             WordTable wordTable = new WordTable(this._document, _tableCell, rows, columns, tableStyle);
+            // we need to add an empty paragraph, because that's what is required for tables to work
+            _tableCell.Append(new Paragraph());
             return wordTable;
         }
     }
