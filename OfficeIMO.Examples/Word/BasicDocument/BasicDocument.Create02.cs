@@ -23,6 +23,8 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph3 = document.AddParagraph("Adding paragraph3 with some text and pressing ENTER");
 
+                var paragraph4 = document.AddParagraph("Adding paragraph4 with some text and pressing SHIFT+ENTER");
+                paragraph4.AddBreak();
 
                 document.Save(openWord);
             }
