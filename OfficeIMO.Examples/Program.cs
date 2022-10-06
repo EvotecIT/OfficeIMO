@@ -30,6 +30,7 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicEmptyWord(folderPath, false);
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
+            BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
 
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
@@ -86,7 +87,7 @@ namespace OfficeIMO.Examples {
 
             //HeadersAndFooters.Sections1(folderPath, true);
 
-            Charts.Example_AddingMultipleCharts(folderPath, true);
+            //Charts.Example_AddingMultipleCharts(folderPath, true);
 
             //Console.WriteLine("[*] Creating standard document with multiple paragraphs, with some formatting");
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
