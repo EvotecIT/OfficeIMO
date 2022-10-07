@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test 5");
 
                 document.PageBreaks[7].Remove(includingParagraph: false);
-                document.PageBreaks[6].Remove();
+                document.PageBreaks[6].Remove(true);
 
                 // this is subject to change, since maybe we will fix it
                 Assert.True(document.DocumentIsValid == false);
