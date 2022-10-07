@@ -24,5 +24,15 @@ namespace OfficeIMO.Word {
                 return false;
             }
         }
+
+        public bool IsBreak {
+            get {
+                if (this.Break != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
     }
 }
