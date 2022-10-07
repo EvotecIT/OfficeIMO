@@ -5,7 +5,11 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-
+        /// <summary>
+        /// Add a text to existing paragraph
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public WordParagraph AddText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             wordParagraph.Text = text;
@@ -32,6 +36,12 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+
+        /// <summary>
+        /// Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
+        /// </summary>
+        /// <param name="breakType"></param>
+        /// <returns></returns>
         public WordParagraph AddBreak(BreakValues? breakType = null) {
             WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             if (breakType != null) {
@@ -42,6 +52,10 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+        /// <summary>
+        /// Remove the paragraph from WordDocument
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
         public void Remove() {
             if (_paragraph != null) {
                 if (this._paragraph.Parent != null) {
@@ -49,9 +63,14 @@ namespace OfficeIMO.Word {
                         this.Bookmark.Remove();
                     }
 
-                    if (this.IsPageBreak) {
-                        this.PageBreak.Remove();
+                    if (this.IsBreak) {
+                        this.Break.Remove();
                     }
+
+                    // break should cover this
+                    //if (this.IsPageBreak) {
+                    //    this.PageBreak.Remove();
+                    //}
 
                     if (this.IsEquation) {
                         this.Equation.Remove();
