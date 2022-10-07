@@ -94,6 +94,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagrahsBreaks {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsBreaks);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsHyperLinks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -149,11 +160,22 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordPageBreak> PageBreaks {
+        public List<WordBreak> PageBreaks {
             get {
-                List<WordPageBreak> list = new List<WordPageBreak>();
+                List<WordBreak> list = new List<WordBreak>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.PageBreaks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordBreak> Breaks {
+            get {
+                List<WordBreak> list = new List<WordBreak>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Breaks);
                 }
 
                 return list;
