@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.LastRow.LastCell.Paragraphs[0].Text = "Last Cell";
 
                 wordTable.WidthType = TableWidthUnitValues.Pct;
-                wordTable.Width = 3000;
+                wordTable.Width = 5000; // 5000 is a magic number that represents 100% in the Open XML spec for table width 
                 wordTable.Alignment = TableRowAlignmentValues.Center;
 
                 wordTable.Title = "This is title";
