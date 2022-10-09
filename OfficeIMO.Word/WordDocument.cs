@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordParagraph> ParagrahsBreaks {
+        public List<WordParagraph> ParagraphsBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
                 foreach (var section in this.Sections) {
