@@ -36,7 +36,7 @@ internal static void Example_NestedTables(string folderPath, bool openWord) {
 - Added some summaries to multiple table related methods/properties
 - Adds `TablesIncludingNestedTables` property to Sections and Document to make it easy to find all tables within document and manipulate them
 
-Should solve https://github.com/EvotecIT/OfficeIMO/issues/37
+- Solves an issue with different word break required https://github.com/EvotecIT/OfficeIMO/issues/37
 
 ![image](https://user-images.githubusercontent.com/15063294/194375619-a43d0d20-50b9-445a-a8c7-d778a4c3fac2.png)
 
