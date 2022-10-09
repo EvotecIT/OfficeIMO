@@ -73,9 +73,9 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
-        public List<WordPageBreak> PageBreaks {
+        public List<WordBreak> PageBreaks {
             get {
-                List<WordPageBreak> list = new List<WordPageBreak>();
+                List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.PageBreak);

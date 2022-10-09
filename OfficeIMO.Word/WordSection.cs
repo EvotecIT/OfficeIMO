@@ -16,6 +16,10 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsBreaks {
+            get { return Paragraphs.Where(p => p.IsBreak).ToList(); }
+        }
+
         internal List<WordParagraph> ParagraphsIsListItem {
             get { return Paragraphs.Where(p => p.IsListItem).ToList(); }
         }
@@ -62,12 +66,23 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
-        public List<WordPageBreak> PageBreaks {
+        public List<WordBreak> PageBreaks {
             get {
-                List<WordPageBreak> list = new List<WordPageBreak>();
+                List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.PageBreak);
+                }
+                return list;
+            }
+        }
+
+        public List<WordBreak> Breaks {
+            get {
+                List<WordBreak> list = new List<WordBreak>();
+                var paragraphs = Paragraphs.Where(p => p.IsBreak).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Break);
                 }
                 return list;
             }

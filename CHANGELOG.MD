@@ -1,4 +1,4 @@
-﻿#### 0.3.0
+#### 0.3.0
 - Update DocumentFormat.OpenXml from 2.16.0 to 2.18.0
 - Update SixLabors.ImageSharp to 2.1.3
 

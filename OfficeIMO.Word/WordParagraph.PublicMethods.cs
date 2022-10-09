@@ -5,7 +5,11 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-
+        /// <summary>
+        /// Add a text to existing paragraph
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public WordParagraph AddText(string text) {
             WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             wordParagraph.Text = text;
@@ -32,6 +36,26 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+
+        /// <summary>
+        /// Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
+        /// </summary>
+        /// <param name="breakType"></param>
+        /// <returns></returns>
+        public WordParagraph AddBreak(BreakValues? breakType = null) {
+            WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+            if (breakType != null) {
+                this._paragraph.Append(new Run(new Break() { Type = breakType }));
+            } else {
+                this._paragraph.Append(new Run(new Break()));
+            }
+            return wordParagraph;
+        }
+
+        /// <summary>
+        /// Remove the paragraph from WordDocument
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
         public void Remove() {
             if (_paragraph != null) {
                 if (this._paragraph.Parent != null) {
@@ -39,9 +63,14 @@ namespace OfficeIMO.Word {
                         this.Bookmark.Remove();
                     }
 
-                    if (this.IsPageBreak) {
-                        this.PageBreak.Remove();
+                    if (this.IsBreak) {
+                        this.Break.Remove();
                     }
+
+                    // break should cover this
+                    //if (this.IsPageBreak) {
+                    //    this.PageBreak.Remove();
+                    //}
 
                     if (this.IsEquation) {
                         this.Equation.Remove();
@@ -119,7 +148,7 @@ namespace OfficeIMO.Word {
             //Comments comments = null;
             //string id = "0";
 
-            //// Verify that the document contains a 
+            //// Verify that the document contains a
             //// WordProcessingCommentsPart part; if not, add a new one.
             //if (this._document._wordprocessingDocument.MainDocumentPart.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
             //    comments = this._document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
@@ -149,7 +178,7 @@ namespace OfficeIMO.Word {
 
             WordComment wordComment = WordComment.Create(_document, author, initials, comment);
 
-            // Specify the text range for the Comment. 
+            // Specify the text range for the Comment.
             // Insert the new CommentRangeStart before the first run of paragraph.
             this._paragraph.InsertBefore(new CommentRangeStart() { Id = wordComment.Id }, this._paragraph.GetFirstChild<Run>());
 

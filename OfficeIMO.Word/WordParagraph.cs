@@ -144,6 +144,9 @@ namespace OfficeIMO.Word {
         internal readonly SdtRun _stdRun;
         internal readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
 
+        /// <summary>
+        /// Get or set a text within Paragraph
+        /// </summary>
         public string Text {
             get {
                 if (_text == null) {
@@ -158,12 +161,31 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordPageBreak PageBreak {
+        /// <summary>
+        /// Get PageBreaks within Paragraph
+        /// </summary>
+        public WordBreak PageBreak {
             get {
                 if (_run != null) {
                     var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
-                    if (brake != null && brake.Type.Value == BreakValues.Page) {
-                        return new WordPageBreak(_document, _paragraph, _run);
+                    if (brake != null && brake.Type != null && brake.Type.Value == BreakValues.Page) {
+                        return new WordBreak(_document, _paragraph, _run);
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get Breaks within Paragraph
+        /// </summary>
+        public WordBreak Break {
+            get {
+                if (_run != null) {
+                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+                    if (brake != null) {
+                        return new WordBreak(_document, _paragraph, _run);
                     }
                 }
 
