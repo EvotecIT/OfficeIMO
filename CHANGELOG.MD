@@ -1,4 +1,8 @@
-﻿#### - 0.2.1 - 2022.07.31
+﻿#### 0.3.0
+- Update DocumentFormat.OpenXml from 2.16.0 to 2.18.0
+- Update SixLabors.ImageSharp to 2.1.3
+
+#### - 0.2.1 - 2022.07.31
 - Added basic support for Charts [#14](https://github.com/EvotecIT/OfficeIMO/pull/14)
 
 #### - 0.2.0 - 2022.07.31
