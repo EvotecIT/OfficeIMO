@@ -392,12 +392,21 @@ namespace OfficeIMO.Word {
             header.Append(_table);
         }
 
+        /// <summary>
+        /// Add row to an existing table with the specified number of columns
+        /// </summary>
+        /// <param name="cellsCount"></param>
         public void AddRow(int cellsCount = 0) {
             WordTableRow row = new WordTableRow(_document, this);
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
         }
 
+        /// <summary>
+        /// Add cells to an existing row
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="cellsCount"></param>
         private void AddCells(WordTableRow row, int cellsCount = 0) {
             if (cellsCount == 0) {
                 // we try to get the last row and fill it with same number of cells
@@ -408,6 +417,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Add specified number of rows to an existing table with the specified number of columns
+        /// </summary>
+        /// <param name="rowsCount"></param>
+        /// <param name="cellsCount"></param>
         public void AddRow(int rowsCount, int cellsCount) {
             for (int i = 0; i < rowsCount; i++) {
                 AddRow(cellsCount);
