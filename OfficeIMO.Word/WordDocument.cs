@@ -176,6 +176,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of Bookmarks in the document from all the sections
+        /// </summary>
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -187,6 +190,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all tables within the document from all the sections, excluding nested tables
+        /// </summary>
         public List<WordTable> Tables {
             get {
                 List<WordTable> list = new List<WordTable>();
@@ -194,6 +200,19 @@ namespace OfficeIMO.Word {
                     list.AddRange(section.Tables);
                 }
 
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Provides a list of all tables within the document from all the sections, including nested tables
+        /// </summary>
+        public List<WordTable> TablesIncludingNestedTables {
+            get {
+                List<WordTable> list = new List<WordTable>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.TablesIncludingNestedTables);
+                }
                 return list;
             }
         }
