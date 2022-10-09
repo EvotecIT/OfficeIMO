@@ -182,7 +182,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all tables within the section, excluding nested tables
+        /// </summary>
         public List<WordTable> Tables => GetTablesList();
+
+        /// <summary>
+        /// Provides a list of all tables within the section, including nested tables
+        /// </summary>
+        public List<WordTable> TablesIncludingNestedTables {
+            get {
+                List<WordTable> list = new List<WordTable>();
+                foreach (var table in Tables) {
+                    list.Add(table);
+                    // if (table.NestedTables.Count > 0) {
+                    list.AddRange(table.NestedTables);
+                    //}
+                }
+                return list;
+            }
+        }
+
 
         internal WordDocument _document;
         internal SectionProperties _sectionProperties;

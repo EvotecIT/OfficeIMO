@@ -56,6 +56,8 @@ namespace OfficeIMO.Examples {
             //Tables.Example_Tables(folderPath, false);
             //Tables.Example_TableBorders(folderPath, true);
 
+            Tables.Example_NestedTables(folderPath, true);
+
             //PageSettings.Example_BasicSettings(folderPath, true);
 
             //PageNumbers.Example_PageNumbers1(folderPath, true);

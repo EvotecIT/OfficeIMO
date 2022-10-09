@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordTable {
         /// <summary>
-        ///     Gets or sets a Title/Caption to a Table
+        /// Gets or sets a Title/Caption to a Table
         /// </summary>
         public string Title {
             get {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Gets or sets Description for a Table
+        /// Gets or sets Description for a Table
         /// </summary>
         public string Description {
             get {
@@ -126,6 +126,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+
+        /// <summary>
+        /// Get or Set Table Row Height for 1st row
+        /// </summary>
         public List<int> RowHeight {
             get {
                 var listReturn = new List<int>();
@@ -141,6 +145,83 @@ namespace OfficeIMO.Word {
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Get all WordTableCells in a table. A short way to loop thru all cells
+        /// </summary>
+        public List<WordTableCell> Cells {
+            get {
+                var listReturn = new List<WordTableCell>();
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        listReturn.Add(cell);
+                    }
+                }
+                return listReturn;
+            }
+        }
+
+
+        /// <summary>
+        /// Gets information whether the Table has other nested tables in at least one of the TableCells
+        /// </summary>
+        public bool HasNestedTables {
+            get {
+                foreach (var cell in this.Cells) {
+                    var list = cell._tableCell.Descendants<Table>().ToList();
+                    if (list.Count > 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get all nested tables in the table
+        /// </summary>
+        public List<WordTable> NestedTables {
+            get {
+                var listReturn = new List<WordTable>();
+                foreach (var cell in this.Cells) {
+                    var list = cell._tableCell.Descendants<Table>().ToList();
+                    foreach (var table in list) {
+                        listReturn.Add(new WordTable(this._document, table));
+                    }
+                }
+                return listReturn;
+            }
+        }
+
+        /// <summary>
+        /// Gets information whether the table is nested table (within TableCell)
+        /// </summary>
+        public bool IsNestedTable {
+            get {
+                var openXmlElement = this._table.Parent;
+                if (openXmlElement != null) {
+                    var typeOfParent = openXmlElement.GetType();
+                    if (typeOfParent.FullName == "DocumentFormat.OpenXml.Wordprocessing.TableCell") {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets nested table parent table if table is nested table
+        /// </summary>
+        public WordTable ParentTable {
+            get {
+                if (IsNestedTable) {
+                    Table table = (DocumentFormat.OpenXml.Wordprocessing.Table)this._table.Parent.Parent.Parent;
+                    return new WordTable(this._document, table);
+                }
+
+                return null;
+            }
         }
     }
 }
