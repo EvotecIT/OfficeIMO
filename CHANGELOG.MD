@@ -1,4 +1,43 @@
-﻿#### - 0.2.1 - 2022.07.31
+####
+- Solves an issue with different word break required https://github.com/EvotecIT/OfficeIMO/issues/37
+
+![image](https://user-images.githubusercontent.com/15063294/194375619-a43d0d20-50b9-445a-a8c7-d778a4c3fac2.png)
+
+```csharp
+public static void Example_BasicWordWithBreaks(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with paragraph & breaks");
+    string filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithParagraphsAndBreaks.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph1 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
+
+
+        var paragraph2 = document.AddParagraph("Adding paragraph2 with some text and pressing SHIFT+ENTER");
+        paragraph2.AddBreak();
+        paragraph2.AddText("Continue1");
+        paragraph2.AddBreak();
+        paragraph2.AddText("Continue2");
+
+        var paragraph3 = document.AddParagraph("Adding paragraph3 with some text and pressing ENTER");
+
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Renames WordPageBreak to WordBreak to accommodate all Breaks, and not only PageBreak
+- *BREAKING CHANGE* Removing WordBreak (or WordPageBreak) no longer by default removes paragraph, but instead requires bool set to true
+
+```csharp
+document.Breaks[0].Remove();
+document.Breaks[0].Remove(includingParagraph: true);
+```
+
+- Add new `IsBreak` property for WordParagraph
+- Add `Breaks` property for WordDocument and WordSection
+- Add `ParagraphBreaks` to WordDocument and WordSection
+
+#### - 0.2.1 - 2022.07.31
 - Added basic support for Charts [#14](https://github.com/EvotecIT/OfficeIMO/pull/14)
 
 #### - 0.2.0 - 2022.07.31
