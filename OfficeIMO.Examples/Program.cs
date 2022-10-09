@@ -334,7 +334,7 @@ namespace OfficeIMO.Examples {
                 document.AddParagraph("Test 5");
 
                 document.PageBreaks[7].Remove(includingParagraph: false);
-                document.PageBreaks[6].Remove();
+                document.PageBreaks[6].Remove(true);
 
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors.Count);
