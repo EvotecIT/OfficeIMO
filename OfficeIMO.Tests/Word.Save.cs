@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+
         [Fact]
         public void Test_Save() {
-            string filePath1 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument11.docx");
-            string filePath2 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument12.docx");
-            string filePath3 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument13.docx");
-            string filePath4 = System.IO.Path.Combine(_directoryWithFiles, "FirstDocument14.docx");
+            string filePath1 = Path.Combine(_directoryWithFiles, "FirstDocument11.docx");
+            string filePath2 = Path.Combine(_directoryWithFiles, "FirstDocument12.docx");
+            string filePath3 = Path.Combine(_directoryWithFiles, "FirstDocument13.docx");
+            string filePath4 = Path.Combine(_directoryWithFiles, "FirstDocument14.docx");
 
             File.Delete(filePath1);
             File.Delete(filePath2);
@@ -100,7 +96,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_Dispose() {
-            string filePath1 = System.IO.Path.Combine(_directoryWithFiles, "DisposeTesting.docx");
+            string filePath1 = Path.Combine(_directoryWithFiles, "DisposeTesting.docx");
             File.Delete(filePath1);
 
             Assert.True(File.Exists(filePath1) == false);
@@ -123,6 +119,26 @@ namespace OfficeIMO.Tests {
             Assert.True(filePath1.IsFileLocked() == false);
 
             Assert.True(File.Exists(filePath1) == true);
+        }
+
+        [Fact]
+        public void Test_SaveToStream()
+        {
+            var document = WordDocument.Create();
+            document.AddParagraph("Hello world!");
+
+            using (var outputStream = new MemoryStream())
+            {
+                document.SaveToStream(outputStream);
+
+                var resultDoc = WordDocument.Load(outputStream);
+
+                var expectedCount = 1;
+                var expectedText = "Hello world!";
+
+                Assert.Equal(resultDoc.Paragraphs.Count, expectedCount);
+                Assert.Equal(resultDoc.Paragraphs[0].Text, expectedText);
+            }
         }
     }
 }
