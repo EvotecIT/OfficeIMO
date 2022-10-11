@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
 
             using (var outputStream = new MemoryStream())
             {
-                document.SaveToStream(outputStream);
+                document.Save(outputStream);
 
                 var resultDoc = WordDocument.Load(outputStream);
 
