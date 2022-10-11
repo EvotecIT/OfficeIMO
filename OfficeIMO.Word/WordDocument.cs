@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
@@ -30,19 +27,16 @@ namespace OfficeIMO.Word {
 
         public WordTableOfContent TableOfContent {
             get {
-                var sdtBlocks = _document.Body.ChildElements.OfType<SdtBlock>();
-                foreach (var sdtBlock in sdtBlocks) {
-                    if (sdtBlock != null) {
-                        var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                        if (sdtProperties != null) {
-                            var docPartObject = sdtProperties.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                            if (docPartObject != null) {
-                                var docPartGallery = docPartObject.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-                                if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                                    return new WordTableOfContent(this, sdtBlock);
-                                }
-                            }
-                        }
+                var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
+
+                foreach (var sdtBlock in sdtBlocks)
+                {
+                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+
+                    if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
+                        return new WordTableOfContent(this, sdtBlock);
                     }
                 }
 
@@ -52,19 +46,16 @@ namespace OfficeIMO.Word {
 
         public WordCoverPage CoverPage {
             get {
-                var sdtBlocks = _document.Body.ChildElements.OfType<SdtBlock>();
-                foreach (var sdtBlock in sdtBlocks) {
-                    if (sdtBlock != null) {
-                        var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                        if (sdtProperties != null) {
-                            var docPartObject = sdtProperties.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                            if (docPartObject != null) {
-                                var docPartGallery = docPartObject.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-                                if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
-                                    return new WordCoverPage(this, sdtBlock);
-                                }
-                            }
-                        }
+                var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
+
+                foreach (var sdtBlock in sdtBlocks)
+                {
+                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+
+                    if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
+                        return new WordCoverPage(this, sdtBlock);
                     }
                 }
 
@@ -483,7 +474,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            WordDocument word = new WordDocument();
+            var word = new WordDocument();
 
             var openSettings = new OpenSettings {
                 AutoSave = autoSave
@@ -494,21 +485,33 @@ namespace OfficeIMO.Word {
             word._fileStream.CopyTo(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
-            WordprocessingDocument wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-            StyleDefinitionsPart styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
-            if (styleDefinitionsPart != null) {
-                AddStyleDefinitions(styleDefinitionsPart);
-            } else {
-                StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
-                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-            }
+            InitialiseStyleDefinitions(wordDocument);
 
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
             word.LoadDocument();
             return word;
+        }
+
+        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false)
+        {
+            var document = new WordDocument();
+
+            var openSettings = new OpenSettings
+            {
+                AutoSave = autoSave
+            };
+
+            var wordDocument = WordprocessingDocument.Open(stream, !readOnly, openSettings);
+            InitialiseStyleDefinitions(wordDocument);
+
+            document._wordprocessingDocument = wordDocument;
+            document._document = wordDocument.MainDocumentPart.Document;
+            document.LoadDocument();
+            return document;
         }
 
         public void Open(bool openWord = true) {
@@ -635,6 +638,16 @@ namespace OfficeIMO.Word {
             this.Save("", openWord);
         }
 
+        public void Save(Stream outputStream)
+        {
+            this._wordprocessingDocument.Clone(outputStream);
+
+            if (outputStream.CanSeek)
+            {
+                outputStream.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
         /// <summary>
         /// This moves section within body from top to bottom to allow footers/headers to move
         /// Needs more work, but this is what Word does all the time
@@ -662,6 +675,20 @@ namespace OfficeIMO.Word {
 
             if (_fileStream != null) {
                 _fileStream.Dispose();
+            }
+        }
+
+        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument)
+        {
+            var styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
+            if (styleDefinitionsPart != null)
+            {
+                AddStyleDefinitions(styleDefinitionsPart);
+            }
+            else
+            {
+                var styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
             }
         }
 
