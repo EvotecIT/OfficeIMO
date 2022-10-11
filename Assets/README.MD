@@ -4,6 +4,8 @@ It was created because working with OpenXML is way too hard for me, and time con
 I originally created it for using within PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
 
+For changes between versions see [CHANGELOG](https://evotec.xyz/docs/officeimo-release-history/)
+
 ## Examples
 
 ### Basic Document with few document properties and paragraph
