@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using DocumentFormat.OpenXml.Packaging;
+using SixLabors.ImageSharp.Formats;
 
 namespace OfficeIMO.Word {
     public static partial class Helpers {
@@ -58,5 +60,26 @@ namespace OfficeIMO.Word {
             //file is not locked
             return false;
         }
+
+        internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream)
+        {
+            using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
+            imageStream.Position = 0;
+            var type = ConvertToImagePartType(imageFormat);
+            return new ImageСharacteristics(img.Width, img.Height, type);
+        }
+
+        private static ImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
+            imageFormat.Name switch
+            {
+                "BMP" => ImagePartType.Bmp,
+                "GIF" => ImagePartType.Gif,
+                "JPEG" => ImagePartType.Jpeg,
+                "PNG" => ImagePartType.Png,
+                "TIFF" => ImagePartType.Tiff,
+                _ => throw new ImageFormatNotSupportedException($"Image format not supported: {imageFormat.Name}.")
+            };
     }
+
+    internal record ImageСharacteristics(double Width, double Height, ImagePartType Type);
 }
