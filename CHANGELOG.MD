@@ -1,3 +1,6 @@
+#### 0.3.1 - 2022.10.14
+- Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
+
 #### 0.3.0 - 2022.10.11
 - Update DocumentFormat.OpenXml from 2.16.0 to 2.18.0
 - Update SixLabors.ImageSharp to 2.1.3
