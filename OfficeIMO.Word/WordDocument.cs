@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
@@ -29,8 +29,7 @@ namespace OfficeIMO.Word {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
 
-                foreach (var sdtBlock in sdtBlocks)
-                {
+                foreach (var sdtBlock in sdtBlocks) {
                     var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                     var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
                     var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
@@ -48,8 +47,7 @@ namespace OfficeIMO.Word {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
 
-                foreach (var sdtBlock in sdtBlocks)
-                {
+                foreach (var sdtBlock in sdtBlocks) {
                     var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                     var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
                     var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
@@ -487,7 +485,7 @@ namespace OfficeIMO.Word {
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-            InitialiseStyleDefinitions(wordDocument);
+            InitialiseStyleDefinitions(wordDocument, readOnly);
 
             word.FilePath = filePath;
             word._wordprocessingDocument = wordDocument;
@@ -496,17 +494,15 @@ namespace OfficeIMO.Word {
             return word;
         }
 
-        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false)
-        {
+        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false) {
             var document = new WordDocument();
 
-            var openSettings = new OpenSettings
-            {
+            var openSettings = new OpenSettings {
                 AutoSave = autoSave
             };
 
             var wordDocument = WordprocessingDocument.Open(stream, !readOnly, openSettings);
-            InitialiseStyleDefinitions(wordDocument);
+            InitialiseStyleDefinitions(wordDocument, readOnly);
 
             document._wordprocessingDocument = wordDocument;
             document._document = wordDocument.MainDocumentPart.Document;
@@ -638,12 +634,10 @@ namespace OfficeIMO.Word {
             this.Save("", openWord);
         }
 
-        public void Save(Stream outputStream)
-        {
+        public void Save(Stream outputStream) {
             this._wordprocessingDocument.Clone(outputStream);
 
-            if (outputStream.CanSeek)
-            {
+            if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
             }
         }
@@ -678,17 +672,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument)
-        {
-            var styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
-            if (styleDefinitionsPart != null)
-            {
-                AddStyleDefinitions(styleDefinitionsPart);
-            }
-            else
-            {
-                var styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
-                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly) {
+            // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
+            if (readOnly == false) {
+                var styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>()
+                    .FirstOrDefault();
+                if (styleDefinitionsPart != null) {
+                    AddStyleDefinitions(styleDefinitionsPart);
+                } else {
+
+                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                    GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+
+                }
             }
         }
 
