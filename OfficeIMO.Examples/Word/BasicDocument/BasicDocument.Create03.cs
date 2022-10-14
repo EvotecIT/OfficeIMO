@@ -12,11 +12,15 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with different default style");
             string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChange.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.DefaultFontSize = 30;
-                
-                var paragraph1 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
+                document.Settings.FontSize = 30;
+                document.Settings.FontFamily = "Calibri Light";
+                document.Settings.Language = "pl-PL";
 
-                document.AddParagraph("Adding paragraph1 with some text and pressing ENTER").FontSize = 15;
+                var paragraph1 = document.AddParagraph("To jest po polsku");
+
+                var paragraph2 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
+                paragraph2.FontSize = 15;
+                paragraph2.FontFamily = "Courier New";
 
                 document.Save(openWord);
             }
