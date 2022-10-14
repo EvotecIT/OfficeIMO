@@ -11,6 +11,9 @@ namespace OfficeIMO.Word {
     public class WordSettings {
         private WordDocument _document;
 
+        /// <summary>
+        /// Remove protection from document (if it's set).
+        /// </summary>
         public void RemoveProtection() {
             if (this.ProtectionType != null) {
                 DocumentProtection documentProtection = this._document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.OfType<DocumentProtection>().FirstOrDefault();
@@ -18,6 +21,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Get or set Protection Type for the document
+        /// </summary>
         public DocumentProtectionValues? ProtectionType {
             get {
                 if (this._document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings != null) {
@@ -41,11 +47,19 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Set a Protection Password for the document
+        /// </summary>
         public string ProtectionPassword {
             set {
                 Security.ProtectWordDoc(this._document._wordprocessingDocument, value);
             }
         }
+
+        /// <summary>
+        /// Get or set Zoom Preset for the document
+        /// </summary>
         public PresetZoomValues? ZoomPreset {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
@@ -68,6 +82,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Get or Set Zoome Percentage for the document
+        /// </summary>
         public int? ZoomPercentage {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
@@ -88,6 +105,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Tell Word to update fields when opening word.
+        /// Without this option the document fields won't be refreshed until manual intervention.
+        /// </summary>
         public bool UpdateFieldsOnOpen {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
@@ -107,15 +128,6 @@ namespace OfficeIMO.Word {
                 updateFieldsOnOpen.Val = value;
             }
         }
-
-        ////Open Word Setting File
-        //DocumentSettingsPart settingsPart = xmlDOc.MainDocumentPart.GetPartsOfType<DocumentSettingsPart>().First();
-        ////Update Fields
-        //UpdateFieldsOnOpen updateFields = new UpdateFieldsOnOpen();
-        //updateFields.Val = new OnOffValue(true);
-
-        //settingsPart.Settings.PrependChild<UpdateFieldsOnOpen>(updateFields);
-        //settingsPart.Settings.Save();
 
         public WordSettings(WordDocument document) {
             if (document.FileOpenAccess != FileAccess.Read) {
@@ -169,7 +181,10 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        public int? DefaultFontSize {
+        /// <summary>
+        /// Gets or Sets default font size for the whole document. Default is 11.
+        /// </summary>
+        public int? FontSize {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
@@ -193,7 +208,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public int? DefaultFontSizeComplexScript {
+        /// <summary>
+        /// Gets or Sets default font size complex script for the whole document. Default is 11.
+        /// </summary>
+        public int? FontSizeComplexScript {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
@@ -217,6 +235,39 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or Sets default font family for the whole document.
+        /// </summary>
+        public string FontFamily {
+            get {
+                var runPropertiesBaseStyle = GetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts != null) {
+                        var fontFamily = runPropertiesBaseStyle.RunFonts.Ascii;
+                        return fontFamily;
+                    }
+                }
+                return null;
+            }
+            set {
+                var runPropertiesBaseStyle = SetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    //runPropertiesBaseStyle.RunFonts = new RunFonts();
+                    if (runPropertiesBaseStyle.RunFonts == null) {
+                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
+                    }
+                    // we need to reset default AsciiTheme, before applying Ascii
+                    runPropertiesBaseStyle.RunFonts.AsciiTheme = null;
+                    runPropertiesBaseStyle.RunFonts.Ascii = value;
+                } else {
+                    throw new Exception("Could not set font family. Styles not found.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets default language for the whole document. Default is en-Us.
+        /// </summary>
         public string Language {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
@@ -234,11 +285,16 @@ namespace OfficeIMO.Word {
                         runPropertiesBaseStyle.Languages = new Languages();
                     }
                     runPropertiesBaseStyle.Languages.Val = value;
+                    //runPropertiesBaseStyle.Languages.EastAsia = value;
                 } else {
                     throw new Exception("Could not set language. Styles not found.");
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or Sets default Background Color for the whole document
+        /// </summary>
         public string BackgroundColor {
             get {
                 if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground != null) {
