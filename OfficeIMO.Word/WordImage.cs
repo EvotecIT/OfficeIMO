@@ -243,24 +243,22 @@ namespace OfficeIMO.Word {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
 
             //var uri = new Uri(filePath, UriKind.RelativeOrAbsolute);
+            using var imageStream = new FileStream(filePath, FileMode.Open);
 
             // if widht/height are not set we check ourselves 
             // but probably will need better way
+            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
             if (width == null || height == null) {
-                using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
-                    width = img.Width;
-                    height = img.Height;
-                }
+                width = imageСharacteristics.Width;
+                height = imageСharacteristics.Height;
             }
 
             var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
-            ImagePart imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(ImagePartType.Jpeg);
+            ImagePart imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
             this._imagePart = imagePart;
-            using (FileStream stream = new FileStream(filePath, FileMode.Open)) {
-                imagePart.FeedData(stream);
-            }
+            imagePart.FeedData(imageStream);
 
             var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
 

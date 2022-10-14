@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicEmptyWord(folderPath, false);
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
-            BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
+            //BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
 
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Examples {
             //Tables.Example_Tables(folderPath, false);
             //Tables.Example_TableBorders(folderPath, true);
 
-            Tables.Example_NestedTables(folderPath, true);
+            //Tables.Example_NestedTables(folderPath, true);
 
             //PageSettings.Example_BasicSettings(folderPath, true);
 
@@ -95,13 +95,14 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
             //Example_MultipleParagraphsViaDifferentWays(filePath, false);
 
-            //Console.WriteLine("[*] Creating standard document with some Images");
-            //filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
-            //Example_AddingImages(filePath, true);
-
-            //Console.WriteLine("[*] Read Basic Word with Images");
-            //Example_ReadWordWithImages();
-
+            var openWordWithImages = false;
+            Images.Example_AddingImages(folderPath, openWordWithImages);
+            if (openWordWithImages != true) {
+                // this example is based on the example above, so opening word would break the example
+                // This requires additional fixes to work properly, different PR will be needed
+                //Images.Example_ReadWordWithImages();
+            }
+            Images.Example_AddingImagesMultipleTypes(folderPath, true);
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             //Example_PageBreaks(filePath, true);
@@ -440,75 +441,6 @@ namespace OfficeIMO.Examples {
 
                 document.Save(filePath, openWord);
             }
-        }
-
-        private static void Example_AddingImages(string filePath, bool openWord) {
-            //string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            //string imagePaths = System.IO.Path.Combine(baseDirectory, "Images");
-            string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
-
-            WordDocument document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "This is sparta";
-            document.BuiltinDocumentProperties.Creator = "Przemek";
-
-            var paragraph = document.AddParagraph("This paragraph starts with some text");
-            paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
-
-            // lets add image to paragraph
-            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            //paragraph.Image.WrapText = true; // WrapSideValues.Both;
-
-            var paragraph5 = paragraph.AddText("and more text");
-            paragraph5.Bold = true;
-
-
-            document.AddParagraph("This adds another picture with 500x500");
-
-            var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
-            WordParagraph paragraph2 = document.AddParagraph();
-            paragraph2.AddImage(filePathImage, 500, 500);
-            //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
-            paragraph2.Image.Rotation = 180;
-            paragraph2.Image.Shape = ShapeTypeValues.ActionButtonMovie;
-
-
-            document.AddParagraph("This adds another picture with 100x100");
-
-            WordParagraph paragraph3 = document.AddParagraph();
-            paragraph3.AddImage(filePathImage, 100, 100);
-
-            // we add paragraph with an image
-            WordParagraph paragraph4 = document.AddParagraph();
-            paragraph4.AddImage(filePathImage);
-
-            // we can get the height of the image from paragraph
-            Console.WriteLine("This document has image, which has height of: " + paragraph4.Image.Height + " pixels (I think) ;-)");
-
-            // we can also overwrite height later on
-            paragraph4.Image.Height = 50;
-            paragraph4.Image.Width = 50;
-            // this doesn't work
-            paragraph4.Image.HorizontalFlip = true;
-
-            // or we can get any image and overwrite it's size
-            document.Images[0].Height = 200;
-            document.Images[0].Width = 200;
-
-            string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-            document.Images[0].SaveToFile(fileToSave);
-
-            document.Save(true);
-        }
-
-        private static void Example_ReadWordWithImages() {
-            string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
-            string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
-
-            WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocumentWithImages.docx"), true);
-            Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
-            Console.WriteLine("+ Document images: " + document.Images.Count);
-
-            document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
         }
 
         private static void Example_PageBreaks(string filePath, bool openWord) {
