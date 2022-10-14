@@ -45,6 +45,16 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 | Linux    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22?label=Tests%20Linux"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
 | MacOs    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23?label=Tests%20MacOs"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 5.0, .NET 6.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
 
+## Please share with the community
+
+Please consider sharing a post about OfficeIMO and the value it provides. It really does help!
+
+[![Share on reddit](https://img.shields.io/badge/share%20on-reddit-red?logo=reddit)](https://reddit.com/submit?url=https://github.com/EvotecIT/OfficeIMO&title=OfficeIMO)
+[![Share on hacker news](https://img.shields.io/badge/share%20on-hacker%20news-orange?logo=ycombinator)](https://news.ycombinator.com/submitlink?u=https://github.com/EvotecIT/OfficeIMO)
+[![Share on twitter](https://img.shields.io/badge/share%20on-twitter-03A9F4?logo=twitter)](https://twitter.com/share?url=https://github.com/EvotecIT/OfficeIMO&t=OfficeIMO)
+[![Share on facebook](https://img.shields.io/badge/share%20on-facebook-1976D2?logo=facebook)](https://www.facebook.com/sharer/sharer.php?u=https://github.com/EvotecIT/OfficeIMO)
+[![Share on linkedin](https://img.shields.io/badge/share%20on-linkedin-3949AB?logo=linkedin)](https://www.linkedin.com/shareArticle?url=https://github.com/EvotecIT/OfficeIMO&title=OfficeIMO)
+
 ## Features
 
 Here's a list of features currently supported (and probably a lot I forgot) and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
