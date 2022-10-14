@@ -1,7 +1,29 @@
-#### 0.3.1 - 2022.10.14
+#### 0.3.1
 - Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
 - Fixes issue with read only documents crashing
+- Fixes watermark throwing when Headers aren't added first [#46](https://github.com/EvotecIT/OfficeIMO/pull/46)
 - Fixes Adding Watermark to section that has not initialized headers will throw an error [#27](https://github.com/EvotecIT/OfficeIMO/issues/27)
+- New fields added to WordSettings allowing setting of default values for the whole document for FontSize, FontSizeComplexScript, FontFamily and Language
+
+```csharp
+public static void Example_BasicWordWithDefaultStyleChange(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with different default style");
+    string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChange.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.Settings.FontSize = 30;
+        document.Settings.FontFamily = "Calibri Light";
+        document.Settings.Language = "pl-PL";
+
+        var paragraph1 = document.AddParagraph("To jest po polsku");
+
+        var paragraph2 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
+        paragraph2.FontSize = 15;
+        paragraph2.FontFamily = "Courier New";
+
+        document.Save(openWord);
+    }
+}
+```
 
 #### 0.3.0 - 2022.10.11
 - Update DocumentFormat.OpenXml from 2.16.0 to 2.18.0
