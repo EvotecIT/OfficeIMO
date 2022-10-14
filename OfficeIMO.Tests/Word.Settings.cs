@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -35,6 +35,22 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true);
 
+                Assert.True(document.Settings.FontSize == 11); // default value
+
+                document.Settings.FontSize = 30;
+
+                Assert.True(document.Settings.FontSize == 30);
+
+                Assert.True(document.Settings.FontSizeComplexScript == 11);
+
+                document.Settings.FontSizeComplexScript = 20;
+
+                Assert.True(document.Settings.FontSizeComplexScript == 20);
+
+                document.Settings.FontFamily = "Courier New";
+
+                Assert.True(document.Settings.FontFamily == "Courier New");
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -61,6 +77,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true);
 
                 document.Settings.UpdateFieldsOnOpen = false;
+
+                Assert.True(document.Settings.FontSizeComplexScript == 20);
+                Assert.True(document.Settings.FontSize == 30);
+                Assert.True(document.Settings.FontFamily == "Courier New");
 
                 document.Save();
             }
