@@ -193,20 +193,32 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public int? DefaultFontSizeComplexScript {
+            get {
+                var runPropertiesBaseStyle = GetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.FontSizeComplexScript != null) {
+                        var fontSize = runPropertiesBaseStyle.FontSizeComplexScript.Val;
+                        return int.Parse(fontSize) / 2;
+                    }
+                }
+                return null;
+            }
+            set {
+                var runPropertiesBaseStyle = SetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.FontSizeComplexScript == null) {
+                        runPropertiesBaseStyle.FontSizeComplexScript = new FontSizeComplexScript();
+                    }
+                    runPropertiesBaseStyle.FontSizeComplexScript.Val = (value * 2).ToString();
+                } else {
+                    throw new Exception("Could not set font size complex script. Styles not found.");
+                }
+            }
+        }
 
         public string Language {
             get {
-                //if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
-                //    if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults != null) {
-                //        if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault != null) {
-                //            if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle != null) {
-                //                if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle.Languages != null) {
-                //                    return this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle.Languages.Val;
-                //                }
-                //            }
-                //        }
-                //    }
-                //}
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
                     if (runPropertiesBaseStyle.Languages != null) {
@@ -216,25 +228,6 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                //if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
-                //    if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults == null) {
-                //        this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults = new DocDefaults();
-                //    }
-
-                //    if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault == null) {
-                //        this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault = new RunPropertiesDefault();
-                //    }
-
-                //    if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle == null) {
-                //        this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle = new RunPropertiesBaseStyle();
-                //    }
-
-                //    if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle.Languages == null) {
-                //        this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle.Languages = new Languages();
-                //    }
-
-                //    this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault.RunPropertiesBaseStyle.Languages.Val = value;
-                //}
                 var runPropertiesBaseStyle = SetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
                     if (runPropertiesBaseStyle.Languages == null) {
