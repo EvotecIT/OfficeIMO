@@ -7,118 +7,118 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_Save() {
-            string filePath1 = Path.Combine(_directoryWithFiles, "FirstDocument11.docx");
-            string filePath2 = Path.Combine(_directoryWithFiles, "FirstDocument12.docx");
-            string filePath3 = Path.Combine(_directoryWithFiles, "FirstDocument13.docx");
-            string filePath4 = Path.Combine(_directoryWithFiles, "FirstDocument14.docx");
+            var filePath1 = Path.Combine(_directoryWithFiles, "FirstDocument11.docx");
+            var filePath2 = Path.Combine(_directoryWithFiles, "FirstDocument12.docx");
+            var filePath3 = Path.Combine(_directoryWithFiles, "FirstDocument13.docx");
+            var filePath4 = Path.Combine(_directoryWithFiles, "FirstDocument14.docx");
 
             File.Delete(filePath1);
             File.Delete(filePath2);
             File.Delete(filePath3);
             File.Delete(filePath4);
 
-            using (WordDocument document = WordDocument.Create()) {
+            using (var document = WordDocument.Create()) {
                 document.BuiltinDocumentProperties.Title = "This is my title";
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
-                Assert.True(document.Paragraphs.Count == 0);
+                Assert.Empty(document.Paragraphs);
 
                 document.AddParagraph("This is my test in document 1");
 
-                Assert.True(File.Exists(filePath1) == false);
+                Assert.False(File.Exists(filePath1));
 
                 document.Save(filePath1);
 
-                Assert.True(File.Exists(filePath1) == true);
-                Assert.True(filePath1.IsFileLocked() == true);
+                Assert.True(File.Exists(filePath1));
+                Assert.True(filePath1.IsFileLocked());
 
-                Assert.True(document.Paragraphs.Count == 1);
+                Assert.Single(document.Paragraphs);
 
                 document.AddParagraph("This is my test in document 2");
 
                 document.Save(filePath2);
 
-                Assert.True(document.Paragraphs.Count == 2);
+                Assert.Equal(2, document.Paragraphs.Count);
 
-                Assert.True(File.Exists(filePath2) == true);
-                Assert.True(filePath2.IsFileLocked() == true);
+                Assert.True(File.Exists(filePath2));
+                Assert.True(filePath2.IsFileLocked());
 
                 document.AddParagraph("This is my test in document 3");
 
-                Assert.True(document.Paragraphs.Count == 3);
+                Assert.Equal(3, document.Paragraphs.Count);
 
                 document.Save(filePath3);
 
-                Assert.True(File.Exists(filePath3) == true);
-                Assert.True(filePath3.IsFileLocked() == true);
+                Assert.True(File.Exists(filePath3));
+                Assert.True(filePath3.IsFileLocked());
             }
-            Assert.True(filePath1.IsFileLocked() == false);
-            Assert.True(filePath2.IsFileLocked() == false);
-            Assert.True(filePath3.IsFileLocked() == false);
 
-            using (WordDocument document = WordDocument.Load(filePath1)) {
-                Assert.True(document.Paragraphs.Count == 1);
-                Assert.True(filePath1.IsFileLocked() == true);
-            }
-            using (WordDocument document = WordDocument.Load(filePath2)) {
-                Assert.True(document.Paragraphs.Count == 2);
-                Assert.True(filePath2.IsFileLocked() == true);
-            }
-            using (WordDocument document = WordDocument.Load(filePath3)) {
-                Assert.True(filePath3.IsFileLocked() == true);
+            Assert.False(filePath1.IsFileLocked());
+            Assert.False(filePath2.IsFileLocked());
+            Assert.False(filePath3.IsFileLocked());
 
-                Assert.True(document.Paragraphs.Count == 3);
+            using (var document = WordDocument.Load(filePath1)) {
+                Assert.Single(document.Paragraphs);
+                Assert.True(filePath1.IsFileLocked());
+            }
+            using (var document = WordDocument.Load(filePath2)) {
+                Assert.Equal(2, document.Paragraphs.Count);
+                Assert.True(filePath2.IsFileLocked());
+            }
+            using (var document = WordDocument.Load(filePath3)) {
+                Assert.True(filePath3.IsFileLocked());
+
+                Assert.Equal(3, document.Paragraphs.Count);
                 document.AddParagraph("More paragraphs!");
-                Assert.True(document.Paragraphs.Count == 4);
+                Assert.Equal(4, document.Paragraphs.Count);
                 document.Save(filePath4);
             }
 
-            Assert.True(filePath1.IsFileLocked() == false);
-            Assert.True(filePath2.IsFileLocked() == false);
-            Assert.True(filePath3.IsFileLocked() == false);
-            Assert.True(filePath4.IsFileLocked() == false);
+            Assert.False(filePath1.IsFileLocked());
+            Assert.False(filePath2.IsFileLocked());
+            Assert.False(filePath3.IsFileLocked());
+            Assert.False(filePath4.IsFileLocked());
 
-            using (WordDocument document = WordDocument.Load(filePath3)) {
-                Assert.True(document.Paragraphs.Count == 3);
-                Assert.True(filePath3.IsFileLocked() == true);
+            using (var document = WordDocument.Load(filePath3)) {
+                Assert.Equal(3, document.Paragraphs.Count);
+                Assert.True(filePath3.IsFileLocked());
             }
-            using (WordDocument document = WordDocument.Load(filePath4)) {
-                Assert.True(document.Paragraphs.Count == 4);
-                Assert.True(filePath4.IsFileLocked() == true);
+            using (var document = WordDocument.Load(filePath4)) {
+                Assert.Equal(4, document.Paragraphs.Count);
+                Assert.True(filePath4.IsFileLocked());
             }
 
-            Assert.True(filePath1.IsFileLocked() == false);
-            Assert.True(filePath2.IsFileLocked() == false);
-            Assert.True(filePath3.IsFileLocked() == false);
-            Assert.True(filePath4.IsFileLocked() == false);
+            Assert.False(filePath1.IsFileLocked());
+            Assert.False(filePath2.IsFileLocked());
+            Assert.False(filePath3.IsFileLocked());
+            Assert.False(filePath4.IsFileLocked());
         }
 
         [Fact]
         public void Test_Dispose() {
-            string filePath1 = Path.Combine(_directoryWithFiles, "DisposeTesting.docx");
+            var filePath1 = Path.Combine(_directoryWithFiles, "DisposeTesting.docx");
             File.Delete(filePath1);
 
-            Assert.True(File.Exists(filePath1) == false);
+            Assert.False(File.Exists(filePath1));
 
-            WordDocument document = WordDocument.Create(filePath1);
+            var document = WordDocument.Create(filePath1);
             document.BuiltinDocumentProperties.Title = "This is my title";
             document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
             document.BuiltinDocumentProperties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test");
 
-            Assert.True(filePath1.IsFileLocked() == true);
+            Assert.True(filePath1.IsFileLocked());
 
             document.Save();
 
-            Assert.True(filePath1.IsFileLocked() == true);
+            Assert.True(filePath1.IsFileLocked());
 
             document.Dispose();
 
-            Assert.True(filePath1.IsFileLocked() == false);
-
-            Assert.True(File.Exists(filePath1) == true);
+            Assert.False(filePath1.IsFileLocked());
+            Assert.True(File.Exists(filePath1));
         }
 
         [Fact]
@@ -127,18 +127,13 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create();
             document.AddParagraph("Hello world!");
 
-            using (var outputStream = new MemoryStream())
-            {
-                document.Save(outputStream);
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
 
-                var resultDoc = WordDocument.Load(outputStream);
+            var resultDoc = WordDocument.Load(outputStream);
 
-                var expectedCount = 1;
-                var expectedText = "Hello world!";
-
-                Assert.Equal(resultDoc.Paragraphs.Count, expectedCount);
-                Assert.Equal(resultDoc.Paragraphs[0].Text, expectedText);
-            }
+            Assert.Single(resultDoc.Paragraphs);
+            Assert.Equal("Hello world!", resultDoc.Paragraphs[0].Text);
         }
     }
 }
