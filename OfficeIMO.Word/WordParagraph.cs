@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
@@ -24,6 +24,20 @@ namespace OfficeIMO.Word {
                 } else {
                     throw new NotImplementedException("There is different parent for paragraphs?");
                 }
+            }
+        }
+
+        public bool IsLastRun {
+            get {
+                var runs = _run.Parent.ChildElements.OfType<Run>();
+                return runs.Last() == _run;
+            }
+        }
+
+        public bool IsFirstRun {
+            get {
+                var runs = _run.Parent.ChildElements.OfType<Run>();
+                return runs.First() == _run;
             }
         }
 
