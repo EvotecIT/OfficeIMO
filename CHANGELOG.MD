@@ -1,4 +1,4 @@
-#### 0.3.1
+#### 0.3.1 - 2022.10.18
 - Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
 - Fixes issue with read only documents crashing
 - Fixes watermark throwing when Headers aren't added first [#46](https://github.com/EvotecIT/OfficeIMO/pull/46)
