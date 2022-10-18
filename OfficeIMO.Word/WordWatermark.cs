@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -80,8 +80,14 @@ namespace OfficeIMO.Word {
 
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text) {
             this._document = wordDocument;
-            this._wordHeader = wordHeader;
             this._section = wordSection;
+
+            if (wordHeader == null) {
+                // user didn't create headers first, so we do it for the user
+                wordDocument.AddHeadersAndFooters();
+                wordHeader = wordDocument.Header.Default;
+            }
+            this._wordHeader = wordHeader;
 
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
@@ -96,7 +102,6 @@ namespace OfficeIMO.Word {
                 this.Text = text;
 
                 wordHeader._header.Append(_sdtBlock);
-            } else {
             }
         }
 
