@@ -18,10 +18,10 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
-        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null) {
+        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, string description = "") {
             // WordParagraph paragraph = new WordParagraph(this._document);
             VerifyRun();
-            WordImage wordImage = new WordImage(this._document, this, filePathImage, width, height);
+            WordImage wordImage = new WordImage(this._document, this, filePathImage, width, height, description);
             _run.Append(wordImage._Image);
             return this;
         }
