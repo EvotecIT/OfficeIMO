@@ -222,21 +222,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-
-
-        //public WordImage(WordDocument document, WordParagraph paragraph, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
-        //    double width;
-        //    double height;
-        //    using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
-        //        width = img.Width;
-        //        height = img.Height;
-        //    }
-        //}
-
-        //public WordImage(WordDocument document, Paragraph paragraph) {
-
-        //}
-
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             _document = document;
 
@@ -346,17 +331,8 @@ namespace OfficeIMO.Word {
             });
 
             this._Image = drawing;
-            //this.Width = width.Value;
-            //this.Height = height.Value;
-            //this.EmuWidth = emuWidth;
-            //this.EmuHeight = emuHeight;
             this.Shape = shape;
-            //this.CompressionQuality = compressionQuality;
-            //this.FileName = fileName;
             this.FilePath = filePath;
-            //this.RelationshipId = relationshipId;
-
-            // document.Images.Add(this);
         }
 
         public WordImage(WordDocument document, Drawing drawing) {
@@ -383,6 +359,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Remove image from a Word Document
+        /// </summary>
         public void Remove() {
             if (this._imagePart != null) {
                 _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
