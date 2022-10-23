@@ -23,6 +23,17 @@ using SixLabors.ImageSharp.Processing;
 
 
 namespace OfficeIMO.Word {
+    public enum WrapImageText {
+        InLineWithText,
+        BehindText,
+        InFrontText
+        // not defined
+        //Square,
+        //Through,
+        //Tight,
+        //TopAndBottom
+    }
+
     public class WordImage {
         double englishMetricUnitsPerInch = 914400;
         double pixelsPerInch = 96;
@@ -31,7 +42,6 @@ namespace OfficeIMO.Word {
         internal ImagePart _imagePart;
 
         private readonly WordDocument _document;
-        //internal ShapeProperties _shapeProperties;
 
         public BlipCompressionValues? CompressionQuality {
             get {
@@ -71,6 +81,9 @@ namespace OfficeIMO.Word {
 
         public string FilePath { get; set; }
 
+        /// <summary>
+        /// Get or sets the image's file name
+        /// </summary>
         public string FileName {
             get {
                 if (_Image.Inline != null) {
@@ -86,10 +99,71 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name = value;
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name = value;
+                    }
+                }
             }
         }
 
+        /// <summary>
+        /// Gets or sets the image's description.
+        /// </summary>
+        public string Description {
+            get {
+
+                if (_Image.Inline != null) {
+                    return _Image.Inline.DocProperties.Description;
+
+                } else if (_Image.Anchor != null) {
+                    var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    return anchoDocPropertiesr.Description;
+                }
+
+                return null;
+
+                //if (_Image.Inline != null) {
+                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                //    return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
+                //} else if (_Image.Anchor != null) {
+                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                //        return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
+                //    }
+                //}
+                //return null;
+            }
+            set {
+                if (_Image.Inline != null) {
+                    _Image.Inline.DocProperties.Description = value;
+                } else if (_Image.Anchor != null) {
+                    var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    anchoDocPropertiesr.Description = value;
+                }
+
+                //if (_Image.Inline != null) {
+                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                //    picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
+                //} else if (_Image.Anchor != null) {
+                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                //        picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
+                //    }
+                //}
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets Width of an image
+        /// </summary>
         public double? Width {
             get {
                 if (_Image.Inline != null) {
@@ -123,6 +197,10 @@ namespace OfficeIMO.Word {
                 //var picture = _Image.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
             }
         }
+
+        /// <summary>
+        /// Gets or sets Height of an image
+        /// </summary>
         public double? Height {
             get {
                 if (_Image.Inline != null) {
@@ -212,8 +290,12 @@ namespace OfficeIMO.Word {
 
             }
         }
+
+        /// <summary>
+        /// Microsoft Office does not seem to fully support this attribute, and ignores this setting.
+        /// More information: http://officeopenxml.com/drwSp-SpPr.php
+        /// </summary>
         public BlackWhiteModeValues? BlackWiteMode {
-            // this doesn't work
             get {
                 if (_Image.Inline != null) {
                     var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
@@ -258,43 +340,102 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public bool VerticalFlip {
+        public bool? VerticalFlip {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                return picture.ShapeProperties.Transform2D.VerticalFlip;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture.ShapeProperties.Transform2D.VerticalFlip;
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        return picture.ShapeProperties.Transform2D.VerticalFlip;
+                    }
+                }
+
+                return null;
             }
             set {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                picture.ShapeProperties.Transform2D.VerticalFlip = value;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    picture.ShapeProperties.Transform2D.VerticalFlip = value.Value;
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        picture.ShapeProperties.Transform2D.VerticalFlip = value.Value;
+                    }
+                }
             }
         }
-        public bool HorizontalFlip {
+        public bool? HorizontalFlip {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                return picture.ShapeProperties.Transform2D.HorizontalFlip;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture.ShapeProperties.Transform2D.HorizontalFlip;
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        return picture.ShapeProperties.Transform2D.HorizontalFlip;
+                    }
+                }
+
+                return null;
             }
             set {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                picture.ShapeProperties.Transform2D.HorizontalFlip = value;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    picture.ShapeProperties.Transform2D.HorizontalFlip = value.Value;
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        picture.ShapeProperties.Transform2D.HorizontalFlip = value.Value;
+                    }
+                }
             }
         }
 
 
         public int? Rotation {
             get {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                if (picture.ShapeProperties.Transform2D.Rotation != null) {
-                    return picture.ShapeProperties.Transform2D.Rotation / 10000;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (picture.ShapeProperties.Transform2D.Rotation != null) {
+                        return picture.ShapeProperties.Transform2D.Rotation / 10000;
+                    }
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        if (picture.ShapeProperties.Transform2D.Rotation != null) {
+                            return picture.ShapeProperties.Transform2D.Rotation / 10000;
+                        }
+                    }
                 }
 
                 return null;
             }
             set {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                if (value == null) {
-                    picture.ShapeProperties.Transform2D.Rotation = null;
-                } else {
-                    picture.ShapeProperties.Transform2D.Rotation = value.Value * 10000;
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (value == null) {
+                        picture.ShapeProperties.Transform2D.Rotation = null;
+                    } else {
+                        picture.ShapeProperties.Transform2D.Rotation = value.Value * 10000;
+                    }
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        if (value == null) {
+                            picture.ShapeProperties.Transform2D.Rotation = null;
+                        } else {
+                            picture.ShapeProperties.Transform2D.Rotation = value.Value * 10000;
+                        }
+                    }
                 }
             }
         }
@@ -377,9 +518,9 @@ namespace OfficeIMO.Word {
 
             var drawing = new Drawing();
 
-            var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality);
+            var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
 
-            var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, "");
+            var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
             drawing.Append(inline);
 
             //var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description);
@@ -409,6 +550,7 @@ namespace OfficeIMO.Word {
                 new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties() {
                     Id = (UInt32Value)0U,
                     Name = fileName,
+                    // this description doesn't seem to matter, but leaving it here for now
                     Description = description
                 },
                 //new Pic.NonVisualPictureProperties(),
