@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -18,22 +18,12 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
-        public WordParagraph AddImage(string filePathImage, double? width, double? height) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
-            WordParagraph paragraph = new WordParagraph(this._document);
+        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null) {
+            // WordParagraph paragraph = new WordParagraph(this._document);
             VerifyRun();
+            WordImage wordImage = new WordImage(this._document, this, filePathImage, width, height);
             _run.Append(wordImage._Image);
-            //this.Image = wordImage;
-            return paragraph;
-        }
-
-        public WordParagraph AddImage(string filePathImage) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
-            WordParagraph paragraph = new WordParagraph(this._document);
-            VerifyRun();
-            _run.Append(wordImage._Image);
-            //this.Image = wordImage;
-            return paragraph;
+            return this;
         }
 
 

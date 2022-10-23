@@ -1,11 +1,45 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Checks where the paragraph is located. If it is located in the header, footer or main document.
+        /// This is required for the image processing to work properly for header and footers
+        /// as the location of the image matters to be able to display it properly.
+        /// </summary>
+        /// <returns></returns>
+        internal OpenXmlElement Location() {
+            // i'm assuming the depth shouldn't be more than 10 to get a parent of paragraph
+            int count = 0;
+            var parent = this._paragraph.Parent;
+
+            do {
+                if (parent != null) {
+                    if (parent.GetType() == typeof(Header)) {
+                        return parent;
+                    } else if (parent.GetType() == typeof(Footer)) {
+                        return parent;
+                    } else if (parent.GetType() == typeof(Document)) {
+                        return parent;
+                    }
+
+                    parent = parent.Parent;
+                }
+                count++;
+            } while (count < 10 || parent != null);
+
+            return null;
+        }
+
+        /// <summary>
+        /// Check if run exists, if not create it and append to paragraph
+        /// </summary>
+        /// <returns></returns>
         private Run VerifyRun() {
             if (this._run == null) {
                 this._run = new Run();
@@ -14,6 +48,10 @@ namespace OfficeIMO.Word {
             return this._run;
         }
 
+        /// <summary>
+        /// Check if runProperties exists in run, if not create run, create run properties and and append to run
+        /// </summary>
+        /// <returns></returns>
         private RunProperties VerifyRunProperties() {
             VerifyRun();
             if (this._run != null) {
@@ -33,7 +71,7 @@ namespace OfficeIMO.Word {
             if (_text == null) {
                 var run = VerifyRun();
 
-                var text = new Text { Space = SpaceProcessingModeValues.Preserve }; // this ensures spaces are preserved between runs 
+                var text = new Text { Space = SpaceProcessingModeValues.Preserve }; // this ensures spaces are preserved between runs
                 this._run.Append(text);
             }
 
@@ -65,8 +103,8 @@ namespace OfficeIMO.Word {
         /// Combines the identical runs.
         /// </summary>
         /// <param name="body"></param>
-        /// 
-        /// 
+        ///
+        ///
         /// https://stackoverflow.com/questions/31056953/when-using-mergefield-fieldcodes-in-openxml-sdk-in-c-sharp-why-do-field-codes-di
         public static void CombineIdenticalRuns(Body body) {
 
