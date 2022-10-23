@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
             //BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
-            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, true);
+            //BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, true);
 
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
@@ -99,6 +99,8 @@ namespace OfficeIMO.Examples {
             //Images.Example_AddingImages(folderPath, true);
             //Images.Example_ReadWordWithImages();
             //Images.Example_AddingImagesMultipleTypes(folderPath, true);
+            Images.Example_AddingImagesHeadersFooters(folderPath, true);
+
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             //Example_PageBreaks(filePath, true);
@@ -178,8 +180,8 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            Watermark.Watermark_Sample2(folderPath, true);
-            Watermark.Watermark_Sample1(folderPath, true);
+            //Watermark.Watermark_Sample2(folderPath, true);
+            //Watermark.Watermark_Sample1(folderPath, true);
         }
 
         private static void Example_AddingFields(string filePath, bool openWord) {
