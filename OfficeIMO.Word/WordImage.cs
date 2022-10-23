@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -224,20 +224,20 @@ namespace OfficeIMO.Word {
 
 
 
-        public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
-            double width;
-            double height;
-            using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
-                width = img.Width;
-                height = img.Height;
-            }
-        }
+        //public WordImage(WordDocument document, WordParagraph paragraph, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        //    double width;
+        //    double height;
+        //    using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
+        //        width = img.Width;
+        //        height = img.Height;
+        //    }
+        //}
 
-        public WordImage(WordDocument document, Paragraph paragraph) {
+        //public WordImage(WordDocument document, Paragraph paragraph) {
 
-        }
+        //}
 
-        public WordImage(WordDocument document, string filePath, double? width, double? height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             _document = document;
 
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
             //var uri = new Uri(filePath, UriKind.RelativeOrAbsolute);
             using var imageStream = new FileStream(filePath, FileMode.Open);
 
-            // if widht/height are not set we check ourselves 
+            // if widht/height are not set we check ourselves
             // but probably will need better way
             var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
             if (width == null || height == null) {
@@ -256,11 +256,28 @@ namespace OfficeIMO.Word {
             var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
-            ImagePart imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
+            // decide where to put an image based on the location of paragraph
+            ImagePart imagePart;
+            string relationshipId;
+            var location = paragraph.Location();
+            if (location.GetType() == typeof(Header)) {
+                var part = ((Header)location).HeaderPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else if (location.GetType() == typeof(Footer)) {
+                var part = ((Footer)location).FooterPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else if (location.GetType() == typeof(Document)) {
+                var part = document._wordprocessingDocument.MainDocumentPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else {
+                throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+            }
+
             this._imagePart = imagePart;
             imagePart.FeedData(imageStream);
-
-            var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
 
             //calculate size in emu
             double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
