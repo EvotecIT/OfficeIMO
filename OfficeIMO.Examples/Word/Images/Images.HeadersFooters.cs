@@ -23,6 +23,9 @@ namespace OfficeIMO.Examples.Word {
                 // add image to header, directly to paragraph
                 header.AddParagraph().AddImage(filePathImage, 100, 100);
 
+                // add image to footer, directly to paragraph
+                document.Footer.Default.AddParagraph().AddImage(filePathImage, 100, 100);
+
                 // add image to header, but to a table
                 var table = header.AddTable(2, 2);
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Test123";
