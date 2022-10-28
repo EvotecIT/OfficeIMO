@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
             //BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
-            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, true);
-
+            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
+            BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, true);
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
             //BasicDocument.Example_BasicDocument(folderPath, true);
@@ -178,8 +178,8 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             //Example_AddingFields(filePath, true);
 
-            Watermark.Watermark_Sample2(folderPath, true);
-            Watermark.Watermark_Sample1(folderPath, true);
+            //Watermark.Watermark_Sample2(folderPath, true);
+            //Watermark.Watermark_Sample1(folderPath, true);
         }
 
         private static void Example_AddingFields(string filePath, bool openWord) {
