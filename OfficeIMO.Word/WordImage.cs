@@ -441,12 +441,40 @@ namespace OfficeIMO.Word {
         }
 
         public bool? Wrap {
-            // this doesn't work
             get {
+                if (_Image.Inline != null) {
+                    // text wrapping doesn't exits for Inline, I think
+                    return null;
+                } else if (_Image.Anchor != null) {
+                    var wrap = _Image.Anchor.OfType<NoWrap>().FirstOrDefault();
+                    if (wrap != null) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
                 return null;
             }
             set {
+                if (_Image.Inline != null) {
+                    // text wrapping doesn't exits for Inline, I think, lets not throw, but simply ignore it
+                    //throw new Exception("Text wrapping doesn't exist for Inline images");
+                } else if (_Image.Anchor != null) {
+                    var wrap = _Image.Anchor.OfType<NoWrap>().FirstOrDefault();
+                    if (value == null) {
 
+                    } else {
+                        if (value.Value == true) {
+                            if (wrap != null) {
+                                _Image.Anchor.RemoveChild(wrap);
+                            }
+                        } else {
+                            if (wrap == null) {
+                                _Image.Anchor.Append(new NoWrap());
+                            }
+                        }
+                    }
+                }
                 //if (_Image.Anchor == null) {
                 //    var inline = _Image.Inline.CloneNode(true);
 
@@ -467,6 +495,39 @@ namespace OfficeIMO.Word {
                 //} else {
                 //    _Image.Anchor.AllowOverlap = true;
                 //}
+            }
+        }
+
+        public WrapImageText? WrapImage {
+            get {
+                return null;
+            }
+            set {
+                if (_Image.Anchor == null) {
+                    var inline = _Image.Inline.CloneNode(true);
+
+                    IEnumerable<OpenXmlElement> clonedElements = _Image.Inline
+                        .Elements()
+                        .Select(e => e.CloneNode(true))
+                        .ToList();
+
+                    var childInline = inline.Descendants();
+                    //Anchor anchor1 = new Anchor() { BehindDoc = true };
+                    var graphic = clonedElements.OfType<Graphic>().FirstOrDefault();
+                    Anchor anchor1 = GetAnchor(100, 100, graphic, _Image.Inline.DocProperties.Name, "dfdfdf");
+
+                    //WrapNone wrapNone1 = new WrapNone();
+                    //anchor1.Append(wrapNone1);
+                    _Image.Append(anchor1);
+                    //_Image.Anchor.OfType<DocProperties>().FirstOrDefault().Remove();
+                    //_Image.Anchor.Append(clonedElements.OfType<DocProperties>().FirstOrDefault());
+
+                    _Image.Inline.Remove();
+
+                    //_Image.Anchor.Append(clonedElements);
+                } else {
+                    _Image.Anchor.AllowOverlap = true;
+                }
             }
         }
 
@@ -616,7 +677,6 @@ namespace OfficeIMO.Word {
                 DistanceFromLeft = (UInt32Value)114300U,
                 DistanceFromRight = (UInt32Value)114300U,
                 SimplePos = false,
-                //RelativeHeight = (UInt32Value)251658240U,
                 RelativeHeight = (UInt32Value)251658240U,
                 BehindDoc = true,
                 Locked = false,

@@ -18,16 +18,19 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph();
                 var pargraphWithImage = paragraph.AddImage(file, 100, 100, "Przemek and Kulek on an image");
 
-                Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
+                // Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
 
-                pargraphWithImage.Image.VerticalFlip = false;
-                pargraphWithImage.Image.HorizontalFlip = false;
-                pargraphWithImage.Image.Rotation = 190;
-                pargraphWithImage.Image.Shape = ShapeTypeValues.Cloud;
-                pargraphWithImage.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
-                pargraphWithImage.Image.Description = "Other description";
+                //pargraphWithImage.Image.VerticalFlip = false;
+                //pargraphWithImage.Image.HorizontalFlip = false;
+                //pargraphWithImage.Image.Rotation = 190;
+                //pargraphWithImage.Image.Shape = ShapeTypeValues.Cloud;
+                //pargraphWithImage.Image.Description = "Other description";
 
-                Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
+                var pargraphWithImage1 = paragraph.AddImage(file, 100, 100, "Przemek and Kulek on an image");
+
+                pargraphWithImage1.Image.WrapImage = WrapImageText.BehindText;
+
+                //Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
 
                 document.Save(openWord);
             }
