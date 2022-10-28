@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
             //BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
-            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
+            //BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, true);
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
