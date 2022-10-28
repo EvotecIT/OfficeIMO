@@ -374,11 +374,11 @@ namespace OfficeIMO.Word {
             StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
 
-            //WebSettingsPart webSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<WebSettingsPart>("rId3");
-            //GenerateWebSettingsPart1Content(webSettingsPart1);
+            WebSettingsPart webSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<WebSettingsPart>("rId3");
+            GenerateWebSettingsPart1Content(webSettingsPart1);
 
-            //DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
-            //GenerateDocumentSettingsPart1Content(documentSettingsPart1);
+            DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
+            GenerateDocumentSettingsPart1Content(documentSettingsPart1);
 
             //FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId4");
             //GenerateFontTablePart1Content(fontTablePart1);
@@ -386,8 +386,8 @@ namespace OfficeIMO.Word {
             //ThemePart themePart1 = wordDocument.MainDocumentPart.AddNewPart<ThemePart>("rId5");
             //GenerateThemePart2Content(themePart1);
 
-
             WordSettings wordSettings = new WordSettings(word);
+            WordCompatibilitySettings compatibilitySettings = new WordCompatibilitySettings(word);
             ApplicationProperties applicationProperties = new ApplicationProperties(word);
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
@@ -406,6 +406,7 @@ namespace OfficeIMO.Word {
             var builtinDocumentProperties = new BuiltinDocumentProperties(this);
             var wordCustomProperties = new WordCustomProperties(this);
             var wordBackground = new WordBackground(this);
+            var compatibilitySettings = new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
             var wordSection = new WordSection(this, null, null);
@@ -714,5 +715,7 @@ namespace OfficeIMO.Word {
                 return listErrors;
             }
         }
+
+        public WordCompatibilitySettings CompatibilitySettings { get; set; }
     }
 }
