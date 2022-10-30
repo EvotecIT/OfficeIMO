@@ -35,6 +35,18 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.FontFamilyHighAnsi = "Calibri Light";
                 document.Settings.Language = "pt-Br";
 
+                document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+
+                Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2013;
+
+                Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
+                
+                Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
                 string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
 
                 document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
