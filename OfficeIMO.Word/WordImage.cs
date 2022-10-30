@@ -246,7 +246,53 @@ namespace OfficeIMO.Word {
             AddImage(document, imageStream, fileName, width, height, shape, compressionQuality);
         }
 
-        public void AddImage(
+        public WordImage(
+            WordDocument document,
+            Stream imageStream,
+            string fileName,
+            double? width,
+            double? height,
+            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
+            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            FilePath = fileName;
+            AddImage(document, imageStream, fileName, width, height, shape, compressionQuality);
+        }
+
+        public WordImage(WordDocument document, Drawing drawing) {
+            _document = document;
+            _Image = drawing;
+            var imageParts = document._document.MainDocumentPart.ImageParts;
+            foreach (var imagePart in imageParts) {
+                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
+                if (this.RelationshipId == relationshipId) {
+                    this._imagePart = imagePart;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extract image from Word Document and save it to file
+        /// </summary>
+        /// <param name="fileToSave"></param>
+        public void SaveToFile(string fileToSave) {
+            using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
+                var stream = this._imagePart.GetStream();
+                stream.CopyTo(outputFileStream);
+                stream.Close();
+            }
+        }
+
+        public void Remove() {
+            if (this._imagePart != null) {
+                _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+            }
+
+            if (this._Image != null) {
+                this._Image.Remove();
+            }
+        }
+
+        private void AddImage(
             WordDocument document,
             Stream imageStream,
             string fileName,
@@ -336,40 +382,6 @@ namespace OfficeIMO.Word {
 
             _Image = drawing;
             Shape = shape;
-        }
-
-        public WordImage(WordDocument document, Drawing drawing) {
-            _document = document;
-            _Image = drawing;
-            var imageParts = document._document.MainDocumentPart.ImageParts;
-            foreach (var imagePart in imageParts) {
-                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
-                if (this.RelationshipId == relationshipId) {
-                    this._imagePart = imagePart;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Extract image from Word Document and save it to file
-        /// </summary>
-        /// <param name="fileToSave"></param>
-        public void SaveToFile(string fileToSave) {
-            using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
-                var stream = this._imagePart.GetStream();
-                stream.CopyTo(outputFileStream);
-                stream.Close();
-            }
-        }
-
-        public void Remove() {
-            if (this._imagePart != null) {
-                _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
-            }
-
-            if (this._Image != null) {
-                this._Image.Remove();
-            }
         }
     }
 }
