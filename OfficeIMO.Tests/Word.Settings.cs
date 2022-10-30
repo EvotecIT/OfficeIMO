@@ -11,6 +11,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2013);
+
                 document.Settings.ProtectionPassword = "Test";
 
                 Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);
@@ -57,11 +59,19 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.FontFamilyHighAnsi = "Courier New";
 
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2003;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
+
+
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Courier New");
 
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2007;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2007);
+
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Courier New");
                 Assert.True(document.Settings.Language == "pl-PL");
 
@@ -97,6 +107,11 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2007);
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2010;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
+
+
                 Assert.True(document.Settings.FontFamily == "Arial Narrow");
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Abadi");
 
@@ -108,6 +123,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
+
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
+                document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
+                Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.None);
 
                 document.Settings.ZoomPreset = PresetZoomValues.BestFit;
 
