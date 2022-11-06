@@ -136,13 +136,22 @@ namespace OfficeIMO.Tests {
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
             var paragraphHeader = document.Header.Even.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
-                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300);
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapImageText.InLineWithText, "This is a test");
+
             }
 
             Assert.True(document.Header.Default.Images.Count == 1);
             Assert.True(document.Header.Even.Images.Count == 1);
             Assert.True(document.Header.Even.Images[0].FileName == fileNameImageEvotec);
+            Assert.True(document.Header.Even.Images[0].Description == "This is a test");
 
+            document.Header.Even.Images[0].Description = "Different description";
+            Assert.True(document.Header.Even.Images[0].VerticalFlip == null);
+            Assert.True(document.Header.Even.Images[0].HorizontalFlip == null);
+            document.Header.Even.Images[0].VerticalFlip = true;
+
+            Assert.True(document.Header.Even.Images[0].Description == "Different description");
+            Assert.True(document.Header.Even.Images[0].VerticalFlip == true);
             document.Save();
         }
     }
