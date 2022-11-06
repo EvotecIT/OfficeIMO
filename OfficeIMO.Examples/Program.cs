@@ -93,11 +93,12 @@ namespace OfficeIMO.Examples {
             //filePath = System.IO.Path.Combine(folderPath, "AdvancedParagraphs.docx");
             //Example_MultipleParagraphsViaDifferentWays(filePath, false);
 
-            Images.Example_AddingImages(folderPath, true);
-            Images.Example_ReadWordWithImages();
-            Images.Example_AddingImagesMultipleTypes(folderPath, true);
-            Images.Example_AddingImagesHeadersFooters(folderPath, true);
-            Images.Example_AddingImagesInline(folderPath, true);
+            //Images.Example_AddingImages(folderPath, true);
+            //Images.Example_ReadWordWithImages();
+            //Images.Example_AddingImagesMultipleTypes(folderPath, true);
+            //Images.Example_AddingImagesHeadersFooters(folderPath, true);
+            //Images.Example_AddingImagesInline(folderPath, true);
+            Images.Example_AddingImagesSample4(folderPath, true);
 
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
