@@ -9,11 +9,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
-using A = DocumentFormat.OpenXml.Drawing;
-using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
-using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
-using LineTo = DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo;
 
 namespace OfficeIMO.Word {
     public enum WrapImageText {
@@ -336,12 +332,20 @@ namespace OfficeIMO.Word {
             get {
                 if (_Image.Inline != null) {
                     var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    return picture.ShapeProperties.Transform2D.VerticalFlip;
+                    if (picture.ShapeProperties.Transform2D != null) {
+                        if (picture.ShapeProperties.Transform2D.VerticalFlip != null) {
+                            return picture.ShapeProperties.Transform2D.VerticalFlip.Value;
+                        }
+                    }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        return picture.ShapeProperties.Transform2D.VerticalFlip;
+                        if (picture.ShapeProperties.Transform2D != null) {
+                            if (picture.ShapeProperties.Transform2D.VerticalFlip != null) {
+                                return picture.ShapeProperties.Transform2D.VerticalFlip.Value;
+                            }
+                        }
                     }
                 }
 
@@ -363,14 +367,21 @@ namespace OfficeIMO.Word {
         public bool? HorizontalFlip {
             get {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData
-                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    return picture.ShapeProperties.Transform2D.HorizontalFlip;
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (picture.ShapeProperties.Transform2D != null) {
+                        if (picture.ShapeProperties.Transform2D.HorizontalFlip != null) {
+                            return picture.ShapeProperties.Transform2D.HorizontalFlip.Value;
+                        }
+                    }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        return picture.ShapeProperties.Transform2D.HorizontalFlip;
+                        if (picture.ShapeProperties.Transform2D != null) {
+                            if (picture.ShapeProperties.Transform2D.HorizontalFlip != null) {
+                                return picture.ShapeProperties.Transform2D.HorizontalFlip.Value;
+                            }
+                        }
                     }
                 }
 
@@ -600,7 +611,7 @@ namespace OfficeIMO.Word {
                 Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
             };
 
-            A14.UseLocalDpi useLocalDpi1 = new A14.UseLocalDpi() { Val = false };
+            DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi useLocalDpi1 = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi() { Val = false };
             useLocalDpi1.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
             blipExtension1.Append(useLocalDpi1);
 
@@ -642,7 +653,15 @@ namespace OfficeIMO.Word {
         }
 
         private Anchor GetAnchor(double emuWidth, double emuHeight, Graphic graphic, string imageName, string description, WrapImageText wrapImage) {
-            var behindDoc = wrapImage == WrapImageText.BehindText;
+            bool behindDoc;
+            if (wrapImage == WrapImageText.BehindText) {
+                behindDoc = true;
+            } else if (wrapImage == WrapImageText.InFrontText) {
+                behindDoc = false;
+            } else {
+                // i think this is default for other cases, except for InlineText which is handled outside of Anchor
+                behindDoc = true;
+            }
 
             Anchor anchor1 = new Anchor() {
                 DistanceFromTop = (UInt32Value)0U,
@@ -685,15 +704,14 @@ namespace OfficeIMO.Word {
                 anchor1.Append(wrapSquare1);
             } else if (wrapImage == WrapImageText.Tight) {
                 WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };
-
                 WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
                 StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
                 // the values are probably wrong and content oriented
                 // would require some more research on how to calculate them
-                LineTo lineTo1 = new LineTo() { X = 0L, Y = 21384L };
-                LineTo lineTo2 = new LineTo() { X = 21384L, Y = 21384L };
-                LineTo lineTo3 = new LineTo() { X = 21384L, Y = 0L };
-                LineTo lineTo4 = new LineTo() { X = 0L, Y = 0L };
+                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
+                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
+                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
+                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
 
                 wrapPolygon1.Append(startPoint1);
                 wrapPolygon1.Append(lineTo1);
@@ -709,10 +727,10 @@ namespace OfficeIMO.Word {
                 StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
                 // the values are probably wrong and content oriented
                 // would require some more research on how to calculate them
-                LineTo lineTo1 = new LineTo() { X = 0L, Y = 21384L };
-                LineTo lineTo2 = new LineTo() { X = 21384L, Y = 21384L };
-                LineTo lineTo3 = new LineTo() { X = 21384L, Y = 0L };
-                LineTo lineTo4 = new LineTo() { X = 0L, Y = 0L };
+                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
+                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
+                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
+                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
 
                 wrapPolygon1.Append(startPoint1);
                 wrapPolygon1.Append(lineTo1);
@@ -729,6 +747,7 @@ namespace OfficeIMO.Word {
                 };
                 anchor1.Append(wrapTopBottom1);
             } else {
+                // behind text, in front of text have this option 
                 WrapNone wrapNone1 = new WrapNone();
                 anchor1.Append(wrapNone1);
             }
@@ -736,21 +755,21 @@ namespace OfficeIMO.Word {
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
             anchor1.Append(docProperties1);
 
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties();
-            A.GraphicFrameLocks graphicFrameLocks1 = new A.GraphicFrameLocks() { NoChangeAspect = true };
+            var nonVisualGraphicFrameDrawingProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties();
+            GraphicFrameLocks graphicFrameLocks1 = new GraphicFrameLocks() { NoChangeAspect = true };
             graphicFrameLocks1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
             nonVisualGraphicFrameDrawingProperties1.Append(graphicFrameLocks1);
             anchor1.Append(nonVisualGraphicFrameDrawingProperties1);
 
             anchor1.Append(graphic);
 
-            RelativeWidth relativeWidth1 = new Wp14.RelativeWidth() { ObjectId = SizeRelativeHorizontallyValues.Page };
-            PercentageWidth percentageWidth1 = new Wp14.PercentageWidth { Text = "0" };
+            RelativeWidth relativeWidth1 = new RelativeWidth() { ObjectId = SizeRelativeHorizontallyValues.Page };
+            PercentageWidth percentageWidth1 = new PercentageWidth { Text = "0" };
             relativeWidth1.Append(percentageWidth1);
             anchor1.Append(relativeWidth1);
 
-            RelativeHeight relativeHeight1 = new Wp14.RelativeHeight() { RelativeFrom = SizeRelativeVerticallyValues.Page };
-            PercentageHeight percentageHeight1 = new Wp14.PercentageHeight { Text = "0" };
+            RelativeHeight relativeHeight1 = new RelativeHeight() { RelativeFrom = SizeRelativeVerticallyValues.Page };
+            PercentageHeight percentageHeight1 = new PercentageHeight { Text = "0" };
             relativeHeight1.Append(percentageHeight1);
             anchor1.Append(relativeHeight1);
 
