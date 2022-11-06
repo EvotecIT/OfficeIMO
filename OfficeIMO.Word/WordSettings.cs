@@ -238,6 +238,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or Sets default font family for the whole document.
         /// </summary>
+        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
         public string FontFamily {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
@@ -259,6 +260,37 @@ namespace OfficeIMO.Word {
                     // we need to reset default AsciiTheme, before applying Ascii
                     runPropertiesBaseStyle.RunFonts.AsciiTheme = null;
                     runPropertiesBaseStyle.RunFonts.Ascii = value;
+                } else {
+                    throw new Exception("Could not set font family. Styles not found.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets default font family for the whole document in highAnsi.
+        /// </summary>
+        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
+        public string FontFamilyHighAnsi {
+            get {
+                var runPropertiesBaseStyle = GetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts != null) {
+                        var fontFamily = runPropertiesBaseStyle.RunFonts.HighAnsi;
+                        return fontFamily;
+                    }
+                }
+                return null;
+            }
+            set {
+                var runPropertiesBaseStyle = SetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    //runPropertiesBaseStyle.RunFonts = new RunFonts();
+                    if (runPropertiesBaseStyle.RunFonts == null) {
+                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
+                    }
+                    // we also need to change it in highAnsi to fix https://github.com/EvotecIT/OfficeIMO/issues/54
+                    runPropertiesBaseStyle.RunFonts.HighAnsi = value;
+                    runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
                 }

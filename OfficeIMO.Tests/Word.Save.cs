@@ -132,8 +132,8 @@ namespace OfficeIMO.Tests {
 
             var resultDoc = WordDocument.Load(outputStream);
 
-            Assert.Single(resultDoc.Paragraphs);
-            Assert.Equal("Hello world!", resultDoc.Paragraphs[0].Text);
+            var paragraph = Assert.Single(resultDoc.Paragraphs);
+            Assert.Equal("Hello world!", paragraph.Text);
         }
     }
 }

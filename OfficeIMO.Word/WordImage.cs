@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using DocumentFormat.OpenXml.Drawing.Pictures;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -35,13 +32,13 @@ namespace OfficeIMO.Word {
     }
 
     public class WordImage {
-        double englishMetricUnitsPerInch = 914400;
-        double pixelsPerInch = 96;
+        private const double EnglishMetricUnitsPerInch = 914400;
+        private const double PixelsPerInch = 96;
 
         internal Drawing _Image;
         internal ImagePart _imagePart;
 
-        private readonly WordDocument _document;
+        private WordDocument _document;
 
         public BlipCompressionValues? CompressionQuality {
             get {
@@ -216,7 +213,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_Image.Inline != null) {
-                    double emuHeight = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
+                    double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                     _Image.Inline.Extent.Cy = (Int64Value)emuHeight;
                     var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     picture.ShapeProperties.Transform2D.Extents.Cy = (Int64Value)emuHeight;
@@ -767,6 +764,98 @@ namespace OfficeIMO.Word {
             if (this._Image != null) {
                 this._Image.Remove();
             }
+        }
+
+        private void AddImage(
+            WordDocument document,
+            Stream imageStream,
+            string fileName,
+            double? width,
+            double? height,
+            ShapeTypeValues shape,
+            BlipCompressionValues compressionQuality) {
+            _document = document;
+
+            // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
+
+            // if widht/height are not set we check ourselves
+            // but probably will need better way
+            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
+            if (width == null || height == null) {
+                width = imageСharacteristics.Width;
+                height = imageСharacteristics.Height;
+            }
+
+            _imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
+            _imagePart.FeedData(imageStream);
+
+            var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_imagePart);
+
+            //calculate size in emu
+            var emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+            var emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var shapeProperties = new ShapeProperties(
+                new Transform2D(new Offset {X = 0L, Y = 0L},
+                    new Extents {
+                        Cx = (Int64Value) emuWidth,
+                        Cy = (Int64Value) emuHeight
+                    }
+                ),
+                new PresetGeometry(new AdjustValueList()) {Preset = shape}
+            );
+
+            var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+
+            var drawing = new Drawing(
+                //new Anchor(
+                //    new WrapNone()
+                //    ) { BehindDoc = true },
+                new Inline(
+                    new Extent {Cx = (Int64Value) emuWidth, Cy = (Int64Value) emuHeight},
+                    new EffectExtent {
+                        LeftEdge = 0L,
+                        TopEdge = 0L,
+                        RightEdge = 0L,
+                        BottomEdge = 0L
+                    },
+                    new DocProperties {
+                        Id = (UInt32Value) 1U,
+                        Name = imageName
+                    },
+                    new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
+                        new GraphicFrameLocks {NoChangeAspect = true}),
+                    new Graphic(
+                        new GraphicData(
+                            new DocumentFormat.OpenXml.Drawing.Pictures.Picture(
+                                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
+                                    new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties {
+                                        Id = (UInt32Value) 0U,
+                                        Name = fileName
+                                    },
+                                    new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
+                                new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
+                                    new Blip(new BlipExtensionList(new BlipExtension {
+                                            // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
+                                            Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
+                                        })
+                                    ) {
+                                        Embed = relationshipId,
+                                        CompressionState = compressionQuality
+                                    },
+                                    new Stretch(new FillRectangle())),
+                                shapeProperties)
+                        ) {Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture"})
+                ) {
+                    DistanceFromTop = (UInt32Value) 0U,
+                    DistanceFromBottom = (UInt32Value) 0U,
+                    DistanceFromLeft = (UInt32Value) 0U,
+                    DistanceFromRight = (UInt32Value) 0U,
+                    EditId = "50D07946"
+                });
+
+            _Image = drawing;
+            Shape = shape;
         }
     }
 }
