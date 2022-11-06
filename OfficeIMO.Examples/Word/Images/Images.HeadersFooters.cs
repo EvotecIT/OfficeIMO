@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Word {
     internal static partial class Images {
         internal static void Example_AddingImagesHeadersFooters(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with some Images");
-            string filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
+            string filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImagesHeaderFooters.docx");
             string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -16,6 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
 
                 document.AddHeadersAndFooters();
+                document.DifferentOddAndEvenPages = true;
 
                 var header = document.Header.Default;
                 var paragraphHeader = header.AddParagraph("This is header");
@@ -83,6 +84,16 @@ namespace OfficeIMO.Examples.Word {
 
                 string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
                 document.Images[0].SaveToFile(fileToSave);
+
+                var paragraphHeaderEven = document.Header.Even.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
+                const string fileNameImageEvotec = "EvotecLogo.png";
+                var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
+                using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
+                    paragraphHeaderEven.AddImage(imageStream, fileNameImageEvotec, 100, 100);
+                }
+
+                //var filePathImageEvotecSave = System.IO.Path.Combine(imagePaths, "savedFile.png");
+                //paragraphHeaderEven.Image.SaveToFile(filePathImageEvotecSave);
 
                 document.Save(openWord);
             }

@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var pargraphWithImage1 = paragraph.AddImage(file, 100, 100, "Przemek and Kulek on an image");
 
-                pargraphWithImage1.Image.WrapImage = WrapImageText.BehindText;
+                //pargraphWithImage1.Image.WrapImage = WrapImageText.BehindText;
 
                 //Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
 
