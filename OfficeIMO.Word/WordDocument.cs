@@ -575,10 +575,8 @@ namespace OfficeIMO.Word {
         }
 
         public void Save(string filePath, bool openWord) {
-            MoveSectionProperties();
-            SaveNumbering();
+            PreSaving();
 
-            WordCustomProperties wordCustomProperties = new WordCustomProperties(this, true);
             if (this._wordprocessingDocument != null) {
                 try {
                     //Save to the memory stream
@@ -636,6 +634,8 @@ namespace OfficeIMO.Word {
         }
 
         public void Save(Stream outputStream) {
+            PreSaving();
+
             this._wordprocessingDocument.Clone(outputStream);
 
             if (outputStream.CanSeek) {
@@ -717,5 +717,11 @@ namespace OfficeIMO.Word {
         }
 
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
+
+        private void PreSaving() {
+            MoveSectionProperties();
+            SaveNumbering();
+            _ = new WordCustomProperties(this, true);
+        }
     }
 }
