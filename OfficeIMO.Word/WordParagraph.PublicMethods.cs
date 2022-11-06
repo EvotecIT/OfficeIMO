@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -19,23 +20,24 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddImage(string filePathImage, double? width, double? height) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, width, height);
-            WordParagraph paragraph = new WordParagraph(this._document);
+            var wordImage = new WordImage(_document, filePathImage, width, height);
+            var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
-            //this.Image = wordImage;
             return paragraph;
         }
 
         public WordParagraph AddImage(string filePathImage) {
-            WordImage wordImage = new WordImage(this._document, filePathImage, null, null);
-            WordParagraph paragraph = new WordParagraph(this._document);
-            VerifyRun();
-            _run.Append(wordImage._Image);
-            //this.Image = wordImage;
-            return paragraph;
+            return AddImage(filePathImage, null, null);
         }
 
+        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height) {
+            var wordImage = new WordImage(_document, imageStream, fileName, width, height);
+            var paragraph = new WordParagraph(_document);
+            VerifyRun();
+            _run.Append(wordImage._Image);
+            return paragraph;
+        }
 
         /// <summary>
         /// Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
