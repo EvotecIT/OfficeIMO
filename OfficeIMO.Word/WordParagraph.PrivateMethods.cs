@@ -67,6 +67,10 @@ namespace OfficeIMO.Word {
             return this._runProperties;
         }
 
+        /// <summary>
+        /// Returns a Text field. If it doesn't exits creates it. 
+        /// </summary>
+        /// <returns></returns>
         private Text VerifyText() {
             if (_text == null) {
                 var run = VerifyRun();
