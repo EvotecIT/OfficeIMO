@@ -1,11 +1,8 @@
-using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
