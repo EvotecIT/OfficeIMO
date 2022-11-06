@@ -27,8 +27,7 @@ namespace OfficeIMO.Word {
         private const double PixelsPerInch = 96;
 
         internal Drawing _Image;
-        internal ImagePart _imagePart;
-
+        private ImagePart _imagePart;
         private WordDocument _document;
 
         public BlipCompressionValues? CompressionQuality {
@@ -45,7 +44,30 @@ namespace OfficeIMO.Word {
                 }
                 return null;
             }
-            set { }
+            set {
+                if (_Image.Inline != null) {
+                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (picture != null) {
+                        if (picture.BlipFill != null) {
+                            if (picture.BlipFill.Blip != null) {
+                                picture.BlipFill.Blip.CompressionState = value;
+                            }
+                        }
+                    }
+                } else if (_Image.Anchor != null) {
+                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                        if (picture != null) {
+                            if (picture.BlipFill != null) {
+                                if (picture.BlipFill.Blip != null) {
+                                    picture.BlipFill.Blip.CompressionState = value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public string RelationshipId {
@@ -61,9 +83,6 @@ namespace OfficeIMO.Word {
                     }
                 }
                 return null;
-            }
-            set {
-
             }
         }
 
@@ -443,69 +462,43 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public bool? Wrap {
-            get {
-                if (_Image.Inline != null) {
-                    // text wrapping doesn't exits for Inline, I think
-                    return null;
-                } else if (_Image.Anchor != null) {
-                    var wrap = _Image.Anchor.OfType<NoWrap>().FirstOrDefault();
-                    if (wrap != null) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-                return null;
-            }
-            set {
-                if (_Image.Inline != null) {
-                    // text wrapping doesn't exits for Inline, I think, lets not throw, but simply ignore it
-                    //throw new Exception("Text wrapping doesn't exist for Inline images");
-                } else if (_Image.Anchor != null) {
-                    var wrap = _Image.Anchor.OfType<NoWrap>().FirstOrDefault();
-                    if (value == null) {
-
-                    } else {
-                        if (value.Value == true) {
-                            if (wrap != null) {
-                                _Image.Anchor.RemoveChild(wrap);
-                            }
-                        } else {
-                            if (wrap == null) {
-                                _Image.Anchor.Append(new NoWrap());
-                            }
-                        }
-                    }
-                }
-                //if (_Image.Anchor == null) {
-                //    var inline = _Image.Inline.CloneNode(true);
-
-                //    IEnumerable<OpenXmlElement> clonedElements = _Image.Inline
-                //        .Elements()
-                //        .Select(e => e.CloneNode(true))
-                //        .ToList();
-
-                //    var childInline = inline.Descendants();
-                //    Anchor anchor1 = new Anchor() { BehindDoc = true };
-                //    WrapNone wrapNone1 = new WrapNone();
-                //    anchor1.Append(wrapNone1);
-                //    _Image.Append(anchor1);
-
-                //    _Image.Inline.Remove();
-
-                //    _Image.Anchor.Append(clonedElements);
-                //} else {
-                //    _Image.Anchor.AllowOverlap = true;
-                //}
-            }
-        }
 
         public WrapImageText? WrapImage {
             get {
+                if (_Image.Inline != null) {
+                    return WrapImageText.InLineWithText;
+                } else if (_Image.Anchor != null) {
+                    var wrapSquare = _Image.Anchor.OfType<WrapSquare>().FirstOrDefault();
+                    if (wrapSquare != null) {
+                        return WrapImageText.Square;
+                    }
+                    var wrapTight = _Image.Anchor.OfType<WrapTight>().FirstOrDefault();
+                    if (wrapTight != null) {
+                        return WrapImageText.Tight;
+                    }
+                    var wrapThrough = _Image.Anchor.OfType<WrapThrough>().FirstOrDefault();
+                    if (wrapThrough != null) {
+                        return WrapImageText.Through;
+                    }
+                    var wrapTopAndBottom = _Image.Anchor.OfType<WrapTopBottom>().FirstOrDefault();
+                    if (wrapTopAndBottom != null) {
+                        return WrapImageText.TopAndBottom;
+                    }
+                    var wrapNone = _Image.Anchor.OfType<WrapNone>().FirstOrDefault();
+                    var behindDoc = _Image.Anchor.BehindDoc;
+                    if (wrapNone != null && behindDoc != null && behindDoc.Value == true) {
+                        return WrapImageText.BehindText;
+                    } else if (wrapNone != null && behindDoc != null && behindDoc.Value == false) {
+                        return WrapImageText.InFrontText;
+                    }
+                }
+
                 return null;
             }
             set {
+                // REQUIRES FIXING, DOESNT WORK AT ALL
+
+
                 if (_Image.Anchor == null) {
                     var inline = _Image.Inline.CloneNode(true);
 

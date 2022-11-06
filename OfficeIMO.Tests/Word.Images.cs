@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             var paragraphHeader = document.Header.Even.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
                 paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapImageText.InLineWithText, "This is a test");
-
+                Assert.True(paragraphHeader.Image.CompressionQuality == BlipCompressionValues.Print);
             }
 
             Assert.True(document.Header.Default.Images.Count == 1);
@@ -152,6 +152,10 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Header.Even.Images[0].Description == "Different description");
             Assert.True(document.Header.Even.Images[0].VerticalFlip == true);
+            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.Print);
+            document.Header.Even.Images[0].CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.HighQualityPrint);
+            
             document.Save();
         }
     }
