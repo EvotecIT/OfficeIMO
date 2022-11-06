@@ -13,17 +13,17 @@ using A = DocumentFormat.OpenXml.Drawing;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
+using LineTo = DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo;
 
 namespace OfficeIMO.Word {
     public enum WrapImageText {
         InLineWithText,
+        Square,
+        Tight,
+        Through,
+        TopAndBottom,
         BehindText,
         InFrontText
-        // not defined
-        //Square,
-        //Through,
-        //Tight,
-        //TopAndBottom
     }
 
     public class WordImage {
@@ -506,7 +506,7 @@ namespace OfficeIMO.Word {
                     var childInline = inline.Descendants();
                     //Anchor anchor1 = new Anchor() { BehindDoc = true };
                     var graphic = clonedElements.OfType<Graphic>().FirstOrDefault();
-                    Anchor anchor1 = GetAnchor(100, 100, graphic, _Image.Inline.DocProperties.Name, "dfdfdf");
+                    Anchor anchor1 = GetAnchor(100, 100, graphic, _Image.Inline.DocProperties.Name, "dfdfdf", WrapImageText.BehindText);
 
                     //WrapNone wrapNone1 = new WrapNone();
                     //anchor1.Append(wrapNone1);
@@ -538,13 +538,14 @@ namespace OfficeIMO.Word {
             string filePath,
             double? width,
             double? height,
-            string description,
+            WrapImageText wrapImage = WrapImageText.InLineWithText,
+            string description = "",
             ShapeTypeValues shape = ShapeTypeValues.Rectangle,
             BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open);
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description);
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
         }
 
         public WordImage(
@@ -554,11 +555,12 @@ namespace OfficeIMO.Word {
             string fileName,
             double? width,
             double? height,
-            string description,
+            WrapImageText wrapImage = WrapImageText.InLineWithText,
+            string description = "",
             ShapeTypeValues shape = ShapeTypeValues.Rectangle,
             BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
             FilePath = fileName;
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description);
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
@@ -639,7 +641,9 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private Anchor GetAnchor(double emuWidth, double emuHeight, Graphic graphic, string imageName, string description) {
+        private Anchor GetAnchor(double emuWidth, double emuHeight, Graphic graphic, string imageName, string description, WrapImageText wrapImage) {
+            var behindDoc = wrapImage == WrapImageText.BehindText;
+
             Anchor anchor1 = new Anchor() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -647,7 +651,7 @@ namespace OfficeIMO.Word {
                 DistanceFromRight = (UInt32Value)114300U,
                 SimplePos = false,
                 RelativeHeight = (UInt32Value)251658240U,
-                BehindDoc = true,
+                BehindDoc = behindDoc,
                 Locked = false,
                 LayoutInCell = true,
                 AllowOverlap = true,
@@ -674,8 +678,60 @@ namespace OfficeIMO.Word {
             EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 1905L };
             anchor1.Append(effectExtent1);
 
-            WrapNone wrapNone1 = new WrapNone();
-            anchor1.Append(wrapNone1);
+            if (wrapImage == WrapImageText.Square) {
+                WrapSquare wrapSquare1 = new WrapSquare() {
+                    WrapText = WrapTextValues.BothSides
+                };
+                anchor1.Append(wrapSquare1);
+            } else if (wrapImage == WrapImageText.Tight) {
+                WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };
+
+                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
+                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
+                // the values are probably wrong and content oriented
+                // would require some more research on how to calculate them
+                LineTo lineTo1 = new LineTo() { X = 0L, Y = 21384L };
+                LineTo lineTo2 = new LineTo() { X = 21384L, Y = 21384L };
+                LineTo lineTo3 = new LineTo() { X = 21384L, Y = 0L };
+                LineTo lineTo4 = new LineTo() { X = 0L, Y = 0L };
+
+                wrapPolygon1.Append(startPoint1);
+                wrapPolygon1.Append(lineTo1);
+                wrapPolygon1.Append(lineTo2);
+                wrapPolygon1.Append(lineTo3);
+                wrapPolygon1.Append(lineTo4);
+
+                wrapTight1.Append(wrapPolygon1);
+                anchor1.Append(wrapTight1);
+            } else if (wrapImage == WrapImageText.Through) {
+                WrapThrough wrapThrough1 = new WrapThrough() { WrapText = WrapTextValues.BothSides };
+                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
+                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
+                // the values are probably wrong and content oriented
+                // would require some more research on how to calculate them
+                LineTo lineTo1 = new LineTo() { X = 0L, Y = 21384L };
+                LineTo lineTo2 = new LineTo() { X = 21384L, Y = 21384L };
+                LineTo lineTo3 = new LineTo() { X = 21384L, Y = 0L };
+                LineTo lineTo4 = new LineTo() { X = 0L, Y = 0L };
+
+                wrapPolygon1.Append(startPoint1);
+                wrapPolygon1.Append(lineTo1);
+                wrapPolygon1.Append(lineTo2);
+                wrapPolygon1.Append(lineTo3);
+                wrapPolygon1.Append(lineTo4);
+                wrapThrough1.Append(wrapPolygon1);
+                anchor1.Append(wrapThrough1);
+            } else if (wrapImage == WrapImageText.TopAndBottom) {
+                WrapTopBottom wrapTopBottom1 = new WrapTopBottom() {
+                    //Values don't seem to matter
+                    //DistanceFromTop = (UInt32Value)20U,
+                    //DistanceFromBottom = (UInt32Value)20U
+                };
+                anchor1.Append(wrapTopBottom1);
+            } else {
+                WrapNone wrapNone1 = new WrapNone();
+                anchor1.Append(wrapNone1);
+            }
 
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
             anchor1.Append(docProperties1);
@@ -747,13 +803,11 @@ namespace OfficeIMO.Word {
             double? height,
             ShapeTypeValues shape,
             BlipCompressionValues compressionQuality,
-            string description
+            string description,
+            WrapImageText wrapImage
         ) {
             _document = document;
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-
-            //using var imageStream = new FileStream(filePath, FileMode.Open);
-
             // if widht/height are not set we check ourselves
             // but probably will need better way
             var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
@@ -793,109 +847,16 @@ namespace OfficeIMO.Word {
             double emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
 
             var drawing = new Drawing();
-            var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
 
-            var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
-            drawing.Append(inline);
-
-            //var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description);
-            //drawing.Append(anchor);
-
-
+            if (wrapImage == WrapImageText.InLineWithText) {
+                var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
+                drawing.Append(inline);
+            } else {
+                var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description, wrapImage);
+                drawing.Append(anchor);
+            }
             this._Image = drawing;
-            //this.FilePath = fileName;
         }
-
-        // private void AddImage(
-        //     WordDocument document,
-        //     Stream imageStream,
-        //     string fileName,
-        //     double? width,
-        //     double? height,
-        //     ShapeTypeValues shape,
-        //     BlipCompressionValues compressionQuality) {
-        //     _document = document;
-
-        //     // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-
-        //     // if widht/height are not set we check ourselves
-        //     // but probably will need better way
-        //     var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
-        //     if (width == null || height == null) {
-        //         width = imageСharacteristics.Width;
-        //         height = imageСharacteristics.Height;
-        //     }
-
-        //     _imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
-        //     _imagePart.FeedData(imageStream);
-
-        //     var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_imagePart);
-
-        //     //calculate size in emu
-        //     var emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-        //     var emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-
-        //     var shapeProperties = new ShapeProperties(
-        //         new Transform2D(new Offset { X = 0L, Y = 0L },
-        //             new Extents {
-        //                 Cx = (Int64Value)emuWidth,
-        //                 Cy = (Int64Value)emuHeight
-        //             }
-        //         ),
-        //         new PresetGeometry(new AdjustValueList()) { Preset = shape }
-        //     );
-
-        //     var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
-
-        //     var drawing = new Drawing(
-        //         //new Anchor(
-        //         //    new WrapNone()
-        //         //    ) { BehindDoc = true },
-        //         new Inline(
-        //             new Extent { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
-        //             new EffectExtent {
-        //                 LeftEdge = 0L,
-        //                 TopEdge = 0L,
-        //                 RightEdge = 0L,
-        //                 BottomEdge = 0L
-        //             },
-        //             new DocProperties {
-        //                 Id = (UInt32Value)1U,
-        //                 Name = imageName
-        //             },
-        //             new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
-        //                 new GraphicFrameLocks { NoChangeAspect = true }),
-        //             new Graphic(
-        //                 new GraphicData(
-        //                     new DocumentFormat.OpenXml.Drawing.Pictures.Picture(
-        //                         new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
-        //                             new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties {
-        //                                 Id = (UInt32Value)0U,
-        //                                 Name = fileName
-        //                             },
-        //                             new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
-        //                         new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
-        //                             new Blip(new BlipExtensionList(new BlipExtension {
-        //                                 // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
-        //                                 Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
-        //                             })
-        //                             ) {
-        //                                 Embed = relationshipId,
-        //                                 CompressionState = compressionQuality
-        //                             },
-        //                             new Stretch(new FillRectangle())),
-        //                         shapeProperties)
-        //                 ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
-        //         ) {
-        //             DistanceFromTop = (UInt32Value)0U,
-        //             DistanceFromBottom = (UInt32Value)0U,
-        //             DistanceFromLeft = (UInt32Value)0U,
-        //             DistanceFromRight = (UInt32Value)0U,
-        //             EditId = "50D07946"
-        //         });
-
-        //     _Image = drawing;
-        //     Shape = shape;
-        // }
     }
 }
