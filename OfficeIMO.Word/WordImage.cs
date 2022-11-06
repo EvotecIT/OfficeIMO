@@ -6,18 +6,13 @@ using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-
 using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
-using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using A = DocumentFormat.OpenXml.Drawing;
-using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
-using SixLabors.ImageSharp.Processing;
-
 
 namespace OfficeIMO.Word {
     public enum WrapImageText {
@@ -166,16 +161,16 @@ namespace OfficeIMO.Word {
                 if (_Image.Inline != null) {
                     var extents = _Image.Inline.Extent;
                     var cX = extents.Cx;
-                    return cX / englishMetricUnitsPerInch * pixelsPerInch;
+                    return cX / EnglishMetricUnitsPerInch * PixelsPerInch;
                 } else if (_Image.Anchor != null) {
                     var extents = _Image.Anchor.Extent;
                     var cX = extents.Cx;
-                    return cX / englishMetricUnitsPerInch * pixelsPerInch;
+                    return cX / EnglishMetricUnitsPerInch * PixelsPerInch;
                 }
                 return null;
             }
             set {
-                double emuWidth = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
+                double emuWidth = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                 if (_Image.Inline != null) {
                     var extents = _Image.Inline.Extent;
                     extents.Cx = (long)emuWidth;
@@ -203,11 +198,11 @@ namespace OfficeIMO.Word {
                 if (_Image.Inline != null) {
                     var extents = _Image.Inline.Extent;
                     var cY = extents.Cy;
-                    return cY / englishMetricUnitsPerInch * pixelsPerInch;
+                    return cY / EnglishMetricUnitsPerInch * PixelsPerInch;
                 } else if (_Image.Anchor != null) {
                     var extents = _Image.Anchor.Extent;
                     var cY = extents.Cy;
-                    return cY / englishMetricUnitsPerInch * pixelsPerInch;
+                    return cY / EnglishMetricUnitsPerInch * PixelsPerInch;
                 }
                 return null;
             }
@@ -218,7 +213,7 @@ namespace OfficeIMO.Word {
                     var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     picture.ShapeProperties.Transform2D.Extents.Cy = (Int64Value)emuHeight;
                 } else if (_Image.Anchor != null) {
-                    double emuHeight = value.Value * englishMetricUnitsPerInch / pixelsPerInch;
+                    double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                     _Image.Anchor.Extent.Cy = (Int64Value)emuHeight;
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                     if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
@@ -528,65 +523,42 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, string description, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
-            _document = document;
+        //public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        //    double width;
+        //    double height;
+        //    using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
+        //        width = img.Width;
+        //        height = img.Height;
+        //    }
+        //}
 
-            // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-
-            //var uri = new Uri(filePath, UriKind.RelativeOrAbsolute);
-            using var imageStream = new FileStream(filePath, FileMode.Open);
-
-            // if widht/height are not set we check ourselves
-            // but probably will need better way
-            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
-            if (width == null || height == null) {
-                width = imageСharacteristics.Width;
-                height = imageСharacteristics.Height;
-            }
-
+        public WordImage(
+            WordDocument document,
+            WordParagraph paragraph,
+            string filePath,
+            double? width,
+            double? height,
+            string description,
+            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
+            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
-            var imageName = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            using var imageStream = new FileStream(filePath, FileMode.Open);
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description);
+        }
 
-            // decide where to put an image based on the location of paragraph
-            ImagePart imagePart;
-            string relationshipId;
-            var location = paragraph.Location();
-            if (location.GetType() == typeof(Header)) {
-                var part = ((Header)location).HeaderPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else if (location.GetType() == typeof(Footer)) {
-                var part = ((Footer)location).FooterPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else if (location.GetType() == typeof(Document)) {
-                var part = document._wordprocessingDocument.MainDocumentPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else {
-                throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
-            }
-
-            this._imagePart = imagePart;
-            imagePart.FeedData(imageStream);
-
-            //calculate size in emu
-            double emuWidth = width.Value * englishMetricUnitsPerInch / pixelsPerInch;
-            double emuHeight = height.Value * englishMetricUnitsPerInch / pixelsPerInch;
-
-            var drawing = new Drawing();
-
-            var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
-
-            var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
-            drawing.Append(inline);
-
-            //var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description);
-            //drawing.Append(anchor);
-
-
-            this._Image = drawing;
-            this.FilePath = filePath;
+        public WordImage(
+            WordDocument document,
+            WordParagraph paragraph,
+            Stream imageStream,
+            string fileName,
+            double? width,
+            double? height,
+            string description,
+            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
+            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            FilePath = fileName;
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
@@ -768,15 +740,19 @@ namespace OfficeIMO.Word {
 
         private void AddImage(
             WordDocument document,
+            WordParagraph paragraph,
             Stream imageStream,
             string fileName,
             double? width,
             double? height,
             ShapeTypeValues shape,
-            BlipCompressionValues compressionQuality) {
+            BlipCompressionValues compressionQuality,
+            string description
+        ) {
             _document = document;
-
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
+
+            //using var imageStream = new FileStream(filePath, FileMode.Open);
 
             // if widht/height are not set we check ourselves
             // but probably will need better way
@@ -786,76 +762,140 @@ namespace OfficeIMO.Word {
                 height = imageСharacteristics.Height;
             }
 
-            _imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
-            _imagePart.FeedData(imageStream);
-
-            var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_imagePart);
-
-            //calculate size in emu
-            var emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-            var emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-
-            var shapeProperties = new ShapeProperties(
-                new Transform2D(new Offset {X = 0L, Y = 0L},
-                    new Extents {
-                        Cx = (Int64Value) emuWidth,
-                        Cy = (Int64Value) emuHeight
-                    }
-                ),
-                new PresetGeometry(new AdjustValueList()) {Preset = shape}
-            );
-
+            //var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
-            var drawing = new Drawing(
-                //new Anchor(
-                //    new WrapNone()
-                //    ) { BehindDoc = true },
-                new Inline(
-                    new Extent {Cx = (Int64Value) emuWidth, Cy = (Int64Value) emuHeight},
-                    new EffectExtent {
-                        LeftEdge = 0L,
-                        TopEdge = 0L,
-                        RightEdge = 0L,
-                        BottomEdge = 0L
-                    },
-                    new DocProperties {
-                        Id = (UInt32Value) 1U,
-                        Name = imageName
-                    },
-                    new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
-                        new GraphicFrameLocks {NoChangeAspect = true}),
-                    new Graphic(
-                        new GraphicData(
-                            new DocumentFormat.OpenXml.Drawing.Pictures.Picture(
-                                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
-                                    new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties {
-                                        Id = (UInt32Value) 0U,
-                                        Name = fileName
-                                    },
-                                    new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
-                                new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
-                                    new Blip(new BlipExtensionList(new BlipExtension {
-                                            // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
-                                            Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
-                                        })
-                                    ) {
-                                        Embed = relationshipId,
-                                        CompressionState = compressionQuality
-                                    },
-                                    new Stretch(new FillRectangle())),
-                                shapeProperties)
-                        ) {Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture"})
-                ) {
-                    DistanceFromTop = (UInt32Value) 0U,
-                    DistanceFromBottom = (UInt32Value) 0U,
-                    DistanceFromLeft = (UInt32Value) 0U,
-                    DistanceFromRight = (UInt32Value) 0U,
-                    EditId = "50D07946"
-                });
+            // decide where to put an image based on the location of paragraph
+            ImagePart imagePart;
+            string relationshipId;
+            var location = paragraph.Location();
+            if (location.GetType() == typeof(Header)) {
+                var part = ((Header)location).HeaderPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else if (location.GetType() == typeof(Footer)) {
+                var part = ((Footer)location).FooterPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else if (location.GetType() == typeof(Document)) {
+                var part = document._wordprocessingDocument.MainDocumentPart;
+                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                relationshipId = part.GetIdOfPart(imagePart);
+            } else {
+                throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+            }
 
-            _Image = drawing;
-            Shape = shape;
+            this._imagePart = imagePart;
+            imagePart.FeedData(imageStream);
+
+            //calculate size in emu
+            double emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+            double emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var drawing = new Drawing();
+            var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
+
+            var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
+            drawing.Append(inline);
+
+            //var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description);
+            //drawing.Append(anchor);
+
+
+            this._Image = drawing;
+            //this.FilePath = fileName;
         }
+
+        // private void AddImage(
+        //     WordDocument document,
+        //     Stream imageStream,
+        //     string fileName,
+        //     double? width,
+        //     double? height,
+        //     ShapeTypeValues shape,
+        //     BlipCompressionValues compressionQuality) {
+        //     _document = document;
+
+        //     // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
+
+        //     // if widht/height are not set we check ourselves
+        //     // but probably will need better way
+        //     var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
+        //     if (width == null || height == null) {
+        //         width = imageСharacteristics.Width;
+        //         height = imageСharacteristics.Height;
+        //     }
+
+        //     _imagePart = document._wordprocessingDocument.MainDocumentPart.AddImagePart(imageСharacteristics.Type);
+        //     _imagePart.FeedData(imageStream);
+
+        //     var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_imagePart);
+
+        //     //calculate size in emu
+        //     var emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+        //     var emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+        //     var shapeProperties = new ShapeProperties(
+        //         new Transform2D(new Offset { X = 0L, Y = 0L },
+        //             new Extents {
+        //                 Cx = (Int64Value)emuWidth,
+        //                 Cy = (Int64Value)emuHeight
+        //             }
+        //         ),
+        //         new PresetGeometry(new AdjustValueList()) { Preset = shape }
+        //     );
+
+        //     var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+
+        //     var drawing = new Drawing(
+        //         //new Anchor(
+        //         //    new WrapNone()
+        //         //    ) { BehindDoc = true },
+        //         new Inline(
+        //             new Extent { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight },
+        //             new EffectExtent {
+        //                 LeftEdge = 0L,
+        //                 TopEdge = 0L,
+        //                 RightEdge = 0L,
+        //                 BottomEdge = 0L
+        //             },
+        //             new DocProperties {
+        //                 Id = (UInt32Value)1U,
+        //                 Name = imageName
+        //             },
+        //             new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
+        //                 new GraphicFrameLocks { NoChangeAspect = true }),
+        //             new Graphic(
+        //                 new GraphicData(
+        //                     new DocumentFormat.OpenXml.Drawing.Pictures.Picture(
+        //                         new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
+        //                             new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties {
+        //                                 Id = (UInt32Value)0U,
+        //                                 Name = fileName
+        //                             },
+        //                             new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties()),
+        //                         new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill(
+        //                             new Blip(new BlipExtensionList(new BlipExtension {
+        //                                 // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
+        //                                 Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
+        //                             })
+        //                             ) {
+        //                                 Embed = relationshipId,
+        //                                 CompressionState = compressionQuality
+        //                             },
+        //                             new Stretch(new FillRectangle())),
+        //                         shapeProperties)
+        //                 ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+        //         ) {
+        //             DistanceFromTop = (UInt32Value)0U,
+        //             DistanceFromBottom = (UInt32Value)0U,
+        //             DistanceFromLeft = (UInt32Value)0U,
+        //             DistanceFromRight = (UInt32Value)0U,
+        //             EditId = "50D07946"
+        //         });
+
+        //     _Image = drawing;
+        //     Shape = shape;
+        // }
     }
 }
