@@ -23,17 +23,17 @@ namespace OfficeIMO.Word {
         /// Add image from file with ability to provide width and height of the image
         /// The image will be resized given new dimensions
         /// </summary>
-        /// <param name="filePathImage"></param>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
-        /// <param name ="description"></param>
+        /// <param name="filePathImage">Path to file to import to Word Document</param>
+        /// <param name="width">Optional width of the image. If not given the actual image width will be used.</param>
+        /// <param name="height">Optional height of the image. If not given the actual image height will be used.</param>
+        /// <param name="wrapImageText"></param>
+        /// <param name="description"></param>
         /// <returns></returns>
-        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, string description = "") {
-            var wordImage = new WordImage(_document, this, filePathImage, width, height, description);
+        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapImageText wrapImageText = WrapImageText.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
             //var wordImage = new WordImage(_document, filePathImage, width, height);
             var paragraph = new WordParagraph(_document);
             VerifyRun();
-
             _run.Append(wordImage._Image);
             return paragraph;
         }
@@ -45,10 +45,11 @@ namespace OfficeIMO.Word {
         /// <param name="fileName"></param>
         /// <param name="width"></param>
         /// <param name="height"></param>
-        /// <param name ="description"></param>
+        /// <param name="wrapImageText"></param>
+        /// <param name="description"></param>
         /// <returns></returns>
-        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, string description = "") {
-            var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, description);
+        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapImageText wrapImageText = WrapImageText.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
             var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
