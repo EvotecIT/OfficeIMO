@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -316,6 +318,36 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Lists.Count == 5);
                 Assert.True(document.Sections[1].Lists.Count == 2);
                 document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_SavingWordDocumentWithListsToStream() {
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsToStream.docx");
+            var wordListStyles = (WordListStyle[]) Enum.GetValues(typeof(WordListStyle));
+            using (var document = WordDocument.Create()) {
+                foreach (var listStyle in wordListStyles) {
+                    var paragraph = document.AddParagraph(listStyle.ToString());
+                    paragraph.SetColor(Color.Red).SetBold();
+                    paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                    var wordList1 = document.AddList(listStyle);
+                    wordList1.AddItem("Text 1");
+                }
+
+                using var outputStream = new MemoryStream();
+                document.Save(outputStream);
+                File.WriteAllBytes(filePath, outputStream.ToArray());
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(wordListStyles.Length, document.Lists.Count);
+                var abstractNums = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!
+                    .Numbering.ChildElements.OfType<AbstractNum>().ToArray();
+                for (var idx = 0; idx < abstractNums.Length; idx++) {
+                    var style = WordListStyles.GetStyle(wordListStyles[idx]);
+                    Assert.Equal(style, abstractNums[idx]);
+                }
             }
         }
     }

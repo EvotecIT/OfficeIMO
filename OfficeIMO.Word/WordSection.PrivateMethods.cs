@@ -140,17 +140,14 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <returns></returns>
         internal static List<WordList> GetAllDocumentsLists(WordDocument document) {
-            List<WordList> allLists = new List<WordList>();
-            if (document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                var numbering = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                var ids = new List<int>();
-                foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
-                    WordList list = new WordList(document, null, element.NumberID);
-                    allLists.Add(list);
-                }
+            var numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+            if (numbering == null) {
+                return new List<WordList>(0);
             }
 
-            return allLists;
+            return numbering.ChildElements.OfType<NumberingInstance>()
+                .Select(element => new WordList(document, null, element.NumberID))
+                .ToList();
         }
 
         /// <summary>
