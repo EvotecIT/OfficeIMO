@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
 
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
-
+            paragraph1.Image.Shape = ShapeTypeValues.Cube;
 
             var paragraph2 = document.AddParagraph("Image will be placed behind text");
             paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.BehindText, "Przemek and Kulek on an image");
@@ -37,6 +37,7 @@ namespace OfficeIMO.Examples.Word {
 
             var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
             paragraph8.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.TopAndBottom, "Przemek and Kulek on an image");
+            paragraph8.Image.Shape = ShapeTypeValues.Can;
 
             document.Save(openWord);
         }
