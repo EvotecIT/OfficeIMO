@@ -79,5 +79,72 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, document.Sections[0].Images.Count);
             document.Save(false);
         }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesHeadersAndFooters() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+
+            var filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithImagesHeadersAndFooters.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var image = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
+
+            document.AddHeadersAndFooters();
+            document.DifferentOddAndEvenPages = true;
+
+            Assert.True(document.Header.Default.Images.Count == 0);
+            Assert.True(document.Header.Even.Images.Count == 0);
+            Assert.True(document.Images.Count == 0);
+            Assert.True(document.Footer.Default.Images.Count == 0);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+
+            var header = document.Header.Default;
+            // add image to header, directly to paragraph
+            header.AddParagraph().AddImage(image, 100, 100);
+
+            var footer = document.Footer.Default;
+            // add image to footer, directly to paragraph
+            footer.AddParagraph().AddImage(image, 200, 200);
+
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 0);
+            Assert.True(document.Images.Count == 0);
+            Assert.True(document.Footer.Default.Images.Count == 1);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+            var paragraph = document.AddParagraph();
+            using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
+                paragraph.AddImage(imageStream, fileNameImage, 300, 300);
+            }
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 0);
+
+            Assert.True(document.Images.Count == 1);
+            Assert.True(document.Footer.Default.Images.Count == 1);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+            Assert.True(document.Images[0].FileName == fileNameImage);
+            Assert.True(document.Images[0].Rotation == null);
+            Assert.True(document.Images[0].Width == 300);
+            Assert.True(document.Images[0].Height == 300);
+
+            const string fileNameImageEvotec = "EvotecLogo.png";
+            var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
+            var paragraphHeader = document.Header.Even.AddParagraph();
+            using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300);
+            }
+
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 1);
+            Assert.True(document.Header.Even.Images[0].FileName == fileNameImageEvotec);
+
+            document.Save();
+        }
     }
+
 }
