@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample2.docx"), true)) {
+            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample2.docx"), false)) {
 
 
                 Console.WriteLine("Sections count: " + document.Sections.Count);
