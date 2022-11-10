@@ -23,6 +23,9 @@
     <None Update="Templates\BasicDocumentWithBookmarks.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\DocumentWithImagesWraps.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\DocumentWithSection.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

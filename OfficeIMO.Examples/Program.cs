@@ -1,11 +1,8 @@
-using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
@@ -31,8 +28,8 @@ namespace OfficeIMO.Examples {
             //BasicDocument.Example_BasicWord(folderPath, false);
             //BasicDocument.Example_BasicWord2(folderPath, false);
             //BasicDocument.Example_BasicWordWithBreaks(folderPath, true);
-            //BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
-            BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, true);
+            //BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, true);
+
             //AdvancedDocument.Example_AdvancedWord(folderPath, true);
 
             //BasicDocument.Example_BasicDocument(folderPath, true);
@@ -99,6 +96,11 @@ namespace OfficeIMO.Examples {
             //Images.Example_AddingImages(folderPath, true);
             //Images.Example_ReadWordWithImages();
             //Images.Example_AddingImagesMultipleTypes(folderPath, true);
+            //Images.Example_AddingImagesHeadersFooters(folderPath, true);
+            //Images.Example_AddingImagesInline(folderPath, true);
+            //Images.Example_AddingImagesSample4(folderPath, true);
+            Images.Example_ReadWordWithImagesAndDiffWraps();
+
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             //Example_PageBreaks(filePath, true);
