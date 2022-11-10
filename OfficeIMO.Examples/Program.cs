@@ -99,6 +99,7 @@ namespace OfficeIMO.Examples {
             Images.Example_AddingImages(folderPath, false);
             Images.Example_ReadWordWithImages();
             Images.Example_AddingImagesMultipleTypes(folderPath, false);
+            Images.Example_ReadWordWithImagesAndDiffWraps();
 
             PageBreaks.Example_PageBreaks(folderPath, false);
             PageBreaks.Example_PageBreaks1(folderPath, false);

@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                document.Save(true);
+                document.Save(openWord);
             }
         }
 
