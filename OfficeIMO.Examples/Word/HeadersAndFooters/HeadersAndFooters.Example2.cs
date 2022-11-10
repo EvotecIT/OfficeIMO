@@ -80,6 +80,7 @@ namespace OfficeIMO.Examples.Word {
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
                 section2.DifferentFirstPage = true;
+                section2.DifferentOddAndEvenPages = true;
 
 
                 // Add header to section
