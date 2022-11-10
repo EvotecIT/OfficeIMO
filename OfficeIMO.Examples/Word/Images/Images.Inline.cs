@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var file = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
                 var paragraph = document.AddParagraph();
-                var pargraphWithImage = paragraph.AddImage(file, 100, 100, WrapImageText.InLineWithText, "Przemek and Kulek on an image");
+                var pargraphWithImage = paragraph.AddImage(file, 100, 100, WrapTextImage.InLineWithText, "Przemek and Kulek on an image");
 
                 // Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 //pargraphWithImage.Image.Shape = ShapeTypeValues.Cloud;
                 //pargraphWithImage.Image.Description = "Other description";
 
-                var pargraphWithImage1 = paragraph.AddImage(file, 100, 100, WrapImageText.BehindText, "Przemek and Kulek on an image");
+                var pargraphWithImage1 = paragraph.AddImage(file, 100, 100, WrapTextImage.BehindText, "Przemek and Kulek on an image");
 
                 //pargraphWithImage1.Image.WrapImage = WrapImageText.BehindText;
 

@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
         /// <param name="wrapImageText"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapImageText wrapImageText = WrapImageText.InLineWithText, string description = "") {
+        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
             //var wordImage = new WordImage(_document, filePathImage, width, height);
             var paragraph = new WordParagraph(_document);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
         /// <param name="wrapImageText"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapImageText wrapImageText = WrapImageText.InLineWithText, string description = "") {
+        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
             var paragraph = new WordParagraph(_document);
             VerifyRun();

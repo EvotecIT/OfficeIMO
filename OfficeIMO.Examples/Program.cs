@@ -98,7 +98,8 @@ namespace OfficeIMO.Examples {
             //Images.Example_AddingImagesMultipleTypes(folderPath, true);
             //Images.Example_AddingImagesHeadersFooters(folderPath, true);
             //Images.Example_AddingImagesInline(folderPath, true);
-            Images.Example_AddingImagesSample4(folderPath, true);
+            //Images.Example_AddingImagesSample4(folderPath, true);
+            Images.Example_ReadWordWithImagesAndDiffWraps();
 
             //Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             //filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
