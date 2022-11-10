@@ -13,6 +13,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
+                document.DifferentOddAndEvenPages = true;
+                document.DifferentFirstPage = true;
 
                 document.Header.Default.AddParagraph().SetColor(Color.Red).SetText("Test Header");
 
