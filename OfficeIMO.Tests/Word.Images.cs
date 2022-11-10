@@ -79,5 +79,157 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, document.Sections[0].Images.Count);
             document.Save(false);
         }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesHeadersAndFooters() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+
+            var filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithImagesHeadersAndFooters.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var image = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
+
+            document.AddHeadersAndFooters();
+            document.DifferentOddAndEvenPages = true;
+
+            Assert.True(document.Header.Default.Images.Count == 0);
+            Assert.True(document.Header.Even.Images.Count == 0);
+            Assert.True(document.Images.Count == 0);
+            Assert.True(document.Footer.Default.Images.Count == 0);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+
+            var header = document.Header.Default;
+            // add image to header, directly to paragraph
+            header.AddParagraph().AddImage(image, 100, 100);
+
+            var footer = document.Footer.Default;
+            // add image to footer, directly to paragraph
+            footer.AddParagraph().AddImage(image, 200, 200);
+
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 0);
+            Assert.True(document.Images.Count == 0);
+            Assert.True(document.Footer.Default.Images.Count == 1);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+            var paragraph = document.AddParagraph();
+            using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
+                paragraph.AddImage(imageStream, fileNameImage, 300, 300);
+            }
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 0);
+
+            Assert.True(document.Images.Count == 1);
+            Assert.True(document.Footer.Default.Images.Count == 1);
+            Assert.True(document.Footer.Even.Images.Count == 0);
+
+            Assert.True(document.Images[0].FileName == fileNameImage);
+            Assert.True(document.Images[0].Rotation == null);
+            Assert.True(document.Images[0].Width == 300);
+            Assert.True(document.Images[0].Height == 300);
+
+            const string fileNameImageEvotec = "EvotecLogo.png";
+            var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
+            var paragraphHeader = document.Header.Even.AddParagraph();
+            using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapTextImage.InLineWithText, "This is a test");
+                Assert.True(paragraphHeader.Image.CompressionQuality == BlipCompressionValues.Print);
+            }
+
+            Assert.True(document.Header.Default.Images.Count == 1);
+            Assert.True(document.Header.Even.Images.Count == 1);
+            Assert.True(document.Header.Even.Images[0].FileName == fileNameImageEvotec);
+            Assert.True(document.Header.Even.Images[0].Description == "This is a test");
+
+            document.Header.Even.Images[0].Description = "Different description";
+            Assert.True(document.Header.Even.Images[0].VerticalFlip == null);
+            Assert.True(document.Header.Even.Images[0].HorizontalFlip == null);
+            document.Header.Even.Images[0].VerticalFlip = true;
+
+            Assert.True(document.Header.Even.Images[0].Description == "Different description");
+            Assert.True(document.Header.Even.Images[0].VerticalFlip == true);
+            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.Print);
+            document.Header.Even.Images[0].CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.HighQualityPrint);
+
+            document.Save();
+        }
+
+
+
+        [Fact]
+        public void Test_LoadingWordDocumentWithImages() {
+            var documentsPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
+            var filePath = Path.Combine(documentsPaths, "DocumentWithImagesWraps.docx");
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs.Count == 36);
+                Assert.True(document.Images.Count == 4);
+                Assert.True(document.Header.Default.Images.Count == 1);
+                Assert.True(document.Footer.Default.Images.Count == 0);
+
+                Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
+                Assert.True(document.Images[1].WrapText == WrapTextImage.Square);
+                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontText);
+                Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
+                Assert.True(document.Header.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
+
+                Assert.True(document.Images[0].Shape == ShapeTypeValues.Rectangle);
+                Assert.True(document.Images[1].Shape == ShapeTypeValues.Rectangle);
+                Assert.True(document.Images[2].Shape == ShapeTypeValues.Rectangle);
+                Assert.True(document.Images[3].Shape == ShapeTypeValues.Rectangle);
+
+                document.Images[0].Shape = ShapeTypeValues.Cloud;
+
+                Assert.True(document.Images[0].Shape == ShapeTypeValues.Cloud);
+                document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesWraps() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImagesWraps.docx");
+            using var document = WordDocument.Create(filePath);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+
+            var paragraph1 = document.AddParagraph("This is a test document with images wraps");
+            paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.InLineWithText);
+
+            var paragraph2 = document.AddParagraph("This is a test document with images wraps");
+            paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
+
+            var paragraph3 = document.AddParagraph("This is a test document with images wraps");
+            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontText);
+
+            var paragraph4 = document.AddParagraph("This is a test document with images wraps");
+            paragraph4.AddImage(filePathImage, 100, 100, WrapTextImage.TopAndBottom);
+
+            var paragraph5 = document.AddParagraph("This is a test document with images wraps");
+            paragraph5.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
+
+            var paragraph6 = document.AddParagraph("This is a test document with images wraps");
+            paragraph6.AddImage(filePathImage, 100, 100, WrapTextImage.Tight);
+
+            var paragraph7 = document.AddParagraph("This is a test document with images wraps");
+            paragraph7.AddImage(filePathImage, 100, 100, WrapTextImage.Through);
+
+            Assert.True(document.Paragraphs.Count == 7);
+            Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.BehindText);
+            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontText);
+            Assert.True(document.Paragraphs[3].Image.WrapText == WrapTextImage.TopAndBottom);
+            Assert.True(document.Paragraphs[4].Image.WrapText == WrapTextImage.Square);
+            Assert.True(document.Paragraphs[5].Image.WrapText == WrapTextImage.Tight);
+            Assert.True(document.Paragraphs[6].Image.WrapText == WrapTextImage.Through);
+
+            document.Save(false);
+        }
     }
+
 }

@@ -113,34 +113,34 @@ document.Breaks[0].Remove(includingParagraph: true);
 - Added MIT License [#28](https://github.com/EvotecIT/OfficeIMO/pull/28)
 
 - Adds new properties for Tables by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] Alignment
-  - [x] WidthType
-  - [x] Width
-  - [x] ShadingFillColor
-  - [x] ShadingFillColorHex
-  - [x] ShadingFillPatern
-  - [x] Title
-  - [x] Description
-  - [x] AllowOverlap
-  - [x] AllowTextWrap
-  - [x] ColumnWidth
-  - [x] RowHeight
+  - ☑️ Alignment
+  - ☑️ WidthType
+  - ☑️ Width
+  - ☑️ ShadingFillColor
+  - ☑️ ShadingFillColorHex
+  - ☑️ ShadingFillPatern
+  - ☑️ Title
+  - ☑️ Description
+  - ☑️ AllowOverlap
+  - ☑️ AllowTextWrap
+  - ☑️ ColumnWidth
+  - ☑️ RowHeight
 
 - Add table positioning along with properties by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] LeftFromText
-  - [x] RightFromText
-  - [x] BottomFromText
-  - [x] TopFromText
-  - [x] HorizontalAnchor
-  - [x] TablePositionY
-  - [x] TablePositionX
-  - [x] TablePositionYAlignment
-  - [x] TablePositionXAlignment
-  - [x] TableOverlap
+  - ☑️ LeftFromText
+  - ☑️ RightFromText
+  - ☑️ BottomFromText
+  - ☑️ TopFromText
+  - ☑️ HorizontalAnchor
+  - ☑️ TablePositionY
+  - ☑️ TablePositionX
+  - ☑️ TablePositionYAlignment
+  - ☑️ TablePositionXAlignment
+  - ☑️ TableOverlap
 
 - Adds new properties for TableRow by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] FirstCell
-  - [x] LastCell
+  - ☑️ FirstCell
+  - ☑️ LastCell
 
 - Renames some properties to better name them by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
   - FirstRow -> ConditionalFormattingFirstRow
@@ -151,14 +151,14 @@ document.Breaks[0].Remove(includingParagraph: true);
   - NoVerticalBand -> ConditionalFormattingNoVerticalBand
 
 - Adds new properties for Table by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] FirstRow
-  - [x] LastRow
+  - ☑️ FirstRow
+  - ☑️ LastRow
 
 - Adds new methods for Table by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] AddComment(author, initials,comment)
+  - ☑️ AddComment(author, initials,comment)
 
 - Adds new properties for TableCell by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
-  - [x] TextDirection
+  - ☑️ TextDirection
 
 #### - 0.1.7 - 2022.06.12
 

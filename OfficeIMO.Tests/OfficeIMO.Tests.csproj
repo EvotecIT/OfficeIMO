@@ -44,6 +44,9 @@
     <None Update="Documents\DocumentWithImages.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Documents\DocumentWithImagesWraps.docx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Documents\DocumentWithSection - Copy.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
