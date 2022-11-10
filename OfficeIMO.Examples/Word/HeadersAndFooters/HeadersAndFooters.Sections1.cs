@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class HeadersAndFooters {
-        public static void Sections1(string folderPath, bool openWord) {
+        internal static void Sections1(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Sections - Headers/Footers");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Sections - HeadersAndFooters.docx");
 

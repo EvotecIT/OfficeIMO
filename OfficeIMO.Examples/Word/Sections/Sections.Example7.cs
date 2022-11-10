@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -98,7 +98,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("-----");
                 document.Sections[1].Header.Default.AddParagraph().SetText("Test Section 1 - Header-Par1");
                 Console.WriteLine("Section 1 - Text 1: " + document.Sections[1].Header.Default.Paragraphs[1].Text);
-                document.Save(true);
+                document.Save(openWord);
             }
         }
 
