@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -236,6 +236,31 @@ namespace OfficeIMO.Word {
                     }
 
                     _tableCellProperties.TableCellWidth.Width = value.ToString();
+                } else {
+                    if (_tableCellProperties.TableCellWidth != null) {
+                        _tableCellProperties.TableCellWidth.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets cell width type
+        /// </summary>
+        public TableWidthUnitValues? WidthType {
+            get {
+                if (_tableCellProperties.TableCellWidth != null) {
+                    return _tableCellProperties.TableCellWidth.Type;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TableCellWidth == null) {
+                        _tableCellProperties.TableCellWidth = new TableCellWidth();
+                    }
+                    _tableCellProperties.TableCellWidth.Type = value;
                 } else {
                     if (_tableCellProperties.TableCellWidth != null) {
                         _tableCellProperties.TableCellWidth.Remove();
