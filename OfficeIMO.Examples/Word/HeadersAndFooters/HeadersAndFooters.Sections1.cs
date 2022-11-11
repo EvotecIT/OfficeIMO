@@ -17,6 +17,11 @@ namespace OfficeIMO.Examples.Word {
 
                 var para = document.AddBookmark("Test");
 
+                // lets add some empty space so we can test if bookmark works properly
+                document.AddPageBreak();
+                document.AddPageBreak();
+                document.AddPageBreak();
+
                 document.AddHeadersAndFooters();
                 document.Sections[0].Header.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header1");
 
