@@ -51,10 +51,15 @@ namespace OfficeIMO.Word {
             BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
             BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };
 
-            paragraph.VerifyRun();
+            //paragraph.VerifyRun();
+            if (paragraph._run == null) {
+                paragraph._paragraph.Append(bms);
+                paragraph._paragraph.Append(bme);
+            } else {
+                var bm = paragraph._run.InsertAfterSelf(bms);
+                bm.InsertAfterSelf(bme);
+            }
 
-            var bm = paragraph._run.InsertAfterSelf(bms);
-            bm.InsertAfterSelf(bme);
 
             paragraph._bookmarkStart = bms;
             return paragraph;
