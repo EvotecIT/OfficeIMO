@@ -575,6 +575,9 @@ namespace OfficeIMO.Word {
         }
 
         public void Save(string filePath, bool openWord) {
+            if (FileOpenAccess == FileAccess.Read) {
+                throw new Exception("Document is read only, and cannot be saved.");
+            }
             PreSaving();
 
             if (this._wordprocessingDocument != null) {
@@ -634,6 +637,9 @@ namespace OfficeIMO.Word {
         }
 
         public void Save(Stream outputStream) {
+            if (FileOpenAccess == FileAccess.Read) {
+                throw new Exception("Document is read only, and cannot be saved.");
+            }
             PreSaving();
 
             this._wordprocessingDocument.Clone(outputStream);
