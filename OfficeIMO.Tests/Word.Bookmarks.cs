@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -95,6 +95,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsBookmarks[3].Bookmark.Name == "EndOfDocument");
                 Assert.True(document.ParagraphsBookmarks[4].Bookmark.Name == "EndofEnds");
 
+                document.AddBookmark("Add bookmark straight to document. This shouldn't throw");
+
+                Assert.True(document.Bookmarks.Count == 6);
+                Assert.True(document.Paragraphs.Count == 17);
                 document.Save(false);
             }
         }
