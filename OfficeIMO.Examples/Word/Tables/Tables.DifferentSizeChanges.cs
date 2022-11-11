@@ -60,15 +60,38 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph();
                 document.AddParagraph();
-                document.AddParagraph("Table 6 - 50%");
+                document.AddParagraph("Table 7 - 50%");
                 WordTable wordTable6 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable6.SetWidthPercentage(50);
 
                 document.AddParagraph();
                 document.AddParagraph();
-                document.AddParagraph("Table 6 - 75%");
+                document.AddParagraph("Table 8 - 75%");
                 WordTable wordTable7 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable7.SetWidthPercentage(75);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 9");
+                WordTable wordTable8 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable8.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable8.Rows[0].Cells[0].Width = 1000; // this will not work alone i think
+                wordTable8.Rows[0].Cells[1].Width = 500; // this will not work alone i think
+                wordTable8.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
+                wordTable8.ColumnWidthType = TableWidthUnitValues.Pct;
+                wordTable8.SetWidthPercentage(100);
+
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 10");
+                WordTable wordTable9 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable9.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable9.Rows[0].Cells[0].Width = 1000; // this will not work alone i think
+                wordTable9.Rows[0].Cells[1].Width = 500; // this will not work alone i think
+                wordTable9.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
+                wordTable9.ColumnWidthType = TableWidthUnitValues.Pct;
+                wordTable9.DistributeColumnsEvenly();
 
                 document.Save(openWord);
             }
