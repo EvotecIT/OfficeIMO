@@ -40,7 +40,7 @@ namespace OfficeIMO.Word {
         /// Check if run exists, if not create it and append to paragraph
         /// </summary>
         /// <returns></returns>
-        private Run VerifyRun() {
+        internal Run VerifyRun() {
             if (this._run == null) {
                 this._run = new Run();
                 this._paragraph.Append(_run);

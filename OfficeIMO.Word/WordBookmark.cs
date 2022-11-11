@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System;
 using System.Collections.Generic;
@@ -50,6 +50,8 @@ namespace OfficeIMO.Word {
         public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName) {
             BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
             BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };
+
+            paragraph.VerifyRun();
 
             var bm = paragraph._run.InsertAfterSelf(bms);
             bm.InsertAfterSelf(bme);
