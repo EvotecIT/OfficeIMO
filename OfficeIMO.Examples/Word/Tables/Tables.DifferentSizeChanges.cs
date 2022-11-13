@@ -9,6 +9,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
         internal static void Example_DifferentTableSizes(string folderPath, bool openWord) {
+
             Console.WriteLine("[*] Creating standard document with tables of different sizes");
             string filePath = System.IO.Path.Combine(folderPath, "Document with Tables of different sizes.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -23,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
                 wordTable1.WidthType = TableWidthUnitValues.Pct;
-                wordTable1.Width = 2000;
+                wordTable1.Width = 100;
                 wordTable1.Alignment = TableRowAlignmentValues.Center;
 
                 document.AddParagraph();
@@ -84,14 +85,43 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph();
                 document.AddParagraph();
-                document.AddParagraph("Table 10");
+                document.AddParagraph("Table 10 - Shows setting up different sizes for each column");
                 WordTable wordTable9 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable9.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
-                wordTable9.Rows[0].Cells[0].Width = 1000; // this will not work alone i think
-                wordTable9.Rows[0].Cells[1].Width = 500; // this will not work alone i think
                 wordTable9.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
                 wordTable9.ColumnWidthType = TableWidthUnitValues.Pct;
-                wordTable9.DistributeColumnsEvenly();
+                wordTable9.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 11 - Shows setting up different sizes for each column, but fixing it with Distribute Columns Evenly");
+                WordTable wordTable10 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable10.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable10.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
+                wordTable10.ColumnWidthType = TableWidthUnitValues.Pct;
+                // Lets distribute it evenly now
+                wordTable10.DistributeColumnsEvenly();
+
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 12 - The same as above, but manually");
+                WordTable wordTable11 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable11.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable11.ColumnWidth = new List<int>() { 687, 687, 687, 687 };
+                wordTable11.ColumnWidthType = TableWidthUnitValues.Pct;
+                wordTable11.Width = 2063;
+                wordTable11.WidthType = TableWidthUnitValues.Pct;
+
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 13 - Set the magic number by column width");
+                WordTable wordTable12 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable12.ColumnWidth = new List<int>() { 1250, 1250, 1250, 1250 };
+                wordTable12.ColumnWidthType = TableWidthUnitValues.Pct;
+                wordTable12.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
 
                 document.Save(openWord);
             }

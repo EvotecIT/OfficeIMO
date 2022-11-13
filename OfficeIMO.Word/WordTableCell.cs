@@ -244,6 +244,32 @@ namespace OfficeIMO.Word {
             }
         }
 
+        //public int? WidthPercentage {
+        //    get {
+        //        if (_tableCellProperties.TableCellWidth != null) {
+        //            var width = _tableCellProperties.TableCellWidth.Width;
+        //            var type = _tableCellProperties.TableCellWidth.Type;
+        //            if (type == TableWidthUnitValues.Pct) {
+        //                if (width.Value.Contains("%")) {
+        //                    return int.Parse(width.Value.Replace("%", ""));
+        //                }
+        //            } else if (type == TableWidthUnitValues.Dxa) {
+        //                throw new NotImplementedException("WidthPercentage is not implemented for TableWidthUnitValues.Dxa");
+        //                //var widthInInches = (double.Parse(width.Value) / 1440);
+        //                //var widthInPercentage = (widthInInches / _wordTable.Width) * 100;
+        //                //return (int)widthInPercentage;
+        //            } else {
+        //                throw new NotImplementedException("WidthPercentage is not implemented for " + type);
+        //            }
+        //        }
+
+        //        return null;
+        //    }
+        //    set {
+
+        //    }
+        //}
+
         /// <summary>
         /// Gets or sets cell width type
         /// </summary>

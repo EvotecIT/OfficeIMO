@@ -39,6 +39,58 @@ namespace OfficeIMO.Word {
         public void DistributeColumnsEvenly() {
             this.Width = 0;
             this.WidthType = TableWidthUnitValues.Auto;
+
+            var columnWidth = this.ColumnWidth;
+            if (columnWidth.Count == 0) {
+                return;
+            }
+            // check if column width entries are the same
+            var firstWidth = columnWidth[0];
+            var allSame = columnWidth.All(w => w == firstWidth);
+            if (allSame) {
+                return;
+            }
+
+            // set all column widths to the same value
+            var sum = columnWidth.Sum(); // sum of all columns
+            var count = columnWidth.Count(); // count of all columns
+
+            if (ColumnWidthType == TableWidthUnitValues.Pct) {
+                // 100% = 5000
+                var currentPercent = (int)(sum / 5000.0 * 100);
+                var newPercent = (int)(100.0 / count);
+                var diff = currentPercent - newPercent;
+                var newWidth = (int)(newPercent * 5000.0 / 100);
+                for (int i = 0; i < columnWidth.Count; i++) {
+                    columnWidth[i] = newWidth;
+                }
+                // add the difference to the last column
+                columnWidth[columnWidth.Count - 1] += (int)(diff * 5000.0 / 100);
+                this.ColumnWidth = columnWidth;
+
+
+            } else if (ColumnWidthType == TableWidthUnitValues.Dxa) {
+                var totalWidth = columnWidth.Sum();
+                var newWidth = totalWidth / columnWidth.Count;
+                for (int i = 0; i < columnWidth.Count; i++) {
+                    columnWidth[i] = newWidth;
+                }
+            }
+
+
+            //// set all column widths to the same value
+            //var sum = columnWidth.Sum();
+            //var count = columnWidth.Count();
+            //var newWidth = sum / count;
+
+            //for (int i = 0; i < columnWidth.Count; i++) {
+            //    columnWidth[i] = newWidth;
+            //}
+            //ColumnWidth = columnWidth;
+
+            //// set table width to the sum of column widths
+            //this.Width = sum;
+            //this.WidthType = this.ColumnWidthType;
         }
 
         /// <summary>
