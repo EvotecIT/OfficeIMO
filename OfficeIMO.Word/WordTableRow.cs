@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -67,6 +67,38 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool AllowRowToBreakAcrossPages {
+            get {
+                if (_tableRow.TableRowProperties != null) {
+                    var cantSplit = _tableRow.TableRowProperties.OfType<CantSplit>().FirstOrDefault();
+                    if (cantSplit != null) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            set {
+                if (value) {
+                    if (_tableRow.TableRowProperties != null) {
+                        var cantSplit = _tableRow.TableRowProperties.OfType<CantSplit>().FirstOrDefault();
+                        if (cantSplit != null) {
+                            cantSplit.Remove();
+                        }
+                    } else {
+                        // nothing to do as CantSplit doesn't exists, because TableRowProperties doesn't exists
+                        return;
+                    }
+                } else {
+                    AddTableRowProperties();
+                    var cantSplit = _tableRow.TableRowProperties.OfType<CantSplit>().FirstOrDefault();
+                    if (cantSplit == null) {
+                        _tableRow.TableRowProperties.InsertAt(new CantSplit(), 0);
+                    }
+                }
+            }
+        }
+
         private readonly WordTable _wordTable;
         private readonly WordDocument _document;
 
@@ -102,7 +134,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Generate table row properties for the row if it doesn't exists
         /// </summary>
-        private void AddTableRowProperties() {
+        internal void AddTableRowProperties() {
             if (_tableRow.TableRowProperties == null) {
                 _tableRow.InsertAt(new TableRowProperties(), 0);
             }
