@@ -1,3 +1,90 @@
+#### 0.4.0 - 2022.11.11
+
+## What's Changed
+* Improve settings for document with PT-BR and HighAnsi chars by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/56
+* Add Compatibility Mode, set default compatibility to highest version by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/58
+* Bump nugets for tests and excel by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/59
+* Fix not saving list when save to Stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/62
+* Add image via stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/51
+* Add images to headers/footers/tables and other image improvements by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/53
+* Fixes adding bookmark on document by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/68
+* Detect readonly before saving by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/67
+* Skip creation of run, which isn't needed by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/69
+
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.3.1...v0.4.0
+
+
+- Add `DistributeColumnsEvenly` and `SetWidthPercentage` methods to Tables
+
+```cs
+internal static void Example_DifferentTableSizes(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with tables of different sizes");
+    string filePath = System.IO.Path.Combine(folderPath, "Document with Tables of different sizes.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.AddParagraph("Table 1");
+        WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 2 - Sized for 2000 width / Centered");
+        WordTable wordTable1 = document.AddTable(2, 6, WordTableStyle.PlainTable1);
+        wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+        wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
+        wordTable1.WidthType = TableWidthUnitValues.Pct;
+        wordTable1.Width = 2000;
+        wordTable1.Alignment = TableRowAlignmentValues.Center;
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 3 - By default the table is autosized for full width");
+        WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 4 - Magic number 5000 (full width)");
+        WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable3.WidthType = TableWidthUnitValues.Pct;
+        wordTable3.Width = 5000;
+        wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 5 - 50% by using 2500 width (pct)");
+        WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable4.WidthType = TableWidthUnitValues.Pct;
+        wordTable4.Width = 2500;
+        wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 6 - 50% by using 2500 width (pct), that we fix to full width");
+        WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        // this data is temporary just to prove things work
+        wordTable5.WidthType = TableWidthUnitValues.Pct;
+        wordTable5.Width = 2500;
+        // lets fix it for full width
+        wordTable5.DistributeColumnsEvenly();
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 6 - 50%");
+        WordTable wordTable6 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable6.SetWidthPercentage(50);
+
+        document.AddParagraph();
+        document.AddParagraph();
+        document.AddParagraph("Table 6 - 75%");
+        WordTable wordTable7 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+        wordTable7.SetWidthPercentage(75);
+
+        document.Save(openWord);
+    }
+}
+```
+
 #### 0.3.1 - 2022.10.18
 - Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
 - Fixes issue with read only documents crashing

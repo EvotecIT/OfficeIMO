@@ -59,6 +59,12 @@ steps:
     version: '6.0.x'
 
 - task: UseDotNet@2
+  displayName: 'Install .NET 7.0'
+  inputs:
+    packageType: 'sdk'
+    version: '7.0.x'
+
+- task: UseDotNet@2
   displayName: 'Install .NET 5.0'
   inputs:
     packageType: 'sdk'
@@ -129,7 +135,13 @@ steps:
     testRunTitle: 'Linux .NET 6.0'
   condition: succeededOrFailed()
 
-
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 7.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net7.0 /noautorsp'
+    testRunTitle: 'Linux .NET 7.0'
+  condition: succeededOrFailed()
 
 #- task: PublishCodeCoverageResults@1
 #  displayName: 'Publish Code Coverage Report'

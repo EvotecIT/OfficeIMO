@@ -1,72 +1,72 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>An Open Source cross-platform .NET library providing an easy way to create Word documents.</Description>
-    <AssemblyName>OfficeIMO.Word</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
+    <PropertyGroup>
+        <Description>An Open Source cross-platform .NET library providing an easy way to create Microsoft Word (DocX) documents.</Description>
+        <AssemblyName>OfficeIMO.Word</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
-    <VersionPrefix>0.3.1</VersionPrefix>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Company>Evotec</Company>
-    <Authors>Przemyslaw Klys</Authors>
+        <VersionPrefix>0.4.0</VersionPrefix>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0;net7.0</TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
 
-    <PackageId>OfficeIMO.Word</PackageId>
-    <PackageTags>docx;net60;word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
-    <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
-    <DelaySign>False</DelaySign>
-    <IsPublishable>True</IsPublishable>
-    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
-    <PackageIcon>OfficeIMO.png</PackageIcon>
-    <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
-    <DebugType>portable</DebugType>
-    <!--
+        <PackageId>OfficeIMO.Word</PackageId>
+        <PackageTags>docx;net60;word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
+        <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
+        <DelaySign>False</DelaySign>
+        <IsPublishable>True</IsPublishable>
+        <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
+        <DebugType>portable</DebugType>
+        <!--
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies
     -->
-    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
-    <PackageReadmeFile>README.MD</PackageReadmeFile>
-    <RepositoryType>git</RepositoryType>
-    <SignAssembly>False</SignAssembly>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-  </PropertyGroup>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
+        <PackageReadmeFile>README.MD</PackageReadmeFile>
+        <RepositoryType>git</RepositoryType>
+        <SignAssembly>False</SignAssembly>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="OfficeIMO.ico" />
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="OfficeIMO.ico" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Assets\OfficeIMO.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\Assets\README.MD">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\Assets\README.MD">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="2.18.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="DocumentFormat.OpenXml" Version="2.18.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Tests" />
-  </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.Tests" />
+    </ItemGroup>
 
 </Project>
