@@ -136,8 +136,8 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> switches = null) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, switches);
         }
     }
 }

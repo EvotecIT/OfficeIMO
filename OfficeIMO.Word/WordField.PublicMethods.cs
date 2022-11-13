@@ -5,10 +5,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordField {
-        public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
+        public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> switches = null) {
             if (advanced) {
                 var runStart = AddFieldStart();
-                var runField = AddAdvancedField(wordFieldType);
+                var runField = AddAdvancedField(wordFieldType: wordFieldType, switches: switches);
                 var runSeparator = AddFieldSeparator();
                 var runText = AddFieldText(wordFieldType.ToString());
                 var runEnd = AddFieldEnd();
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
                 paragraph._paragraph.Append(runEnd);
                 paragraph._runs = new List<Run>() { runStart, runField, runSeparator, runText, runEnd };
             } else {
-                var simpleField = AddSimpleField(wordFieldType, wordFieldFormat);
+                var simpleField = AddSimpleField(wordFieldType, wordFieldFormat, switches: switches);
                 paragraph._paragraph.Append(simpleField);
                 paragraph._simpleField = simpleField;
             }

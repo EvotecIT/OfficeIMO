@@ -2,21 +2,89 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// List of supported FieldCodes for Word. For the correlating switches, please have a look at the MS docs:<br/>
+    /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see>
+    /// </summary>
     public enum WordFieldType {
-        Comments,
-        Page,
-        Title,
-        Keywords,
-        Subject,
-        Time,
+        AddressBlock,
+        Advance,
+        Ask,
         Author,
+        AutoNum,
+        AutoNumLgl,
+        AutoNumOut,
+        AutoText,
+        AutoTextList,
+        Bibliography,
+        Citation,
+        Comments,
+        Compare,
+        CreateDate,
+        Database,
+        Date,
+        DocProperty,
+        DocVariable,
+        Embed,
+        Eq,
+        FileName,
         FileSize,
-        FileName
+        GoToButton,
+        GreetingLine,
+        HyperlinkIf,
+        IncludePicture,
+        IncludeText,
+        Index,
+        Info,
+        Keywords,
+        LastSavedBy,
+        Link,
+        ListNum,
+        MacroButton,
+        MergeField,
+        MergeRec,
+        MergeSeq,
+        Next,
+        NextIf,
+        NoteRef,
+        NumChars,
+        NumPages,
+        NumWords,
+        Page,
+        PageRef,
+        Print,
+        PrintDate,
+        Private,
+        Quote,
+        RD,
+        Ref,
+        RevNum,
+        SaveDate,
+        Section,
+        SectionPages,
+        Seq,
+        Set,
+        SkipIf,
+        StyleRef,
+        Subject,
+        Symbol,
+        TA,
+        TC,
+        Template,
+        Time,
+        Title,
+        TOA,
+        TOC,
+        UserAddress,
+        UserInitials,
+        UserName,
+        XE
     }
 
     public enum WordFieldFormat {
@@ -42,6 +110,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+
+        /// <summary>
+        /// Format switches, which are identified by <code>\*</code>
+        /// </summary>
         public WordFieldFormat? FieldFormat {
             get {
                 var splitField = Field.Split(new string[] { "\\" }, StringSplitOptions.None);
@@ -50,6 +122,17 @@ namespace OfficeIMO.Word {
                     return ConvertToWordFieldFormat(format);
                 }
                 return null;
+            }
+        }
+
+        public List<String> FieldSwitches{
+            get
+            {
+                string pattern = "\\[A-Za-z0-9] +\"?\"";
+                Regex rgx = new Regex(pattern);
+                var fieldParts = rgx.Split(Field);
+
+                return new List<String>();
             }
         }
 

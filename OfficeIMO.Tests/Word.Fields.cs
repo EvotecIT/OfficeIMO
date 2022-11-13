@@ -204,6 +204,26 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+        [Fact]
+        public void Test_CreatingWordFieldsAndSwitches() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithFieldSwitches.docx"))) {
+                var p = document.AddParagraph(" ");
+                p.AddBookmark("ANSWER");
+
+                var switches = new List<String> { "ANSWER", "\"What is the answer of life and everything?\"" };
+                document.AddField(WordFieldType.Ask, switches: switches, wordFieldFormat: WordFieldFormat.FirstCap);
+
+
+                p = document.AddParagraph(" ");
+                p.AddField(WordFieldType.Bibliography);
+
+                document.Save();
+
+                Assert.Equal(2, document.Fields.Count());
+                Assert.Equal(WordFieldFormat.FirstCap, document.Fields[0].FieldFormat);
+                Assert.Equal(switches[0], document.Fields[0].FieldSwitches[0]);
+            }
+        }
 
     }
 }
