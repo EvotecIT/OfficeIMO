@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<int>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex >= this.Rows[0].CellsCount; cellIndex++) {
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
                     listReturn.Add(this.Rows[0].Cells[cellIndex].Width.Value);
                 }
                 return listReturn;
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<TableWidthUnitValues?>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex >= this.Rows[0].CellsCount; cellIndex++) {
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
                     listReturn.Add(this.Rows[0].Cells[cellIndex].WidthType);
                 }
                 // we assume all cells have the same width type, which may or may not be true
