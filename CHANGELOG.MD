@@ -1,19 +1,4 @@
-#### 0.4.0 - 2022.11.11
-
-## What's Changed
-* Improve settings for document with PT-BR and HighAnsi chars by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/56
-* Add Compatibility Mode, set default compatibility to highest version by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/58
-* Bump nugets for tests and excel by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/59
-* Fix not saving list when save to Stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/62
-* Add image via stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/51
-* Add images to headers/footers/tables and other image improvements by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/53
-* Fixes adding bookmark on document by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/68
-* Detect readonly before saving by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/67
-* Skip creation of run, which isn't needed by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/69
-
-
-**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.3.1...v0.4.0
-
+#### 0.5.0
 
 - Add `DistributeColumnsEvenly` and `SetWidthPercentage` methods to Tables
 
@@ -84,6 +69,189 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
     }
 }
 ```
+
+
+#### 0.4.0 - 2022.11.13
+
+## What's Changed
+* Improve settings for document with PT-BR and HighAnsi chars by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/56
+  - FontFamilyHighAnsi for document.Settings which is required for special chars
+
+```csharp
+public static void Example_BasicWordWithDefaultFontChange(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with different default style (PT/BR)");
+    string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChangeBR.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.Settings.FontSize = 30;
+        //document.Settings.FontSizeComplexScript = 30;
+        document.Settings.FontFamily = "Calibri Light";
+        document.Settings.FontFamilyHighAnsi = "Calibri Light";
+        document.Settings.Language = "pt-Br";
+
+        string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
+
+        document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
+
+        document.Save(openWord);
+    }
+}
+```
+
+* Add Compatibility Mode, set default compatibility to the highest version by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/58
+  - Adds default settings, including compatibility settings, math properties, and few other things that are automatically added when Microsoft Word creates a document
+  - Adds default web settings that are the same to what Microsoft Word does
+  - Sample of usage for compatiblity mode
+
+```csharp
+public static void Example_BasicWordWithDefaultFontChange(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with different default style (PT/BR)");
+    string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChangeBR.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.Settings.FontSize = 30;
+        //document.Settings.FontSizeComplexScript = 30;
+        document.Settings.FontFamily = "Calibri Light";
+        document.Settings.FontFamilyHighAnsi = "Calibri Light";
+        document.Settings.Language = "pt-Br";
+
+        document.Settings.ZoomPreset = PresetZoomValues.BestFit;
+
+        Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
+        document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2013;
+
+        Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
+        document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.None;
+
+        Console.WriteLine(document.CompatibilitySettings.CompatibilityMode);
+
+        string title = "INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL";
+
+        document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
+
+        document.Save(openWord);
+    }
+}
+```
+
+* Bump nuggets for tests and excel by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/59
+* Fix not saving list when saving to Stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/62
+* Add an image via stream by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/51
+* Add images to headers/footers/tables and other image improvements by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/53
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.BuiltinDocumentProperties.Title = "This is sparta";
+    document.BuiltinDocumentProperties.Creator = "Przemek";
+    var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
+
+    document.AddHeadersAndFooters();
+
+    var header = document.Header.Default;
+    var paragraphHeader = header.AddParagraph("This is header");
+
+    // add image to header, directly to paragraph
+    header.AddParagraph().AddImage(filePathImage, 100, 100);
+
+    // add image to footer, directly to paragraph
+    document.Footer.Default.AddParagraph().AddImage(filePathImage, 100, 100);
+
+    // add image to header, but to a table
+    var table = header.AddTable(2, 2);
+    table.Rows[1].Cells[1].Paragraphs[0].Text = "Test123";
+    table.Rows[1].Cells[0].Paragraphs[0].AddImage(filePathImage, 50, 50);
+    table.Alignment = TableRowAlignmentValues.Right;
+
+    var paragraph = document.AddParagraph("This paragraph starts with some text");
+    paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
+    paragraph.Bold = true;
+
+    // add table with an image, but to document
+    var table1 = document.AddTable(2, 2);
+    table1.Rows[1].Cells[1].Paragraphs[0].Text = "Test - In document";
+    table1.Rows[1].Cells[0].Paragraphs[0].AddImage(filePathImage, 50, 50);
+
+
+    // lets add image to paragraph
+    paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
+}
+```
+
+- Rotation / VerticalFlip / HorizontalFlip / Shape work for images
+
+```csharp
+internal static void Example_AddingImagesInline(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with inline images");
+    string filePath = System.IO.Path.Combine(folderPath, "DocumentWithInlineImages2.docx");
+    string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var file = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
+        var paragraph = document.AddParagraph();
+        var pargraphWithImage = paragraph.AddImage(file, 100, 100);
+
+        // Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
+
+        pargraphWithImage.Image.VerticalFlip = false;
+        pargraphWithImage.Image.HorizontalFlip = false;
+        pargraphWithImage.Image.Rotation = 270;
+        pargraphWithImage.Image.Shape = ShapeTypeValues.Cloud;
+
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Added optional Description (AltText) to images
+- Added ability to wrap text around image
+
+```cs
+internal static void Example_AddingImagesSample4(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with some Images and Samples");
+    var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImagesSample4.docx");
+    var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+
+    using var document = WordDocument.Create(filePath);
+
+    var paragraph1 = document.AddParagraph("This paragraph starts with some text");
+    paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
+    paragraph1.Image.Shape = ShapeTypeValues.Cube;
+
+    var paragraph2 = document.AddParagraph("Image will be placed behind text");
+    paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.BehindText, "Przemek and Kulek on an image");
+
+
+    var paragraph3 = document.AddParagraph("Image will be in front of text");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+
+
+    var paragraph5 = document.AddParagraph("Image will be Square");
+    paragraph5.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.Square, "Przemek and Kulek on an image");
+
+
+    var paragraph6 = document.AddParagraph("Image will be Through");
+    paragraph6.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.Through, "Przemek and Kulek on an image");
+
+
+    var paragraph7 = document.AddParagraph("Image will be Tight");
+    paragraph7.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.Tight, "Przemek and Kulek on an image");
+
+
+    var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
+    paragraph8.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.TopAndBottom, "Przemek and Kulek on an image");
+    paragraph8.Image.Shape = ShapeTypeValues.Can;
+
+    document.Save(openWord);
+}
+```
+
+* Fixes adding a bookmark on a document by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/68
+* Detect read-only before saving by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/67
+* Skip creation of run, which isn't needed by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/69
+* Add net 7.0, bump dependencies for testing by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/72
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.3.1...v0.4.0
 
 #### 0.3.1 - 2022.10.18
 - Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
