@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordBackground
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Color**
-
-
 
 ```csharp
 public string Color { get; set; }
@@ -28,8 +24,6 @@ public string Color { get; set; }
 
 ### **WordBackground(WordDocument)**
 
-
-
 ```csharp
 public WordBackground(WordDocument document)
 ```
@@ -39,8 +33,6 @@ public WordBackground(WordDocument document)
 `document` [WordDocument](./officeimo.word.worddocument.md)<br>
 
 ### **WordBackground(WordDocument, Color)**
-
-
 
 ```csharp
 public WordBackground(WordDocument document, Color color)
@@ -56,8 +48,6 @@ public WordBackground(WordDocument document, Color color)
 
 ### **SetColorHex(String)**
 
-
-
 ```csharp
 public WordBackground SetColorHex(string color)
 ```
@@ -71,8 +61,6 @@ public WordBackground SetColorHex(string color)
 [WordBackground](./officeimo.word.wordbackground.md)<br>
 
 ### **SetColor(Color)**
-
-
 
 ```csharp
 public WordBackground SetColor(Color color)

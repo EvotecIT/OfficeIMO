@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordEquation
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Constructors
 
 ### **WordEquation(WordDocument, Paragraph, OfficeMath)**
-
-
 
 ```csharp
 public WordEquation(WordDocument document, Paragraph paragraph, OfficeMath officeMath)
@@ -30,8 +26,6 @@ public WordEquation(WordDocument document, Paragraph paragraph, OfficeMath offic
 
 ### **WordEquation(WordDocument, Paragraph, Paragraph)**
 
-
-
 ```csharp
 public WordEquation(WordDocument document, Paragraph paragraph, Paragraph mathParagraph)
 ```
@@ -45,8 +39,6 @@ public WordEquation(WordDocument document, Paragraph paragraph, Paragraph mathPa
 `mathParagraph` Paragraph<br>
 
 ### **WordEquation(WordDocument, Paragraph, OfficeMath, Paragraph)**
-
-
 
 ```csharp
 public WordEquation(WordDocument document, Paragraph paragraph, OfficeMath officeMath, Paragraph mathParagraph)
@@ -65,8 +57,6 @@ public WordEquation(WordDocument document, Paragraph paragraph, OfficeMath offic
 ## Methods
 
 ### **Remove()**
-
-
 
 ```csharp
 public void Remove()

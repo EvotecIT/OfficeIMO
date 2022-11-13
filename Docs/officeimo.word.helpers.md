@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public static class Helpers
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Methods
 
 ### **ReadAllBytesToMemoryStream(String)**
-
-
 
 ```csharp
 public static MemoryStream ReadAllBytesToMemoryStream(string path)
@@ -30,8 +26,6 @@ public static MemoryStream ReadAllBytesToMemoryStream(string path)
 
 ### **CopyFileStreamToMemoryStream(String)**
 
-
-
 ```csharp
 public static MemoryStream CopyFileStreamToMemoryStream(string path)
 ```
@@ -45,8 +39,6 @@ public static MemoryStream CopyFileStreamToMemoryStream(string path)
 [MemoryStream](https://docs.microsoft.com/en-us/dotnet/api/system.io.memorystream)<br>
 
 ### **CopyFileStreamToFileStream(String, String)**
-
-
 
 ```csharp
 public static FileStream CopyFileStreamToFileStream(string sourcePath, string destPath)
@@ -63,8 +55,6 @@ public static FileStream CopyFileStreamToFileStream(string sourcePath, string de
 [FileStream](https://docs.microsoft.com/en-us/dotnet/api/system.io.filestream)<br>
 
 ### **CopyFileAndOpenFileStream(String, String)**
-
-
 
 ```csharp
 public static FileStream CopyFileAndOpenFileStream(string sourcePath, string destPath)
@@ -112,23 +102,19 @@ public static void Open(string filePath, bool open)
 
 ### **IsFileLocked(FileInfo)**
 
-
-
 ```csharp
 public static bool IsFileLocked(FileInfo file)
 ```
 
 #### Parameters
 
-`file` FileInfo<br>
+`file` [FileInfo](https://docs.microsoft.com/en-us/dotnet/api/system.io.fileinfo)<br>
 
 #### Returns
 
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **IsFileLocked(String)**
-
-
 
 ```csharp
 public static bool IsFileLocked(string fileName)
@@ -141,3 +127,17 @@ public static bool IsFileLocked(string fileName)
 #### Returns
 
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
+### **GetImageСharacteristics(Stream)**
+
+```csharp
+internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream)
+```
+
+#### Parameters
+
+`imageStream` [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream)<br>
+
+#### Returns
+
+[ImageСharacteristics](./officeimo.word.imageсharacteristics.md)<br>

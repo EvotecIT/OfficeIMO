@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordParagraph
 ```
@@ -12,9 +10,27 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ## Properties
 
+### **IsLastRun**
+
+```csharp
+public bool IsLastRun { get; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
+### **IsFirstRun**
+
+```csharp
+public bool IsFirstRun { get; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **Image**
-
-
 
 ```csharp
 public WordImage Image { get; }
@@ -26,8 +42,6 @@ public WordImage Image { get; }
 
 ### **IsListItem**
 
-
-
 ```csharp
 public bool IsListItem { get; }
 ```
@@ -37,8 +51,6 @@ public bool IsListItem { get; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **ListItemLevel**
-
-
 
 ```csharp
 public Nullable<int> ListItemLevel { get; set; }
@@ -50,8 +62,6 @@ public Nullable<int> ListItemLevel { get; set; }
 
 ### **Style**
 
-
-
 ```csharp
 public Nullable<WordParagraphStyles> Style { get; set; }
 ```
@@ -62,7 +72,7 @@ public Nullable<WordParagraphStyles> Style { get; set; }
 
 ### **Text**
 
-
+Get or set a text within Paragraph
 
 ```csharp
 public string Text { get; set; }
@@ -74,19 +84,29 @@ public string Text { get; set; }
 
 ### **PageBreak**
 
-
+Get PageBreaks within Paragraph
 
 ```csharp
-public WordPageBreak PageBreak { get; }
+public WordBreak PageBreak { get; }
 ```
 
 #### Property Value
 
-[WordPageBreak](./officeimo.word.wordpagebreak.md)<br>
+[WordBreak](./officeimo.word.wordbreak.md)<br>
+
+### **Break**
+
+Get Breaks within Paragraph
+
+```csharp
+public WordBreak Break { get; }
+```
+
+#### Property Value
+
+[WordBreak](./officeimo.word.wordbreak.md)<br>
 
 ### **Bookmark**
-
-
 
 ```csharp
 public WordBookmark Bookmark { get; }
@@ -98,8 +118,6 @@ public WordBookmark Bookmark { get; }
 
 ### **Equation**
 
-
-
 ```csharp
 public WordEquation Equation { get; }
 ```
@@ -109,8 +127,6 @@ public WordEquation Equation { get; }
 [WordEquation](./officeimo.word.wordequation.md)<br>
 
 ### **Field**
-
-
 
 ```csharp
 public WordField Field { get; }
@@ -122,8 +138,6 @@ public WordField Field { get; }
 
 ### **Hyperlink**
 
-
-
 ```csharp
 public WordHyperLink Hyperlink { get; }
 ```
@@ -133,8 +147,6 @@ public WordHyperLink Hyperlink { get; }
 [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
 
 ### **IsHyperLink**
-
-
 
 ```csharp
 public bool IsHyperLink { get; }
@@ -146,8 +158,6 @@ public bool IsHyperLink { get; }
 
 ### **IsField**
 
-
-
 ```csharp
 public bool IsField { get; }
 ```
@@ -157,8 +167,6 @@ public bool IsField { get; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **IsBookmark**
-
-
 
 ```csharp
 public bool IsBookmark { get; }
@@ -170,8 +178,6 @@ public bool IsBookmark { get; }
 
 ### **IsEquation**
 
-
-
 ```csharp
 public bool IsEquation { get; }
 ```
@@ -182,8 +188,6 @@ public bool IsEquation { get; }
 
 ### **IsStructuredDocumentTag**
 
-
-
 ```csharp
 public bool IsStructuredDocumentTag { get; }
 ```
@@ -193,8 +197,6 @@ public bool IsStructuredDocumentTag { get; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **IsImage**
-
-
 
 ```csharp
 public bool IsImage { get; }
@@ -232,8 +234,6 @@ public Nullable<VerticalTextAlignmentValues> VerticalCharacterAlignmentOnLine { 
 
 ### **IndentationBefore**
 
-
-
 ```csharp
 public Nullable<int> IndentationBefore { get; set; }
 ```
@@ -243,8 +243,6 @@ public Nullable<int> IndentationBefore { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **IndentationAfter**
-
-
 
 ```csharp
 public Nullable<int> IndentationAfter { get; set; }
@@ -256,8 +254,6 @@ public Nullable<int> IndentationAfter { get; set; }
 
 ### **IndentationFirstLine**
 
-
-
 ```csharp
 public Nullable<int> IndentationFirstLine { get; set; }
 ```
@@ -267,8 +263,6 @@ public Nullable<int> IndentationFirstLine { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **IndentationHanging**
-
-
 
 ```csharp
 public Nullable<int> IndentationHanging { get; set; }
@@ -280,8 +274,6 @@ public Nullable<int> IndentationHanging { get; set; }
 
 ### **TextDirection**
 
-
-
 ```csharp
 public Nullable<TextDirectionValues> TextDirection { get; set; }
 ```
@@ -291,8 +283,6 @@ public Nullable<TextDirectionValues> TextDirection { get; set; }
 [Nullable&lt;TextDirectionValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **LineSpacingRule**
-
-
 
 ```csharp
 public Nullable<LineSpacingRuleValues> LineSpacingRule { get; set; }
@@ -304,8 +294,6 @@ public Nullable<LineSpacingRuleValues> LineSpacingRule { get; set; }
 
 ### **LineSpacing**
 
-
-
 ```csharp
 public Nullable<int> LineSpacing { get; set; }
 ```
@@ -315,8 +303,6 @@ public Nullable<int> LineSpacing { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **LineSpacingBefore**
-
-
 
 ```csharp
 public Nullable<int> LineSpacingBefore { get; set; }
@@ -328,8 +314,6 @@ public Nullable<int> LineSpacingBefore { get; set; }
 
 ### **LineSpacingAfter**
 
-
-
 ```csharp
 public Nullable<int> LineSpacingAfter { get; set; }
 ```
@@ -339,8 +323,6 @@ public Nullable<int> LineSpacingAfter { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **IsEmpty**
-
-
 
 ```csharp
 public bool IsEmpty { get; }
@@ -352,8 +334,6 @@ public bool IsEmpty { get; }
 
 ### **IsPageBreak**
 
-
-
 ```csharp
 public bool IsPageBreak { get; }
 ```
@@ -362,9 +342,17 @@ public bool IsPageBreak { get; }
 
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
+### **IsBreak**
+
+```csharp
+public bool IsBreak { get; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **Bold**
-
-
 
 ```csharp
 public bool Bold { get; set; }
@@ -376,8 +364,6 @@ public bool Bold { get; set; }
 
 ### **Italic**
 
-
-
 ```csharp
 public bool Italic { get; set; }
 ```
@@ -387,8 +373,6 @@ public bool Italic { get; set; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **Underline**
-
-
 
 ```csharp
 public Nullable<UnderlineValues> Underline { get; set; }
@@ -400,8 +384,6 @@ public Nullable<UnderlineValues> Underline { get; set; }
 
 ### **DoNotCheckSpellingOrGrammar**
 
-
-
 ```csharp
 public bool DoNotCheckSpellingOrGrammar { get; set; }
 ```
@@ -411,8 +393,6 @@ public bool DoNotCheckSpellingOrGrammar { get; set; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **Spacing**
-
-
 
 ```csharp
 public Nullable<int> Spacing { get; set; }
@@ -424,8 +404,6 @@ public Nullable<int> Spacing { get; set; }
 
 ### **Strike**
 
-
-
 ```csharp
 public bool Strike { get; set; }
 ```
@@ -435,8 +413,6 @@ public bool Strike { get; set; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **DoubleStrike**
-
-
 
 ```csharp
 public bool DoubleStrike { get; set; }
@@ -448,8 +424,6 @@ public bool DoubleStrike { get; set; }
 
 ### **FontSize**
 
-
-
 ```csharp
 public Nullable<int> FontSize { get; set; }
 ```
@@ -459,8 +433,6 @@ public Nullable<int> FontSize { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **Color**
-
-
 
 ```csharp
 public Color Color { get; set; }
@@ -472,8 +444,6 @@ Color<br>
 
 ### **ColorHex**
 
-
-
 ```csharp
 public string ColorHex { get; set; }
 ```
@@ -483,8 +453,6 @@ public string ColorHex { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **ThemeColor**
-
-
 
 ```csharp
 public Nullable<ThemeColorValues> ThemeColor { get; set; }
@@ -496,8 +464,6 @@ public Nullable<ThemeColorValues> ThemeColor { get; set; }
 
 ### **Highlight**
 
-
-
 ```csharp
 public Nullable<HighlightColorValues> Highlight { get; set; }
 ```
@@ -508,8 +474,6 @@ public Nullable<HighlightColorValues> Highlight { get; set; }
 
 ### **CapsStyle**
 
-
-
 ```csharp
 public CapsStyle CapsStyle { get; set; }
 ```
@@ -519,8 +483,6 @@ public CapsStyle CapsStyle { get; set; }
 [CapsStyle](./officeimo.word.capsstyle.md)<br>
 
 ### **FontFamily**
-
-
 
 ```csharp
 public string FontFamily { get; set; }
@@ -533,8 +495,6 @@ public string FontFamily { get; set; }
 ## Constructors
 
 ### **WordParagraph(WordDocument, Boolean, Boolean)**
-
-
 
 ```csharp
 public WordParagraph(WordDocument document, bool newParagraph, bool newRun)
@@ -550,8 +510,6 @@ public WordParagraph(WordDocument document, bool newParagraph, bool newRun)
 
 ### **WordParagraph(WordDocument, Paragraph)**
 
-
-
 ```csharp
 public WordParagraph(WordDocument document, Paragraph paragraph)
 ```
@@ -563,8 +521,6 @@ public WordParagraph(WordDocument document, Paragraph paragraph)
 `paragraph` Paragraph<br>
 
 ### **WordParagraph(WordDocument, Paragraph, Run)**
-
-
 
 ```csharp
 public WordParagraph(WordDocument document, Paragraph paragraph, Run run)
@@ -582,8 +538,6 @@ public WordParagraph(WordDocument document, Paragraph paragraph, Run run)
 
 ### **SetBold(Boolean)**
 
-
-
 ```csharp
 public WordParagraph SetBold(bool isBold)
 ```
@@ -597,8 +551,6 @@ public WordParagraph SetBold(bool isBold)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetItalic(Boolean)**
-
-
 
 ```csharp
 public WordParagraph SetItalic(bool isItalic)
@@ -614,8 +566,6 @@ public WordParagraph SetItalic(bool isItalic)
 
 ### **SetUnderline(UnderlineValues)**
 
-
-
 ```csharp
 public WordParagraph SetUnderline(UnderlineValues underline)
 ```
@@ -629,8 +579,6 @@ public WordParagraph SetUnderline(UnderlineValues underline)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetSpacing(Int32)**
-
-
 
 ```csharp
 public WordParagraph SetSpacing(int spacing)
@@ -646,8 +594,6 @@ public WordParagraph SetSpacing(int spacing)
 
 ### **SetStrike(Boolean)**
 
-
-
 ```csharp
 public WordParagraph SetStrike(bool isStrike)
 ```
@@ -661,8 +607,6 @@ public WordParagraph SetStrike(bool isStrike)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetDoubleStrike(Boolean)**
-
-
 
 ```csharp
 public WordParagraph SetDoubleStrike(bool isDoubleStrike)
@@ -678,8 +622,6 @@ public WordParagraph SetDoubleStrike(bool isDoubleStrike)
 
 ### **SetFontSize(Int32)**
 
-
-
 ```csharp
 public WordParagraph SetFontSize(int fontSize)
 ```
@@ -693,8 +635,6 @@ public WordParagraph SetFontSize(int fontSize)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetFontFamily(String)**
-
-
 
 ```csharp
 public WordParagraph SetFontFamily(string fontFamily)
@@ -710,8 +650,6 @@ public WordParagraph SetFontFamily(string fontFamily)
 
 ### **SetColorHex(String)**
 
-
-
 ```csharp
 public WordParagraph SetColorHex(string color)
 ```
@@ -725,8 +663,6 @@ public WordParagraph SetColorHex(string color)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetColor(Color)**
-
-
 
 ```csharp
 public WordParagraph SetColor(Color color)
@@ -742,8 +678,6 @@ public WordParagraph SetColor(Color color)
 
 ### **SetHighlight(HighlightColorValues)**
 
-
-
 ```csharp
 public WordParagraph SetHighlight(HighlightColorValues highlight)
 ```
@@ -757,8 +691,6 @@ public WordParagraph SetHighlight(HighlightColorValues highlight)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetCapsStyle(CapsStyle)**
-
-
 
 ```csharp
 public WordParagraph SetCapsStyle(CapsStyle capsStyle)
@@ -774,8 +706,6 @@ public WordParagraph SetCapsStyle(CapsStyle capsStyle)
 
 ### **SetText(String)**
 
-
-
 ```csharp
 public WordParagraph SetText(string text)
 ```
@@ -789,8 +719,6 @@ public WordParagraph SetText(string text)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **SetStyle(WordParagraphStyles)**
-
-
 
 ```csharp
 public WordParagraph SetStyle(WordParagraphStyles style)
@@ -818,7 +746,7 @@ public static void CombineIdenticalRuns(Body body)
 
 ### **AddText(String)**
 
-
+Add a text to existing paragraph
 
 ```csharp
 public WordParagraph AddText(string text)
@@ -833,8 +761,6 @@ public WordParagraph AddText(string text)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddImage(String, Nullable&lt;Double&gt;, Nullable&lt;Double&gt;)**
-
-
 
 ```csharp
 public WordParagraph AddImage(string filePathImage, Nullable<double> width, Nullable<double> height)
@@ -854,8 +780,6 @@ public WordParagraph AddImage(string filePathImage, Nullable<double> width, Null
 
 ### **AddImage(String)**
 
-
-
 ```csharp
 public WordParagraph AddImage(string filePathImage)
 ```
@@ -868,17 +792,35 @@ public WordParagraph AddImage(string filePathImage)
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
+### **AddBreak(Nullable&lt;BreakValues&gt;)**
+
+Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
+
+```csharp
+public WordParagraph AddBreak(Nullable<BreakValues> breakType)
+```
+
+#### Parameters
+
+`breakType` [Nullable&lt;BreakValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+#### Returns
+
+[WordParagraph](./officeimo.word.wordparagraph.md)<br>
+
 ### **Remove()**
 
-
+Remove the paragraph from WordDocument
 
 ```csharp
 public void Remove()
 ```
 
+#### Exceptions
+
+[InvalidOperationException](https://docs.microsoft.com/en-us/dotnet/api/system.invalidoperationexception)<br>
+
 ### **AddParagraphAfterSelf()**
-
-
 
 ```csharp
 public WordParagraph AddParagraphAfterSelf()
@@ -889,8 +831,6 @@ public WordParagraph AddParagraphAfterSelf()
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddParagraphAfterSelf(WordSection)**
-
-
 
 ```csharp
 public WordParagraph AddParagraphAfterSelf(WordSection section)
@@ -905,8 +845,6 @@ public WordParagraph AddParagraphAfterSelf(WordSection section)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddParagraphBeforeSelf()**
-
-
 
 ```csharp
 public WordParagraph AddParagraphBeforeSelf()
@@ -956,8 +894,6 @@ public WordParagraph AddHorizontalLine(BorderValues lineType, Nullable<Color> co
 
 ### **AddBookmark(String)**
 
-
-
 ```csharp
 public WordParagraph AddBookmark(string bookmarkName)
 ```
@@ -971,8 +907,6 @@ public WordParagraph AddBookmark(string bookmarkName)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddField(WordFieldType, Nullable&lt;WordFieldFormat&gt;, Boolean)**
-
-
 
 ```csharp
 public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, bool advanced)
@@ -991,8 +925,6 @@ public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFor
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddHyperLink(String, Uri, Boolean, String, Boolean)**
-
-
 
 ```csharp
 public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle, string tooltip, bool history)
@@ -1015,8 +947,6 @@ public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle, string to
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddHyperLink(String, String, Boolean, String, Boolean)**
-
-
 
 ```csharp
 public WordParagraph AddHyperLink(string text, string anchor, bool addStyle, string tooltip, bool history)

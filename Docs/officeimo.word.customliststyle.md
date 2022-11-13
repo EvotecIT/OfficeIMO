@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public static class CustomListStyle
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Methods
 
 ### **GetStyle(CustomListStyles)**
-
-
 
 ```csharp
 public static NumberFormatValues GetStyle(CustomListStyles style)

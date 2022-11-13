@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordCustomProperty
 ```
@@ -14,15 +12,11 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **Value**
 
-
-
 ```csharp
 public object Value;
 ```
 
 ### **PropertyType**
-
-
 
 ```csharp
 public PropertyTypes PropertyType;
@@ -31,8 +25,6 @@ public PropertyTypes PropertyType;
 ## Properties
 
 ### **Date**
-
-
 
 ```csharp
 public Nullable<DateTime> Date { get; }
@@ -44,8 +36,6 @@ public Nullable<DateTime> Date { get; }
 
 ### **NumberInteger**
 
-
-
 ```csharp
 public Nullable<int> NumberInteger { get; }
 ```
@@ -55,8 +45,6 @@ public Nullable<int> NumberInteger { get; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **NumberDouble**
-
-
 
 ```csharp
 public Nullable<double> NumberDouble { get; }
@@ -68,8 +56,6 @@ public Nullable<double> NumberDouble { get; }
 
 ### **Text**
 
-
-
 ```csharp
 public string Text { get; }
 ```
@@ -79,8 +65,6 @@ public string Text { get; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Bool**
-
-
 
 ```csharp
 public Nullable<bool> Bool { get; }
@@ -94,8 +78,6 @@ public Nullable<bool> Bool { get; }
 
 ### **WordCustomProperty(Object, PropertyTypes)**
 
-
-
 ```csharp
 public WordCustomProperty(object value, PropertyTypes propertyType)
 ```
@@ -108,8 +90,6 @@ public WordCustomProperty(object value, PropertyTypes propertyType)
 
 ### **WordCustomProperty(Boolean)**
 
-
-
 ```csharp
 public WordCustomProperty(bool value)
 ```
@@ -119,8 +99,6 @@ public WordCustomProperty(bool value)
 `value` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **WordCustomProperty(DateTime)**
-
-
 
 ```csharp
 public WordCustomProperty(DateTime value)
@@ -132,8 +110,6 @@ public WordCustomProperty(DateTime value)
 
 ### **WordCustomProperty(String)**
 
-
-
 ```csharp
 public WordCustomProperty(string value)
 ```
@@ -143,8 +119,6 @@ public WordCustomProperty(string value)
 `value` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **WordCustomProperty(Double)**
-
-
 
 ```csharp
 public WordCustomProperty(double value)
@@ -156,8 +130,6 @@ public WordCustomProperty(double value)
 
 ### **WordCustomProperty(Int32)**
 
-
-
 ```csharp
 public WordCustomProperty(int value)
 ```
@@ -167,8 +139,6 @@ public WordCustomProperty(int value)
 `value` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 ### **WordCustomProperty()**
-
-
 
 ```csharp
 public WordCustomProperty()

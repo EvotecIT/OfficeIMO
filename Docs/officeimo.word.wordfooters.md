@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordFooters
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Default**
-
-
 
 ```csharp
 public WordFooter Default { get; set; }
@@ -26,8 +22,6 @@ public WordFooter Default { get; set; }
 
 ### **Even**
 
-
-
 ```csharp
 public WordFooter Even { get; set; }
 ```
@@ -37,8 +31,6 @@ public WordFooter Even { get; set; }
 [WordFooter](./officeimo.word.wordfooter.md)<br>
 
 ### **First**
-
-
 
 ```csharp
 public WordFooter First { get; set; }
@@ -51,8 +43,6 @@ public WordFooter First { get; set; }
 ## Constructors
 
 ### **WordFooters()**
-
-
 
 ```csharp
 public WordFooters()

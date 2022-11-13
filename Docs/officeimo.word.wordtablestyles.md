@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public static class WordTableStyles
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Methods
 
 ### **GetStyle(String)**
-
-
 
 ```csharp
 public static WordTableStyle GetStyle(string style)
@@ -29,8 +25,6 @@ public static WordTableStyle GetStyle(string style)
 [WordTableStyle](./officeimo.word.wordtablestyle.md)<br>
 
 ### **GetStyle(WordTableStyle)**
-
-
 
 ```csharp
 public static TableStyle GetStyle(WordTableStyle style)
@@ -63,8 +57,6 @@ internal static bool IsAvailableStyle(Styles styles, WordTableStyle style)
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **GetStyleDefinition(WordTableStyle)**
-
-
 
 ```csharp
 public static Style GetStyleDefinition(WordTableStyle style)

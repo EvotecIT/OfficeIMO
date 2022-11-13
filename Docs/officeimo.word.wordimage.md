@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordImage
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **CompressionQuality**
-
-
 
 ```csharp
 public Nullable<BlipCompressionValues> CompressionQuality { get; set; }
@@ -26,8 +22,6 @@ public Nullable<BlipCompressionValues> CompressionQuality { get; set; }
 
 ### **RelationshipId**
 
-
-
 ```csharp
 public string RelationshipId { get; set; }
 ```
@@ -37,8 +31,6 @@ public string RelationshipId { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **FilePath**
-
-
 
 ```csharp
 public string FilePath { get; set; }
@@ -50,8 +42,6 @@ public string FilePath { get; set; }
 
 ### **FileName**
 
-
-
 ```csharp
 public string FileName { get; set; }
 ```
@@ -61,8 +51,6 @@ public string FileName { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Width**
-
-
 
 ```csharp
 public Nullable<double> Width { get; set; }
@@ -74,8 +62,6 @@ public Nullable<double> Width { get; set; }
 
 ### **Height**
 
-
-
 ```csharp
 public Nullable<double> Height { get; set; }
 ```
@@ -85,8 +71,6 @@ public Nullable<double> Height { get; set; }
 [Nullable&lt;Double&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **EmuWidth**
-
-
 
 ```csharp
 public Nullable<double> EmuWidth { get; }
@@ -98,8 +82,6 @@ public Nullable<double> EmuWidth { get; }
 
 ### **EmuHeight**
 
-
-
 ```csharp
 public Nullable<double> EmuHeight { get; }
 ```
@@ -109,8 +91,6 @@ public Nullable<double> EmuHeight { get; }
 [Nullable&lt;Double&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **Shape**
-
-
 
 ```csharp
 public ShapeTypeValues Shape { get; set; }
@@ -122,8 +102,6 @@ ShapeTypeValues<br>
 
 ### **BlackWiteMode**
 
-
-
 ```csharp
 public BlackWhiteModeValues BlackWiteMode { get; set; }
 ```
@@ -133,8 +111,6 @@ public BlackWhiteModeValues BlackWiteMode { get; set; }
 BlackWhiteModeValues<br>
 
 ### **VerticalFlip**
-
-
 
 ```csharp
 public bool VerticalFlip { get; set; }
@@ -146,8 +122,6 @@ public bool VerticalFlip { get; set; }
 
 ### **HorizontalFlip**
 
-
-
 ```csharp
 public bool HorizontalFlip { get; set; }
 ```
@@ -158,8 +132,6 @@ public bool HorizontalFlip { get; set; }
 
 ### **Rotation**
 
-
-
 ```csharp
 public int Rotation { get; set; }
 ```
@@ -169,8 +141,6 @@ public int Rotation { get; set; }
 [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 ### **Wrap**
-
-
 
 ```csharp
 public Nullable<bool> Wrap { get; set; }
@@ -183,8 +153,6 @@ public Nullable<bool> Wrap { get; set; }
 ## Constructors
 
 ### **WordImage(WordDocument, String, ShapeTypeValues, BlipCompressionValues)**
-
-
 
 ```csharp
 public WordImage(WordDocument document, string filePath, ShapeTypeValues shape, BlipCompressionValues compressionQuality)
@@ -202,8 +170,6 @@ public WordImage(WordDocument document, string filePath, ShapeTypeValues shape, 
 
 ### **WordImage(WordDocument, Paragraph)**
 
-
-
 ```csharp
 public WordImage(WordDocument document, Paragraph paragraph)
 ```
@@ -215,8 +181,6 @@ public WordImage(WordDocument document, Paragraph paragraph)
 `paragraph` Paragraph<br>
 
 ### **WordImage(WordDocument, String, Nullable&lt;Double&gt;, Nullable&lt;Double&gt;, ShapeTypeValues, BlipCompressionValues)**
-
-
 
 ```csharp
 public WordImage(WordDocument document, string filePath, Nullable<double> width, Nullable<double> height, ShapeTypeValues shape, BlipCompressionValues compressionQuality)
@@ -237,8 +201,6 @@ public WordImage(WordDocument document, string filePath, Nullable<double> width,
 `compressionQuality` BlipCompressionValues<br>
 
 ### **WordImage(WordDocument, Drawing)**
-
-
 
 ```csharp
 public WordImage(WordDocument document, Drawing drawing)
@@ -265,8 +227,6 @@ public void SaveToFile(string fileToSave)
 `fileToSave` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Remove()**
-
-
 
 ```csharp
 public void Remove()

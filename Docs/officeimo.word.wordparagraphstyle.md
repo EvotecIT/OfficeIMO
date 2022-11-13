@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public static class WordParagraphStyle
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Methods
 
 ### **GetStyleDefinition(WordParagraphStyles)**
-
-
 
 ```csharp
 public static Style GetStyleDefinition(WordParagraphStyles style)
@@ -30,8 +26,6 @@ Style<br>
 
 ### **ToStringStyle(WordParagraphStyles)**
 
-
-
 ```csharp
 public static string ToStringStyle(WordParagraphStyles style)
 ```
@@ -45,8 +39,6 @@ public static string ToStringStyle(WordParagraphStyles style)
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **GetStyle(String)**
-
-
 
 ```csharp
 public static WordParagraphStyles GetStyle(string style)

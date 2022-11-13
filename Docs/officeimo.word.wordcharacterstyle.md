@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public static class WordCharacterStyle
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Methods
 
 ### **GetStyleDefinition(WordCharacterStyles)**
-
-
 
 ```csharp
 public static Style GetStyleDefinition(WordCharacterStyles style)
@@ -30,8 +26,6 @@ Style<br>
 
 ### **ToStringStyle(WordCharacterStyles)**
 
-
-
 ```csharp
 public static string ToStringStyle(WordCharacterStyles style)
 ```
@@ -45,8 +39,6 @@ public static string ToStringStyle(WordCharacterStyles style)
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **GetStyle(String)**
-
-
 
 ```csharp
 public static WordCharacterStyles GetStyle(string style)
