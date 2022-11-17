@@ -32,7 +32,6 @@ namespace OfficeIMO.Word {
         DocProperty,
         DocVariable,
         Embed,
-        Eq,
         FileName,
         FileSize,
         GoToButton,
@@ -91,7 +90,10 @@ namespace OfficeIMO.Word {
         Lower,
         Upper,
         FirstCap,
-        Caps
+        Caps,
+        Mergeformat,
+        Roman,
+        Arabic,
     }
 
     public partial class WordField {
@@ -102,37 +104,32 @@ namespace OfficeIMO.Word {
 
         public WordFieldType? FieldType {
             get {
-                var splitField = Field.Split(new string[] { "\\" }, StringSplitOptions.None);
-                if (splitField.Length == 3 || splitField.Length == 2) {
-                    var fieldType = splitField[0].Replace("*", "").Trim();
-                    return ConvertToWordFieldType(fieldType);
-                }
-                return null;
+                var parser = new WordFieldParser(Field);
+                return parser.WordFieldType;
             }
         }
 
-        /// <summary>
-        /// Format switches, which are identified by <code>\*</code>
-        /// </summary>
         public WordFieldFormat? FieldFormat {
             get {
-                var splitField = Field.Split(new string[] { "\\" }, StringSplitOptions.None);
-                if (splitField.Length == 3) {
-                    var format = splitField[1].Replace("*", "").Trim();
-                    return ConvertToWordFieldFormat(format);
-                }
-                return null;
+                var parser = new WordFieldParser(Field);
+                // TODO: How do handle several format switches - if they are even combinable? 
+                //       Since we expect mergeformat to appear, we ignore it by return the first format switch, 
+                //       because its manually added by the GenerateField method anyway, at the moment. 
+                return parser.FormatSwitches.FirstOrDefault();
             }
         }
 
-        public List<String> FieldSwitches{
-            get
-            {
-                string pattern = "\\[A-Za-z0-9] +\"?\"";
-                Regex rgx = new Regex(pattern);
-                var fieldParts = rgx.Split(Field);
+        public List<String> FieldSwitches {
+            get {
+                var parser = new WordFieldParser(Field);
+                return parser.Switches;
+            }
+        }
 
-                return new List<String>();
+        public List<String> FieldInstructions {
+            get {
+                var parser = new WordFieldParser(Field);
+                return parser.Instructions;
             }
         }
 
@@ -246,19 +243,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        //public WordField(WordDocument document, Paragraph paragraph, List<Run> runs) {
-        //    this._document = document;
-        //    this._paragraph = paragraph;
-        //    this._runs = runs;
-        //}
-
-        //public WordField(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
-        //    this._document = document;
-        //    this._paragraph = paragraph;
-        //    this._simpleField = simpleField;
-        //    this._runs.Add(simpleField.GetFirstChild<Run>());
-        //}
-
         internal WordField(WordDocument document, Paragraph paragraph, SimpleField simpleField, List<Run> runs) {
             this._document = document;
             this._paragraph = paragraph;
@@ -268,7 +252,6 @@ namespace OfficeIMO.Word {
             } else {
                 this._runs = runs;
             }
-            // this._runs.Add(simpleField.GetFirstChild<Run>());
         }
     }
 }

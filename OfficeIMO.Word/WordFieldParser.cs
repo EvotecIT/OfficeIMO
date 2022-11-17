@@ -5,31 +5,25 @@ using System.Collections.Generic;
 
 [assembly: InternalsVisibleTo("OfficeIMo.Tests")]
 
-namespace OfficeIMO.Word
-{
-    internal class WordFieldParser
-    {
+namespace OfficeIMO.Word {
+    internal class WordFieldParser {
         private WordFieldType _wordFieldType;
-        public WordFieldType WordFieldType
-        {
-            get{ return _wordFieldType; }
+        public WordFieldType WordFieldType {
+            get { return _wordFieldType; }
         }
 
-        private List<WordFieldFormat> _formatSwitches = new List<WordFieldFormat>();
-        public List<WordFieldFormat> FormatSwitches
-        {
+        private readonly List<WordFieldFormat> _formatSwitches = new();
+        public List<WordFieldFormat> FormatSwitches {
             get { return _formatSwitches; }
         }
 
-        private List<String> _switches = new List<String>();
-        public List<String> Switches
-        {
+        private readonly List<String> _switches = new();
+        public List<String> Switches {
             get { return _switches; }
         }
 
-        private List<String> _instructions = new List<String>();
-        public List<String> Instructions
-        {
+        private readonly List<String> _instructions = new();
+        public List<String> Instructions {
             get { return _instructions; }
         }
 
@@ -53,45 +47,40 @@ namespace OfficeIMO.Word
         /// switch will be interpreted by Word - apart from <code>MERGEFORMAT</code>.
         /// However, in the effort to keep all information, all switches will be exported.
         /// </summary>
-        /// <see cref="https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51"/>
-        /// <see cref="https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.fieldcode?view=openxml-2.8.1"/>
-        /// <see cref="https://office-watch.com/2022/all-named-format-switches-word-field-codes/"/>
-        /// <see cref="https://office-watch.com/2022/word-number-field-code-format-explained/"/>
+        /// <see href="https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51"/>
+        /// <see href="https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.fieldcode?view=openxml-2.8.1"/>
+        /// <see href="https://office-watch.com/2022/all-named-format-switches-word-field-codes/"/>
+        /// <see href="https://office-watch.com/2022/word-number-field-code-format-explained/"/>
         /// <param name="fieldCodeDeclaration"></param>
-        public WordFieldParser(String fieldCodeDeclaration)
-        {
-            this.parseFieldCodeDeclaration(fieldCodeDeclaration);
+        public WordFieldParser(String fieldCodeDeclaration) {
+            this.ParseFieldCodeDeclaration(fieldCodeDeclaration);
         }
 
-        private void parseFieldCodeDeclaration(String fieldCodeDeclaration)
-        {
+        private void ParseFieldCodeDeclaration(String fieldCodeDeclaration) {
 
             fieldCodeDeclaration = fieldCodeDeclaration.Trim();
 
 
-            /// get format switches
+            // get format switches
             string formatSwitches = @"(\\\*) *([A-Za-z-_]+ *)";
-        
+
             Regex rgx = new Regex(formatSwitches);
             var matches = rgx.Matches(fieldCodeDeclaration);
-            foreach(Match m in matches)
-            {
-                var success = Enum.TryParse<WordFieldFormat>(m.Groups[2].ToString(), true, out WordFieldFormat fieldFormat);
-                if (success)
-                {
+            foreach (Match m in matches) {
+                var success = Enum.TryParse(m.Groups[2].ToString(), true, out WordFieldFormat fieldFormat);
+                if (success) {
                     this._formatSwitches.Add(fieldFormat);
 
                     fieldCodeDeclaration = fieldCodeDeclaration.Replace(m.ToString(), "").Trim();
                 }
             }
 
-            /// get normal switches
+            // get normal switches
             string switches = "(\\\\)([A-Za-z@]{1} *([A-Za-z0-9/]+|\".+\")?)";
 
             rgx = new Regex(switches);
             matches = rgx.Matches(fieldCodeDeclaration);
-            foreach (Match m in matches)
-            {
+            foreach (Match m in matches) {
                 var normalSwitch = m.ToString().Trim();
                 this._switches.Add(normalSwitch);
 
@@ -103,8 +92,7 @@ namespace OfficeIMO.Word
 
             rgx = new Regex(instructions);
             matches = rgx.Matches(fieldCodeDeclaration);
-            foreach (Match m in matches)
-            {
+            foreach (Match m in matches) {
                 var instruction = m.ToString().Trim();
                 this._instructions.Add(instruction);
 
@@ -119,16 +107,14 @@ namespace OfficeIMO.Word
             String match = rgx.Match(fieldCodeDeclaration).ToString().Trim();
 
 
-            var parsed = Enum.TryParse<WordFieldType>(match, true,  out WordFieldType wordFieldType);
-            if ( parsed )
-            {
+            var parsed = Enum.TryParse(match, true, out WordFieldType wordFieldType);
+            if (parsed) {
                 this._wordFieldType = wordFieldType;
                 fieldCodeDeclaration = fieldCodeDeclaration.Replace(match.ToString(), "").Trim();
             }
 
             // No more leftovers
-            if(fieldCodeDeclaration.Length > 0)
-            {
+            if (fieldCodeDeclaration.Length > 0) {
                 throw new NotImplementedException("The missing parts of the field code \"" + fieldCodeDeclaration + "\" couldn't be processed by the Parser");
             }
         }
