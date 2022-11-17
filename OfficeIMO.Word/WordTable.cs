@@ -337,7 +337,6 @@ namespace OfficeIMO.Word {
         /// Used during load of the document
         /// </summary>
         /// <param name="document"></param>
-        /// <param name="section"></param>
         /// <param name="table"></param>
         internal WordTable(WordDocument document, Table table) {
             _table = table;

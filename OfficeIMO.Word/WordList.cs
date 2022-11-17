@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
         }
 
         internal void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
-            /// TODO this isn't working yet, needs implementation
+            // TODO this isn't working yet, needs implementation
             CreateNumberingDefinition(_document);
             if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering == null) {
                 Numbering numbering = new Numbering();
