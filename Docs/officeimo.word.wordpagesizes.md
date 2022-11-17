@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordPageSizes
 ```
@@ -14,7 +12,7 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **PageSize**
 
-
+This element specifies the properties (size and orientation) for all pages in the current section.
 
 ```csharp
 public Nullable<WordPageSize> PageSize { get; set; }
@@ -26,7 +24,7 @@ public Nullable<WordPageSize> PageSize { get; set; }
 
 ### **Width**
 
-
+Get or Set section/page Width
 
 ```csharp
 public UInt32Value Width { get; set; }
@@ -38,7 +36,7 @@ UInt32Value<br>
 
 ### **Height**
 
-
+Get or Set section/page Height
 
 ```csharp
 public UInt32Value Height { get; set; }
@@ -50,7 +48,7 @@ UInt32Value<br>
 
 ### **Code**
 
-
+Get or Set section/page Code
 
 ```csharp
 public UInt16Value Code { get; set; }
@@ -62,7 +60,7 @@ UInt16Value<br>
 
 ### **Orientation**
 
-
+Get or Set section/page Orientation
 
 ```csharp
 public PageOrientationValues Orientation { get; set; }
@@ -74,8 +72,6 @@ PageOrientationValues<br>
 
 ### **A3**
 
-
-
 ```csharp
 public static PageSize A3 { get; }
 ```
@@ -85,8 +81,6 @@ public static PageSize A3 { get; }
 PageSize<br>
 
 ### **A4**
-
-
 
 ```csharp
 public static PageSize A4 { get; }
@@ -98,8 +92,6 @@ PageSize<br>
 
 ### **A5**
 
-
-
 ```csharp
 public static PageSize A5 { get; }
 ```
@@ -109,8 +101,6 @@ public static PageSize A5 { get; }
 PageSize<br>
 
 ### **Executive**
-
-
 
 ```csharp
 public static PageSize Executive { get; }
@@ -122,8 +112,6 @@ PageSize<br>
 
 ### **A6**
 
-
-
 ```csharp
 public static PageSize A6 { get; }
 ```
@@ -133,8 +121,6 @@ public static PageSize A6 { get; }
 PageSize<br>
 
 ### **B5**
-
-
 
 ```csharp
 public static PageSize B5 { get; }
@@ -146,8 +132,6 @@ PageSize<br>
 
 ### **Statement**
 
-
-
 ```csharp
 public static PageSize Statement { get; }
 ```
@@ -158,8 +142,6 @@ PageSize<br>
 
 ### **Legal**
 
-
-
 ```csharp
 public static PageSize Legal { get; }
 ```
@@ -169,8 +151,6 @@ public static PageSize Legal { get; }
 PageSize<br>
 
 ### **Letter**
-
-
 
 ```csharp
 public static PageSize Letter { get; }
@@ -184,7 +164,7 @@ PageSize<br>
 
 ### **WordPageSizes(WordDocument, WordSection)**
 
-
+Manipulate section/page settings
 
 ```csharp
 public WordPageSizes(WordDocument wordDocument, WordSection wordSection)
@@ -200,8 +180,6 @@ public WordPageSizes(WordDocument wordDocument, WordSection wordSection)
 
 ### **GetOrientation(SectionProperties)**
 
-
-
 ```csharp
 internal static PageOrientationValues GetOrientation(SectionProperties sectionProperties)
 ```
@@ -215,8 +193,6 @@ internal static PageOrientationValues GetOrientation(SectionProperties sectionPr
 PageOrientationValues<br>
 
 ### **SetOrientation(SectionProperties, PageOrientationValues)**
-
-
 
 ```csharp
 internal static void SetOrientation(SectionProperties sectionProperties, PageOrientationValues pageOrientationValue)

@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordWatermark
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Text**
-
-
 
 ```csharp
 public string Text { get; set; }
@@ -27,8 +23,6 @@ public string Text { get; set; }
 ## Constructors
 
 ### **WordWatermark(WordDocument, WordSection, WordHeader, WordWatermarkStyle, String)**
-
-
 
 ```csharp
 public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text)

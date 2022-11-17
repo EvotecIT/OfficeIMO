@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordCustomProperties
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Constructors
 
 ### **WordCustomProperties(WordDocument, Nullable&lt;Boolean&gt;)**
-
-
 
 ```csharp
 public WordCustomProperties(WordDocument document, Nullable<bool> create)
@@ -29,8 +25,6 @@ public WordCustomProperties(WordDocument document, Nullable<bool> create)
 ## Methods
 
 ### **Add(String, Object, PropertyTypes)**
-
-
 
 ```csharp
 public CustomDocumentProperty Add(string name, object value, PropertyTypes propertyType)

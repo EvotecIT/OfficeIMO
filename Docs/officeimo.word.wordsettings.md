@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordSettings
 ```
@@ -14,7 +12,7 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **ProtectionType**
 
-
+Get or set Protection Type for the document
 
 ```csharp
 public Nullable<DocumentProtectionValues> ProtectionType { get; set; }
@@ -26,7 +24,7 @@ public Nullable<DocumentProtectionValues> ProtectionType { get; set; }
 
 ### **ProtectionPassword**
 
-
+Set a Protection Password for the document
 
 ```csharp
 public string ProtectionPassword { set; }
@@ -38,7 +36,7 @@ public string ProtectionPassword { set; }
 
 ### **ZoomPreset**
 
-
+Get or set Zoom Preset for the document
 
 ```csharp
 public Nullable<PresetZoomValues> ZoomPreset { get; set; }
@@ -50,7 +48,7 @@ public Nullable<PresetZoomValues> ZoomPreset { get; set; }
 
 ### **ZoomPercentage**
 
-
+Get or Set Zoome Percentage for the document
 
 ```csharp
 public Nullable<int> ZoomPercentage { get; set; }
@@ -62,7 +60,8 @@ public Nullable<int> ZoomPercentage { get; set; }
 
 ### **UpdateFieldsOnOpen**
 
-
+Tell Word to update fields when opening word.
+ Without this option the document fields won't be refreshed until manual intervention.
 
 ```csharp
 public bool UpdateFieldsOnOpen { get; set; }
@@ -72,9 +71,45 @@ public bool UpdateFieldsOnOpen { get; set; }
 
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
+### **FontSize**
+
+Gets or Sets default font size for the whole document. Default is 11.
+
+```csharp
+public Nullable<int> FontSize { get; set; }
+```
+
+#### Property Value
+
+[Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **FontSizeComplexScript**
+
+Gets or Sets default font size complex script for the whole document. Default is 11.
+
+```csharp
+public Nullable<int> FontSizeComplexScript { get; set; }
+```
+
+#### Property Value
+
+[Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **FontFamily**
+
+Gets or Sets default font family for the whole document.
+
+```csharp
+public string FontFamily { get; set; }
+```
+
+#### Property Value
+
+[String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
 ### **Language**
 
-
+Gets or Sets default language for the whole document. Default is en-Us.
 
 ```csharp
 public string Language { get; set; }
@@ -86,7 +121,7 @@ public string Language { get; set; }
 
 ### **BackgroundColor**
 
-
+Gets or Sets default Background Color for the whole document
 
 ```csharp
 public string BackgroundColor { get; set; }
@@ -100,8 +135,6 @@ public string BackgroundColor { get; set; }
 
 ### **WordSettings(WordDocument)**
 
-
-
 ```csharp
 public WordSettings(WordDocument document)
 ```
@@ -114,15 +147,13 @@ public WordSettings(WordDocument document)
 
 ### **RemoveProtection()**
 
-
+Remove protection from document (if it's set).
 
 ```csharp
 public void RemoveProtection()
 ```
 
 ### **SetBackgroundColor(String)**
-
-
 
 ```csharp
 public WordSettings SetBackgroundColor(string backgroundColor)
@@ -137,8 +168,6 @@ public WordSettings SetBackgroundColor(string backgroundColor)
 [WordSettings](./officeimo.word.wordsettings.md)<br>
 
 ### **SetBackgroundColor(Color)**
-
-
 
 ```csharp
 public WordSettings SetBackgroundColor(Color backgroundColor)

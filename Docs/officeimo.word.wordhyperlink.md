@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordHyperLink
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Uri**
-
-
 
 ```csharp
 public Uri Uri { get; set; }
@@ -38,8 +34,6 @@ public string Id { get; set; }
 
 ### **IsEmail**
 
-
-
 ```csharp
 public bool IsEmail { get; }
 ```
@@ -50,8 +44,6 @@ public bool IsEmail { get; }
 
 ### **EmailAddress**
 
-
-
 ```csharp
 public string EmailAddress { get; }
 ```
@@ -61,8 +53,6 @@ public string EmailAddress { get; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **History**
-
-
 
 ```csharp
 public bool History { get; set; }
@@ -100,8 +90,6 @@ public string Anchor { get; set; }
 
 ### **Tooltip**
 
-
-
 ```csharp
 public string Tooltip { get; set; }
 ```
@@ -111,8 +99,6 @@ public string Tooltip { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **TargetFrame**
-
-
 
 ```csharp
 public Nullable<TargetFrame> TargetFrame { get; set; }
@@ -124,8 +110,6 @@ public Nullable<TargetFrame> TargetFrame { get; set; }
 
 ### **IsHttp**
 
-
-
 ```csharp
 public bool IsHttp { get; }
 ```
@@ -136,8 +120,6 @@ public bool IsHttp { get; }
 
 ### **Scheme**
 
-
-
 ```csharp
 public string Scheme { get; }
 ```
@@ -147,8 +129,6 @@ public string Scheme { get; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Text**
-
-
 
 ```csharp
 public string Text { get; set; }
@@ -161,8 +141,6 @@ public string Text { get; set; }
 ## Constructors
 
 ### **WordHyperLink(WordDocument, Paragraph, Hyperlink)**
-
-
 
 ```csharp
 public WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink)
@@ -193,8 +171,6 @@ public void Remove(bool includingParagraph)
 
 ### **AddHyperLink(WordParagraph, String, String, Boolean, String, Boolean)**
 
-
-
 ```csharp
 public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle, string tooltip, bool history)
 ```
@@ -218,8 +194,6 @@ public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, s
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddHyperLink(WordParagraph, String, Uri, Boolean, String, Boolean)**
-
-
 
 ```csharp
 public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle, string tooltip, bool history)

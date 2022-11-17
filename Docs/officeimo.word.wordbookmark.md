@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordBookmark
 ```
@@ -14,8 +12,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **Name**
 
-
-
 ```csharp
 public string Name { get; set; }
 ```
@@ -25,8 +21,6 @@ public string Name { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Id**
-
-
 
 ```csharp
 public int Id { get; set; }
@@ -39,8 +33,6 @@ public int Id { get; set; }
 ## Constructors
 
 ### **WordBookmark(WordDocument, Paragraph, BookmarkStart)**
-
-
 
 ```csharp
 public WordBookmark(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart)
@@ -58,15 +50,11 @@ public WordBookmark(WordDocument document, Paragraph paragraph, BookmarkStart bo
 
 ### **Remove()**
 
-
-
 ```csharp
 public void Remove()
 ```
 
 ### **AddBookmark(WordParagraph, String)**
-
-
 
 ```csharp
 public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName)

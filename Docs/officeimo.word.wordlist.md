@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordList
 ```
@@ -26,8 +24,6 @@ public bool IsToc { get; }
 
 ### **ListItems**
 
-
-
 ```csharp
 public List<WordParagraph> ListItems { get; }
 ```
@@ -39,8 +35,6 @@ public List<WordParagraph> ListItems { get; }
 ## Constructors
 
 ### **WordList(WordDocument, WordSection, Boolean)**
-
-
 
 ```csharp
 public WordList(WordDocument wordDocument, WordSection section, bool isToc)
@@ -55,8 +49,6 @@ public WordList(WordDocument wordDocument, WordSection section, bool isToc)
 `isToc` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **WordList(WordDocument, WordSection, Int32)**
-
-
 
 ```csharp
 public WordList(WordDocument wordDocument, WordSection section, int numberId)
@@ -74,8 +66,6 @@ public WordList(WordDocument wordDocument, WordSection section, int numberId)
 
 ### **GetNextAbstractNum(Numbering)**
 
-
-
 ```csharp
 internal static int GetNextAbstractNum(Numbering numbering)
 ```
@@ -89,8 +79,6 @@ internal static int GetNextAbstractNum(Numbering numbering)
 [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 ### **GetNextNumberingInstance(Numbering)**
-
-
 
 ```csharp
 internal static int GetNextNumberingInstance(Numbering numbering)
@@ -106,8 +94,6 @@ internal static int GetNextNumberingInstance(Numbering numbering)
 
 ### **AddList(WordListStyle)**
 
-
-
 ```csharp
 internal void AddList(WordListStyle style)
 ```
@@ -117,8 +103,6 @@ internal void AddList(WordListStyle style)
 `style` [WordListStyle](./officeimo.word.wordliststyle.md)<br>
 
 ### **AddList(CustomListStyles, String, Int32)**
-
-
 
 ```csharp
 internal void AddList(CustomListStyles style, string levelText, int levelIndex)
@@ -133,8 +117,6 @@ internal void AddList(CustomListStyles style, string levelText, int levelIndex)
 `levelIndex` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 ### **AddItem(String, Int32)**
-
-
 
 ```csharp
 public WordParagraph AddItem(string text, int level)

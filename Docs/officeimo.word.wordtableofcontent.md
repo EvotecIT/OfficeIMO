@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordTableOfContent
 ```
@@ -14,8 +12,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **Text**
 
-
-
 ```csharp
 public string Text { get; set; }
 ```
@@ -25,8 +21,6 @@ public string Text { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **TextNoContent**
-
-
 
 ```csharp
 public string TextNoContent { get; set; }
@@ -40,8 +34,6 @@ public string TextNoContent { get; set; }
 
 ### **WordTableOfContent(WordDocument, TableOfContentStyle)**
 
-
-
 ```csharp
 public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle)
 ```
@@ -53,8 +45,6 @@ public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOf
 `tableOfContentStyle` [TableOfContentStyle](./officeimo.word.tableofcontentstyle.md)<br>
 
 ### **WordTableOfContent(WordDocument, SdtBlock)**
-
-
 
 ```csharp
 public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
@@ -69,8 +59,6 @@ public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
 ## Methods
 
 ### **Update()**
-
-
 
 ```csharp
 public void Update()
