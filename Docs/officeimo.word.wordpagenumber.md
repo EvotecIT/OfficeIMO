@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordPageNumber
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **ParagraphAlignment**
-
-
 
 ```csharp
 public Nullable<JustificationValues> ParagraphAlignment { get; set; }
@@ -27,8 +23,6 @@ public Nullable<JustificationValues> ParagraphAlignment { get; set; }
 ## Constructors
 
 ### **WordPageNumber(WordDocument, WordHeader, WordPageNumberStyle)**
-
-
 
 ```csharp
 public WordPageNumber(WordDocument wordDocument, WordHeader wordHeader, WordPageNumberStyle wordPageNumberStyle)
@@ -43,8 +37,6 @@ public WordPageNumber(WordDocument wordDocument, WordHeader wordHeader, WordPage
 `wordPageNumberStyle` [WordPageNumberStyle](./officeimo.word.wordpagenumberstyle.md)<br>
 
 ### **WordPageNumber(WordDocument, WordFooter, WordPageNumberStyle)**
-
-
 
 ```csharp
 public WordPageNumber(WordDocument wordDocument, WordFooter wordFooter, WordPageNumberStyle wordPageNumberStyle)

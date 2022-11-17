@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordHeaders
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Default**
-
-
 
 ```csharp
 public WordHeader Default { get; set; }
@@ -26,8 +22,6 @@ public WordHeader Default { get; set; }
 
 ### **Even**
 
-
-
 ```csharp
 public WordHeader Even { get; set; }
 ```
@@ -37,8 +31,6 @@ public WordHeader Even { get; set; }
 [WordHeader](./officeimo.word.wordheader.md)<br>
 
 ### **First**
-
-
 
 ```csharp
 public WordHeader First { get; set; }
@@ -51,8 +43,6 @@ public WordHeader First { get; set; }
 ## Constructors
 
 ### **WordHeaders()**
-
-
 
 ```csharp
 public WordHeaders()

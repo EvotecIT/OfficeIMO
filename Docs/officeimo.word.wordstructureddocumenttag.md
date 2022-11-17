@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordStructuredDocumentTag
 ```
@@ -14,8 +12,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 
 ### **Alias**
 
-
-
 ```csharp
 public string Alias { get; }
 ```
@@ -25,8 +21,6 @@ public string Alias { get; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Text**
-
-
 
 ```csharp
 public string Text { get; set; }
@@ -39,8 +33,6 @@ public string Text { get; set; }
 ## Constructors
 
 ### **WordStructuredDocumentTag(WordDocument, Paragraph, SdtRun)**
-
-
 
 ```csharp
 public WordStructuredDocumentTag(WordDocument document, Paragraph paragraph, SdtRun stdRun)
@@ -57,8 +49,6 @@ public WordStructuredDocumentTag(WordDocument document, Paragraph paragraph, Sdt
 ## Methods
 
 ### **Remove()**
-
-
 
 ```csharp
 public void Remove()

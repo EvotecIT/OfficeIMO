@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordHeaderFooter
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Paragraphs**
-
-
 
 ```csharp
 public List<WordParagraph> Paragraphs { get; }
@@ -26,8 +22,6 @@ public List<WordParagraph> Paragraphs { get; }
 
 ### **Tables**
 
-
-
 ```csharp
 public List<WordTable> Tables { get; }
 ```
@@ -37,8 +31,6 @@ public List<WordTable> Tables { get; }
 [List&lt;WordTable&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **ParagraphsPageBreaks**
-
-
 
 ```csharp
 public List<WordParagraph> ParagraphsPageBreaks { get; }
@@ -50,8 +42,6 @@ public List<WordParagraph> ParagraphsPageBreaks { get; }
 
 ### **ParagraphsHyperLinks**
 
-
-
 ```csharp
 public List<WordParagraph> ParagraphsHyperLinks { get; }
 ```
@@ -61,8 +51,6 @@ public List<WordParagraph> ParagraphsHyperLinks { get; }
 [List&lt;WordParagraph&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **ParagraphsFields**
-
-
 
 ```csharp
 public List<WordParagraph> ParagraphsFields { get; }
@@ -74,8 +62,6 @@ public List<WordParagraph> ParagraphsFields { get; }
 
 ### **ParagraphsBookmarks**
 
-
-
 ```csharp
 public List<WordParagraph> ParagraphsBookmarks { get; }
 ```
@@ -85,8 +71,6 @@ public List<WordParagraph> ParagraphsBookmarks { get; }
 [List&lt;WordParagraph&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **ParagraphsEquations**
-
-
 
 ```csharp
 public List<WordParagraph> ParagraphsEquations { get; }
@@ -122,15 +106,13 @@ public List<WordParagraph> ParagraphsImages { get; }
 
 ### **PageBreaks**
 
-
-
 ```csharp
-public List<WordPageBreak> PageBreaks { get; }
+public List<WordBreak> PageBreaks { get; }
 ```
 
 #### Property Value
 
-[List&lt;WordPageBreak&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
+[List&lt;WordBreak&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **Images**
 
@@ -146,8 +128,6 @@ public List<WordImage> Images { get; }
 
 ### **Bookmarks**
 
-
-
 ```csharp
 public List<WordBookmark> Bookmarks { get; }
 ```
@@ -157,8 +137,6 @@ public List<WordBookmark> Bookmarks { get; }
 [List&lt;WordBookmark&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **Fields**
-
-
 
 ```csharp
 public List<WordField> Fields { get; }
@@ -170,8 +148,6 @@ public List<WordField> Fields { get; }
 
 ### **HyperLinks**
 
-
-
 ```csharp
 public List<WordHyperLink> HyperLinks { get; }
 ```
@@ -182,8 +158,6 @@ public List<WordHyperLink> HyperLinks { get; }
 
 ### **Equations**
 
-
-
 ```csharp
 public List<WordEquation> Equations { get; }
 ```
@@ -193,8 +167,6 @@ public List<WordEquation> Equations { get; }
 [List&lt;WordEquation&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
 
 ### **StructuredDocumentTags**
-
-
 
 ```csharp
 public List<WordStructuredDocumentTag> StructuredDocumentTags { get; }
@@ -208,8 +180,6 @@ public List<WordStructuredDocumentTag> StructuredDocumentTags { get; }
 
 ### **WordHeaderFooter()**
 
-
-
 ```csharp
 public WordHeaderFooter()
 ```
@@ -217,8 +187,6 @@ public WordHeaderFooter()
 ## Methods
 
 ### **AddParagraph(String)**
-
-
 
 ```csharp
 public WordParagraph AddParagraph(string text)
@@ -234,8 +202,6 @@ public WordParagraph AddParagraph(string text)
 
 ### **AddParagraph()**
 
-
-
 ```csharp
 public WordParagraph AddParagraph()
 ```
@@ -245,8 +211,6 @@ public WordParagraph AddParagraph()
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddHyperLink(String, Uri, Boolean, String, Boolean)**
-
-
 
 ```csharp
 public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle, string tooltip, bool history)
@@ -270,8 +234,6 @@ public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle, string to
 
 ### **AddHyperLink(String, String, Boolean, String, Boolean)**
 
-
-
 ```csharp
 public WordParagraph AddHyperLink(string text, string anchor, bool addStyle, string tooltip, bool history)
 ```
@@ -294,8 +256,6 @@ public WordParagraph AddHyperLink(string text, string anchor, bool addStyle, str
 
 ### **AddHorizontalLine(BorderValues, Nullable&lt;Color&gt;, UInt32, UInt32)**
 
-
-
 ```csharp
 public WordParagraph AddHorizontalLine(BorderValues lineType, Nullable<Color> color, uint size, uint space)
 ```
@@ -316,8 +276,6 @@ public WordParagraph AddHorizontalLine(BorderValues lineType, Nullable<Color> co
 
 ### **AddBookmark(String)**
 
-
-
 ```csharp
 public WordParagraph AddBookmark(string bookmarkName)
 ```
@@ -331,8 +289,6 @@ public WordParagraph AddBookmark(string bookmarkName)
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddField(WordFieldType, Nullable&lt;WordFieldFormat&gt;, Boolean)**
-
-
 
 ```csharp
 public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, bool advanced)
@@ -351,8 +307,6 @@ public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFor
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **AddTable(Int32, Int32, WordTableStyle)**
-
-
 
 ```csharp
 public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle)
