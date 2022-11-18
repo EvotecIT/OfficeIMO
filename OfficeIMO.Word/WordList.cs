@@ -26,13 +26,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsToc {
             get {
-                foreach (var paragraph in ListItems) {
-                    var style = paragraph.Style.ToString();
-                    if (style.Remove(style.Length - 1) == "Heading") {
-                        return true;
-                    }
-                }
-                return false;
+                return ListItems
+                    .Select(paragraph => paragraph.Style.ToString())
+                    .Any(style => style.StartsWith("Heading", StringComparison.Ordinal));
             }
         }
 
