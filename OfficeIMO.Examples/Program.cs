@@ -119,6 +119,7 @@ namespace OfficeIMO.Examples {
             BordersAndMargins.Example_BasicPageBorders2(folderPath, false);
 
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
+            Fields.Example_DocumentWithFields(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);

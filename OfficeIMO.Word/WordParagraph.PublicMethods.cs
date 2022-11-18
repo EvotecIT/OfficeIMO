@@ -3,6 +3,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -238,9 +239,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordFieldType"></param>
         /// <param name="wordFieldFormat"></param>
         /// <param name="advanced"></param>
+        /// <param name="parameters">Usages like <code>parameters = new List&lt; String&gt;{ @"\d 'Default'", @"\c" };</code><br/> Also see available List of switches per field code: <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns></returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
-            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
+            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced, parameters);
             return this;
         }
 

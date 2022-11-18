@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Caps);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Author);
-                Assert.True(document.Fields[1].FieldFormat == null);
+                Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.FileName);
 
                 //Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Arabic);
@@ -145,11 +145,11 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Our title is ").AddField(WordFieldType.Title, WordFieldFormat.Caps);
                 document.AddParagraph("Our author is ").AddField(WordFieldType.Author);
 
-                Assert.True(document.Fields[0].FieldFormat == null);
+                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
                 Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == null);
+                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 Assert.True(document.Paragraphs.Count == 6);
@@ -159,11 +159,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithFields.docx"))) {
                 Assert.True(document.Paragraphs.Count == 6);
-                Assert.True(document.Fields[0].FieldFormat == null);
+                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
                 Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == null);
+                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 var fieldTypes = (WordFieldType[])Enum.GetValues(typeof(WordFieldType));
@@ -194,14 +194,37 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithFields.docx"))) {
-                Assert.True(document.Fields[0].FieldFormat == null);
+                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
                 Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == null);
+                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 document.Save();
+            }
+        }
+        [Fact]
+        public void Test_CreatingWordFieldsAndSwitches() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithFieldSwitches.docx"))) {
+
+                var instructions = new List<String> { "ANSWER", "\"What is the answer of life and everything?\"" };
+                var switches = new List<String> { "\\d \"42\"" };
+
+                var parameters = instructions.Concat(switches).ToList();
+                document.AddField(WordFieldType.Ask, parameters: parameters, wordFieldFormat: WordFieldFormat.FirstCap);
+
+
+                var p = document.AddParagraph(" ");
+                p.AddField(WordFieldType.Bibliography);
+
+                document.Save();
+
+                Assert.Equal(2, document.Fields.Count);
+                Assert.Equal(WordFieldType.Ask, document.Fields[0].FieldType);
+                Assert.Equal(WordFieldFormat.FirstCap, document.Fields[0].FieldFormat);
+                Assert.Equal(instructions, document.Fields[0].FieldInstructions);
+                Assert.Equal(switches, document.Fields[0].FieldSwitches);
             }
         }
 
