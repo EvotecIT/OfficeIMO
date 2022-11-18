@@ -1,200 +1,175 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
-namespace OfficeIMO.Word {
-    public class WordList {
-        private readonly WordprocessingDocument _wordprocessingDocument;
-        private readonly WordDocument _document;
-        // private readonly WordSection _section;
-        private int _abstractId;
-        internal int _numberId;
+namespace OfficeIMO.Word;
 
-        /// <summary>
-        /// This provides a way to set items to be treated with heading style
-        /// </summary>
-        private readonly bool _isToc;
+public class WordList {
+    private readonly WordprocessingDocument _wordprocessingDocument;
+    private readonly WordDocument _document;
+    // private readonly WordSection _section;
+    private int _abstractId;
+    internal int _numberId;
 
-        /// <summary>
-        /// This provides a way to set it teams to be treated with heading style during load 
-        /// </summary>
-        public bool IsToc {
-            get {
-                foreach (var paragraph in ListItems) {
-                    var style = paragraph.Style.ToString();
-                    if (style.Remove(style.Length - 1) == "Heading") {
-                        return true;
-                    }
-                }
-                return false;
-            }
+    /// <summary>
+    /// This provides a way to set items to be treated with heading style
+    /// </summary>
+    private readonly bool _isToc;
+
+    /// <summary>
+    /// This provides a way to set it teams to be treated with heading style during load
+    /// </summary>
+    public bool IsToc {
+        get {
+            return ListItems
+                .Select(paragraph => paragraph.Style.ToString())
+                .Any(style => style.StartsWith("Heading", StringComparison.Ordinal));
+        }
+    }
+
+    public List<WordParagraph> ListItems {
+        get {
+            return _document.Paragraphs
+                .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
+                .ToList();
+        }
+    }
+
+    public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        //_section = section;
+        _isToc = isToc;
+        // section.Lists.Add(this);
+    }
+
+    public WordList(WordDocument wordDocument, WordSection section, int numberId) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        //  _section = section;
+        _numberId = numberId;
+    }
+
+    public WordParagraph AddItem(string text, int level = 0) {
+        var paragraph = new Paragraph();
+
+        var run = new Run();
+        run.Append(new RunProperties());
+        run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
+        paragraph.Append(run);
+
+        var paragraphProperties = new ParagraphProperties();
+        paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+        paragraphProperties.Append(
+            new NumberingProperties(
+                new NumberingLevelReference { Val = level },
+                new NumberingId { Val = _numberId }
+            ));
+        paragraph.Append(paragraphProperties);
+
+        _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+
+        var wordParagraph = new WordParagraph(_document, paragraph, run) {
+            Text = text
+        };
+
+        // this simplifies TOC for user usage
+        if (_isToc || IsToc) {
+            wordParagraph.Style = WordParagraphStyle.GetStyle(level);
         }
 
-        public List<WordParagraph> ListItems {
-            get {
-                var listItems = new List<WordParagraph>();
-                foreach (WordParagraph paragraph in this._document.Paragraphs) {
-                    if (paragraph.IsListItem) {
-                        if (_numberId == paragraph._listNumberId) {
-                            listItems.Add(paragraph);
-                        }
-                    }
-                }
-                return listItems;
-            }
-        }
+        return wordParagraph;
+    }
 
-        public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
-            _document = wordDocument;
-            _wordprocessingDocument = wordDocument._wordprocessingDocument;
-            //_section = section;
-            _isToc = isToc;
-            // section.Lists.Add(this);
-        }
+    internal static int GetNextAbstractNum(Numbering numbering) {
+        var ids = numbering.ChildElements
+            .OfType<AbstractNum>()
+            .Select(element => (int) element.AbstractNumberId)
+            .ToList();
+        return ids.Count > 0 ? ids.Max() + 1 : 1;
+    }
 
-        public WordList(WordDocument wordDocument, WordSection section, int numberId) {
-            _document = wordDocument;
-            _wordprocessingDocument = wordDocument._wordprocessingDocument;
-            //  _section = section;
-            _numberId = numberId;
-        }
+    internal static int GetNextNumberingInstance(Numbering numbering) {
+        var ids = numbering.ChildElements
+            .OfType<NumberingInstance>()
+            .Select(element => (int) element.NumberID)
+            .ToList();
+        return ids.Count > 0 ? ids.Max() + 1 : 1;
+    }
 
-        private void CreateNumberingDefinition(WordDocument document) {
-            NumberingDefinitionsPart numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
-            if (numberingDefinitionsPart == null) {
-                numberingDefinitionsPart = _wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
-            }
+    internal void AddList(WordListStyle style) {
+        CreateNumberingDefinition(_document);
+        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
 
-            Numbering numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-            if (numbering == null) {
-                numbering = new Numbering();
-                numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
-            }
-        }
+        _abstractId = GetNextAbstractNum(numbering);
+        _numberId = GetNextNumberingInstance(numbering);
 
-        internal static int GetNextAbstractNum(Numbering numbering) {
-            var ids = new List<int>();
-            foreach (var element in numbering.ChildElements.OfType<AbstractNum>()) {
-                ids.Add(element.AbstractNumberId);
-            }
-            if (ids.Count > 0) {
-                return ids.Max() + 1;
-            } else {
-                return 1;
-            }
-        }
+        var abstractNum = WordListStyles.GetStyle(style);
+        abstractNum.AbstractNumberId = _abstractId;
+        var abstractNumId = new AbstractNumId {
+            Val = _abstractId
+        };
+        var numberingInstance = new NumberingInstance(abstractNumId) {
+            NumberID = _numberId
+        };
+        numbering.Append(numberingInstance, abstractNum);
+    }
 
-        internal static int GetNextNumberingInstance(Numbering numbering) {
-            var ids = new List<int>();
-            foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
-                ids.Add(element.NumberID);
-            }
+    // TODO this isn't working yet, needs implementation
+    internal void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
+        CreateNumberingDefinition(_document);
 
-            if (ids.Count > 0) {
-                return ids.Max() + 1;
-            } else {
-                return 1;
-            }
-        }
+        // we take current list number from the document
+        //_numberId = _document._listNumbers;
 
-        internal void AddList(WordListStyle style) {
-            CreateNumberingDefinition(_document);
-            var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+        var numberingFormatValues = CustomListStyle.GetStyle(style);
 
-            _abstractId = GetNextAbstractNum(numbering);
-            _numberId = GetNextNumberingInstance(numbering);
+        var level = new Level(
+            new NumberingFormat { Val = numberingFormatValues },
+            new LevelText { Val = levelText }
+        ) {
+            LevelIndex = 1
+        };
+        var level1 = new Level(
+            new NumberingFormat { Val = numberingFormatValues },
+            new LevelText { Val = levelText }
+        ) {
+            LevelIndex = 2
+        };
+        var abstractNum = new AbstractNum(level, level1) {
+            AbstractNumberId = 0
+        };
+        //abstractNum.Nsid = new Nsid();
 
-            AbstractNum abstractNum = WordListStyles.GetStyle(style);
-            abstractNum.AbstractNumberId = _abstractId;
-            AbstractNumId abstractNumId = new AbstractNumId();
-            abstractNumId.Val = _abstractId;
-            NumberingInstance numberingInstance = new NumberingInstance(abstractNumId);
-            numberingInstance.NumberID = _numberId;
-            numbering.Append(numberingInstance, abstractNum);
-        }
+        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        numbering.Append(abstractNum);
 
-        internal void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
-            // TODO this isn't working yet, needs implementation
-            CreateNumberingDefinition(_document);
-            if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering == null) {
-                Numbering numbering = new Numbering();
-                numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
-            }
+        var abstractNumId = new AbstractNumId {
+            Val = 0
+        };
+        var numberingInstance = new NumberingInstance(abstractNumId) {
+            NumberID = _numberId
+        };
 
-            // we take current list number from the document
-            //_numberId = _document._listNumbers;
+        //LevelOverride levelOverride = new LevelOverride();
+        //levelOverride.StartOverrideNumberingValue = new StartOverrideNumberingValue();
+        //levelOverride.StartOverrideNumberingValue.Val = 1;
+        //numberingInstance.Append(levelOverride);
 
-            var numberingFormatValues = CustomListStyle.GetStyle(style);
+        numbering.Append(numberingInstance);
+    }
 
-            Level level = new Level(
-                new NumberingFormat() { Val = numberingFormatValues },
-                new LevelText() { Val = levelText }
-            );
-            level.LevelIndex = 1;
+    private void CreateNumberingDefinition(WordDocument document) {
+        var numberingDefinitionsPart =
+            document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart
+            ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
 
-            Level level1 = new Level(
-                new NumberingFormat() { Val = numberingFormatValues },
-                new LevelText() { Val = levelText }
-            );
-            level1.LevelIndex = 2;
-
-            AbstractNum abstractNum = new AbstractNum(level, level1);
-            abstractNum.AbstractNumberId = 0;
-            //abstractNum.Nsid = new Nsid();
-
-            AbstractNumId abstractNumId = new AbstractNumId();
-            abstractNumId.Val = 0;
-
-            NumberingInstance numberingInstance = new NumberingInstance(abstractNumId);
-            numberingInstance.NumberID = _numberId;
-
-
-            //LevelOverride levelOverride = new LevelOverride();
-            //levelOverride.StartOverrideNumberingValue = new StartOverrideNumberingValue();
-            //levelOverride.StartOverrideNumberingValue.Val = 1;
-            //numberingInstance.Append(levelOverride);
-
-
-            _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(abstractNum);
-            _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.Append(numberingInstance);
-        }
-
-        public WordParagraph AddItem(string text, int level = 0) {
-            Text textProperty = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            RunProperties runProperties = new RunProperties();
-            ParagraphStyleId paragraphStyleId = new ParagraphStyleId() { Val = "ListParagraph" };
-            NumberingProperties numberingProperties = new NumberingProperties(
-                new NumberingLevelReference() { Val = level },
-                new NumberingId() { Val = this._numberId }
-            );
-            ParagraphProperties paragraphProperties = new ParagraphProperties();
-            paragraphProperties.Append(paragraphStyleId);
-            paragraphProperties.Append(numberingProperties);
-
-            Run run = new Run();
-            run.Append(runProperties);
-            run.Append(textProperty);
-
-            Paragraph paragraph = new Paragraph();
-            paragraph.Append(paragraphProperties);
-            paragraph.Append(run);
-
-            this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(paragraph);
-
-            WordParagraph wordParagraph = new WordParagraph(_document, paragraph, run);
-            wordParagraph.Text = text;
-            // this simplifies TOC for user usage
-            if (_isToc || IsToc) {
-                wordParagraph.Style = WordParagraphStyle.GetStyle(level);
-            }
-
-            return wordParagraph;
+        if (numberingDefinitionsPart.Numbering == null) {
+            numberingDefinitionsPart.Numbering = new Numbering();
+            numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
         }
     }
 }
