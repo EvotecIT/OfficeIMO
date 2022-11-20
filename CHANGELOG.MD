@@ -70,6 +70,18 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
+#### 0.4.1 - 2022.11.20
+
+##### What's Changed
+* Extending available FieldCodes and allow setting parameters by @byteSamurai in https://github.com/EvotecIT/OfficeIMO/pull/75
+* Fix check IsToc for Word.Lists by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/76
+* Provide multi platform project config by @byteSamurai in https://github.com/EvotecIT/OfficeIMO/pull/79
+
+##### New Contributors
+* @byteSamurai made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/75
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.0...v0.4.1
+
 
 #### 0.4.0 - 2022.11.13
 
