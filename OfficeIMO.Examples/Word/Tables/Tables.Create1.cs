@@ -21,10 +21,19 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                // align to center
+                wordTable.Rows[2].Cells[3].Paragraphs[0].Text = "Center";
+                wordTable.Rows[2].Cells[3].Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
 
+                // align to right
+                wordTable.Rows[1].Cells[3].Paragraphs[0].Text = "Right";
+                wordTable.Rows[1].Cells[3].Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+
+                // align it on paragraph outside of table
                 var paragraph1 = wordTable.Rows[0].Cells[0].Paragraphs[0].AddParagraph();
                 paragraph1 = paragraph1.AddParagraph();
                 paragraph1.AddText("Ok");
+                paragraph1.ParagraphAlignment = JustificationValues.Center;
 
                 var paragraph2 = wordTable.Rows[1].Cells[0].Paragraphs[0].AddParagraphAfterSelf();
                 paragraph2 = paragraph2.AddParagraphAfterSelf();
