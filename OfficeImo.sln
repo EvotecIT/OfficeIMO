@@ -30,6 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.VerifyTests", "OfficeIMO.VerifyTests\OfficeIMO.VerifyTests.csproj", "{91F78177-72D4-429C-A29E-1B28B37F7BC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

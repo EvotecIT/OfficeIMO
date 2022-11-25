@@ -1,0 +1,816 @@
+﻿<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:sdt>
+      <w:sdtPr>
+        <w:id w:val="-116450603" />
+        <w:docPartObj>
+          <w:docPartGallery w:val="Cover Pages" />
+          <w:docPartUnique />
+        </w:docPartObj>
+      </w:sdtPr>
+      <w:sdtEndPr />
+      <w:sdtContent>
+        <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="5244F80E" w14:textId="7BC981DE" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" />
+        <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="3266355F" w14:textId="27C9F0CB" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+          <w:r>
+            <w:rPr>
+              <w:noProof />
+            </w:rPr>
+            <w:pict w14:anchorId="1F852C32">
+              <v:group id="Group 125" style="position:absolute;margin-left:0;margin-top:0;width:540pt;height:556.55pt;z-index:-251657216;mso-width-percent:1154;mso-height-percent:670;mso-top-percent:45;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical-relative:page;mso-width-percent:1154;mso-height-percent:670;mso-top-percent:45;mso-width-relative:margin" coordsize="55613,54044" o:spid="_x0000_s1026" o:gfxdata="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&#xA;" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+                <o:lock v:ext="edit" aspectratio="true" />
+                <v:shape id="Freeform 10" style="position:absolute;width:55575;height:54044;visibility:visible;mso-wrap-style:square;v-text-anchor:bottom" coordsize="720,700" o:spid="_x0000_s1027" fillcolor="#4d5f78 [2994]" stroked="false" o:spt="100" adj="-11796480,,5400" path="m,c,644,,644,,644v23,6,62,14,113,21c250,685,476,700,720,644v,-27,,-27,,-27c720,,720,,720,,,,,,,e" o:gfxdata="UEsDBBQABgAIAAAAIQDb4fbL7gAAAIUBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbHyQz07DMAyH&#xA;70i8Q+QralM4IITa7kDhCAiNB7ASt43WOlEcyvb2pNu4IODoPz9/n1xv9vOkForiPDdwXVagiI23&#xA;jocG3rdPxR0oScgWJ8/UwIEENu3lRb09BBKV0ywNjCmFe63FjDSjlD4Q50nv44wpl3HQAc0OB9I3&#xA;VXWrjedEnIq03oC27qjHjympx31un0wiTQLq4bS4shrAECZnMGVTvbD9QSnOhDInjzsyuiBXWQP0&#xA;r4R18jfgnHvJr4nOknrFmJ5xzhraRtHWf3Kkpfz/yGo5S+H73hkquyhdjr3R8m2lj09svwAAAP//&#xA;AwBQSwMEFAAGAAgAAAAhAFr0LFu/AAAAFQEAAAsAAABfcmVscy8ucmVsc2zPwWrDMAwG4Ptg72B0&#xA;X5TuUMaI01uh19I+gLGVxCy2jGSy9e1nemrHjpL4P0nD4SetZiPRyNnCruvBUPYcYp4tXC/Htw8w&#xA;Wl0ObuVMFm6kcBhfX4Yzra62kC6xqGlKVgtLreUTUf1CyWnHhXKbTCzJ1VbKjMX5LzcTvvf9HuXR&#xA;gPHJNKdgQU5hB+ZyK23zHztFL6w81c5zQp6m6P9TMfB3PtPWFCczVQtB9N4U2rp2HOA44NMz4y8A&#xA;AAD//wMAUEsDBBQABgAIAAAAIQAFyrTUwgAAANwAAAAPAAAAZHJzL2Rvd25yZXYueG1sRE9LasMw&#xA;EN0Xcgcxhe4ayS41xYkSSiDBi0Cp3QMM1sR2Yo2MpcRuTx8VCt3N431nvZ1tL240+s6xhmSpQBDX&#xA;znTcaPiq9s9vIHxANtg7Jg3f5GG7WTysMTdu4k+6laERMYR9jhraEIZcSl+3ZNEv3UAcuZMbLYYI&#xA;x0aaEacYbnuZKpVJix3HhhYH2rVUX8qr1WCS88urU41y5eGn+Kiy49VIr/XT4/y+AhFoDv/iP3dh&#xA;4vw0g99n4gVycwcAAP//AwBQSwECLQAUAAYACAAAACEA2+H2y+4AAACFAQAAEwAAAAAAAAAAAAAA&#xA;AAAAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQItABQABgAIAAAAIQBa9CxbvwAAABUBAAALAAAA&#xA;AAAAAAAAAAAAAB8BAABfcmVscy8ucmVsc1BLAQItABQABgAIAAAAIQAFyrTUwgAAANwAAAAPAAAA&#xA;AAAAAAAAAAAAAAcCAABkcnMvZG93bnJldi54bWxQSwUGAAAAAAMAAwC3AAAA9gIAAAAA&#xA;">
+                  <v:fill type="gradient" color2="#2a3442 [2018]" colors="0 #5d6d85;.5 #485972;1 #334258" focus="100%" rotate="true">
+                    <o:fill v:ext="view" type="gradientUnscaled" />
+                  </v:fill>
+                  <v:stroke joinstyle="miter" />
+                  <v:formulas />
+                  <v:path textboxrect="0,0,720,700" arrowok="true" o:connecttype="custom" o:connectlocs="0,0;0,4972126;872222,5134261;5557520,4972126;5557520,4763667;5557520,0;0,0" o:connectangles="0,0,0,0,0,0,0" />
+                  <v:textbox inset="1in,86.4pt,86.4pt,86.4pt">
+                    <w:txbxContent>
+                      <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="7962827D" w14:textId="77777777">
+                        <w:pPr>
+                          <w:rPr>
+                            <w:color w:val="FFFFFF" w:themeColor="background1" />
+                            <w:sz w:val="72" />
+                            <w:szCs w:val="72" />
+                          </w:rPr>
+                        </w:pPr>
+                        <w:sdt>
+                          <w:sdtPr>
+                            <w:rPr>
+                              <w:color w:val="FFFFFF" w:themeColor="background1" />
+                              <w:sz w:val="72" />
+                              <w:szCs w:val="72" />
+                            </w:rPr>
+                            <w:alias w:val="Title" />
+                            <w:tag w:val="" />
+                            <w:id w:val="-554696155" />
+                            <w:showingPlcHdr />
+                            <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:title[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
+                            <w:text />
+                          </w:sdtPr>
+                          <w:sdtEndPr />
+                          <w:sdtContent>
+                            <w:r>
+                              <w:rPr>
+                                <w:color w:val="FFFFFF" w:themeColor="background1" />
+                                <w:sz w:val="72" />
+                                <w:szCs w:val="72" />
+                              </w:rPr>
+                              <w:t>[Document title]</w:t>
+                            </w:r>
+                          </w:sdtContent>
+                        </w:sdt>
+                      </w:p>
+                    </w:txbxContent>
+                  </v:textbox>
+                </v:shape>
+                <v:shape id="Freeform 11" style="position:absolute;left:8763;top:47697;width:46850;height:5099;visibility:visible;mso-wrap-style:square;v-text-anchor:bottom" coordsize="607,66" o:spid="_x0000_s1028" fillcolor="white [3212]" stroked="false" path="m607,c450,44,300,57,176,57,109,57,49,53,,48,66,58,152,66,251,66,358,66,480,56,607,27,607,,607,,607,e" o:gfxdata="UEsDBBQABgAIAAAAIQDb4fbL7gAAAIUBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbHyQz07DMAyH&#xA;70i8Q+QralM4IITa7kDhCAiNB7ASt43WOlEcyvb2pNu4IODoPz9/n1xv9vOkForiPDdwXVagiI23&#xA;jocG3rdPxR0oScgWJ8/UwIEENu3lRb09BBKV0ywNjCmFe63FjDSjlD4Q50nv44wpl3HQAc0OB9I3&#xA;VXWrjedEnIq03oC27qjHjympx31un0wiTQLq4bS4shrAECZnMGVTvbD9QSnOhDInjzsyuiBXWQP0&#xA;r4R18jfgnHvJr4nOknrFmJ5xzhraRtHWf3Kkpfz/yGo5S+H73hkquyhdjr3R8m2lj09svwAAAP//&#xA;AwBQSwMEFAAGAAgAAAAhAFr0LFu/AAAAFQEAAAsAAABfcmVscy8ucmVsc2zPwWrDMAwG4Ptg72B0&#xA;X5TuUMaI01uh19I+gLGVxCy2jGSy9e1nemrHjpL4P0nD4SetZiPRyNnCruvBUPYcYp4tXC/Htw8w&#xA;Wl0ObuVMFm6kcBhfX4Yzra62kC6xqGlKVgtLreUTUf1CyWnHhXKbTCzJ1VbKjMX5LzcTvvf9HuXR&#xA;gPHJNKdgQU5hB+ZyK23zHztFL6w81c5zQp6m6P9TMfB3PtPWFCczVQtB9N4U2rp2HOA44NMz4y8A&#xA;AAD//wMAUEsDBBQABgAIAAAAIQDi7/zdwgAAANwAAAAPAAAAZHJzL2Rvd25yZXYueG1sRE9Ni8Iw&#xA;EL0v+B/CCN7WtB5c6RpFBGEPi2itC70NzdgWm0lpYq3/fiMI3ubxPme5HkwjeupcbVlBPI1AEBdW&#xA;11wqyE67zwUI55E1NpZJwYMcrFejjyUm2t75SH3qSxFC2CWooPK+TaR0RUUG3dS2xIG72M6gD7Ar&#xA;pe7wHsJNI2dRNJcGaw4NFba0rai4pjejYLPI/26/1J7z/pDv98f0nMVZrNRkPGy+QXga/Fv8cv/o&#xA;MH/2Bc9nwgVy9Q8AAP//AwBQSwECLQAUAAYACAAAACEA2+H2y+4AAACFAQAAEwAAAAAAAAAAAAAA&#xA;AAAAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQItABQABgAIAAAAIQBa9CxbvwAAABUBAAALAAAA&#xA;AAAAAAAAAAAAAB8BAABfcmVscy8ucmVsc1BLAQItABQABgAIAAAAIQDi7/zdwgAAANwAAAAPAAAA&#xA;AAAAAAAAAAAAAAcCAABkcnMvZG93bnJldi54bWxQSwUGAAAAAAMAAwC3AAAA9gIAAAAA&#xA;">
+                  <v:fill opacity="19789f" />
+                  <v:path arrowok="true" o:connecttype="custom" o:connectlocs="4685030,0;1358427,440373;0,370840;1937302,509905;4685030,208598;4685030,0" o:connectangles="0,0,0,0,0,0" />
+                </v:shape>
+                <w10:wrap anchorx="margin" anchory="page" xmlns:w10="urn:schemas-microsoft-com:office:word" />
+              </v:group>
+            </w:pict>
+          </w:r>
+          <w:r>
+            <w:rPr>
+              <w:noProof />
+            </w:rPr>
+            <w:pict w14:anchorId="1E052857">
+              <v:shapetype id="_x0000_t202" coordsize="21600,21600" o:spt="202" path="m,l,21600r21600,l21600,xe" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+                <v:stroke joinstyle="miter" />
+                <v:path gradientshapeok="true" o:connecttype="rect" />
+              </v:shapetype>
+              <v:shape id="Text Box 128" style="position:absolute;margin-left:0;margin-top:0;width:453pt;height:11.5pt;z-index:251662336;visibility:visible;mso-wrap-style:square;mso-width-percent:1154;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:center;mso-position-horizontal-relative:page;mso-position-vertical:bottom;mso-position-vertical-relative:margin;mso-width-percent:1154;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:bottom" o:spid="_x0000_s1029" filled="false" stroked="false" strokeweight=".5pt" type="#_x0000_t202" o:gfxdata="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&#xA;" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+                <v:textbox style="mso-fit-shape-to-text:t" inset="1in,0,86.4pt,0">
+                  <w:txbxContent>
+                    <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="2DD9E696" w14:textId="77777777">
+                      <w:pPr>
+                        <w:rPr>
+                          <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                          <w:sz w:val="18" />
+                          <w:szCs w:val="18" />
+                        </w:rPr>
+                      </w:pPr>
+                      <w:sdt>
+                        <w:sdtPr>
+                          <w:rPr>
+                            <w:caps />
+                            <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                            <w:sz w:val="18" />
+                            <w:szCs w:val="18" />
+                          </w:rPr>
+                          <w:alias w:val="Company" />
+                          <w:tag w:val="" />
+                          <w:id w:val="-1880927279" />
+                          <w:showingPlcHdr />
+                          <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties' " w:xpath="/ns0:Properties[1]/ns0:Company[1]" w:storeItemID="{6668398D-A668-4E3E-A5EB-62B293D839F1}" />
+                          <w:text />
+                        </w:sdtPr>
+                        <w:sdtEndPr />
+                        <w:sdtContent>
+                          <w:r>
+                            <w:rPr>
+                              <w:caps />
+                              <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                              <w:sz w:val="18" />
+                              <w:szCs w:val="18" />
+                            </w:rPr>
+                            <w:t>[Company name]</w:t>
+                          </w:r>
+                        </w:sdtContent>
+                      </w:sdt>
+                      <w:r>
+                        <w:rPr>
+                          <w:caps />
+                          <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                          <w:sz w:val="18" />
+                          <w:szCs w:val="18" />
+                        </w:rPr>
+                        <w:t> </w:t>
+                      </w:r>
+                      <w:r>
+                        <w:rPr>
+                          <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                          <w:sz w:val="18" />
+                          <w:szCs w:val="18" />
+                        </w:rPr>
+                        <w:t>| </w:t>
+                      </w:r>
+                      <w:sdt>
+                        <w:sdtPr>
+                          <w:rPr>
+                            <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                            <w:sz w:val="18" />
+                            <w:szCs w:val="18" />
+                          </w:rPr>
+                          <w:alias w:val="Address" />
+                          <w:tag w:val="" />
+                          <w:id w:val="-1023088507" />
+                          <w:showingPlcHdr />
+                          <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.microsoft.com/office/2006/coverPageProps' " w:xpath="/ns0:CoverPageProperties[1]/ns0:CompanyAddress[1]" w:storeItemID="{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" />
+                          <w:text />
+                        </w:sdtPr>
+                        <w:sdtEndPr />
+                        <w:sdtContent>
+                          <w:r>
+                            <w:rPr>
+                              <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80" />
+                              <w:sz w:val="18" />
+                              <w:szCs w:val="18" />
+                            </w:rPr>
+                            <w:t>[Company address]</w:t>
+                          </w:r>
+                        </w:sdtContent>
+                      </w:sdt>
+                    </w:p>
+                  </w:txbxContent>
+                </v:textbox>
+                <w10:wrap type="square" anchorx="page" anchory="margin" xmlns:w10="urn:schemas-microsoft-com:office:word" />
+              </v:shape>
+            </w:pict>
+          </w:r>
+          <w:r>
+            <w:rPr>
+              <w:noProof />
+            </w:rPr>
+            <w:pict w14:anchorId="5A33438E">
+              <v:shape id="Text Box 129" style="position:absolute;margin-left:0;margin-top:0;width:453pt;height:38.15pt;z-index:251661312;visibility:visible;mso-wrap-style:square;mso-width-percent:1154;mso-height-percent:0;mso-top-percent:790;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:center;mso-position-horizontal-relative:page;mso-position-vertical-relative:page;mso-width-percent:1154;mso-height-percent:0;mso-top-percent:790;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:spid="_x0000_s1030" filled="false" stroked="false" strokeweight=".5pt" type="#_x0000_t202" o:gfxdata="UEsDBBQABgAIAAAAIQC2gziS/gAAAOEBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbJSRQU7DMBBF&#xA;90jcwfIWJU67QAgl6YK0S0CoHGBkTxKLZGx5TGhvj5O2G0SRWNoz/78nu9wcxkFMGNg6quQqL6RA&#xA;0s5Y6ir5vt9lD1JwBDIwOMJKHpHlpr69KfdHjyxSmriSfYz+USnWPY7AufNIadK6MEJMx9ApD/oD&#xA;OlTrorhX2lFEilmcO2RdNtjC5xDF9pCuTyYBB5bi6bQ4syoJ3g9WQ0ymaiLzg5KdCXlKLjvcW893&#xA;SUOqXwnz5DrgnHtJTxOsQfEKIT7DmDSUCaxw7Rqn8787ZsmRM9e2VmPeBN4uqYvTtW7jvijg9N/y&#xA;JsXecLq0q+WD6m8AAAD//wMAUEsDBBQABgAIAAAAIQA4/SH/1gAAAJQBAAALAAAAX3JlbHMvLnJl&#xA;bHOkkMFqwzAMhu+DvYPRfXGawxijTi+j0GvpHsDYimMaW0Yy2fr2M4PBMnrbUb/Q94l/f/hMi1qR&#xA;JVI2sOt6UJgd+ZiDgffL8ekFlFSbvV0oo4EbChzGx4f9GRdb25HMsYhqlCwG5lrLq9biZkxWOiqY&#xA;22YiTra2kYMu1l1tQD30/bPm3wwYN0x18gb45AdQl1tp5j/sFB2T0FQ7R0nTNEV3j6o9feQzro1i&#xA;OWA14Fm+Q8a1a8+Bvu/d/dMb2JY5uiPbhG/ktn4cqGU/er3pcvwCAAD//wMAUEsDBBQABgAIAAAA&#xA;IQD1ZZCdbgIAAD8FAAAOAAAAZHJzL2Uyb0RvYy54bWysVN9P2zAQfp+0/8Hy+5q0FCgVKepAnSYh&#xA;QIOJZ9exaTTH59nXJt1fv7OTtIjthWkv9vnu8/l+fOfLq7Y2bKd8qMAWfDzKOVNWQlnZl4J/f1p9&#xA;mnEWUNhSGLCq4HsV+NXi44fLxs3VBDZgSuUZObFh3riCbxDdPMuC3KhahBE4ZcmowdcC6ehfstKL&#xA;hrzXJpvk+VnWgC+dB6lCIO1NZ+SL5F9rJfFe66CQmYJTbJhWn9Z1XLPFpZi/eOE2lezDEP8QRS0q&#xA;S48eXN0IFGzrqz9c1ZX0EEDjSEKdgdaVVCkHymacv8nmcSOcSrlQcYI7lCn8P7fybvfoHjzD9jO0&#xA;1MBYkMaFeSBlzKfVvo47RcrITiXcH8qmWmSSlKfnpyfjnEySbNPZ9OxkEt1kx9vOB/yioGZRKLin&#xA;tqRqid1twA46QOJjFlaVMak1xrKm4Gcnp3m6cLCQc2MjVqUm926OkScJ90ZFjLHflGZVmRKIikQv&#xA;dW082wkihpBSWUy5J7+EjihNQbznYo8/RvWey10ew8tg8XC5riz4lP2bsMsfQ8i6w1PNX+UdRWzX&#xA;LSVe8NSRqFlDuad+e+hGITi5qqgptyLgg/DEfeojzTPe06INUPGhlzjbgP/1N33EEyXJyllDs1Tw&#xA;8HMrvOLMfLVE1ovxdBr5gelEgk/COL84n8zouB70dltfAzVkTJ+Gk0mMaDSDqD3UzzTxy/ggmYSV&#xA;9GzBcRCvsRtu+jGkWi4TiCbNCby1j05G17E/kW1P7bPwrqckEpnvYBg4MX/DzA6bqOOWWyR+Jtoe&#xA;C9qXnqY0Eb//UeI38PqcUMd/b/EbAAD//wMAUEsDBBQABgAIAAAAIQBlsZSG2wAAAAQBAAAPAAAA&#xA;ZHJzL2Rvd25yZXYueG1sTI9BS8NAEIXvgv9hGcGb3aiYNDGbIpVePCitgtdtdprEZmdCdtum/97R&#xA;i14GHm9473vlYvK9OuIYOiYDt7MEFFLNrqPGwMf76mYOKkRLzvZMaOCMARbV5UVpC8cnWuNxExsl&#xA;IRQKa6CNcSi0DnWL3oYZD0ji7Xj0NoocG+1Ge5Jw3+u7JEm1tx1JQ2sHXLZY7zcHLyVfnD2/8udb&#xA;9rB62Z/nTb5e7nJjrq+mp0dQEaf49ww/+IIOlTBt+UAuqN6ADIm/V7w8SUVuDWTpPeiq1P/hq28A&#xA;AAD//wMAUEsBAi0AFAAGAAgAAAAhALaDOJL+AAAA4QEAABMAAAAAAAAAAAAAAAAAAAAAAFtDb250&#xA;ZW50X1R5cGVzXS54bWxQSwECLQAUAAYACAAAACEAOP0h/9YAAACUAQAACwAAAAAAAAAAAAAAAAAv&#xA;AQAAX3JlbHMvLnJlbHNQSwECLQAUAAYACAAAACEA9WWQnW4CAAA/BQAADgAAAAAAAAAAAAAAAAAu&#xA;AgAAZHJzL2Uyb0RvYy54bWxQSwECLQAUAAYACAAAACEAZbGUhtsAAAAEAQAADwAAAAAAAAAAAAAA&#xA;AADIBAAAZHJzL2Rvd25yZXYueG1sUEsFBgAAAAAEAAQA8wAAANAFAAAAAA==&#xA;" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+                <v:textbox style="mso-fit-shape-to-text:t" inset="1in,0,86.4pt,0">
+                  <w:txbxContent>
+                    <w:sdt>
+                      <w:sdtPr>
+                        <w:rPr>
+                          <w:caps />
+                          <w:color w:val="4472C4" w:themeColor="accent1" />
+                          <w:sz w:val="28" />
+                          <w:szCs w:val="28" />
+                        </w:rPr>
+                        <w:alias w:val="Subtitle" />
+                        <w:tag w:val="" />
+                        <w:id w:val="-1452929454" />
+                        <w:showingPlcHdr />
+                        <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:subject[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
+                        <w:text />
+                      </w:sdtPr>
+                      <w:sdtEndPr />
+                      <w:sdtContent>
+                        <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="2A0EF94F" w14:textId="77777777">
+                          <w:pPr>
+                            <w:spacing w:before="40" w:after="40" />
+                            <w:rPr>
+                              <w:caps />
+                              <w:color w:val="4472C4" w:themeColor="accent1" />
+                              <w:sz w:val="28" />
+                              <w:szCs w:val="28" />
+                            </w:rPr>
+                          </w:pPr>
+                          <w:r>
+                            <w:rPr>
+                              <w:caps />
+                              <w:color w:val="4472C4" w:themeColor="accent1" />
+                              <w:sz w:val="28" />
+                              <w:szCs w:val="28" />
+                            </w:rPr>
+                            <w:t>[Document subtitle]</w:t>
+                          </w:r>
+                        </w:p>
+                      </w:sdtContent>
+                    </w:sdt>
+                    <w:sdt>
+                      <w:sdtPr>
+                        <w:rPr>
+                          <w:caps />
+                          <w:color w:val="5B9BD5" w:themeColor="accent5" />
+                          <w:sz w:val="24" />
+                          <w:szCs w:val="24" />
+                        </w:rPr>
+                        <w:alias w:val="Author" />
+                        <w:tag w:val="" />
+                        <w:id w:val="-954487662" />
+                        <w:showingPlcHdr />
+                        <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:creator[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
+                        <w:text />
+                      </w:sdtPr>
+                      <w:sdtEndPr />
+                      <w:sdtContent>
+                        <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="1B7F11D6" w14:textId="6066EBB9">
+                          <w:pPr>
+                            <w:spacing w:before="40" w:after="40" />
+                            <w:rPr>
+                              <w:caps />
+                              <w:color w:val="5B9BD5" w:themeColor="accent5" />
+                              <w:sz w:val="24" />
+                              <w:szCs w:val="24" />
+                            </w:rPr>
+                          </w:pPr>
+                          <w:r>
+                            <w:rPr>
+                              <w:caps />
+                              <w:color w:val="5B9BD5" w:themeColor="accent5" />
+                              <w:sz w:val="24" />
+                              <w:szCs w:val="24" />
+                            </w:rPr>
+                            <w:t xml:space="preserve">     </w:t>
+                          </w:r>
+                        </w:p>
+                      </w:sdtContent>
+                    </w:sdt>
+                  </w:txbxContent>
+                </v:textbox>
+                <w10:wrap type="square" anchorx="page" anchory="page" xmlns:w10="urn:schemas-microsoft-com:office:word" />
+              </v:shape>
+            </w:pict>
+          </w:r>
+          <w:r>
+            <w:rPr>
+              <w:noProof />
+            </w:rPr>
+            <w:pict w14:anchorId="7181A95C">
+              <v:rect id="Rectangle 130" style="position:absolute;margin-left:-8.8pt;margin-top:0;width:46.8pt;height:77.75pt;z-index:251660288;visibility:visible;mso-wrap-style:square;mso-width-percent:76;mso-height-percent:98;mso-top-percent:23;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:right;mso-position-horizontal-relative:margin;mso-position-vertical-relative:page;mso-width-percent:76;mso-height-percent:98;mso-top-percent:23;mso-width-relative:page;mso-height-relative:page;v-text-anchor:bottom" o:spid="_x0000_s1031" fillcolor="#4472c4 [3204]" stroked="false" strokeweight="1pt" o:gfxdata="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&#xA;AOUFAAAAAA==&#xA;" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+                <o:lock v:ext="edit" aspectratio="true" />
+                <v:textbox inset="3.6pt,,3.6pt">
+                  <w:txbxContent>
+                    <w:sdt>
+                      <w:sdtPr>
+                        <w:rPr>
+                          <w:color w:val="FFFFFF" w:themeColor="background1" />
+                          <w:sz w:val="24" />
+                          <w:szCs w:val="24" />
+                        </w:rPr>
+                        <w:alias w:val="Year" />
+                        <w:tag w:val="" />
+                        <w:id w:val="1595126926" />
+                        <w:showingPlcHdr />
+                        <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.microsoft.com/office/2006/coverPageProps' " w:xpath="/ns0:CoverPageProperties[1]/ns0:PublishDate[1]" w:storeItemID="{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" />
+                        <w:date w:fullDate="2012-03-16T00:00:00Z">
+                          <w:dateFormat w:val="yyyy" />
+                          <w:lid w:val="en-US" />
+                          <w:storeMappedDataAs w:val="dateTime" />
+                          <w:calendar w:val="gregorian" />
+                        </w:date>
+                      </w:sdtPr>
+                      <w:sdtEndPr />
+                      <w:sdtContent>
+                        <w:p w:rsidR="00A6334D" w:rsidRDefault="005279DA" w14:paraId="34FF1EFB" w14:textId="77777777">
+                          <w:pPr>
+                            <w:jc w:val="right" />
+                            <w:rPr>
+                              <w:color w:val="FFFFFF" w:themeColor="background1" />
+                              <w:sz w:val="24" />
+                              <w:szCs w:val="24" />
+                            </w:rPr>
+                          </w:pPr>
+                          <w:r>
+                            <w:rPr>
+                              <w:color w:val="FFFFFF" w:themeColor="background1" />
+                              <w:sz w:val="24" />
+                              <w:szCs w:val="24" />
+                            </w:rPr>
+                            <w:t>[Year]</w:t>
+                          </w:r>
+                        </w:p>
+                      </w:sdtContent>
+                    </w:sdt>
+                  </w:txbxContent>
+                </v:textbox>
+                <w10:wrap anchorx="margin" anchory="page" xmlns:w10="urn:schemas-microsoft-com:office:word" />
+              </v:rect>
+            </w:pict>
+          </w:r>
+          <w:r>
+            <w:br w:type="page" />
+          </w:r>
+        </w:p>
+      </w:sdtContent>
+    </w:sdt>
+    <w:sdt>
+      <w:sdtPr>
+        <w:id w:val="-619995952" />
+        <w:docPartObj>
+          <w:docPartGallery w:val="Table of Contents" />
+          <w:docPartUnique />
+        </w:docPartObj>
+      </w:sdtPr>
+      <w:sdtEndPr>
+        <w:rPr>
+          <w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi" />
+          <w:b />
+          <w:bCs />
+          <w:noProof />
+          <w:color w:val="auto" />
+          <w:sz w:val="22" />
+          <w:szCs w:val="22" />
+        </w:rPr>
+      </w:sdtEndPr>
+      <w:sdtContent>
+        <w:p w:rsidR="00327375" w:rsidRDefault="00327375" w14:paraId="2054FA1D" w14:textId="07CA9725" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+          <w:pPr>
+            <w:pStyle w:val="TOCHeading" />
+          </w:pPr>
+          <w:r>
+            <w:t>Table of Contents</w:t>
+          </w:r>
+        </w:p>
+        <w:p w:rsidR="00327375" w:rsidRDefault="00327375" w14:paraId="770BF6F5" w14:textId="2FB682F4" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+          <w:fldSimple w:instr=" TOC \o &quot;1-3&quot; \h \z \u ">
+            <w:r>
+              <w:rPr>
+                <w:b />
+                <w:bCs />
+                <w:noProof />
+              </w:rPr>
+              <w:t>No table of contents entries found.</w:t>
+            </w:r>
+          </w:fldSimple>
+        </w:p>
+      </w:sdtContent>
+    </w:sdt>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="1" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">How to add a table to document?</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">In the first paragraph I would like to show you how to add a table to the document using one of the 105 built-in styles:</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblStyle w:val="GridTable5Dark-Accent5" />
+        <w:tblW w:w="0" w:type="auto" />
+        <w:tblLook w:val="04A0" w:firstRow="true" w:lastRow="false" w:firstColumn="true" w:lastColumn="false" w:noHBand="false" w:noVBand="true" />
+      </w:tblPr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r>
+              <w:rPr>
+                <w:color w:val="0000FF" />
+              </w:rPr>
+              <w:t xml:space="preserve">Adding text to cell</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r>
+              <w:t xml:space="preserve">Different cell</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:w="2400" w:type="dxa" />
+          </w:tcPr>
+          <w:p>
+            <w:pPr />
+            <w:r />
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+          <w:u w:val="dotted" />
+        </w:rPr>
+        <w:t xml:space="preserve">As you can see adding a table with some style, and adding content to it </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:color w:val="FF4500" />
+        </w:rPr>
+        <w:t xml:space="preserve">is not really complicated</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="1" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">How to add a list to document?</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:rPr>
+          <w:color w:val="0000FF" />
+        </w:rPr>
+        <w:t xml:space="preserve">For example TOC List is just another list, but defining a specific style.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="2" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">First element of list</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="1" />
+          <w:numId w:val="2" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Second element of list</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center" />
+      </w:pPr>
+      <w:hyperlink w:tooltip="URL with tooltip" w:history="true" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:r>
+          <w:rPr>
+            <w:rStyle w:val="Hyperlink" />
+            <w:u w:val="single" />
+            <w:color w:themeColor="hyperlink" />
+          </w:rPr>
+          <w:t xml:space="preserve">Go to Evotec Blogs</w:t>
+        </w:r>
+      </w:hyperlink>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="2" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">3rd element of list, but added after hyperlink</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="2" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">4th element with hyperlink </w:t>
+      </w:r>
+      <w:hyperlink w:history="true" r:id="R2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:r>
+          <w:rPr>
+            <w:rStyle w:val="Hyperlink" />
+            <w:u w:val="single" />
+            <w:color w:themeColor="hyperlink" />
+          </w:rPr>
+          <w:t xml:space="preserve">included.</w:t>
+        </w:r>
+      </w:hyperlink>
+    </w:p>
+    <w:p>
+      <w:pPr />
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="3" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Different list number 1</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="1" />
+          <w:numId w:val="3" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Different list number 2</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="1" />
+          <w:numId w:val="3" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Different list number 3</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="ListParagraph" />
+        <w:numPr>
+          <w:ilvl w:val="1" />
+          <w:numId w:val="3" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Different list number 4</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:headerReference w:type="default" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
+          <w:footerReference w:type="default" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
+        </w:sectPr>
+      </w:pPr>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="1" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Adding headers / footers</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
+        </w:sectPr>
+      </w:pPr>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1" />
+        <w:numPr>
+          <w:ilvl w:val="0" />
+          <w:numId w:val="1" />
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:rPr />
+        <w:t xml:space="preserve">Adding custom properties and page numbers to document</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr>
+      <w:pgSz w:w="8391" w:h="11906" w:code="11" />
+    </w:sectPr>
+  </w:body>
+</w:document>
