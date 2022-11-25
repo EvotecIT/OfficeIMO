@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -59,7 +59,6 @@ public class WordList {
         var run = new Run();
         run.Append(new RunProperties());
         run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
-        paragraph.Append(run);
 
         var paragraphProperties = new ParagraphProperties();
         paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
@@ -69,7 +68,7 @@ public class WordList {
                 new NumberingId { Val = _numberId }
             ));
         paragraph.Append(paragraphProperties);
-
+        paragraph.Append(run);
         _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
 
         var wordParagraph = new WordParagraph(_document, paragraph, run) {
@@ -87,7 +86,7 @@ public class WordList {
     internal static int GetNextAbstractNum(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<AbstractNum>()
-            .Select(element => (int) element.AbstractNumberId)
+            .Select(element => (int)element.AbstractNumberId)
             .ToList();
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
@@ -95,7 +94,7 @@ public class WordList {
     internal static int GetNextNumberingInstance(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<NumberingInstance>()
-            .Select(element => (int) element.NumberID)
+            .Select(element => (int)element.NumberID)
             .ToList();
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
