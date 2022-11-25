@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -202,8 +202,8 @@ namespace OfficeIMO.Word {
             if (addStyle) {
                 RunProperties runPropertiesHyperLink = new RunProperties(
                     new RunStyle { Val = "Hyperlink", },
-                    new Underline { Val = UnderlineValues.Single },
-                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
+                    new Color { ThemeColor = ThemeColorValues.Hyperlink, Val = "0000FF" },
+                    new Underline { Val = UnderlineValues.Single }
                 );
                 run.RunProperties = runPropertiesHyperLink;
             }
@@ -246,12 +246,12 @@ namespace OfficeIMO.Word {
 
             // Styling for the hyperlink
             if (addStyle) {
-                RunProperties runPropertiesHyperLink = new RunProperties(
-                    new RunStyle { Val = "Hyperlink", },
-                    new Underline { Val = UnderlineValues.Single },
-                    new Color { ThemeColor = ThemeColorValues.Hyperlink }
-                );
-                run.RunProperties = runPropertiesHyperLink;
+                //RunProperties runPropertiesHyperLink = new RunProperties(
+                //    new RunStyle { Val = "Hyperlink", }
+                //    //new Underline { Val = UnderlineValues.Single }
+                //    //new Color { ThemeColor = ThemeColorValues.Hyperlink }
+                //);
+                //run.RunProperties = runPropertiesHyperLink;
             }
 
             if (tooltip != "") {

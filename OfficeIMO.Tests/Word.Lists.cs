@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -106,6 +106,8 @@ public partial class Word {
             Assert.Equal(28, section.Paragraphs.Count);
 
             document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx"))) {
@@ -169,6 +171,8 @@ public partial class Word {
             Assert.Equal(45, section.Paragraphs.Count);
 
             document.Save();
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists.docx"))) {
@@ -191,6 +195,8 @@ public partial class Word {
             Assert.Equal(45, section.Paragraphs.Count);
 
             document.Save();
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
     }
 
@@ -325,6 +331,8 @@ public partial class Word {
             Assert.Single(document.Sections[1].Lists);
 
             document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
@@ -342,6 +350,8 @@ public partial class Word {
             Assert.Equal(2, document.Sections[1].Lists.Count);
 
             document.Save();
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLists2.docx"))) {
@@ -349,13 +359,15 @@ public partial class Word {
             Assert.Equal(5, document.Sections[0].Lists.Count);
             Assert.Equal(2, document.Sections[1].Lists.Count);
             document.Save();
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
     }
 
     [Fact]
     public void Test_SavingWordDocumentWithListsToStream() {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsToStream.docx");
-        var wordListStyles = (WordListStyle[]) Enum.GetValues(typeof(WordListStyle));
+        var wordListStyles = (WordListStyle[])Enum.GetValues(typeof(WordListStyle));
         using (var document = WordDocument.Create()) {
             foreach (var listStyle in wordListStyles) {
                 var paragraph = document.AddParagraph(listStyle.ToString());
@@ -369,6 +381,8 @@ public partial class Word {
             using var outputStream = new MemoryStream();
             document.Save(outputStream);
             File.WriteAllBytes(filePath, outputStream.ToArray());
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         using (var document = WordDocument.Load(filePath)) {
