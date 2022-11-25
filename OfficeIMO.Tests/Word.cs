@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         }
 
         /// <summary>
-        /// This helps finding unexpected elements during validation
+        /// This helps finding unexpected elements during validation. Should prevent unexpected changes
         /// </summary>
         /// <param name="document"></param>
         /// <returns></returns>
@@ -45,7 +45,6 @@ namespace OfficeIMO.Tests {
                     break;
                 }
             }
-
             return found;
         }
     }
