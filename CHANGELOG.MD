@@ -70,6 +70,14 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
+#### 0.4.2 - 2022.11.25
+
+## What's Changed
+* The order of paragraph properties and runs does matter by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/83
+* This release fixes LISTS. Sorry for that!
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.1...v0.4.2
+
 #### 0.4.1 - 2022.11.20
 
 ##### What's Changed
