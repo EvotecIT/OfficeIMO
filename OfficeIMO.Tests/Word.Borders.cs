@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -284,6 +284,8 @@ namespace OfficeIMO.Tests {
                 document.Sections[3].SetBorders(WordBorder.None);
                 Assert.True(document.Sections[3].Borders.Type == WordBorder.None);
                 document.Save(false);
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBordersBuiltin.docx"))) {

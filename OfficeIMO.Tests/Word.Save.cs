@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -52,6 +52,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(File.Exists(filePath3));
                 Assert.True(filePath3.IsFileLocked());
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
 
             Assert.False(filePath1.IsFileLocked());
@@ -122,8 +124,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_SaveToStream()
-        {
+        public void Test_SaveToStream() {
             var document = WordDocument.Create();
             document.AddParagraph("Hello world!");
 
