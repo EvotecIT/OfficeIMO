@@ -55,10 +55,10 @@ steps:
     version: '7.0.x'
 
 - task: UseDotNet@2
-  displayName: Install .NET 3.1
+  displayName: 'Install .NET 3.1'
   inputs:
     version: '3.1.x'
-    packageType: sdk
+    packageType: 'sdk'
     includePreviewVersions: false
 
 # Add a Command To List the Current .NET SDKs (Sanity Check)

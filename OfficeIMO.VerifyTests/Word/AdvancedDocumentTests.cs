@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Globalization;
+using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -13,28 +13,20 @@ namespace OfficeIMO.VerifyTests.Word;
 public class AdvancedDocumentTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument wordprocessingDocument) {
-        var document = wordprocessingDocument.MainDocumentPart!.Document;
+        NormalizeWord(wordprocessingDocument);
 
-        var i = 1;
-        foreach (var hyperlink in document.Descendants<Hyperlink>()) {
-            hyperlink.Id = "R" + i.ToString(CultureInfo.InvariantCulture);
-            i++;
+        var result = new StringBuilder();
+        foreach (var id in wordprocessingDocument.Parts) {
+            if (id.OpenXmlPart.RootElement is null)
+                continue;
+            var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
+            result.AppendLine(id.OpenXmlPart.Uri.ToString());
+            result.AppendLine("------------");
+            result.AppendLine(xml);
+            result.AppendLine("------------");
         }
 
-        i = 1;
-        foreach (var headerReference in document.Descendants<HeaderReference>()) {
-            headerReference.Id = "R" + i.ToString(CultureInfo.InvariantCulture);
-            i++;
-        }
-
-        i = 1;
-        foreach (var footerReference in document.Descendants<FooterReference>()) {
-            footerReference.Id = "R" + i.ToString(CultureInfo.InvariantCulture);
-            i++;
-        }
-
-        var xml = FormatXml(document.MainDocumentPart!.Document.OuterXml);
-        await Verifier.Verify(xml, GetSettings());
+        await Verifier.Verify(result.ToString(), GetSettings());
     }
 
     [Fact]

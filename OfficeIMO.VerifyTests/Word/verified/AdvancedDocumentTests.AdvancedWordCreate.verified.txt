@@ -1,4 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-16"?>
+﻿/word/document.xml
+------------
+<?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:sdt>
@@ -666,7 +668,7 @@
       <w:pPr>
         <w:jc w:val="center" />
       </w:pPr>
-      <w:hyperlink w:tooltip="URL with tooltip" w:history="true" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <w:hyperlink w:tooltip="URL with tooltip" w:history="true" r:id="R00000001" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
         <w:r>
           <w:rPr>
             <w:rStyle w:val="Hyperlink" />
@@ -702,7 +704,7 @@
         <w:rPr />
         <w:t xml:space="preserve">4th element with hyperlink </w:t>
       </w:r>
-      <w:hyperlink w:history="true" r:id="R2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <w:hyperlink w:history="true" r:id="R00000002" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
         <w:r>
           <w:rPr>
             <w:rStyle w:val="Hyperlink" />
@@ -771,8 +773,8 @@
     <w:p>
       <w:pPr>
         <w:sectPr>
-          <w:headerReference w:type="default" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
-          <w:footerReference w:type="default" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
+          <w:headerReference w:type="default" r:id="R00000001" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
+          <w:footerReference w:type="default" r:id="R00000001" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />
         </w:sectPr>
       </w:pPr>
     </w:p>
@@ -814,3 +816,26 @@
     </w:sectPr>
   </w:body>
 </w:document>
+------------
+/docProps/app.xml
+------------
+<?xml version="1.0" encoding="utf-16"?>
+<ap:Properties xmlns:ap="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
+  <ap:Company>Evotec Services</ap:Company>
+</ap:Properties>
+------------
+/docProps/custom.xml
+------------
+<?xml version="1.0" encoding="utf-16"?>
+<op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="TestProperty">
+    <vt:filetime xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">9999-12-31T23:59:59Z</vt:filetime>
+  </op:property>
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3" name="MyName">
+    <vt:lpwstr xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">Some text</vt:lpwstr>
+  </op:property>
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="4" name="IsTodayGreatDay">
+    <vt:bool xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">true</vt:bool>
+  </op:property>
+</op:Properties>
+------------
