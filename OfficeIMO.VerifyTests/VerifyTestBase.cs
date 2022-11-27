@@ -27,6 +27,8 @@ public abstract class VerifyTestBase {
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly string LastTime =
+        DateTimeOffset.MaxValue.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
     static VerifyTestBase() {
         // To disable Visual Studio popping up on every test execution.
@@ -52,13 +54,30 @@ public abstract class VerifyTestBase {
         result.AppendLine(RowDelimiter);
 
         foreach (var id in document.Parts) {
-            if (id.OpenXmlPart.RootElement is null)
-                continue;
-            var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
-            result.AppendLine(id.OpenXmlPart.Uri.ToString());
-            result.AppendLine(RowDelimiter);
-            result.AppendLine(xml);
-            result.AppendLine(RowDelimiter);
+            var r = GetVerifyResult(id);
+            if (string.IsNullOrEmpty(r)) continue;
+            result.Append(r);
+        }
+
+        return result.ToString();
+    }
+
+    private static string GetVerifyResult(IdPartPair id)
+    {
+        if (id.OpenXmlPart.RootElement is null)
+            return "";
+
+        var result = new StringBuilder();
+        var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
+        result.AppendLine(id.OpenXmlPart.Uri.ToString());
+        result.AppendLine(RowDelimiter);
+        result.AppendLine(xml);
+        result.AppendLine(RowDelimiter);
+
+        foreach (var part in id.OpenXmlPart.Parts) {
+            var r = GetVerifyResult(part);
+            if (string.IsNullOrEmpty(r)) continue;
+            result.Append(r);
         }
 
         return result.ToString();
@@ -106,14 +125,19 @@ public abstract class VerifyTestBase {
             chartReference.Id = "R" + i.ToString("X8");
             i++;
         }
+
+        if (document.MainDocumentPart!.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
+            foreach (var comment in document.MainDocumentPart.WordprocessingCommentsPart!.RootElement!.Descendants<Comment>()) {
+                comment.Date = DateTime.MaxValue;
+            }
+        }
     }
 
     private static void NormalizeCustomFilePropertiesPart(CustomFilePropertiesPart? part) {
         var fileTime = part?.Properties
             .FirstOrDefault(x => ((CustomDocumentProperty?)x)?.VTFileTime != null);
         if (fileTime != null) {
-            ((CustomDocumentProperty?) fileTime)!.VTFileTime!.Text =
-                DateTimeOffset.MaxValue.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+            ((CustomDocumentProperty?) fileTime)!.VTFileTime!.Text = LastTime;
         }
     }
 }
