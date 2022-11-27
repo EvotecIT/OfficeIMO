@@ -23,20 +23,34 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:background w:color="8FBC8F" />
   <w:body>
     <w:p>
-      <w:pPr>
-        <w:jc w:val="center" />
-      </w:pPr>
+      <w:pPr />
       <w:r>
-        <w:rPr>
-          <w:b />
-          <w:bCs />
-        </w:rPr>
-        <w:t xml:space="preserve">INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL</w:t>
+        <w:t xml:space="preserve">Section 0</w:t>
       </w:r>
     </w:p>
-    <w:sectPr />
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgBorders w:offsetFrom="page">
+            <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" />
+            <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" />
+            <w:bottom w:val="single" w:color="auto" w:sz="4" w:space="24" />
+            <w:right w:val="single" w:color="auto" w:sz="4" w:space="24" />
+          </w:pgBorders>
+        </w:sectPr>
+      </w:pPr>
+    </w:p>
+    <w:sectPr>
+      <w:pgBorders w:offsetFrom="page">
+        <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
+        <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
+        <w:bottom w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
+        <w:right w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
+      </w:pgBorders>
+    </w:sectPr>
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

@@ -1,10 +1,10 @@
 ﻿PackageProperties
 <!--------------------------------------------------------------------------------------------------------------------->
 {
-  "Title": null,
+  "Title": "This is my title",
   "Subject": null,
-  "Creator": null,
-  "Keywords": null,
+  "Creator": "Przemys\u0142aw K\u0142ys",
+  "Keywords": "word, docx, test",
   "Description": null,
   "LastModifiedBy": null,
   "Revision": null,
@@ -30,10 +30,9 @@
       </w:pPr>
       <w:r>
         <w:rPr>
-          <w:b />
-          <w:bCs />
+          <w:color w:val="FF0000" />
         </w:rPr>
-        <w:t xml:space="preserve">INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL</w:t>
+        <w:t xml:space="preserve">Basic paragraph</w:t>
       </w:r>
     </w:p>
     <w:sectPr />

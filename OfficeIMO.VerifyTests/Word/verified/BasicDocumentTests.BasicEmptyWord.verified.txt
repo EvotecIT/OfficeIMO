@@ -1,4 +1,25 @@
-﻿/word/document.xml
+﻿PackageProperties
+<!--------------------------------------------------------------------------------------------------------------------->
+{
+  "Title": "This is my title",
+  "Subject": null,
+  "Creator": "Przemys\u0142aw K\u0142ys",
+  "Keywords": "word, docx, test",
+  "Description": null,
+  "LastModifiedBy": null,
+  "Revision": null,
+  "LastPrinted": null,
+  "Created": null,
+  "Modified": null,
+  "Category": null,
+  "Identifier": null,
+  "ContentType": null,
+  "Language": null,
+  "Version": null,
+  "ContentStatus": null
+}
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/document.xml
 <!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">

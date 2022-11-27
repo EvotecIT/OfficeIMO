@@ -1,4 +1,25 @@
-﻿/word/document.xml
+﻿PackageProperties
+<!--------------------------------------------------------------------------------------------------------------------->
+{
+  "Title": null,
+  "Subject": null,
+  "Creator": null,
+  "Keywords": null,
+  "Description": null,
+  "LastModifiedBy": null,
+  "Revision": null,
+  "LastPrinted": null,
+  "Created": null,
+  "Modified": null,
+  "Category": null,
+  "Identifier": null,
+  "ContentType": null,
+  "Language": null,
+  "Version": null,
+  "ContentStatus": null
+}
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/document.xml
 <!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">

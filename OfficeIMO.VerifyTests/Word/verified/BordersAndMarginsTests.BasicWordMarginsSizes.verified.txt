@@ -27,40 +27,64 @@
     <w:p>
       <w:pPr />
       <w:r>
-        <w:t xml:space="preserve">Adding paragraph1 with some text and pressing ENTER</w:t>
+        <w:t xml:space="preserve">Section 0</w:t>
       </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
+        </w:sectPr>
+      </w:pPr>
     </w:p>
     <w:p>
       <w:pPr />
       <w:r>
-        <w:t xml:space="preserve">Adding paragraph2 with some text and pressing SHIFT+ENTER</w:t>
+        <w:t xml:space="preserve">Section 1</w:t>
       </w:r>
-      <w:r>
-        <w:t xml:space="preserve">Continue1</w:t>
-      </w:r>
-      <w:r>
-        <w:br />
-      </w:r>
-      <w:r>
-        <w:t xml:space="preserve">Continue2</w:t>
-      </w:r>
-      <w:r>
-        <w:t xml:space="preserve"> Continue3</w:t>
-      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="720" w:footer="720" w:gutter="0" />
+        </w:sectPr>
+      </w:pPr>
     </w:p>
     <w:p>
       <w:pPr />
       <w:r>
-        <w:t xml:space="preserve">Adding paragraph3 with some text and pressing ENTER</w:t>
+        <w:t xml:space="preserve">Section 2</w:t>
       </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1800" w:header="720" w:footer="720" w:gutter="0" />
+        </w:sectPr>
+      </w:pPr>
     </w:p>
     <w:p>
       <w:pPr />
       <w:r>
-        <w:t xml:space="preserve">Adding paragraph4 with some text and pressing SHIFT+ENTER</w:t>
+        <w:t xml:space="preserve">Section 3</w:t>
       </w:r>
     </w:p>
-    <w:sectPr />
+    <w:p>
+      <w:pPr>
+        <w:sectPr>
+          <w:pgMar w:top="1440" w:right="1080" w:bottom="1440" w:left="1080" w:header="720" w:footer="720" w:gutter="0" />
+        </w:sectPr>
+      </w:pPr>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Section 4</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr>
+      <w:pgMar w:top="1440" w:right="2880" w:bottom="1440" w:left="2880" w:header="720" w:footer="720" w:gutter="0" />
+    </w:sectPr>
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

@@ -1,0 +1,145 @@
+﻿PackageProperties
+<!--------------------------------------------------------------------------------------------------------------------->
+{
+  "Title": null,
+  "Subject": null,
+  "Creator": null,
+  "Keywords": null,
+  "Description": null,
+  "LastModifiedBy": null,
+  "Revision": null,
+  "LastPrinted": null,
+  "Created": null,
+  "Modified": null,
+  "Category": null,
+  "Identifier": null,
+  "ContentType": null,
+  "Language": null,
+  "Version": null,
+  "ContentStatus": null
+}
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">This is a bar chart</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="4445000" cy="6985000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="2" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000001" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">This is a bar chart</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="4445000" cy="6985000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="2" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000002" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">This is a pie chart</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="4445000" cy="6985000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="2" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000003" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Adding a line chart as required 1</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="4445000" cy="6985000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="2" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000004" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Adding a line chart as required 2</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="4445000" cy="6985000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="2" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000005" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->

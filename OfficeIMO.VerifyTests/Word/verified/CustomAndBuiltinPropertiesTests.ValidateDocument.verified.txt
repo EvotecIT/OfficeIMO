@@ -1,0 +1,53 @@
+﻿PackageProperties
+<!--------------------------------------------------------------------------------------------------------------------->
+{
+  "Title": null,
+  "Subject": null,
+  "Creator": null,
+  "Keywords": null,
+  "Description": null,
+  "LastModifiedBy": null,
+  "Revision": null,
+  "LastPrinted": null,
+  "Created": null,
+  "Modified": null,
+  "Category": null,
+  "Identifier": null,
+  "ContentType": null,
+  "Language": null,
+  "Version": null,
+  "ContentStatus": null
+}
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center" />
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Basic paragraph - Page 4</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->
+/docProps/custom.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="TestProperty">
+    <vt:filetime xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">9999-12-31T23:59:59Z</vt:filetime>
+  </op:property>
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3" name="MyName">
+    <vt:lpwstr xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">Some text</vt:lpwstr>
+  </op:property>
+  <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="4" name="IsTodayGreatDay">
+    <vt:bool xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">true</vt:bool>
+  </op:property>
+</op:Properties>
+<!--------------------------------------------------------------------------------------------------------------------->

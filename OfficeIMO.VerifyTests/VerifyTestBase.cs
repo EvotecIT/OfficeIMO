@@ -3,12 +3,15 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using VerifyTests;
 using VerifyXunit;
+using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 
 namespace OfficeIMO.VerifyTests;
 
@@ -22,6 +25,8 @@ public abstract class VerifyTestBase {
         IndentChars = "  ",
         ConformanceLevel = ConformanceLevel.Document
     };
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     static VerifyTestBase() {
         // To disable Visual Studio popping up on every test execution.
@@ -39,6 +44,13 @@ public abstract class VerifyTestBase {
         NormalizeWord(document);
 
         var result = new StringBuilder();
+
+        result.AppendLine(nameof(document.PackageProperties));
+        result.AppendLine(RowDelimiter);
+        var packageProperties = JsonSerializer.Serialize(document.PackageProperties, JsonOptions);
+        result.AppendLine(packageProperties);
+        result.AppendLine(RowDelimiter);
+
         foreach (var id in document.Parts) {
             if (id.OpenXmlPart.RootElement is null)
                 continue;
@@ -86,6 +98,12 @@ public abstract class VerifyTestBase {
         i = 1;
         foreach (var footerReference in document.Descendants<FooterReference>()) {
             footerReference.Id = "R" + i.ToString("X8");
+            i++;
+        }
+
+        i = 1;
+        foreach (var chartReference in document.Descendants<ChartReference>()) {
+            chartReference.Id = "R" + i.ToString("X8");
             i++;
         }
     }
