@@ -1,32 +1,21 @@
 ﻿using System;
-using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using VerifyXunit;
 using Xunit;
+
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
 
 public class AdvancedDocumentTests : VerifyTestBase {
 
-    private static async Task DoTest(WordprocessingDocument wordprocessingDocument) {
-        NormalizeWord(wordprocessingDocument);
-
-        var result = new StringBuilder();
-        foreach (var id in wordprocessingDocument.Parts) {
-            if (id.OpenXmlPart.RootElement is null)
-                continue;
-            var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
-            result.AppendLine(id.OpenXmlPart.Uri.ToString());
-            result.AppendLine("------------");
-            result.AppendLine(xml);
-            result.AppendLine("------------");
-        }
-
-        await Verifier.Verify(result.ToString(), GetSettings());
+    private static async Task DoTest(WordprocessingDocument document) {
+        NormalizeWord(document);
+        var result = ToVerifyResult(document);
+        await Verifier.Verify(result, GetSettings());
     }
 
     [Fact]

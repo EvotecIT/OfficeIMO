@@ -1,0 +1,42 @@
+﻿/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:color w:val="FF0000" />
+        </w:rPr>
+        <w:t xml:space="preserve">Adding paragraph with some text</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+        </w:rPr>
+        <w:t xml:space="preserve">Adding another paragraph with some more text</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:u w:val="dashLong" />
+        </w:rPr>
+        <w:t xml:space="preserve"> , but now we also decided to add more text to this paragraph using different style</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:color w:val="6495ED" />
+        </w:rPr>
+        <w:t xml:space="preserve"> , and we still continue adding more text to existing paragraph.</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->

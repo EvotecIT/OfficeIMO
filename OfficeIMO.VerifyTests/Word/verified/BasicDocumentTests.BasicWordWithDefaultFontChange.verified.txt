@@ -1,0 +1,21 @@
+﻿/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center" />
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+        </w:rPr>
+        <w:t xml:space="preserve">INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->

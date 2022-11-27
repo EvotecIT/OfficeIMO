@@ -1,5 +1,5 @@
 ﻿/word/document.xml
-------------
+<!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
@@ -816,16 +816,16 @@
     </w:sectPr>
   </w:body>
 </w:document>
-------------
+<!--------------------------------------------------------------------------------------------------------------------->
 /docProps/app.xml
-------------
+<!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <ap:Properties xmlns:ap="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
   <ap:Company>Evotec Services</ap:Company>
 </ap:Properties>
-------------
+<!--------------------------------------------------------------------------------------------------------------------->
 /docProps/custom.xml
-------------
+<!--------------------------------------------------------------------------------------------------------------------->
 <?xml version="1.0" encoding="utf-16"?>
 <op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
   <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="TestProperty">
@@ -838,4 +838,4 @@
     <vt:bool xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">true</vt:bool>
   </op:property>
 </op:Properties>
-------------
+<!--------------------------------------------------------------------------------------------------------------------->

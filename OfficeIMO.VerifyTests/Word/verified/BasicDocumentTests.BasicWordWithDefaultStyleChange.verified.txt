@@ -1,0 +1,25 @@
+﻿/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">To jest po polsku</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Courier New" />
+          <w:sz w:val="30" />
+        </w:rPr>
+        <w:t xml:space="preserve">Adding paragraph1 with some text and pressing ENTER</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->
