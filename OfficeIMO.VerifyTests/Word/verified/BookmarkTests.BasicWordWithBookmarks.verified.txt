@@ -1,0 +1,112 @@
+﻿/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Test 1</w:t>
+      </w:r>
+      <w:bookmarkStart w:name="Start" w:id="1" />
+      <w:bookmarkEnd w:id="1" />
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">This is text</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+          <w:i />
+          <w:u w:val="dashDotDotHeavy" />
+        </w:rPr>
+        <w:t xml:space="preserve">text1</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+          <w:i />
+          <w:u w:val="dashDotDotHeavy" />
+        </w:rPr>
+        <w:t xml:space="preserve">text2</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b />
+          <w:bCs />
+          <w:i />
+          <w:u w:val="dashDotDotHeavy" />
+        </w:rPr>
+        <w:t xml:space="preserve">text3</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">OK baby</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Test 2</w:t>
+      </w:r>
+      <w:bookmarkStart w:name="Middle1" w:id="2" />
+      <w:bookmarkEnd w:id="2" />
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Test 3</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page" />
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Test 4</w:t>
+      </w:r>
+      <w:bookmarkStart w:name="EndOfDocument" w:id="4" />
+      <w:bookmarkEnd w:id="4" />
+    </w:p>
+    <w:p />
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Test 5</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->

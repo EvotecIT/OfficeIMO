@@ -1,0 +1,22 @@
+﻿/word/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<?xml version="1.0" encoding="utf-16"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Section 0</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr>
+      <w:pgBorders>
+        <w:top w:val="sharksTeeth" w:color="ADFF2F" w:sz="10" />
+        <w:left w:val="palmsColor" w:color="00FFFF" w:sz="24" w:space="24" />
+        <w:bottom w:val="thick" w:color="0000FF" w:sz="15" />
+        <w:right w:val="babyPacifier" w:color="FF0000" w:sz="12" />
+      </w:pgBorders>
+    </w:sectPr>
+  </w:body>
+</w:document>
+<!--------------------------------------------------------------------------------------------------------------------->

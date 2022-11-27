@@ -12,7 +12,6 @@ namespace OfficeIMO.VerifyTests.Word;
 public class BasicDocumentTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        NormalizeWord(document);
         var result = ToVerifyResult(document);
         await Verifier.Verify(result, GetSettings());
     }

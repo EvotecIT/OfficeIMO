@@ -36,6 +36,8 @@ public abstract class VerifyTestBase {
     }
 
     protected static string ToVerifyResult(WordprocessingDocument document) {
+        NormalizeWord(document);
+
         var result = new StringBuilder();
         foreach (var id in document.Parts) {
             if (id.OpenXmlPart.RootElement is null)
@@ -50,7 +52,7 @@ public abstract class VerifyTestBase {
         return result.ToString();
     }
 
-    protected static void NormalizeWord(WordprocessingDocument document) {
+    private static void NormalizeWord(WordprocessingDocument document) {
         NormalizeDocument(document.MainDocumentPart?.Document);
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
     }
