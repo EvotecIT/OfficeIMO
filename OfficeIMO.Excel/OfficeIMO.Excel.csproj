@@ -6,7 +6,7 @@
         <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
         <VersionPrefix>0.1.1</VersionPrefix>
-        <TargetFrameworks>net6.0</TargetFrameworks>
+        <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">net472;net48;netcoreapp3.1;$(TargetFrameworks)</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 
