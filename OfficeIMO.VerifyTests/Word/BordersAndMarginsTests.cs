@@ -12,7 +12,7 @@ namespace OfficeIMO.VerifyTests.Word;
 public class BordersAndMarginsTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = ToVerifyResult(document);
+        var result = await ToVerifyResult(document);
         await Verifier.Verify(result, GetSettings());
     }
 

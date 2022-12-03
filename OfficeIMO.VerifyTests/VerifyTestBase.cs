@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Xml;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Drawing.Charts;
@@ -19,11 +20,18 @@ namespace OfficeIMO.VerifyTests;
 public abstract class VerifyTestBase {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
 
+    private static readonly XmlReaderSettings XmlReaderSettings = new() {
+        ConformanceLevel = ConformanceLevel.Fragment,
+        Async = true
+    };
+
     private static readonly XmlWriterSettings XmlWriterSettings = new() {
         Indent = true,
         NewLineOnAttributes = false,
         IndentChars = "  ",
-        ConformanceLevel = ConformanceLevel.Document
+        ConformanceLevel = XmlReaderSettings.ConformanceLevel,
+        Encoding = Encoding.UTF8,
+        Async = XmlReaderSettings.Async
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
@@ -42,7 +50,7 @@ public abstract class VerifyTestBase {
         return settings;
     }
 
-    protected static string ToVerifyResult(WordprocessingDocument document) {
+    protected static async Task<string> ToVerifyResult(WordprocessingDocument document) {
         NormalizeWord(document);
 
         var result = new StringBuilder();
@@ -54,7 +62,7 @@ public abstract class VerifyTestBase {
         result.AppendLine(RowDelimiter);
 
         foreach (var id in document.Parts) {
-            var r = GetVerifyResult(id);
+            var r = await GetVerifyResult(id);
             if (string.IsNullOrEmpty(r)) continue;
             result.Append(r);
         }
@@ -62,20 +70,20 @@ public abstract class VerifyTestBase {
         return result.ToString();
     }
 
-    private static string GetVerifyResult(IdPartPair id)
+    private static async Task<string> GetVerifyResult(IdPartPair id)
     {
         if (id.OpenXmlPart.RootElement is null)
             return "";
 
         var result = new StringBuilder();
-        var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
+        var xml = await FormatXml(id.OpenXmlPart.RootElement.OuterXml);
         result.AppendLine(id.OpenXmlPart.Uri.ToString());
         result.AppendLine(RowDelimiter);
         result.AppendLine(xml);
         result.AppendLine(RowDelimiter);
 
         foreach (var part in id.OpenXmlPart.Parts) {
-            var r = GetVerifyResult(part);
+            var r = await GetVerifyResult(part);
             if (string.IsNullOrEmpty(r)) continue;
             result.Append(r);
         }
@@ -88,13 +96,12 @@ public abstract class VerifyTestBase {
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
     }
 
-    private static string FormatXml(string value) {
+    private static async Task<string> FormatXml(string value) {
         using var textReader = new StringReader(value);
-        using var xmlReader = XmlReader.Create(
-            textReader, new XmlReaderSettings { ConformanceLevel = XmlWriterSettings.ConformanceLevel } );
-        using var textWriter = new StringWriter();
-        using (var xmlWriter = XmlWriter.Create(textWriter, XmlWriterSettings))
-            xmlWriter.WriteNode(xmlReader, true);
+        using var xmlReader = XmlReader.Create(textReader, XmlReaderSettings);
+        await using var textWriter = new StringWriter(new StringBuilder(), CultureInfo.InvariantCulture);
+        await using (var xmlWriter = XmlWriter.Create(textWriter, XmlWriterSettings))
+            await xmlWriter.WriteNodeAsync(xmlReader, true);
         return textWriter.ToString();
     }
 
@@ -126,7 +133,7 @@ public abstract class VerifyTestBase {
             i++;
         }
 
-        if (document.MainDocumentPart!.GetPartsCountOfType<WordprocessingCommentsPart>() > 0) {
+        if (document.MainDocumentPart!.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
             foreach (var comment in document.MainDocumentPart.WordprocessingCommentsPart!.RootElement!.Descendants<Comment>()) {
                 comment.Date = DateTime.MaxValue;
             }
