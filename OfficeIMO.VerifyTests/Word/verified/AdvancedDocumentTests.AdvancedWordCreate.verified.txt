@@ -21,7 +21,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/document.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:sdt>
@@ -840,7 +839,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/styles.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:styles xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:docDefaults>
     <w:rPrDefault>
@@ -11117,7 +11115,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/webSettings.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:webSettings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:optimizeForBrowser />
   <w:allowPNG />
@@ -11125,7 +11122,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/settings.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:settings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:updateFields w:val="true" />
   <w:zoom w:percent="100" />
@@ -11180,7 +11176,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/numbering.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:abstractNum w:abstractNumId="1" w15:restartNumberingAfterBreak="0" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
     <w:nsid w:val="21351BF1" />
@@ -11480,7 +11475,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/header1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:p>
     <w:pPr />
@@ -11544,7 +11538,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/footer1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:sdt>
     <w:sdtPr>
@@ -11592,14 +11585,12 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /docProps/app.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <ap:Properties xmlns:ap="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
   <ap:Company>Evotec Services</ap:Company>
 </ap:Properties>
 <!--------------------------------------------------------------------------------------------------------------------->
 /docProps/custom.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
   <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="TestProperty">
     <vt:filetime xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">9999-12-31T23:59:59Z</vt:filetime>

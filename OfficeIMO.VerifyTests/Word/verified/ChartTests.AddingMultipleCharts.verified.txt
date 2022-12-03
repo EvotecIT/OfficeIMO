@@ -21,7 +21,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/document.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:p>
@@ -145,7 +144,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/styles.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:styles xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:docDefaults>
     <w:rPrDefault>
@@ -10422,7 +10420,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/webSettings.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:webSettings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:optimizeForBrowser />
   <w:allowPNG />
@@ -10430,7 +10427,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/settings.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <w:settings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh">
   <w:zoom w:percent="100" />
   <w:proofState w:spelling="clean" w:grammar="clean" />
@@ -10484,7 +10480,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="0" />
   <c:chart>
@@ -10731,7 +10726,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart2.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="1" />
   <c:chart>
@@ -10851,7 +10845,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart3.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="0" />
   <c:chart>
@@ -10933,7 +10926,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart4.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="0" />
   <c:chart>
@@ -11183,7 +11175,6 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart5.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<?xml version="1.0" encoding="utf-16"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="0" />
   <c:chart>
