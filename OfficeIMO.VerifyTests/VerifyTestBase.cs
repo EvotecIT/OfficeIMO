@@ -12,6 +12,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using VerifyTests;
 using VerifyXunit;
+using Formatting = System.Xml.Formatting;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 
 namespace OfficeIMO.VerifyTests;
@@ -19,20 +20,6 @@ namespace OfficeIMO.VerifyTests;
 [UsesVerify]
 public abstract class VerifyTestBase {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
-
-    private static readonly XmlReaderSettings XmlReaderSettings = new() {
-        ConformanceLevel = ConformanceLevel.Fragment,
-        Async = true
-    };
-
-    private static readonly XmlWriterSettings XmlWriterSettings = new() {
-        Indent = true,
-        NewLineOnAttributes = false,
-        IndentChars = "  ",
-        ConformanceLevel = XmlReaderSettings.ConformanceLevel,
-        Encoding = Encoding.UTF8,
-        Async = XmlReaderSettings.Async
-    };
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private static readonly string LastTime =
@@ -76,7 +63,7 @@ public abstract class VerifyTestBase {
             return "";
 
         var result = new StringBuilder();
-        var xml = await FormatXml(id.OpenXmlPart.RootElement.OuterXml);
+        var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
         result.AppendLine(id.OpenXmlPart.Uri.ToString());
         result.AppendLine(RowDelimiter);
         result.AppendLine(xml);
@@ -96,13 +83,20 @@ public abstract class VerifyTestBase {
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
     }
 
-    private static async Task<string> FormatXml(string value) {
-        using var textReader = new StringReader(value);
-        using var xmlReader = XmlReader.Create(textReader, XmlReaderSettings);
-        await using var textWriter = new StringWriter(new StringBuilder(), CultureInfo.InvariantCulture);
-        await using (var xmlWriter = XmlWriter.Create(textWriter, XmlWriterSettings))
-            await xmlWriter.WriteNodeAsync(xmlReader, true);
-        return textWriter.ToString();
+    private static string FormatXml(string value) {
+        var xDoc = new XmlDocument();
+        xDoc.LoadXml(value);
+        xDoc.Normalize();
+        xDoc.PreserveWhitespace = true;
+
+        var sb = new StringBuilder();
+        using var writer = new StringWriter(sb, CultureInfo.InvariantCulture);
+        using var xTarget = new XmlTextWriter(writer);
+        xTarget.Formatting = Formatting.Indented;
+        xTarget.Indentation = 2;
+        xDoc.WriteContentTo(xTarget);
+
+        return sb.ToString();
     }
 
     private static void NormalizeDocument(Document? document) {
