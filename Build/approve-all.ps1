@@ -1,5 +1,5 @@
 param (
-    $SolutionRoot = "$PSScriptRoot/"
+    $SolutionRoot = "$PSScriptRoot/.."
 )
 
 Set-StrictMode -Version Latest

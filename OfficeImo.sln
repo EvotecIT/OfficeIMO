@@ -26,7 +26,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 		Directory.Build.props = Directory.Build.props
 		.editorconfig = .editorconfig
-		approve-all.ps1 = approve-all.ps1
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
@@ -112,6 +111,23 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExamplesAddingTablesWithSty
 	ProjectSection(SolutionItems) = preProject
 		Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\AddingTablesWithStylesAndBorders.png = Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\AddingTablesWithStylesAndBorders.png
 		Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\README.MD = Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{CA6E8F53-622F-4D80-8EB3-EEC9D1B91718}"
+	ProjectSection(SolutionItems) = preProject
+		Build\approve-all.ps1 = Build\approve-all.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{F5B007BB-DF10-4E60-9B1B-D9F58B4422F9}"
+	ProjectSection(SolutionItems) = preProject
+		Assets\OfficeIMO.ico = Assets\OfficeIMO.ico
+		Assets\OfficeIMO.png = Assets\OfficeIMO.png
+		Assets\README.MD = Assets\README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{D54570C8-E903-4A61-BB37-06F8E4BD0711}"
+	ProjectSection(SolutionItems) = preProject
+		.github\FUNDING.yml = .github\FUNDING.yml
 	EndProjectSection
 EndProject
 Global
