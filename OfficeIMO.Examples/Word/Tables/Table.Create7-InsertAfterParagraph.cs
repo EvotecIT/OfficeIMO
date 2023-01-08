@@ -51,6 +51,9 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
 
+                paragraph1.AddParagraphBeforeSelf();
+                paragraph1.AddParagraphAfterSelf();
+
                 var table3 = paragraph1.AddTableAfter(4, 4, WordTableStyle.GridTable1LightAccent1);
                 table3.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document after paragraph";
 
