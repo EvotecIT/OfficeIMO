@@ -338,18 +338,20 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
         }
 
-        internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle) {
+        internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle, string location) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
 
             // Establish Position property
             Position = new WordTablePosition(this);
 
-            // Append the table to the document.
-            wordParagraph._paragraph.InsertAfterSelf(_table);
-
-
-            // document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+            if (location == "After") {
+                // Append the table to the document after given paragraph
+                wordParagraph._paragraph.InsertAfterSelf(_table);
+            } else {
+                // Append the table to the document before given paragraph
+                wordParagraph._paragraph.InsertBeforeSelf(_table);
+            }
         }
 
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {

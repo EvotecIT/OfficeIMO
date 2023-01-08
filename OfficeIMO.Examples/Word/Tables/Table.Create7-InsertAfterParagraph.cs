@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                var paragraph1 = document.AddParagraph("Lets add another table showing text wrapping around");
+                var paragraph1 = document.AddParagraph("Lets add another table showing text wrapping around, but notice table before and after it anyways, that we just added at the end of the document.");
 
                 WordTable wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
                 wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -51,8 +51,11 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
 
-                var table3 = paragraph1.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
-                table3.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document";
+                var table3 = paragraph1.AddTableAfter(4, 4, WordTableStyle.GridTable1LightAccent1);
+                table3.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document after paragraph";
+
+                var table4 = paragraph1.AddTableBefore(4, 4, WordTableStyle.GridTable1LightAccent1);
+                table4.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document before paragraph";
 
                 document.Save(openWord);
             }
