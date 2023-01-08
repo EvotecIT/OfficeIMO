@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
@@ -272,6 +271,11 @@ namespace OfficeIMO.Word {
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, anchor, addStyle, tooltip, history);
             return this;
+        }
+
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle) {
+            WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle);
+            return wordTable;
         }
     }
 }

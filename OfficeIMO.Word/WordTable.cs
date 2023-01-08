@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -299,18 +299,6 @@ namespace OfficeIMO.Word {
             // Create an empty table.
             Table table = new Table();
 
-            // Create a TableProperties object and specify its border information.
-            //TableProperties tableProperties1 = new TableProperties(
-            //    new TableBorders(
-            //        new TopBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 },
-            //        new BottomBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 },
-            //        new LeftBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 },
-            //        new RightBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 },
-            //        new InsideHorizontalBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 },
-            //        new InsideVerticalBorder() { Val = new EnumValue<BorderValues>(BorderValues.Dashed), Size = 24 }
-            //    )
-            //);
-
             TableProperties tableProperties1 = new TableProperties();
             TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);  //new DocumentFormat.OpenXml.Wordprocessing.TableStyle() { Val = tableStyle.ToString() };
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
@@ -348,6 +336,20 @@ namespace OfficeIMO.Word {
 
             // Establish Position property
             Position = new WordTablePosition(this);
+        }
+
+        internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle) {
+            _document = document;
+            _table = GenerateTable(document, rows, columns, tableStyle);
+
+            // Establish Position property
+            Position = new WordTablePosition(this);
+
+            // Append the table to the document.
+            wordParagraph._paragraph.InsertAfterSelf(_table);
+
+
+            // document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
         }
 
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
