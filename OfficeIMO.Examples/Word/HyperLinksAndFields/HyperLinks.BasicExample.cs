@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].ParagraphsHyperLinks.Count);
                 Console.WriteLine(document.ParagraphsHyperLinks.Count);
                 Console.WriteLine(document.Sections[0].HyperLinks.Count);
-                document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.xyz"));
+                document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.xyz"), true);
 
                 document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
 
