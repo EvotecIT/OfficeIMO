@@ -72,7 +72,10 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 
 #### 0.4.3 - 2023.01.09
 
-* Ability to insert table before/after paragraph
+##### What's Changed
+* Improve tests, fix HyperLink order, add method ValidateDocument() by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/87
+* Fix badges by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/88
+* Ability to insert table before/after paragraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/92
   * Paragraph.AddTableAfter()
   * Paragraph.AddTableBefore()
 
