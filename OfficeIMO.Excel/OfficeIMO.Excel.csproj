@@ -1,43 +1,44 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>An Open Source cross-platform .NET library providing an easy way to create Excel documents.</Description>
-    <AssemblyName>OfficeIMO.Excel</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
+    <PropertyGroup>
+        <Description>An Open Source cross-platform .NET library providing an easy way to create Excel documents.</Description>
+        <AssemblyName>OfficeIMO.Excel</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
-    <VersionPrefix>0.1.1</VersionPrefix>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net472;net48;net5.0;net6.0</TargetFrameworks>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <VersionPrefix>0.1.1</VersionPrefix>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">netstandard2.0;netstandard2.1;net472;net48;net6.0;net7.0</TargetFrameworks>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">net6.0;net7.0</TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 
-    <Company>Evotec</Company>
-    <Authors>Przemyslaw Klys</Authors>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
 
-    <PackageId>OfficeIMO.Excel</PackageId>
-    <PackageTags>word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
-    <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
-    <DelaySign>False</DelaySign>
-    <IsPublishable>True</IsPublishable>
-    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
-    <PackageIcon>OfficeIMO.png</PackageIcon>
-    <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
-    <DebugType>portable</DebugType>
-    <!--
+        <PackageId>OfficeIMO.Excel</PackageId>
+        <PackageTags>word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
+        <PackageProjectUrl>https://github.com/evotecit/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
+        <DelaySign>False</DelaySign>
+        <IsPublishable>True</IsPublishable>
+        <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
+        <DebugType>portable</DebugType>
+        <!--
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies
     -->
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-  </PropertyGroup>
+        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="2.18.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="DocumentFormat.OpenXml" Version="2.18.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Assets\OfficeIMO.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 </Project>

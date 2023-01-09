@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class ApplicationProperties
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Application**
-
-
 
 ```csharp
 public string Application { get; set; }
@@ -26,8 +22,6 @@ public string Application { get; set; }
 
 ### **ApplicationVersion**
 
-
-
 ```csharp
 public string ApplicationVersion { get; set; }
 ```
@@ -37,8 +31,6 @@ public string ApplicationVersion { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Paragraphs**
-
-
 
 ```csharp
 public string Paragraphs { get; set; }
@@ -50,8 +42,6 @@ public string Paragraphs { get; set; }
 
 ### **Pages**
 
-
-
 ```csharp
 public string Pages { get; set; }
 ```
@@ -61,8 +51,6 @@ public string Pages { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Characters**
-
-
 
 ```csharp
 public string Characters { get; set; }
@@ -74,8 +62,6 @@ public string Characters { get; set; }
 
 ### **CharactersWithSpaces**
 
-
-
 ```csharp
 public string CharactersWithSpaces { get; set; }
 ```
@@ -85,8 +71,6 @@ public string CharactersWithSpaces { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **Company**
-
-
 
 ```csharp
 public string Company { get; set; }
@@ -98,8 +82,6 @@ public string Company { get; set; }
 
 ### **DigitalSignature**
 
-
-
 ```csharp
 public DigitalSignature DigitalSignature { get; set; }
 ```
@@ -109,8 +91,6 @@ public DigitalSignature DigitalSignature { get; set; }
 DigitalSignature<br>
 
 ### **DocumentSecurity**
-
-
 
 ```csharp
 public DocumentSecurity DocumentSecurity { get; set; }
@@ -122,8 +102,6 @@ DocumentSecurity<br>
 
 ### **HeadingPairs**
 
-
-
 ```csharp
 public HeadingPairs HeadingPairs { get; set; }
 ```
@@ -133,8 +111,6 @@ public HeadingPairs HeadingPairs { get; set; }
 HeadingPairs<br>
 
 ### **HiddenSlides**
-
-
 
 ```csharp
 public HiddenSlides HiddenSlides { get; set; }
@@ -146,8 +122,6 @@ HiddenSlides<br>
 
 ### **HyperlinkBase**
 
-
-
 ```csharp
 public HyperlinkBase HyperlinkBase { get; set; }
 ```
@@ -157,8 +131,6 @@ public HyperlinkBase HyperlinkBase { get; set; }
 HyperlinkBase<br>
 
 ### **HyperlinkList**
-
-
 
 ```csharp
 public HyperlinkList HyperlinkList { get; set; }
@@ -170,8 +142,6 @@ HyperlinkList<br>
 
 ### **Lines**
 
-
-
 ```csharp
 public Lines Lines { get; set; }
 ```
@@ -181,8 +151,6 @@ public Lines Lines { get; set; }
 Lines<br>
 
 ### **Manager**
-
-
 
 ```csharp
 public Manager Manager { get; set; }
@@ -194,8 +162,6 @@ Manager<br>
 
 ### **HyperlinksChanged**
 
-
-
 ```csharp
 public HyperlinksChanged HyperlinksChanged { get; set; }
 ```
@@ -205,8 +171,6 @@ public HyperlinksChanged HyperlinksChanged { get; set; }
 HyperlinksChanged<br>
 
 ### **Notes**
-
-
 
 ```csharp
 public Notes Notes { get; set; }
@@ -218,8 +182,6 @@ Notes<br>
 
 ### **MultimediaClips**
 
-
-
 ```csharp
 public MultimediaClips MultimediaClips { get; set; }
 ```
@@ -229,8 +191,6 @@ public MultimediaClips MultimediaClips { get; set; }
 MultimediaClips<br>
 
 ### **TotalTime**
-
-
 
 ```csharp
 public TotalTime TotalTime { get; set; }
@@ -242,8 +202,6 @@ TotalTime<br>
 
 ### **ScaleCrop**
 
-
-
 ```csharp
 public ScaleCrop ScaleCrop { get; set; }
 ```
@@ -253,8 +211,6 @@ public ScaleCrop ScaleCrop { get; set; }
 ScaleCrop<br>
 
 ### **PresentationFormat**
-
-
 
 ```csharp
 public PresentationFormat PresentationFormat { get; set; }
@@ -266,8 +222,6 @@ PresentationFormat<br>
 
 ### **Template**
 
-
-
 ```csharp
 public Template Template { get; set; }
 ```
@@ -278,8 +232,6 @@ Template<br>
 
 ### **SharedDocument**
 
-
-
 ```csharp
 public SharedDocument SharedDocument { get; set; }
 ```
@@ -289,8 +241,6 @@ public SharedDocument SharedDocument { get; set; }
 SharedDocument<br>
 
 ### **Words**
-
-
 
 ```csharp
 public Words Words { get; set; }
@@ -303,8 +253,6 @@ Words<br>
 ## Constructors
 
 ### **ApplicationProperties(WordDocument)**
-
-
 
 ```csharp
 public ApplicationProperties(WordDocument document)

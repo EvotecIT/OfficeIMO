@@ -16,6 +16,10 @@
 
 [Helpers](./officeimo.word.helpers.md)
 
+[ImageFormatNotSupportedException](./officeimo.word.imageformatnotsupportedexception.md)
+
+[OfficeIMOException](./officeimo.word.officeimoexception.md)
+
 [PropertyTypes](./officeimo.word.propertytypes.md)
 
 [TableOfContentStyle](./officeimo.word.tableofcontentstyle.md)
@@ -24,15 +28,23 @@
 
 [WordBackground](./officeimo.word.wordbackground.md)
 
+[WordBarChart](./officeimo.word.wordbarchart.md)
+
+[WordBarChart3D](./officeimo.word.wordbarchart3d.md)
+
 [WordBookmark](./officeimo.word.wordbookmark.md)
 
 [WordBorder](./officeimo.word.wordborder.md)
 
 [WordBorders](./officeimo.word.wordborders.md)
 
+[WordBreak](./officeimo.word.wordbreak.md)
+
 [WordCharacterStyle](./officeimo.word.wordcharacterstyle.md)
 
 [WordCharacterStyles](./officeimo.word.wordcharacterstyles.md)
+
+[WordChart](./officeimo.word.wordchart.md)
 
 [WordComment](./officeimo.word.wordcomment.md)
 
@@ -70,6 +82,8 @@
 
 [WordImage](./officeimo.word.wordimage.md)
 
+[WordLineChart](./officeimo.word.wordlinechart.md)
+
 [WordList](./officeimo.word.wordlist.md)
 
 [WordListStyle](./officeimo.word.wordliststyle.md)
@@ -79,8 +93,6 @@
 [WordMargin](./officeimo.word.wordmargin.md)
 
 [WordMargins](./officeimo.word.wordmargins.md)
-
-[WordPageBreak](./officeimo.word.wordpagebreak.md)
 
 [WordPageNumber](./officeimo.word.wordpagenumber.md)
 
@@ -96,6 +108,8 @@
 
 [WordParagraphStyles](./officeimo.word.wordparagraphstyles.md)
 
+[WordPieChart](./officeimo.word.wordpiechart.md)
+
 [WordSection](./officeimo.word.wordsection.md)
 
 [WordSettings](./officeimo.word.wordsettings.md)
@@ -109,6 +123,8 @@
 [WordTableCellBorder](./officeimo.word.wordtablecellborder.md)
 
 [WordTableOfContent](./officeimo.word.wordtableofcontent.md)
+
+[WordTablePosition](./officeimo.word.wordtableposition.md)
 
 [WordTableRow](./officeimo.word.wordtablerow.md)
 

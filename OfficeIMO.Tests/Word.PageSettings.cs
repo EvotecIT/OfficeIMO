@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System.IO;
 using Xunit;
@@ -80,6 +80,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(section2.Paragraphs[0].Text == "Section 6");
 
                 document.Save(false);
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {
                 Assert.True(document.Sections[0].PageSettings.Orientation == PageOrientationValues.Landscape);

@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordBorders
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **LeftSize**
-
-
 
 ```csharp
 public UInt32Value LeftSize { get; set; }
@@ -26,8 +22,6 @@ UInt32Value<br>
 
 ### **LeftColorHex**
 
-
-
 ```csharp
 public string LeftColorHex { get; set; }
 ```
@@ -37,8 +31,6 @@ public string LeftColorHex { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **LeftColor**
-
-
 
 ```csharp
 public Color LeftColor { get; set; }
@@ -50,8 +42,6 @@ Color<br>
 
 ### **LeftStyle**
 
-
-
 ```csharp
 public Nullable<BorderValues> LeftStyle { get; set; }
 ```
@@ -61,8 +51,6 @@ public Nullable<BorderValues> LeftStyle { get; set; }
 [Nullable&lt;BorderValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **LeftSpace**
-
-
 
 ```csharp
 public UInt32Value LeftSpace { get; set; }
@@ -74,8 +62,6 @@ UInt32Value<br>
 
 ### **LeftShadow**
 
-
-
 ```csharp
 public Nullable<bool> LeftShadow { get; set; }
 ```
@@ -85,8 +71,6 @@ public Nullable<bool> LeftShadow { get; set; }
 [Nullable&lt;Boolean&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **LeftFrame**
-
-
 
 ```csharp
 public Nullable<bool> LeftFrame { get; set; }
@@ -98,8 +82,6 @@ public Nullable<bool> LeftFrame { get; set; }
 
 ### **RightSize**
 
-
-
 ```csharp
 public UInt32Value RightSize { get; set; }
 ```
@@ -109,8 +91,6 @@ public UInt32Value RightSize { get; set; }
 UInt32Value<br>
 
 ### **RightColorHex**
-
-
 
 ```csharp
 public string RightColorHex { get; set; }
@@ -122,8 +102,6 @@ public string RightColorHex { get; set; }
 
 ### **RightColor**
 
-
-
 ```csharp
 public Color RightColor { get; set; }
 ```
@@ -133,8 +111,6 @@ public Color RightColor { get; set; }
 Color<br>
 
 ### **RightStyle**
-
-
 
 ```csharp
 public Nullable<BorderValues> RightStyle { get; set; }
@@ -146,8 +122,6 @@ public Nullable<BorderValues> RightStyle { get; set; }
 
 ### **RightSpace**
 
-
-
 ```csharp
 public UInt32Value RightSpace { get; set; }
 ```
@@ -157,8 +131,6 @@ public UInt32Value RightSpace { get; set; }
 UInt32Value<br>
 
 ### **RightShadow**
-
-
 
 ```csharp
 public Nullable<bool> RightShadow { get; set; }
@@ -170,8 +142,6 @@ public Nullable<bool> RightShadow { get; set; }
 
 ### **RightFrame**
 
-
-
 ```csharp
 public Nullable<bool> RightFrame { get; set; }
 ```
@@ -181,8 +151,6 @@ public Nullable<bool> RightFrame { get; set; }
 [Nullable&lt;Boolean&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **TopSize**
-
-
 
 ```csharp
 public UInt32Value TopSize { get; set; }
@@ -194,8 +162,6 @@ UInt32Value<br>
 
 ### **TopColorHex**
 
-
-
 ```csharp
 public string TopColorHex { get; set; }
 ```
@@ -205,8 +171,6 @@ public string TopColorHex { get; set; }
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 ### **TopColor**
-
-
 
 ```csharp
 public Color TopColor { get; set; }
@@ -218,8 +182,6 @@ Color<br>
 
 ### **TopStyle**
 
-
-
 ```csharp
 public Nullable<BorderValues> TopStyle { get; set; }
 ```
@@ -229,8 +191,6 @@ public Nullable<BorderValues> TopStyle { get; set; }
 [Nullable&lt;BorderValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **TopSpace**
-
-
 
 ```csharp
 public UInt32Value TopSpace { get; set; }
@@ -242,8 +202,6 @@ UInt32Value<br>
 
 ### **TopShadow**
 
-
-
 ```csharp
 public Nullable<bool> TopShadow { get; set; }
 ```
@@ -253,8 +211,6 @@ public Nullable<bool> TopShadow { get; set; }
 [Nullable&lt;Boolean&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **TopFrame**
-
-
 
 ```csharp
 public Nullable<bool> TopFrame { get; set; }
@@ -266,8 +222,6 @@ public Nullable<bool> TopFrame { get; set; }
 
 ### **BottomSize**
 
-
-
 ```csharp
 public UInt32Value BottomSize { get; set; }
 ```
@@ -277,8 +231,6 @@ public UInt32Value BottomSize { get; set; }
 UInt32Value<br>
 
 ### **BottomColorHex**
-
-
 
 ```csharp
 public string BottomColorHex { get; set; }
@@ -290,8 +242,6 @@ public string BottomColorHex { get; set; }
 
 ### **BottomColor**
 
-
-
 ```csharp
 public Color BottomColor { get; set; }
 ```
@@ -301,8 +251,6 @@ public Color BottomColor { get; set; }
 Color<br>
 
 ### **BottomStyle**
-
-
 
 ```csharp
 public Nullable<BorderValues> BottomStyle { get; set; }
@@ -314,8 +262,6 @@ public Nullable<BorderValues> BottomStyle { get; set; }
 
 ### **BottomSpace**
 
-
-
 ```csharp
 public UInt32Value BottomSpace { get; set; }
 ```
@@ -325,8 +271,6 @@ public UInt32Value BottomSpace { get; set; }
 UInt32Value<br>
 
 ### **BottomShadow**
-
-
 
 ```csharp
 public Nullable<bool> BottomShadow { get; set; }
@@ -338,8 +282,6 @@ public Nullable<bool> BottomShadow { get; set; }
 
 ### **BottomFrame**
 
-
-
 ```csharp
 public Nullable<bool> BottomFrame { get; set; }
 ```
@@ -349,8 +291,6 @@ public Nullable<bool> BottomFrame { get; set; }
 [Nullable&lt;Boolean&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **Type**
-
-
 
 ```csharp
 public WordBorder Type { get; set; }
@@ -363,8 +303,6 @@ public WordBorder Type { get; set; }
 ## Methods
 
 ### **SetBorder(WordBorder)**
-
-
 
 ```csharp
 internal void SetBorder(WordBorder wordBorder)

@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordCoverPage
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Constructors
 
 ### **WordCoverPage(WordDocument, SdtBlock)**
-
-
 
 ```csharp
 public WordCoverPage(WordDocument wordDocument, SdtBlock sdtBlock)
@@ -27,8 +23,6 @@ public WordCoverPage(WordDocument wordDocument, SdtBlock sdtBlock)
 `sdtBlock` SdtBlock<br>
 
 ### **WordCoverPage(WordDocument, CoverPageTemplate)**
-
-
 
 ```csharp
 public WordCoverPage(WordDocument wordDocument, CoverPageTemplate coverPageTemplate)

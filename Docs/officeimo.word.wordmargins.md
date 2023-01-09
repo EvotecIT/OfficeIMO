@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordMargins
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **Left**
-
-
 
 ```csharp
 public UInt32Value Left { get; set; }
@@ -26,8 +22,6 @@ UInt32Value<br>
 
 ### **Right**
 
-
-
 ```csharp
 public UInt32Value Right { get; set; }
 ```
@@ -37,8 +31,6 @@ public UInt32Value Right { get; set; }
 UInt32Value<br>
 
 ### **Top**
-
-
 
 ```csharp
 public Nullable<int> Top { get; set; }
@@ -50,8 +42,6 @@ public Nullable<int> Top { get; set; }
 
 ### **Bottom**
 
-
-
 ```csharp
 public Nullable<int> Bottom { get; set; }
 ```
@@ -61,8 +51,6 @@ public Nullable<int> Bottom { get; set; }
 [Nullable&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **HeaderDistance**
-
-
 
 ```csharp
 public UInt32Value HeaderDistance { get; set; }
@@ -74,8 +62,6 @@ UInt32Value<br>
 
 ### **FooterDistance**
 
-
-
 ```csharp
 public UInt32Value FooterDistance { get; set; }
 ```
@@ -86,8 +72,6 @@ UInt32Value<br>
 
 ### **Gutter**
 
-
-
 ```csharp
 public UInt32Value Gutter { get; set; }
 ```
@@ -97,8 +81,6 @@ public UInt32Value Gutter { get; set; }
 UInt32Value<br>
 
 ### **Type**
-
-
 
 ```csharp
 public Nullable<WordMargin> Type { get; set; }
@@ -111,8 +93,6 @@ public Nullable<WordMargin> Type { get; set; }
 ## Constructors
 
 ### **WordMargins(WordDocument, WordSection)**
-
-
 
 ```csharp
 public WordMargins(WordDocument wordDocument, WordSection wordSection)
@@ -127,8 +107,6 @@ public WordMargins(WordDocument wordDocument, WordSection wordSection)
 ## Methods
 
 ### **SetMargins(WordSection, WordMargin)**
-
-
 
 ```csharp
 public static WordSection SetMargins(WordSection wordSection, WordMargin pageMargins)

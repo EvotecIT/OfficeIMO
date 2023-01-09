@@ -49,11 +49,10 @@ steps:
     version: '6.0.x'
 
 - task: UseDotNet@2
-  displayName: 'Install .NET 5.0'
+  displayName: 'Install .NET 7.0'
   inputs:
     packageType: 'sdk'
-    version: '5.0.100'
-    includePreviewVersions: true
+    version: '7.0.x'
 
 - task: UseDotNet@2
   displayName: Install .NET 3.1

@@ -2,8 +2,6 @@
 
 Namespace: OfficeIMO.Word
 
-
-
 ```csharp
 public class WordField
 ```
@@ -13,8 +11,6 @@ Inheritance [Object](https://docs.microsoft.com/en-us/dotnet/api/system.object) 
 ## Properties
 
 ### **FieldType**
-
-
 
 ```csharp
 public Nullable<WordFieldType> FieldType { get; }
@@ -26,8 +22,6 @@ public Nullable<WordFieldType> FieldType { get; }
 
 ### **FieldFormat**
 
-
-
 ```csharp
 public Nullable<WordFieldFormat> FieldFormat { get; }
 ```
@@ -37,8 +31,6 @@ public Nullable<WordFieldFormat> FieldFormat { get; }
 [Nullable&lt;WordFieldFormat&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
 ### **Field**
-
-
 
 ```csharp
 public string Field { get; }
@@ -50,8 +42,6 @@ public string Field { get; }
 
 ### **UpdateField**
 
-
-
 ```csharp
 public bool UpdateField { get; set; }
 ```
@@ -62,8 +52,6 @@ public bool UpdateField { get; set; }
 
 ### **LockField**
 
-
-
 ```csharp
 public bool LockField { get; set; }
 ```
@@ -73,8 +61,6 @@ public bool LockField { get; set; }
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 ### **Text**
-
-
 
 ```csharp
 public string Text { get; set; }
@@ -87,8 +73,6 @@ public string Text { get; set; }
 ## Methods
 
 ### **AddField(WordParagraph, WordFieldType, Nullable&lt;WordFieldFormat&gt;, Boolean)**
-
-
 
 ```csharp
 public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, bool advanced)
@@ -109,8 +93,6 @@ public static WordParagraph AddField(WordParagraph paragraph, WordFieldType word
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
 ### **Remove()**
-
-
 
 ```csharp
 public void Remove()

@@ -712,14 +712,17 @@ namespace OfficeIMO.Word {
 
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
-                List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
-                OpenXmlValidator validator = new OpenXmlValidator();
-                foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
-                    listErrors.Add(error);
-                }
-
-                return listErrors;
+                return ValidateDocument();
             }
+        }
+
+        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
+                listErrors.Add(error);
+            }
+            return listErrors;
         }
 
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
