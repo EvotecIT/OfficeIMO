@@ -70,6 +70,9 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
+#### 0.4.4 - 2023.01.09
+* Fixes HyperLink AddStyle not being applied
+
 #### 0.4.3 - 2023.01.09
 
 ##### What's Changed
