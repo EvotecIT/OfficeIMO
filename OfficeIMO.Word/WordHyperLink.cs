@@ -246,12 +246,12 @@ namespace OfficeIMO.Word {
 
             // Styling for the hyperlink
             if (addStyle) {
-                //RunProperties runPropertiesHyperLink = new RunProperties(
-                //    new RunStyle { Val = "Hyperlink", }
-                //    //new Underline { Val = UnderlineValues.Single }
-                //    //new Color { ThemeColor = ThemeColorValues.Hyperlink }
-                //);
-                //run.RunProperties = runPropertiesHyperLink;
+                RunProperties runPropertiesHyperLink = new RunProperties(
+                    new RunStyle { Val = "Hyperlink", },
+                    new Color { ThemeColor = ThemeColorValues.Hyperlink, Val = "0000FF" },
+                    new Underline { Val = UnderlineValues.Single }
+                );
+                run.RunProperties = runPropertiesHyperLink;
             }
 
             if (tooltip != "") {
