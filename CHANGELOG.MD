@@ -1,4 +1,4 @@
-#### 0.5.0
+## 0.5.0
 
 - Add `DistributeColumnsEvenly` and `SetWidthPercentage` methods to Tables
 
@@ -70,12 +70,16 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
-#### 0.4.4 - 2023.01.09
-* Fixes HyperLink AddStyle not being applied
+## 0.4.4 - 2023.01.09
 
-#### 0.4.3 - 2023.01.09
+### What's Changed
+* Fixes HyperLink AddStyle not being applied by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/93
 
-##### What's Changed
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.3...v0.4.4
+
+## 0.4.3 - 2023.01.09
+
+### What's Changed
 * Improve tests, fix HyperLink order, add method ValidateDocument() by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/87
 * Fix badges by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/88
 * Ability to insert table before/after paragraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/92
@@ -139,28 +143,28 @@ internal static void Example_TablesAddedAfterParagraph(string folderPath, bool o
 }
 ```
 
-#### 0.4.2 - 2022.11.25
+## 0.4.2 - 2022.11.25
 
-## What's Changed
+### What's Changed
 * The order of paragraph properties and runs does matter by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/83
 * This release fixes LISTS. Sorry for that!
 
 **Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.1...v0.4.2
 
-#### 0.4.1 - 2022.11.20
+## 0.4.1 - 2022.11.20
 
-##### What's Changed
+### What's Changed
 * Extending available FieldCodes and allow setting parameters by @byteSamurai in https://github.com/EvotecIT/OfficeIMO/pull/75
 * Fix check IsToc for Word.Lists by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/76
 * Provide multi platform project config by @byteSamurai in https://github.com/EvotecIT/OfficeIMO/pull/79
 
-##### New Contributors
+### New Contributors
 * @byteSamurai made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/75
 
 **Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.0...v0.4.1
 
 
-#### 0.4.0 - 2022.11.13
+## 0.4.0 - 2022.11.13
 
 ## What's Changed
 * Improve settings for document with PT-BR and HighAnsi chars by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/56
@@ -342,7 +346,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 **Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.3.1...v0.4.0
 
-#### 0.3.1 - 2022.10.18
+## 0.3.1 - 2022.10.18
 - Adds BMP, GIF, PNG, TIFF image formats support [#42](https://github.com/EvotecIT/OfficeIMO/pull/42) by rstm-sf
 - Fixes issue with read only documents crashing
 - Fixes watermark throwing when Headers aren't added first [#46](https://github.com/EvotecIT/OfficeIMO/pull/46)
@@ -371,7 +375,7 @@ public static void Example_BasicWordWithDefaultStyleChange(string folderPath, bo
 ```
 - Add `IsLastRun` and `IsFirstRun` properties to WordParagraph
 
-#### 0.3.0 - 2022.10.11
+## 0.3.0 - 2022.10.11
 - Update DocumentFormat.OpenXml from 2.16.0 to 2.18.0
 - Update SixLabors.ImageSharp to 2.1.3
 
@@ -449,10 +453,10 @@ document.Breaks[0].Remove(includingParagraph: true);
 
 - Implement Save and Load to/from Stream [#43](https://github.com/EvotecIT/OfficeIMO/pull/43) tnx hisuwh
 
-#### - 0.2.1 - 2022.07.31
+## - 0.2.1 - 2022.07.31
 - Added basic support for Charts [#14](https://github.com/EvotecIT/OfficeIMO/pull/14)
 
-#### - 0.2.0 - 2022.07.31
+## - 0.2.0 - 2022.07.31
 
 - Added MIT License [#28](https://github.com/EvotecIT/OfficeIMO/pull/28)
 
@@ -504,15 +508,15 @@ document.Breaks[0].Remove(includingParagraph: true);
 - Adds new properties for TableCell by @PrzemyslawKlys in [#30](https://github.com/EvotecIT/OfficeIMO/pull/30)
   - ☑️ TextDirection
 
-#### - 0.1.7 - 2022.06.12
+## - 0.1.7 - 2022.06.12
 
-##### What's Changed
+### What's Changed
 * Fixes **PageOrientation** of page/section if set before page size is applied. In case that happens it always reverted back to `Portrait` mode which is default for newly set **PageSizes**.
 * Fixes **PageSize** detection when in `PageOrientationValues.Landscape` mode.
 
-#### - 0.1.6 - 2022.06.11
+## - 0.1.6 - 2022.06.11
 
-##### What's Changed
+### What's Changed
 * Rename `Color` to `ColorHex` property for Paragraphs *BREAKING CHANGE*
 * Add `Color` property for Paragraphs as `SixLabors.ImageSharp.Color` *BREAKING CHANGE*
 
@@ -530,9 +534,9 @@ paragraph.ParagraphAlignment = JustificationValues.Center;
 paragraph.ColorHex = "#FFFF00";
 ```
 
-#### - 0.1.5 - 2022.06.04
+## - 0.1.5 - 2022.06.04
 
-##### What's Changed
+### What's Changed
 * Fixes `TableOfContent.Update()`
 * Fixed **SaveAs** functionality by @jordan-hemming in https://github.com/EvotecIT/OfficeIMO/pull/16
 * Fixes **Azure Devops** tests to work properly on Linux and MacOs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/18
@@ -550,10 +554,10 @@ paragraph.ColorHex = "#FFFF00";
   - ☑️ TopRightToBottomLeftCell
 * Add additional tests for table cell borders by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/22
 
-##### New Contributors
+### New Contributors
 * @jordan-hemming made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/16
 
 **Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.1.4...v0.1.5
 
-#### - 0.1.4 - 2022.04.03
+## - 0.1.4 - 2022.04.03
 - First official release
