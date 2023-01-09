@@ -59,7 +59,7 @@ namespace OfficeIMO.Word {
         private void ParseFieldCodeDeclaration(String fieldCodeDeclaration) {
 
             fieldCodeDeclaration = fieldCodeDeclaration.Trim();
-
+            var orgFieldCodeDeclaration = fieldCodeDeclaration.Clone();
 
             // get format switches
             string formatSwitches = @"(\\\*) *([A-Za-z-_]+ *)";
@@ -115,7 +115,7 @@ namespace OfficeIMO.Word {
 
             // No more leftovers
             if (fieldCodeDeclaration.Length > 0) {
-                throw new NotImplementedException("The missing parts of the field code \"" + fieldCodeDeclaration + "\" couldn't be processed by the Parser");
+                throw new NotImplementedException("The parts \"" + fieldCodeDeclaration + "\" of the field code \"" + orgFieldCodeDeclaration + "\" couldn't be processed by the Parser");
             }
         }
     }

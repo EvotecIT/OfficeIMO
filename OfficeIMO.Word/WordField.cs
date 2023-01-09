@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -138,12 +138,14 @@ namespace OfficeIMO.Word {
                 if (_simpleField != null) {
                     return _simpleField.Instruction;
                 } else {
+                    var instruction = "";
                     foreach (var run in _runs) {
                         var fieldCode = run.ChildElements.OfType<FieldCode>().FirstOrDefault();
                         if (fieldCode != null) {
-                            return fieldCode.Text;
+                            instruction += fieldCode.Text;
                         }
                     }
+                    return instruction;
                 }
 
                 return null;
