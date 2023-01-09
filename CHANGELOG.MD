@@ -70,6 +70,13 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
+## 0.4.5 - 2023.01.09
+
+### What's Changed
+* Merge instructions distributed over runs to field string by @byteSamurai in https://github.com/EvotecIT/OfficeIMO/pull/95
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.4...v0.4.5
+
 ## 0.4.4 - 2023.01.09
 
 ### What's Changed
