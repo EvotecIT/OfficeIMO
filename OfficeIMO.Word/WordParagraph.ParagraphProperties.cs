@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+﻿using System.Linq;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -97,6 +98,24 @@ namespace OfficeIMO.Word {
 
                 indentation.Right = value.ToString();
                 _paragraphProperties.Indentation = indentation;
+            }
+        }
+
+        /// <summary>
+        /// The property which puts a paragraph on the beginning of a next side without add a page break to the document
+        /// </summary>
+        /// <value>bool</value>
+        public bool PageBreakBefore {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.PageBreakBefore is not null;
+            }
+            set {
+                if (value == true) {
+                    var pageBreakBefore = new PageBreakBefore();
+                    _paragraphProperties.PageBreakBefore = pageBreakBefore;
+                } else {
+                    _paragraphProperties.PageBreakBefore = null;
+                }
             }
         }
 

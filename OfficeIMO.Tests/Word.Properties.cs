@@ -145,5 +145,26 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+        [Fact]
+        public void Test_ReadPageBreakProperty() {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmptyDocumentWithParagraphPropertyPageBreakBefore.docx"))) {
+                Assert.True(document.Paragraphs[0].PageBreakBefore);
+            }
+        }
+        [Fact]
+        public void Test_SettingPageBreakProperty() {
+            bool stateBefore;
+            string originalFile = Path.Combine(_directoryDocuments, "EmptyDocumentWithParagraphPropertyPageBreakBefore.docx");
+            string tempFile = Path.GetTempFileName();
+
+            using (WordDocument document = WordDocument.Load(originalFile)) {
+                stateBefore = document.Paragraphs[0].PageBreakBefore;
+                document.Paragraphs[0].PageBreakBefore = false;
+                document.Save(tempFile);
+            }
+            using (WordDocument document = WordDocument.Load(tempFile)) {
+                Assert.True(document.Paragraphs[0].PageBreakBefore != stateBefore);
+            }
+        }
     }
 }
