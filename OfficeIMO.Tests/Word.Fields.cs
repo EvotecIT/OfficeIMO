@@ -228,5 +228,22 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ReadingOfFragmentedInstructions() {
+            using WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "partitionedFieldInstructions.docx"));
+
+            Assert.Equal(WordFieldType.XE, document.Fields[0].FieldType);
+            Assert.Equal(WordFieldFormat.Lower, document.Fields[0].FieldFormat);
+            Assert.Equal("\"Introduction\"", document.Fields[0].FieldInstructions.First());
+
+            Assert.Equal(WordFieldType.XE, document.Fields[1].FieldType);
+            Assert.Equal(WordFieldFormat.Lower, document.Fields[1].FieldFormat);
+            Assert.Equal("\"Header 1\"", document.Fields[1].FieldInstructions.First());
+
+            Assert.Equal(WordFieldType.Ask, document.Fields[2].FieldType);
+            Assert.Equal(WordFieldFormat.Mergeformat, document.Fields[2].FieldFormat);
+            Assert.Equal("\"What is the weather today?\"", document.Fields[2].FieldInstructions.First());
+            Assert.Equal("\\d \"fine\"", document.Fields[2].FieldSwitches.First());
+        }
     }
 }

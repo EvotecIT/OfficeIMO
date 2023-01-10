@@ -90,6 +90,9 @@
         <None Update="Documents\ListsCreatedByWord.docx">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="Documents\partitionedFieldInstructions.docx">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
         <None Update="Documents\sample1.docx">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
