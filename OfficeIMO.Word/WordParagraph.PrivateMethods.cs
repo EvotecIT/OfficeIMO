@@ -48,6 +48,37 @@ namespace OfficeIMO.Word {
             return this._run;
         }
 
+        internal Run VerifyRun(Paragraph paragraph, Run run) {
+            if (run == null) {
+                run = new Run();
+                paragraph.Append(run);
+            }
+            return run;
+        }
+
+        internal Run VerifyRun(Hyperlink hyperlink, Run run) {
+            if (run == null) {
+                run = new Run();
+                hyperlink.Append(run);
+            }
+            return run;
+        }
+
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
+            VerifyRun(hyperlink, run);
+            if (run != null) {
+                if (runProperties == null) {
+                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    if (text != null) {
+                        text.InsertBeforeSelf(new RunProperties());
+                    } else {
+                        run.Append(new RunProperties());
+                    }
+                }
+            }
+            return runProperties;
+        }
+
         /// <summary>
         /// Check if runProperties exists in run, if not create run, create run properties and and append to run
         /// </summary>
