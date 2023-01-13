@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
@@ -6,23 +6,32 @@ namespace OfficeIMO.Word {
 
         public bool Bold {
             get {
-                if (_runProperties != null && _runProperties.Bold != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Bold != null) {
                     return true;
                 } else {
                     return false;
                 }
             }
             set {
-                VerifyRunProperties();
-                if (value == true) {
-                    _runProperties.Bold = new Bold();
-                    _runProperties.BoldComplexScript = new BoldComplexScript();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
                 } else {
-                    if (_runProperties.BoldComplexScript != null) {
-                        _runProperties.BoldComplexScript.Remove();
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (value == true) {
+                    runProperties.Bold = new Bold();
+                    runProperties.BoldComplexScript = new BoldComplexScript();
+                } else {
+                    if (runProperties.BoldComplexScript != null) {
+                        runProperties.BoldComplexScript.Remove();
                     }
-                    if (_runProperties.Bold != null) {
-                        _runProperties.Bold.Remove();
+
+                    if (runProperties.Bold != null) {
+                        runProperties.Bold.Remove();
                     }
                 }
             }
@@ -30,58 +39,82 @@ namespace OfficeIMO.Word {
 
         public bool Italic {
             get {
-                if (_runProperties != null && _runProperties.Italic != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Italic != null) {
                     return true;
                 } else {
                     return false;
                 }
             }
             set {
-                VerifyRunProperties();
-                if (value != true) {
-                    _runProperties.Italic = null;
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
                 } else {
-                    _runProperties.Italic = new Italic { };
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (value != true) {
+                    runProperties.Italic = null;
+                } else {
+                    runProperties.Italic = new Italic { };
                 }
             }
         }
 
         public UnderlineValues? Underline {
             get {
-                if (_runProperties != null && _runProperties.Underline != null) {
-                    return _runProperties.Underline.Val;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Underline != null) {
+                    return runProperties.Underline.Val;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value != null) {
-                    if (_runProperties.Underline == null) {
-                        _runProperties.Underline = new Underline();
+                    if (runProperties.Underline == null) {
+                        runProperties.Underline = new Underline();
                     }
 
-                    _runProperties.Underline.Val = value;
+                    runProperties.Underline.Val = value;
                 } else {
-                    if (_runProperties.Underline != null) _runProperties.Underline.Remove();
+                    if (runProperties.Underline != null) runProperties.Underline.Remove();
                 }
             }
         }
 
         public bool DoNotCheckSpellingOrGrammar {
             get {
-                if (_runProperties != null && _runProperties.NoProof != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.NoProof != null) {
                     return true;
                 } else {
                     return false;
                 }
             }
             set {
-                VerifyRunProperties();
-                if (value != true) {
-                    if (_runProperties.NoProof != null) _runProperties.NoProof.Remove();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
                 } else {
-                    _runProperties.NoProof = new NoProof();
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (value != true) {
+                    if (runProperties.NoProof != null) runProperties.NoProof.Remove();
+                } else {
+                    runProperties.NoProof = new NoProof();
                 }
             }
         }
