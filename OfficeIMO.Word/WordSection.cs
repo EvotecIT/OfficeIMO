@@ -250,7 +250,7 @@ namespace OfficeIMO.Word {
                 } else if (element is SectionType) {
                 } else if (element is TitlePage) {
                 } else {
-                    throw new NotImplementedException("This isn't implemented yet?");
+                    //throw new NotImplementedException("This isn't implemented yet?");
                 }
             }
 
