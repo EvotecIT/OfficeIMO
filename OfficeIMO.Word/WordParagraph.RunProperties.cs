@@ -121,76 +121,108 @@ namespace OfficeIMO.Word {
 
         public int? Spacing {
             get {
-                if (_runProperties != null && _runProperties.Spacing != null) {
-                    return _runProperties.Spacing.Val;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Spacing != null) {
+                    return runProperties.Spacing.Val;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value != null) {
                     Spacing spacing = new Spacing();
                     spacing.Val = value;
-                    _runProperties.Spacing = spacing;
+                    runProperties.Spacing = spacing;
                 } else {
-                    if (_runProperties.Spacing != null) _runProperties.Spacing.Remove();
+                    if (runProperties.Spacing != null) runProperties.Spacing.Remove();
                 }
             }
         }
 
         public bool Strike {
             get {
-                if (_runProperties != null && _runProperties.Strike != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Strike != null) {
                     return true;
                 } else {
                     return false;
                 }
             }
             set {
-                VerifyRunProperties();
-                if (value != true) {
-                    if (_runProperties.Strike != null) _runProperties.Strike.Remove();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
                 } else {
-                    _runProperties.Strike = new Strike();
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (value != true) {
+                    if (runProperties.Strike != null) runProperties.Strike.Remove();
+                } else {
+                    runProperties.Strike = new Strike();
                 }
             }
         }
 
         public bool DoubleStrike {
             get {
-                if (_runProperties != null && _runProperties.DoubleStrike != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.DoubleStrike != null) {
                     return true;
                 } else {
                     return false;
                 }
             }
             set {
-                VerifyRunProperties();
-                if (value != true) {
-                    if (_runProperties.DoubleStrike != null) _runProperties.DoubleStrike.Remove();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
                 } else {
-                    _runProperties.DoubleStrike = new DoubleStrike();
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (value != true) {
+                    if (runProperties.DoubleStrike != null) runProperties.DoubleStrike.Remove();
+                } else {
+                    runProperties.DoubleStrike = new DoubleStrike();
                 }
             }
         }
         public int? FontSize {
             get {
-                if (_runProperties != null && _runProperties.FontSize != null) {
-                    var fontSizeInHalfPoint = int.Parse(_runProperties.FontSize.Val);
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.FontSize != null) {
+                    var fontSizeInHalfPoint = int.Parse(runProperties.FontSize.Val);
                     return fontSizeInHalfPoint / 2;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value != null) {
                     FontSize fontSize = new FontSize();
                     fontSize.Val = (value * 2).ToString();
-                    _runProperties.FontSize = fontSize;
+                    runProperties.FontSize = fontSize;
                 } else {
-                    if (_runProperties.FontSize != null) _runProperties.FontSize.Remove();
+                    if (runProperties.FontSize != null) runProperties.FontSize.Remove();
                 }
             }
         }
@@ -202,104 +234,140 @@ namespace OfficeIMO.Word {
 
         public string ColorHex {
             get {
-                if (_runProperties != null && _runProperties.Color != null) {
-                    return _runProperties.Color.Val;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Color != null) {
+                    return runProperties.Color.Val;
                 } else {
                     return "";
                 }
             }
             set {
-                VerifyRunProperties();
-                //string stringColor = value;
-                // var color = SixLabors.ImageSharp.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value != "") {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
                     color.Val = value.Replace("#", "");
-                    _runProperties.Color = color;
+                    runProperties.Color = color;
                 } else {
-                    if (_runProperties.Color != null) _runProperties.Color.Remove();
+                    if (runProperties.Color != null) runProperties.Color.Remove();
                 }
             }
         }
 
         public ThemeColorValues? ThemeColor {
             get {
-                if (_runProperties != null && _runProperties.Color != null && _runProperties.Color.ThemeColor != null) {
-                    return _runProperties.Color.ThemeColor.Value;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
+                    return runProperties.Color.ThemeColor.Value;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
-                //string stringColor = value;
-                // var color = SixLabors.ImageSharp.Color.FromArgb(Convert.ToInt32(stringColor.Substring(0, 2), 16), Convert.ToInt32(stringColor.Substring(2, 2), 16), Convert.ToInt32(stringColor.Substring(4, 2), 16));
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value != null) {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
                         ThemeColor = new EnumValue<ThemeColorValues> {
                             Value = value.Value
                         }
                     };
-                    _runProperties.Color = color;
+                    runProperties.Color = color;
                 } else {
-                    if (_runProperties.Color != null) _runProperties.Color.Remove();
+                    if (runProperties.Color != null) runProperties.Color.Remove();
                 }
             }
         }
 
         public HighlightColorValues? Highlight {
             get {
-                if (_runProperties != null && _runProperties.Highlight != null) {
-                    return _runProperties.Highlight.Val;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Highlight != null) {
+                    return runProperties.Highlight.Val;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 var highlight = new Highlight {
                     Val = value
                 };
-                _runProperties.Highlight = highlight;
+                runProperties.Highlight = highlight;
             }
         }
 
         public CapsStyle CapsStyle {
             get {
-                if (_runProperties != null && _runProperties.Caps != null) {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.Caps != null) {
                     return CapsStyle.Caps;
-                } else if (_runProperties != null && _runProperties.SmallCaps != null) {
+                } else if (runProperties != null && runProperties.SmallCaps != null) {
                     return CapsStyle.SmallCaps;
                 } else {
                     return CapsStyle.None;
                 }
             }
             set {
-                VerifyRunProperties();
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
                 if (value == CapsStyle.None) {
-                    _runProperties.Caps = null;
-                    _runProperties.SmallCaps = null;
+                    runProperties.Caps = null;
+                    runProperties.SmallCaps = null;
                 } else if (value == CapsStyle.Caps) {
-                    _runProperties.Caps = new Caps();
+                    runProperties.Caps = new Caps();
                 } else if (value == CapsStyle.SmallCaps) {
-                    _runProperties.SmallCaps = new SmallCaps();
+                    runProperties.SmallCaps = new SmallCaps();
                 }
             }
         }
 
         public string FontFamily {
             get {
-                if (_runProperties != null && _runProperties.RunFonts != null) {
-                    return _runProperties.RunFonts.Ascii;
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.RunFonts != null) {
+                    return runProperties.RunFonts.Ascii;
                 } else {
                     return null;
                 }
             }
             set {
-                VerifyRunProperties();
-                var runFonts = new RunFonts();
-                runFonts.Ascii = value;
-                _runProperties.RunFonts = runFonts;
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                runProperties.RunFonts = new RunFonts {
+                    Ascii = value
+                };
             }
         }
     }
