@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -21,7 +22,10 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].HyperLinks.Count);
                 document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.xyz"), true);
 
-                document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                var test = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"), true);
+                test.Bold = true;
+                test.Italic = true;
+                test.Underline = UnderlineValues.Dash;
 
                 document.AddPageBreak();
                 document.AddPageBreak();
