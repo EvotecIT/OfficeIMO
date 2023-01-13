@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
     public class WordHyperLink {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
-        private readonly Hyperlink _hyperlink;
+        internal readonly Hyperlink _hyperlink;
 
         public System.Uri Uri {
             get {
@@ -58,6 +58,18 @@ namespace OfficeIMO.Word {
             }
             set {
                 _hyperlink.Id = value;
+            }
+        }
+
+        internal Run _run {
+            get {
+                return _hyperlink.Descendants<Run>().FirstOrDefault();
+            }
+        }
+
+        internal RunProperties _runProperties {
+            get {
+                return _hyperlink.Descendants<RunProperties>().FirstOrDefault();
             }
         }
 
