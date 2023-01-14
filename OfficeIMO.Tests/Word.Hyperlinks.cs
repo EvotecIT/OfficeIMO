@@ -303,6 +303,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps != null);
                 Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.SmallCaps == null);
 
+                Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.Caps);
+
             }
         }
     }
