@@ -72,6 +72,14 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 
 ## 0.4.7 - 2023.01.14
 
+### What's Changed
+* Allows applying custom styling to Hyperlinks by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/100
+* Remove exception from wordsection by @crjc in https://github.com/EvotecIT/OfficeIMO/pull/99
+
+### New Contributors
+* @crjc made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/99
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.6...v0.4.7
 
 ## 0.4.6 - 2023.01.11
 
