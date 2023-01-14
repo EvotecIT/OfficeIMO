@@ -70,6 +70,9 @@ internal static void Example_DifferentTableSizes(string folderPath, bool openWor
 }
 ```
 
+## 0.4.7 - 2023.01.14
+
+
 ## 0.4.6 - 2023.01.11
 
 ### What's Changed
