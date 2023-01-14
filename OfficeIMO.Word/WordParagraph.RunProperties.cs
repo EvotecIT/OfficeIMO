@@ -341,8 +341,10 @@ namespace OfficeIMO.Word {
                     runProperties.SmallCaps = null;
                 } else if (value == CapsStyle.Caps) {
                     runProperties.Caps = new Caps();
+                    runProperties.SmallCaps = null;
                 } else if (value == CapsStyle.SmallCaps) {
                     runProperties.SmallCaps = new SmallCaps();
+                    runProperties.Caps = null;
                 }
             }
         }
