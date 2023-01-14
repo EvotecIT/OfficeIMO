@@ -250,7 +250,8 @@ namespace OfficeIMO.Word {
                 } else if (element is SectionType) {
                 } else if (element is TitlePage) {
                 } else {
-                    throw new NotImplementedException("This isn't implemented yet?");
+                    Debug.WriteLine($"The section '{element.GetType().Name}' is currently not supported. "
+                        + "To request support, open an issue at https://github.com/EvotecIT/OfficeIMO/issues");
                 }
             }
 
