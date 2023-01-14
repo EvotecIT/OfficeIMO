@@ -249,13 +249,9 @@ namespace OfficeIMO.Word {
                 } else if (element is DocGrid) {
                 } else if (element is SectionType) {
                 } else if (element is TitlePage) {
-                } else if (element is BiDi) {
-                } else if (element is GutterOnRight) {
                 } else {
-                    #pragma warning disable 0618
-                    if (WordDocument.ThrowNotImplementedExceptions)
-                        throw new NotImplementedException($"The section '{element.GetType().Name}' has not yet been implemented. Report an issue at https://github.com/EvotecIT/OfficeIMO/issues. This exception can be disabled by setting WordDocument.ThrowNotImplementedExceptions to false.");
-                    #pragma warning restore 0618
+                    Debug.WriteLine($"The section '{element.GetType().Name}' is currently not supported. "
+                        + "To request support, open an issue at https://github.com/EvotecIT/OfficeIMO/issues");
                 }
             }
 

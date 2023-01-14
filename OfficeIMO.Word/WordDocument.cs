@@ -25,9 +25,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        [Obsolete("Changing ThrowNotImplementedExceptions to false is a temporary workaround which may be removed in a future version.")]
-        public static bool ThrowNotImplementedExceptions { get; set; } = true;
-
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
