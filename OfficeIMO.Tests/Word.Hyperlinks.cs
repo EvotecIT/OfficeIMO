@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using SemanticComparison;
 using Xunit;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -25,6 +26,25 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test 1");
 
                 var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+
+                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Bold == false);
+                Assert.True(hyperlink.Italic == false);
+                Assert.True(hyperlink.Color == Color.Blue);
+
+                hyperlink.Bold = true;
+                hyperlink.Italic = true;
+
+                Assert.True(hyperlink.Bold);
+                Assert.True(hyperlink.Italic);
+                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Color == Color.Blue);
+
+                hyperlink.Color = Color.Red;
+                hyperlink.Underline = UnderlineValues.Dash;
+
+                Assert.True(hyperlink.Color == Color.Red);
+                Assert.True(hyperlink.Underline == UnderlineValues.Dash);
 
                 Assert.True(hyperlink.Hyperlink.Text == "bookmark below");
 
@@ -182,6 +202,109 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].HyperLinks[1].History == false);
 
                 document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordWithHyperlinksVerification() {
+            using (WordDocument document =
+                   WordDocument.Create(Path.Combine(_directoryWithFiles, "HyperlinksTests.docx"))) {
+                Assert.True(document.Paragraphs.Count == 0);
+                Assert.True(document.Sections.Count == 1);
+                Assert.True(document.Fields.Count == 0);
+                Assert.True(document.HyperLinks.Count == 0);
+                Assert.True(document.ParagraphsHyperLinks.Count == 0);
+                Assert.True(document.Bookmarks.Count == 0);
+
+                var paragraph = document.AddParagraph("Test 1");
+                Assert.True(paragraph.Bold == false);
+
+                var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
+                    "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+
+                Assert.True(hyperlink.Hyperlink._runProperties.Bold == null);
+
+                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Bold == false);
+                Assert.True(hyperlink.Italic == false);
+                Assert.True(hyperlink.Color == Color.Blue);
+
+                hyperlink.Bold = true;
+                hyperlink.Italic = true;
+
+                Assert.True(hyperlink.Bold);
+                Assert.True(hyperlink.Italic);
+                Assert.True(hyperlink.Underline == UnderlineValues.Single);
+                Assert.True(hyperlink.Color == Color.Blue);
+
+                hyperlink.Color = Color.Red;
+                hyperlink.Underline = UnderlineValues.Dash;
+
+
+                var hyperlinkWithoutStyle = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
+                    "TestBookmark", false, "This is link to bookmark below shown within Tooltip");
+
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties == null);
+
+                hyperlinkWithoutStyle.Bold = true;
+                Assert.True(hyperlinkWithoutStyle.Bold == true);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Bold != null);
+
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Italic == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Underline == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Color == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Spacing == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.FontSize == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.RunFonts == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Highlight == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Strike == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.DoubleStrike == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps == null);
+
+                hyperlinkWithoutStyle.Bold = true;
+                hyperlinkWithoutStyle.Italic = true;
+                hyperlinkWithoutStyle.Color = Color.Red;
+                hyperlinkWithoutStyle.Underline = UnderlineValues.Dash;
+                hyperlinkWithoutStyle.Spacing = 2;
+                hyperlinkWithoutStyle.FontSize = 12;
+                hyperlinkWithoutStyle.FontFamily = "Arial";
+                hyperlinkWithoutStyle.Highlight = HighlightColorValues.Cyan;
+                hyperlinkWithoutStyle.Strike = true;
+                hyperlinkWithoutStyle.DoubleStrike = true;
+                hyperlinkWithoutStyle.CapsStyle = CapsStyle.SmallCaps;
+
+                Assert.True(hyperlinkWithoutStyle.Bold);
+                Assert.True(hyperlinkWithoutStyle.Italic);
+                Assert.True(hyperlinkWithoutStyle.Underline == UnderlineValues.Dash);
+                Assert.True(hyperlinkWithoutStyle.Color == Color.Red);
+                Assert.True(hyperlinkWithoutStyle.Spacing == 2);
+                Assert.True(hyperlinkWithoutStyle.FontSize == 12);
+                Assert.True(hyperlinkWithoutStyle.FontFamily == "Arial");
+                Assert.True(hyperlinkWithoutStyle.Highlight == HighlightColorValues.Cyan);
+                Assert.True(hyperlinkWithoutStyle.Strike);
+                Assert.True(hyperlinkWithoutStyle.DoubleStrike);
+                Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.SmallCaps);
+
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Bold != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Italic != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Underline != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Color != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Spacing != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.FontSize != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.RunFonts != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Highlight != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Strike != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.DoubleStrike != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps == null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.SmallCaps != null);
+
+                hyperlinkWithoutStyle.CapsStyle = CapsStyle.Caps;
+
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps != null);
+                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.SmallCaps == null);
+
+                Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.Caps);
+
             }
         }
     }
