@@ -11,19 +11,24 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Examples.Word {
     internal static partial class Embed {
 
-        public static void Example_EmbedFileRTFandHTML(string folderPath, bool openWord) {
+        public static void Example_EmbedFileRTFandHTML(string folderPath, string templateFolder, bool openWord) {
             Console.WriteLine("[*] Creating standard document with embedded RTF & HTML file");
             string filePath = System.IO.Path.Combine(folderPath, "EmbeddedFileRTFandHTML.docx");
+
+            string htmlFilePath = System.IO.Path.Combine(templateFolder, "SampleFileHTML.html");
+            string rtfFilePath = System.IO.Path.Combine(templateFolder, "SampleFileRTF.rtf");
+
+
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Add RTF document in front of the document");
 
-                document.AddEmbeddedDocument(@"C:\Users\przemyslaw.klys\Downloads\file-sample_100kB.rtf");
+                document.AddEmbeddedDocument(rtfFilePath);
 
                 document.AddPageBreak();
 
                 document.AddParagraph("Add HTML document as last in the document");
 
-                document.AddEmbeddedDocument(@"C:\Users\przemyslaw.klys\Downloads\The global structure of an HTML document.html");
+                document.AddEmbeddedDocument(htmlFilePath);
 
                 document.Save(openWord);
             }

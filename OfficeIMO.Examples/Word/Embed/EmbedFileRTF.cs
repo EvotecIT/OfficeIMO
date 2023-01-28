@@ -11,16 +11,18 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Examples.Word {
     internal static partial class Embed {
 
-        public static void Example_EmbedFileRTF(string folderPath, bool openWord) {
+        public static void Example_EmbedFileRTF(string folderPath, string templateFolder, bool openWord) {
             Console.WriteLine("[*] Creating standard document with embedded RTF file");
             string filePath = System.IO.Path.Combine(folderPath, "EmbeddedFileRTF.docx");
+            string rtfFilePath = System.IO.Path.Combine(templateFolder, "SampleFileRTF.rtf");
+
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 document.AddPageBreak();
 
                 document.AddParagraph("Add RTF document in front of the document");
 
-                document.AddEmbeddedDocument(@"C:\Users\przemyslaw.klys\Downloads\file-sample_100kB.rtf");
+                document.AddEmbeddedDocument(rtfFilePath);
 
                 document.Save(openWord);
             }
