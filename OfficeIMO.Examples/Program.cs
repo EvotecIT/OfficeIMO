@@ -124,6 +124,8 @@ namespace OfficeIMO.Examples {
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
+
+            Embed.Example_EmbedFileExcel(folderPath, templatesPath, false);
         }
     }
 }
