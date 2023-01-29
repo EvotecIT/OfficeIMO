@@ -282,5 +282,9 @@ namespace OfficeIMO.Word {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
+        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath) {
+            var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "");
+            return this;
+        }
     }
 }
