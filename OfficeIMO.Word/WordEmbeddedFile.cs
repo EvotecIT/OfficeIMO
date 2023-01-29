@@ -4,9 +4,14 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
+using DocumentFormat.OpenXml.Vml;
+using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
+using V = DocumentFormat.OpenXml.Vml;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
-    public class WordEmbed {
+    public class WordEmbeddedFile {
 
         private string GetAltChunkId(WordDocument wordDoc) {
             int id = 1;
@@ -25,8 +30,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        public WordEmbed(WordDocument wordDocument, string fileName, string description) {
-
+        public WordEmbeddedFile(WordDocument wordDocument, string fileName, string description) {
             FileInfo fileInfo = new FileInfo(fileName);
             AlternativeFormatImportPartType partType;
             if (fileInfo.Extension == ".rtf") {
@@ -37,12 +41,9 @@ namespace OfficeIMO.Word {
                 throw new Exception("Only RTF files are supported for now :-)");
             }
 
-
             AltChunk altChunk = new AltChunk {
                 Id = GetAltChunkId(wordDocument)
             };
-
-            //string altChunkId = "AltChunkId5";
 
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
@@ -58,7 +59,6 @@ namespace OfficeIMO.Word {
             // Embed AltChunk after the last paragraph.
             mainDocPart.Document.Body.InsertAfter(altChunk, mainDocPart.Document.Body.Elements<Paragraph>().Last());
             mainDocPart.Document.Save();
-
         }
     }
 }
