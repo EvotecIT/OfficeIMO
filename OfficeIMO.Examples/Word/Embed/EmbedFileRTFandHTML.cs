@@ -30,6 +30,26 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddEmbeddedDocument(htmlFilePath);
 
+                Console.WriteLine("Embedded documents in word: " + document.EmbeddedDocuments.Count);
+                Console.WriteLine("Embedded documents in Section 0: " + document.Sections[0].EmbeddedDocuments.Count);
+                Console.WriteLine("Content type 0: " + document.EmbeddedDocuments[0].ContentType);
+                Console.WriteLine("Content type 1: " + document.EmbeddedDocuments[1].ContentType);
+
+                document.AddEmbeddedDocument(rtfFilePath);
+
+                Console.WriteLine("Content type 0: " + document.EmbeddedDocuments[0].ContentType);
+                Console.WriteLine("Content type 1: " + document.EmbeddedDocuments[1].ContentType);
+                Console.WriteLine("Content type 2: " + document.EmbeddedDocuments[2].ContentType);
+
+
+                document.EmbeddedDocuments[1].Remove();
+
+                Console.WriteLine("Content type 0: " + document.EmbeddedDocuments[0].ContentType);
+                Console.WriteLine("Content type 1: " + document.EmbeddedDocuments[1].ContentType);
+
+
+                Console.WriteLine("Embedded documents in word: " + document.EmbeddedDocuments.Count);
+
                 document.Save(openWord);
             }
         }
