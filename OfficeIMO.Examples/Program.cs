@@ -129,6 +129,7 @@ namespace OfficeIMO.Examples {
             Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
             Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
             Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
         }
     }
 }
