@@ -215,6 +215,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordEmbeddedDocument> EmbeddedDocuments {
+            get {
+                List<WordEmbeddedDocument> list = new List<WordEmbeddedDocument>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.EmbeddedDocuments);
+                }
+                return list;
+            }
+        }
+
         /// <summary>
         /// Provides a list of all tables within the document from all the sections, including nested tables
         /// </summary>
