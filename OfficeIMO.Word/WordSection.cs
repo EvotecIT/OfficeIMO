@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -186,6 +186,9 @@ namespace OfficeIMO.Word {
         /// Provides a list of all tables within the section, excluding nested tables
         /// </summary>
         public List<WordTable> Tables => GetTablesList();
+
+        public List<WordEmbeddedDocument> EmbeddedDocuments => GetEmbeddedDocumentsList();
+
 
         /// <summary>
         /// Provides a list of all tables within the section, including nested tables

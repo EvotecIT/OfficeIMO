@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -168,6 +168,10 @@ namespace OfficeIMO.Word {
             return lists;
         }
 
+        /// <summary>
+        /// Gets list of tables in given section
+        /// </summary>
+        /// <returns></returns>
         private List<WordTable> GetTablesList() {
             Dictionary<int, List<WordTable>> dataSections = new Dictionary<int, List<WordTable>>();
             var count = 0;
@@ -191,6 +195,46 @@ namespace OfficeIMO.Word {
                         } else if (element is Table) {
                             WordTable wordTable = new WordTable(_document, (Table)element);
                             dataSections[count].Add(wordTable);
+                        }
+                    }
+
+                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    if (sectionProperties == _sectionProperties) {
+                        foundCount = count;
+                    }
+                }
+            }
+
+            return dataSections[foundCount];
+        }
+
+        /// <summary>
+        /// Gets list of embedded documents in given section
+        /// </summary>
+        /// <returns></returns>
+        private List<WordEmbeddedDocument> GetEmbeddedDocumentsList() {
+            Dictionary<int, List<WordEmbeddedDocument>> dataSections = new Dictionary<int, List<WordEmbeddedDocument>>();
+            var count = 0;
+
+            dataSections[count] = new List<WordEmbeddedDocument>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                    foundCount = count;
+                                }
+
+                                count++;
+                                dataSections[count] = new List<WordEmbeddedDocument>();
+                            }
+                        } else if (element is AltChunk) {
+                            WordEmbeddedDocument wordEmbeddedDocument = new WordEmbeddedDocument(_document, (AltChunk)element);
+                            dataSections[count].Add(wordEmbeddedDocument);
                         }
                     }
 
