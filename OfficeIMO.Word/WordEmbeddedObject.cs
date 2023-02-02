@@ -46,11 +46,11 @@ namespace OfficeIMO.Word {
             }
             MainDocumentPart mainPart = wordDocument._document.MainDocumentPart;
 
-            //var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            //var programId = "Excel.Sheet.12";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            var programId = "Excel.Sheet.12";
             //ProgId = "Package",
-            var contentType = "application/vnd.openxmlformats-officedocument.oleObject";
-            var programId = "Package";
+            //var contentType = "application/vnd.openxmlformats-officedocument.oleObject";
+            //var programId = "Package";
 
 
             EmbeddedPackagePart embeddedObjectPart = mainPart.AddEmbeddedPackagePart(contentType);
@@ -59,10 +59,12 @@ namespace OfficeIMO.Word {
                 embeddedObjectPart.FeedData(fileStream);
             }
 
+            var test = embeddedObjectPart.ContentType;
+
             var idImagePart = mainPart.GetIdOfPart(imagePart);
             var idEmbeddedObjectPart = mainPart.GetIdOfPart(embeddedObjectPart);
 
-            var embeddedObject = CreateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, 49.2, 49.2);
+            var embeddedObject = CreateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, 1000, 500);
             //var embeddedObject = GenerateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, 49.2, 49.2);
             return embeddedObject;
         }
