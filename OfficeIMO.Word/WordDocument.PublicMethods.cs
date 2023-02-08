@@ -147,6 +147,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// This method will combine identical runs in a paragraph.
         /// This is useful when you have a paragraph with multiple runs of the same style, that Microsoft Word creates.
+        /// This feature is *EXPERIMENTAL* and may not work in all cases.
+        /// It may impact on how your document looks like, please do extensive testing before using this feature.
         /// </summary>
         /// <returns></returns>
         public int CleanupDocument() {
