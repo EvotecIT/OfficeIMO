@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -144,6 +142,65 @@ namespace OfficeIMO.Word {
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
             WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
             return embeddedDocument;
+        }
+
+        /// <summary>
+        /// This method will combine identical runs in a paragraph.
+        /// This is useful when you have a paragraph with multiple runs of the same style, that Microsoft Word creates.
+        /// </summary>
+        /// <returns></returns>
+        public int CleanupDocument() {
+            int count = 0;
+
+            foreach (var paragraph in this.Paragraphs) {
+                count += CombineIdenticalRuns(paragraph._paragraph);
+            }
+
+            foreach (var table in this.Tables) {
+                table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+            }
+
+            if (this.Header.Default != null) {
+                foreach (var p in this.Header.Default.Paragraphs) count += CombineIdenticalRuns(p._paragraph);
+                foreach (var table in this.Header.Default.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+
+            if (this.Header.Even != null) {
+                this.Header.Even.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                foreach (var table in this.Header.Even.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+            if (this.Header.First != null) {
+                this.Header.First.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                foreach (var table in this.Header.First.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+
+            if (this.Footer.Default != null) {
+                this.Footer.Default.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                foreach (var table in this.Footer.Default.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+
+            if (this.Footer.Even != null) {
+                this.Footer.Even.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                foreach (var table in this.Footer.Even.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+
+            if (this.Footer.First != null) {
+                this.Footer.First.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                foreach (var table in this.Footer.First.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+            return count;
         }
     }
 }
