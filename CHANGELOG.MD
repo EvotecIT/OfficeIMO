@@ -1,5 +1,10 @@
 ## 0.4.8 - 2023.02.08
 
+### What's Changed
+* Basic support for embedding RTF & HTML & More (AddEmbeddedDocument) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/104
+* Adds CleanupDocument method to merge same formatted runs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/106
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.7...v0.4.8
 
 ## 0.4.7 - 2023.01.14
 
