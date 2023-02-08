@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -138,6 +139,11 @@ namespace OfficeIMO.Word {
 
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
+        }
+
+        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
+            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
+            return embeddedDocument;
         }
     }
 }

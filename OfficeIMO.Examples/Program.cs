@@ -124,6 +124,12 @@ namespace OfficeIMO.Examples {
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
+
+            Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
         }
     }
 }
