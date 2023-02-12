@@ -258,7 +258,7 @@ namespace OfficeIMO.Word {
             list.AddRange(FindAndReplaceNested(this.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
 
             foreach (var table in this.Tables) {
-                FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison);
+                list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
             }
 
             if (this.Header.Default != null) {
@@ -302,7 +302,6 @@ namespace OfficeIMO.Word {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
-
 
             return list;
         }
