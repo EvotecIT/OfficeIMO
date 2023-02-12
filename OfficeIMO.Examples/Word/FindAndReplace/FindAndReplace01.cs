@@ -1,6 +1,4 @@
 using System;
-using System.Linq;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -17,9 +15,10 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
-                document.AddParagraph("This is a text ").AddText("more text").AddText(" even longer text").AddText(" and even longer right?");
+                document.AddParagraph("This is a text ").AddText("more text").AddText(" even longer text").AddText(" and Even longer right?");
 
-                document.AddParagraph("This is a text ").AddText("more text 1").AddText(" even longer text 1").AddText(" and even longer right?");
+                document.AddParagraph("this is a text ").AddText("more text 1").AddText(" even longer text 1").AddText(" and Even longer right?");
+
                 // we now ensure that we add bold to complicate the search
                 document.Paragraphs[9].Bold = true;
                 document.Paragraphs[10].Bold = true;
@@ -28,8 +27,11 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
+                var listFound = document.Find("Test Section");
+                Console.WriteLine("Replaced (should be 2): " + listFound.Count);
+
                 var replacedCount = document.FindAndReplace("Test Section", "Production Section");
-                Console.WriteLine("Replaced: " + replacedCount);
+                Console.WriteLine("Replaced (should be 2): " + replacedCount);
 
                 // should be 0 because it stretches over 2 paragraphs
                 var replacedCount1 = document.FindAndReplace("This is a text more text", "Shorter text");
@@ -42,6 +44,9 @@ namespace OfficeIMO.Examples.Word {
                 // may require improvement in the future to ignore formatting completely, but then it's a bit tricky which formatting to apply
                 var replacedCount2 = document.FindAndReplace("This is a text more text", "Shorter text");
                 Console.WriteLine("Replaced (should be 1): " + replacedCount2);
+
+                var replacedCount3 = document.FindAndReplace("even longer", "not longer");
+                Console.WriteLine("Replaced (should be 4): " + replacedCount3);
 
                 document.Save(false);
             }
