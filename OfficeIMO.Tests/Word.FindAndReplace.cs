@@ -54,6 +54,36 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[0].Text == "Production Section");
 
+                var table = document.AddTable(3, 3);
+                table.Rows[0].Cells[0].Paragraphs[0].AddText("Test Section");
+                table.Rows[0].Cells[1].Paragraphs[0].AddText("Test Section");
+                table.Rows[0].Cells[2].Paragraphs[0].AddText("Test ").AddText("Sect").AddText("ion");
+
+                document.AddHeadersAndFooters();
+
+                var header = document.Header.Default;
+                var tableInHeader = document.AddTable(3, 3);
+                tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddText("Prod Section");
+                tableInHeader.Rows[0].Cells[1].Paragraphs[0].AddText("Prod Section");
+                tableInHeader.Rows[0].Cells[2].Paragraphs[0].AddText("Prod ").AddText("Sect").AddText("ion");
+
+                var footer = document.Footer.Default;
+                var tableInFooter = document.AddTable(3, 3);
+                tableInFooter.Rows[0].Cells[0].Paragraphs[0].AddText("Prod Section");
+                tableInFooter.Rows[0].Cells[1].Paragraphs[0].AddText("Prod Section");
+                tableInFooter.Rows[0].Cells[2].Paragraphs[0].AddText("Prod ").AddText("Sect").AddText("ion");
+
+                document.CleanupDocument();
+
+                var listFound1 = document.Find("Test Section");
+                Assert.True(listFound1.Count == 3);
+
+                var listFound2 = document.Find("Prod Section");
+                Assert.True(listFound2.Count == 6);
+
+                var replacedCount = document.FindAndReplace("Prod Section", "Production Section");
+                Assert.True(replacedCount == 6);
+
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentSearchFunctionality.docx"))) {
