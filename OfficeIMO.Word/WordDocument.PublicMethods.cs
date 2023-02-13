@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -144,6 +147,20 @@ namespace OfficeIMO.Word {
             return embeddedDocument;
         }
 
+
+        private int CombineRuns(WordHeaderFooter wordHeaderFooter) {
+            int count = 0;
+            if (wordHeaderFooter != null) {
+                foreach (var p in this.Header.Default.Paragraphs) count += CombineIdenticalRuns(p._paragraph);
+                foreach (var table in this.Header.Default.Tables) {
+                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+                }
+            }
+
+            return count;
+        }
+
+
         /// <summary>
         /// This method will combine identical runs in a paragraph.
         /// This is useful when you have a paragraph with multiple runs of the same style, that Microsoft Word creates.
@@ -203,6 +220,90 @@ namespace OfficeIMO.Word {
                 }
             }
             return count;
+        }
+
+        public List<WordParagraph> Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            int count = 0;
+            List<WordParagraph> list = FindAndReplaceInternal(text, "", ref count, false, stringComparison);
+            return list;
+        }
+
+        public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            int countFind = 0;
+            FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
+            return countFind;
+        }
+
+
+        private List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            List<WordParagraph> foundParagraphs = new List<WordParagraph>();
+            foreach (var paragraph in paragraphs) {
+                int internalCount = 0;
+                var replacedString = paragraph.Text.FindAndReplace(textToFind, textToReplace, stringComparison, ref internalCount);
+                if (internalCount > 0) {
+                    if (replace) {
+                        paragraph.Text = replacedString;
+                    }
+                    count += internalCount;
+                    foundParagraphs.Add(paragraph);
+                }
+            }
+
+            return foundParagraphs;
+        }
+
+        private List<WordParagraph> FindAndReplaceInternal(string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            WordFind wordFind = new WordFind();
+            List<WordParagraph> list = new List<WordParagraph>();
+            list.AddRange(FindAndReplaceNested(this.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+
+            foreach (var table in this.Tables) {
+                list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+            }
+
+            if (this.Header.Default != null) {
+                list.AddRange(FindAndReplaceNested(this.Header.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Header.Default.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            if (this.Header.Even != null) {
+                list.AddRange(FindAndReplaceNested(this.Header.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Header.Even.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            if (this.Header.First != null) {
+                list.AddRange(FindAndReplaceNested(this.Header.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Header.First.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            if (this.Footer.Default != null) {
+                list.AddRange(FindAndReplaceNested(this.Footer.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Footer.Default.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            if (this.Footer.Even != null) {
+                list.AddRange(FindAndReplaceNested(this.Footer.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Footer.Even.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            if (this.Footer.First != null) {
+                list.AddRange(FindAndReplaceNested(this.Footer.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in this.Footer.First.Tables) {
+                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                }
+            }
+
+            return list;
         }
     }
 }
