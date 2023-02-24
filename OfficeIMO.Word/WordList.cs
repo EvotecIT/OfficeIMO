@@ -20,7 +20,7 @@ public class WordList {
     private readonly bool _isToc;
 
     /// <summary>
-    /// This provides a way to set it teams to be treated with heading style during load
+    /// This provides a way to set items to be treated with heading style during load
     /// </summary>
     public bool IsToc {
         get {
@@ -32,21 +32,30 @@ public class WordList {
 
     private string NsidId {
         get {
-            if (_abstractNum == null) {
+            if (AbstractNum == null) {
                 return null;
             }
 
-            return _abstractNum.Nsid.Val;
+            return AbstractNum.Nsid.Val;
 
         }
         set {
-            if (_abstractNum != null) {
-                _abstractNum.Nsid.Val = value;
+            if (AbstractNum != null) {
+                AbstractNum.Nsid.Val = value;
             }
         }
     }
 
-    private AbstractNum _abstractNum {
+    private string GenerateNsidId() {
+        // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.nsid?view=openxml-2.8.1
+        // Specifies a number value specified as a four digit hexadecimal number),
+        // whose contents of this decimal number are interpreted based on the context of the parent XML element.
+        // for example FFFFFF89 or D9842532
+        return Guid.NewGuid().ToString().ToUpper().Substring(0, 8);
+
+    }
+
+    private AbstractNum AbstractNum {
         get {
             var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
             var abstractNumList = numbering.ChildElements.OfType<AbstractNum>();
