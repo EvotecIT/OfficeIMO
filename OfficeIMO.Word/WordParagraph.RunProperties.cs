@@ -227,9 +227,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color Color {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + ColorHex); }
-            set { this.ColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? Color {
+            get {
+                if (ColorHex == "") {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+
+            }
+            set {
+                if (value != null) {
+                    this.ColorHex = value.Value.ToHexColor();
+                }
+            }
         }
 
         public string ColorHex {
