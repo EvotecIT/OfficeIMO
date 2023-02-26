@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -603,6 +603,35 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
                 Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == TextDirectionValues.TopToBottomLeftToRightRotated);
 
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTables1() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTables1.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "This paragraph preexists on table creation";
+
+                wordTable.Rows[1].Cells[0].AddParagraph();
+                wordTable.Rows[1].Cells[0].Paragraphs[1].Text = "Paragraph added separately to the text";
+
+                wordTable.Rows[1].Cells[0].AddParagraph("Another paragraph within table cell, added directly");
+
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs.Count == 3);
+
+                WordParagraph paragraph = new WordParagraph {
+                    Text = "Paragraph added separately as WordParagraph",
+                    Bold = true,
+                    Italic = true
+                };
+
+                wordTable.Rows[1].Cells[0].AddParagraph(paragraph);
+
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs.Count == 4);
+
+                document.Save(false);
             }
         }
     }
