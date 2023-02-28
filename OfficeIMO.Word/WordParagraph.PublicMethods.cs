@@ -282,5 +282,11 @@ namespace OfficeIMO.Word {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
+
+        public WordTab AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+            var wordTab = new WordTab(this);
+            wordTab.AddTab(position, alignment, leader);
+            return wordTab;
+        }
     }
 }
