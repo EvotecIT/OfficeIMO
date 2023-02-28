@@ -83,6 +83,59 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Get or set Character Spacing Control
+        /// </summary>
+        public CharacterSpacingValues? CharacterSpacingControl {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var characterSpacingControl = settings.OfType<CharacterSpacingControl>().FirstOrDefault();
+                if (characterSpacingControl == null) {
+                    return null;
+                }
+
+                return characterSpacingControl.Val;
+
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var characterSpacingControl = settings.OfType<CharacterSpacingControl>().FirstOrDefault();
+                if (characterSpacingControl == null) {
+                    characterSpacingControl = new CharacterSpacingControl();
+                    settings.Append(characterSpacingControl);
+                }
+                characterSpacingControl.Val = value;
+            }
+        }
+
+
+        /// <summary>
+        /// Get or set Default Tab Stop for the document
+        /// </summary>
+        public int DefaultTabStop {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var defaultStop = settings.OfType<DefaultTabStop>().FirstOrDefault();
+                if (defaultStop == null) {
+                    return 0;
+                }
+                if (defaultStop.Val == null) {
+                    return 0;
+                }
+                return defaultStop.Val;
+
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var defaultStop = settings.OfType<DefaultTabStop>().FirstOrDefault();
+                if (defaultStop == null) {
+                    defaultStop = new DefaultTabStop();
+                    settings.Append(defaultStop);
+                }
+                defaultStop.Val = (Int16Value)value;
+            }
+        }
+
+        /// <summary>
         /// Get or Set Zoome Percentage for the document
         /// </summary>
         public int? ZoomPercentage {
