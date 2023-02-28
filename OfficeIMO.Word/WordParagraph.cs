@@ -398,5 +398,19 @@ namespace OfficeIMO.Word {
                 return false;
             }
         }
+
+        public List<WordTab> Tabs {
+            get {
+                List<WordTab> list = new List<WordTab>();
+                if (_paragraph != null && _paragraphProperties != null) {
+                    if (_paragraphProperties.Tabs != null) {
+                        foreach (TabStop tab in _paragraphProperties.Tabs) {
+                            list.Add(new WordTab(this, tab));
+                        }
+                    }
+                }
+                return list;
+            }
+        }
     }
 }
