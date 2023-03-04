@@ -283,7 +283,7 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        public WordTab AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+        public WordTab AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
             var wordTab = new WordTab(this);
             wordTab.AddTab(position, alignment, leader);
             return wordTab;
