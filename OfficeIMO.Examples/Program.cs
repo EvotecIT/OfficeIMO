@@ -1,18 +1,12 @@
-using System;
 using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
-using Color = SixLabors.ImageSharp.Color;
-using Comments = OfficeIMO.Examples.Word.Comments;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
         private static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
-            } else {
-                // Directory.Delete(path, false);
-                // Directory.CreateDirectory(path);
             }
         }
 
@@ -33,6 +27,7 @@ namespace OfficeIMO.Examples {
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
+            Paragraphs.Example_BasicTabStops(folderPath, true);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
