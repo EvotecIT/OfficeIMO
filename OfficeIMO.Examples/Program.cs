@@ -1,8 +1,6 @@
-using System;
 using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
-using Color = SixLabors.ImageSharp.Color;
 using Comments = OfficeIMO.Examples.Word.Comments;
 
 namespace OfficeIMO.Examples {
