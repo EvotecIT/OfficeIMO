@@ -122,6 +122,7 @@ namespace OfficeIMO.Examples {
 
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
             Fields.Example_DocumentWithFields(folderPath, false);
+            Fields.Example_DocumentWithFields02(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
