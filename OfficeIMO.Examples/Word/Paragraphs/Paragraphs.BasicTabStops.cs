@@ -11,29 +11,29 @@ internal static partial class Paragraphs {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("\tFirst Line");
 
-            Console.WriteLine("Tabs count: " + paragraph.Tabs.Count);
+            Console.WriteLine("Tabs count: " + paragraph.TabStops.Count);
 
-            var tab1 = paragraph.AddTab(1440);
+            var tab1 = paragraph.AddTabStop(1440);
 
-            var tab2 = paragraph.AddTab(1440);
+            var tab2 = paragraph.AddTabStop(1440);
             tab2.Alignment = TabStopValues.Left;
             tab2.Leader = TabStopLeaderCharValues.Hyphen;
             tab2.Position = 1440;
 
             paragraph.AddText("\tMore text");
 
-            Console.WriteLine($"Tabs count: " + paragraph.Tabs.Count);
+            Console.WriteLine($"Tabs count: " + paragraph.TabStops.Count);
 
             var paragraph1 = document.AddParagraph("\tNext Line");
 
-            var tab3 = paragraph1.AddTab(5000);
+            var tab3 = paragraph1.AddTabStop(5000);
             tab3.Leader = TabStopLeaderCharValues.Hyphen;
 
-            var tab4 = paragraph1.AddTab(1440 * 2);
+            var tab4 = paragraph1.AddTabStop(1440 * 2);
             paragraph1.AddText("\tEven more text");
 
-            Console.WriteLine("Tabs for Paragraph2 count: " + paragraph.Tabs.Count);
-            Console.WriteLine("Tabs for Paragraph1 count: " + paragraph1.Tabs.Count);
+            Console.WriteLine("Tabs for Paragraph2 count: " + paragraph.TabStops.Count);
+            Console.WriteLine("Tabs for Paragraph1 count: " + paragraph1.TabStops.Count);
 
             document.Save();
         }
