@@ -19,13 +19,12 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                // added using fields
+                // added page number using fields which triggers fields refresh
                 document.AddField(WordFieldType.NumPages);
 
                 document.AddField(WordFieldType.Author);
 
                 document.AddField(WordFieldType.GreetingLine);
-
 
                 // added page number using dedicated way
                 var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Roman);
