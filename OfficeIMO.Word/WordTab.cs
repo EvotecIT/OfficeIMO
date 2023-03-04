@@ -8,59 +8,60 @@ using Tabs = DocumentFormat.OpenXml.Wordprocessing.Tabs;
 namespace OfficeIMO.Word {
     public class WordTab {
 
-        private WordParagraph Paragraph { get; set; }
+        private WordParagraph _paragraph { get; set; }
 
-        private Tabs Tabs {
+        private Tabs _tabs {
             get {
-                if (Paragraph._paragraphProperties.Tabs == null) {
-                    Paragraph._paragraphProperties.Append(new Tabs());
+                if (_paragraph._paragraphProperties.Tabs == null) {
+                    _paragraph._paragraphProperties.Append(new Tabs());
                 }
-                return Paragraph._paragraphProperties.Tabs;
+                return _paragraph._paragraphProperties.Tabs;
             }
         }
-        private TabStop TabStop { get; set; }
+
+        private TabStop _tabStop { get; set; }
 
         public TabStopValues Alignment {
             get {
-                return TabStop.Val;
+                return _tabStop.Val;
             }
             set {
-                TabStop.Val = value;
+                _tabStop.Val = value;
             }
         }
 
         public TabStopLeaderCharValues Leader {
             get {
-                return TabStop.Leader;
+                return _tabStop.Leader;
             }
             set {
-                TabStop.Leader = value;
+                _tabStop.Leader = value;
             }
         }
 
         public int Position {
             get {
-                return (int)TabStop.Position;
+                return (int)_tabStop.Position;
             }
             set {
-                TabStop.Position = value;
+                _tabStop.Position = value;
             }
         }
 
 
         public WordTab(WordParagraph wordParagraph) {
-            Paragraph = wordParagraph;
+            _paragraph = wordParagraph;
         }
 
         public WordTab(WordParagraph wordParagraph, TabStop tab) {
-            Paragraph = wordParagraph;
-            TabStop = tab;
+            _paragraph = wordParagraph;
+            _tabStop = tab;
         }
 
         internal WordTab AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
             TabStop tabStop1 = new TabStop() { Val = alignment, Leader = leader, Position = position };
-            Tabs.Append(tabStop1);
-            TabStop = tabStop1;
+            _tabs.Append(tabStop1);
+            _tabStop = tabStop1;
             return this;
         }
     }
