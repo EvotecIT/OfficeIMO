@@ -1,7 +1,6 @@
 using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
-using Comments = OfficeIMO.Examples.Word.Comments;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
