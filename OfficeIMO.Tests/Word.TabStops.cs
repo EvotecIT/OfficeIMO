@@ -10,6 +10,15 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithTabStops() {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Settings.DefaultTabStop == 720);
+                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.DoNotCompress);
+
+                document.Settings.DefaultTabStop = 2880;
+                document.Settings.CharacterSpacingControl = CharacterSpacingValues.CompressPunctuation;
+
+                Assert.True(document.Settings.DefaultTabStop == 2880);
+                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.CompressPunctuation);
+
                 var paragraph = document.AddParagraph("\tFirst Line");
 
                 Assert.True(document.Paragraphs.Count == 1);
@@ -79,6 +88,9 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx"))) {
+                Assert.True(document.Settings.DefaultTabStop == 2880);
+                Assert.True(document.Settings.CharacterSpacingControl == CharacterSpacingValues.CompressPunctuation);
+
                 Assert.True(document.Paragraphs.Count == 5);
                 // First paragraph with 2 runs, having 2 tab stops
                 Assert.True(document.Paragraphs[0].TabStops.Count == 2);
@@ -111,9 +123,22 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[4].TabStops[2].Position == 1440 * 3);
 
                 Assert.True(document.Sections[0].Paragraphs[0].TabStops.Count == 2);
+
+                document.Paragraphs[4].TabStops[2].Position = 1440 * 4;
+                document.Paragraphs[4].TabStops[2].Alignment = TabStopValues.Right;
+
+                var tab4 = document.Paragraphs[4].AddTabStop(1440 * 2, TabStopValues.Bar, TabStopLeaderCharValues.Dot);
+
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx"))) {
+                Assert.True(document.Paragraphs[4].TabStops[2].Alignment == TabStopValues.Right);
+                Assert.True(document.Paragraphs[4].TabStops[2].Leader == TabStopLeaderCharValues.MiddleDot);
+                Assert.True(document.Paragraphs[4].TabStops[2].Position == 1440 * 4);
+
+                Assert.True(document.Paragraphs[4].TabStops[3].Alignment == TabStopValues.Bar);
+                Assert.True(document.Paragraphs[4].TabStops[3].Leader == TabStopLeaderCharValues.Dot);
+                Assert.True(document.Paragraphs[4].TabStops[3].Position == 1440 * 2);
 
             }
         }
