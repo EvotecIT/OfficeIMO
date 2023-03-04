@@ -399,7 +399,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordTab> Tabs {
+        public List<WordTab> TabStops {
             get {
                 List<WordTab> list = new List<WordTab>();
                 if (_paragraph != null && _paragraphProperties != null) {
