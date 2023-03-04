@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples {
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
-            Paragraphs.Example_BasicTabStops(folderPath, true);
+            Paragraphs.Example_BasicTabStops(folderPath, false);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
