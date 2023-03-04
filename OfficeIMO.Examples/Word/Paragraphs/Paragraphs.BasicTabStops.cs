@@ -11,6 +11,9 @@ internal static partial class Paragraphs {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("\tFirst Line");
 
+            document.Settings.DefaultTabStop = 2880;
+            document.Settings.CharacterSpacingControl = CharacterSpacingValues.DoNotCompress;
+
             Console.WriteLine("Tabs count: " + paragraph.TabStops.Count);
 
             var tab1 = paragraph.AddTabStop(1440);
@@ -34,6 +37,8 @@ internal static partial class Paragraphs {
 
             Console.WriteLine("Tabs for Paragraph2 count: " + paragraph.TabStops.Count);
             Console.WriteLine("Tabs for Paragraph1 count: " + paragraph1.TabStops.Count);
+            Console.WriteLine("Default tab stop: " + document.Settings.DefaultTabStop);
+            Console.WriteLine("Default tab stop: " + document.Settings.CharacterSpacingControl);
 
             document.Save();
         }
@@ -43,5 +48,4 @@ internal static partial class Paragraphs {
             document.Save(openWord);
         }
     }
-
 }
