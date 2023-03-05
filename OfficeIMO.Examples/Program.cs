@@ -21,6 +21,8 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, true);
+
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
