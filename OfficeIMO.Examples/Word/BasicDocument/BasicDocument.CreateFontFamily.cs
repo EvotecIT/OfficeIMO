@@ -23,6 +23,12 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.FontFamily = "Courier New";
                 paragraph = paragraph.AddText("A potem jeszcze pochodził, i wąchał. A wszystko to nagrało życie. ");
                 paragraph.FontFamily = "Courier New";
+
+                paragraph = document.AddParagraph("English العربية");
+                paragraph.FontFamily = "Courier New"; // overwrites all styles
+                paragraph.FontFamilyEastAsia = "Arial"; // to change east asia font family
+                paragraph.FontFamilyHighAnsi = "Arial"; // to change high ansi font family
+                paragraph.FontFamilyComplexScript = "Arial"; // to change complex script font family
                 document.Save(openWord);
             }
         }
