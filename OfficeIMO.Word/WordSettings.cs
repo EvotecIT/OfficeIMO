@@ -313,9 +313,15 @@ namespace OfficeIMO.Word {
                     // we need to reset default AsciiTheme, before applying Ascii
                     runPropertiesBaseStyle.RunFonts.AsciiTheme = null;
                     runPropertiesBaseStyle.RunFonts.Ascii = value;
-                    // we also set highAnsi to the same value
+                    // we also set HighAnsi to the same value
                     runPropertiesBaseStyle.RunFonts.HighAnsi = value;
                     runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
+                    // we also set EastAsia to the same value
+                    runPropertiesBaseStyle.RunFonts.EastAsia = value;
+                    runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
+                    // we also set ComplexScript to the same value
+                    runPropertiesBaseStyle.RunFonts.ComplexScript = value;
+                    runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
                 }
@@ -323,7 +329,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or Sets default font family for the whole document in highAnsi.
+        /// Gets or Sets default font family for the whole document in HighAnsi.
         /// </summary>
         /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
         public string FontFamilyHighAnsi {
@@ -347,6 +353,64 @@ namespace OfficeIMO.Word {
                     // we also need to change it in highAnsi to fix https://github.com/EvotecIT/OfficeIMO/issues/54
                     runPropertiesBaseStyle.RunFonts.HighAnsi = value;
                     runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
+                } else {
+                    throw new Exception("Could not set font family. Styles not found.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets default font family for the whole document in EastAsia.
+        /// </summary>
+        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
+        public string FontFamilyEastAsia {
+            get {
+                var runPropertiesBaseStyle = GetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts != null) {
+                        var fontFamily = runPropertiesBaseStyle.RunFonts.EastAsia;
+                        return fontFamily;
+                    }
+                }
+                return null;
+            }
+            set {
+                var runPropertiesBaseStyle = SetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts == null) {
+                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
+                    }
+                    runPropertiesBaseStyle.RunFonts.EastAsia = value;
+                    runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
+                } else {
+                    throw new Exception("Could not set font family. Styles not found.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets default font family for the whole document in ComplexScript.
+        /// </summary>
+        /// <seealso href="http://officeopenxml.com/WPtextFonts.php">WordProcessingText Fonts </seealso>
+        public string FontFamilyComplexScript {
+            get {
+                var runPropertiesBaseStyle = GetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts != null) {
+                        var fontFamily = runPropertiesBaseStyle.RunFonts.ComplexScript;
+                        return fontFamily;
+                    }
+                }
+                return null;
+            }
+            set {
+                var runPropertiesBaseStyle = SetDefaultStyleProperties();
+                if (runPropertiesBaseStyle != null) {
+                    if (runPropertiesBaseStyle.RunFonts == null) {
+                        runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
+                    }
+                    runPropertiesBaseStyle.RunFonts.ComplexScript = value;
+                    runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
                 }
