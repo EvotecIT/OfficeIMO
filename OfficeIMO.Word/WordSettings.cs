@@ -313,6 +313,9 @@ namespace OfficeIMO.Word {
                     // we need to reset default AsciiTheme, before applying Ascii
                     runPropertiesBaseStyle.RunFonts.AsciiTheme = null;
                     runPropertiesBaseStyle.RunFonts.Ascii = value;
+                    // we also set highAnsi to the same value
+                    runPropertiesBaseStyle.RunFonts.HighAnsi = value;
+                    runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
                 }
