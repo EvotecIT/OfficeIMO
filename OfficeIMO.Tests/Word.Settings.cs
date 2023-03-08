@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontSize == 30);
                 Assert.True(document.Settings.FontFamily == "Courier New");
 
-                document.Settings.FontFamilyHighAnsi = "Abadi";
                 document.Settings.FontFamily = "Arial Narrow";
+                document.Settings.FontFamilyHighAnsi = "Abadi";
 
                 document.Save();
             }
@@ -112,8 +112,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
 
 
-                Assert.True(document.Settings.FontFamily == "Arial Narrow");
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Abadi");
+                Assert.True(document.Settings.FontFamily == "Arial Narrow");
 
                 Assert.True(document.Settings.ProtectionType == null);
                 Assert.True(document.Settings.BackgroundColor == "FFA07A");
