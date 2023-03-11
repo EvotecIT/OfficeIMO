@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
@@ -390,7 +391,7 @@ namespace OfficeIMO.Word {
                     runProperties.RunFonts = new RunFonts { };
                 }
 
-                if (value == "") {
+                if (string.IsNullOrEmpty(value)) {
                     runProperties.RunFonts.Ascii = null;
                 } else {
                     runProperties.RunFonts.Ascii = value;
@@ -425,7 +426,7 @@ namespace OfficeIMO.Word {
                     runProperties.RunFonts = new RunFonts { };
                 }
 
-                if (value == "") {
+                if (string.IsNullOrEmpty(value)) {
                     runProperties.RunFonts.HighAnsi = null;
                 } else {
                     runProperties.RunFonts.HighAnsi = value;
@@ -455,7 +456,7 @@ namespace OfficeIMO.Word {
                     runProperties.RunFonts = new RunFonts { };
                 }
 
-                if (value == "") {
+                if (string.IsNullOrEmpty(value)) {
                     runProperties.RunFonts.EastAsia = null;
                 } else {
                     runProperties.RunFonts.EastAsia = value;
@@ -485,7 +486,7 @@ namespace OfficeIMO.Word {
                     runProperties.RunFonts = new RunFonts { };
                 }
 
-                if (value == "") {
+                if (string.IsNullOrEmpty(value)) {
                     runProperties.RunFonts.ComplexScript = null;
                 } else {
                     runProperties.RunFonts.ComplexScript = value;
