@@ -351,7 +351,11 @@ namespace OfficeIMO.Word {
                         runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
                     }
                     // we also need to change it in highAnsi to fix https://github.com/EvotecIT/OfficeIMO/issues/54
-                    runPropertiesBaseStyle.RunFonts.HighAnsi = value;
+                    if (string.IsNullOrEmpty(value)) {
+                        runPropertiesBaseStyle.RunFonts.HighAnsi = null;
+                    } else {
+                        runPropertiesBaseStyle.RunFonts.HighAnsi = value;
+                    }
                     runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
@@ -380,7 +384,11 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.RunFonts == null) {
                         runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
                     }
-                    runPropertiesBaseStyle.RunFonts.EastAsia = value;
+                    if (string.IsNullOrEmpty(value)) {
+                        runPropertiesBaseStyle.RunFonts.EastAsia = null;
+                    } else {
+                        runPropertiesBaseStyle.RunFonts.EastAsia = value;
+                    }
                     runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
@@ -409,7 +417,11 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.RunFonts == null) {
                         runPropertiesBaseStyle.RunFonts = new RunFonts() { AsciiTheme = ThemeFontValues.MinorHighAnsi, HighAnsiTheme = ThemeFontValues.MinorHighAnsi, EastAsiaTheme = ThemeFontValues.MinorHighAnsi, ComplexScriptTheme = ThemeFontValues.MinorBidi };
                     }
-                    runPropertiesBaseStyle.RunFonts.ComplexScript = value;
+                    if (string.IsNullOrEmpty(value)) {
+                        runPropertiesBaseStyle.RunFonts.ComplexScript = null;
+                    } else {
+                        runPropertiesBaseStyle.RunFonts.ComplexScript = value;
+                    }
                     runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
                     throw new Exception("Could not set font family. Styles not found.");
