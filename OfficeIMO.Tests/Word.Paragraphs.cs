@@ -18,6 +18,7 @@ namespace OfficeIMO.Tests {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Blue;
 
+                // set font family sets it for FontFamily, FontFamilyEastAsia, FontFamilyHighAnsi and FontFamilyComplexScript
                 paragraph.SetBold().SetFontFamily("Tahoma");
                 paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
@@ -27,6 +28,39 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
                 Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyEastAsia == "Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == "Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyComplexScript == "Tahoma");
+
+                paragraph.FontFamilyEastAsia = "Arial";
+
+                Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyEastAsia == "Arial");
+                Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == "Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyComplexScript == "Tahoma");
+
+                paragraph.FontFamilyHighAnsi = "Calibri";
+
+                Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyEastAsia == "Arial");
+                Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == "Calibri");
+                Assert.True(document.Paragraphs[0].FontFamilyComplexScript == "Tahoma");
+
+                paragraph.FontFamilyEastAsia = null;
+
+                Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyEastAsia == null);
+                Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == "Calibri");
+                Assert.True(document.Paragraphs[0].FontFamilyComplexScript == "Tahoma");
+
+                paragraph.FontFamilyEastAsia = null;
+                paragraph.FontFamilyComplexScript = null;
+                paragraph.FontFamilyHighAnsi = null;
+
+                Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
+                Assert.True(document.Paragraphs[0].FontFamilyEastAsia == null);
+                Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == null);
+                Assert.True(document.Paragraphs[0].FontFamilyComplexScript == null);
 
                 Assert.True(document.Paragraphs[1].ColorHex == SixLabors.ImageSharp.Color.Yellow.ToHexColor(), "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
                 Assert.True(document.Paragraphs[1].Color == SixLabors.ImageSharp.Color.Yellow, "2nd paragraph color should be " + SixLabors.ImageSharp.Color.Yellow.ToHexColor() + " Was: " + document.Paragraphs[1].Color);
