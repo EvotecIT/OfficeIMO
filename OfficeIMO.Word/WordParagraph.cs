@@ -207,11 +207,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordTabChar TabChar {
+            get {
+                if (_run != null) {
+                    var tabChar = _run.ChildElements.OfType<TabChar>().FirstOrDefault();
+                    if (tabChar != null) {
+                        return new WordTabChar(_document, _paragraph, _run);
+                    }
+                }
+
+                return null;
+            }
+        }
+
         public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
             this._document = document;
 
             if (newParagraph) {
-
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(new ParagraphProperties());
 
@@ -219,6 +231,16 @@ namespace OfficeIMO.Word {
                     this._run = new Run();
                     this._paragraph.AppendChild(_run);
                 }
+            }
+        }
+
+        internal WordParagraph(WordDocument document, Paragraph paragraph, bool newRun = true) {
+            this._document = document;
+            this._paragraph = paragraph;
+
+            if (newRun) {
+                this._run = new Run();
+                this._paragraph.AppendChild(_run);
             }
         }
 
@@ -399,13 +421,23 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordTab> TabStops {
+        public bool IsTabChar {
             get {
-                List<WordTab> list = new List<WordTab>();
+                if (this.TabChar != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public List<WordTabStop> TabStops {
+            get {
+                List<WordTabStop> list = new List<WordTabStop>();
                 if (_paragraph != null && _paragraphProperties != null) {
                     if (_paragraphProperties.Tabs != null) {
                         foreach (TabStop tab in _paragraphProperties.Tabs) {
-                            list.Add(new WordTab(this, tab));
+                            list.Add(new WordTabStop(this, tab));
                         }
                     }
                 }
