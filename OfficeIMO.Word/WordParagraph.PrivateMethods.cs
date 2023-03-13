@@ -174,28 +174,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void ParseTextForOpenXml(Run run, string text) {
-            //string[] newLineArray = { Environment.NewLine };
-            string[] newLineArray = { Environment.NewLine, "\n", "\r\n", "\n\r" };
-            string[] textArray = text.Split(newLineArray, StringSplitOptions.None);
-
-            bool first = true;
-
-            foreach (string line in textArray) {
-                if (!first) {
-                    run.Append(new Break());
-                }
-
-                first = false;
-
-                Text txt = new Text {
-                    Text = line
-                };
-
-                run.Append(txt);
-            }
-        }
-
         private List<string> ConvertStringToList(string text) {
             string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
             string[] textSplit = text.Split(splitStrings, StringSplitOptions.RemoveEmptyEntries);
