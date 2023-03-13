@@ -16,18 +16,18 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.Paragraphs.Count);
 
-                Console.WriteLine(document.Paragraphs[1].IsTabChar);
-                Console.WriteLine(document.Paragraphs[2].IsTabChar);
+                Console.WriteLine(document.Paragraphs[1].IsTab);
+                Console.WriteLine(document.Paragraphs[2].IsTab);
 
-                Console.WriteLine(paragraph1.IsTabChar);
+                Console.WriteLine(paragraph1.IsTab);
 
                 var paragraph2 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER").AddTab();
 
                 Console.WriteLine(document.Paragraphs.Count);
 
-                Console.WriteLine(paragraph2.IsTabChar);
+                Console.WriteLine(paragraph2.IsTab);
 
-                paragraph2.TabChar.Remove();
+                paragraph2.Tab.Remove();
                 document.Save(openWord);
             }
         }
