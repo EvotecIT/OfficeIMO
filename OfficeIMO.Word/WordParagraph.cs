@@ -207,7 +207,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordTabChar TabChar {
+        public WordTabChar Tab {
             get {
                 if (_run != null) {
                     var tabChar = _run.ChildElements.OfType<TabChar>().FirstOrDefault();
@@ -421,9 +421,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public bool IsTabChar {
+        public bool IsTab {
             get {
-                if (this.TabChar != null) {
+                if (this.Tab != null) {
                     return true;
                 }
 
