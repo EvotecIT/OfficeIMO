@@ -283,10 +283,27 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        public WordTab AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
-            var wordTab = new WordTab(this);
+        /// <summary>
+        /// Provides ability for configuration of Tabs in a paragraph
+        /// by adding one or more TabStops
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="alignment"></param>
+        /// <param name="leader"></param>
+        /// <returns></returns>
+        public WordTabStop AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+            var wordTab = new WordTabStop(this);
             wordTab.AddTab(position, alignment, leader);
             return wordTab;
+        }
+
+        /// <summary>
+        /// Adds a Tab to a paragraph
+        /// </summary>
+        /// <returns></returns>
+        public WordParagraph AddTab() {
+            var wordParagraph = WordTabChar.AddTab(this._document, this);
+            return wordParagraph;
         }
     }
 }

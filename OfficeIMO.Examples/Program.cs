@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
             BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
             BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
+            BasicDocument.Example_BasicWordWithTabs(folderPath, false);
 
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
