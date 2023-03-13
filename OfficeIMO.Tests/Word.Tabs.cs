@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].IsTab == true);
                 Assert.True(document.Paragraphs[2].IsTab == true);
                 Assert.True(document.Sections[0].ParagraphsTabStops.Count == 0);
-                Assert.True(document.Sections[0].ParagraphsTabs.Count == 0);
+                Assert.True(document.Sections[0].ParagraphsTabs.Count == 2);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabs.docx"))) {
