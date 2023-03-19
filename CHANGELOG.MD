@@ -5,9 +5,11 @@
 * Add AddParagraph() and AddParagraph(string text) to TableCell by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/115
 * Add additional example for Fields by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/122
 * Add Tab Stops to Word Paragraphs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/117
-* **[Possibly breaking change]** Set HighAnsi, EastAsia and ComplexScript at the same time as FontFamily by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/125
 * Add support for Tabs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/128
 * Added additional custom properties handling by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/132
+
+### Possibly breaking change
+- Set HighAnsi, EastAsia and ComplexScript at the same time as FontFamily by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/125
 
 **Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.8...v0.4.9
 
