@@ -131,6 +131,4 @@ namespace OfficeIMO.Word {
             }
         }
     }
-
-}
 }
