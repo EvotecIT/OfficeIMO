@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml.Office.CustomUI;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Tabs = DocumentFormat.OpenXml.Wordprocessing.Tabs;
 
 namespace OfficeIMO.Word {
-    public class WordTab {
+    public class WordTabStop {
 
         private WordParagraph _paragraph { get; set; }
 
@@ -49,16 +45,16 @@ namespace OfficeIMO.Word {
         }
 
 
-        public WordTab(WordParagraph wordParagraph) {
+        public WordTabStop(WordParagraph wordParagraph) {
             _paragraph = wordParagraph;
         }
 
-        public WordTab(WordParagraph wordParagraph, TabStop tab) {
+        public WordTabStop(WordParagraph wordParagraph, TabStop tab) {
             _paragraph = wordParagraph;
             _tabStop = tab;
         }
 
-        internal WordTab AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+        internal WordTabStop AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
             TabStop tabStop1 = new TabStop() { Val = alignment, Leader = leader, Position = position };
             _tabs.Append(tabStop1);
             _tabStop = tabStop1;

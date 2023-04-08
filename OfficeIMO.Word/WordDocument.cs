@@ -105,6 +105,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsTabs {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsTabs);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsTabStops {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsTabStops);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsFields {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -282,6 +304,17 @@ namespace OfficeIMO.Word {
                 List<WordHyperLink> list = new List<WordHyperLink>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.HyperLinks);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordTabChar> TabChars {
+            get {
+                List<WordTabChar> list = new List<WordTabChar>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Tabs);
                 }
 
                 return list;

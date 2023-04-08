@@ -34,6 +34,10 @@ namespace OfficeIMO.Word {
             return newWordParagraph;
         }
 
+        public void AddHeadersAndFooters() {
+            WordHeadersAndFooters.AddHeadersAndFooters(this);
+        }
+
         public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
