@@ -19,7 +19,8 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
+            //return AddParagraph().SetText(text);
+            return AddParagraph().AddText(text);
         }
 
         public WordParagraph AddPageBreak() {
