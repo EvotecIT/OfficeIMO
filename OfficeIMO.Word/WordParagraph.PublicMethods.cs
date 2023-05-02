@@ -305,5 +305,25 @@ namespace OfficeIMO.Word {
             var wordParagraph = WordTabChar.AddTab(this._document, this);
             return wordParagraph;
         }
+
+        public WordChart AddBarChart() {
+            var barChart = WordBarChart.AddBarChart(this._document, this);
+            return barChart;
+        }
+
+        public WordChart AddLineChart() {
+            var lineChart = WordLineChart.AddLineChart(this._document, this);
+            return lineChart;
+        }
+
+        public WordBarChart3D AddBarChart3D() {
+            var barChart = WordBarChart3D.AddBarChart3D(this._document, this);
+            return barChart;
+        }
+
+        public WordChart AddPieChart() {
+            var pieChart = WordPieChart.AddPieChart(this._document, this);
+            return pieChart;
+        }
     }
 }
