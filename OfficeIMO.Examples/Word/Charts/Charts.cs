@@ -18,7 +18,6 @@ namespace OfficeIMO.Examples.Word {
                     "Food", "Housing", "Mix", "Data"
                 };
 
-
                 var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
 
                 // adding charts to document
@@ -60,7 +59,6 @@ namespace OfficeIMO.Examples.Word {
 
 
                 // adding charts to paragraphs directly
-
                 var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
                 var barChart3 = paragraph.AddBarChart();
                 barChart3.AddCategories(categories);
@@ -77,9 +75,9 @@ namespace OfficeIMO.Examples.Word {
                 barChart5.RoundedCorners = true;
 
                 var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
-                var pieChart1 = document.AddPieChart();
-                pieChart.AddCategories(categories);
-                pieChart.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+                var pieChart1 = paragraph2.AddPieChart();
+                pieChart1.AddCategories(categories);
+                pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
 
                 var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
                 var lineChart3 = paragraph3.AddLineChart();
