@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -179,7 +179,6 @@ namespace OfficeIMO.Word {
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.TextDirection != null) {
                         return _paragraphProperties.TextDirection.Val;
                     } else {
@@ -215,8 +214,7 @@ namespace OfficeIMO.Word {
                 } else {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
-
-                spacing.After = value.ToString();
+                spacing.LineRule = value;
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
