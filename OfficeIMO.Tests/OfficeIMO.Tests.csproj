@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
@@ -8,16 +8,16 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="AutoFixture" Version="4.17.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+        <PackageReference Include="AutoFixture" Version="4.18.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.1" />
         <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.4.0" Condition="$([MSBuild]::IsOsPlatform('OSX'))" />
         <PackageReference Include="SemanticComparison" Version="4.1.0" />
-        <PackageReference Include="xunit" Version="2.4.2" />
-        <PackageReference Include="coverlet.collector" Version="3.2.0">
+        <PackageReference Include="xunit" Version="2.5.0-pre.22" />
+        <PackageReference Include="coverlet.collector" Version="6.0.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0-pre.15">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
