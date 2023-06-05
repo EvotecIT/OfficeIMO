@@ -6,6 +6,7 @@
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
             net6.0;net7.0</TargetFrameworks>
         <IsPackable>false</IsPackable>
+        <TargetFrameworks>net472;net48;net6.0;net7.0</TargetFrameworks>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="AutoFixture" Version="4.18.0" />
