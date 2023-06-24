@@ -64,9 +64,24 @@ namespace OfficeIMO.Tests {
                 lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
                 lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
+                Assert.True(paragraph4.IsChart == false);
+
+                Assert.True(document.Paragraphs[7].IsChart == true);
+                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == false);
+                lineChart4.RoundedCorners = true;
+                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == true);
+
+                document.Paragraphs[7].Chart.RoundedCorners = false;
+                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == false);
+
+                Assert.True(lineChart4.RoundedCorners == false);
+
+                Assert.True(document.Sections[0].ParagraphsCharts.Count == 3);
                 Assert.True(document.Sections[0].Charts.Count == 3);
                 Assert.True(document.Sections[1].Charts.Count == 1);
+                Assert.True(document.Sections[1].ParagraphsCharts.Count == 1);
                 Assert.True(document.Charts.Count == 4);
+                Assert.True(document.ParagraphsCharts.Count == 4);
 
                 document.Save(false);
             }
