@@ -37,7 +37,7 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  DotNet3Version: '3.x'
+  #DotNet3Version: '3.x'
   DotNet6Version: '6.x'
   DotNet7Version: '7.x'
   MSBuildArgs: '"/p:Platform=$(BuildPlatform)" "/p:Configuration=$(BuildConfiguration)" "/BinaryLogger:$(Build.SourcesDirectory)\$(ArtifactsDirectoryName)\msbuild.binlog"'
@@ -66,12 +66,12 @@ steps:
     version: '7.0.x'
     includePreviewVersions: true
 
-- task: UseDotNet@2
-  displayName: Install .NET 3.1
-  inputs:
-    version: '3.1.x'
-    packageType: sdk
-    includePreviewVersions: false
+#- task: UseDotNet@2
+#  displayName: Install .NET 3.1
+#  inputs:
+#    version: '3.1.x'
+#    packageType: sdk
+#    includePreviewVersions: false
 
 # Add a Command To List the Current .NET SDKs (Sanity Check)
 - task: CmdLine@2
@@ -107,13 +107,13 @@ steps:
 #     projects: '**/*.Tests.csproj'
 #     testRunTitle: 'macOS Test Run $(buildConfiguration), CPU: $(buildPlatform)'
 
-- task: DotNetCoreCLI@2
-  displayName: 'Run Unit Tests (.NET 3.1)'
-  inputs:
-    command: 'test'
-    arguments: '--framework netcoreapp3.1 /noautorsp'
-    testRunTitle: 'macOS .NET 3.1'
-  condition: succeededOrFailed()
+#- task: DotNetCoreCLI@2
+#  displayName: 'Run Unit Tests (.NET 3.1)'
+#  inputs:
+#    command: 'test'
+#    arguments: '--framework netcoreapp3.1 /noautorsp'
+#    testRunTitle: 'macOS .NET 3.1'
+#  condition: succeededOrFailed()
 
 - task: DotNetCoreCLI@2
   displayName: 'Run Unit Tests (.NET 6.0)'

@@ -1,3 +1,15 @@
+## 0.5.0 - 2023.06.05
+### What's Changed
+* Add example to show margins and font family by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/140
+* Add additional example by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/141
+* Downgrade DocumentFormat.OpenXml by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/135
+* Add static method for AddHeadersAndFooters() by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/134
+* Add ability to use NewLines ("\r\n"/Environment.NewLine) in AddParagraph, AddText by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/127
+* Fix for Incorrectly setting the LineSpacingRule property for paragraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/147
+* Removed .NET Core 3.1 from Tests
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.9...v0.5.0
+
 ## 0.4.9 - 2023.03.19
 ### What's Changed
 * Add very basic find and replace functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/108
