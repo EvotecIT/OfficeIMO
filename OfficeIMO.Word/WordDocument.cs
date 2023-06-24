@@ -171,6 +171,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsCharts {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsCharts);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -298,6 +309,17 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+
+        public List<WordChart> Charts {
+            get {
+                List<WordChart> list = new List<WordChart>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Charts);
+                }
+                return list;
+            }
+        }
+
 
         public List<WordHyperLink> HyperLinks {
             get {

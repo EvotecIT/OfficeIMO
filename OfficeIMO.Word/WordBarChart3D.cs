@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -317,5 +317,7 @@ namespace OfficeIMO.Word {
         }
 
 
+        public WordBarChart3D(WordDocument document, Paragraph paragraph, Drawing drawing) : base(document, paragraph, drawing) {
+        }
     }
 }

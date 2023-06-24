@@ -134,18 +134,6 @@ namespace OfficeIMO.Word {
                 }
 
                 return null;
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //    }
-                //}
-                //return null;
             }
             set {
                 if (_Image.Inline != null) {
@@ -154,17 +142,6 @@ namespace OfficeIMO.Word {
                     var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
                     anchoDocPropertiesr.Description = value;
                 }
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //    }
-                //}
             }
         }
 

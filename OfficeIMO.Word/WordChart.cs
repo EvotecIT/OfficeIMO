@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -22,6 +22,11 @@ namespace OfficeIMO.Word {
         protected static ChartPart _chartPart;
         protected static Drawing _drawing;
         protected static Chart _chart;
+
+        public WordChart(WordDocument document, Paragraph paragraph, Drawing drawing) {
+            _document = document;
+            _drawing = drawing;
+        }
 
         private string _id {
             get {

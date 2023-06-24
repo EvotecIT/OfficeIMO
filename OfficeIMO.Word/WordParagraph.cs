@@ -2,7 +2,18 @@ using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
+using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
+using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
+using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
+using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
+using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
+using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -71,18 +82,29 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
-        //internal WordParagraph _linkedParagraph;
-        //internal WordSection _section;
 
         public WordImage Image {
             get {
                 if (_run != null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
                     if (drawing != null) {
-                        return new WordImage(_document, drawing);
+                        if (drawing.Inline != null) {
+                            if (drawing.Inline.Graphic != null) {
+                                if (drawing.Inline.Graphic.GraphicData != null) {
+                                    var picture = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().FirstOrDefault();
+                                    if (picture != null) {
+                                        return new WordImage(_document, drawing);
+                                    }
+                                }
+                            }
+                        } else if (drawing.Anchor != null) {
+                            var anchorGraphic = drawing.Anchor.OfType<Graphic>().FirstOrDefault();
+                            if (anchorGraphic != null) {
+                                return new WordImage(_document, drawing);
+                            }
+                        }
                     }
                 }
-
                 return null;
             }
         }
@@ -351,6 +373,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordChart Chart {
+            get {
+                if (_run != null) {
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        if (drawing.Inline != null) {
+                            if (drawing.Inline.Graphic != null) {
+                                if (drawing.Inline.Graphic.GraphicData != null) {
+                                    var chart = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().FirstOrDefault();
+                                    if (chart != null) {
+                                        return new WordChart(_document, _paragraph, drawing);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
         public WordHyperLink Hyperlink {
             get {
                 if (_hyperlink != null) {
@@ -427,6 +470,15 @@ namespace OfficeIMO.Word {
                     return true;
                 }
 
+                return false;
+            }
+        }
+
+        public bool IsChart {
+            get {
+                if (this.Chart != null) {
+                    return true;
+                }
                 return false;
             }
         }
