@@ -44,12 +44,32 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain Bookmarks
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
         }
 
+        /// <summary>
+        /// Provies a list of paragraphs that contain Equations
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
+        }
+
+        /// <summary>
+        /// Provies a list of paragraphs that contain Tabs
+        /// </summary>
+        public List<WordParagraph> ParagraphsTabs {
+            get { return Paragraphs.Where(p => p.IsTab).ToList(); }
+        }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain TabStops
+        /// </summary>
+        public List<WordParagraph> ParagraphsTabStops {
+            get { return Paragraphs.Where(p => p.TabStops.Count > 0).ToList(); }
         }
 
         /// <summary>
@@ -129,6 +149,17 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsHyperLink).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Hyperlink);
+                }
+                return list;
+            }
+        }
+
+        public List<WordTabChar> Tabs {
+            get {
+                List<WordTabChar> list = new List<WordTabChar>();
+                var paragraphs = Paragraphs.Where(p => p.IsTab).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Tab);
                 }
                 return list;
             }

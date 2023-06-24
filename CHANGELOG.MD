@@ -1,3 +1,30 @@
+## 0.5.0 - 2023.06.05
+### What's Changed
+* Add example to show margins and font family by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/140
+* Add additional example by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/141
+* Downgrade DocumentFormat.OpenXml by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/135
+* Add static method for AddHeadersAndFooters() by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/134
+* Add ability to use NewLines ("\r\n"/Environment.NewLine) in AddParagraph, AddText by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/127
+* Fix for Incorrectly setting the LineSpacingRule property for paragraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/147
+* Removed .NET Core 3.1 from Tests
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.9...v0.5.0
+
+## 0.4.9 - 2023.03.19
+### What's Changed
+* Add very basic find and replace functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/108
+* Fixes Color to return Null instead throw an error by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/114
+* Add AddParagraph() and AddParagraph(string text) to TableCell by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/115
+* Add additional example for Fields by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/122
+* Add Tab Stops to Word Paragraphs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/117
+* Add support for Tabs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/128
+* Added additional custom properties handling by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/132
+
+### Possibly breaking change
+- Set HighAnsi, EastAsia and ComplexScript at the same time as FontFamily by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/125
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.4.8...v0.4.9
+
 ## 0.4.8 - 2023.02.08
 
 ### What's Changed
