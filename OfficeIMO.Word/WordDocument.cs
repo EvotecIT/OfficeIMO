@@ -299,6 +299,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordChart> Charts {
+            get {
+                List<WordChart> list = new List<WordChart>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Charts);
+                }
+                return list;
+            }
+        }
+
+
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
