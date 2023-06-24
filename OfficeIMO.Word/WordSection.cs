@@ -86,12 +86,27 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsCharts {
+            get { return Paragraphs.Where(p => p.IsChart).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.PageBreak);
+                }
+                return list;
+            }
+        }
+
+        public List<WordChart> Charts {
+            get {
+                List<WordChart> list = new List<WordChart>();
+                var paragraphs = Paragraphs.Where(p => p.IsChart).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Chart);
                 }
                 return list;
             }
