@@ -35,20 +35,47 @@ namespace OfficeIMO.Tests {
                 Assert.True(barChart1.BarDirection == BarDirectionValues.Column);
                 Assert.True(document.Paragraphs.Count == 3);
 
+                Assert.True(document.Sections[0].Charts.Count == 1);
+                Assert.True(document.Charts.Count == 1);
+
                 var lineChart = paragraphToTest.AddLineChart();
                 lineChart.AddChartAxisX(categories);
                 lineChart.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
                 lineChart.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
                 lineChart.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                Assert.True(document.Sections[0].Charts.Count == 1);
-                Assert.True(document.Charts.Count == 1);
+                Assert.True(document.Sections[0].Charts.Count == 2);
+                Assert.True(document.Charts.Count == 2);
+
+                var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
+                var pieChart1 = paragraph2.AddPieChart();
+                pieChart1.AddCategories(categories);
+                pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+
+                Assert.True(document.Sections[0].Charts.Count == 3);
+                Assert.True(document.Charts.Count == 3);
+
+                document.AddSection();
+
+                var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
+                var lineChart4 = paragraph4.AddLineChart();
+                lineChart4.AddChartAxisX(categories);
+                lineChart4.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+                Assert.True(document.Sections[0].Charts.Count == 3);
+                Assert.True(document.Sections[1].Charts.Count == 1);
+                Assert.True(document.Charts.Count == 4);
 
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
+                Assert.True(document.Sections[0].Charts.Count == 3);
+                Assert.True(document.Sections[1].Charts.Count == 1);
+                Assert.True(document.Charts.Count == 4);
 
                 document.Save(false);
             }
