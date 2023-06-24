@@ -19,7 +19,8 @@ namespace OfficeIMO.Word {
         }
 
         public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
+            //return AddParagraph().SetText(text);
+            return AddParagraph().AddText(text);
         }
 
         public WordParagraph AddPageBreak() {
@@ -31,6 +32,10 @@ namespace OfficeIMO.Word {
 
             this._document.Body.Append(newWordParagraph._paragraph);
             return newWordParagraph;
+        }
+
+        public void AddHeadersAndFooters() {
+            WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {

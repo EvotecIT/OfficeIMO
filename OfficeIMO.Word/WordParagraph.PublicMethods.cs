@@ -12,10 +12,10 @@ namespace OfficeIMO.Word {
         /// <param name="text"></param>
         /// <returns></returns>
         public WordParagraph AddText(string text) {
-            WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
-            wordParagraph.Text = text;
-            this._paragraph.Append(wordParagraph._run);
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
+            WordParagraph wordParagraph = ConvertToTextWithBreaks(text);
+            //WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+            //wordParagraph.Text = text;
+            //this._paragraph.Append(wordParagraph._run);
             return wordParagraph;
         }
 
