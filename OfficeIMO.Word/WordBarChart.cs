@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
@@ -22,28 +23,11 @@ namespace OfficeIMO.Word {
             var oChart = GenerateChart();
             oChart = GenerateChartBar(oChart);
 
-            // this is data for bar chart
-            //List<string> categories = new List<string>() {
-            //    "Food", "Housing", "Mix", "Data"
-            //};
-            //BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<int>() { 15, 20, 30, 150 });
-            //BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<int>() { 20, 20, 300, 150 });
-            //BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<int>() { 13, 20, 230, 150 });
-
-            //BarChartSeries barChartSeries2 = AddBarChartSeries(1, "USA", Color.AliceBlue, categories, new List<object>() { 15 });
-            //BarChartSeries barChartSeries3 = AddBarChartSeries(2, "Brazil", Color.Brown, categories, new List<object>() { 20 });
-            //BarChartSeries barChartSeries1 = AddBarChartSeries(0, "Poland", Color.Green, categories, new List<object>() { 13 });
-
-
-            //var barChart = oChart.PlotArea.GetFirstChild<BarChart>();
-            //barChart.Append(barChartSeries1);
-            //barChart.Append(barChartSeries2);
-            //barChart.Append(barChartSeries3);
-
-            // inserts chart into document
             InsertChart(wordDocument, paragraph, oChart, roundedCorners);
 
-            return new WordChart();
+            var drawing = paragraph._paragraph.OfType<Drawing>().FirstOrDefault();
+
+            return new WordChart(_document, _paragraph._paragraph, drawing);
         }
 
         internal static BarChart CreateBarChart(BarDirectionValues barDirection = BarDirectionValues.Bar) {
@@ -119,6 +103,10 @@ namespace OfficeIMO.Word {
             chart.PlotArea.Append(valueAxis1);
             chart.PlotArea.Append(barChart1);
             return chart;
+        }
+
+        public WordBarChart(WordDocument document, Paragraph paragraph, Drawing drawing) : base(document, paragraph, drawing) {
+
         }
     }
 }
