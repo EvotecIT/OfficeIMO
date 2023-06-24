@@ -1,10 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
-            net472;net48;netcoreapp3.1;net6.0;net7.0</TargetFrameworks>
+            net472;net48;net6.0;net7.0
+        </TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
-            net6.0;net7.0</TargetFrameworks>
+            net6.0;net7.0
+        </TargetFrameworks>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>

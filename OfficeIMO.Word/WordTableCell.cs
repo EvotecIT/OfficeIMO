@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,85 +13,6 @@ namespace OfficeIMO.Word {
         internal TableCell _tableCell;
         internal TableCellProperties _tableCellProperties;
 
-        //private List<WordParagraph> GetParagraphs(IEnumerable<Paragraph> paragraphs) {
-        //    var list = new List<WordParagraph>();
-        //    foreach (Paragraph paragraph in paragraphs) {
-        //        WordParagraph wordParagraph = new WordParagraph(_document, paragraph);
-
-        //        int count = 0;
-        //        var listRuns = paragraph.ChildElements.OfType<Run>();
-        //        if (listRuns.Any()) {
-        //            foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-        //                RunProperties runProperties = run.RunProperties;
-        //                Text text = run.ChildElements.OfType<Text>().FirstOrDefault();
-        //                Drawing drawing = run.ChildElements.OfType<Drawing>().FirstOrDefault();
-
-        //                WordImage newImage = null;
-        //                if (drawing != null) {
-        //                    newImage = new WordImage(_document, drawing);
-        //                }
-
-        //                if (count > 0) {
-        //                    wordParagraph = new WordParagraph(_document);
-        //                    wordParagraph._document = _document;
-        //                    wordParagraph._run = run;
-        //                    wordParagraph._text = text;
-        //                    wordParagraph._paragraph = paragraph;
-        //                    wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-        //                    wordParagraph._runProperties = runProperties;
-        //                    //wordParagraph._section = section;
-
-        //                    wordParagraph.Image = newImage;
-
-        //                    if (wordParagraph.IsPageBreak) {
-        //                        // document._currentSection.PageBreaks.Add(wordParagraph);
-        //                    }
-
-        //                    if (wordParagraph.IsListItem) {
-        //                        //LoadListToDocument(document, wordParagraph);
-        //                    }
-
-        //                    list.Add(wordParagraph);
-        //                } else {
-        //                    // wordParagraph._document = document;
-        //                    wordParagraph._run = run;
-        //                    wordParagraph._text = text;
-        //                    wordParagraph._paragraph = paragraph;
-        //                    wordParagraph._paragraphProperties = paragraph.ParagraphProperties;
-        //                    wordParagraph._runProperties = runProperties;
-        //                    // wordParagraph._section = section;
-
-        //                    if (newImage != null) {
-        //                        wordParagraph.Image = newImage;
-        //                    }
-
-        //                    // this is to prevent adding Tables Paragraphs to section Paragraphs
-        //                    //if (section != null) {
-        //                    // section.Paragraphs.Add(this);
-        //                    if (wordParagraph.IsPageBreak) {
-        //                        // section.PageBreaks.Add(this);
-        //                    }
-        //                    //}
-
-        //                    if (wordParagraph.IsListItem) {
-        //                        //LoadListToDocument(document, this);
-        //                    }
-
-        //                    list.Add(wordParagraph);
-        //                }
-
-        //                count++;
-        //            }
-        //        } else {
-        //            // add empty word paragraph
-        //            list.Add(wordParagraph);
-        //        }
-        //    }
-
-        //    return list;
-        //}
-
-        //public List<WordParagraph> Paragraphs => GetParagraphs(_tableCell.ChildElements.OfType<Paragraph>());
         public List<WordParagraph> Paragraphs => WordSection.ConvertParagraphsToWordParagraphs(_document, _tableCell.ChildElements.OfType<Paragraph>());
         private readonly WordTable _wordTable;
         private readonly WordTableRow _wordTableRow;
@@ -173,6 +94,28 @@ namespace OfficeIMO.Word {
                 }
 
             }
+        }
+
+        /// <summary>
+        /// Add paragraph to the table cell
+        /// </summary>
+        /// <param name="paragraph"></param>
+        /// <returns></returns>
+        public WordParagraph AddParagraph(WordParagraph paragraph = null) {
+            if (paragraph == null) {
+                paragraph = new WordParagraph();
+            }
+            _tableCell.Append(paragraph._paragraph);
+            return paragraph;
+        }
+
+        /// <summary>
+        /// Add paragraph to the table cell with text
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public WordParagraph AddParagraph(string text) {
+            return AddParagraph().SetText(text);
         }
 
         /// <summary>

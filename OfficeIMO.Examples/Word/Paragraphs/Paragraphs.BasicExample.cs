@@ -1,7 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using SixLabors.ImageSharp;
 using Color = SixLabors.ImageSharp.Color;
 
 internal static partial class Paragraphs {
@@ -13,9 +12,11 @@ internal static partial class Paragraphs {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
             paragraph.ParagraphAlignment = JustificationValues.Center;
             paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+            paragraph.AddText(" This is continutation in the same line");
+            paragraph.AddBreak(BreakValues.TextWrapping);
+            paragraph.AddText(" This is continuation, in another line").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
-            paragraph.AddText(" This is continuation").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
-
+            var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(BreakValues.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 
             Console.WriteLine("+ Color: " + paragraph.Color);
             Console.WriteLine("+ Color 0: " + document.Paragraphs[0].Color);

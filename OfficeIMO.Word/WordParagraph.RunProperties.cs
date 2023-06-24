@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
@@ -227,9 +228,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color Color {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + ColorHex); }
-            set { this.ColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? Color {
+            get {
+                if (ColorHex == "") {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+
+            }
+            set {
+                if (value != null) {
+                    this.ColorHex = value.Value.ToHexColor();
+                }
+            }
         }
 
         public string ColorHex {
@@ -349,6 +360,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// FontFamily gets and sets the FontFamily of a WordParagraph.
+        /// To make sure that FontFamily works correctly on special characters
+        /// we change the RunFonts.Ascii and RunFonts.HighAnsi, EastAsia and ComplexScript properties
+        /// If you want to set different FontFamily for HighAnsi, EastAsia and ComplexScript
+        /// please use FontFamilyHighAnsi, FontFamilyEastAsia or FontFamilyComplexScript
+        /// in proper order (to overwrite given FontFamily)
+        /// </summary>
         public string FontFamily {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -367,9 +386,111 @@ namespace OfficeIMO.Word {
                     VerifyRunProperties();
                     runProperties = _runProperties;
                 }
-                runProperties.RunFonts = new RunFonts {
-                    Ascii = value
-                };
+
+                if (runProperties.RunFonts == null) {
+                    runProperties.RunFonts = new RunFonts { };
+                }
+
+                if (string.IsNullOrEmpty(value)) {
+                    runProperties.RunFonts.Ascii = null;
+                } else {
+                    runProperties.RunFonts.Ascii = value;
+                    // we set the same font for HighAnsi as well, because in 90% cases it's required for special characters
+                    // and it should be the same
+                    runProperties.RunFonts.HighAnsi = value;
+                    runProperties.RunFonts.ComplexScript = value;
+                    runProperties.RunFonts.EastAsia = value;
+                }
+            }
+        }
+
+        public string FontFamilyHighAnsi {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.RunFonts != null) {
+                    return runProperties.RunFonts.HighAnsi;
+                } else {
+                    return null;
+                }
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (runProperties.RunFonts == null) {
+                    runProperties.RunFonts = new RunFonts { };
+                }
+
+                if (string.IsNullOrEmpty(value)) {
+                    runProperties.RunFonts.HighAnsi = null;
+                } else {
+                    runProperties.RunFonts.HighAnsi = value;
+                }
+            }
+        }
+
+        public string FontFamilyEastAsia {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.RunFonts != null) {
+                    return runProperties.RunFonts.EastAsia;
+                } else {
+                    return null;
+                }
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (runProperties.RunFonts == null) {
+                    runProperties.RunFonts = new RunFonts { };
+                }
+
+                if (string.IsNullOrEmpty(value)) {
+                    runProperties.RunFonts.EastAsia = null;
+                } else {
+                    runProperties.RunFonts.EastAsia = value;
+                }
+            }
+        }
+
+        public string FontFamilyComplexScript {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.RunFonts != null) {
+                    return runProperties.RunFonts.ComplexScript;
+                } else {
+                    return null;
+                }
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+                if (runProperties.RunFonts == null) {
+                    runProperties.RunFonts = new RunFonts { };
+                }
+
+                if (string.IsNullOrEmpty(value)) {
+                    runProperties.RunFonts.ComplexScript = null;
+                } else {
+                    runProperties.RunFonts.ComplexScript = value;
+                }
             }
         }
     }

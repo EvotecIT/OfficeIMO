@@ -1,18 +1,12 @@
-using System;
 using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
-using Color = SixLabors.ImageSharp.Color;
-using Comments = OfficeIMO.Examples.Word.Comments;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
         private static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
-            } else {
-                // Directory.Delete(path, false);
-                // Directory.CreateDirectory(path);
             }
         }
 
@@ -27,12 +21,21 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
+            BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
+            BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
+            BasicDocument.Example_BasicWordWithTabs(folderPath, false);
+            BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
+            BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
+            Paragraphs.Example_BasicTabStops(folderPath, false);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
@@ -123,6 +126,7 @@ namespace OfficeIMO.Examples {
 
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
             Fields.Example_DocumentWithFields(folderPath, false);
+            Fields.Example_DocumentWithFields02(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
