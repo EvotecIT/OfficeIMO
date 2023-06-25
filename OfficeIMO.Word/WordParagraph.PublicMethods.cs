@@ -273,12 +273,12 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle) {
+        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
             return wordTable;
         }
 
-        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle) {
+        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
