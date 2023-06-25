@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1);
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
-                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 111";
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
@@ -69,14 +69,17 @@ namespace OfficeIMO.Tests {
                 paragraph1.AddParagraphAfterSelf();
 
                 var table3 = paragraph1.AddTableAfter(4, 4, WordTableStyle.GridTable1LightAccent1);
-                table3.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document after paragraph";
+                table3.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document after paragraph 1";
+
+                Assert.True(table3.Rows[0].Cells[0].Paragraphs[0].Text == document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text);
 
                 var table4 = paragraph1.AddTableBefore(4, 4, WordTableStyle.GridTable1LightAccent1);
-                table4.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document before paragraph";
+                table4.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the middle of the document before paragraph 1";
 
                 Assert.True(document.Tables.Count == 5);
                 Assert.True(document.Paragraphs.Count == 8);
 
+                Assert.True(table4.Rows[0].Cells[0].Paragraphs[0].Text == document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text);
 
 
                 document.Save(false);
@@ -84,13 +87,27 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAfterBefore.docx"))) {
 
+                Assert.True(document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document before paragraph 1");
+                Assert.True(document.Tables[2].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document after paragraph 1");
+                Assert.True(document.Tables.Count == 5);
 
+                var table0 = document.Paragraphs[0].AddTableBefore(3, 3);
+                table0.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted in the very beginning.";
+
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the very beginning.");
+                Assert.True(document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text == "Test 111");
+                Assert.True(document.Tables[2].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document before paragraph 1");
+                Assert.True(document.Tables[3].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document after paragraph 1");
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAfterBefore.docx"))) {
 
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the very beginning.");
+                Assert.True(document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text == "Test 111");
+                Assert.True(document.Tables[2].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document before paragraph 1");
+                Assert.True(document.Tables[3].Rows[0].Cells[0].Paragraphs[0].Text == "Inserted in the middle of the document after paragraph 1");
 
                 document.Save();
             }
