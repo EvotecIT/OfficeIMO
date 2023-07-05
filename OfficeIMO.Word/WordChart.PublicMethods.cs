@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        public void AddChartPie(string name, List<int> values) {
+        public void AddChartPie<T>(string name, List<T> values) {
             if (_chart != null) {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
         /// <param name="name"></param>
         /// <param name="values"></param>
         /// <param name="color"></param>
-        public void AddChartLine(string name, List<int> values, Color color) {
+        public void AddChartLine<T>(string name, List<T> values, Color color) {
             if (_chart != null) {
                 var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
                 if (lineChart != null) {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public void AddChartBar(string name, List<int> values, Color color) {
+        public void AddChartBar<T>(string name, List<T> values, Color color) {
             if (_chart != null) {
                 var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
                 if (barChart != null) {
@@ -77,5 +77,19 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public void AddLegend(LegendPositionValues legendPosition) {
+            if (_chart != null) {
+                
+                Legend legend = new Legend();
+                LegendPosition postion = new LegendPosition() { Val = legendPosition };
+                Overlay overlay = new Overlay() { Val = false };
+                legend.Append(postion);
+                legend.Append(overlay);
+                _chart.Append(legend);
+
+            }
+        }
+
     }
 }

@@ -64,6 +64,7 @@ namespace OfficeIMO.Word {
         public WordChart AddBarChart() {
             var paragraph = this.AddParagraph();
             var barChart = WordBarChart.AddBarChart(this, paragraph);
+           
             return barChart;
         }
 

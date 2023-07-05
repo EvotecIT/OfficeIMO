@@ -23,6 +23,9 @@ namespace OfficeIMO.Word {
         protected static Drawing _drawing;
         protected static Chart _chart;
 
+
+        private const long EnglishMetricUnitsPerInch = 914400;
+        private const long PixelsPerInch = 96;
         public WordChart(WordDocument document, Paragraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
@@ -103,15 +106,7 @@ namespace OfficeIMO.Word {
             return categoryAxis1;
         }
 
-        internal static Legend AddLegend() {
-            Legend legend1 = new Legend();
-            LegendPosition legendPosition1 = new LegendPosition() { Val = LegendPositionValues.Left };
-            Overlay overlay1 = new Overlay() { Val = false };
-
-            legend1.Append(legendPosition1);
-            legend1.Append(overlay1);
-            return legend1;
-        }
+       
 
         internal static ValueAxis AddValueAxis() {
             ValueAxis valueAxis1 = new ValueAxis();
@@ -170,12 +165,12 @@ namespace OfficeIMO.Word {
             return dataLabels1;
         }
 
-        internal static WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, Chart chart, bool roundedCorners) {
+        internal static WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, Chart chart, bool roundedCorners,int width=600,int height=600) {
             ChartPart part = CreateChartPart(wordDocument, roundedCorners);
             _chartPart = part;
             var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
-            Drawing chartDrawing = CreateChartDrawing(id);
+            Drawing chartDrawing = CreateChartDrawing(id,width,height);
             _drawing = chartDrawing;
 
             var run = new Run();
@@ -206,12 +201,11 @@ namespace OfficeIMO.Word {
             PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
             //Layout layout1 = new Layout();
             //plotArea1.Append(layout1);
-            Legend legend1 = AddLegend();
+            
             PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
             DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
             ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
             chart1.Append(autoTitleDeleted1);
-            chart1.Append(legend1);
             chart1.Append(plotVisibleOnly1);
             chart1.Append(displayBlanksAs1);
             chart1.Append(showDataLabelsOverMaximum1);
@@ -219,7 +213,7 @@ namespace OfficeIMO.Word {
             return chart1;
         }
 
-        internal static Values AddValuesAxisData(List<int> dataList) {
+        internal static Values AddValuesAxisData<T>(List<T> dataList)  {
             Formula formula3 = new Formula() { Text = "" };
             NumberReference numberReference1 = new NumberReference();
             NumberingCache numberingCache1 = new NumberingCache();
@@ -279,12 +273,12 @@ namespace OfficeIMO.Word {
             return stringReference1;
         }
 
-        internal static Drawing CreateChartDrawing(string id) {
+        internal static Drawing CreateChartDrawing(string id,int width=600,int height=600) {
             Drawing drawing1 = new Drawing();
 
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline inline1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline();
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = 4445000L, Cy = 6985000L };
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx =(long)width*EnglishMetricUnitsPerInch/PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = (UInt32Value)2U, Name = "chart" };
 

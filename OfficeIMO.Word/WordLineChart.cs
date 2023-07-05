@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public class WordLineChart : WordChart {
 
-        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false) {
+        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false, int width = 600, int height = 600) {
             _document = wordDocument;
             _paragraph = paragraph;
 
@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
             oChart = GenerateLineChart(oChart);
 
             // inserts chart into document
-            InsertChart(wordDocument, paragraph, oChart, roundedCorners);
+            InsertChart(wordDocument, paragraph, oChart, roundedCorners,width,height);
 
             var drawing = paragraph._paragraph.OfType<Drawing>().FirstOrDefault();
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        internal static LineChartSeries AddLineChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<int> data) {
+        internal static LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
