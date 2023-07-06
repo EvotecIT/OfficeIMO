@@ -68,6 +68,16 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public void AddChartArea<T>(string name, List<T> values, Color color) {
+            if (_chart != null) {
+                var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                if (barChart != null) {
+                    AreaChartSeries areaChartSeries = WordAreaChart.AddAreaChartSeries(this._index, name, color, this.Categories, values);
+                    barChart.Append(areaChartSeries);
+                }
+            }
+        }
         public void AddChartBar(string name, int[] values, Color color) {
             if (_chart != null) {
                 var barChart = _chart.PlotArea.GetFirstChild<BarChart>();

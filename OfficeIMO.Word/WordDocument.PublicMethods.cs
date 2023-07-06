@@ -74,6 +74,12 @@ namespace OfficeIMO.Word {
             return lineChart;
         }
 
+        public WordChart AddAreaChart(string title) {
+            var paragraph = this.AddParagraph();
+            var lineChart = WordAreaChart.AddAreaChart(this, paragraph,title);
+            return lineChart;
+        }
+
         public WordBarChart3D AddBarChart3D() {
             var paragraph = this.AddParagraph();
             var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
