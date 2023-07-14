@@ -445,6 +445,12 @@ namespace OfficeIMO.Word {
             DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
             GenerateDocumentSettingsPart1Content(documentSettingsPart1);
 
+            EndnotesPart endnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<EndnotesPart>("rId4");
+            GenerateEndNotesPart1Content(endnotesPart1);
+
+            FootnotesPart footnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<FootnotesPart>("rId5");
+            GenerateFootNotesPart1Content(footnotesPart1);
+
             //FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId4");
             //GenerateFontTablePart1Content(fontTablePart1);
 
