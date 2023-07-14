@@ -19,6 +19,43 @@ namespace OfficeIMO.Word {
             this._run = run;
         }
 
+        public List<WordParagraph> Paragraphs {
+            get {
+                if (_paragraph != null && _run != null) {
+                    long referenceId = 0;
+                    var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
+                    if (footNoteReference != null) {
+                        referenceId = footNoteReference.Id;
+                    }
+
+                    if (referenceId != 0) {
+                        FootnotesPart footnotesPart = _document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
+                        var footNotes = footnotesPart.Footnotes.ChildElements.OfType<Footnote>().ToList();
+                        foreach (var footNote in footNotes) {
+                            if (footNote != null) {
+                                if (footNote.Id == referenceId.ToString()) {
+                                    return WordSection.ConvertParagraphsToWordParagraphs(_document, footNote.OfType<Paragraph>());
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
+        public long? ReferenceID {
+            get {
+                if (_paragraph != null && _run != null) {
+                    var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
+                    if (footNoteReference != null) {
+                        return footNoteReference.Id;
+                    }
+                }
+                return null;
+            }
+        }
+
         //public void Remove(bool includingParagraph = false) {
         //    if (includingParagraph) {
         //        this._paragraph.Remove();
