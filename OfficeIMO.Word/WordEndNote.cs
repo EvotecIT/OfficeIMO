@@ -10,7 +10,13 @@ namespace OfficeIMO.Word {
     public partial class WordEndNote {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
-        private readonly List<Run> _runs = new List<Run>();
+        private readonly Run _run;
+
+        public WordEndNote(WordDocument document, Paragraph paragraph, Run run) {
+            this._document = document;
+            this._paragraph = paragraph;
+            this._run = run;
+        }
 
         internal static WordParagraph AddEndNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
 
