@@ -90,6 +90,14 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsChart).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsEndNotes {
+            get { return Paragraphs.Where(p => p.IsEndNote).ToList(); }
+        }
+
+        public List<WordParagraph> ParagraphsFootNotes {
+            get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -153,6 +161,28 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsField).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Field);
+                }
+                return list;
+            }
+        }
+
+        public List<WordEndNote> EndNotes {
+            get {
+                List<WordEndNote> list = new List<WordEndNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsEndNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.EndNote);
+                }
+                return list;
+            }
+        }
+
+        public List<WordFootNote> FootNotes {
+            get {
+                List<WordFootNote> list = new List<WordFootNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsFootNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.FootNote);
                 }
                 return list;
             }
