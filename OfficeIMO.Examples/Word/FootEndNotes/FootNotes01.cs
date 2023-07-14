@@ -34,8 +34,23 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
                     .AddText(" continuing").AddFootNote("2nd footnote!");
 
-                document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
+                Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+                Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+                Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+                Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+
+                var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
                     .AddText(" more within paragraph").AddFootNote("4th footnote!");
+
+                Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
+
+                var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+
+                Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
+                Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
+                footNoteParagraphs[1].Bold = true;
 
                 document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
 
@@ -44,6 +59,12 @@ namespace OfficeIMO.Examples.Word {
                 document.AddSection();
 
                 document.AddParagraph("Testing endnote - 2").AddEndNote("Test end note 2");
+
+                Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+                Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+                Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+                Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
 
                 document.Save(openWord);
             }
