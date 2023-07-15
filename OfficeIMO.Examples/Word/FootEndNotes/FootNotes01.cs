@@ -48,8 +48,12 @@ namespace OfficeIMO.Examples.Word {
 
                 var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
 
+
+                Console.WriteLine("Text with attached footnote: " + lastFootNoteParagraph.FootNote.ParentParagraph.Text);
                 Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
                 Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
+
+                // lets make bold that footnote
                 footNoteParagraphs[1].Bold = true;
 
                 document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
@@ -66,8 +70,29 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("FootNotes count " + document.FootNotes.Count);
                 Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
 
+
+                document.AddParagraph("Another paragraph 1").AddFootNote("more footnotes 2!");
+
+                Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+
+
+
+
+                document.FootNotes[1].Remove();
+
                 document.Save(openWord);
             }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                foreach (var footNote in document.FootNotes) {
+                    foreach (var paragraph1 in footNote.Paragraphs) {
+                        if (paragraph1.IsHyperLink) {
+                            //paragraph1.Hyperlink.Text = "xxx";
+                        }
+                    }
+                }
+            }
         }
+
+
     }
 }
