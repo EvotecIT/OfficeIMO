@@ -17,6 +17,8 @@ using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using A = DocumentFormat.OpenXml.Drawing;
 using Thm15 = DocumentFormat.OpenXml.Office2013.Theme;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
+using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -988,8 +990,86 @@ namespace OfficeIMO.Word {
         /// <param name="styleDefinitionsPart"></param>
         private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
             var styles = styleDefinitionsPart.Styles;
-
+            // this forces all tables styles, should be rewritten
             AddTableStyles(styles);
+            // this tries to actually find missing styles
+            FindMissingStyleDefinitions(styleDefinitionsPart);
+        }
+
+        internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
+            var footNoteText = false;
+            var noList = false;
+            var footNoteTextChar = false;
+            var footnoteReference = false;
+            var endnoteText = false;
+            var endNoteTextChar = false;
+            var endNoteReference = false;
+            var footerChar = false;
+            var footer = false;
+            var headerChar = false;
+            var header = false;
+
+            if (styleDefinitionsPart.Styles != null) {
+                var styles = styleDefinitionsPart.Styles.OfType<Style>();
+                foreach (var styleDefinition in styles) {
+                    if (styleDefinition.StyleId == "FootnoteText") {
+                        footNoteText = true;
+                    } else if (styleDefinition.StyleId == "FootnoteTextChar") {
+                        footNoteTextChar = true;
+                    } else if (styleDefinition.StyleId == "FootnoteReference") {
+                        footnoteReference = true;
+                    } else if (styleDefinition.StyleId == "EndnoteText") {
+                        endnoteText = true;
+                    } else if (styleDefinition.StyleId == "EndnoteTextChar") {
+                        endNoteTextChar = true;
+                    } else if (styleDefinition.StyleId == "EndnoteReference") {
+                        endNoteReference = true;
+                    } else if (styleDefinition.StyleId == "NoList") {
+                        noList = true;
+                    } else if (styleDefinition.StyleId == "FooterChar") {
+                        footerChar = true;
+                    } else if (styleDefinition.StyleId == "Footer") {
+                        footer = true;
+                    } else if (styleDefinition.StyleId == "HeaderChar") {
+                        headerChar = true;
+                    } else if (styleDefinition.StyleId == "Header") {
+                        header = true;
+                    }
+                }
+                if (!footNoteText) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootnoteText());
+                }
+                if (!noList) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleNoList());
+                }
+                if (!footNoteTextChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteTextChar());
+                }
+                if (!footnoteReference) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteReference());
+                }
+                if (!endNoteTextChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteTextChar());
+                }
+                if (!endnoteText) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteText());
+                }
+                if (!endNoteReference) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteReference());
+                }
+                if (!footer) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFooter());
+                }
+                if (!footerChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFooterChar());
+                }
+                if (!header) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleHeader());
+                }
+                if (!headerChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleHeaderChar());
+                }
+            }
         }
 
         // Generates content of styleDefinitionsPart1.
@@ -2130,7 +2210,7 @@ namespace OfficeIMO.Word {
         /// I'm leaving them commented out for future verification or confirmation.
         /// </summary>
         /// <param name="endnotesPart1"></param>
-        private static void GenerateEndNotesPart1Content(EndnotesPart endnotesPart1) {
+        internal static void GenerateEndNotesPart1Content(EndnotesPart endnotesPart1) {
             Endnotes endnotes1 = new Endnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
             endnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
             endnotes1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
@@ -2215,7 +2295,7 @@ namespace OfficeIMO.Word {
         /// I'm leaving them commented out for future verification or confirmation.
         /// </summary>
         /// <param name="footnotesPart1"></param>
-        private static void GenerateFootNotesPart1Content(FootnotesPart footnotesPart1) {
+        internal static void GenerateFootNotesPart1Content(FootnotesPart footnotesPart1) {
             Footnotes footnotes1 = new Footnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
             footnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
             footnotes1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
