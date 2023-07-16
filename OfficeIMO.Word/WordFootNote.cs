@@ -116,6 +116,10 @@ namespace OfficeIMO.Word {
             var footNote = GenerateFootNote(footerReferenceId, footerWordParagraph);
 
             var footNotesPart = document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
+            if (footNotesPart == null) {
+                footNotesPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FootnotesPart>();
+                WordDocument.GenerateFootNotesPart1Content(footNotesPart);
+            }
             footNotesPart.Footnotes.Append(footNote);
 
             return newWordParagraph;
