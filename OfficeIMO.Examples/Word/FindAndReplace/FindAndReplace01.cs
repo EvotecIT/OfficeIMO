@@ -33,9 +33,9 @@ namespace OfficeIMO.Examples.Word {
                 var replacedCount = document.FindAndReplace("Test Section", "Production Section");
                 Console.WriteLine("Replaced (should be 2): " + replacedCount);
 
-                // should be 0 because it stretches over 2 paragraphs
+                // should be 2 because it stretches over 2 paragraphs
                 var replacedCount1 = document.FindAndReplace("This is a text more text", "Shorter text");
-                Console.WriteLine("Replaced (should be 0): " + replacedCount1);
+                Console.WriteLine("Replaced (should be 2): " + replacedCount1);
 
                 document.CleanupDocument();
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                 // this only works for same formatting though
                 // may require improvement in the future to ignore formatting completely, but then it's a bit tricky which formatting to apply
                 var replacedCount2 = document.FindAndReplace("This is a text more text", "Shorter text");
-                Console.WriteLine("Replaced (should be 1): " + replacedCount2);
+                Console.WriteLine("Replaced (should be 0): " + replacedCount2);
 
                 var replacedCount3 = document.FindAndReplace("even longer", "not longer");
                 Console.WriteLine("Replaced (should be 4): " + replacedCount3);
