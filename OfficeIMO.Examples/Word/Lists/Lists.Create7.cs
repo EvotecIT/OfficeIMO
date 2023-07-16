@@ -42,6 +42,19 @@ namespace OfficeIMO.Examples.Word {
                 wordList1.AddItem("Text 4");
                 wordList1.AddItem("Text 4.1", 1);
 
+                document.AddBreak();
+
+                var table = document.AddTable(3, 3);
+                //var listInsideTable = table.Rows[0].Cells[0].Paragraphs[0].AddList(WordListStyle.Bulleted);
+                //listInsideTable.AddItem("Test 1");
+                //listInsideTable.AddItem("Test 2");
+
+                //table.Rows[0].Cells[0].Paragraphs[1].AddText("More text");
+
+                //table.Rows[0].Cells[0].Paragraphs[1].AddText("even more");
+
+                table.Rows[1].Cells[0].Paragraphs[0].AddParagraph("Text Row 1").AddParagraph("More text");
+
                 document.Save(openWord);
             }
         }

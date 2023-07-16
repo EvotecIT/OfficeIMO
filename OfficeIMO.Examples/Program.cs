@@ -15,41 +15,43 @@ namespace OfficeIMO.Examples {
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            BasicDocument.Example_BasicEmptyWord(folderPath, false);
-            BasicDocument.Example_BasicWord(folderPath, false);
-            BasicDocument.Example_BasicWord2(folderPath, false);
-            BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
-            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
-            BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
-            BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
-            BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
-            BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
-            BasicDocument.Example_BasicWordWithTabs(folderPath, false);
-            BasicDocument.Example_BasicWordWithMargins(folderPath, false);
-            BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
-            BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+            //BasicDocument.Example_BasicEmptyWord(folderPath, false);
+            //BasicDocument.Example_BasicWord(folderPath, false);
+            //BasicDocument.Example_BasicWord2(folderPath, false);
+            //BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
+            //BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
+            //BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            //BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
+            //BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
+            //BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
+            //BasicDocument.Example_BasicWordWithTabs(folderPath, false);
+            //BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            //BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
+            //BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
 
-            AdvancedDocument.Example_AdvancedWord(folderPath, false);
-            AdvancedDocument.Example_AdvancedWord2(folderPath, false);
+            //AdvancedDocument.Example_AdvancedWord(folderPath, false);
+            //AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
-            Paragraphs.Example_BasicParagraphs(folderPath, false);
-            Paragraphs.Example_BasicParagraphStyles(folderPath, false);
-            Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
-            Paragraphs.Example_BasicTabStops(folderPath, false);
+            //Paragraphs.Example_BasicParagraphs(folderPath, false);
+            //Paragraphs.Example_BasicParagraphStyles(folderPath, false);
+            //Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
+            //Paragraphs.Example_BasicTabStops(folderPath, false);
 
-            BasicDocument.Example_BasicDocument(folderPath, false);
-            BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
-            BasicDocument.Example_BasicDocumentSaveAs2(folderPath, false);
-            BasicDocument.Example_BasicDocumentSaveAs3(folderPath, false);
-            BasicDocument.Example_BasicDocumentWithoutUsing(folderPath, false);
+            //BasicDocument.Example_BasicDocument(folderPath, false);
+            //BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
+            //BasicDocument.Example_BasicDocumentSaveAs2(folderPath, false);
+            //BasicDocument.Example_BasicDocumentSaveAs3(folderPath, false);
+            //BasicDocument.Example_BasicDocumentWithoutUsing(folderPath, false);
 
-            Lists.Example_BasicLists(folderPath, false);
-            Lists.Example_BasicLists6(folderPath, false);
-            Lists.Example_BasicLists2(folderPath, false);
-            Lists.Example_BasicLists3(folderPath, false);
-            Lists.Example_BasicLists4(folderPath, false);
-            Lists.Example_BasicLists2Load(folderPath, false);
-            Lists.Example_BasicLists7(folderPath, false);
+            //Lists.Example_BasicLists(folderPath, false);
+            //Lists.Example_BasicLists6(folderPath, false);
+            //Lists.Example_BasicLists2(folderPath, false);
+            //Lists.Example_BasicLists3(folderPath, false);
+            //Lists.Example_BasicLists4(folderPath, false);
+            //Lists.Example_BasicLists2Load(folderPath, false);
+            Lists.Example_BasicLists7(folderPath, true);
+
+            return;
 
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
