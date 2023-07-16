@@ -1,8 +1,61 @@
 ## 0.7.0 - 2023.07.16
 
-### What's new
-- 
+### What's Changed
+* Implements muti paragraph search and replace by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/149 heavily improving the FindAndReplace functionality
+* Add support for Footnotes and endnotes by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/154
 
+```cs
+internal static void Example_DocumentWithFootNotesEmpty(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with footnotes/end notes");
+    string filePath = System.IO.Path.Combine(folderPath, "Document with FootNotes02.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+
+        document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
+            .AddText(" continuing").AddFootNote("2nd footnote!");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+
+        var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
+            .AddText(" more within paragraph").AddFootNote("4th footnote!");
+
+        Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
+
+        var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+
+        Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
+        Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
+        footNoteParagraphs[1].Bold = true;
+
+        document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
+
+        document.AddParagraph("Test 1");
+
+        document.AddSection();
+
+        document.AddParagraph("Testing endnote - 2").AddEndNote("Test end note 2");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+### New Contributors
+* @startewho made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/149
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.6.0...v0.7.0
 
 ## 0.6.0 - 2023.07.03
 
