@@ -325,5 +325,21 @@ namespace OfficeIMO.Word {
             var pieChart = WordPieChart.AddPieChart(this._document, this);
             return pieChart;
         }
+
+        public WordParagraph AddFootNote(string text) {
+            var footerWordParagraph = new WordParagraph(this._document, true, true);
+            footerWordParagraph.Text = text;
+
+            var wordFootNote = WordFootNote.AddFootNote(this._document, this, footerWordParagraph);
+            return wordFootNote;
+        }
+
+        public WordParagraph AddEndNote(string text) {
+            var endNoteWordParagraph = new WordParagraph(this._document, true, true);
+            endNoteWordParagraph.Text = text;
+
+            var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
+            return wordEndNote;
+        }
     }
 }

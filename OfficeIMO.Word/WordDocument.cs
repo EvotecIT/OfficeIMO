@@ -182,6 +182,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsEndNotes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsEndNotes);
+                }
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsFootNotes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsFootNotes);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -200,6 +221,26 @@ namespace OfficeIMO.Word {
                     list.AddRange(section.Breaks);
                 }
 
+                return list;
+            }
+        }
+
+        public List<WordEndNote> EndNotes {
+            get {
+                List<WordEndNote> list = new List<WordEndNote>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.EndNotes);
+                }
+                return list;
+            }
+        }
+
+        public List<WordFootNote> FootNotes {
+            get {
+                List<WordFootNote> list = new List<WordFootNote>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.FootNotes);
+                }
                 return list;
             }
         }
@@ -444,6 +485,12 @@ namespace OfficeIMO.Word {
 
             DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
             GenerateDocumentSettingsPart1Content(documentSettingsPart1);
+
+            EndnotesPart endnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<EndnotesPart>("rId4");
+            GenerateEndNotesPart1Content(endnotesPart1);
+
+            FootnotesPart footnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<FootnotesPart>("rId5");
+            GenerateFootNotesPart1Content(footnotesPart1);
 
             //FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId4");
             //GenerateFontTablePart1Content(fontTablePart1);
