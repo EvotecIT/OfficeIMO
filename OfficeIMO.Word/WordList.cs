@@ -77,7 +77,42 @@ public class WordList {
         }
     }
 
-    public bool RestartNumbering { get; set; }
+    public bool RestartNumbering {
+        get {
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var listNumbering = numbering.ChildElements.OfType<NumberingInstance>();
+            foreach (var numberingInstance in listNumbering) {
+                if (numberingInstance.NumberID == _numberId) {
+                    var level = numberingInstance.ChildElements.OfType<LevelOverride>().FirstOrDefault();
+                    if (level != null) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        set {
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var listNumbering = numbering.ChildElements.OfType<NumberingInstance>();
+            foreach (var numberingInstance in listNumbering) {
+                if (numberingInstance.NumberID == _numberId) {
+                    var abstractNumId = new AbstractNumId {
+                        Val = _abstractId
+                    };
+                    NumberingInstance foundNumberingInstance;
+                    if (value == false) {
+                        // continue numbering as it was by default
+                        foundNumberingInstance = DefaultNumberingInstance(abstractNumId, _numberId);
+                    } else {
+                        // restart numbering from 1
+                        foundNumberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
+                    }
+                    numberingInstance.InsertBeforeSelf(foundNumberingInstance);
+                    numberingInstance.Remove();
+                }
+            }
+        }
+    }
 
     public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
         _document = wordDocument;
@@ -158,7 +193,6 @@ public class WordList {
         } else {
             numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
         }
-
         numbering.Append(numberingInstance, abstractNum);
     }
 
