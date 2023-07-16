@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
             return pieChart;
         }
 
-        public WordList AddList(WordListStyle style, bool continueNumbering = true) {
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
             WordList wordList = new WordList(this, this._currentSection);
             wordList.AddList(style, continueNumbering);
             return wordList;
