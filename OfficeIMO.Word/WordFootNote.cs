@@ -101,7 +101,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordParagraph AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
-            var footerReferenceId = GetNextFooterReferenceId(document);
+            var footerReferenceId = GetNextFootNotesReferenceId(document);
 
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
 
@@ -121,9 +121,26 @@ namespace OfficeIMO.Word {
             return newWordParagraph;
         }
 
-        internal static long GetNextFooterReferenceId(WordDocument document) {
-            var footNotesPart = document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
-            var highestId = footNotesPart.Footnotes.Descendants<Footnote>().Max(fn => fn.Id.Value);
+        internal static long GetNextFootNotesReferenceId(WordDocument document) {
+            long highestId = 0;
+            var footnotesPart = document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
+
+
+            if (footnotesPart?.Footnotes != null) {
+                var footNote = footnotesPart.Footnotes.Descendants<Footnote>();
+
+                if (footNote != null && footNote.Any()) {
+                    highestId = footNote.Max(en => {
+                        if (en.Id != null) {
+                            return en.Id.Value;
+                        }
+                        return 0;
+                    });
+                } else {
+                    highestId = 1;
+                }
+
+            }
             return (highestId <= 0) ? 1 : highestId + 1;
         }
 
