@@ -113,6 +113,10 @@ namespace OfficeIMO.Word {
             var endNote = GenerateEndNote(endNoteReferenceId, footerWordParagraph);
 
             var endNotesPart = document._wordprocessingDocument.MainDocumentPart.EndnotesPart;
+            if (endNotesPart == null) {
+                endNotesPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<EndnotesPart>();
+                WordDocument.GenerateEndNotesPart1Content(endNotesPart);
+            }
             endNotesPart.Endnotes.Append(endNote);
 
             return newWordParagraph;
