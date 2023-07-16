@@ -14,27 +14,33 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordList wordList1 = document.AddList(WordListStyle.Headings111, true);
                 wordList1.AddItem("Text 1");
-                wordList1.AddItem("Text 2.1", 1);
+                wordList1.AddItem("Text 1.1", 1);
 
                 WordList wordList2 = document.AddList(WordListStyle.Headings111, true);
-                wordList2.RestartNumbering = true;
-                wordList2.AddItem("Section 1");
+                Console.WriteLine("List 2 - Restart numbering: " + wordList2.RestartNumbering);
+                wordList2.AddItem("Section 2");
                 wordList2.AddItem("Section 2.1", 1);
 
                 WordList wordList3 = document.AddList(WordListStyle.Headings111, true);
+                Console.WriteLine("List 3 - Restart numbering: " + wordList3.RestartNumbering);
                 wordList3.RestartNumbering = true;
+                Console.WriteLine("List 3 - Restart numbering after change: " + wordList3.RestartNumbering);
                 wordList3.AddItem("Section 1");
-                wordList3.AddItem("Section 2.1", 1);
+                wordList3.AddItem("Section 1.1", 1);
 
                 WordList wordList4 = document.AddList(WordListStyle.Headings111, true);
-                wordList4.RestartNumbering = true;
-                wordList4.AddItem("Section 1");
+                //wordList4.RestartNumbering = true;
+                wordList4.AddItem("Section 2");
                 wordList4.AddItem("Section 2.1", 1);
 
                 WordList wordList5 = document.AddList(WordListStyle.Headings111, true);
-                wordList5.RestartNumbering = true;
-                wordList5.AddItem("Section 1");
-                wordList5.AddItem("Section 2.1", 1);
+                //wordList5.RestartNumbering = true;
+                wordList5.AddItem("Section 3");
+                wordList5.AddItem("Section 3.1", 1);
+
+                WordList wordList6 = document.AddList(WordListStyle.Headings111);
+                wordList1.AddItem("Text 4");
+                wordList1.AddItem("Text 4.1", 1);
 
                 document.Save(openWord);
             }
