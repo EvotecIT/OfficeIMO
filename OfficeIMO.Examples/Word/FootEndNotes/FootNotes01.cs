@@ -12,14 +12,14 @@ namespace OfficeIMO.Examples.Word {
             var filePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates", "DocumentWithFootNotes.docx");
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                //foreach (var field in document.Fields) {
-                //    Console.WriteLine("...Type: " + field.FieldType);
-                //    Console.WriteLine("...Format switch: " + field.FieldFormat);
-                //    Console.WriteLine("...Instruction: " + String.Join(" ", field.FieldInstructions));
-                //    Console.WriteLine("...Switches: " + String.Join(" ", field.FieldSwitches));
-                //}
-
                 var fileTarget = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents", "Document with FootNotes01.docx");
+
+                Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+                Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+                Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+                Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
                 document.Save(fileTarget, openWord);
             }
         }
