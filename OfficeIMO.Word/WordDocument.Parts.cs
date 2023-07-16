@@ -2124,7 +2124,12 @@ namespace OfficeIMO.Word {
             fontTablePart1.Fonts = fonts1;
         }
 
-        // Generates content of EndNotesPart1.
+
+        /// <summary>
+        /// Generate EndNotesPart. In newly based documents there is -1 and 0 index EndNotes that don't seem to do anything.
+        /// I'm leaving them commented out for future verification or confirmation.
+        /// </summary>
+        /// <param name="endnotesPart1"></param>
         private static void GenerateEndNotesPart1Content(EndnotesPart endnotesPart1) {
             Endnotes endnotes1 = new Endnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
             endnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
@@ -2199,120 +2204,17 @@ namespace OfficeIMO.Word {
 
             //endnote2.Append(paragraph2);
 
-            //Endnote endnote3 = new Endnote() { Id = 1 };
-
-            //Paragraph paragraph3 = new Paragraph() { RsidParagraphAddition = "00F63B11", RsidRunAdditionDefault = "00F63B11", ParagraphId = "4F5F7ADE", TextId = "151F04F8" };
-
-            //ParagraphProperties paragraphProperties3 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            //paragraphProperties3.Append(paragraphStyleId1);
-
-            //Run run3 = new Run();
-
-            //RunProperties runProperties1 = new RunProperties();
-            //RunStyle runStyle1 = new RunStyle() { Val = "EndnoteReference" };
-
-            //runProperties1.Append(runStyle1);
-            //EndnoteReferenceMark endnoteReferenceMark1 = new EndnoteReferenceMark();
-
-            //run3.Append(runProperties1);
-            //run3.Append(endnoteReferenceMark1);
-
-            //Run run4 = new Run();
-            //Text text1 = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            //text1.Text = " 1st end note";
-
-            //run4.Append(text1);
-
-            //paragraph3.Append(paragraphProperties3);
-            //paragraph3.Append(run3);
-            //paragraph3.Append(run4);
-
-            //endnote3.Append(paragraph3);
-
-            //Endnote endnote4 = new Endnote() { Id = 2 };
-
-            //Paragraph paragraph4 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "3113239E", TextId = "1481697B" };
-
-            //ParagraphProperties paragraphProperties4 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId2 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            //paragraphProperties4.Append(paragraphStyleId2);
-
-            //Run run5 = new Run();
-
-            //RunProperties runProperties2 = new RunProperties();
-            //RunStyle runStyle2 = new RunStyle() { Val = "EndnoteReference" };
-
-            //runProperties2.Append(runStyle2);
-            //EndnoteReferenceMark endnoteReferenceMark2 = new EndnoteReferenceMark();
-
-            //run5.Append(runProperties2);
-            //run5.Append(endnoteReferenceMark2);
-
-            //Run run6 = new Run();
-            //Text text2 = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            //text2.Text = " This is an ";
-
-            //run6.Append(text2);
-            //ProofError proofError1 = new ProofError() { Type = ProofingErrorValues.GrammarStart };
-
-            //Run run7 = new Run();
-            //Text text3 = new Text();
-            //text3.Text = "endnote";
-
-            //run7.Append(text3);
-            //ProofError proofError2 = new ProofError() { Type = ProofingErrorValues.GrammarEnd };
-
-            //paragraph4.Append(paragraphProperties4);
-            //paragraph4.Append(run5);
-            //paragraph4.Append(run6);
-            //paragraph4.Append(proofError1);
-            //paragraph4.Append(run7);
-            //paragraph4.Append(proofError2);
-
-            //Paragraph paragraph5 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "134356E4", TextId = "77777777" };
-
-            //ParagraphProperties paragraphProperties5 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId3 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            //paragraphProperties5.Append(paragraphStyleId3);
-
-            //paragraph5.Append(paragraphProperties5);
-
-            //Paragraph paragraph6 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "73890A50", TextId = "77777777" };
-
-            //ParagraphProperties paragraphProperties6 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId4 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            //paragraphProperties6.Append(paragraphStyleId4);
-
-            //paragraph6.Append(paragraphProperties6);
-
-            //Paragraph paragraph7 = new Paragraph() { RsidParagraphAddition = "00F63B11", RsidRunAdditionDefault = "00F63B11", ParagraphId = "5278447E", TextId = "77777777" };
-
-            //ParagraphProperties paragraphProperties7 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId5 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            //paragraphProperties7.Append(paragraphStyleId5);
-
-            //paragraph7.Append(paragraphProperties7);
-
-            //endnote4.Append(paragraph4);
-            //endnote4.Append(paragraph5);
-            //endnote4.Append(paragraph6);
-            //endnote4.Append(paragraph7);
-
             //endnotes1.Append(endnote1);
             //endnotes1.Append(endnote2);
-            //endnotes1.Append(endnote3);
-            //endnotes1.Append(endnote4);
 
             endnotesPart1.Endnotes = endnotes1;
         }
 
-        // Generates content of footnotesPart1.
+        /// <summary>
+        /// Generate FootNotesPart. In newly based documents there is -1 and 0 index Footnotes that don't seem to do anything.
+        /// I'm leaving them commented out for future verification or confirmation.
+        /// </summary>
+        /// <param name="footnotesPart1"></param>
         private static void GenerateFootNotesPart1Content(FootnotesPart footnotesPart1) {
             Footnotes footnotes1 = new Footnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
             footnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
@@ -2387,126 +2289,10 @@ namespace OfficeIMO.Word {
 
             footnote2.Append(paragraph9);
 
-            //Footnote footnote3 = new Footnote() { Id = 1 };
-
-            //Paragraph paragraph10 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "6965920A", TextId = "2EF92278" };
-
-            //ParagraphProperties paragraphProperties10 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId6 = new ParagraphStyleId() { Val = "FootnoteText" };
-
-            //paragraphProperties10.Append(paragraphStyleId6);
-
-            //Run run10 = new Run();
-
-            //RunProperties runProperties3 = new RunProperties();
-            //RunStyle runStyle3 = new RunStyle() { Val = "FootnoteReference" };
-
-            //runProperties3.Append(runStyle3);
-            //FootnoteReferenceMark footnoteReferenceMark1 = new FootnoteReferenceMark();
-
-            //run10.Append(runProperties3);
-            //run10.Append(footnoteReferenceMark1);
-
-            //Run run11 = new Run();
-            //Text text4 = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            //text4.Text = " This is first footnote";
-
-            //run11.Append(text4);
-
-            //paragraph10.Append(paragraphProperties10);
-            //paragraph10.Append(run10);
-            //paragraph10.Append(run11);
-
-            //footnote3.Append(paragraph10);
-
-            //Footnote footnote4 = new Footnote() { Id = 2 };
-
-            //Paragraph paragraph11 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "7667BD51", TextId = "69D845BC" };
-
-            //ParagraphProperties paragraphProperties11 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId7 = new ParagraphStyleId() { Val = "FootnoteText" };
-
-            //paragraphProperties11.Append(paragraphStyleId7);
-
-            //Run run12 = new Run();
-
-            //RunProperties runProperties4 = new RunProperties();
-            //RunStyle runStyle4 = new RunStyle() { Val = "FootnoteReference" };
-
-            //runProperties4.Append(runStyle4);
-            //FootnoteReferenceMark footnoteReferenceMark2 = new FootnoteReferenceMark();
-
-            //run12.Append(runProperties4);
-            //run12.Append(footnoteReferenceMark2);
-
-            //Run run13 = new Run();
-            //Text text5 = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            //text5.Text = " This is a footnote, ";
-
-            //run13.Append(text5);
-
-            //Run run14 = new Run() { RsidRunProperties = "00EC28F1" };
-
-            //RunProperties runProperties5 = new RunProperties();
-            //Bold bold1 = new Bold();
-            //BoldComplexScript boldComplexScript1 = new BoldComplexScript();
-
-            //runProperties5.Append(bold1);
-            //runProperties5.Append(boldComplexScript1);
-            //Text text6 = new Text();
-            //text6.Text = "ok";
-
-            //run14.Append(runProperties5);
-            //run14.Append(text6);
-
-            //paragraph11.Append(paragraphProperties11);
-            //paragraph11.Append(run12);
-            //paragraph11.Append(run13);
-            //paragraph11.Append(run14);
-
-            //footnote4.Append(paragraph11);
-
-            //Footnote footnote5 = new Footnote() { Id = 3 };
-
-            //Paragraph paragraph12 = new Paragraph() { RsidParagraphAddition = "00F63B11", RsidRunAdditionDefault = "00F63B11", ParagraphId = "5BE8CDDD", TextId = "76DE0437" };
-
-            //ParagraphProperties paragraphProperties12 = new ParagraphProperties();
-            //ParagraphStyleId paragraphStyleId8 = new ParagraphStyleId() { Val = "FootnoteText" };
-
-            //paragraphProperties12.Append(paragraphStyleId8);
-
-            //Run run15 = new Run();
-
-            //RunProperties runProperties6 = new RunProperties();
-            //RunStyle runStyle5 = new RunStyle() { Val = "FootnoteReference" };
-
-            //runProperties6.Append(runStyle5);
-            //FootnoteReferenceMark footnoteReferenceMark3 = new FootnoteReferenceMark();
-
-            //run15.Append(runProperties6);
-            //run15.Append(footnoteReferenceMark3);
-
-            //Run run16 = new Run();
-            //Text text7 = new Text() { Space = SpaceProcessingModeValues.Preserve };
-            //text7.Text = " My note";
-
-            //run16.Append(text7);
-
-            //paragraph12.Append(paragraphProperties12);
-            //paragraph12.Append(run15);
-            //paragraph12.Append(run16);
-
-            //footnote5.Append(paragraph12);
-
             footnotes1.Append(footnote1);
             footnotes1.Append(footnote2);
-            //footnotes1.Append(footnote3);
-            //footnotes1.Append(footnote4);
-            //footnotes1.Append(footnote5);
 
             footnotesPart1.Footnotes = footnotes1;
         }
-
-
     }
 }
