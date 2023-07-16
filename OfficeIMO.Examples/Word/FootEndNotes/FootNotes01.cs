@@ -75,9 +75,6 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("FootNotes count " + document.FootNotes.Count);
 
-
-
-
                 document.FootNotes[1].Remove();
 
                 document.Save(openWord);
