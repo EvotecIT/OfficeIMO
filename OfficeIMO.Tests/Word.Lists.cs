@@ -132,6 +132,9 @@ public partial class Word {
                 .SetUnderline(UnderlineValues.Double);
 
             var wordList8 = document.AddList(WordListStyle.Bulleted);
+
+            Assert.True(wordList8.RestartNumbering == true);
+
             wordList8.AddItem("Text 9");
             wordList8.AddItem("Text 9.1", 1);
             wordList8.AddItem("Text 9.2", 2);
@@ -148,6 +151,12 @@ public partial class Word {
             var wordList2 = document.AddList(WordListStyle.Headings111);
             wordList2.AddItem("Temp 10");
             wordList2.AddItem("Text 10.1", 1);
+
+            Assert.True(wordList2.RestartNumbering == true);
+
+            wordList2.RestartNumbering = false;
+
+            Assert.True(wordList2.RestartNumbering == false);
 
             paragraph = document
                 .AddParagraph("Paragraph in the middle of the list")
