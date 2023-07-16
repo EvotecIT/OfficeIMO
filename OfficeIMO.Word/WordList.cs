@@ -19,6 +19,8 @@ public class WordList {
     /// </summary>
     private readonly bool _isToc;
 
+    private readonly WordParagraph _wordParagraph;
+
     /// <summary>
     /// This provides a way to set items to be treated with heading style during load
     /// </summary>
@@ -122,6 +124,16 @@ public class WordList {
         // section.Lists.Add(this);
     }
 
+    public WordList(WordDocument wordDocument, WordParagraph paragraph, bool isToc = false) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        //_section = section;
+        _isToc = isToc;
+        _wordParagraph = paragraph;
+        // section.Lists.Add(this);
+    }
+
+
     public WordList(WordDocument wordDocument, WordSection section, int numberId) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -145,7 +157,12 @@ public class WordList {
             ));
         paragraph.Append(paragraphProperties);
         paragraph.Append(run);
-        _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+
+        if (_wordParagraph != null) {
+            _wordParagraph._paragraph.Append(paragraph);
+        } else {
+            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+        }
 
         var wordParagraph = new WordParagraph(_document, paragraph, run) {
             Text = text

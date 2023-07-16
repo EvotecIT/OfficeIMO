@@ -305,5 +305,11 @@ namespace OfficeIMO.Word {
             var wordParagraph = WordTabChar.AddTab(this._document, this);
             return wordParagraph;
         }
+
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this._document, this);
+            wordList.AddList(style, continueNumbering);
+            return wordList;
+        }
     }
 }
