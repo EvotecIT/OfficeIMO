@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -17,6 +18,83 @@ namespace OfficeIMO.Word {
             this._paragraph = paragraph;
             this._run = run;
         }
+
+        /// <summary>
+        /// List of Paragraphs for given EndNote
+        /// As there can be multiple paragraphs with different formatting it's required to provide a list
+        /// Zero based object should be skipped, as it's EndNoteReference
+        /// However for sake of completion and potential ability to modify it we expose it as well
+        /// </summary>
+        public List<WordParagraph> Paragraphs {
+            get {
+                if (_paragraph != null && _run != null) {
+                    long referenceId = 0;
+                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
+                    if (endNoteReference != null) {
+                        referenceId = endNoteReference.Id;
+                    }
+
+                    if (referenceId != 0) {
+                        var endNotesPart = _document._wordprocessingDocument.MainDocumentPart.EndnotesPart;
+                        var endNotes = endNotesPart.Endnotes.ChildElements.OfType<Endnote>().ToList();
+                        foreach (var endNote in endNotes) {
+                            if (endNote != null) {
+                                if (endNote.Id == referenceId.ToString()) {
+                                    return WordSection.ConvertParagraphsToWordParagraphs(_document, endNote.OfType<Paragraph>());
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Parent Paragraph is Paragraph/Run that has EndNote attached to it.
+        /// This provides ability to find proper Run that has EndNote
+        /// </summary>
+
+        public WordParagraph ParentParagraph {
+            get {
+                var previousRun = _run.PreviousSibling<Run>();
+                if (previousRun != null) {
+                    return new WordParagraph(_document, _paragraph, previousRun);
+                }
+                return null;
+            }
+        }
+
+        public long? ReferenceId {
+            get {
+                if (_paragraph != null && _run != null) {
+                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
+                    if (endNoteReference != null) {
+                        return endNoteReference.Id;
+                    }
+                }
+                return null;
+            }
+        }
+
+        public void Remove() {
+            long referenceId = 0;
+            var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
+            if (endNoteReference != null) {
+                referenceId = endNoteReference.Id;
+            }
+            var endNotesPart = _document._wordprocessingDocument.MainDocumentPart.EndnotesPart;
+            var footNotes = endNotesPart.Endnotes.ChildElements.OfType<Endnote>().ToList();
+            foreach (var footNote in footNotes) {
+                if (footNote != null) {
+                    if (footNote.Id == referenceId.ToString()) {
+                        footNote.Remove();
+                    }
+                }
+            }
+            this._run.Remove();
+        }
+
 
         internal static WordParagraph AddEndNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
 
@@ -39,7 +117,6 @@ namespace OfficeIMO.Word {
 
             return newWordParagraph;
         }
-
 
         internal static long GetNextEndNoteReferenceId(WordDocument document) {
             long highestId = 0;
@@ -64,7 +141,6 @@ namespace OfficeIMO.Word {
             }
             return (highestId <= 0) ? 1 : highestId + 1;
         }
-
 
         internal static Endnote GenerateEndNote(long endnoteReferenceId, WordParagraph wordParagraph) {
             Endnote endNote = new Endnote() { Id = endnoteReferenceId };
