@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table does not match. Actual text: " + wordTable.Rows[3].Cells[0].Paragraphs[0].Text);
                 Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
-                WordTable wordTable2 = document.AddTable(1, 4);
+                WordTable wordTable2 = document.AddTable(1, 5);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
                 WordTableRow row = wordTable2.AddRow();
