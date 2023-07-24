@@ -157,12 +157,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
                 WordTable wordTable2 = document.AddTable(1, 4);
-                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                WordTableRow row = wordTable.AddRow();
+                WordTableRow row = wordTable2.AddRow();
                 row.Cells[0].Paragraphs[0].Text = "Test 2";
 
-                List<WordTableRow> rows = wordTable.AddRow(3, 0);
+                List<WordTableRow> rows = wordTable2.AddRow(3, 0);
                 rows[0].Cells[0].Paragraphs[0].Text = "Test 3";
                 rows[1].Cells[0].Paragraphs[0].Text = "Test 4";
                 rows[2].Cells[0].Paragraphs[0].Text = "Test 5";
