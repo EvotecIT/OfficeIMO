@@ -756,5 +756,35 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesCellAlignment() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTables1.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(4, 3);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "This is the normal vertical alignment";
+                wordTable.Rows[0].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "But it can be centered";
+                wordTable.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Center;
+
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Or at the bottom";
+                wordTable.Rows[0].Cells[2].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+
+                Assert.True(wordTable.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
+                Assert.True(wordTable.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var wordTable1 = document.Tables[0];
+                Assert.True(wordTable1.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
+                Assert.True(wordTable1.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
+                Assert.True(wordTable1.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+
+                document.Save();
+            }
     }
 }
