@@ -786,5 +786,6 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
             }
+        }
     }
 }
