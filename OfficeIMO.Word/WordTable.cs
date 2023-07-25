@@ -399,10 +399,11 @@ namespace OfficeIMO.Word {
         /// Add row to an existing table with the specified number of columns
         /// </summary>
         /// <param name="cellsCount"></param>
-        public void AddRow(int cellsCount = 0) {
+        public WordTableRow AddRow(int cellsCount = 0) {
             WordTableRow row = new WordTableRow(_document, this);
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
+            return row;
         }
 
         /// <summary>
@@ -425,10 +426,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="rowsCount"></param>
         /// <param name="cellsCount"></param>
-        public void AddRow(int rowsCount, int cellsCount) {
+        public List<WordTableRow> AddRow(int rowsCount, int cellsCount) {
+            List<WordTableRow> rows = new List<WordTableRow>();
             for (int i = 0; i < rowsCount; i++) {
-                AddRow(cellsCount);
+                rows.Add(AddRow(cellsCount));
             }
+            return rows;
         }
 
         /// <summary>

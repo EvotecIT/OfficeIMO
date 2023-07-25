@@ -213,6 +213,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets cell vertical alignment in a Table Cell
+        /// </summary>
+        public TableVerticalAlignmentValues? VerticalAlignment {
+            get {
+                if (_tableCellProperties.TableCellVerticalAlignment != null) {
+                    return _tableCellProperties.TableCellVerticalAlignment.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TableCellVerticalAlignment == null) {
+                        _tableCellProperties.TableCellVerticalAlignment = new TableCellVerticalAlignment();
+                    }
+                    _tableCellProperties.TableCellVerticalAlignment.Val = value;
+                } else {
+                    if (_tableCellProperties.TableCellVerticalAlignment != null) {
+                        _tableCellProperties.TableCellVerticalAlignment.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Create a WordTableCell and add it to given Table Row
         /// </summary>
         /// <param name="document"></param>
