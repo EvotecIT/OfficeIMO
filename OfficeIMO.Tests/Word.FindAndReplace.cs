@@ -32,10 +32,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(replacedCount == 2);
 
                 // should be 0 because it stretches over 2 paragraphs
-                // this will need to be changed in the future to support this
-                // TODO: add a method that searches and replaces over multiple WordParagraphs or even native paragraphs
                 var replacedCount1 = document.FindAndReplace("This is a text more text", "Shorter text");
-                Assert.True(replacedCount1 == 0);
+                Assert.True(replacedCount1 == 2);
 
                 document.CleanupDocument();
 
@@ -43,7 +41,7 @@ namespace OfficeIMO.Tests {
                 // this only works for same formatting though
                 // may require improvement in the future to ignore formatting completely, but then it's a bit tricky which formatting to apply
                 var replacedCount2 = document.FindAndReplace("This is a text more text", "Shorter text");
-                Assert.True(replacedCount2 == 1);
+                Assert.True(replacedCount2 == 0);
 
                 var replacedCount3 = document.FindAndReplace("even longer", "not longer");
                 Assert.True(replacedCount3 == 4);

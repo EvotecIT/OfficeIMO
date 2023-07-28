@@ -1,3 +1,208 @@
+## 0.7.0 - 2023.07.16
+
+### What's Changed
+* Implements muti paragraph search and replace by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/149 heavily improving the FindAndReplace functionality
+* Add support for Footnotes and endnotes by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/154
+
+```cs
+internal static void Example_DocumentWithFootNotesEmpty(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with footnotes/end notes");
+    string filePath = System.IO.Path.Combine(folderPath, "Document with FootNotes02.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+
+        document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
+            .AddText(" continuing").AddFootNote("2nd footnote!");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+
+        var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
+            .AddText(" more within paragraph").AddFootNote("4th footnote!");
+
+        Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
+
+        var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+
+        Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
+        Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
+        footNoteParagraphs[1].Bold = true;
+
+        document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
+
+        document.AddParagraph("Test 1");
+
+        document.AddSection();
+
+        document.AddParagraph("Testing endnote - 2").AddEndNote("Test end note 2");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+### New Contributors
+* @startewho made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/149
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.6.0...v0.7.0
+
+## 0.6.0 - 2023.07.03
+
+### What's Changed
+- Add ability to add charts to WordParagraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/144
+- Add missing tests for AddTableAfter() and AddTableBefore()  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/131
+
+This  release fixes
+- https://github.com/EvotecIT/OfficeIMO/issues/143
+- It allows to add `chart `to existing paragraph (before it was only possible to assign chart to document).
+- `WordParagraph `now contains `IsChart` and `Chart` object
+- `WordDocument `and `WordSection `contains `ParagraphsCharts `and `Charts `lists
+
+```cs
+public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with charts");
+    string filePath = System.IO.Path.Combine(folderPath, "Charts Document.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        List<string> categories = new List<string>() {
+            "Food", "Housing", "Mix", "Data"
+        };
+
+        var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
+
+        // adding charts to document
+        document.AddParagraph("This is a bar chart");
+        var barChart1 = document.AddBarChart();
+        barChart1.AddCategories(categories);
+        barChart1.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart1.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart1.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart1.BarGrouping = BarGroupingValues.Clustered;
+        barChart1.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("This is a bar chart");
+        var barChart2 = document.AddBarChart();
+        barChart2.AddCategories(categories);
+        barChart2.AddChartBar("USA", 15, Color.Aqua);
+        barChart2.RoundedCorners = true;
+
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("This is a pie chart");
+        var pieChart = document.AddPieChart();
+        pieChart.AddCategories(categories);
+        pieChart.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+
+        document.AddParagraph("Adding a line chart as required 1");
+
+        var lineChart = document.AddLineChart();
+        lineChart.AddChartAxisX(categories);
+        lineChart.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("Adding a line chart as required 2");
+
+        var lineChart2 = document.AddLineChart();
+        lineChart2.AddChartAxisX(categories);
+        lineChart2.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart2.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart2.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        // adding charts to paragraphs directly
+        var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
+        var barChart3 = paragraph.AddBarChart();
+        barChart3.AddCategories(categories);
+        barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart3.BarGrouping = BarGroupingValues.Clustered;
+        barChart3.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph1 = document.AddParagraph("This is a bar chart - but assigned to paragraph 2");
+        var barChart5 = paragraph1.AddBarChart();
+        barChart5.AddCategories(categories);
+        barChart5.AddChartBar("USA", 15, Color.Aqua);
+        barChart5.RoundedCorners = true;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
+        var pieChart1 = paragraph2.AddPieChart();
+        pieChart1.AddCategories(categories);
+        pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+
+        var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
+        var lineChart3 = paragraph3.AddLineChart();
+        lineChart3.AddChartAxisX(categories);
+        lineChart3.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart3.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart3.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
+        var lineChart4 = paragraph4.AddLineChart();
+        lineChart4.AddChartAxisX(categories);
+        lineChart4.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        // lets add chart to first paragraph
+        var lineChart5 = paragraphToTest.AddLineChart();
+        lineChart5.AddChartAxisX(categories);
+        lineChart5.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart5.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart5.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var table = document.AddTable(3, 3);
+        table.Rows[0].Cells[0].Paragraphs[0].AddBarChart();
+        barChart3.AddCategories(categories);
+        barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart3.BarGrouping = BarGroupingValues.Clustered;
+        barChart3.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.5.0...v0.6.0
+
 ## 0.5.0 - 2023.06.05
 ### What's Changed
 * Add example to show margins and font family by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/140

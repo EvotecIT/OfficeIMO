@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 using Xunit;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -99,6 +100,127 @@ namespace OfficeIMO.Tests {
 
                 var wordTable2 = document.Tables[1];
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table matches. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Paragraphs.Count == 31, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
+
+
+
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesAddRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Tables.Count == 0, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordTable wordTable = document.AddTable(1, 4);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                WordTableRow row = wordTable.AddRow();
+                row.Cells[0].Paragraphs[0].Text = "Test 2";
+
+                List<WordTableRow> rows = wordTable.AddRow(2, 0);
+                rows[0].Cells[0].Paragraphs[0].Text = "Test 3";
+                rows[1].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2", "Text in table does not match. Actual text: " + wordTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table does not match. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table does not match. Actual text: " + wordTable.Rows[3].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
+
+                Assert.True(document.Tables.Count == 1, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
+                Assert.True(document.Tables.Count == 1, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+
+                var wordTable = document.Tables[0];
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2", "Text in table does not match. Actual text: " + wordTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table does not match. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table does not match. Actual text: " + wordTable.Rows[3].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
+
+                WordTable wordTable2 = document.AddTable(1, 5);
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                WordTableRow row = wordTable2.AddRow();
+                row.Cells[0].Paragraphs[0].Text = "Test 2";
+
+                List<WordTableRow> rows = wordTable2.AddRow(3, 0);
+                rows[0].Cells[0].Paragraphs[0].Text = "Test 3";
+                rows[1].Cells[0].Paragraphs[0].Text = "Test 4";
+                rows[2].Cells[0].Paragraphs[0].Text = "Test 5";
+
+                Assert.True(wordTable2.Paragraphs.Count == 25, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
+                Assert.True(wordTable2.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2", "Text in table does not match. Actual text: " + wordTable2.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table does not match. Actual text: " + wordTable2.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table does not match. Actual text: " + wordTable2.Rows[3].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table does not match. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
+
+                wordTable2.Rows[4].Remove();
+                Assert.True(wordTable2.RowsCount == 4);
+                wordTable2.AddRow(2, 0);
+                Assert.True(wordTable2.RowsCount == 6);
+                Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "");
+                wordTable2.Rows[4].Cells[0].Paragraphs[0].Text = "Test 5";
+                Assert.True(wordTable2.Rows[3].CellsCount == 5);
+                Assert.True(wordTable2.Rows[4].CellsCount == 5);
+
+                wordTable2.Rows[4].Cells[4].Remove();
+                Assert.True(wordTable2.Rows[4].CellsCount == 4);
+                Assert.True(wordTable2.Rows[5].CellsCount == 5);
+                Assert.True(wordTable2.Paragraphs.Count == 29, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
+
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].Text = "Test 3";
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 1");
+                wordTable2.Rows[2].Cells[2].Paragraphs[0].AddText("More text which means another paragraph 2");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[0].Text == "Test 3");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[1].Text == "More text which means another paragraph 1");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Text == "More text which means another paragraph 2");
+
+                wordTable2.Rows[2].Cells[2].Paragraphs[2].Text = "Change me";
+                wordTable2.Rows[2].Cells[2].Paragraphs[2].SetColor(Color.Green);
+
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Text == "Change me");
+                Assert.True(wordTable2.Rows[2].Cells[2].Paragraphs[2].Color == Color.Green);
+
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
+                Assert.True(document.Tables.Count == 2, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+                Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
+
+                var wordTable1 = document.Tables[0];
+                Assert.True(wordTable1.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable1.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable1.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
+
+                var wordTable2 = document.Tables[1];
+
+                Assert.True(wordTable2.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2", "Text in table does not match. Actual text: " + wordTable2.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table does not match. Actual text: " + wordTable2.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table does not match. Actual text: " + wordTable2.Rows[3].Cells[0].Paragraphs[0].Text);
+                Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table does not match. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
                 Assert.True(wordTable2.Paragraphs.Count == 31, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
 
@@ -632,6 +754,37 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs.Count == 4);
 
                 document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesCellAlignment() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTables1.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                WordTable wordTable = document.AddTable(4, 3);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "This is the normal vertical alignment";
+                wordTable.Rows[0].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "But it can be centered";
+                wordTable.Rows[0].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Center;
+
+                wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Or at the bottom";
+                wordTable.Rows[0].Cells[2].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
+
+                Assert.True(wordTable.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
+                Assert.True(wordTable.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
+                Assert.True(wordTable.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var wordTable1 = document.Tables[0];
+                Assert.True(wordTable1.Rows[0].Cells[0].VerticalAlignment == TableVerticalAlignmentValues.Top);
+                Assert.True(wordTable1.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
+                Assert.True(wordTable1.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
+
+                document.Save();
             }
         }
     }

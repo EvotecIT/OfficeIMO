@@ -273,12 +273,12 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle) {
+        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
             return wordTable;
         }
 
-        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle) {
+        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
@@ -306,10 +306,47 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+
         public WordList AddList(WordListStyle style, bool continueNumbering = false) {
             WordList wordList = new WordList(this._document, this);
             wordList.AddList(style, continueNumbering);
             return wordList;
+
+        public WordChart AddBarChart() {
+            var barChart = WordBarChart.AddBarChart(this._document, this);
+            return barChart;
+        }
+
+        public WordChart AddLineChart() {
+            var lineChart = WordLineChart.AddLineChart(this._document, this);
+            return lineChart;
+        }
+
+        public WordBarChart3D AddBarChart3D() {
+            var barChart = WordBarChart3D.AddBarChart3D(this._document, this);
+            return barChart;
+        }
+
+        public WordChart AddPieChart() {
+            var pieChart = WordPieChart.AddPieChart(this._document, this);
+            return pieChart;
+        }
+
+        public WordParagraph AddFootNote(string text) {
+            var footerWordParagraph = new WordParagraph(this._document, true, true);
+            footerWordParagraph.Text = text;
+
+            var wordFootNote = WordFootNote.AddFootNote(this._document, this, footerWordParagraph);
+            return wordFootNote;
+        }
+
+        public WordParagraph AddEndNote(string text) {
+            var endNoteWordParagraph = new WordParagraph(this._document, true, true);
+            endNoteWordParagraph.Text = text;
+
+            var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
+            return wordEndNote;
+
         }
     }
 }

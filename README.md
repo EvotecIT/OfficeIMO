@@ -71,7 +71,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
   - ☑️ Add Paragraphs
   - ☑️ Add Headers and Footers (Odd/Even/First)
   - ◼️ Remove Headers and Footers (Odd/Even/First)
-  - ◼️ Remove Paragraphs
+  - ☑️ Remove Paragraphs
   - ◼️ Remove Sections
 - ☑️ Headers and Footers in the document (not including sections)
   - ☑️ Add Default, Odd, Even, First
@@ -116,12 +116,21 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
   - ◼️ Remove comments
   - ◼️ Track comments
 - ☑️ Fields
-  - ◼️ Add Field
+  - ☑️ Add Field
   - ☑️ Read Field
-  - ◼️ Remove Field
+  - ☑️ Remove Field
   - ☑️ Change Field
+- ☑️ Footnotes
+  - ☑️ Add new footnotes
+  - ☑️ Read footnotes
+  - ☑️ Remove footnotes
+- ☑️ Endnotes
+  - ☑️Add new endnotes
+  - ☑️Read endnotes
+  - ☑️Remove endnotes
 - ◼️ Shapes
 - ◼️ Charts
+  - ☑️ Add charts
 - ◼️ Lists
   - ☑️ Add lists
   - ◼️ Remove lists
@@ -132,6 +141,10 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ◼️ Watermarks
   - ☑️ Add watermark
   - ◼️ Remove watermark
+- ☑️ PageBreaks
+  - ☑️Add pagebreak
+  - ☑️Find pagebreak
+  - ☑️Remove pagebreak
 
 
 ## Features (oneliners):
