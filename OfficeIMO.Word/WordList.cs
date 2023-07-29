@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word;
 
@@ -20,6 +21,7 @@ public class WordList {
     private readonly bool _isToc;
 
     private WordParagraph _wordParagraph;
+    private readonly WordHeaderFooter _headerFooter;
 
     /// <summary>
     /// This provides a way to set items to be treated with heading style during load
@@ -32,63 +34,171 @@ public class WordList {
         }
     }
 
-    private string NsidId {
-        get {
-            if (AbstractNum == null) {
-                return null;
-            }
+    //private string NsidId {
+    //    get {
+    //        if (AbstractNum == null) {
+    //            return null;
+    //        }
 
-            return AbstractNum.Nsid.Val;
+    //        return AbstractNum.Nsid.Val;
 
-        }
-        set {
-            if (AbstractNum != null) {
-                AbstractNum.Nsid.Val = value;
-            }
-        }
-    }
+    //    }
+    //    set {
+    //        if (AbstractNum != null) {
+    //            AbstractNum.Nsid.Val = value;
+    //        }
+    //    }
+    //}
 
-    private string GenerateNsidId() {
-        // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.nsid?view=openxml-2.8.1
-        // Specifies a number value specified as a four digit hexadecimal number),
-        // whose contents of this decimal number are interpreted based on the context of the parent XML element.
-        // for example FFFFFF89 or D9842532
-        return Guid.NewGuid().ToString().ToUpper().Substring(0, 8);
+    //private string GenerateNsidId() {
+    //    // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.nsid?view=openxml-2.8.1
+    //    // Specifies a number value specified as a four digit hexadecimal number),
+    //    // whose contents of this decimal number are interpreted based on the context of the parent XML element.
+    //    // for example FFFFFF89 or D9842532
+    //    return Guid.NewGuid().ToString().ToUpper().Substring(0, 8);
 
-    }
+    //}
 
-    private AbstractNum AbstractNum {
-        get {
-            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-            var abstractNumList = numbering.ChildElements.OfType<AbstractNum>();
-            foreach (AbstractNum abstractNum in abstractNumList) {
-                if (abstractNum.AbstractNumberId == _abstractId) {
-                    return abstractNum;
-                }
-            }
+    //private AbstractNum AbstractNum {
+    //    get {
+    //        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+    //        var abstractNumList = numbering.ChildElements.OfType<AbstractNum>();
+    //        foreach (AbstractNum abstractNum in abstractNumList) {
+    //            if (abstractNum.AbstractNumberId == _abstractId) {
+    //                return abstractNum;
+    //            }
+    //        }
 
-            return null;
-        }
-    }
+    //        return null;
+    //    }
+    //}
 
     public List<WordParagraph> ListItems {
         get {
-            if (_wordParagraph != null) {
-                var list = new List<Paragraph>();
-                var parent = _wordParagraph._paragraph.Parent;
-                var elementsAfter = parent.ChildElements.OfType<Paragraph>();
-                foreach (var element in elementsAfter) {
-                    if (element.ParagraphProperties != null && element.ParagraphProperties.NumberingProperties != null) {
-                        if (element.ParagraphProperties.NumberingProperties.NumberingId.Val == _numberId) {
-                            list.Add(element);
+            List<WordParagraph> list = new List<WordParagraph>();
+            foreach (var paragraph in _document.Paragraphs) {
+                if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                    list.Add(paragraph);
+                }
+            }
+
+            foreach (var table in _document.Tables) {
+                foreach (var paragraph in table.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+            }
+
+            if (_document.Header.Default != null) {
+                foreach (var paragraph in _document.Header.Default.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Header.Default.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
                         }
                     }
                 }
-                var listWord = WordSection.ConvertParagraphsToWordParagraphs(_document, list);
-                return listWord;
-            } else {
-                return new List<WordParagraph>();
             }
+
+            if (_document.Header.Even != null) {
+                foreach (var paragraph in _document.Header.Even.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Header.Even.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
+                        }
+                    }
+                }
+            }
+
+            if (_document.Header.First != null) {
+                foreach (var paragraph in _document.Header.First.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Header.First.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
+                        }
+                    }
+                }
+            }
+
+
+            if (_document.Footer.Default != null) {
+                foreach (var paragraph in _document.Footer.Default.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Footer.Default.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
+                        }
+                    }
+                }
+            }
+
+            if (_document.Footer.Even != null) {
+                foreach (var paragraph in _document.Footer.Even.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Footer.Even.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
+                        }
+                    }
+                }
+            }
+
+            if (_document.Footer.First != null) {
+                foreach (var paragraph in _document.Footer.First.Paragraphs) {
+                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                        list.Add(paragraph);
+                    }
+                }
+                foreach (var table in _document.Footer.First.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+                            list.Add(paragraph);
+                        }
+                    }
+                }
+            }
+            return list;
+
+
+            //if (_wordParagraph != null) {
+            //    var list = new List<Paragraph>();
+            //    var parent = _wordParagraph._paragraph.Parent;
+            //    var elementsAfter = parent.ChildElements.OfType<Paragraph>();
+            //    foreach (var element in elementsAfter) {
+            //        if (element.ParagraphProperties != null && element.ParagraphProperties.NumberingProperties != null) {
+            //            if (element.ParagraphProperties.NumberingProperties.NumberingId.Val == _numberId) {
+            //                list.Add(element);
+            //            }
+            //        }
+            //    }
+            //    var listWord = WordSection.ConvertParagraphsToWordParagraphs(_document, list);
+            //    return listWord;
+            //} else {
+            //    return new List<WordParagraph>();
+            //}
             //elementsAfter.Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId).ToList();
             //return _document.Paragraphs
             //    .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
@@ -133,7 +243,7 @@ public class WordList {
         }
     }
 
-    public WordList(WordDocument wordDocument, WordSection section, bool isToc = false) {
+    public WordList(WordDocument wordDocument, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         //_section = section;
@@ -151,11 +261,17 @@ public class WordList {
     }
 
 
-    public WordList(WordDocument wordDocument, WordSection section, int numberId) {
+    public WordList(WordDocument wordDocument, int numberId) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         //  _section = section;
         _numberId = numberId;
+    }
+
+    public WordList(WordDocument wordDocument, WordHeaderFooter headerFooter) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        _headerFooter = headerFooter;
     }
 
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
@@ -210,7 +326,13 @@ public class WordList {
                         lastItem._paragraph.InsertAfterSelf(paragraph);
                     }
                 } else {
-                    _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+                    if (_headerFooter != null && _headerFooter._header != null) {
+                        _headerFooter._header.Append(paragraph);
+                    } else if (_headerFooter != null && _headerFooter._footer != null) {
+                        _headerFooter._footer.Append(paragraph);
+                    } else {
+                        _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+                    }
                 }
             }
             wordParagraph = new WordParagraph(_document, paragraph, run) {

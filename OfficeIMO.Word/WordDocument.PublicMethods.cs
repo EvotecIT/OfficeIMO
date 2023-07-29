@@ -86,13 +86,13 @@ namespace OfficeIMO.Word {
         }
 
         public WordList AddList(WordListStyle style, bool continueNumbering = false) {
-            WordList wordList = new WordList(this, this._currentSection);
+            WordList wordList = new WordList(this);
             wordList.AddList(style, continueNumbering);
             return wordList;
         }
 
         public WordList AddTableOfContentList(WordListStyle style) {
-            WordList wordList = new WordList(this, this._currentSection, true);
+            WordList wordList = new WordList(this, true);
             wordList.AddList(style, continueNumbering: true);
             return wordList;
         }
