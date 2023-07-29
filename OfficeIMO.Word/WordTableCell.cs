@@ -437,5 +437,12 @@ namespace OfficeIMO.Word {
             _tableCell.Append(new Paragraph());
             return wordTable;
         }
+
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this._document, this.Paragraphs.Last());
+            wordList.AddList(style, continueNumbering);
+            return wordList;
+        }
+
     }
 }

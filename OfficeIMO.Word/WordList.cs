@@ -19,7 +19,7 @@ public class WordList {
     /// </summary>
     private readonly bool _isToc;
 
-    private readonly WordParagraph _wordParagraph;
+    private WordParagraph _wordParagraph;
 
     /// <summary>
     /// This provides a way to set items to be treated with heading style during load
@@ -73,9 +73,26 @@ public class WordList {
 
     public List<WordParagraph> ListItems {
         get {
-            return _document.Paragraphs
-                .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
-                .ToList();
+            if (_wordParagraph != null) {
+                var list = new List<Paragraph>();
+                var parent = _wordParagraph._paragraph.Parent;
+                var elementsAfter = parent.ChildElements.OfType<Paragraph>();
+                foreach (var element in elementsAfter) {
+                    if (element.ParagraphProperties != null && element.ParagraphProperties.NumberingProperties != null) {
+                        if (element.ParagraphProperties.NumberingProperties.NumberingId.Val == _numberId) {
+                            list.Add(element);
+                        }
+                    }
+                }
+                var listWord = WordSection.ConvertParagraphsToWordParagraphs(_document, list);
+                return listWord;
+            } else {
+                return new List<WordParagraph>();
+            }
+            //elementsAfter.Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId).ToList();
+            //return _document.Paragraphs
+            //    .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
+            //    .ToList();
         }
     }
 
@@ -141,36 +158,73 @@ public class WordList {
         _numberId = numberId;
     }
 
-    public WordParagraph AddItem(string text, int level = 0) {
-        var paragraph = new Paragraph();
-
-        var run = new Run();
-        run.Append(new RunProperties());
-        run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
-
-        var paragraphProperties = new ParagraphProperties();
-        paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
-        paragraphProperties.Append(
-            new NumberingProperties(
-                new NumberingLevelReference { Val = level },
-                new NumberingId { Val = _numberId }
-            ));
-        paragraph.Append(paragraphProperties);
-        paragraph.Append(run);
-
-        if (_wordParagraph != null) {
-            _wordParagraph._paragraph.Append(paragraph);
+    public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
+        if (wordParagraph != null) {
+            wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+            wordParagraph._paragraphProperties.Append(
+                new NumberingProperties(
+                    new NumberingLevelReference { Val = level },
+                    new NumberingId { Val = _numberId }
+                ));
+            wordParagraph.Text = text;
         } else {
-            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
-        }
+            var paragraph = new Paragraph();
+            var run = new Run();
+            run.Append(new RunProperties());
+            run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
 
-        var wordParagraph = new WordParagraph(_document, paragraph, run) {
-            Text = text
-        };
+            var paragraphProperties = new ParagraphProperties();
+            paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+            paragraphProperties.Append(
+                new NumberingProperties(
+                    new NumberingLevelReference { Val = level },
+                    new NumberingId { Val = _numberId }
+                ));
+            paragraph.Append(paragraphProperties);
+            paragraph.Append(run);
+
+            if (_wordParagraph != null) {
+
+                if (this.ListItems.Count > 0) {
+                    var lastItem = this.ListItems.Last();
+                    var allElements = lastItem._paragraph.Parent.ChildElements.OfType<Paragraph>();
+                    if (allElements.Count() > 0) {
+                        var lastParagraph = allElements.Last();
+                        lastParagraph.Parent.Append(paragraph);
+                    }
+                } else {
+                    var allElements = _wordParagraph._paragraph.Parent.ChildElements.OfType<Paragraph>();
+                    var lastElement = allElements.Last();
+                    lastElement.Parent.Append(paragraph);
+                }
+
+                // _wordParagraph._paragraph.Append(paragraph);
+            } else {
+                if (this.ListItems.Count > 0) {
+                    var lastItem = this.ListItems.Last();
+                    var allElementsAfter = lastItem._paragraph.ElementsAfter();
+                    if (allElementsAfter.Count() > 0) {
+                        var lastParagraph = allElementsAfter.Last();
+                        lastParagraph.InsertAfterSelf(paragraph);
+                    } else {
+                        lastItem._paragraph.InsertAfterSelf(paragraph);
+                    }
+                } else {
+                    _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+                }
+            }
+            wordParagraph = new WordParagraph(_document, paragraph, run) {
+                Text = text
+            };
+        }
 
         // this simplifies TOC for user usage
         if (_isToc || IsToc) {
             wordParagraph.Style = WordParagraphStyle.GetStyle(level);
+        }
+
+        if (_wordParagraph == null) {
+            _wordParagraph = wordParagraph;
         }
 
         return wordParagraph;
