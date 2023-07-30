@@ -23,18 +23,32 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// This allows to know where the paragraph is located. Useful for hyperlinks or other stuff.
         /// </summary>
-        internal string Parent {
+        internal string TopParent {
             get {
                 var test = _paragraph.Parent;
                 if (test is Body) {
                     return "body";
-                } else if (test is Header) {
-                    return "header";
-                } else if (test is Footer) {
-                    return "footer";
-                } else {
-                    throw new NotImplementedException("There is different parent for paragraphs?");
                 }
+                if (test is Header) {
+                    return "header";
+                }
+                if (test is Footer) {
+                    return "footer";
+                }
+                var parent = test;
+                do {
+                    parent = parent.Parent;
+                } while (!(parent is Header) && !(parent is Footer) && !(parent is Body));
+                if (parent is Body) {
+                    return "body";
+                }
+                if (parent is Footer) {
+                    return "footer";
+                }
+                if (parent is Header) {
+                    return "header";
+                }
+                throw new InvalidOperationException("Please open an issue and describe your situation with Parent");
             }
         }
 
