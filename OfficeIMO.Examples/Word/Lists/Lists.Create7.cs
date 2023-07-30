@@ -59,13 +59,13 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddBreak();
 
-                //// add a table
+                // add a table
                 var table = document.AddTable(3, 3);
 
-                //// add a list to a table and attach it to a first paragraph 
+                //// add a list to a table and attach it to a first paragraph
                 var listInsideTable = table.Rows[0].Cells[0].Paragraphs[0].AddList(WordListStyle.Bulleted);
 
-                //// this will force the current Paragraph to be converted into a list item
+                // this will force the current Paragraph to be converted into a list item and overwrite it's text
                 Console.WriteLine("Table List (0) ElementsCount (0): " + listInsideTable.ListItems.Count);
                 listInsideTable.AddItem("text", 0, table.Rows[0].Cells[0].Paragraphs[0]);
                 Console.WriteLine("Table List (0) ElementsCount (1): " + listInsideTable.ListItems.Count);
