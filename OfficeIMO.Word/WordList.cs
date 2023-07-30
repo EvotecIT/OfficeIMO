@@ -243,6 +243,33 @@ public class WordList {
         }
     }
 
+    /// <summary>
+    /// Restarts numbering of a list after a break. Requires a list to be set to RestartNumbering overall.
+    /// </summary>
+    public bool RestartNumberingAfterBreak {
+        get {
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
+            foreach (var abstractInstance in listAbstracts) {
+                if (abstractInstance.AbstractNumberId == _abstractId) {
+                    var currentValue = abstractInstance.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
+                    return currentValue.Value != "0";
+                }
+            }
+            return false;
+        }
+        set {
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
+            foreach (var abstractInstance in listAbstracts) {
+                if (abstractInstance.AbstractNumberId == _abstractId) {
+                    var setValue = value ? "1" : "0";
+                    abstractInstance.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", setValue));
+                }
+            }
+        }
+    }
+
     public WordList(WordDocument wordDocument, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -274,6 +301,10 @@ public class WordList {
         _headerFooter = headerFooter;
     }
 
+    public WordParagraph AddItem(WordParagraph wordParagraph, int level = 0) {
+        return AddItem(null, level, wordParagraph);
+    }
+
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
         if (wordParagraph != null) {
             wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
@@ -282,7 +313,9 @@ public class WordList {
                     new NumberingLevelReference { Val = level },
                     new NumberingId { Val = _numberId }
                 ));
-            wordParagraph.Text = text;
+            if (text != null) {
+                wordParagraph.Text = text;
+            }
         } else {
             var paragraph = new Paragraph();
             var run = new Run();
@@ -434,12 +467,45 @@ public class WordList {
     //}
 
     private void CreateNumberingDefinition(WordDocument document) {
-        var numberingDefinitionsPart =
-            document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart
-            ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
-
+        var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
         if (numberingDefinitionsPart.Numbering == null) {
-            numberingDefinitionsPart.Numbering = new Numbering();
+            // the check for null is required even tho Resharper claims it's not
+            Numbering numbering1 = new Numbering() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
+            numbering1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
+            numbering1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
+            numbering1.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
+            numbering1.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
+            numbering1.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
+            numbering1.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
+            numbering1.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
+            numbering1.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
+            numbering1.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
+            numbering1.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
+            numbering1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+            numbering1.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
+            numbering1.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
+            numbering1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+            numbering1.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
+            numbering1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            numbering1.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
+            numbering1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+            numbering1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
+            numbering1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
+            numbering1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
+            numbering1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+            numbering1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+            numbering1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            numbering1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
+            numbering1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
+            numbering1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
+            numbering1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
+            numbering1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
+            numbering1.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+            numbering1.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
+            numbering1.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
+            numbering1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+
+            numberingDefinitionsPart.Numbering = numbering1;
             numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
         }
     }
