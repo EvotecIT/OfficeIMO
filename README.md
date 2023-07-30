@@ -45,6 +45,29 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 | Linux    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22/master?compact_message&label=Tests%20Linux"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
 | MacOs    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23/master?compact_message&label=Tests%20MacOs"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET Standard 2.1, .NET Core 3.1       |
 
+## Support This Project
+
+If you find this project helpful, please consider supporting its development.
+Your sponsorship will help the maintainers dedicate more time to maintenance and new feature development for everyone.
+
+It takes a lot of time and effort to create and maintain this project.
+By becoming a sponsor, you can help ensure that it stays free and accessible to everyone who needs it.
+
+To become a sponsor, you can choose from the following options:
+
+ - [Become a sponsor via GitHub Sponsors :heart:](https://github.com/sponsors/PrzemyslawKlys)
+ - [Become a sponsor via PayPal :heart:](https://paypal.me/PrzemyslawKlys)
+
+Your sponsorship is completely optional and not required for using this project.
+We want this project to remain open-source and available for anyone to use for free,
+regardless of whether they choose to sponsor it or not.
+
+If you work for a company that uses our .NET libraries or PowerShell Modules,
+please consider asking your manager or marketing team if your company would be interested in supporting this project.
+Your company's support can help us continue to maintain and improve this project for the benefit of everyone.
+
+Thank you for considering supporting this project!
+
 ## Please share with the community
 
 Please consider sharing a post about OfficeIMO and the value it provides. It really does help!
