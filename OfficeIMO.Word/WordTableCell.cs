@@ -443,6 +443,5 @@ namespace OfficeIMO.Word {
             wordList.AddList(style, continueNumbering);
             return wordList;
         }
-
     }
 }
