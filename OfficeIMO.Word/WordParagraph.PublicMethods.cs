@@ -151,6 +151,15 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+        public WordParagraph AddParagraph(string text) {
+            // we create paragraph (and within that add it to document)
+            var wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false) {
+                Text = text
+            };
+            this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            return wordParagraph;
+        }
+
         /// <summary>
         /// Add paragraph after self adds paragraph after given paragraph
         /// </summary>
@@ -306,6 +315,13 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this._document, this);
+            wordList.AddList(style, continueNumbering);
+            return wordList;
+        }
+
         public WordChart AddBarChart() {
             var barChart = WordBarChart.AddBarChart(this._document, this);
             return barChart;
@@ -340,6 +356,7 @@ namespace OfficeIMO.Word {
 
             var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
             return wordEndNote;
+
         }
     }
 }

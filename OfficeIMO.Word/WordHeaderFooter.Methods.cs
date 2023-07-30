@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,6 +51,12 @@ namespace OfficeIMO.Word {
             } else {
                 throw new InvalidOperationException("No footer or header defined. That is weird.");
             }
+        }
+
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this._document, this);
+            wordList.AddList(style, continueNumbering);
+            return wordList;
         }
     }
 }

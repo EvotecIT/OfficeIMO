@@ -244,17 +244,17 @@ namespace OfficeIMO.Word {
             get {
                 return GetLists();
 
-                List<WordList> returnList = new List<WordList>();
-                if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                    var ids = new List<int>();
-                    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
-                        WordList list = new WordList(_document, this, element.NumberID);
-                        returnList.Add(list);
-                    }
-                }
+                //List<WordList> returnList = new List<WordList>();
+                //if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                //    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                //    var ids = new List<int>();
+                //    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                //        WordList list = new WordList(_document, this, element.NumberID);
+                //        returnList.Add(list);
+                //    }
+                //}
 
-                return returnList;
+                //return returnList;
             }
         }
 

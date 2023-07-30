@@ -85,15 +85,15 @@ namespace OfficeIMO.Word {
             return pieChart;
         }
 
-        public WordList AddList(WordListStyle style) {
-            WordList wordList = new WordList(this, this._currentSection);
-            wordList.AddList(style);
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this);
+            wordList.AddList(style, continueNumbering);
             return wordList;
         }
 
         public WordList AddTableOfContentList(WordListStyle style) {
-            WordList wordList = new WordList(this, this._currentSection, true);
-            wordList.AddList(style);
+            WordList wordList = new WordList(this, true);
+            wordList.AddList(style, continueNumbering: true);
             return wordList;
         }
 
