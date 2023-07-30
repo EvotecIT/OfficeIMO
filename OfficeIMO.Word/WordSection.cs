@@ -195,6 +195,14 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Hyperlink);
                 }
+
+                foreach (var table in this.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsHyperLink) {
+                            list.Add(paragraph.Hyperlink);
+                        }
+                    }
+                }
                 return list;
             }
         }
