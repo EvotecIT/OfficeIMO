@@ -1,9 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,13 +9,17 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 // add list and nest a list
-                WordList wordList1 = document.AddList(WordListStyle.Headings111, true);
+                WordList wordList1 = document.AddList(WordListStyle.Headings111, false);
                 Console.WriteLine("List (0) ElementsCount (0): " + wordList1.ListItems.Count);
                 Console.WriteLine("List (0) ElementsCount (1): " + document.Lists[0].ListItems.Count);
                 wordList1.AddItem("Text 1");
                 Console.WriteLine("List (0) ElementsCount (1): " + document.Lists[0].ListItems.Count);
                 Console.WriteLine("Lists count (1): " + document.Lists.Count);
                 Console.WriteLine("List (0) ElementsCount (1): " + wordList1.ListItems.Count);
+
+                document.AddBreak();
+                wordList1.RestartNumberingAfterBreak = true;
+                wordList1.AddItem("Text 1");
 
                 wordList1.AddItem("Text 2");
                 Console.WriteLine("List (0) ElementsCount (2): " + wordList1.ListItems.Count);
@@ -59,8 +58,10 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddBreak();
 
-                // add a table
+                //// add a table
                 var table = document.AddTable(3, 3);
+
+                table.AddRow(2);
 
                 //// add a list to a table and attach it to a first paragraph
                 var listInsideTable = table.Rows[0].Cells[0].Paragraphs[0].AddList(WordListStyle.Bulleted);
@@ -103,14 +104,29 @@ namespace OfficeIMO.Examples.Word {
                 listInsideTableColumn3.AddItem("Test 2  - Column 2");
                 Console.WriteLine("Table List (2) ElementsCount: " + listInsideTableColumn3.ListItems.Count);
 
-                Console.WriteLine("Lists count in a document (10): " + document.Lists.Count);
 
-                document.Save(false);
+                // add a list to a table by adding it to a cell, notice that I'm adding text before list first
+                // but then convert that line into a list item
+                table.Rows[1].Cells[2].Paragraphs[0].Text = "This is list as list item: ";
+                // add list, and add all items
+                var listInsideTableColumn4 = table.Rows[0].Cells[2].AddList(WordListStyle.Bulleted);
+
+                listInsideTableColumn4.AddItem(table.Rows[1].Cells[2].Paragraphs[0]); // convert to list item
+
+                Console.WriteLine("Table List (2) ElementsCount: " + listInsideTableColumn4.ListItems.Count);
+                listInsideTableColumn4.AddItem("Test 1 - Column 2");
+                Console.WriteLine("Table List (2) ElementsCount: " + listInsideTableColumn4.ListItems.Count);
+                listInsideTableColumn4.AddItem("Test 2  - Column 2");
+                Console.WriteLine("Table List (2) ElementsCount: " + listInsideTableColumn4.ListItems.Count);
+
+                Console.WriteLine("Lists count in a document (11): " + document.Lists.Count);
+
+                document.Save(true);
             }
 
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("Lists count in a document (10): " + document.Lists.Count);
+                Console.WriteLine("Lists count in a document (11): " + document.Lists.Count);
 
                 document.Lists[0].AddItem("More then enough");
 
