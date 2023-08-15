@@ -5,7 +5,7 @@
         <AssemblyName>OfficeIMO.Word</AssemblyName>
         <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
-        <VersionPrefix>0.8.0</VersionPrefix>
+        <VersionPrefix>0.9.0</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">netstandard2.0;netstandard2.1;net472;net48;net6.0;net7.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">net6.0;net7.0</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -18,7 +18,7 @@
         <PackageLicenseUrl>https://github.com/evotecit/OfficeIMO/blob/master/License.md</PackageLicenseUrl>
         <DelaySign>False</DelaySign>
         <IsPublishable>True</IsPublishable>
-        <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <Copyright>(c) 2011 - 2023 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <RepositoryUrl>https://github.com/evotecit/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>
