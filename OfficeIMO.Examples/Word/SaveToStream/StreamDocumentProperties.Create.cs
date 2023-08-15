@@ -1,13 +1,10 @@
 using System;
 using System.IO;
-using System.Reflection.Metadata;
-using DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
-    internal static partial class Stream {
+    internal static partial class SaveToStream {
         public static void Example_StreamDocumentProperties(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document and saving to stream");
             string filePath = System.IO.Path.Combine(folderPath, "StreamDocumentProperties.docx");
