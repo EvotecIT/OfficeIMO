@@ -1,3 +1,22 @@
+## 0.9.0 - 2023.08.15
+
+### What's Changed
+* Fixes saving properties when using Stream by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/159
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.8.0...v0.9.0
+
+## 0.8.0 - 2023.07.30
+
+### What's Changed
+* AddRow functions return the created rows and table cell VerticalAlignment property by @The-Faulty in https://github.com/EvotecIT/OfficeIMO/pull/155
+* Improve Lists in few areas by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/110
+* Add Hyperlink inside table cell by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/157
+
+### New Contributors
+* @The-Faulty made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/155
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.7.0...v0.8.0
+
 ## 0.7.0 - 2023.07.16
 
 ### What's Changed
