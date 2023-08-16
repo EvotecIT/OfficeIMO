@@ -90,6 +90,14 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsChart).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsEndNotes {
+            get { return Paragraphs.Where(p => p.IsEndNote).ToList(); }
+        }
+
+        public List<WordParagraph> ParagraphsFootNotes {
+            get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -158,12 +166,42 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordEndNote> EndNotes {
+            get {
+                List<WordEndNote> list = new List<WordEndNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsEndNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.EndNote);
+                }
+                return list;
+            }
+        }
+
+        public List<WordFootNote> FootNotes {
+            get {
+                List<WordFootNote> list = new List<WordFootNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsFootNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.FootNote);
+                }
+                return list;
+            }
+        }
+
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
                 var paragraphs = Paragraphs.Where(p => p.IsHyperLink).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Hyperlink);
+                }
+
+                foreach (var table in this.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsHyperLink) {
+                            list.Add(paragraph.Hyperlink);
+                        }
+                    }
                 }
                 return list;
             }
@@ -214,17 +252,17 @@ namespace OfficeIMO.Word {
             get {
                 return GetLists();
 
-                List<WordList> returnList = new List<WordList>();
-                if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                    var ids = new List<int>();
-                    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
-                        WordList list = new WordList(_document, this, element.NumberID);
-                        returnList.Add(list);
-                    }
-                }
+                //List<WordList> returnList = new List<WordList>();
+                //if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
+                //    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+                //    var ids = new List<int>();
+                //    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
+                //        WordList list = new WordList(_document, this, element.NumberID);
+                //        returnList.Add(list);
+                //    }
+                //}
 
-                return returnList;
+                //return returnList;
             }
         }
 

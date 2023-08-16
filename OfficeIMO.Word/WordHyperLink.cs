@@ -234,12 +234,12 @@ namespace OfficeIMO.Word {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 
             HyperlinkRelationship rel;
-            if (paragraph.Parent == "body") {
+            if (paragraph.TopParent == "body") {
                 rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.Parent == "header") {
+            } else if (paragraph.TopParent == "header") {
                 Header header = (Header)paragraph._paragraph.Parent;
                 rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.Parent == "footer") {
+            } else if (paragraph.TopParent == "footer") {
                 Footer footer = (Footer)paragraph._paragraph.Parent;
                 rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
             } else {

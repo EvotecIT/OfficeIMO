@@ -296,11 +296,10 @@ namespace OfficeIMO.Word {
 
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
-            // Create an empty table.
             Table table = new Table();
 
             TableProperties tableProperties1 = new TableProperties();
-            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);  //new DocumentFormat.OpenXml.Wordprocessing.TableStyle() { Val = tableStyle.ToString() };
+            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
             TableLook tableLook1 = new TableLook() { Val = "04A0", FirstRow = true, LastRow = false, FirstColumn = true, LastColumn = false, NoHorizontalBand = false, NoVerticalBand = true };
 
@@ -310,6 +309,13 @@ namespace OfficeIMO.Word {
 
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
+
+            TableGrid tableGrid1 = new TableGrid();
+            for (int i = 0; i < columns; i++) {
+                GridColumn gridColumn1 = new GridColumn() { };
+                tableGrid1.Append(gridColumn1);
+            }
+            table.Append(tableGrid1);
 
             for (int i = 0; i < rows; i++) {
                 WordTableRow row = new WordTableRow(document, this);
@@ -399,10 +405,11 @@ namespace OfficeIMO.Word {
         /// Add row to an existing table with the specified number of columns
         /// </summary>
         /// <param name="cellsCount"></param>
-        public void AddRow(int cellsCount = 0) {
+        public WordTableRow AddRow(int cellsCount = 0) {
             WordTableRow row = new WordTableRow(_document, this);
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
+            return row;
         }
 
         /// <summary>
@@ -425,10 +432,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="rowsCount"></param>
         /// <param name="cellsCount"></param>
-        public void AddRow(int rowsCount, int cellsCount) {
+        public List<WordTableRow> AddRow(int rowsCount, int cellsCount) {
+            List<WordTableRow> rows = new List<WordTableRow>();
             for (int i = 0; i < rowsCount; i++) {
-                AddRow(cellsCount);
+                rows.Add(AddRow(cellsCount));
             }
+            return rows;
         }
 
         /// <summary>

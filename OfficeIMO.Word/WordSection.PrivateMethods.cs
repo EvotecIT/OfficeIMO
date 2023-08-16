@@ -146,7 +146,7 @@ namespace OfficeIMO.Word {
             }
 
             return numbering.ChildElements.OfType<NumberingInstance>()
-                .Select(element => new WordList(document, null, element.NumberID))
+                .Select(element => new WordList(document, element.NumberID))
                 .ToList();
         }
 

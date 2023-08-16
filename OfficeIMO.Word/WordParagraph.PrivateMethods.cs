@@ -118,27 +118,27 @@ namespace OfficeIMO.Word {
             return this._text;
         }
 
-        private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
-            if (wordParagraph.IsListItem) {
-                int? listId = wordParagraph._listNumberId;
-                if (listId != null) {
-                    if (!_document._listNumbersUsed.Contains(listId.Value)) {
-                        WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
-                        list.ListItems.Add(wordParagraph);
-                        _document._listNumbersUsed.Add(listId.Value);
-                        _document._currentSection.Lists.Add(list);
-                    } else {
-                        foreach (WordList list in _document.Lists) {
-                            if (list._numberId == listId.Value) {
-                                list.ListItems.Add(wordParagraph);
-                            }
-                        }
-                    }
-                } else {
-                    throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
-                }
-            }
-        }
+        //private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
+        //    if (wordParagraph.IsListItem) {
+        //        int? listId = wordParagraph._listNumberId;
+        //        if (listId != null) {
+        //            if (!_document._listNumbersUsed.Contains(listId.Value)) {
+        //                WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
+        //                list.ListItems.Add(wordParagraph);
+        //                _document._listNumbersUsed.Add(listId.Value);
+        //                _document._currentSection.Lists.Add(list);
+        //            } else {
+        //                foreach (WordList list in _document.Lists) {
+        //                    if (list._numberId == listId.Value) {
+        //                        list.ListItems.Add(wordParagraph);
+        //                    }
+        //                }
+        //            }
+        //        } else {
+        //            throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Combines the identical runs.

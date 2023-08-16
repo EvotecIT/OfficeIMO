@@ -182,6 +182,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsEndNotes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsEndNotes);
+                }
+                return list;
+            }
+        }
+
+        public List<WordParagraph> ParagraphsFootNotes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsFootNotes);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -200,6 +221,26 @@ namespace OfficeIMO.Word {
                     list.AddRange(section.Breaks);
                 }
 
+                return list;
+            }
+        }
+
+        public List<WordEndNote> EndNotes {
+            get {
+                List<WordEndNote> list = new List<WordEndNote>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.EndNotes);
+                }
+                return list;
+            }
+        }
+
+        public List<WordFootNote> FootNotes {
+            get {
+                List<WordFootNote> list = new List<WordFootNote>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.FootNotes);
+                }
                 return list;
             }
         }
@@ -445,6 +486,12 @@ namespace OfficeIMO.Word {
             DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
             GenerateDocumentSettingsPart1Content(documentSettingsPart1);
 
+            EndnotesPart endnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<EndnotesPart>("rId4");
+            GenerateEndNotesPart1Content(endnotesPart1);
+
+            FootnotesPart footnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<FootnotesPart>("rId5");
+            GenerateFootNotesPart1Content(footnotesPart1);
+
             //FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId4");
             //GenerateFontTablePart1Content(fontTablePart1);
 
@@ -588,38 +635,11 @@ namespace OfficeIMO.Word {
             Helpers.Open(filePath, openWord);
         }
 
-
-        //private void LoadNumbering() {
-        //    if (_wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-        //        Numbering numbering = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-        //        if (numbering == null) {
-        //        } else {
-        //            var tempAbstractNumList = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<AbstractNum>();
-        //            foreach (AbstractNum abstractNum in tempAbstractNumList) {
-        //               // _ListAbstractNum.Add(abstractNum);
-        //            }
-
-        //            var tempNumberingInstance = _wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.ChildElements.OfType<NumberingInstance>();
-        //            foreach (NumberingInstance numberingInstance in tempNumberingInstance) {
-        //                //_listNumberingInstances.Add(numberingInstance);
-        //            }
-        //        }
-        //    }
-        //}
-        //private void SaveSections() {
-        //    WordSection temporarySection = null;
-        //    if (this.Sections.Count > 0) {
-        //        for (int i = 0; i < Sections.Count; i++) {
-        //            if (temporarySection != null) {
-
-        //            } else {
-        //                temporarySection = Sections[i];
-        //                Sections[i]._sectionProperties.Remove();
-        //            }
-        //        }
-        //    }
-        //}
-
+        /// <summary>
+        /// Copies package properties. Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
+        /// </summary>
+        /// <param name="src"></param>
+        /// <param name="dest"></param>
         private static void CopyPackageProperties(PackageProperties src, PackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
@@ -639,6 +659,13 @@ namespace OfficeIMO.Word {
             dest.Version = src.Version;
         }
 
+        /// <summary>
+        /// Save WordDOcument to filePath (SaveAs), and open the file in Microsoft Word
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="openWord"></param>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
         public void Save(string filePath, bool openWord) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new Exception("Document is read only, and cannot be saved.");
@@ -689,18 +716,34 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Save WordDocument to where it was open from
+        /// </summary>
         public void Save() {
             this.Save("", false);
         }
 
+        /// <summary>
+        /// Save WordDocument to given filePath
+        /// </summary>
+        /// <param name="filePath"></param>
         public void Save(string filePath) {
             this.Save(filePath, false);
         }
 
+        /// <summary>
+        /// Save WordDocument and open it in Microsoft Word (if Word is present)
+        /// </summary>
+        /// <param name="openWord"></param>
         public void Save(bool openWord) {
             this.Save("", openWord);
         }
 
+        /// <summary>
+        /// Save the WordDocument to Stream
+        /// </summary>
+        /// <param name="outputStream"></param>
+        /// <exception cref="Exception"></exception>
         public void Save(Stream outputStream) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new Exception("Document is read only, and cannot be saved.");
@@ -708,6 +751,11 @@ namespace OfficeIMO.Word {
             PreSaving();
 
             this._wordprocessingDocument.Clone(outputStream);
+
+            // Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
+            using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
+                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+            }
 
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);

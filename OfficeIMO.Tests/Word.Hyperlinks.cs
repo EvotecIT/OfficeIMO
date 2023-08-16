@@ -307,5 +307,34 @@ namespace OfficeIMO.Tests {
 
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordWithHyperlinksInTables() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "HyperlinksTestsInTables.docx"))) {
+                Assert.True(document.Paragraphs.Count == 0);
+                Assert.True(document.Sections.Count == 1);
+                Assert.True(document.Fields.Count == 0);
+                Assert.True(document.HyperLinks.Count == 0);
+                Assert.True(document.ParagraphsHyperLinks.Count == 0);
+                Assert.True(document.Bookmarks.Count == 0);
+
+                document.AddParagraph("Test 1");
+
+                document.AddTable(3, 3);
+
+                document.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].IsHyperLink == true);
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Hyperlink.IsHttp == true);
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Hyperlink.Text == " to website?");
+
+                Assert.True(document.HyperLinks.Count == 1);
+
+                Assert.True(document.HyperLinks[0].Text == " to website?");
+
+                document.Save(false);
+            }
+        }
+
     }
 }

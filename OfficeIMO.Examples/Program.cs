@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_BasicLists3(folderPath, false);
             Lists.Example_BasicLists4(folderPath, false);
             Lists.Example_BasicLists2Load(folderPath, false);
-
+            Lists.Example_BasicLists7(folderPath, false);
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
             Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
@@ -92,6 +92,7 @@ namespace OfficeIMO.Examples {
             HyperLinks.EasyExample(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinks(folderPath, false);
             HyperLinks.Example_AddingFields(folderPath, false);
+            HyperLinks.Example_BasicWordWithHyperLinksInTables(folderPath, false);
 
             HeadersAndFooters.Sections1(folderPath, false);
             HeadersAndFooters.Example_BasicWordWithHeaderAndFooter0(folderPath, false);
@@ -141,6 +142,11 @@ namespace OfficeIMO.Examples {
 
             FindAndReplace.Example_FindAndReplace01(folderPath, false);
             FindAndReplace.Example_FindAndReplace02(folderPath, false);
+
+            FootNotes.Example_DocumentWithFootNotes(templatesPath, false);
+            FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
+
+            SaveToStream.Example_StreamDocumentProperties(folderPath, false);
         }
     }
 }
