@@ -787,5 +787,31 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+
+        [Fact]
+        public void Test_SetTableStyleId() {
+
+            string originalFile = Path.Combine(_directoryDocuments, "CreatingWordDocumentWithTables2.docx");
+            string tempFile = Path.GetTempFileName();
+
+            using (WordDocument document = WordDocument.Create(originalFile)) {
+
+                document.AddParagraph("Table1");
+
+                WordTable wordTable1 = document.AddTable(4, 3);
+                wordTable1.SetStyleId(WordTableStyle.TableNormal.ToString());
+
+                document.AddParagraph("Table2");
+
+                WordTable wordTable2 = document.AddTable(4, 3);
+                wordTable2.Style = WordTableStyle.TableNormal;
+
+                Assert.True(wordTable1.Style == wordTable2.Style);
+                document.Save(false);
+
+            }
+          
+        }
     }
 }

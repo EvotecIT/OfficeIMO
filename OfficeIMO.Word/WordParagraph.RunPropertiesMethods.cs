@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -42,6 +42,11 @@ namespace OfficeIMO.Word {
             this.Color = color;
             return this;
         }
+        public WordParagraph SetAlignment(JustificationValues alignment) {
+            this.ParagraphAlignment = alignment;
+            return this;
+        }
+
         public WordParagraph SetHighlight(HighlightColorValues highlight) {
             this.Highlight = highlight;
             return this;
@@ -58,5 +63,21 @@ namespace OfficeIMO.Word {
             this.Style = style;
             return this;
         }
+
+
+        public WordParagraph SetStyleId(string styleId) {
+            //Todo Check the styleId exist
+            if (!string.IsNullOrEmpty(styleId)) {
+                if (_paragraphProperties == null) {
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
+                }
+                if (_paragraphProperties.ParagraphStyleId == null) {
+                    _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
+                }
+                _paragraphProperties.ParagraphStyleId.Val = styleId;
+            }
+            return this;
+        }
+
     }
 }
