@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2010.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -484,5 +486,43 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        public bool AlwaysOpenReadOnly {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                if (settings.WriteProtection == null) {
+                    return false;
+                }
+                if (settings.WriteProtection.Recommended == null) {
+                    return false;
+                }
+                return settings.WriteProtection.Recommended.Value;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                if (settings.WriteProtection == null) {
+                    settings.WriteProtection = new WriteProtection();
+                }
+                settings.WriteProtection.Recommended = value;
+            }
+        }
+
+        public bool FinalDocument {
+            get {
+                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
+                    // key exists in dictionary
+                    var markFinalProperty = _document.CustomDocumentProperties["_MarkAsFinal"];
+                    return markFinalProperty != null && (bool)markFinalProperty.Value;
+                } else {
+                    return false;
+                }
+            }
+            set {
+                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
+                    _document.CustomDocumentProperties["_MarkAsFinal"].Value = value;
+                } else {
+                    _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                }
+            }
+        }
     }
 }
