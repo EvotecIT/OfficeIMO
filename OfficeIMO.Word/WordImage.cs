@@ -30,6 +30,30 @@ namespace OfficeIMO.Word {
         private ImagePart _imagePart;
         private WordDocument _document;
 
+        public HorizontalPosition horizontalPosition {
+            get {
+                var anchor = _Image.Anchor;
+                var hPosition = anchor.HorizontalPosition;
+                return hPosition;
+            }
+            set { 
+                var anchor = _Image.Anchor;
+                anchor.HorizontalPosition = value;
+            }
+        }
+
+        public VerticalPosition verticalPosition {
+            get {
+                var anchor = _Image.Anchor;
+                var vPosition = anchor.VerticalPosition;
+                return vPosition;
+            }
+            set { 
+                var anchor = _Image.Anchor;
+                anchor.VerticalPosition = value;
+            }
+        }
+
         public BlipCompressionValues? CompressionQuality {
             get {
                 if (_Image.Inline != null) {
