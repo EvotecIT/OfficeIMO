@@ -36,9 +36,17 @@ namespace OfficeIMO.Word {
                 var hPosition = anchor.HorizontalPosition;
                 return hPosition;
             }
-            set { 
-                var anchor = _Image.Anchor;
-                anchor.HorizontalPosition = value;
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.HorizontalPosition = value;
+                }
+                else {
+                    throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
+                    // See the property assignment for WrapTextImage. Until that is implemented,
+                    // this assignment will not be able to override the WrapTextImage property of
+                    // the image - which must not be Inline.
+                }
             }
         }
 
@@ -49,8 +57,16 @@ namespace OfficeIMO.Word {
                 return vPosition;
             }
             set { 
-                var anchor = _Image.Anchor;
-                anchor.VerticalPosition = value;
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.VerticalPosition = value;
+                }
+                else {
+                    throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
+                    // See the property assignment for WrapTextImage. Until that is implemented,
+                    // this assignment will not be able to override the WrapTextImage property of
+                    // the image - which must not be Inline.
+                }
             }
         }
 

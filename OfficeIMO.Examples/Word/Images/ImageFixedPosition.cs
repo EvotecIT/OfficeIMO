@@ -40,19 +40,27 @@ namespace OfficeIMO.Examples.Word {
             // Begin editing the fixed position properties of the image. You may edit both, however it
             // is not necessary.
 
+            // Note that the units for the PositionOffset are taken in EMU's. This is a conversion
+            // for an offset of 1/4 inch.
+            const double emusPerInch = 914400.0;
+            double offsetInches = 0.25;
+            // Non integer values will cause the document properties to be corrupted, cast
+            // to an int for avoiding this.
+            int offsetEmus = (int)(offsetInches * emusPerInch);
+
             // Edit the horizontal relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
-            HorizontalPosition horizontalPosition1 = new HorizontalPosition() { 
+            HorizontalPosition horizontalPosition1 = new HorizontalPosition() {
                 RelativeFrom = HorizontalRelativePositionValues.Page,
-                PositionOffset = new PositionOffset {  Text = "0" }
+                PositionOffset = new PositionOffset { Text = $"{offsetEmus}" }
             };
             paragraph1.Image.horizontalPosition = horizontalPosition1;
 
             // Edit the vertical relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
-            VerticalPosition verticalPosition1 = new VerticalPosition() { 
+            VerticalPosition verticalPosition1 = new VerticalPosition() {
                 RelativeFrom = VerticalRelativePositionValues.Page,
-                PositionOffset = new PositionOffset { Text = "0" }
+                PositionOffset = new PositionOffset { Text = $"{offsetEmus}" }
             };
             paragraph1.Image.verticalPosition = verticalPosition1;
 
