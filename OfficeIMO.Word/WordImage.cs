@@ -48,10 +48,7 @@ namespace OfficeIMO.Word {
                     var anchor = _Image.Anchor;
                     anchor.HorizontalPosition = value;
                 } else {
-                    throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
-                    // See the property assignment for WrapTextImage. Until that is implemented,
-                    // this assignment will not be able to override the WrapTextImage property of
-                    // the image - which must not be Inline.
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
                 }
             }
         }
@@ -66,7 +63,7 @@ namespace OfficeIMO.Word {
                     var vPosition = anchor.VerticalPosition;
                     return vPosition;
                 } else {
-                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
                 }
             }
             set {
@@ -74,10 +71,7 @@ namespace OfficeIMO.Word {
                     var anchor = _Image.Anchor;
                     anchor.VerticalPosition = value;
                 } else {
-                    throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
-                    // See the property assignment for WrapTextImage. Until that is implemented,
-                    // this assignment will not be able to override the WrapTextImage property of
-                    // the image - which must not be Inline.
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
                 }
             }
         }

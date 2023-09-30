@@ -22,20 +22,16 @@ namespace OfficeIMO.Examples.Word {
             // Add an image with a fixed position to paragraph. First we add the image, then we will
             // edit the position properties.
             //
-            // The image MUST be constructed with a WrapTextImage property that is NOT inline. Assigning
+            // Note: The image MUST be constructed with a WrapTextImage property that is NOT inline. Assigning
             // the WrapTextImage property later was not available at the time of making this example.
             paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
 
             Console.WriteLine("PRE position edit.");
             // Before editing, we can assess the RelativeFrom and PositionOffset properties of the image.
-            var hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
-            var hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
-            var vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;
-            var vOffset = paragraph1.Image.verticalPosition.PositionOffset.Text;
-            Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom.ToString()}");
-            Console.WriteLine($"Horizontal PositionOffset value: {hOffset.ToString()}");
-            Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom.ToString()}");
-            Console.WriteLine($"Vertical PositionOffset value: {vOffset.ToString()}");
+            DocumentFormat.OpenXml.EnumValue<HorizontalRelativePositionValues> hRelativeFrom;
+            string hOffset, vOffset;
+            DocumentFormat.OpenXml.EnumValue<VerticalRelativePositionValues> vRelativeFrom;
+            checkImageProps(paragraph1);
 
             // Begin editing the fixed position properties of the image. You may edit both, however it
             // is not necessary.
@@ -66,18 +62,22 @@ namespace OfficeIMO.Examples.Word {
 
             Console.WriteLine("POST position edit.");
             // After editing, lets reassess the properties.
-            hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
-            hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
-            vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;
-            vOffset = paragraph1.Image.verticalPosition.PositionOffset.Text;
-            Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom.ToString()}");
-            Console.WriteLine($"Horizontal PositionOffset value: {hOffset.ToString()}");
-            Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom.ToString()}");
-            Console.WriteLine($"Vertical PositionOffset value: {vOffset.ToString()}");
+            checkImageProps(paragraph1);
 
             // This will put the image in the upper top left corner of the document.
 
             document.Save(openWord);
+
+            static void checkImageProps(WordParagraph paragraph1) { 
+                var hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
+                var hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
+                var vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;
+                var vOffset = paragraph1.Image.verticalPosition.PositionOffset.Text;
+                Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom.ToString()}");
+                Console.WriteLine($"Horizontal PositionOffset value: {hOffset.ToString()}");
+                Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom.ToString()}");
+                Console.WriteLine($"Vertical PositionOffset value: {vOffset.ToString()}");
+            }
         }
     }
 }

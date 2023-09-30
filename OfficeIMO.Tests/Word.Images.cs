@@ -1,5 +1,6 @@
 using System.IO;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -227,6 +228,66 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Paragraphs[4].Image.WrapText == WrapTextImage.Square);
             Assert.True(document.Paragraphs[5].Image.WrapText == WrapTextImage.Tight);
             Assert.True(document.Paragraphs[6].Image.WrapText == WrapTextImage.Through);
+
+            document.Save(false);
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithFixedImages() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            var filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithFixedImages.docx");
+            using var document = WordDocument.Create(filePath);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+
+            var paragraph1 = document.AddParagraph("This is a test document with images wraps");
+            paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.InLineWithText);
+
+            var paragraph2 = document.AddParagraph("This is a test document with images wraps");
+            paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
+
+            Assert.True(document.Paragraphs.Count == 2);
+            Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.Square);
+            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.horizontalPosition);
+            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.verticalPosition);
+
+            int emus = 914400;
+            HorizontalRelativePositionValues hRelativeFromGood = HorizontalRelativePositionValues.RightMargin;
+            HorizontalRelativePositionValues hRelativeFromFail = HorizontalRelativePositionValues.LeftMargin;
+            VerticalRelativePositionValues vRelativeFromGood = VerticalRelativePositionValues.Page;
+            VerticalRelativePositionValues vRelativeFromFail = VerticalRelativePositionValues.Line;
+
+            HorizontalPosition horizontalPosition1 = new HorizontalPosition() {
+                RelativeFrom = hRelativeFromGood,
+                PositionOffset = new PositionOffset { Text = $"{emus}" }
+            };
+
+            VerticalPosition verticalPosition1 = new VerticalPosition() {
+                RelativeFrom = vRelativeFromGood,
+                PositionOffset = new PositionOffset { Text = $"{emus}" }
+            };
+
+            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.horizontalPosition = horizontalPosition1);
+            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.verticalPosition = verticalPosition1);
+
+            PositionOffset positionOffsetGood = new PositionOffset { Text = $"{emus}" };
+            PositionOffset positionOffsetFail = new PositionOffset { Text = $"{2 * emus}" };
+            Assert.NotEqual(positionOffsetFail.Text, positionOffsetGood.Text);
+
+            document.Paragraphs[1].Image.horizontalPosition = horizontalPosition1;
+            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
+            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
+            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
+            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
+
+
+            document.Paragraphs[1].Image.verticalPosition = verticalPosition1;
+            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
+            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
+            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
+            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
 
             document.Save(false);
         }
