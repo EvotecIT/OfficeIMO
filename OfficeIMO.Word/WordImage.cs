@@ -30,18 +30,24 @@ namespace OfficeIMO.Word {
         private ImagePart _imagePart;
         private WordDocument _document;
 
+        /// <summary>
+        /// Get or set the Image's horizontal position.
+        /// </summary>
         public HorizontalPosition horizontalPosition {
             get {
-                var anchor = _Image.Anchor;
-                var hPosition = anchor.HorizontalPosition;
-                return hPosition;
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var hPosition = anchor.HorizontalPosition;
+                    return hPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
             }
             set {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor;
                     anchor.HorizontalPosition = value;
-                }
-                else {
+                } else {
                     throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
                     // See the property assignment for WrapTextImage. Until that is implemented,
                     // this assignment will not be able to override the WrapTextImage property of
@@ -50,18 +56,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Get or set the Image's vertical position.
+        /// </summary>
         public VerticalPosition verticalPosition {
             get {
-                var anchor = _Image.Anchor;
-                var vPosition = anchor.VerticalPosition;
-                return vPosition;
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var vPosition = anchor.VerticalPosition;
+                    return vPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
             }
-            set { 
+            set {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor;
                     anchor.VerticalPosition = value;
-                }
-                else {
+                } else {
                     throw new NotImplementedException("Not implemented - blocked by WrapTextImage property setter. WrapTextImage must not be Inline.");
                     // See the property assignment for WrapTextImage. Until that is implemented,
                     // this assignment will not be able to override the WrapTextImage property of
