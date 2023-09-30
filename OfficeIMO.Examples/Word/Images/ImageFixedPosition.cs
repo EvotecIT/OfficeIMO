@@ -1,66 +1,73 @@
 using System;
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Images {
         internal static void Example_AddingFixedImages(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Creating standard document with some Images");
-            //string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            //string imagePaths = System.IO.Path.Combine(baseDirectory, "Images");
+            Console.WriteLine("[*] Creating standard document with an Image in a fixed position.");
             var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithImages.docx");
             var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
 
             using var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "This is sparta";
-            document.BuiltinDocumentProperties.Creator = "Przemek";
+            document.BuiltinDocumentProperties.Title = "Fixed image example";
+            document.BuiltinDocumentProperties.Creator = "example";
 
-            var paragraph1 = document.AddParagraph("This paragraph starts with some text");
-            paragraph1.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
-            // lets add image to paragraph
-            paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            //paragraph1.Image.WrapText = true; // WrapSideValues.Both;
-
-            var paragraph2 = paragraph1.AddText("and more text");
-            paragraph2.Bold = true;
+            var paragraph1 = document.AddParagraph("First Paragraph");
 
             const string fileNameImage = "Kulek.jpg";
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+            // Add an image with a fixed position to paragraph. First we add the image, then we will
+            // edit the position properties.
+            //
+            // The image MUST be constructed with a WrapTextImage property that is NOT inline. Assigning
+            // the WrapTextImage property later was not available at the time of making this example.
+            paragraph1.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
 
-            document.AddParagraph("This adds another picture with 500x500");
-            var paragraph3 = document.AddParagraph();
-            paragraph3.AddImage(filePathImage, 500, 500);
-            //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
-            paragraph3.Image.Rotation = 180;
-            paragraph3.Image.Shape = ShapeTypeValues.ActionButtonMovie;
+            Console.WriteLine("PRE position edit.");
+            // Before editing, we can assess the RelativeFrom and PositionOffset properties of the image.
+            var hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
+            var hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
+            var vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;
+            var vOffset = paragraph1.Image.verticalPosition.PositionOffset.Text;
+            Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom.ToString()}");
+            Console.WriteLine($"Horizontal PositionOffset value: {hOffset.ToString()}");
+            Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom.ToString()}");
+            Console.WriteLine($"Vertical PositionOffset value: {vOffset.ToString()}");
 
-            document.AddParagraph("This adds another picture with 100x100");
-            var paragraph4 = document.AddParagraph();
-            paragraph4.AddImage(filePathImage, 100, 100);
+            // Begin editing the fixed position properties of the image. You may edit both, however it
+            // is not necessary.
 
-            document.AddParagraph("This adds another picture via Stream with 100x100");
-            var paragraph5 = document.AddParagraph();
-            using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
-                paragraph5.AddImage(imageStream, fileNameImage, 100, 100);
-            }
+            // Edit the horizontal relative from property of the image. Both
+            // the RelativeFrom property and PositionOffset are required.
+            HorizontalPosition horizontalPosition1 = new HorizontalPosition() { 
+                RelativeFrom = HorizontalRelativePositionValues.Page,
+                PositionOffset = new PositionOffset {  Text = "0" }
+            };
+            paragraph1.Image.horizontalPosition = horizontalPosition1;
 
-            // we add paragraph with an image
-            var paragraph6 = document.AddParagraph();
-            paragraph6.AddImage(filePathImage);
-            // we can get the height of the image from paragraph
-            Console.WriteLine("This document has image, which has height of: " + paragraph6.Image.Height + " pixels (I think) ;-)");
-            // we can also overwrite height later on
-            paragraph6.Image.Height = 50;
-            paragraph6.Image.Width = 50;
-            // this doesn't work
-            paragraph6.Image.HorizontalFlip = true;
+            // Edit the vertical relative from property of the image. Both
+            // the RelativeFrom property and PositionOffset are required.
+            VerticalPosition verticalPosition1 = new VerticalPosition() { 
+                RelativeFrom = VerticalRelativePositionValues.Page,
+                PositionOffset = new PositionOffset { Text = "0" }
+            };
+            paragraph1.Image.verticalPosition = verticalPosition1;
 
-            // or we can get any image and overwrite it's size
-            document.Images[0].Height = 200;
-            document.Images[0].Width = 200;
+            Console.WriteLine("POST position edit.");
+            // After editing, lets reassess the properties.
+            hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
+            hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
+            vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;
+            vOffset = paragraph1.Image.verticalPosition.PositionOffset.Text;
+            Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom.ToString()}");
+            Console.WriteLine($"Horizontal PositionOffset value: {hOffset.ToString()}");
+            Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom.ToString()}");
+            Console.WriteLine($"Vertical PositionOffset value: {vOffset.ToString()}");
 
-            var fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-            document.Images[0].SaveToFile(fileToSave);
+            // This will put the image in the upper top left corner of the document.
 
             document.Save(openWord);
         }
