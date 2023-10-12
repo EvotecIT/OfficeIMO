@@ -30,6 +30,52 @@ namespace OfficeIMO.Word {
         private ImagePart _imagePart;
         private WordDocument _document;
 
+        /// <summary>
+        /// Get or set the Image's horizontal position.
+        /// </summary>
+        public HorizontalPosition horizontalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var hPosition = anchor.HorizontalPosition;
+                    return hPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.HorizontalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get or set the Image's vertical position.
+        /// </summary>
+        public VerticalPosition verticalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var vPosition = anchor.VerticalPosition;
+                    return vPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.VerticalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+        }
+
         public BlipCompressionValues? CompressionQuality {
             get {
                 if (_Image.Inline != null) {
