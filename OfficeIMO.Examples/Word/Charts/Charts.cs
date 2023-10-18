@@ -130,6 +130,16 @@ namespace OfficeIMO.Examples.Word {
                 barChart3.BarGrouping = BarGroupingValues.Clustered;
                 barChart3.BarDirection = BarDirectionValues.Column;
 
+                var areaChart = document.AddAreaChart("AreaChart");
+                areaChart.AddCategories(categories);
+
+                areaChart.AddChartArea("Brazil", new List<int>() { 100, 1, 18, 230 }, SixLabors.ImageSharp.Color.Brown);
+                areaChart.AddChartArea("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                areaChart.AddChartArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+
+                areaChart.AddLegend(LegendPositionValues.Top);
+
+
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
