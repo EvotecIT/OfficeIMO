@@ -83,14 +83,24 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Charts.Count == 4);
                 Assert.True(document.ParagraphsCharts.Count == 4);
 
+                var areaChart = document.AddAreaChart("AreaChart");
+                areaChart.AddCategories(categories);
+               
+                areaChart.AddChartArea("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                areaChart.AddChartArea("USA", new List<int>() { 10, 35, 300,13 }, SixLabors.ImageSharp.Color.Green);
+                areaChart.AddChartArea("USA", new List<int>() { 10, 35, 230, 150 }, SixLabors.ImageSharp.Color.AliceBlue);
+     
+                areaChart.AddLegend(LegendPositionValues.Top);
+
+
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
-                Assert.True(document.Sections[1].Charts.Count == 1);
-                Assert.True(document.Charts.Count == 4);
+                Assert.True(document.Sections[1].Charts.Count == 2);
+                Assert.True(document.Charts.Count == 5);
 
                 document.Save(false);
             }
