@@ -8,16 +8,16 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public class WordLineChart : WordChart {
 
-        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false, int width = 600, int height = 600) {
+        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             _document = wordDocument;
             _paragraph = paragraph;
 
             // minimum required to create chart
-            var oChart = GenerateChart();
+            var oChart = GenerateChart(title);
             oChart = GenerateLineChart(oChart);
 
             // inserts chart into document
-            InsertChart(wordDocument, paragraph, oChart, roundedCorners,width,height);
+            InsertChart(wordDocument, paragraph, oChart, roundedCorners, width, height);
 
             var drawing = paragraph._paragraph.OfType<Drawing>().FirstOrDefault();
 
