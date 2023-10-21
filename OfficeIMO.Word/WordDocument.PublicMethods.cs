@@ -61,34 +61,34 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
-        public WordChart AddBarChart() {
+        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var barChart = WordBarChart.AddBarChart(this, paragraph);
-           
+            var barChart = WordBarChart.AddBarChart(this, paragraph, title, roundedCorners, width, height);
+
             return barChart;
         }
 
-        public WordChart AddLineChart() {
+        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var lineChart = WordLineChart.AddLineChart(this, paragraph);
+            var lineChart = WordLineChart.AddLineChart(this, paragraph, title, roundedCorners, width, height);
             return lineChart;
         }
 
-        public WordChart AddAreaChart(string title) {
+        public WordChart AddAreaChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var lineChart = WordAreaChart.AddAreaChart(this, paragraph,title);
+            var lineChart = WordAreaChart.AddAreaChart(this, paragraph, title, roundedCorners, width, height);
             return lineChart;
         }
 
-        public WordBarChart3D AddBarChart3D() {
-            var paragraph = this.AddParagraph();
-            var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
-            return barChart;
-        }
+        //public WordBarChart3D AddBarChart3D() {
+        //    var paragraph = this.AddParagraph();
+        //    var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
+        //    return barChart;
+        //}
 
-        public WordChart AddPieChart() {
+        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var pieChart = WordPieChart.AddPieChart(this, paragraph);
+            var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
             return pieChart;
         }
 
