@@ -85,11 +85,11 @@ namespace OfficeIMO.Tests {
 
                 var areaChart = document.AddAreaChart("AreaChart");
                 areaChart.AddCategories(categories);
-               
+
                 areaChart.AddChartArea("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                areaChart.AddChartArea("Brazil", new List<int>() { 10, 35, 300,13 }, SixLabors.ImageSharp.Color.Green);
+                areaChart.AddChartArea("Brazil", new List<int>() { 10, 35, 300, 13 }, SixLabors.ImageSharp.Color.Green);
                 areaChart.AddChartArea("Poland", new List<int>() { 10, 35, 230, 150 }, SixLabors.ImageSharp.Color.AliceBlue);
-     
+
                 areaChart.AddLegend(LegendPositionValues.Top);
 
                 Assert.True(document.Sections[0].ParagraphsCharts.Count == 3);
