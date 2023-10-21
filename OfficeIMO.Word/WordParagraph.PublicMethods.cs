@@ -315,30 +315,29 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
-
         public WordList AddList(WordListStyle style, bool continueNumbering = false) {
             WordList wordList = new WordList(this._document, this);
             wordList.AddList(style, continueNumbering);
             return wordList;
         }
 
-        public WordChart AddBarChart() {
-            var barChart = WordBarChart.AddBarChart(this._document, this);
+        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var barChart = WordBarChart.AddBarChart(this._document, this, title, roundedCorners, width, height);
             return barChart;
         }
 
-        public WordChart AddLineChart() {
-            var lineChart = WordLineChart.AddLineChart(this._document, this);
+        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var lineChart = WordLineChart.AddLineChart(this._document, this, title, roundedCorners, width, height);
             return lineChart;
         }
 
-        public WordBarChart3D AddBarChart3D() {
-            var barChart = WordBarChart3D.AddBarChart3D(this._document, this);
-            return barChart;
-        }
+        //public WordBarChart3D AddBarChart3D(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        //    var barChart = WordBarChart3D.AddBarChart3D(this._document, this, title, roundedCorners, width, height);
+        //    return barChart;
+        //}
 
-        public WordChart AddPieChart() {
-            var pieChart = WordPieChart.AddPieChart(this._document, this);
+        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var pieChart = WordPieChart.AddPieChart(this._document, this, title, roundedCorners, width, height);
             return pieChart;
         }
 

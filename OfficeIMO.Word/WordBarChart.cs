@@ -15,15 +15,15 @@ using ValueAxis = DocumentFormat.OpenXml.Drawing.Charts.ValueAxis;
 
 namespace OfficeIMO.Word {
     public class WordBarChart : WordChart {
-        public static WordChart AddBarChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false) {
+        public static WordChart AddBarChart(WordDocument wordDocument, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             _document = wordDocument;
             _paragraph = paragraph;
 
             // minimum required to create chart
-            var oChart = GenerateChart();
+            var oChart = GenerateChart(title);
             oChart = GenerateChartBar(oChart);
 
-            InsertChart(wordDocument, paragraph, oChart, roundedCorners);
+            InsertChart(wordDocument, paragraph, oChart, roundedCorners, width, height);
 
             var drawing = paragraph._paragraph.OfType<Drawing>().FirstOrDefault();
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        internal static BarChartSeries AddBarChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<int> data) {
+        internal static BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
 
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
