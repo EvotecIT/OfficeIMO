@@ -486,7 +486,12 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        public bool AlwaysOpenReadOnly {
+        /// <summary>
+        /// Sets property in document recommending user to open the document as read only
+        /// User can choose to do so, or ignore this recommendation
+        /// This setting can in theory go with a ReadOnlyPassword but it doesn't seem to work the same way as Document Password
+        /// </summary>
+        public bool? ReadOnlyRecommended {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
                 if (settings.WriteProtection == null) {
@@ -500,9 +505,29 @@ namespace OfficeIMO.Word {
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
                 if (settings.WriteProtection == null) {
+                    if (value == null) {
+                        // user wanted to remove read only protection
+                        return;
+                    }
                     settings.WriteProtection = new WriteProtection();
+                } else {
+                    if (value == null) {
+                        // user wanted to remove read only protection
+                        settings.WriteProtection.Remove();
+                        return;
+                    }
                 }
                 settings.WriteProtection.Recommended = value;
+            }
+        }
+
+        /// <summary>
+        /// Sets password protection when recommending document to be read only
+        /// Doesn't seem to work
+        /// </summary>
+        public string ReadOnlyPassword {
+            set {
+                Security.SetWriteProtection(this._document._wordprocessingDocument, value);
             }
         }
 
