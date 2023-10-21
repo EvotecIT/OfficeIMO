@@ -12,13 +12,17 @@ internal static partial class Protect {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
             paragraph.ParagraphAlignment = JustificationValues.Center;
             paragraph.Color = SixLabors.ImageSharp.Color.Blue;
-            paragraph.AddText(" This is continutation in the same line");
+            paragraph.AddText(" This is continuation in the same line");
 
-            Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+            Console.WriteLine("Always read only: " + document.Settings.ReadOnlyRecommended);
 
-            document.Settings.AlwaysOpenReadOnly = true;
+            document.Settings.ReadOnlyRecommended = true;
 
-            Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+            Console.WriteLine("Always read only: " + document.Settings.ReadOnlyRecommended);
+
+            document.Settings.ReadOnlyRecommended = null;
+
+            //document.Settings.ReadOnlyPassword = "Test123";
 
             document.Save(true);
         }

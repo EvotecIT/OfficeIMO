@@ -21,6 +21,8 @@ internal static partial class Protect {
 
             Console.WriteLine("Final document: " + document.Settings.FinalDocument);
 
+            document.Settings.FinalDocument = false;
+
             document.Save(openWord);
         }
     }
