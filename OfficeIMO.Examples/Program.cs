@@ -147,6 +147,9 @@ namespace OfficeIMO.Examples {
             FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
 
             SaveToStream.Example_StreamDocumentProperties(folderPath, false);
+
+            Protect.Example_ProtectFinalDocument(folderPath, true);
+            Protect.Example_ProtectAlwaysReadOnly(folderPath, true);
         }
     }
 }
