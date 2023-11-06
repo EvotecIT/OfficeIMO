@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,20 +11,32 @@ namespace OfficeIMO.Word {
             Categories = categories;
         }
 
-
-
-        public void AddChartPie(string name, int value) {
-
-
-
-        }
-
-        public void AddChartPie(string name, List<int> values) {
+        public void AddChartPie<T>(string name, int[] values) {
             if (_chart != null) {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
-                    PieChartSeries pieChartSeries = WordPieChart.AddPieChartSeries(this._index, name, Color.AliceBlue, this.Categories, values);
+                    PieChartSeries pieChartSeries = WordPieChart.AddPieChartSeries(this._index, name, this.Categories, values.ToList());
                     pieChart.Append(pieChartSeries);
+                }
+            }
+        }
+
+        public void AddChartPie<T>(string name, List<T> values) {
+            if (_chart != null) {
+                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+                if (pieChart != null) {
+                    PieChartSeries pieChartSeries = WordPieChart.AddPieChartSeries(this._index, name, this.Categories, values);
+                    pieChart.Append(pieChartSeries);
+                }
+            }
+        }
+
+        public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
+            if (_chart != null) {
+                var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                if (lineChart != null) {
+                    LineChartSeries lineChartSeries = WordLineChart.AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
+                    lineChart.Append(lineChartSeries);
                 }
             }
         }
@@ -36,7 +48,7 @@ namespace OfficeIMO.Word {
         /// <param name="name"></param>
         /// <param name="values"></param>
         /// <param name="color"></param>
-        public void AddChartLine(string name, List<int> values, Color color) {
+        public void AddChartLine<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             if (_chart != null) {
                 var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
                 if (lineChart != null) {
@@ -50,7 +62,7 @@ namespace OfficeIMO.Word {
             Categories = categories;
         }
 
-        public void AddChartBar(string name, int values, Color color) {
+        public void AddChartBar(string name, int values, SixLabors.ImageSharp.Color color) {
             if (_chart != null) {
                 var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
                 if (barChart != null) {
@@ -59,7 +71,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public void AddChartBar(string name, List<int> values, Color color) {
+        public void AddChartBar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             if (_chart != null) {
                 var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
                 if (barChart != null) {
@@ -68,7 +80,8 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        public void AddChartBar(string name, int[] values, Color color) {
+
+        public void AddChartBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             if (_chart != null) {
                 var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
                 if (barChart != null) {
@@ -77,5 +90,39 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public void AddChartArea<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            if (_chart != null) {
+                var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                if (barChart != null) {
+                    AreaChartSeries areaChartSeries = WordAreaChart.AddAreaChartSeries(this._index, name, color, this.Categories, values);
+                    barChart.Append(areaChartSeries);
+                }
+            }
+        }
+
+        public void AddChartArea<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
+            if (_chart != null) {
+                var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                if (barChart != null) {
+                    AreaChartSeries areaChartSeries = WordAreaChart.AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
+                    barChart.Append(areaChartSeries);
+                }
+            }
+        }
+
+        public void AddLegend(LegendPositionValues legendPosition) {
+            if (_chart != null) {
+
+                Legend legend = new Legend();
+                LegendPosition postion = new LegendPosition() { Val = legendPosition };
+                Overlay overlay = new Overlay() { Val = false };
+                legend.Append(postion);
+                legend.Append(overlay);
+                _chart.Append(legend);
+
+            }
+        }
+
     }
 }

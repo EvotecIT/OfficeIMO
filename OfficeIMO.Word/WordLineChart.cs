@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
@@ -7,32 +8,20 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public class WordLineChart : WordChart {
 
-        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners = false) {
+        public static WordChart AddLineChart(WordDocument wordDocument, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             _document = wordDocument;
             _paragraph = paragraph;
 
             // minimum required to create chart
-            var oChart = GenerateChart();
+            var oChart = GenerateChart(title);
             oChart = GenerateLineChart(oChart);
 
-            //// this is data for bar chart
-            //List<string> categories = new List<string>() {
-            //    "Food", "Housing", "Mix", "Data"
-            //};
-
-            //LineChartSeries lineChartSeries1 = AddLineChartSeries(1, "USA", SixLabors.ImageSharp.Color.AliceBlue, categories, new List<double>() { 15, 20, 30, 150 });
-            //LineChartSeries lineChartSeries2 = AddLineChartSeries(2, "Brazil", SixLabors.ImageSharp.Color.Brown, categories, new List<double>() { 20, 20, 300, 150 });
-            //LineChartSeries lineChartSeries3 = AddLineChartSeries(0, "Poland", SixLabors.ImageSharp.Color.Green, categories, new List<double>() { 13, 20, 230, 150 });
-
-            //var lineChart = oChart.PlotArea.GetFirstChild<LineChart>();
-            //lineChart.Append(lineChartSeries1);
-            //lineChart.Append(lineChartSeries2);
-            //lineChart.Append(lineChartSeries3);
-
             // inserts chart into document
-            InsertChart(wordDocument, paragraph, oChart, roundedCorners);
+            InsertChart(wordDocument, paragraph, oChart, roundedCorners, width, height);
 
-            return new WordChart();
+            var drawing = paragraph._paragraph.OfType<Drawing>().FirstOrDefault();
+
+            return new WordChart(_document, _paragraph._paragraph, drawing);
         }
 
         internal static LineChart CreateLineChart() {
@@ -73,7 +62,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        internal static LineChartSeries AddLineChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<int> data) {
+        internal static LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -120,6 +109,9 @@ namespace OfficeIMO.Word {
             chartShapeProperties1.Append(outline1);
 
             return chartShapeProperties1;
+        }
+
+        public WordLineChart(WordDocument document, Paragraph paragraph, Drawing drawing) : base(document, paragraph, drawing) {
         }
     }
 }

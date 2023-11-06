@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -106,6 +107,30 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Breaks.Count == 7);
                 Assert.True(document.Sections[0].ParagraphsPageBreaks.Count == 1);
                 Assert.True(document.Sections[0].ParagraphsBreaks.Count == 7);
+
+                document.Save(false);
+            }
+        }
+        [Fact]
+        public void Test_BasicWordWithDifferentBreaks() {
+            var filePath = Path.Combine(_directoryWithFiles, "BasicWordWithBreaksDifferent.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+                paragraph.AddText(" This is continutation in the same line");
+                paragraph.AddBreak(BreakValues.TextWrapping);
+                paragraph.AddText(" This is continuation, in another line").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
+
+                var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(BreakValues.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
+
+                Assert.True(paragraph.Color == SixLabors.ImageSharp.Color.Blue);
+                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue);
+                Assert.True(document.Paragraphs[1].Color == null);
+                Assert.True(document.Paragraphs[2].IsBreak == true);
+                Assert.True(document.Paragraphs[2].Break.BreakType == BreakValues.TextWrapping);
+                Assert.True(document.Sections.Count == 1);
+                Assert.True(document.Sections[0].Paragraphs.Count == 8);
 
                 document.Save(false);
             }

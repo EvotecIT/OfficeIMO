@@ -17,6 +17,8 @@ using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using A = DocumentFormat.OpenXml.Drawing;
 using Thm15 = DocumentFormat.OpenXml.Office2013.Theme;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
+using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -988,8 +990,86 @@ namespace OfficeIMO.Word {
         /// <param name="styleDefinitionsPart"></param>
         private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
             var styles = styleDefinitionsPart.Styles;
-
+            // this forces all tables styles, should be rewritten
             AddTableStyles(styles);
+            // this tries to actually find missing styles
+            FindMissingStyleDefinitions(styleDefinitionsPart);
+        }
+
+        internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
+            var footNoteText = false;
+            var noList = false;
+            var footNoteTextChar = false;
+            var footnoteReference = false;
+            var endnoteText = false;
+            var endNoteTextChar = false;
+            var endNoteReference = false;
+            var footerChar = false;
+            var footer = false;
+            var headerChar = false;
+            var header = false;
+
+            if (styleDefinitionsPart.Styles != null) {
+                var styles = styleDefinitionsPart.Styles.OfType<Style>();
+                foreach (var styleDefinition in styles) {
+                    if (styleDefinition.StyleId == "FootnoteText") {
+                        footNoteText = true;
+                    } else if (styleDefinition.StyleId == "FootnoteTextChar") {
+                        footNoteTextChar = true;
+                    } else if (styleDefinition.StyleId == "FootnoteReference") {
+                        footnoteReference = true;
+                    } else if (styleDefinition.StyleId == "EndnoteText") {
+                        endnoteText = true;
+                    } else if (styleDefinition.StyleId == "EndnoteTextChar") {
+                        endNoteTextChar = true;
+                    } else if (styleDefinition.StyleId == "EndnoteReference") {
+                        endNoteReference = true;
+                    } else if (styleDefinition.StyleId == "NoList") {
+                        noList = true;
+                    } else if (styleDefinition.StyleId == "FooterChar") {
+                        footerChar = true;
+                    } else if (styleDefinition.StyleId == "Footer") {
+                        footer = true;
+                    } else if (styleDefinition.StyleId == "HeaderChar") {
+                        headerChar = true;
+                    } else if (styleDefinition.StyleId == "Header") {
+                        header = true;
+                    }
+                }
+                if (!footNoteText) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootnoteText());
+                }
+                if (!noList) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleNoList());
+                }
+                if (!footNoteTextChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteTextChar());
+                }
+                if (!footnoteReference) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteReference());
+                }
+                if (!endNoteTextChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteTextChar());
+                }
+                if (!endnoteText) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteText());
+                }
+                if (!endNoteReference) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteReference());
+                }
+                if (!footer) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFooter());
+                }
+                if (!footerChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleFooterChar());
+                }
+                if (!header) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleHeader());
+                }
+                if (!headerChar) {
+                    styleDefinitionsPart.Styles.Append(GenerateStyleHeaderChar());
+                }
+            }
         }
 
         // Generates content of styleDefinitionsPart1.
@@ -1025,6 +1105,23 @@ namespace OfficeIMO.Word {
                 styles1.Append(WordCharacterStyle.GetStyleDefinition(style));
             }
 
+            // TODO: load only when needed
+            styles1.Append(GenerateStyleNoList());
+            styles1.Append(GenerateStyleHeader());
+            styles1.Append(GenerateStyleHeaderChar());
+            styles1.Append(GenerateStyleFooter());
+            styles1.Append(GenerateStyleFooterChar());
+            styles1.Append(GenerateStyleFootnoteText());
+            styles1.Append(GenerateStyleFootNoteTextChar());
+            styles1.Append(GenerateStyleFootNoteReference());
+            styles1.Append(GenerateStyleEndNoteText());
+            styles1.Append(GenerateStyleEndNoteTextChar());
+            styles1.Append(GenerateStyleEndNoteReference());
+
+            styleDefinitionsPart1.Styles = styles1;
+        }
+
+        private static Style GenerateStyleNoList() {
             Style style4 = new Style() { Type = StyleValues.Numbering, StyleId = "NoList", Default = true };
             StyleName styleName4 = new StyleName() { Val = "No List" };
             UIPriority uIPriority3 = new UIPriority() { Val = 99 };
@@ -1036,8 +1133,274 @@ namespace OfficeIMO.Word {
             style4.Append(semiHidden3);
             style4.Append(unhideWhenUsed3);
 
-            styleDefinitionsPart1.Styles = styles1;
+            return style4;
+        }
 
+        // Creates an Style instance and adds its children.
+        private static Style GenerateStyleHeader() {
+            Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Header" };
+            StyleName styleName1 = new StyleName() { Val = "header" };
+            BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "HeaderChar" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
+
+            Tabs tabs1 = new Tabs();
+            TabStop tabStop1 = new TabStop() { Val = TabStopValues.Center, Position = 4680 };
+            TabStop tabStop2 = new TabStop() { Val = TabStopValues.Right, Position = 9360 };
+
+            tabs1.Append(tabStop1);
+            tabs1.Append(tabStop2);
+            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            styleParagraphProperties1.Append(tabs1);
+            styleParagraphProperties1.Append(spacingBetweenLines1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleParagraphProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleHeaderChar() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "HeaderChar", CustomStyle = true };
+            StyleName styleName1 = new StyleName() { Val = "Header Char" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Header" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(rsid1);
+            return style1;
+        }
+
+        // Creates an Style instance and adds its children.
+        private static Style GenerateStyleFooter() {
+            Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Footer" };
+            StyleName styleName1 = new StyleName() { Val = "footer" };
+            BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "FooterChar" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
+
+            Tabs tabs1 = new Tabs();
+            TabStop tabStop1 = new TabStop() { Val = TabStopValues.Center, Position = 4680 };
+            TabStop tabStop2 = new TabStop() { Val = TabStopValues.Right, Position = 9360 };
+
+            tabs1.Append(tabStop1);
+            tabs1.Append(tabStop2);
+            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            styleParagraphProperties1.Append(tabs1);
+            styleParagraphProperties1.Append(spacingBetweenLines1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleParagraphProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleFooterChar() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "FooterChar", CustomStyle = true };
+            StyleName styleName1 = new StyleName() { Val = "Footer Char" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Footer" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(rsid1);
+            return style1;
+        }
+
+        // Creates an Style instance and adds its children.
+        private static Style GenerateStyleFootnoteText() {
+            Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "FootnoteText" };
+            StyleName styleName1 = new StyleName() { Val = "footnote text" };
+            BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "FootnoteTextChar" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
+            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            styleParagraphProperties1.Append(spacingBetweenLines1);
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            FontSize fontSize1 = new FontSize() { Val = "20" };
+            FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "20" };
+
+            styleRunProperties1.Append(fontSize1);
+            styleRunProperties1.Append(fontSizeComplexScript1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleParagraphProperties1);
+            style1.Append(styleRunProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleFootNoteTextChar() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "FootnoteTextChar", CustomStyle = true };
+            StyleName styleName1 = new StyleName() { Val = "Footnote Text Char" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "FootnoteText" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            FontSize fontSize1 = new FontSize() { Val = "20" };
+            FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "20" };
+
+            styleRunProperties1.Append(fontSize1);
+            styleRunProperties1.Append(fontSizeComplexScript1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(rsid1);
+            style1.Append(styleRunProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleFootNoteReference() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "FootnoteReference" };
+            StyleName styleName1 = new StyleName() { Val = "footnote reference" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            VerticalTextAlignment verticalTextAlignment1 = new VerticalTextAlignment() { Val = VerticalPositionValues.Superscript };
+
+            styleRunProperties1.Append(verticalTextAlignment1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleRunProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleEndNoteText() {
+            Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "EndnoteText" };
+            StyleName styleName1 = new StyleName() { Val = "endnote text" };
+            BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "EndnoteTextChar" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
+            SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            styleParagraphProperties1.Append(spacingBetweenLines1);
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            FontSize fontSize1 = new FontSize() { Val = "20" };
+            FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "20" };
+
+            styleRunProperties1.Append(fontSize1);
+            styleRunProperties1.Append(fontSizeComplexScript1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleParagraphProperties1);
+            style1.Append(styleRunProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleEndNoteTextChar() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "EndnoteTextChar", CustomStyle = true };
+            StyleName styleName1 = new StyleName() { Val = "Endnote Text Char" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "EndnoteText" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            FontSize fontSize1 = new FontSize() { Val = "20" };
+            FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "20" };
+
+            styleRunProperties1.Append(fontSize1);
+            styleRunProperties1.Append(fontSizeComplexScript1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(linkedStyle1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(rsid1);
+            style1.Append(styleRunProperties1);
+            return style1;
+        }
+
+        private static Style GenerateStyleEndNoteReference() {
+            Style style1 = new Style() { Type = StyleValues.Character, StyleId = "EndnoteReference" };
+            StyleName styleName1 = new StyleName() { Val = "endnote reference" };
+            BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
+            UIPriority uIPriority1 = new UIPriority() { Val = 99 };
+            SemiHidden semiHidden1 = new SemiHidden();
+            UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+            Rsid rsid1 = new Rsid() { Val = "00EC28F1" };
+
+            StyleRunProperties styleRunProperties1 = new StyleRunProperties();
+            VerticalTextAlignment verticalTextAlignment1 = new VerticalTextAlignment() { Val = VerticalPositionValues.Superscript };
+
+            styleRunProperties1.Append(verticalTextAlignment1);
+
+            style1.Append(styleName1);
+            style1.Append(basedOn1);
+            style1.Append(uIPriority1);
+            style1.Append(semiHidden1);
+            style1.Append(unhideWhenUsed1);
+            style1.Append(rsid1);
+            style1.Append(styleRunProperties1);
+            return style1;
         }
 
         // Generates content of extendedFilePropertiesPart1.
@@ -1839,6 +2202,177 @@ namespace OfficeIMO.Word {
             fonts1.Append(font3);
 
             fontTablePart1.Fonts = fonts1;
+        }
+
+
+        /// <summary>
+        /// Generate EndNotesPart. In newly based documents there is -1 and 0 index EndNotes that don't seem to do anything.
+        /// I'm leaving them commented out for future verification or confirmation.
+        /// </summary>
+        /// <param name="endnotesPart1"></param>
+        internal static void GenerateEndNotesPart1Content(EndnotesPart endnotesPart1) {
+            Endnotes endnotes1 = new Endnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
+            endnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
+            endnotes1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
+            endnotes1.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
+            endnotes1.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
+            endnotes1.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
+            endnotes1.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
+            endnotes1.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
+            endnotes1.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
+            endnotes1.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
+            endnotes1.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
+            endnotes1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+            endnotes1.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
+            endnotes1.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
+            endnotes1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+            endnotes1.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
+            endnotes1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            endnotes1.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
+            endnotes1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+            endnotes1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
+            endnotes1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
+            endnotes1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
+            endnotes1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+            endnotes1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+            endnotes1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            endnotes1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
+            endnotes1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
+            endnotes1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
+            endnotes1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
+            endnotes1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
+            endnotes1.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+            endnotes1.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
+            endnotes1.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
+            endnotes1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+
+            //Endnote endnote1 = new Endnote() { Type = FootnoteEndnoteValues.Separator, Id = -1 };
+
+            //Paragraph paragraph1 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidParagraphProperties = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "2C537DFB", TextId = "77777777" };
+
+            //ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            //SpacingBetweenLines spacingBetweenLines6 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            //paragraphProperties1.Append(spacingBetweenLines6);
+
+            //Run run1 = new Run();
+            //SeparatorMark separatorMark1 = new SeparatorMark();
+
+            //run1.Append(separatorMark1);
+
+            //paragraph1.Append(paragraphProperties1);
+            //paragraph1.Append(run1);
+
+            //endnote1.Append(paragraph1);
+
+            //Endnote endnote2 = new Endnote() { Type = FootnoteEndnoteValues.ContinuationSeparator, Id = 0 };
+
+            //Paragraph paragraph2 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidParagraphProperties = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "319AE5A3", TextId = "77777777" };
+
+            //ParagraphProperties paragraphProperties2 = new ParagraphProperties();
+            //SpacingBetweenLines spacingBetweenLines7 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            //paragraphProperties2.Append(spacingBetweenLines7);
+
+            //Run run2 = new Run();
+            //ContinuationSeparatorMark continuationSeparatorMark1 = new ContinuationSeparatorMark();
+
+            //run2.Append(continuationSeparatorMark1);
+
+            //paragraph2.Append(paragraphProperties2);
+            //paragraph2.Append(run2);
+
+            //endnote2.Append(paragraph2);
+
+            //endnotes1.Append(endnote1);
+            //endnotes1.Append(endnote2);
+
+            endnotesPart1.Endnotes = endnotes1;
+        }
+
+        /// <summary>
+        /// Generate FootNotesPart. In newly based documents there is -1 and 0 index Footnotes that don't seem to do anything.
+        /// I'm leaving them commented out for future verification or confirmation.
+        /// </summary>
+        /// <param name="footnotesPart1"></param>
+        internal static void GenerateFootNotesPart1Content(FootnotesPart footnotesPart1) {
+            Footnotes footnotes1 = new Footnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
+            footnotes1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
+            footnotes1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
+            footnotes1.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
+            footnotes1.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
+            footnotes1.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
+            footnotes1.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
+            footnotes1.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
+            footnotes1.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
+            footnotes1.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
+            footnotes1.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
+            footnotes1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+            footnotes1.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
+            footnotes1.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
+            footnotes1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+            footnotes1.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
+            footnotes1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            footnotes1.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
+            footnotes1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+            footnotes1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
+            footnotes1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
+            footnotes1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
+            footnotes1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+            footnotes1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+            footnotes1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            footnotes1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
+            footnotes1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
+            footnotes1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
+            footnotes1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
+            footnotes1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
+            footnotes1.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+            footnotes1.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
+            footnotes1.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
+            footnotes1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+
+            Footnote footnote1 = new Footnote() { Type = FootnoteEndnoteValues.Separator, Id = -1 };
+
+            Paragraph paragraph8 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidParagraphProperties = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "13FE0CF9", TextId = "77777777" };
+
+            ParagraphProperties paragraphProperties8 = new ParagraphProperties();
+            SpacingBetweenLines spacingBetweenLines8 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            paragraphProperties8.Append(spacingBetweenLines8);
+
+            Run run8 = new Run();
+            SeparatorMark separatorMark2 = new SeparatorMark();
+
+            run8.Append(separatorMark2);
+
+            paragraph8.Append(paragraphProperties8);
+            paragraph8.Append(run8);
+
+            footnote1.Append(paragraph8);
+
+            Footnote footnote2 = new Footnote() { Type = FootnoteEndnoteValues.ContinuationSeparator, Id = 0 };
+
+            Paragraph paragraph9 = new Paragraph() { RsidParagraphAddition = "00EC28F1", RsidParagraphProperties = "00EC28F1", RsidRunAdditionDefault = "00EC28F1", ParagraphId = "60AD3AEF", TextId = "77777777" };
+
+            ParagraphProperties paragraphProperties9 = new ParagraphProperties();
+            SpacingBetweenLines spacingBetweenLines9 = new SpacingBetweenLines() { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto };
+
+            paragraphProperties9.Append(spacingBetweenLines9);
+
+            Run run9 = new Run();
+            ContinuationSeparatorMark continuationSeparatorMark2 = new ContinuationSeparatorMark();
+
+            run9.Append(continuationSeparatorMark2);
+
+            paragraph9.Append(paragraphProperties9);
+            paragraph9.Append(run9);
+
+            footnote2.Append(paragraph9);
+
+            footnotes1.Append(footnote1);
+            footnotes1.Append(footnote2);
+
+            footnotesPart1.Footnotes = footnotes1;
         }
     }
 }

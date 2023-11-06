@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -100,6 +101,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// The property which puts a paragraph on the beginning of a next side without add a page break to the document
+        /// </summary>
+        /// <value>bool</value>
+        public bool PageBreakBefore {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.PageBreakBefore is not null;
+            }
+            set {
+                if (value == true) {
+                    var pageBreakBefore = new PageBreakBefore();
+                    _paragraphProperties.PageBreakBefore = pageBreakBefore;
+                } else {
+                    _paragraphProperties.PageBreakBefore = null;
+                }
+            }
+        }
+
         public int? IndentationFirstLine {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
@@ -160,7 +179,6 @@ namespace OfficeIMO.Word {
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.TextDirection != null) {
                         return _paragraphProperties.TextDirection.Val;
                     } else {
@@ -196,8 +214,7 @@ namespace OfficeIMO.Word {
                 } else {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
-
-                spacing.After = value.ToString();
+                spacing.LineRule = value;
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }

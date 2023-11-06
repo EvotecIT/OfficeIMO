@@ -1,0 +1,1755 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The global structure of an HTML document</title>
+<link rel="previous" href="../types.html">
+<link rel="next" href="dirlang.html">
+<link rel="contents" href="../cover.html#toc">
+<link rel="stylesheet" type="text/css" href= 
+"http://www.w3.org/StyleSheets/TR/W3C-REC">
+<link rel="STYLESHEET" href="../style/default.css" type="text/css">
+</head>
+<body>
+<div class="navbar" align="center">&nbsp;<a href="../types.html">previous</a>
+&nbsp; <a href="dirlang.html">next</a> &nbsp; <a href="../cover.html#minitoc">
+contents</a> &nbsp; <a href="../index/elements.html">elements</a> &nbsp; <a
+href="../index/attributes.html">attributes</a> &nbsp; <a href= 
+"../index/list.html">index</a> 
+
+<hr></div>
+
+<h1 align="center"><a name="h-7">7</a> The global structure of an HTML
+document</h1>
+
+<div class="subtoc">
+<p><strong>Contents</strong></p>
+
+<ol>
+<li><a class="tocxref" href="#h-7.1">Introduction to the structure of an HTML
+document</a></li>
+
+<li><a class="tocxref" href="#h-7.2">HTML version information</a></li>
+
+<li><a class="tocxref" href="#h-7.3">The <samp class="einst2">HTML</samp>
+element</a></li>
+
+<li><a class="tocxref" href="#h-7.4">The document head</a> 
+
+<ol>
+<li><a class="tocxref" href="#h-7.4.1">The <samp class="einst2">HEAD</samp>
+element</a></li>
+
+<li><a class="tocxref" href="#h-7.4.2">The <samp class="einst2">TITLE</samp>
+element</a></li>
+
+<li><a class="tocxref" href="#h-7.4.3">The <samp>title</samp>
+attribute</a></li>
+
+<li><a class="tocxref" href="#h-7.4.4">Meta data</a> 
+
+<ul>
+<li><a class="tocxref" href="#h-7.4.4.1">Specifying meta data</a></li>
+
+<li><a class="tocxref" href="#h-7.4.4.2">The <samp class="einst2">META</samp>
+element</a></li>
+
+<li><a class="tocxref" href="#h-7.4.4.3">Meta data profiles</a></li>
+</ul>
+</li>
+</ol>
+</li>
+
+<li><a class="tocxref" href="#h-7.5">The document body</a> 
+
+<ol>
+<li><a class="tocxref" href="#h-7.5.1">The <samp class="einst2">BODY</samp>
+element</a></li>
+
+<li><a class="tocxref" href="#h-7.5.2">Element identifiers: the <samp>id</samp>
+and <samp>class</samp> attributes</a></li>
+
+<li><a class="tocxref" href="#h-7.5.3">Block-level and inline elements</a></li>
+
+<li><a class="tocxref" href="#h-7.5.4">Grouping elements: the <samp class= 
+"einst2">DIV</samp> and <samp class="einst2">SPAN</samp> elements</a></li>
+
+<li><a class="tocxref" href="#h-7.5.5">Headings: The <samp class="einst2">
+H1</samp>, <samp class="einst2">H2</samp>, <samp class="einst2">H3</samp>,
+<samp class="einst2">H4</samp>, <samp class="einst2">H5</samp>, <samp class= 
+"einst2">H6</samp> elements</a></li>
+
+<li><a class="tocxref" href="#h-7.5.6">The <samp class="einst2">ADDRESS</samp>
+element</a></li>
+</ol>
+</li>
+</ol>
+</div>
+
+<h2><a name="h-7.1">7.1</a> Introduction to the structure of an HTML
+document</h2>
+
+<p>An HTML 4 document is composed of three parts:</p>
+
+<ol>
+<li>a line containing <a href="#version-info">HTML version
+information</a>,</li>
+
+<li>a declarative header section (delimited by the <a href= 
+"global.html#edef-HEAD" class="noxref"><samp class="einst">HEAD</samp></a>
+element),</li>
+
+<li>a body, which contains the document's actual content. The body may be
+implemented by the <a href="global.html#edef-BODY" class="noxref"><samp class= 
+"einst">BODY</samp></a> element or the <a href= 
+"../present/frames.html#edef-FRAMESET" class="noxref"><samp class="einst">
+FRAMESET</samp></a> element.</li>
+</ol>
+
+<p>White space (spaces, newlines, tabs, and comments) may appear before or
+after each section. Sections 2 and 3 should be delimited by the <a href= 
+"global.html#edef-HTML" class="noxref"><samp class="einst">HTML</samp></a>
+element.</p>
+
+<div class="example">
+<p>Here's an example of a simple HTML document:</p>
+
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;HTML&gt;
+   &lt;HEAD&gt;
+      &lt;TITLE&gt;My first HTML document&lt;/TITLE&gt;
+   &lt;/HEAD&gt;
+   &lt;BODY&gt;
+      &lt;P&gt;Hello world!
+   &lt;/BODY&gt;
+&lt;/HTML&gt;
+</pre>
+</div>
+
+<h2><a name="h-7.2">7.2</a> <a name="version-info">HTML version
+information</a></h2>
+
+<p>A valid HTML document declares what version of HTML is used in the document.
+The <span class="index-inst" title="document type declaration"><a name= 
+"idx-document_type_declaration-3"><em>document type declaration</em></a></span>
+names the document type definition (DTD) in use for the document (see <a rel= 
+"biblioentry" href="../references.html#ref-ISO8879" class="normref">
+[ISO8879]</a>).</p>
+
+<p>HTML 4.01 specifies three DTDs, so authors must include one of the following
+document type declarations in their documents. The DTDs vary in the elements
+they support.</p>
+
+<ul>
+<li>The <span class="index-def" title="document type declaration:: for strict 
+DTD|strict DTD::declaration of"><a name="didx-document_type_declaration" href= 
+"../sgml/dtd.html">HTML 4.01 Strict DTD</a></span> includes all elements and
+attributes that have not been <a href="../conform.html#deprecated">
+deprecated</a> or do not appear in frameset documents. For documents that use
+this DTD, use this document type declaration: 
+
+<div class="example">
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd"&gt;
+</pre>
+</div>
+</li>
+
+<li>The <span class="index-def" title="document type declaration::for 
+transitional DTD|transitional DTD::declaration of"><a name= 
+"didx-document_type_declaration-1" href="../sgml/loosedtd.html">HTML 4.01
+Transitional DTD</a></span> includes everything in the strict DTD plus
+deprecated elements and attributes (most of which concern visual presentation).
+For documents that use this DTD, use this document type declaration: 
+
+<div class="example">
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd"&gt;
+</pre>
+</div>
+</li>
+
+<li>The <span class="index-def" title="document type declaration:: for frameset 
+DTD|frameset::DTD, declaration of"><a name="didx-document_type_declaration-2"
+href="../sgml/framesetdtd.html">HTML 4.01 Frameset DTD</a></span> includes
+everything in the transitional DTD plus frames as well. For documents that use
+this DTD, use this document type declaration: 
+
+<div class="example">
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
+        "http://www.w3.org/TR/html4/frameset.dtd"&gt;
+</pre>
+</div>
+</li>
+</ul>
+
+<p>The URI in each document type declaration allows user agents to download the
+DTD and any <a href="../sgml/entities.html#entities">entity sets</a> that are
+needed. The following (relative) URIs refer to DTDs and <span class=
+"index-inst" title="entity sets::URIs for HTML 4.01"><a name="idx-entity_sets">
+entity sets</a></span> for HTML 4:</p>
+
+<ul>
+<li>"<a href="../strict.dtd">strict.dtd</a>" -- default strict DTD</li>
+
+<li>"<a href="../loose.dtd">loose.dtd</a>" -- loose DTD</li>
+
+<li>"<a href="../frameset.dtd">frameset.dtd</a>" -- DTD for frameset
+documents</li>
+
+<li>"<a href="../HTMLlat1.ent">HTMLlat1.ent</a>" -- Latin-1 entities</li>
+
+<li>"<a href="../HTMLsymbol.ent">HTMLsymbol.ent</a>" -- Symbol entities</li>
+
+<li>"<a href="../HTMLspecial.ent">HTMLspecial.ent</a>" -- Special entities</li>
+</ul>
+
+<p>The binding between public identifiers and files can be specified using a
+catalog file following the format recommended by the Oasis Open Consortium (see
+<a rel="biblioentry" href="../references.html#ref-OASISOPEN" class="informref">
+[OASISOPEN]</a>). A <a href="../sgml/intro.html#catalog">sample catalog file
+for HTML 4.01</a> is included at the beginning of the section on SGML reference
+information for HTML. The last two letters of the declaration indicate the
+language of the DTD. For HTML, this is always English ("EN").</p>
+
+<div class="note">
+<p><em><strong>Note.</strong> As of the 24 December version of HTML 4.01, the
+HTML Working Group commits to the following policy:</em></p>
+
+<ul>
+<li><em>Any changes to future HTML 4 DTDs will not invalidate documents that
+conform to the DTDs of the present specification.</em> The HTML Working Group
+reserves the right to correct known bugs.</li>
+
+<li><em>Software conforming to the DTDs of the present specification may ignore
+features of future HTML 4 DTDs that it does not recognize.</em></li>
+</ul>
+
+<p><em>This means that in a document type declaration, authors may safely use a
+system identifier that refers to the latest version of an HTML 4 DTD. Authors
+may also choose to use a system identifier that refers to a specific (dated)
+version of an HTML 4 DTD when validation to that particular DTD is required.
+W3C will make every effort to make archival documents indefinitely available at
+their original address in their original form.</em></p>
+</div>
+
+<h2><a name="h-7.3">7.3</a> The <a name="edef-HTML"><samp class="edef">
+HTML</samp></a> element</h2>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ENTITY % html.content "HEAD, BODY"&gt;
+
+&lt;!ELEMENT <a href="global.html#edef-HTML" class="noxref"><samp class=
+"einst">HTML</samp></a> O O (<a href=
+"../sgml/dtd.html#html.content">%html.content;</a>)    -- document root element --&gt;
+&lt;!ATTLIST HTML
+  <a href=
+"../sgml/dtd.html#i18n">%i18n;</a>                               -- <a href= 
+"dirlang.html#adef-lang">lang</a>, <a href="dirlang.html#adef-dir">dir</a> --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>optional</strong>, End tag: <strong>
+optional</strong></em></p>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<dl>
+<dt><a name="adef-version"><samp class="adef">version</samp></a> = <a href= 
+"../types.html#type-cdata"><em>cdata</em></a> <a href= 
+"../types.html#case-neutral">[CN]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> The
+value of this attribute specifies which HTML DTD version governs the current
+document. This attribute has been deprecated because it is redundant with <a
+href="#version-info">version information</a> provided by the document type
+declaration.</dd>
+</dl>
+</div>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="dirlang.html#bidirection">text
+direction</a>)</li>
+</ul>
+</div>
+
+<p>After document type declaration, the remainder of an HTML document is
+contained by the <a href="global.html#edef-HTML" class="noxref"><samp class= 
+"einst">HTML</samp></a> element. Thus, a typical HTML document has this
+structure:</p>
+
+<pre class="example">
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;HTML&gt;
+<em>...The head, body, etc. goes here...</em>
+&lt;/HTML&gt;
+</pre>
+
+<h2><a name="h-7.4">7.4</a> The document head</h2>
+
+<h3><a name="h-7.4.1">7.4.1</a> The <a name="edef-HEAD"><samp class="edef">
+HEAD</samp></a> element</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!-- <a href=
+"../sgml/dtd.html#head.misc">%head.misc;</a> defined earlier on as "SCRIPT|STYLE|META|LINK|OBJECT" --&gt;
+&lt;!ENTITY % head.content "TITLE &amp; BASE?"&gt;
+
+&lt;!ELEMENT <a href="global.html#edef-HEAD" class="noxref"><samp class=
+"einst">HEAD</samp></a> O O (<a href=
+"../sgml/dtd.html#head.content">%head.content;</a>) +(<a href= 
+"../sgml/dtd.html#head.misc">%head.misc;</a>) -- document head --&gt;
+&lt;!ATTLIST HEAD
+  <a href=
+"../sgml/dtd.html#i18n">%i18n;</a>                               -- <a href= 
+"dirlang.html#adef-lang">lang</a>, <a href="dirlang.html#adef-dir">dir</a> --
+  <a href="global.html#adef-profile" class="noxref"><samp class=
+"ainst-HEAD">profile</samp></a>     <a href=
+"../sgml/dtd.html#URI">%URI;</a>          #IMPLIED  -- named dictionary of meta info --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>optional</strong>, End tag: <strong>
+optional</strong></em></p>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<dl>
+<dt><a name="adef-profile"><samp class="adef">profile</samp></a> = <a href= 
+"../types.html#type-uri"><em>uri</em></a> <a href= 
+"../types.html#see-type-for-case">[CT]</a></dt>
+
+<dd>This attribute specifies the location of one or more meta data profiles,
+separated by white space. For future extensions, user agents should consider
+the value to be a list even though this specification only considers the first
+URI to be significant. <a href="#profiles">Profiles</a> are discussed below in
+the section on <a href="#meta-data">meta data</a>.</dd>
+</dl>
+</div>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="dirlang.html#bidirection">text
+direction</a>)</li>
+</ul>
+</div>
+
+<p>The <a href="global.html#edef-HEAD" class="noxref"><samp class="einst">
+HEAD</samp></a> element contains information about the current document, such
+as its title, keywords that may be useful to search engines, and other data
+that is not considered document content. User agents do not generally render
+elements that appear in the <a href="global.html#edef-HEAD" class="noxref">
+<samp class="einst">HEAD</samp></a> as content. They may, however, make
+information in the <a href="global.html#edef-HEAD" class="noxref"><samp class= 
+"einst">HEAD</samp></a> available to users through other mechanisms.</p>
+
+<h3><a name="h-7.4.2">7.4.2</a> The <a name="edef-TITLE"><samp class="edef">
+TITLE</samp></a> element</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!-- The TITLE element is not considered part of the flow of text.
+       It should be displayed, for example as the page header or
+       window title. Exactly one title is required per document.
+    --&gt;
+&lt;!ELEMENT <a href="global.html#edef-TITLE" class="noxref"><samp class=
+"einst">TITLE</samp></a> - - (#PCDATA) -(<a href=
+"../sgml/dtd.html#head.misc">%head.misc;</a>) -- document title --&gt;
+&lt;!ATTLIST TITLE <a href="../sgml/dtd.html#i18n">%i18n</a>&gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>required</strong>, End tag: <strong>
+required</strong></em></p>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="dirlang.html#bidirection">text
+direction</a>)</li>
+</ul>
+</div>
+
+<p>Every HTML document <strong>must</strong> have a <a href= 
+"global.html#edef-TITLE" class="noxref"><samp class="einst">TITLE</samp></a>
+element in the <a href="global.html#edef-HEAD" class="noxref"><samp class=
+"einst">HEAD</samp></a> section.</p>
+
+<p>Authors should use the <a href="global.html#edef-TITLE" class="noxref"><samp
+class="einst">TITLE</samp></a> element to identify the <span class="index-inst"
+title="title::of a document"><a name="idx-title">contents of a
+document.</a></span> Since users often consult documents out of context,
+authors should provide context-rich titles. Thus, instead of a title such as
+"Introduction", which doesn't provide much contextual background, authors
+should supply a title such as "Introduction to Medieval Bee-Keeping"
+instead.</p>
+
+<p>For reasons of accessibility, user agents must always make the content of
+the <a href="global.html#edef-TITLE" class="noxref"><samp class="einst">
+TITLE</samp></a> element <span class="index-inst" title="title::available to 
+user"><a name="idx-title-1">available</a></span> to users (including <a href= 
+"global.html#edef-TITLE" class="noxref"><samp class="einst">TITLE</samp></a>
+elements that occur in frames). The mechanism for doing so depends on the user
+agent (e.g., as a caption, spoken).</p>
+
+<p>Titles may contain <a href="../sgml/entities.html">character entities</a>
+(for accented characters, special characters, etc.), but may not contain other
+markup (including comments). Here is a sample document title:</p>
+
+<pre class="example">
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;A study of population dynamics&lt;/TITLE&gt;
+<em>... other head elements...</em>
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+<em>... document body...</em>
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+</pre>
+
+<h3><a name="h-7.4.3">7.4.3</a> The <a name="title"><samp>title</samp>
+attribute</a></h3>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<dl>
+<dt><a name="adef-title"><samp class="adef">title</samp></a> = <a href= 
+"../types.html#type-text"><em>text</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute offers advisory information about the element for which it
+is set.</dd>
+</dl>
+</div>
+
+<p>Unlike the <a href="global.html#edef-TITLE" class="noxref"><samp class=
+"einst">TITLE</samp></a> element, which provides information about an entire
+document and may only appear once, the <a href="global.html#adef-title" class= 
+"noxref"><samp class="ainst">title</samp></a> attribute may annotate any number
+of <span class="index-inst" title="title::used to annotate elements"><a name= 
+"idx-title-2">elements.</a></span> Please consult an element's definition to
+verify that it supports this attribute.</p>
+
+<p>Values of the <a href="global.html#adef-title" class="noxref"><samp class= 
+"ainst">title</samp></a> attribute may be rendered by user agents in a variety
+of ways. For instance, visual browsers frequently display the title as a "tool
+tip" (a short message that appears when the pointing device pauses over an
+object). Audio user agents may speak the title information in a similar
+context. For example, setting the attribute on a link allows user agents
+(visual and non-visual) to tell users about the nature of the linked
+resource:</p>
+
+<pre class="example">
+<em>...some text...</em>
+Here's a photo of 
+&lt;A href="http://someplace.com/neatstuff.gif" title="Me scuba diving"&gt;
+   me scuba diving last summer
+&lt;/A&gt;
+<em>...some more text...</em>
+</pre>
+
+<p>The <a href="global.html#adef-title" class="noxref"><samp class="ainst">
+title</samp></a> attribute has an additional role when used with the <a href= 
+"links.html#edef-LINK" class="noxref"><samp class="einst">LINK</samp></a>
+element to designate an <a href="../present/styles.html#style-external">
+external style sheet.</a> Please consult the section on <a href= 
+"./links.html#linksandss">links and style sheets</a> for details.</p>
+
+<div class="note">
+<p><em><strong>Note.</strong> To improve the quality of speech synthesis for
+cases handled poorly by standard techniques, future versions of HTML may
+include an attribute for encoding phonemic and prosodic information.</em></p>
+</div>
+
+<h3><a name="h-7.4.4">7.4.4</a> <a name="meta-data">Meta data</a></h3>
+
+<div class="note">
+<p><em><strong>Note.</strong> The W3C <span class="index-inst" title="Resource 
+Description Framework (RDF)"><a name="idx-Resource_Description_Framework_RDF">
+Resource Description Framework</a></span> (see <a href= 
+"../references.html#ref-RDF10" class="informref">[RDF10]</a>) became a W3C
+Recommendation in February 1999. RDF allows authors to specify machine-readable
+metadata about HTML documents and other network-accessible resources.</em></p>
+</div>
+
+<p>HTML lets authors specify <span class="index-def" title="meta data"><a name= 
+"didx-meta_data">meta data</a></span> -- information about a document rather
+than document content -- in a variety of ways.</p>
+
+<div class="example">
+<p>For example, to specify the author of a document, one may use the <a href= 
+"global.html#edef-META" class="noxref"><samp class="einst">META</samp></a>
+element as follows:</p>
+
+<pre class="example">
+&lt;META name="Author" content="Dave Raggett"&gt;
+</pre>
+
+<p>The <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> element specifies a property (here "Author") and assigns a
+value to it (here "Dave Raggett").</p>
+</div>
+
+<p>This specification does not define a set of legal meta data properties. The
+meaning of a property and the set of legal values for that property should be
+defined in a reference lexicon called a <a href="#profiles">profile</a>. For
+example, a profile designed to help search engines index documents might define
+properties such as "author", "copyright", "keywords", etc.</p>
+
+<h4>Specifying meta data<a name="h-7.4.4.1">&nbsp;</a></h4>
+
+<p>In general, specifying meta data involves two steps:</p>
+
+<ol>
+<li>Declaring a property and a value for that property. This may be done in two
+ways: 
+
+<ol>
+<li>From within a document, via the <a href="global.html#edef-META" class= 
+"noxref"><samp class="einst">META</samp></a> element.</li>
+
+<li>From outside a document, by linking to meta data via the <a href= 
+"links.html#edef-LINK" class="noxref"><samp class="einst">LINK</samp></a>
+element (see the section on <a href="../types.html#type-links">link
+types</a>).</li>
+</ol>
+</li>
+
+<li>Referring to a <a href="#profiles">profile</a> where the property and its
+legal values are defined. To designate a profile, use the <a href= 
+"global.html#adef-profile" class="noxref"><samp class="ainst-HEAD">
+profile</samp></a> attribute of the <a href="global.html#edef-HEAD" class= 
+"noxref"><samp class="einst">HEAD</samp></a> element.</li>
+</ol>
+
+<p>Note that since a profile is defined for the <a href="global.html#edef-HEAD"
+class="noxref"><samp class="einst">HEAD</samp></a> element, the same profile
+applies to all <a href="global.html#edef-META" class="noxref"><samp class=
+"einst">META</samp></a> and <a href="links.html#edef-LINK" class="noxref"><samp
+class="einst">LINK</samp></a> elements in the document head.</p>
+
+<p>User agents are not required to support meta data mechanisms. For those that
+choose to support meta data, this specification does not define how meta data
+should be interpreted.</p>
+
+<h4>The <a name="edef-META"><samp class="edef">META</samp></a> element<a name= 
+"h-7.4.4.2">&nbsp;</a></h4>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ELEMENT <a href="global.html#edef-META" class="noxref"><samp class=
+"einst">META</samp></a> - O EMPTY               -- generic metainformation --&gt;
+&lt;!ATTLIST META
+  <a href=
+"../sgml/dtd.html#i18n">%i18n;</a>                               -- <a href= 
+"dirlang.html#adef-lang">lang</a>, <a href=
+"dirlang.html#adef-dir">dir</a>, for use with content --
+  <a href="global.html#adef-http-equiv" class="noxref"><samp class=
+"ainst-META">http-equiv</samp></a>  <a href=
+"../types.html#type-name">NAME</a>           #IMPLIED  -- HTTP response header name  --
+  <a href="global.html#adef-name-META" class="noxref"><samp class=
+"ainst-META">name</samp></a>        <a href=
+"../types.html#type-name">NAME</a>           #IMPLIED  -- metainformation name --
+  <a href="global.html#adef-content" class="noxref"><samp class=
+"ainst-META">content</samp></a>     <a href=
+"../types.html#type-cdata">CDATA</a>          #REQUIRED -- associated information --
+  <a href="global.html#adef-scheme" class="noxref"><samp class=
+"ainst-META">scheme</samp></a>      <a href=
+"../types.html#type-cdata">CDATA</a>          #IMPLIED  -- select form of content --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>required</strong>, End tag: <strong>
+forbidden</strong></em></p>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<p>For the following attributes, the permitted values and their interpretation
+are <a href="global.html#adef-profile" class="noxref"><samp class="ainst">
+profile</samp></a> dependent:</p>
+
+<dl>
+<dt><a name="adef-name-META"><samp class="adef">name</samp></a> = <a href= 
+"../types.html#type-name"><em>name</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute identifies a property name. This specification does not list
+legal values for this attribute.</dd>
+
+<dt><a name="adef-content"><samp class="adef">content</samp></a> = <a href= 
+"../types.html#type-cdata"><em>cdata</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute specifies a property's value. This specification does not
+list legal values for this attribute.</dd>
+
+<dt><a name="adef-scheme"><samp class="adef">scheme</samp></a> = <a href= 
+"../types.html#type-cdata"><em>cdata</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute names a scheme to be used to interpret the property's value
+(see the section on <a href="#profiles">profiles</a> for details).</dd>
+
+<dt><a name="adef-http-equiv"><samp class="adef">http-equiv</samp></a> = <a
+href="../types.html#type-name"><em>name</em></a> <a href= 
+"../types.html#case-insensitive">[CI]</a></dt>
+
+<dd>This attribute may be used in place of the <samp class="ainst">name</samp>
+attribute. HTTP servers use this attribute to gather information for HTTP
+response message headers.</dd>
+</dl>
+</div>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="dirlang.html#bidirection">text
+direction</a>)</li>
+</ul>
+</div>
+
+<p>The <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> element can be used to identify properties of a document (e.g.,
+author, expiration date, a list of key words, etc.) and assign values to those
+properties. This specification does not define a normative set of
+properties.</p>
+
+<p>Each <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> element specifies a property/value pair. The <samp class=
+"ainst">name</samp> attribute identifies the property and the <a href= 
+"global.html#adef-content" class="noxref"><samp class="ainst">
+content</samp></a> attribute specifies the property's value.</p>
+
+<div class="example">
+<p>For example, the following declaration sets a value for the <tt>Author</tt>
+property:</p>
+
+<pre>
+&lt;META name="Author" content="Dave Raggett"&gt;
+</pre>
+</div>
+
+<p>The <a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> attribute can be used with <a href="global.html#edef-META"
+class="noxref"><samp class="einst">META</samp></a> to specify the language for
+the value of the <a href="global.html#adef-content" class="noxref"><samp class= 
+"ainst">content</samp></a> attribute. This enables speech synthesizers to apply
+language dependent pronunciation rules.</p>
+
+<div class="example">
+<p>In this example, the author's name is declared to be French:</p>
+
+<pre>
+&lt;META name="Author" lang="fr" content="Arnaud Le Hors"&gt;
+</pre>
+</div>
+
+<div class="note">
+<p><em><strong>Note.</strong> The <a href="global.html#edef-META" class=
+"noxref"><samp class="einst">META</samp></a> element is a generic mechanism for
+specifying meta data. However, some HTML elements and attributes already handle
+certain pieces of meta data and may be used by authors instead of <a href= 
+"global.html#edef-META" class="noxref"><samp class="einst">META</samp></a> to
+specify those pieces: the <a href="global.html#edef-TITLE" class="noxref"><samp
+class="einst">TITLE</samp></a> element, the <a href="global.html#edef-ADDRESS"
+class="noxref"><samp class="einst">ADDRESS</samp></a> element, the <a href= 
+"text.html#edef-ins" class="noxref"><samp class="einst">INS</samp></a> and <a
+href="text.html#edef-del" class="noxref"><samp class="einst">DEL</samp></a>
+elements, the <a href="global.html#adef-title" class="noxref"><samp class=
+"ainst">title</samp></a> attribute, and the <a href="text.html#adef-cite-INS"
+class="noxref"><samp class="ainst-INS">cite</samp></a> attribute.</em></p>
+</div>
+
+<div class="note">
+<p><em><strong>Note.</strong> When a property specified by a <a href= 
+"global.html#edef-META" class="noxref"><samp class="einst">META</samp></a>
+element takes a value that is a <a href="../types.html#type-uri">URI</a>, some
+authors <span class="index-inst" title="meta data::LINK vs META"><a name= 
+"idx-meta_data-2">prefer</a></span> to specify the meta data via the <a href= 
+"links.html#edef-LINK" class="noxref"><samp class="einst">LINK</samp></a>
+element. Thus, the following meta data declaration:</em></p>
+
+<pre>
+&lt;META name="DC.identifier"
+      content="http://www.ietf.org/rfc/rfc1866.txt"&gt;
+</pre>
+
+<p><em>might also be written:</em></p>
+
+<pre>
+&lt;LINK rel="DC.identifier"
+         type="text/plain"
+         href="http://www.ietf.org/rfc/rfc1866.txt"&gt;
+</pre>
+</div>
+
+<h5><a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> and HTTP headers</h5>
+
+<p>The <a href="global.html#adef-http-equiv" class="noxref"><samp class=
+"ainst">http-equiv</samp></a> attribute can be used in place of the <samp
+class="ainst">name</samp> attribute and has a special significance when
+documents are retrieved via the Hypertext Transfer Protocol (HTTP). HTTP
+servers may use the property name specified by the <a href= 
+"global.html#adef-http-equiv" class="noxref"><samp class="ainst">
+http-equiv</samp></a> attribute to create an <a rel="biblioentry" href= 
+"../references.html#ref-RFC822" class="informref">[RFC822]</a>-style header in
+the HTTP response. Please see the HTTP specification (<a rel="biblioentry"
+href="../references.html#ref-RFC2616" class="normref">[RFC2616]</a>) for
+details on valid HTTP headers.</p>
+
+<div class="example">
+<p>The following sample <a href="global.html#edef-META" class="noxref"><samp
+class="einst">META</samp></a> declaration:</p>
+
+<pre>
+&lt;META http-equiv="Expires" content="Tue, 20 Aug 1996 14:25:27 GMT"&gt;
+</pre>
+
+<p>will result in the HTTP header:</p>
+
+<pre>
+Expires: Tue, 20 Aug 1996 14:25:27 GMT
+</pre>
+
+<p>This can be used by caches to determine when to fetch a fresh copy of the
+associated document.</p>
+</div>
+
+<div class="note">
+<p><em><strong>Note.</strong> Some user agents support the use of <a href= 
+"global.html#edef-META" class="noxref"><samp class="einst">META</samp></a> to
+refresh the current page after a specified number of seconds, with the option
+of replacing it by a different URI. Authors should <strong>not</strong> use
+this technique to forward users to different pages, as this makes the page
+inaccessible to some users. Instead, automatic page forwarding should be done
+using server-side redirects.</em></p>
+</div>
+
+<h5><a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> and search engines</h5>
+
+<p>A common use for <a href="global.html#edef-META" class="noxref"><samp class= 
+"einst">META</samp></a> is to specify keywords that a <span class="index-inst"
+title="search engine::helping"><a name="idx-search_engine">search
+engine</a></span> may use to improve the quality of search results. When
+several <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> elements provide language-dependent information about a
+document, search engines may filter on the <a href="dirlang.html#adef-lang"
+class="noxref"><samp class="ainst">lang</samp></a> attribute to display search
+results using the language preferences of the user. For example,</p>
+
+<pre class="example">
+&lt;-- For speakers of US English --&gt;
+&lt;META name="keywords" lang="en-us" 
+         content="vacation, Greece, sunshine"&gt;
+&lt;-- For speakers of British English --&gt;
+&lt;META name="keywords" lang="en" 
+         content="holiday, Greece, sunshine"&gt;
+&lt;-- For speakers of French --&gt;
+&lt;META name="keywords" lang="fr" 
+         content="vacances, Gr&amp;egrave;ce, soleil"&gt;
+</pre>
+
+<p>The effectiveness of search engines can also be increased by using the <a
+href="links.html#edef-LINK" class="noxref"><samp class="einst">LINK</samp></a>
+element to specify links to translations of the document in other languages,
+links to versions of the document in other media (e.g., PDF), and, when the
+document is part of a collection, links to an appropriate starting point for
+browsing the collection.</p>
+
+<p>Further help is provided in the section on <a href= 
+"../appendix/notes.html#recs">helping search engines index your Web
+site</a>.</p>
+
+<h5><a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> and PICS</h5>
+
+The <span class="index-def" title="Platform for Internet Content Selection 
+(PICS)"><a name="didx-Platform_for_Internet_Content_Selection_PICS">Platform
+for Internet Content Selection</a></span> (PICS, specified in <a rel= 
+"biblioentry" href="../references.html#ref-PICS" class="informref">[PICS]</a>)
+is an infrastructure for associating labels (meta data) with Internet content.
+Originally designed to help parents and teachers control what children can
+access on the Internet, it also facilitates other uses for labels, including
+code signing, privacy, and intellectual property rights management. 
+
+<div class="example">
+<p>This example illustrates how one can use a <a href="global.html#edef-META"
+class="noxref"><samp class="einst">META</samp></a> declaration to include a
+PICS 1.1 label:</p>
+
+<pre>
+&lt;HEAD&gt;
+ &lt;META http-equiv="PICS-Label" content='
+ (PICS-1.1 "http://www.gcf.org/v2.5"
+    labels on "1994.11.05T08:15-0500"
+      until "1995.12.31T23:59-0000"
+      for "http://w3.org/PICS/Overview.html"
+    ratings (suds 0.5 density 0 color/hue 1))
+ '&gt;
+  &lt;TITLE&gt;<em>... document title ...</em>&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+</pre>
+</div>
+
+<h5><a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> and default information</h5>
+
+<p>The <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> element may be used to specify the default information for a
+document in the following instances:</p>
+
+<ul>
+<li>The <a href="../interact/scripts.html#default-script">default scripting
+language</a>.</li>
+
+<li>The default <a href="../present/styles.html#default-style">style sheet
+language</a>.</li>
+
+<li>The <a href="../charset.html#doc-char-set">document character
+encoding</a>.</li>
+</ul>
+
+<div class="example">
+<p>The following example specifies the <a href="../charset.html#doc-char-set">
+character encoding</a> for a document as being ISO-8859-5</p>
+
+<pre>
+&lt;META http-equiv="Content-Type" content="text/html; charset=ISO-8859-5"&gt; 
+</pre>
+</div>
+
+<h4><a name="profiles">Meta data profiles</a><a name=
+"h-7.4.4.3">&nbsp;</a></h4>
+
+The <a href="global.html#adef-profile" class="noxref"><samp class="ainst">
+profile</samp></a> attribute of the <a href="global.html#edef-HEAD" class= 
+"noxref"><samp class="einst">HEAD</samp></a> specifies the location of a <span
+class="index-def" title="profile|meta data::profiles for"><a name=
+"didx-profile">meta data profile.</a></span> The value of the <a href= 
+"global.html#adef-profile" class="noxref"><samp class="ainst">
+profile</samp></a> attribute is a URI. User agents may use this URI in two
+ways: 
+
+<ul>
+<li>As a globally unique name. User agents may be able to recognize the name
+(without actually retrieving the profile) and perform some activity based on
+known conventions for that profile. For instance, search engines could provide
+an interface for searching through catalogs of HTML documents, where these
+documents all use the same profile for representing catalog entries.</li>
+
+<li>As a link. User agents may dereference the URI and perform some activity
+based on the actual definitions within the profile (e.g., authorize the usage
+of the profile within the current HTML document). This specification does not
+define formats for profiles.</li>
+</ul>
+
+<div class="example">
+<p>This example refers to a hypothetical profile that defines useful properties
+for document indexing. The properties defined by this profile -- including
+"author", "copyright", "keywords", and "date" -- have their values set by
+subsequent <a href="global.html#edef-META" class="noxref"><samp class="einst">
+META</samp></a> declarations.</p>
+
+<pre>
+ &lt;HEAD profile="http://www.acme.com/profiles/core"&gt;
+  &lt;TITLE&gt;How to complete Memorandum cover sheets&lt;/TITLE&gt;
+  &lt;META name="author" content="John Doe"&gt;
+  &lt;META name="copyright" content="&amp;copy; 1997 Acme Corp."&gt;
+  &lt;META name="keywords" content="corporate,guidelines,cataloging"&gt;
+  &lt;META name="date" content="1994-11-06T08:49:37+00:00"&gt;
+ &lt;/HEAD&gt;
+</pre>
+</div>
+
+<div class="note">
+<p><em>As this specification is being written, it is common practice to use the
+date formats described in <a rel="biblioentry" href= 
+"../references.html#ref-RFC2616" class="normref">[RFC2616]</a>, section 3.3. As
+these formats are relatively hard to process, we recommend that authors use the
+<a rel="biblioentry" href="../references.html#ref-ISO8601" class="normref">
+[ISO8601]</a> date format. For more information, see the sections on the <a
+href="text.html#edef-ins" class="noxref"><samp class="einst">INS</samp></a> and
+<a href="text.html#edef-del" class="noxref"><samp class="einst">DEL</samp></a>
+elements.</em></p>
+</div>
+
+<p>The <a href="global.html#adef-scheme" class="noxref"><samp class="ainst">
+scheme</samp></a> attribute allows authors to provide user agents <span class= 
+"index-inst" title="scheme|meta data::scheme for"><a name="idx-scheme">more
+context</a></span> for the correct interpretation of meta data. At times, such
+additional information may be critical, as when meta data may be specified in
+different formats. For example, an author might specify a date in the
+(ambiguous) format "10-9-97"; does this mean 9 October 1997 or 10 September
+1997? The <a href="global.html#adef-scheme" class="noxref"><samp class="ainst">
+scheme</samp></a> attribute value "Month-Day-Year" would disambiguate this date
+value.</p>
+
+<p>At other times, the <a href="global.html#adef-scheme" class="noxref"><samp
+class="ainst">scheme</samp></a> attribute may provide helpful but non-critical
+information to user agents.</p>
+
+<div class="example">
+<p>For example, the following <a href="global.html#adef-scheme" class="noxref">
+<samp class="ainst">scheme</samp></a> declaration may help a user agent
+determine that the value of the "identifier" property is an ISBN code
+number:</p>
+
+<pre>
+&lt;META scheme="ISBN"  name="identifier" content="0-8230-2355-9"&gt;
+</pre>
+</div>
+
+<p>Values for the <a href="global.html#adef-scheme" class="noxref"><samp class= 
+"ainst">scheme</samp></a> attribute depend on the property <samp class="ainst">
+name</samp> and the associated <a href="global.html#adef-profile" class=
+"noxref"><samp class="ainst">profile</samp></a>.</p>
+
+<div class="note">
+<p><em><strong>Note.</strong> One sample profile is the <span class="index-def"
+title="Dublin Core"><a name="didx-Dublin_Core">Dublin Core</a></span> (see <a
+rel="biblioentry" href="../references.html#ref-DUBLIN-CORE" class="informref">
+[DCORE]</a>). This profile defines a set of recommended properties for
+electronic bibliographic descriptions, and is intended to promote
+interoperability among disparate description models.</em></p>
+</div>
+
+<h2><a name="h-7.5">7.5</a> The document body</h2>
+
+<h3><a name="h-7.5.1">7.5.1</a> The <a name="edef-BODY"><samp class="edef">
+BODY</samp></a> element</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ELEMENT <a href="global.html#edef-BODY" class="noxref"><samp class=
+"einst">BODY</samp></a> O O (<a href=
+"../sgml/dtd.html#block">%block;</a>|SCRIPT)+ +(INS|DEL) -- document body --&gt;
+&lt;!ATTLIST BODY
+  <a href=
+"../sgml/dtd.html#attrs">%attrs;</a>                              -- <a href= 
+"../sgml/dtd.html#coreattrs">%coreattrs</a>, <a href=
+"../sgml/dtd.html#i18n">%i18n</a>, <a href=
+"../sgml/dtd.html#events">%events</a> --
+  <a href="../interact/scripts.html#adef-onload" class="noxref"><samp class= 
+"ainst-BODY">onload</samp></a>          <a href=
+"../sgml/dtd.html#Script">%Script;</a>   #IMPLIED  -- the document has been loaded --
+  <a href="../interact/scripts.html#adef-onunload" class="noxref"><samp class= 
+"ainst-BODY">onunload</samp></a>        <a href=
+"../sgml/dtd.html#Script">%Script;</a>   #IMPLIED  -- the document has been removed --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>optional</strong>, End tag: <strong>
+optional</strong></em></p>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<dl>
+<dt><a name="adef-background"><samp class="adef">background</samp></a> = <a
+href="../types.html#type-uri"><em>uri</em></a> <a href= 
+"../types.html#see-type-for-case">[CT]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> The
+value of this attribute is a URI that designates an image resource. The image
+generally tiles the background (for visual browsers).</dd>
+
+<dt><a name="adef-text"><samp class="adef">text</samp></a> = <a href= 
+"../types.html#type-color"><em>color</em></a> <a href= 
+"../types.html#case-insensitive">[CI]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> This
+attribute sets the foreground color for text (for visual browsers).</dd>
+
+<dt><a name="adef-link"><samp class="adef">link</samp></a> = <a href= 
+"../types.html#type-color"><em>color</em></a> <a href= 
+"../types.html#case-insensitive">[CI]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> This
+attribute sets the color of text marking unvisited hypertext links (for visual
+browsers).</dd>
+
+<dt><a name="adef-vlink"><samp class="adef">vlink</samp></a> = <a href= 
+"../types.html#type-color"><em>color</em></a> <a href= 
+"../types.html#case-insensitive">[CI]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> This
+attribute sets the color of text marking visited hypertext links (for visual
+browsers).</dd>
+
+<dt><a name="adef-alink"><samp class="adef">alink</samp></a> = <a href= 
+"../types.html#type-color"><em>color</em></a> <a href= 
+"../types.html#case-insensitive">[CI]</a></dt>
+
+<dd><a href="../conform.html#deprecated"><strong>Deprecated.</strong></a> This
+attribute sets the color of text marking hypertext links when selected by the
+user (for visual browsers).</dd>
+</dl>
+</div>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a>, <a href="global.html#adef-class" class="noxref"><samp class= 
+"ainst">class</samp></a> (<a href=
+"../struct/global.html#id-and-class">document-wide identifiers</a>)</li>
+
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="../struct/dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="../struct/dirlang.html#bidirection">text
+direction</a>)</li>
+
+<li><a href="global.html#adef-title" class="noxref"><samp class="ainst">
+title</samp></a> (<a href="../struct/global.html#title">element title</a>)</li>
+
+<li><a href="../present/styles.html#adef-style" class="noxref"><samp class= 
+"ainst">style</samp></a> (<a href="../present/styles.html#style-element">inline
+style information</a>)</li>
+
+<li><a href="../present/graphics.html#adef-bgcolor" class="noxref"><samp class= 
+"ainst">bgcolor</samp></a> (<a href=
+"../present/graphics.html#background-color">background color</a>)</li>
+
+<li><a href="../interact/scripts.html#adef-onload" class="noxref"><samp class= 
+"ainst">onload</samp></a>, <a href="../interact/scripts.html#adef-onunload"
+class="noxref"><samp class="ainst">onunload</samp></a> (<a href= 
+"../interact/scripts.html#events">intrinsic events</a>)</li>
+
+<li><a href="../interact/scripts.html#adef-onclick" class="noxref"><samp class= 
+"ainst">onclick</samp></a>, <a href="../interact/scripts.html#adef-ondblclick"
+class="noxref"><samp class="ainst">ondblclick</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmousedown" class="noxref"><samp class="ainst">
+onmousedown</samp></a>, <a href="../interact/scripts.html#adef-onmouseup"
+class="noxref"><samp class="ainst">onmouseup</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseover" class="noxref"><samp class="ainst">
+onmouseover</samp></a>, <a href="../interact/scripts.html#adef-onmousemove"
+class="noxref"><samp class="ainst">onmousemove</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseout" class="noxref"><samp class="ainst">
+onmouseout</samp></a>, <a href="../interact/scripts.html#adef-onkeypress"
+class="noxref"><samp class="ainst">onkeypress</samp></a>, <a href= 
+"../interact/scripts.html#adef-onkeydown" class="noxref"><samp class="ainst">
+onkeydown</samp></a>, <a href="../interact/scripts.html#adef-onkeyup" class= 
+"noxref"><samp class="ainst">onkeyup</samp></a> (<a href= 
+"../interact/scripts.html#events">intrinsic events</a>)</li>
+</ul>
+</div>
+
+<p>The body of a document contains the document's content. The content may be
+presented by a user agent in a variety of ways. For example, for visual
+browsers, you can think of the body as a canvas where the content appears:
+text, images, colors, graphics, etc. For audio user agents, the same content
+may be spoken. Since <a href="../present/styles.html">style sheets</a> are now
+the preferred way to specify a document's presentation, the presentational
+attributes of <a href="global.html#edef-BODY" class="noxref"><samp class=
+"einst">BODY</samp></a> have been <a href="../conform.html#deprecated">
+deprecated</a>.</p>
+
+<div class="deprecated-example">
+<p><span class="example-title">DEPRECATED EXAMPLE:</span>
+<br>
+The following HTML fragment illustrates the use of the <a href= 
+"../conform.html#deprecated">deprecated</a> attributes. It sets the background
+color of the canvas to white, the text foreground color to black, and the color
+of hyperlinks to red initially, fuchsia when activated, and maroon once
+visited.</p>
+
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+   "http://www.w3.org/TR/html4/loose.dtd"&gt;
+&lt;HTML&gt;
+&lt;HEAD&gt;
+ &lt;TITLE&gt;A study of population dynamics&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY bgcolor="white" text="black"
+  link="red" alink="fuchsia" vlink="maroon"&gt;
+  <em>... document body...</em>
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+</pre>
+</div>
+
+<div class="example">
+<p>Using <a href="../present/styles.html">style sheets</a>, the same effect
+could be accomplished as follows:</p>
+
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;HTML&gt;
+&lt;HEAD&gt;
+ &lt;TITLE&gt;A study of population dynamics&lt;/TITLE&gt;
+ &lt;STYLE type="text/css"&gt;
+  BODY { background: white; color: black}
+  A:link { color: red }
+  A:visited { color: maroon }
+  A:active { color: fuchsia }
+ &lt;/STYLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+  <em>... document body...</em>
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+</pre>
+</div>
+
+<div class="example">
+<p>Using external (linked) style sheets gives you the flexibility to change the
+presentation without revising the source HTML document:</p>
+
+<pre>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;HTML&gt;
+&lt;HEAD&gt;
+ &lt;TITLE&gt;A study of population dynamics&lt;/TITLE&gt;
+ &lt;LINK rel="stylesheet" type="text/css" href="smartstyle.css"&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+  <em>... document body...</em>
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+</pre>
+</div>
+
+<div class="note">
+<p><em><strong>Framesets and HTML bodies.</strong> <span class="index-inst"
+title="BODY::none in frameset"><a name="idx-BODY">Documents that contain
+framesets</a></span> replace the <a href="global.html#edef-BODY" class=
+"noxref"><samp class="einst">BODY</samp></a> element by the <a href= 
+"../present/frames.html#edef-FRAMESET" class="noxref"><samp class="einst">
+FRAMESET</samp></a> element. Please consult the section on <a href= 
+"../present/frames.html">frames</a> for more information.</em></p>
+</div>
+
+<h3><a name="h-7.5.2">7.5.2</a> <a name="id-and-class">Element identifiers: the
+<samp>id</samp> and <samp>class</samp> attributes</a></h3>
+
+<div class="adef-list">
+<p><em>Attribute definitions</em></p>
+
+<dl>
+<dt><a name="adef-id"><samp class="adef">id</samp></a> = <a href= 
+"../types.html#type-name"><em>name</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute assigns a name to an element. This name must be unique in a
+document.</dd>
+
+<dt><a name="adef-class"><samp class="adef">class</samp></a> = <a href= 
+"../types.html#type-cdata"><em>cdata-list</em></a> <a href= 
+"../types.html#case-sensitive">[CS]</a></dt>
+
+<dd>This attribute assigns a class name or set of class names to an element.
+Any number of elements may be assigned the same class name or names. Multiple
+class names must be separated by white space characters.</dd>
+</dl>
+</div>
+
+The <a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a> attribute assigns a <span class="index-inst" title= 
+"element::unique identifier for"><a name="idx-element-2">unique
+identifier</a></span> to an element (which may be verified by an SGML parser).
+For example, the following paragraphs are distinguished by their <a href= 
+"global.html#adef-id" class="noxref"><samp class="ainst">id</samp></a> values: 
+
+<div class="example">
+<pre>
+&lt;P id="myparagraph"&gt; This is a uniquely named paragraph.&lt;/P&gt;
+&lt;P id="yourparagraph"&gt; This is also a uniquely named paragraph.&lt;/P&gt;
+</pre>
+</div>
+
+<p>The <a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a> attribute has several <span class="index-inst" title="id 
+attribute::roles of"><a name="idx-id_attribute">roles</a></span> in HTML:</p>
+
+<ul>
+<li>As a <a href="../present/styles.html">style sheet</a> selector.</li>
+
+<li>As a target <a href="links.html#anchors">anchor</a> for hypertext
+links.</li>
+
+<li>As a means to reference a particular element from a <a href= 
+"../interact/scripts.html#htmlrefs">script</a>.</li>
+
+<li>As the name of a declared <a href="objects.html#edef-OBJECT" class=
+"noxref"><samp class="einst">OBJECT</samp></a> element.</li>
+
+<li>For general purpose processing by user agents (e.g. for identifying fields
+when extracting data from HTML pages into a database, translating HTML
+documents into other formats, etc.).</li>
+</ul>
+
+<p>The <a href="global.html#adef-class" class="noxref"><samp class="ainst">
+class</samp></a> attribute, on the other hand, assigns one or more class names
+to an element; the element may be said to belong to these classes. A class name
+may be shared by several element instances. The <a href=
+"global.html#adef-class" class="noxref"><samp class="ainst">class</samp></a>
+attribute has several <span class="index-inst" title="class attribute::roles
+of"><a name="idx-class_attribute">roles</a></span> in HTML:</p>
+
+<ul>
+<li>As a <a href="../present/styles.html">style sheet</a> selector (when an
+author wishes to assign style information to a set of elements).</li>
+
+<li>For general purpose processing by user agents.</li>
+</ul>
+
+<div class="example">
+<p>In the following <a name="class-id-example">example</a>, the <a href= 
+"global.html#edef-SPAN" class="noxref"><samp class="einst">SPAN</samp></a>
+element is used in conjunction with the <a href="global.html#adef-id" class= 
+"noxref"><samp class="ainst">id</samp></a> and <a href="global.html#adef-class"
+class="noxref"><samp class="ainst">class</samp></a> attributes to markup
+document messages. Messages appear in both English and French versions.</p>
+
+<pre>
+&lt;!-- English messages --&gt;
+&lt;P&gt;&lt;SPAN id="msg1" class="info" lang="en"&gt;Variable declared twice&lt;/SPAN&gt;
+&lt;P&gt;&lt;SPAN id="msg2" class="warning" lang="en"&gt;Undeclared variable&lt;/SPAN&gt;
+&lt;P&gt;&lt;SPAN id="msg3" class="error" lang="en"&gt;Bad syntax for variable name&lt;/SPAN&gt;
+</pre>
+
+<pre>
+&lt;!-- French messages --&gt;
+&lt;P&gt;&lt;SPAN id="msg1" class="info" lang="fr"&gt;Variable d&amp;eacute;clar&amp;eacute;e deux fois&lt;/SPAN&gt;
+&lt;P&gt;&lt;SPAN id="msg2" class="warning" lang="fr"&gt;Variable ind&amp;eacute;finie&lt;/SPAN&gt;
+&lt;P&gt;&lt;SPAN id="msg3" class="error" lang="fr"&gt;Erreur de syntaxe pour variable&lt;/SPAN&gt;
+</pre>
+
+<p>The following CSS style rules would tell visual user agents to display
+informational messages in green, warning messages in yellow, and error messages
+in red:</p>
+
+<pre>
+SPAN.info    { color: green }
+SPAN.warning { color: yellow }
+SPAN.error   { color: red }
+</pre>
+
+<p>Note that the French "msg1" and the English "msg1" may not appear in the
+same document since they share the same <a href="global.html#adef-id" class= 
+"noxref"><samp class="ainst">id</samp></a> value. Authors may make further use
+of the <a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a> attribute to refine the presentation of individual messages, make
+them target anchors, etc.</p>
+</div>
+
+<p>Almost every HTML element may be assigned identifier and class
+information.</p>
+
+<div class="example">
+<p>Suppose, for example, that we are writing a document about a programming
+language. The document is to include a number of preformatted examples. We use
+the <a href="text.html#edef-PRE" class="noxref"><samp class="einst">
+PRE</samp></a> element to format the examples. We also assign a background
+color (green) to all instances of the <a href="text.html#edef-PRE" class=
+"noxref"><samp class="einst">PRE</samp></a> element belonging to the class
+"example".</p>
+
+<pre>
+&lt;HEAD&gt;
+&lt;TITLE&gt;<em>... document title ...</em>&lt;/TITLE&gt;
+&lt;STYLE type="text/css"&gt;
+PRE.example { background : green }
+&lt;/STYLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&lt;PRE class="example" id="example-1"&gt;
+<em>...example code here...</em>
+&lt;/PRE&gt;
+&lt;/BODY&gt;
+</pre>
+
+<p>By setting the <a href="global.html#adef-id" class="noxref"><samp class= 
+"ainst">id</samp></a> attribute for this example, we can (1) create a hyperlink
+to it and (2) override class style information with instance style
+information.</p>
+</div>
+
+<div class="note">
+<p><em><strong>Note.</strong> The <a href="global.html#adef-id" class="noxref">
+<samp class="ainst">id</samp></a> attribute shares the same name space as the
+<samp class="ainst">name</samp> attribute when used for anchor names. Please
+consult the section on <a href="links.html#anchors-with-id">anchors with <samp>
+id</samp></a> for more information.</em></p>
+</div>
+
+<h3><a name="h-7.5.3">7.5.3</a> <a name="block-inline">Block-level and inline
+elements</a></h3>
+
+<p>Certain HTML elements that may appear in <a href="global.html#edef-BODY"
+class="noxref"><samp class="einst">BODY</samp></a> are said to be <span class= 
+"index-def" title="block-level::element|element::block-level"><a name= 
+"didx-block-level">"block-level"</a></span> while others are <span class= 
+"index-def" title="inline::element|element::inline"><a name="didx-inline">
+"inline"</a></span> (also known as "text level"). The distinction is founded on
+several notions:</p>
+
+<dl>
+<dt><strong>Content model</strong></dt>
+
+<dd>Generally, block-level elements may contain inline elements and other
+block-level elements. Generally, inline elements may contain only data and
+other inline elements. Inherent in this structural distinction is the idea that
+block elements create "larger" structures than inline elements.</dd>
+
+<dt><strong>Formatting</strong></dt>
+
+<dd>By default, block-level elements are formatted differently than inline
+elements. Generally, block-level elements begin on new lines, inline elements
+do not. For information about white space, line breaks, and block formatting,
+please consult the section on <a href="text.html">text</a>.</dd>
+
+<dt><strong>Directionality</strong></dt>
+
+<dd>For technical reasons involving the <a rel="biblioentry" href= 
+"../references.html#ref-UNICODE" class="normref">[UNICODE]</a> bidirectional
+text algorithm, block-level and inline elements differ in how they inherit
+directionality information. For details, see the section on <a href= 
+"dirlang.html#blocklevel-bidi">inheritance of text direction</a>.</dd>
+</dl>
+
+<p><a href="../present/styles.html">Style sheets</a> provide the means to
+specify the rendering of arbitrary elements, including whether an element is
+rendered as block or inline. In some cases, such as an inline style for list
+elements, this may be appropriate, but generally speaking, authors are
+discouraged from overriding the conventional interpretation of HTML elements in
+this way.</p>
+
+<p>The alteration of the traditional presentation idioms for block level and
+inline elements also has an impact on the <span class="index-inst" title= 
+"block-level::and bidirection"><a name="idx-block-level-1">bidirectional text
+algorithm.</a></span> See the section on <a href="dirlang.html#style-bidi">the
+effect of style sheets on bidirectionality</a> for more information.</p>
+
+<h3><a name="h-7.5.4">7.5.4</a> Grouping elements: the <a name="edef-DIV"><samp
+class="edef">DIV</samp></a> and <a name="edef-SPAN"><samp class="edef">
+SPAN</samp></a> elements</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ELEMENT <a href="global.html#edef-DIV" class="noxref"><samp class=
+"einst">DIV</samp></a> - - (<a href=
+"../sgml/dtd.html#flow">%flow;</a>)*            -- generic language/style container --&gt;
+&lt;!ATTLIST DIV
+  <a href=
+"../sgml/dtd.html#attrs">%attrs;</a>                              -- <a href= 
+"../sgml/dtd.html#coreattrs">%coreattrs</a>, <a href=
+"../sgml/dtd.html#i18n">%i18n</a>, <a href=
+"../sgml/dtd.html#events">%events</a> --
+  &gt;
+&lt;!ELEMENT <a href="global.html#edef-SPAN" class="noxref"><samp class=
+"einst">SPAN</samp></a> - - (<a href=
+"../sgml/dtd.html#inline">%inline;</a>)*         -- generic language/style container --&gt;
+&lt;!ATTLIST SPAN
+  <a href=
+"../sgml/dtd.html#attrs">%attrs;</a>                              -- <a href= 
+"../sgml/dtd.html#coreattrs">%coreattrs</a>, <a href=
+"../sgml/dtd.html#i18n">%i18n</a>, <a href=
+"../sgml/dtd.html#events">%events</a> --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>required</strong>, End tag: <strong>
+required</strong></em></p>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a>, <a href="global.html#adef-class" class="noxref"><samp class= 
+"ainst">class</samp></a> (<a href=
+"../struct/global.html#id-and-class">document-wide identifiers</a>)</li>
+
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="../struct/dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="../struct/dirlang.html#bidirection">text
+direction</a>)</li>
+
+<li><a href="global.html#adef-title" class="noxref"><samp class="ainst">
+title</samp></a> (<a href="../struct/global.html#title">element title</a>)</li>
+
+<li><a href="../present/styles.html#adef-style" class="noxref"><samp class= 
+"ainst">style</samp></a> (<a href="../present/styles.html#style-element">inline
+style information</a>)</li>
+
+<li><a href="../present/graphics.html#adef-align" class="noxref"><samp class= 
+"ainst">align</samp></a> (<a href=
+"../present/graphics.html#alignment">alignment</a>)</li>
+
+<li><a href="../interact/scripts.html#adef-onclick" class="noxref"><samp class= 
+"ainst">onclick</samp></a>, <a href="../interact/scripts.html#adef-ondblclick"
+class="noxref"><samp class="ainst">ondblclick</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmousedown" class="noxref"><samp class="ainst">
+onmousedown</samp></a>, <a href="../interact/scripts.html#adef-onmouseup"
+class="noxref"><samp class="ainst">onmouseup</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseover" class="noxref"><samp class="ainst">
+onmouseover</samp></a>, <a href="../interact/scripts.html#adef-onmousemove"
+class="noxref"><samp class="ainst">onmousemove</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseout" class="noxref"><samp class="ainst">
+onmouseout</samp></a>, <a href="../interact/scripts.html#adef-onkeypress"
+class="noxref"><samp class="ainst">onkeypress</samp></a>, <a href= 
+"../interact/scripts.html#adef-onkeydown" class="noxref"><samp class="ainst">
+onkeydown</samp></a>, <a href="../interact/scripts.html#adef-onkeyup" class= 
+"noxref"><samp class="ainst">onkeyup</samp></a> (<a href= 
+"../interact/scripts.html#events">intrinsic events</a>)</li>
+</ul>
+</div>
+
+<p>The <a href="global.html#edef-DIV" class="noxref"><samp class="einst">
+DIV</samp></a> and <a href="global.html#edef-SPAN" class="noxref"><samp class= 
+"einst">SPAN</samp></a> elements, in conjunction with the <a href= 
+"global.html#adef-id" class="noxref"><samp class="ainst">id</samp></a> and <a
+href="global.html#adef-class" class="noxref"><samp class="ainst">
+class</samp></a> attributes, offer a generic mechanism for adding structure to
+documents. These elements define content to be inline (<a href= 
+"global.html#edef-SPAN" class="noxref"><samp class="einst">SPAN</samp></a>) or
+block-level (<a href="global.html#edef-DIV" class="noxref"><samp class=
+"einst">DIV</samp></a>) but impose no other presentational idioms on the
+content. Thus, authors may use these elements in conjunction with <a href= 
+"../present/styles.html">style sheets</a>, the <a href="dirlang.html#adef-lang"
+class="noxref"><samp class="ainst">lang</samp></a> attribute, etc., to tailor
+HTML to their own needs and tastes.</p>
+
+<div class="example">
+<p>Suppose, for example, that we wanted to generate an HTML document based on a
+database of client information. Since HTML does not include elements that
+identify objects such as "client", "telephone number", "email address", etc.,
+we use <a href="global.html#edef-DIV" class="noxref"><samp class="einst">
+DIV</samp></a> and <a href="global.html#edef-SPAN" class="noxref"><samp class= 
+"einst">SPAN</samp></a> to achieve the desired structural and presentational
+effects. We might use the <a href="tables.html#edef-TABLE" class="noxref"><samp
+class="einst">TABLE</samp></a> element as follows to structure the
+information:</p>
+
+<pre>
+&lt;!-- Example of data from the client database: --&gt;
+&lt;!-- Name: Stephane Boyera, Tel: (212) 555-1212, Email: sb@foo.org --&gt;
+
+&lt;DIV id="client-boyera" class="client"&gt;
+&lt;P&gt;&lt;SPAN class="client-title"&gt;Client information:&lt;/SPAN&gt;
+&lt;TABLE class="client-data"&gt;
+&lt;TR&gt;&lt;TH&gt;Last name:&lt;TD&gt;Boyera&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;First name:&lt;TD&gt;Stephane&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;Tel:&lt;TD&gt;(212) 555-1212&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;Email:&lt;TD&gt;sb@foo.org&lt;/TR&gt;
+&lt;/TABLE&gt;
+&lt;/DIV&gt;
+
+&lt;DIV id="client-lafon" class="client"&gt;
+&lt;P&gt;&lt;SPAN class="client-title"&gt;Client information:&lt;/SPAN&gt;
+&lt;TABLE class="client-data"&gt;
+&lt;TR&gt;&lt;TH&gt;Last name:&lt;TD&gt;Lafon&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;First name:&lt;TD&gt;Yves&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;Tel:&lt;TD&gt;(617) 555-1212&lt;/TR&gt;
+&lt;TR&gt;&lt;TH&gt;Email:&lt;TD&gt;yves@coucou.com&lt;/TR&gt;
+&lt;/TABLE&gt;
+&lt;/DIV&gt;
+</pre>
+
+<p>Later, we may easily add style sheet declarations to fine tune the
+presentation of these database entries.</p>
+</div>
+
+<p>For another example of usage, please consult the example in the section on
+<a href="#class-id-example">the <samp>class</samp> and <samp>id</samp>
+attributes</a>.</p>
+
+<p>Visual user agents generally place a line break before and after <a href= 
+"global.html#edef-DIV" class="noxref"><samp class="einst">DIV</samp></a>
+elements, for instance:</p>
+
+<div class="example">
+<pre>
+&lt;P&gt;aaaaaaaaa&lt;DIV&gt;bbbbbbbbb&lt;/DIV&gt;&lt;DIV&gt;ccccc&lt;P&gt;ccccc&lt;/DIV&gt;
+</pre>
+
+<p>which is typically rendered as:</p>
+
+<pre>
+aaaaaaaaa
+bbbbbbbbb
+ccccc
+
+ccccc
+</pre>
+</div>
+
+<h3><a name="h-7.5.5">7.5.5</a> Headings: The <a name="edef-H1"><samp class= 
+"edef">H1</samp></a>, <a name="edef-H2"><samp class="edef">H2</samp></a>, <a
+name="edef-H3"><samp class="edef">H3</samp></a>, <a name="edef-H4"><samp class= 
+"edef">H4</samp></a>, <a name="edef-H5"><samp class="edef">H5</samp></a>, <a
+name="edef-H6"><samp class="edef">H6</samp></a> elements</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ENTITY % heading "<a href="global.html#edef-H1" class="noxref"><samp
+class="einst">H1</samp></a>|<a href="global.html#edef-H2" class="noxref"><samp
+class="einst">H2</samp></a>|<a href="global.html#edef-H3" class="noxref"><samp
+class="einst">H3</samp></a>|<a href="global.html#edef-H4" class="noxref"><samp
+class="einst">H4</samp></a>|<a href="global.html#edef-H5" class="noxref"><samp
+class="einst">H5</samp></a>|<a href="global.html#edef-H6" class="noxref"><samp
+class="einst">H6</samp></a>"&gt;
+&lt;!--
+  There are six levels of headings from H1 (the most important)
+  to H6 (the least important).
+--&gt;
+
+&lt;!ELEMENT (<a href="../sgml/dtd.html#heading">%heading;</a>)  - - (<a href= 
+"../sgml/dtd.html#inline">%inline;</a>)* -- heading --&gt;
+&lt;!ATTLIST (<a href="../sgml/dtd.html#heading">%heading;</a>)
+  <a href=
+"../sgml/dtd.html#attrs">%attrs;</a>                              -- <a href= 
+"../sgml/dtd.html#coreattrs">%coreattrs</a>, <a href=
+"../sgml/dtd.html#i18n">%i18n</a>, <a href=
+"../sgml/dtd.html#events">%events</a> --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>required</strong>, End tag: <strong>
+required</strong></em></p>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a>, <a href="global.html#adef-class" class="noxref"><samp class= 
+"ainst">class</samp></a> (<a href=
+"../struct/global.html#id-and-class">document-wide identifiers</a>)</li>
+
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="../struct/dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="../struct/dirlang.html#bidirection">text
+direction</a>)</li>
+
+<li><a href="global.html#adef-title" class="noxref"><samp class="ainst">
+title</samp></a> (<a href="../struct/global.html#title">element title</a>)</li>
+
+<li><a href="../present/styles.html#adef-style" class="noxref"><samp class= 
+"ainst">style</samp></a> (<a href="../present/styles.html#style-element">inline
+style information</a>)</li>
+
+<li><a href="../present/graphics.html#adef-align" class="noxref"><samp class= 
+"ainst">align</samp></a> (<a href=
+"../present/graphics.html#alignment">alignment</a>)</li>
+
+<li><a href="../interact/scripts.html#adef-onclick" class="noxref"><samp class= 
+"ainst">onclick</samp></a>, <a href="../interact/scripts.html#adef-ondblclick"
+class="noxref"><samp class="ainst">ondblclick</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmousedown" class="noxref"><samp class="ainst">
+onmousedown</samp></a>, <a href="../interact/scripts.html#adef-onmouseup"
+class="noxref"><samp class="ainst">onmouseup</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseover" class="noxref"><samp class="ainst">
+onmouseover</samp></a>, <a href="../interact/scripts.html#adef-onmousemove"
+class="noxref"><samp class="ainst">onmousemove</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseout" class="noxref"><samp class="ainst">
+onmouseout</samp></a>, <a href="../interact/scripts.html#adef-onkeypress"
+class="noxref"><samp class="ainst">onkeypress</samp></a>, <a href= 
+"../interact/scripts.html#adef-onkeydown" class="noxref"><samp class="ainst">
+onkeydown</samp></a>, <a href="../interact/scripts.html#adef-onkeyup" class= 
+"noxref"><samp class="ainst">onkeyup</samp></a> (<a href= 
+"../interact/scripts.html#events">intrinsic events</a>)</li>
+</ul>
+</div>
+
+<p>A heading element briefly describes the topic of the section it introduces.
+Heading information may be used by user agents, for example, to construct a
+table of contents for a document automatically.</p>
+
+<p>There are six levels of headings in HTML with <a href="global.html#edef-H1"
+class="noxref"><samp class="einst">H1</samp></a> as the most important and <a
+href="global.html#edef-H6" class="noxref"><samp class="einst">H6</samp></a> as
+the least. Visual browsers usually render more important headings in larger
+fonts than less important ones.</p>
+
+<div class="example">
+<p>The following example shows how to use the <a href="global.html#edef-DIV"
+class="noxref"><samp class="einst">DIV</samp></a> element to associate a
+heading with the document section that follows it. Doing so allows you to
+define a style for the section (color the background, set the font, etc.) with
+style sheets.</p>
+
+<pre>
+&lt;DIV class="section" id="forest-elephants" &gt;
+&lt;H1&gt;Forest elephants&lt;/H1&gt;
+&lt;P&gt;In this section, we discuss the lesser known forest elephants.
+<em>...this section continues...</em>
+&lt;DIV class="subsection" id="forest-habitat" &gt;
+&lt;H2&gt;Habitat&lt;/H2&gt;
+&lt;P&gt;Forest elephants do not live in trees but among them.
+<em>...this subsection continues...</em>
+&lt;/DIV&gt;
+&lt;/DIV&gt;
+</pre>
+
+<p>This structure may be decorated with style information such as:</p>
+
+<pre>
+&lt;HEAD&gt;
+&lt;TITLE&gt;<em>... document title ...</em>&lt;/TITLE&gt;
+&lt;STYLE type="text/css"&gt;
+DIV.section { text-align: justify; font-size: 12pt}
+DIV.subsection { text-indent: 2em }
+H1 { font-style: italic; color: green }
+H2 { color: green }
+&lt;/STYLE&gt;
+&lt;/HEAD&gt;
+</pre>
+</div>
+
+<div class="note">
+<p><em><strong>Numbered sections and references</strong>
+<br>
+ HTML does not itself cause <span class="index-inst" title="numbered 
+headings::numbered"><a name="idx-numbered_headings">section numbers</a></span>
+to be generated from headings. This facility may be offered by user agents,
+however. Soon, style sheet languages such as CSS will allow authors to control
+the generation of section numbers (handy for forward references in printed
+documents, as in "See section 7.2").</em></p>
+</div>
+
+<div class="note">
+<p><em>Some people consider <span class="index-inst" title="headings::properly 
+nested"><a name="idx-headings">skipping heading levels</a></span> to be bad
+practice. They accept <tt>H1 H2 H1</tt> while they do not accept <tt>H1 H3
+H1</tt> since the heading level <tt>H2</tt> is skipped.</em></p>
+</div>
+
+<h3><a name="h-7.5.6">7.5.6</a> The <a name="edef-ADDRESS"><samp class="edef">
+ADDRESS</samp></a> element</h3>
+
+<div class="dtd-fragment">
+<pre class="dtd-fragment">
+&lt;!ELEMENT ADDRESS - - (<a href=
+"../sgml/dtd.html#inline">%inline;</a>)* -- information on author --&gt;
+&lt;!ATTLIST ADDRESS
+  <a href=
+"../sgml/dtd.html#attrs">%attrs;</a>                              -- <a href= 
+"../sgml/dtd.html#coreattrs">%coreattrs</a>, <a href=
+"../sgml/dtd.html#i18n">%i18n</a>, <a href=
+"../sgml/dtd.html#events">%events</a> --
+  &gt;
+</pre>
+</div>
+
+<p><em>Start tag: <strong>required</strong>, End tag: <strong>
+required</strong></em></p>
+
+<div class="aref-list">
+<p><em>Attributes defined elsewhere</em></p>
+
+<ul>
+<li><a href="global.html#adef-id" class="noxref"><samp class="ainst">
+id</samp></a>, <a href="global.html#adef-class" class="noxref"><samp class= 
+"ainst">class</samp></a> (<a href=
+"../struct/global.html#id-and-class">document-wide identifiers</a>)</li>
+
+<li><a href="dirlang.html#adef-lang" class="noxref"><samp class="ainst">
+lang</samp></a> (<a href="../struct/dirlang.html#language-info">language
+information</a>), <a href="dirlang.html#adef-dir" class="noxref"><samp class= 
+"ainst">dir</samp></a> (<a href="../struct/dirlang.html#bidirection">text
+direction</a>)</li>
+
+<li><a href="global.html#adef-title" class="noxref"><samp class="ainst">
+title</samp></a> (<a href="../struct/global.html#title">element title</a>)</li>
+
+<li><a href="../present/styles.html#adef-style" class="noxref"><samp class= 
+"ainst">style</samp></a> (<a href="../present/styles.html#style-element">inline
+style information</a>)</li>
+
+<li><a href="../interact/scripts.html#adef-onclick" class="noxref"><samp class= 
+"ainst">onclick</samp></a>, <a href="../interact/scripts.html#adef-ondblclick"
+class="noxref"><samp class="ainst">ondblclick</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmousedown" class="noxref"><samp class="ainst">
+onmousedown</samp></a>, <a href="../interact/scripts.html#adef-onmouseup"
+class="noxref"><samp class="ainst">onmouseup</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseover" class="noxref"><samp class="ainst">
+onmouseover</samp></a>, <a href="../interact/scripts.html#adef-onmousemove"
+class="noxref"><samp class="ainst">onmousemove</samp></a>, <a href= 
+"../interact/scripts.html#adef-onmouseout" class="noxref"><samp class="ainst">
+onmouseout</samp></a>, <a href="../interact/scripts.html#adef-onkeypress"
+class="noxref"><samp class="ainst">onkeypress</samp></a>, <a href= 
+"../interact/scripts.html#adef-onkeydown" class="noxref"><samp class="ainst">
+onkeydown</samp></a>, <a href="../interact/scripts.html#adef-onkeyup" class= 
+"noxref"><samp class="ainst">onkeyup</samp></a> (<a href= 
+"../interact/scripts.html#events">intrinsic events</a>)</li>
+</ul>
+</div>
+
+<p>The <a href="global.html#edef-ADDRESS" class="noxref"><samp class="einst">
+ADDRESS</samp></a> element may be used by authors to supply contact information
+for a document or a major part of a document such as a form. This element often
+appears at the beginning or end of a document.</p>
+
+<div class="example">
+<p>For example, a page at the W3C Web site related to HTML might include the
+following contact information:</p>
+
+<pre class="example">
+&lt;ADDRESS&gt;
+&lt;A href="../People/Raggett/"&gt;Dave Raggett&lt;/A&gt;, 
+&lt;A href="../People/Arnaud/"&gt;Arnaud Le Hors&lt;/A&gt;, 
+contact persons for the &lt;A href="Activity"&gt;W3C HTML Activity&lt;/A&gt;&lt;BR&gt; 
+$Date: 2018/03/20 02:36:52 $
+&lt;/ADDRESS&gt;
+</pre>
+</div>
+
+<div class="navbar" align="center">
+<hr><a href="../types.html">previous</a> &nbsp; <a href="dirlang.html">next</a>
+&nbsp; <a href="../cover.html#minitoc">contents</a> &nbsp; <a href= 
+"../index/elements.html">elements</a> &nbsp; <a href=
+"../index/attributes.html">attributes</a> &nbsp; <a href="../index/list.html">
+index</a></div>
+</body>
+</html>
+

@@ -126,6 +126,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SaveToStream() {
             var document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
             document.AddParagraph("Hello world!");
 
             using var outputStream = new MemoryStream();
@@ -133,8 +136,53 @@ namespace OfficeIMO.Tests {
 
             var resultDoc = WordDocument.Load(outputStream);
 
+            Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+            Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+            Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+
             var paragraph = Assert.Single(resultDoc.Paragraphs);
             Assert.Equal("Hello world!", paragraph.Text);
         }
+
+
+        [Fact]
+        public void Test_SaveToStreamAndFile() {
+            var filePath = Path.Combine(_directoryWithFiles, "DisposeTesting1.docx");
+            File.Delete(filePath);
+
+            Assert.False(File.Exists(filePath));
+
+            var document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.AddParagraph("Hello world!");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
+                outputStream.CopyTo(fileStream);
+            }
+
+            using (var resultDoc = WordDocument.Load(filePath)) {
+                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+
+                var paragraph = Assert.Single(resultDoc.Paragraphs);
+                Assert.Equal("Hello world!", paragraph.Text);
+
+                resultDoc.Save();
+            }
+
+            using (var resultDoc = WordDocument.Load(filePath)) {
+                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+            }
+        }
+
     }
+
 }

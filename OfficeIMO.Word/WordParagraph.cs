@@ -2,7 +2,18 @@ using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
+using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
+using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
+using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
+using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
+using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
+using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -12,18 +23,32 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// This allows to know where the paragraph is located. Useful for hyperlinks or other stuff.
         /// </summary>
-        internal string Parent {
+        internal string TopParent {
             get {
                 var test = _paragraph.Parent;
                 if (test is Body) {
                     return "body";
-                } else if (test is Header) {
-                    return "header";
-                } else if (test is Footer) {
-                    return "footer";
-                } else {
-                    throw new NotImplementedException("There is different parent for paragraphs?");
                 }
+                if (test is Header) {
+                    return "header";
+                }
+                if (test is Footer) {
+                    return "footer";
+                }
+                var parent = test;
+                do {
+                    parent = parent.Parent;
+                } while (!(parent is Header) && !(parent is Footer) && !(parent is Body));
+                if (parent is Body) {
+                    return "body";
+                }
+                if (parent is Footer) {
+                    return "footer";
+                }
+                if (parent is Header) {
+                    return "header";
+                }
+                throw new InvalidOperationException("Please open an issue and describe your situation with Parent");
             }
         }
 
@@ -71,18 +96,29 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
-        //internal WordParagraph _linkedParagraph;
-        //internal WordSection _section;
 
         public WordImage Image {
             get {
                 if (_run != null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
                     if (drawing != null) {
-                        return new WordImage(_document, drawing);
+                        if (drawing.Inline != null) {
+                            if (drawing.Inline.Graphic != null) {
+                                if (drawing.Inline.Graphic.GraphicData != null) {
+                                    var picture = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().FirstOrDefault();
+                                    if (picture != null) {
+                                        return new WordImage(_document, drawing);
+                                    }
+                                }
+                            }
+                        } else if (drawing.Anchor != null) {
+                            var anchorGraphic = drawing.Anchor.OfType<Graphic>().FirstOrDefault();
+                            if (anchorGraphic != null) {
+                                return new WordImage(_document, drawing);
+                            }
+                        }
                     }
                 }
-
                 return null;
             }
         }
@@ -207,11 +243,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordTabChar Tab {
+            get {
+                if (_run != null) {
+                    var tabChar = _run.ChildElements.OfType<TabChar>().FirstOrDefault();
+                    if (tabChar != null) {
+                        return new WordTabChar(_document, _paragraph, _run);
+                    }
+                }
+
+                return null;
+            }
+        }
+
         public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
             this._document = document;
 
             if (newParagraph) {
-
                 this._paragraph = new Paragraph();
                 this._paragraph.AppendChild(new ParagraphProperties());
 
@@ -219,6 +267,16 @@ namespace OfficeIMO.Word {
                     this._run = new Run();
                     this._paragraph.AppendChild(_run);
                 }
+            }
+        }
+
+        internal WordParagraph(WordDocument document, Paragraph paragraph, bool newRun = true) {
+            this._document = document;
+            this._paragraph = paragraph;
+
+            if (newRun) {
+                this._run = new Run();
+                this._paragraph.AppendChild(_run);
             }
         }
 
@@ -329,12 +387,57 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordChart Chart {
+            get {
+                if (_run != null) {
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        if (drawing.Inline != null) {
+                            if (drawing.Inline.Graphic != null) {
+                                if (drawing.Inline.Graphic.GraphicData != null) {
+                                    var chart = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().FirstOrDefault();
+                                    if (chart != null) {
+                                        return new WordChart(_document, _paragraph, drawing);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
         public WordHyperLink Hyperlink {
             get {
                 if (_hyperlink != null) {
                     return new WordHyperLink(_document, _paragraph, _hyperlink);
                 }
 
+                return null;
+            }
+        }
+
+        public WordFootNote FootNote {
+            get {
+                if (_run != null && _runProperties != null) {
+                    var footReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
+                    if (footReference != null) {
+                        return new WordFootNote(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
+        public WordEndNote EndNote {
+            get {
+                if (_run != null && _runProperties != null) {
+                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
+                    if (endNoteReference != null) {
+                        return new WordEndNote(_document, _paragraph, _run);
+                    }
+                }
                 return null;
             }
         }
@@ -396,6 +499,57 @@ namespace OfficeIMO.Word {
                 }
 
                 return false;
+            }
+        }
+
+        public bool IsTab {
+            get {
+                if (this.Tab != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsChart {
+            get {
+                if (this.Chart != null) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        public bool IsEndNote {
+            get {
+                if (this.EndNote != null) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        public bool IsFootNote {
+            get {
+                if (this.FootNote != null) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        public List<WordTabStop> TabStops {
+            get {
+                List<WordTabStop> list = new List<WordTabStop>();
+                if (_paragraph != null && _paragraphProperties != null) {
+                    if (_paragraphProperties.Tabs != null) {
+                        foreach (TabStop tab in _paragraphProperties.Tabs) {
+                            list.Add(new WordTabStop(this, tab));
+                        }
+                    }
+                }
+                return list;
             }
         }
     }

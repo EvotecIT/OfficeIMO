@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,6 +31,18 @@ namespace OfficeIMO.Word {
 
             // Compose a run with CommentReference and insert it.
             reference.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
+        }
+
+        public WordTable SetStyleId(string styleId) {
+            //Todo Check the styleId exist
+            if (!string.IsNullOrEmpty(styleId)) {
+                if (_tableProperties?.TableStyle == null) {
+                    _tableProperties.TableStyle = new TableStyle() { Val = styleId };
+                } else {
+                    _tableProperties.TableStyle.Val = styleId;
+                }
+            }
+            return this;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
             string fullPath = System.IO.Path.Combine(documentPaths, "sample1.docx");
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample1.docx"), false)) {
+            using (WordDocument document = WordDocument.Load(fullPath, false)) {
                 Console.WriteLine(fullPath);
                 Console.WriteLine("Sections count: " + document.Sections.Count);
                 Console.WriteLine("Tables count: " + document.Tables.Count);

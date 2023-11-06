@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
     public class WordHyperLink {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
-        private readonly Hyperlink _hyperlink;
+        internal readonly Hyperlink _hyperlink;
 
         public System.Uri Uri {
             get {
@@ -58,6 +58,18 @@ namespace OfficeIMO.Word {
             }
             set {
                 _hyperlink.Id = value;
+            }
+        }
+
+        internal Run _run {
+            get {
+                return _hyperlink.Descendants<Run>().FirstOrDefault();
+            }
+        }
+
+        internal RunProperties _runProperties {
+            get {
+                return _hyperlink.Descendants<RunProperties>().FirstOrDefault();
             }
         }
 
@@ -222,12 +234,12 @@ namespace OfficeIMO.Word {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 
             HyperlinkRelationship rel;
-            if (paragraph.Parent == "body") {
+            if (paragraph.TopParent == "body") {
                 rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.Parent == "header") {
+            } else if (paragraph.TopParent == "header") {
                 Header header = (Header)paragraph._paragraph.Parent;
                 rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.Parent == "footer") {
+            } else if (paragraph.TopParent == "footer") {
                 Footer footer = (Footer)paragraph._paragraph.Parent;
                 rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
             } else {
@@ -246,12 +258,12 @@ namespace OfficeIMO.Word {
 
             // Styling for the hyperlink
             if (addStyle) {
-                //RunProperties runPropertiesHyperLink = new RunProperties(
-                //    new RunStyle { Val = "Hyperlink", }
-                //    //new Underline { Val = UnderlineValues.Single }
-                //    //new Color { ThemeColor = ThemeColorValues.Hyperlink }
-                //);
-                //run.RunProperties = runPropertiesHyperLink;
+                RunProperties runPropertiesHyperLink = new RunProperties(
+                    new RunStyle { Val = "Hyperlink", },
+                    new Color { ThemeColor = ThemeColorValues.Hyperlink, Val = "0000FF" },
+                    new Underline { Val = UnderlineValues.Single }
+                );
+                run.RunProperties = runPropertiesHyperLink;
             }
 
             if (tooltip != "") {

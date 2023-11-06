@@ -1,18 +1,12 @@
-using System;
 using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
-using Color = SixLabors.ImageSharp.Color;
-using Comments = OfficeIMO.Examples.Word.Comments;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
         private static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
-            } else {
-                // Directory.Delete(path, false);
-                // Directory.CreateDirectory(path);
             }
         }
 
@@ -27,11 +21,21 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
+            BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
+            BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
+            BasicDocument.Example_BasicWordWithTabs(folderPath, false);
+            BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
+            BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
+            AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
+            Paragraphs.Example_BasicTabStops(folderPath, false);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
@@ -45,7 +49,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_BasicLists3(folderPath, false);
             Lists.Example_BasicLists4(folderPath, false);
             Lists.Example_BasicLists2Load(folderPath, false);
-
+            Lists.Example_BasicLists7(folderPath, false);
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
             Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
@@ -55,6 +59,7 @@ namespace OfficeIMO.Examples {
             Tables.Example_Tables(folderPath, false);
             Tables.Example_TableBorders(folderPath, false);
             Tables.Example_NestedTables(folderPath, false);
+            Tables.Example_TablesAddedAfterParagraph(folderPath, false);
 
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
@@ -87,6 +92,7 @@ namespace OfficeIMO.Examples {
             HyperLinks.EasyExample(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinks(folderPath, false);
             HyperLinks.Example_AddingFields(folderPath, false);
+            HyperLinks.Example_BasicWordWithHyperLinksInTables(folderPath, false);
 
             HeadersAndFooters.Sections1(folderPath, false);
             HeadersAndFooters.Example_BasicWordWithHeaderAndFooter0(folderPath, false);
@@ -99,6 +105,7 @@ namespace OfficeIMO.Examples {
             Images.Example_ReadWordWithImages();
             Images.Example_AddingImagesMultipleTypes(folderPath, false);
             Images.Example_ReadWordWithImagesAndDiffWraps();
+            Images.Example_AddingFixedImages(folderPath, false);
 
             PageBreaks.Example_PageBreaks(folderPath, false);
             PageBreaks.Example_PageBreaks1(folderPath, false);
@@ -120,9 +127,27 @@ namespace OfficeIMO.Examples {
 
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
             Fields.Example_DocumentWithFields(folderPath, false);
+            Fields.Example_DocumentWithFields02(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
+
+            Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
+
+            CleanupDocuments.CleanupDocuments_Sample01(false);
+            CleanupDocuments.CleanupDocuments_Sample02(folderPath, false);
+
+            FindAndReplace.Example_FindAndReplace01(folderPath, false);
+            FindAndReplace.Example_FindAndReplace02(folderPath, false);
+
+            FootNotes.Example_DocumentWithFootNotes(templatesPath, false);
+            FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
+
+            SaveToStream.Example_StreamDocumentProperties(folderPath, false);
         }
     }
 }

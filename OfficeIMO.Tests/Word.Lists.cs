@@ -132,6 +132,9 @@ public partial class Word {
                 .SetUnderline(UnderlineValues.Double);
 
             var wordList8 = document.AddList(WordListStyle.Bulleted);
+
+            Assert.True(wordList8.RestartNumbering == true);
+
             wordList8.AddItem("Text 9");
             wordList8.AddItem("Text 9.1", 1);
             wordList8.AddItem("Text 9.2", 2);
@@ -148,6 +151,12 @@ public partial class Word {
             var wordList2 = document.AddList(WordListStyle.Headings111);
             wordList2.AddItem("Temp 10");
             wordList2.AddItem("Text 10.1", 1);
+
+            Assert.True(wordList2.RestartNumbering == true);
+
+            wordList2.RestartNumbering = false;
+
+            Assert.True(wordList2.RestartNumbering == false);
 
             paragraph = document
                 .AddParagraph("Paragraph in the middle of the list")
@@ -395,4 +404,183 @@ public partial class Word {
             }
         }
     }
+
+
+    [Fact]
+    public void Test_CreatingWordDocumentWithListsInTables() {
+        var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            Assert.True(document.Lists.Count == 0);
+            WordList wordList1 = document.AddList(WordListStyle.Headings111, true);
+            Assert.True(wordList1.ListItems.Count == 0);
+            Assert.True(document.Lists[0].ListItems.Count == 0);
+            wordList1.AddItem("Text 1");
+            Assert.True(wordList1.ListItems.Count == 1);
+            Assert.True(document.Lists[0].ListItems.Count == 1);
+            Assert.True(document.Lists.Count == 1);
+
+            wordList1.AddItem("Text 2");
+            Assert.True(wordList1.ListItems.Count == 2);
+            Assert.True(document.Lists[0].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 1);
+            wordList1.AddItem("Text 2.1", 1);
+            Assert.True(wordList1.ListItems.Count == 3);
+            Assert.True(document.Lists[0].ListItems.Count == 3);
+            Assert.True(document.Lists.Count == 1);
+
+
+            WordList wordListNested = document.AddList(WordListStyle.Bulleted, false);
+            Assert.True(wordListNested.RestartNumbering == true);
+            Assert.True(wordListNested.RestartNumberingAfterBreak == false);
+            wordListNested.RestartNumberingAfterBreak = true;
+            Assert.True(wordListNested.RestartNumberingAfterBreak == true);
+            wordListNested.AddItem("Nested 1", 1);
+            wordListNested.AddItem("Nested 2", 1);
+            Assert.True(wordListNested.ListItems.Count == 2);
+            Assert.True(document.Lists[1].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 2);
+
+            WordList wordList2 = document.AddList(WordListStyle.Headings111, true);
+            Assert.True(wordList2.RestartNumbering == false);
+            wordList2.AddItem("Section 2");
+            wordList2.AddItem("Section 2.1", 1);
+
+            Assert.True(wordList2.ListItems.Count == 2);
+            Assert.True(document.Lists[2].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 3);
+
+
+            WordList wordList3 = document.AddList(WordListStyle.Headings111, true);
+            Assert.True(wordList3.RestartNumbering == false);
+            wordList3.RestartNumbering = true;
+            Assert.True(wordList3.RestartNumbering == true);
+            wordList3.AddItem("Section 1");
+            wordList3.AddItem("Section 1.1", 1);
+            Assert.True(wordList3.ListItems.Count == 2);
+
+            WordList wordList4 = document.AddList(WordListStyle.Headings111, true);
+            wordList4.AddItem("Section 2");
+            wordList4.AddItem("Section 2.1", 1);
+
+            WordList wordList5 = document.AddList(WordListStyle.Headings111, true);
+            wordList5.AddItem("Section 3");
+            wordList5.AddItem("Section 3.1", 1);
+
+            WordList wordList6 = document.AddList(WordListStyle.Headings111);
+            wordList1.AddItem("Text 4");
+            wordList1.AddItem("Text 4.1", 1);
+
+            Assert.True(document.Lists.Count == 7);
+
+            document.AddBreak();
+
+            // add a table
+            var table = document.AddTable(3, 3);
+
+            //// add a list to a table and attach it to a first paragraph
+            var listInsideTable = table.Rows[0].Cells[0].Paragraphs[0].AddList(WordListStyle.Bulleted);
+
+            // this will force the current Paragraph to be converted into a list item and overwrite it's text
+            Assert.True(listInsideTable.ListItems.Count == 0);
+            listInsideTable.AddItem("text", 0, table.Rows[0].Cells[0].Paragraphs[0]);
+            Assert.True(listInsideTable.ListItems.Count == 1);
+
+            // add new items to the list (as last paragraph)
+            listInsideTable.AddItem("Test 1");
+            Assert.True(listInsideTable.ListItems.Count == 2);
+
+            // add new items to the list (as last paragraph)
+            listInsideTable.AddItem("Test 2");
+            Assert.True(listInsideTable.ListItems.Count == 3);
+
+            table.Rows[0].Cells[0].AddParagraph("Test Text 1");
+            listInsideTable.AddItem("Test 3");
+            table.Rows[0].Cells[0].AddParagraph("Test Text 2");
+
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Text Row 1 - 0";
+            table.Rows[1].Cells[0].AddParagraph("Text Row 1 - 1").AddText(" More text").AddParagraph("Text Row 1 - 2");
+
+            // add a list to a table by adding it to a cell, notice that that the first paragraph is empty
+            var listInsideTableColumn2 = table.Rows[0].Cells[1].AddList(WordListStyle.Bulleted);
+            Assert.True(listInsideTableColumn2.ListItems.Count == 0);
+            listInsideTableColumn2.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn2.ListItems.Count == 1);
+            listInsideTableColumn2.AddItem("Test 2  - Column 2");
+            Assert.True(listInsideTableColumn2.ListItems.Count == 2);
+
+            // add a list to a table by adding it to a cell, notice that I'm adding text before list first
+            table.Rows[0].Cells[2].Paragraphs[0].Text = "This is list: ";
+            // add list, and add all items
+            var listInsideTableColumn3 = table.Rows[0].Cells[2].AddList(WordListStyle.Bulleted);
+            Assert.True(listInsideTableColumn3.ListItems.Count == 0);
+            listInsideTableColumn3.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn3.ListItems.Count == 1);
+            listInsideTableColumn3.AddItem("Test 2  - Column 2");
+            Assert.True(listInsideTableColumn3.ListItems.Count == 2);
+
+            // add a list to a table by adding it to a cell, notice that I'm adding text before list first
+            // but then convert that line into a list item
+            table.Rows[1].Cells[2].Paragraphs[0].Text = "This is list as list item: ";
+            // add list, and add all items
+            var listInsideTableColumn4 = table.Rows[0].Cells[2].AddList(WordListStyle.Bulleted);
+
+            listInsideTableColumn4.AddItem(table.Rows[1].Cells[2].Paragraphs[0]); // convert to list item
+
+            Assert.True(listInsideTableColumn4.ListItems.Count == 1);
+            listInsideTableColumn4.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn4.ListItems.Count == 2);
+            listInsideTableColumn4.AddItem("Test 2 - Column 2");
+            Assert.True(listInsideTableColumn4.ListItems.Count == 3);
+
+            // including in tables
+            Assert.True(document.Lists.Count == 11);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
+
+        using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx"))) {
+
+            Assert.True(document.Lists.Count == 11);
+
+            Assert.True(document.Lists[10].ListItems[1].Text == "Test 1 - Column 2");
+            Assert.True(document.Lists[10].ListItems[2].Text == "Test 2 - Column 2");
+
+            document.Lists[0].AddItem("More then enough");
+
+            document.AddHeadersAndFooters();
+
+            var listInHeader = document.Header.Default.AddList(WordListStyle.Bulleted);
+
+            Assert.True(document.Lists.Count == 12);
+
+            listInHeader.AddItem("Test Header 1");
+
+            document.Footer.Default.AddParagraph("Test Me Header");
+
+            listInHeader.AddItem("Test Header 2");
+
+            var listInFooter = document.Footer.Default.AddList(WordListStyle.Headings111);
+
+            Assert.True(document.Lists.Count == 13);
+
+            listInFooter.AddItem("Test Footer 1");
+
+            document.Footer.Default.AddParagraph("Test Me Footer");
+
+            listInFooter.AddItem("Test Footer 2");
+
+            Assert.True(document.Lists[12].ListItems[0].Text == "Test Footer 1");
+            Assert.True(document.Lists[12].ListItems[1].Text == "Test Footer 2");
+
+            Assert.True(document.Lists.Count == 13);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+    }
+
 }

@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
@@ -13,10 +12,10 @@ namespace OfficeIMO.Word {
         /// <param name="text"></param>
         /// <returns></returns>
         public WordParagraph AddText(string text) {
-            WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
-            wordParagraph.Text = text;
-            this._paragraph.Append(wordParagraph._run);
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.InsertAfter(wordParagraph._run, this._paragraph);
+            WordParagraph wordParagraph = ConvertToTextWithBreaks(text);
+            //WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+            //wordParagraph.Text = text;
+            //this._paragraph.Append(wordParagraph._run);
             return wordParagraph;
         }
 
@@ -152,6 +151,15 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+        public WordParagraph AddParagraph(string text) {
+            // we create paragraph (and within that add it to document)
+            var wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false) {
+                Text = text
+            };
+            this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            return wordParagraph;
+        }
+
         /// <summary>
         /// Add paragraph after self adds paragraph after given paragraph
         /// </summary>
@@ -272,6 +280,82 @@ namespace OfficeIMO.Word {
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, anchor, addStyle, tooltip, history);
             return this;
+        }
+
+        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
+            return wordTable;
+        }
+
+        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
+            return wordTable;
+        }
+
+        /// <summary>
+        /// Provides ability for configuration of Tabs in a paragraph
+        /// by adding one or more TabStops
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="alignment"></param>
+        /// <param name="leader"></param>
+        /// <returns></returns>
+        public WordTabStop AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+            var wordTab = new WordTabStop(this);
+            wordTab.AddTab(position, alignment, leader);
+            return wordTab;
+        }
+
+        /// <summary>
+        /// Adds a Tab to a paragraph
+        /// </summary>
+        /// <returns></returns>
+        public WordParagraph AddTab() {
+            var wordParagraph = WordTabChar.AddTab(this._document, this);
+            return wordParagraph;
+        }
+
+        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+            WordList wordList = new WordList(this._document, this);
+            wordList.AddList(style, continueNumbering);
+            return wordList;
+        }
+
+        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var barChart = WordBarChart.AddBarChart(this._document, this, title, roundedCorners, width, height);
+            return barChart;
+        }
+
+        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var lineChart = WordLineChart.AddLineChart(this._document, this, title, roundedCorners, width, height);
+            return lineChart;
+        }
+
+        //public WordBarChart3D AddBarChart3D(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        //    var barChart = WordBarChart3D.AddBarChart3D(this._document, this, title, roundedCorners, width, height);
+        //    return barChart;
+        //}
+
+        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var pieChart = WordPieChart.AddPieChart(this._document, this, title, roundedCorners, width, height);
+            return pieChart;
+        }
+
+        public WordParagraph AddFootNote(string text) {
+            var footerWordParagraph = new WordParagraph(this._document, true, true);
+            footerWordParagraph.Text = text;
+
+            var wordFootNote = WordFootNote.AddFootNote(this._document, this, footerWordParagraph);
+            return wordFootNote;
+        }
+
+        public WordParagraph AddEndNote(string text) {
+            var endNoteWordParagraph = new WordParagraph(this._document, true, true);
+            endNoteWordParagraph.Text = text;
+
+            var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
+            return wordEndNote;
+
         }
     }
 }

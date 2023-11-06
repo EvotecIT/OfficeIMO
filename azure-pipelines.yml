@@ -55,12 +55,12 @@ steps:
     packageType: 'sdk'
     version: '7.0.x'
 
-- task: UseDotNet@2
-  displayName: 'Install .NET 3.1'
-  inputs:
-    version: '3.1.x'
-    packageType: 'sdk'
-    includePreviewVersions: false
+#- task: UseDotNet@2
+#  displayName: Install .NET 3.1
+#  inputs:
+#    version: '3.1.x'
+#    packageType: sdk
+#    includePreviewVersions: false
 
 - task: CmdLine@2
   displayName: 'List available .NET SDKs'

@@ -30,6 +30,52 @@ namespace OfficeIMO.Word {
         private ImagePart _imagePart;
         private WordDocument _document;
 
+        /// <summary>
+        /// Get or set the Image's horizontal position.
+        /// </summary>
+        public HorizontalPosition horizontalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var hPosition = anchor.HorizontalPosition;
+                    return hPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.HorizontalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get or set the Image's vertical position.
+        /// </summary>
+        public VerticalPosition verticalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var vPosition = anchor.VerticalPosition;
+                    return vPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.VerticalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+        }
+
         public BlipCompressionValues? CompressionQuality {
             get {
                 if (_Image.Inline != null) {
@@ -134,18 +180,6 @@ namespace OfficeIMO.Word {
                 }
 
                 return null;
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //    }
-                //}
-                //return null;
             }
             set {
                 if (_Image.Inline != null) {
@@ -154,17 +188,6 @@ namespace OfficeIMO.Word {
                     var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
                     anchoDocPropertiesr.Description = value;
                 }
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //    }
-                //}
             }
         }
 
