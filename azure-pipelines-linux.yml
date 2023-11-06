@@ -125,6 +125,9 @@ steps:
     command: 'test'
     arguments: '--framework net7.0 /noautorsp'
     testRunTitle: 'Linux .NET 7.0'
+    projects: |
+      '**/*.Tests.csproj
+      !**/OfficeIMO.VerifyTests.csproj
   condition: succeededOrFailed()
 
 #- task: PublishCodeCoverageResults@1
