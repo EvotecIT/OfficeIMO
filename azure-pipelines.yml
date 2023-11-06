@@ -1,3 +1,7 @@
+# Build and run tests for .NET Desktop or Windows classic desktop solutions.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
+
 trigger:
   batch: true
   branches:
@@ -26,22 +30,17 @@ pr:
       - README.md
       - CHANGELOG.MD
 
-strategy:
-  matrix:
-    linux:
-      imageName: 'ubuntu-latest'
-    mac:
-      imageName: 'macOS-latest'
-    windows:
-      imageName: 'windows-latest'
-
 pool:
-  vmImage: $(imageName)
+  vmImage: 'windows-latest'
 
 variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
 steps:
+- task: NuGetToolInstaller@1
+  displayName: 'Install Nuget Tool Installer'
 
 - task: UseDotNet@2
   displayName: 'Install .NET 6.0'
@@ -62,32 +61,46 @@ steps:
 #    packageType: sdk
 #    includePreviewVersions: false
 
+# Add a Command To List the Current .NET SDKs (Sanity Check)
 - task: CmdLine@2
   displayName: 'List available .NET SDKs'
   inputs:
     script: 'dotnet --list-sdks'
 
-- task: DotNetCoreCLI@2
-  displayName: 'Restore'
+- task: NuGetCommand@2
+  displayName: Install Nuget Packages
   inputs:
-    command: restore
+    restoreSolution: '$(solution)'
+
+- task: VSBuild@1
+  displayName: Build Solution
+  inputs:
+    solution: '$(solution)'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+
+# - task: VSTest@2
+#   displayName: Run Tests .NET Framework
+#   inputs:
+#     testSelector: 'testAssemblies'
+#     testAssemblyVer2: |
+#       **\*OfficeIMO.Tests.dll
+#     searchFolder: '$(System.DefaultWorkingDirectory)'
+#     publishRunAttachments: true
+#     codeCoverageEnabled: true
+#     runSettingsFile: CodeCoverage.runsettings
 
 - task: DotNetCoreCLI@2
-  displayName: 'dotnet build $(buildConfiguration)'
+  displayName: 'Run Tests'
   inputs:
-    command: 'build'
-    arguments: '--configuration $(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Tests'
-  inputs:
-    command: test
-    testRunTitle: '$(imageName) Test Run $(buildConfiguration)'
-    arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
+    command: 'test'
+    arguments: --configuration $(buildConfiguration) --collect "Code coverage"
     publishTestResults: true
+    projects: '**/*.Tests.csproj'
+    testRunTitle: 'Windows Test Run $(buildConfiguration), CPU: $(buildPlatform)'
 
-- task: PublishCodeCoverageResults@1
-  displayName: 'Publish code coverage report'
-  inputs:
-    codeCoverageTool: 'Cobertura'
-    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+# - task: PublishCodeCoverageResults@1
+#   displayName: 'Publish Code Coverage Report'
+#   inputs:
+#     codeCoverageTool: 'Cobertura'
+#     summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
