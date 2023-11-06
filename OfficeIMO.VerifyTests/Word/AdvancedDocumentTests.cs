@@ -17,7 +17,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         await Verifier.Verify(result, GetSettings());
     }
 
-    [Fact(Skip = "Why not works?")]
+    [Fact]
     public async Task AdvancedWordCreate() {
         using var document = WordDocument.Create();
         // lets add some properties to the document
