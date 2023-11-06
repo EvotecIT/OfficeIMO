@@ -130,6 +130,6 @@ steps:
     arguments: '--framework net7.0 /noautorsp'
     testRunTitle: 'macOS .NET 7.0'
     projects: |
-      '**/*.Tests.csproj
+      **/*.Tests.csproj
       !**/OfficeIMO.VerifyTests.csproj
   condition: succeededOrFailed()

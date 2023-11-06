@@ -97,7 +97,7 @@ steps:
     arguments: --configuration $(buildConfiguration) --collect "Code coverage"
     publishTestResults: true
     projects: |
-      '**/*.Tests.csproj
+      **/*.Tests.csproj
       !**/OfficeIMO.VerifyTests.csproj
     testRunTitle: 'Windows Test Run $(buildConfiguration), CPU: $(buildPlatform)'
 
