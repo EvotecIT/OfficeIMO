@@ -34,7 +34,7 @@
       <w:r>
         <w:drawing>
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="4445000" cy="6985000" />
+            <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
             <wp:docPr id="2" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -57,7 +57,7 @@
       <w:r>
         <w:drawing>
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="4445000" cy="6985000" />
+            <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
             <wp:docPr id="2" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -80,7 +80,7 @@
       <w:r>
         <w:drawing>
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="4445000" cy="6985000" />
+            <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
             <wp:docPr id="2" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -103,7 +103,7 @@
       <w:r>
         <w:drawing>
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="4445000" cy="6985000" />
+            <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
             <wp:docPr id="2" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -126,7 +126,7 @@
       <w:r>
         <w:drawing>
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="4445000" cy="6985000" />
+            <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
             <wp:docPr id="2" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -10416,6 +10416,134 @@
       <w:szCs w:val="21" />
     </w:rPr>
   </w:style>
+  <w:style w:type="numbering" w:styleId="NoList" w:default="true">
+    <w:name w:val="No List" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Header">
+    <w:name w:val="header" />
+    <w:basedOn w:val="Normal" />
+    <w:link w:val="HeaderChar" />
+    <w:uiPriority w:val="99" />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="4680" />
+        <w:tab w:val="right" w:pos="9360" />
+      </w:tabs>
+      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="HeaderChar" w:customStyle="true">
+    <w:name w:val="Header Char" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:link w:val="Header" />
+    <w:uiPriority w:val="99" />
+    <w:rsid w:val="00EC28F1" />
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Footer">
+    <w:name w:val="footer" />
+    <w:basedOn w:val="Normal" />
+    <w:link w:val="FooterChar" />
+    <w:uiPriority w:val="99" />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="4680" />
+        <w:tab w:val="right" w:pos="9360" />
+      </w:tabs>
+      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="FooterChar" w:customStyle="true">
+    <w:name w:val="Footer Char" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:link w:val="Footer" />
+    <w:uiPriority w:val="99" />
+    <w:rsid w:val="00EC28F1" />
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="FootnoteText">
+    <w:name w:val="footnote text" />
+    <w:basedOn w:val="Normal" />
+    <w:link w:val="FootnoteTextChar" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:pPr>
+      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+    <w:rPr>
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="FootnoteTextChar" w:customStyle="true">
+    <w:name w:val="Footnote Text Char" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:link w:val="FootnoteText" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:rsid w:val="00EC28F1" />
+    <w:rPr>
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="FootnoteReference">
+    <w:name w:val="footnote reference" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:rPr>
+      <w:vertAlign w:val="superscript" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="EndnoteText">
+    <w:name w:val="endnote text" />
+    <w:basedOn w:val="Normal" />
+    <w:link w:val="EndnoteTextChar" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:pPr>
+      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+    <w:rPr>
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="EndnoteTextChar" w:customStyle="true">
+    <w:name w:val="Endnote Text Char" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:link w:val="EndnoteText" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:rsid w:val="00EC28F1" />
+    <w:rPr>
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="EndnoteReference">
+    <w:name w:val="endnote reference" />
+    <w:basedOn w:val="DefaultParagraphFont" />
+    <w:uiPriority w:val="99" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
+    <w:rsid w:val="00EC28F1" />
+    <w:rPr>
+      <w:vertAlign w:val="superscript" />
+    </w:rPr>
+  </w:style>
 </w:styles>
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/webSettings.xml
@@ -10478,16 +10606,41 @@
   <w15:docId w15:val="{4B1E9AE4-A62B-439B-84E0-F60BAA5072F5}" />
 </w:settings>
 <!--------------------------------------------------------------------------------------------------------------------->
+/word/endnotes.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<w:endnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" />
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/footnotes.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<w:footnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+  <w:footnote w:type="separator" w:id="-1">
+    <w:p w:rsidR="00EC28F1" w:rsidP="00EC28F1" w:rsidRDefault="00EC28F1" w14:paraId="13FE0CF9" w14:textId="77777777">
+      <w:pPr>
+        <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+      </w:pPr>
+      <w:r>
+        <w:separator />
+      </w:r>
+    </w:p>
+  </w:footnote>
+  <w:footnote w:type="continuationSeparator" w:id="0">
+    <w:p w:rsidR="00EC28F1" w:rsidP="00EC28F1" w:rsidRDefault="00EC28F1" w14:paraId="60AD3AEF" w14:textId="77777777">
+      <w:pPr>
+        <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+      </w:pPr>
+      <w:r>
+        <w:continuationSeparator />
+      </w:r>
+    </w:p>
+  </w:footnote>
+</w:footnotes>
+<!--------------------------------------------------------------------------------------------------------------------->
 /word/charts/chart1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:legend>
-      <c:legendPos val="l" />
-      <c:overlay val="0" />
-    </c:legend>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
     <c:showDLblsOverMax val="0" />
@@ -10562,43 +10715,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>18</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>23</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>18</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>23</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -10621,43 +10770,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>13</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>20</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>230</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>150</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>13</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>20</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>230</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>150</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -10680,43 +10825,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>18</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>23</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>18</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>23</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
       </c:barChart>
@@ -10730,10 +10871,6 @@
   <c:roundedCorners val="1" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:legend>
-      <c:legendPos val="l" />
-      <c:overlay val="0" />
-    </c:legend>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
     <c:showDLblsOverMax val="0" />
@@ -10808,34 +10945,30 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>15</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="1" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>15</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
       </c:barChart>
@@ -10849,10 +10982,6 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:legend>
-      <c:legendPos val="l" />
-      <c:overlay val="0" />
-    </c:legend>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
     <c:showDLblsOverMax val="0" />
@@ -10883,40 +11012,36 @@
           </c:tx>
           <c:invertIfNegative />
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>15</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>20</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>30</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="3" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>15</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>20</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>30</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
         </c:ser>
       </c:pieChart>
@@ -10930,10 +11055,6 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:legend>
-      <c:legendPos val="l" />
-      <c:overlay val="0" />
-    </c:legend>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
     <c:showDLblsOverMax val="0" />
@@ -11007,43 +11128,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>18</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>23</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>18</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>23</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -11068,43 +11185,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>300</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>18</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>300</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>18</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -11129,43 +11242,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>13</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>20</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>230</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>150</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>13</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>20</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>230</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>150</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
       </c:lineChart>
@@ -11179,10 +11288,6 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:legend>
-      <c:legendPos val="l" />
-      <c:overlay val="0" />
-    </c:legend>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
     <c:showDLblsOverMax val="0" />
@@ -11256,43 +11361,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>18</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>23</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>18</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>23</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -11317,43 +11418,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>10</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>35</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>300</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>18</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>10</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>35</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>300</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>18</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
         <c:ser>
@@ -11378,43 +11475,39 @@
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
-            <c:strRef>
-              <c:f />
-              <c:strCache>
-                <c:pt idx="0">
-                  <c:v>Food</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>Housing</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>Mix</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>Data</c:v>
-                </c:pt>
-              </c:strCache>
-            </c:strRef>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
           </c:cat>
           <c:val>
-            <c:numRef>
-              <c:f />
-              <c:numCache>
-                <c:formatCode>General</c:formatCode>
-                <c:pt idx="0">
-                  <c:v>13</c:v>
-                </c:pt>
-                <c:pt idx="1">
-                  <c:v>20</c:v>
-                </c:pt>
-                <c:pt idx="2">
-                  <c:v>230</c:v>
-                </c:pt>
-                <c:pt idx="3">
-                  <c:v>150</c:v>
-                </c:pt>
-              </c:numCache>
-            </c:numRef>
+            <c:numLit>
+              <c:ptCount val="4" />
+              <c:formatCode>General</c:formatCode>
+              <c:pt idx="0">
+                <c:v>13</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>20</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>230</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>150</c:v>
+              </c:pt>
+            </c:numLit>
           </c:val>
         </c:ser>
       </c:lineChart>
