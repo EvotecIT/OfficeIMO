@@ -844,6 +844,7 @@ namespace OfficeIMO.Tests {
                
                 Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 11");
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 21");
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
 
                 document.Save();
             }
