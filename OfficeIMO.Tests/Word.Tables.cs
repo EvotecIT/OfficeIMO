@@ -813,5 +813,42 @@ namespace OfficeIMO.Tests {
             }
           
         }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesWithReplace() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesReplace.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+             
+
+                WordTable wordTable = document.AddTable(3, 4);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+            
+                Assert.True(document.Tables.Count == 1);
+
+                var wordTable = document.Tables[0];
+
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 1");
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
+
+                WordDocument.FindAndReplace(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
+                WordDocument.FindAndReplace(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
+               
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 11");
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 21");
+
+                document.Save();
+            }
+
+        }
+
     }
 }
