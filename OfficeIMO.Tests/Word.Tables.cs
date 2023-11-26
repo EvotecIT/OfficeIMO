@@ -811,7 +811,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
 
             }
-          
+
         }
 
 
@@ -819,7 +819,10 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithTablesWithReplace() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesReplace.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-             
+
+                document.AddParagraph("Table1 - Test 1");
+                document.AddParagraph("Test1");
+
 
                 WordTable wordTable = document.AddTable(3, 4);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -830,7 +833,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-            
+
                 Assert.True(document.Tables.Count == 1);
 
                 var wordTable = document.Tables[0];
@@ -841,7 +844,12 @@ namespace OfficeIMO.Tests {
 
                 WordDocument.FindAndReplace(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
                 WordDocument.FindAndReplace(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
-               
+
+                // lets make sure find and replace works only on table
+                Assert.True(document.Paragraphs[0].Text == "Table1 - Test 1");
+                Assert.True(document.Paragraphs[1].Text == "Test1");
+
+                // lets check data for table
                 Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 11");
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 21");
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
