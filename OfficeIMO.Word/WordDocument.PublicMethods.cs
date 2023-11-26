@@ -243,14 +243,35 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the whole doc
+        /// </summary>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
         public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             int countFind = 0;
             FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the range parparagraphs
+        /// </summary>
+        /// <param name="paragraphs"></param>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        public static  int  FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            int countFind = 0;
+            FindAndReplaceNested(paragraphs, textToFind, textToReplace, ref countFind, true, stringComparison);
+            return countFind;
+        }
 
-        private List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+
+        private static List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             List<WordParagraph> foundParagraphs = ReplaceText(paragraphs, textToFind, textToReplace, ref count, replace, stringComparison);
             return foundParagraphs;
         }
