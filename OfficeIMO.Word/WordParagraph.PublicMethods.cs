@@ -26,8 +26,8 @@ namespace OfficeIMO.Word {
         /// <param name="filePathImage">Path to file to import to Word Document</param>
         /// <param name="width">Optional width of the image. If not given the actual image width will be used.</param>
         /// <param name="height">Optional height of the image. If not given the actual image height will be used.</param>
-        /// <param name="wrapImageText"></param>
-        /// <param name="description"></param>
+        /// <param name="wrapImageText">Optional text wrapping rule. If not given the image will be inserted inline to the text.</param>
+        /// <param name="description">The description for this image.</param>
         /// <returns></returns>
         public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
