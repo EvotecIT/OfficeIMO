@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddParagraph(WordParagraph paragraph = null) {
             if (paragraph == null) {
-                paragraph = new WordParagraph();
+                paragraph = new WordParagraph(this._document);
             }
             _tableCell.Append(paragraph._paragraph);
             return paragraph;
