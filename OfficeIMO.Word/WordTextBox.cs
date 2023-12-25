@@ -581,14 +581,14 @@ namespace OfficeIMO.Word {
             return anchor1;
         }
         public Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
-            switch (text) {
-                case "Left":
+            switch (text.ToLower()) {
+                case "left":
                     return Wp.HorizontalAlignmentValues.Left;
-                case "Right":
+                case "right":
                     return Wp.HorizontalAlignmentValues.Right;
-                case "Center":
+                case "center":
                     return Wp.HorizontalAlignmentValues.Center;
-                case "Outside":
+                case "outside":
                     return Wp.HorizontalAlignmentValues.Outside;
                 default:
                     return Wp.HorizontalAlignmentValues.Center;
