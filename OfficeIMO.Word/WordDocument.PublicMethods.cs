@@ -119,6 +119,11 @@ namespace OfficeIMO.Word {
             return wordCoverPage;
         }
 
+        public WordTextBox AddTextBox(string text) {
+            WordTextBox wordTextBox = new WordTextBox(this, text);
+            return wordTextBox;
+        }
+
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
@@ -264,7 +269,7 @@ namespace OfficeIMO.Word {
         /// <param name="textToReplace"></param>
         /// <param name="stringComparison"></param>
         /// <returns></returns>
-        public static  int  FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+        public static int FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             int countFind = 0;
             FindAndReplaceNested(paragraphs, textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
