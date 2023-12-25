@@ -14,14 +14,145 @@ using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using System.Linq;
 
 namespace OfficeIMO.Word {
     public class WordTextBox {
+        private WordDocument _document;
+        private WordParagraph _wordParagraph;
+
+        private Run _run => _wordParagraph._run;
+
         public WordTextBox(WordDocument wordDocument, string text) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
             paragraph._run.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text);
+
+            _document = wordDocument;
+            _wordParagraph = paragraph;
+        }
+
+        private Anchor _anchor {
+            get {
+                var alternateContent = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
+                if (alternateContent != null) {
+                    var alternateContentChoice = alternateContent.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                    if (alternateContentChoice != null) {
+                        var drawing = alternateContentChoice.ChildElements.OfType<W.Drawing>().FirstOrDefault();
+                        if (drawing != null) {
+                            var anchor = drawing.Anchor;
+                            if (anchor != null) {
+                                return anchor;
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
+        private DocumentFormat.OpenXml.Drawing.GraphicData _graphicData {
+            get {
+                var graphic = _anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Graphic>().FirstOrDefault();
+                if (graphic != null) {
+                    return graphic.GraphicData;
+                }
+                return null;
+            }
+        }
+
+        private Wps.WordprocessingShape _wordprocessingShape {
+            get {
+                var graphicData = _graphicData;
+                if (graphicData != null) {
+                    var wsp = graphicData.GetFirstChild<Wps.WordprocessingShape>();
+                    if (wsp != null) {
+                        return wsp;
+                    }
+                }
+                return null;
+            }
+        }
+
+        private W.SdtBlock _sdtBlock {
+            get {
+                var wordprocessingShape = _wordprocessingShape;
+                if (wordprocessingShape != null) {
+
+
+                    var textBoxInfo = wordprocessingShape.GetFirstChild<Wps.TextBoxInfo2>();
+                    if (textBoxInfo != null) {
+                        var textBoxContent = textBoxInfo.GetFirstChild<W.TextBoxContent>();
+                        if (textBoxContent != null) {
+                            var sdtBlock = textBoxContent.GetFirstChild<W.SdtBlock>();
+                            if (sdtBlock != null) {
+                                return sdtBlock;
+                            }
+                        }
+                    }
+
+                }
+                return null;
+            }
+        }
+
+        private SdtContentBlock _sdtContentBlock {
+            get {
+                var sdtBlock = _sdtBlock;
+                if (sdtBlock != null) {
+                    var sdtContentBlock = sdtBlock.GetFirstChild<SdtContentBlock>();
+                    if (sdtContentBlock != null) {
+                        return sdtContentBlock;
+                    }
+                }
+                return null;
+            }
+        }
+
+        public string Text {
+            get {
+                if (_sdtBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        if (run != null) {
+                            var text = run.GetFirstChild<W.Text>();
+                            if (text != null) {
+                                return text.Text;
+                            }
+                        }
+                    }
+                }
+                return "";
+            }
+            set {
+                if (_sdtBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        if (run != null) {
+                            var text = run.GetFirstChild<W.Text>();
+                            if (text != null) {
+                                text.Text = value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public WordParagraph WordParagraph {
+            get {
+                if (_sdtContentBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        return new WordParagraph(_document, paragraph, run);
+                    }
+                }
+                return null;
+            }
         }
 
         private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text) {
@@ -35,140 +166,145 @@ namespace OfficeIMO.Word {
 
             alternateContentChoice1.Append(drawing1);
 
-            AlternateContentFallback alternateContentFallback1 = GenerateAlternateContentFallback(text);
+            //AlternateContentFallback alternateContentFallback1 = GenerateAlternateContentFallback(text);
 
             alternateContent1.Append(alternateContentChoice1);
-            alternateContent1.Append(alternateContentFallback1);
+            //alternateContent1.Append(alternateContentFallback1);
             wordParagraph._run.Append(alternateContent1);
         }
 
-        public AlternateContentFallback GenerateAlternateContentFallback(string text) {
-            AlternateContentFallback alternateContentFallback1 = new AlternateContentFallback();
+        /// <summary>
+        /// This part is available when Microsoft Word creates TextBox. Not sure if it is needed.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        //public AlternateContentFallback GenerateAlternateContentFallback(string text) {
+        //    AlternateContentFallback alternateContentFallback1 = new AlternateContentFallback();
 
-            W.Picture picture1 = new W.Picture();
+        //    W.Picture picture1 = new W.Picture();
 
-            V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t202", CoordinateSize = "21600,21600", OptionalNumber = 202, EdgePath = "m,l,21600r21600,l21600,xe" };
-            shapetype1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            shapetype1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
-            shapetype1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
-            shapetype1.SetAttribute(new OpenXmlAttribute("w14", "anchorId", "http://schemas.microsoft.com/office/word/2010/wordml", "3E379294"));
-            V.Stroke stroke1 = new V.Stroke() { JoinStyle = V.StrokeJoinStyleValues.Miter };
-            V.Path path1 = new V.Path() { AllowGradientShape = true, ConnectionPointType = Ovml.ConnectValues.Rectangle };
+        //    V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t202", CoordinateSize = "21600,21600", OptionalNumber = 202, EdgePath = "m,l,21600r21600,l21600,xe" };
+        //    shapetype1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+        //    shapetype1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+        //    shapetype1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+        //    shapetype1.SetAttribute(new OpenXmlAttribute("w14", "anchorId", "http://schemas.microsoft.com/office/word/2010/wordml", "3E379294"));
+        //    V.Stroke stroke1 = new V.Stroke() { JoinStyle = V.StrokeJoinStyleValues.Miter };
+        //    V.Path path1 = new V.Path() { AllowGradientShape = true, ConnectionPointType = Ovml.ConnectValues.Rectangle };
 
-            shapetype1.Append(stroke1);
-            shapetype1.Append(path1);
+        //    shapetype1.Append(stroke1);
+        //    shapetype1.Append(path1);
 
-            V.Shape shape1 = new V.Shape() { Id = "Text Box 2", Style = "position:absolute;margin-left:0;margin-top:228.5pt;width:273.6pt;height:110.55pt;z-index:251659264;visibility:visible;mso-wrap-style:square;mso-width-percent:585;mso-height-percent:200;mso-wrap-distance-left:9pt;mso-wrap-distance-top:7.2pt;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:7.2pt;mso-position-horizontal:center;mso-position-horizontal-relative:page;mso-position-vertical:absolute;mso-position-vertical-relative:page;mso-width-percent:585;mso-height-percent:200;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top", OptionalString = "_x0000_s1026", Filled = false, Stroked = false, Type = "#_x0000_t202", EncodedPackage = "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\n" };
-            shape1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
-            shape1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+        //    V.Shape shape1 = new V.Shape() { Id = "Text Box 2", Style = "position:absolute;margin-left:0;margin-top:228.5pt;width:273.6pt;height:110.55pt;z-index:251659264;visibility:visible;mso-wrap-style:square;mso-width-percent:585;mso-height-percent:200;mso-wrap-distance-left:9pt;mso-wrap-distance-top:7.2pt;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:7.2pt;mso-position-horizontal:center;mso-position-horizontal-relative:page;mso-position-vertical:absolute;mso-position-vertical-relative:page;mso-width-percent:585;mso-height-percent:200;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top", OptionalString = "_x0000_s1026", Filled = false, Stroked = false, Type = "#_x0000_t202", EncodedPackage = "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\n" };
+        //    shape1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+        //    shape1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
 
-            V.TextBox textBox1 = new V.TextBox() { Style = "mso-fit-shape-to-text:t" };
+        //    V.TextBox textBox1 = new V.TextBox() { Style = "mso-fit-shape-to-text:t" };
 
-            W.TextBoxContent textBoxContent1 = new W.TextBoxContent();
+        //    W.TextBoxContent textBoxContent1 = new W.TextBoxContent();
 
-            W.SdtBlock sdtBlock1 = new W.SdtBlock();
+        //    W.SdtBlock sdtBlock1 = new W.SdtBlock();
 
-            W.SdtProperties sdtProperties1 = new W.SdtProperties();
+        //    W.SdtProperties sdtProperties1 = new W.SdtProperties();
 
-            W.RunProperties runProperties1 = new W.RunProperties();
-            W.Italic italic1 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript1 = new W.ItalicComplexScript();
-            W.Color color1 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize1 = new W.FontSize() { Val = "24" };
-            W.FontSizeComplexScript fontSizeComplexScript1 = new W.FontSizeComplexScript() { Val = "24" };
+        //    W.RunProperties runProperties1 = new W.RunProperties();
+        //    W.Italic italic1 = new W.Italic();
+        //    W.ItalicComplexScript italicComplexScript1 = new W.ItalicComplexScript();
+        //    W.Color color1 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
+        //    W.FontSize fontSize1 = new W.FontSize() { Val = "24" };
+        //    W.FontSizeComplexScript fontSizeComplexScript1 = new W.FontSizeComplexScript() { Val = "24" };
 
-            runProperties1.Append(italic1);
-            runProperties1.Append(italicComplexScript1);
-            runProperties1.Append(color1);
-            runProperties1.Append(fontSize1);
-            runProperties1.Append(fontSizeComplexScript1);
-            W.SdtId sdtId1 = new W.SdtId() { Val = 1469011327 };
-            W.TemporarySdt temporarySdt1 = new W.TemporarySdt();
-            W.ShowingPlaceholder showingPlaceholder1 = new W.ShowingPlaceholder();
+        //    runProperties1.Append(italic1);
+        //    runProperties1.Append(italicComplexScript1);
+        //    runProperties1.Append(color1);
+        //    runProperties1.Append(fontSize1);
+        //    runProperties1.Append(fontSizeComplexScript1);
+        //    W.SdtId sdtId1 = new W.SdtId() { Val = 1469011327 };
+        //    W.TemporarySdt temporarySdt1 = new W.TemporarySdt();
+        //    W.ShowingPlaceholder showingPlaceholder1 = new W.ShowingPlaceholder();
 
-            W15.Appearance appearance1 = new W15.Appearance() { Val = W15.SdtAppearance.Hidden };
-            appearance1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+        //    W15.Appearance appearance1 = new W15.Appearance() { Val = W15.SdtAppearance.Hidden };
+        //    appearance1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
 
-            sdtProperties1.Append(runProperties1);
-            sdtProperties1.Append(sdtId1);
-            sdtProperties1.Append(temporarySdt1);
-            sdtProperties1.Append(showingPlaceholder1);
-            sdtProperties1.Append(appearance1);
+        //    sdtProperties1.Append(runProperties1);
+        //    sdtProperties1.Append(sdtId1);
+        //    sdtProperties1.Append(temporarySdt1);
+        //    sdtProperties1.Append(showingPlaceholder1);
+        //    sdtProperties1.Append(appearance1);
 
-            W.SdtContentBlock sdtContentBlock1 = new W.SdtContentBlock();
+        //    W.SdtContentBlock sdtContentBlock1 = new W.SdtContentBlock();
 
-            W.Paragraph paragraph1 = new W.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
-            paragraph1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+        //    W.Paragraph paragraph1 = new W.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
+        //    paragraph1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
 
-            W.ParagraphProperties paragraphProperties1 = new W.ParagraphProperties();
+        //    W.ParagraphProperties paragraphProperties1 = new W.ParagraphProperties();
 
-            W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
-            W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
-            W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+        //    W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
+        //    W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+        //    W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
 
-            paragraphBorders1.Append(topBorder1);
-            paragraphBorders1.Append(bottomBorder1);
-            W.SpacingBetweenLines spacingBetweenLines1 = new W.SpacingBetweenLines() { After = "0" };
+        //    paragraphBorders1.Append(topBorder1);
+        //    paragraphBorders1.Append(bottomBorder1);
+        //    W.SpacingBetweenLines spacingBetweenLines1 = new W.SpacingBetweenLines() { After = "0" };
 
-            W.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new W.ParagraphMarkRunProperties();
-            W.Italic italic2 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript2 = new W.ItalicComplexScript();
-            W.Color color2 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize2 = new W.FontSize() { Val = "24" };
+        //    W.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new W.ParagraphMarkRunProperties();
+        //    W.Italic italic2 = new W.Italic();
+        //    W.ItalicComplexScript italicComplexScript2 = new W.ItalicComplexScript();
+        //    W.Color color2 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
+        //    W.FontSize fontSize2 = new W.FontSize() { Val = "24" };
 
-            paragraphMarkRunProperties1.Append(italic2);
-            paragraphMarkRunProperties1.Append(italicComplexScript2);
-            paragraphMarkRunProperties1.Append(color2);
-            paragraphMarkRunProperties1.Append(fontSize2);
+        //    paragraphMarkRunProperties1.Append(italic2);
+        //    paragraphMarkRunProperties1.Append(italicComplexScript2);
+        //    paragraphMarkRunProperties1.Append(color2);
+        //    paragraphMarkRunProperties1.Append(fontSize2);
 
-            paragraphProperties1.Append(paragraphBorders1);
-            paragraphProperties1.Append(spacingBetweenLines1);
-            paragraphProperties1.Append(paragraphMarkRunProperties1);
+        //    paragraphProperties1.Append(paragraphBorders1);
+        //    paragraphProperties1.Append(spacingBetweenLines1);
+        //    paragraphProperties1.Append(paragraphMarkRunProperties1);
 
-            W.Run run1 = new W.Run();
+        //    W.Run run1 = new W.Run();
 
-            W.RunProperties runProperties2 = new W.RunProperties();
-            W.Italic italic3 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript3 = new W.ItalicComplexScript();
-            W.Color color3 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize3 = new W.FontSize() { Val = "24" };
-            W.FontSizeComplexScript fontSizeComplexScript2 = new W.FontSizeComplexScript() { Val = "24" };
+        //    W.RunProperties runProperties2 = new W.RunProperties();
+        //    W.Italic italic3 = new W.Italic();
+        //    W.ItalicComplexScript italicComplexScript3 = new W.ItalicComplexScript();
+        //    W.Color color3 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
+        //    W.FontSize fontSize3 = new W.FontSize() { Val = "24" };
+        //    W.FontSizeComplexScript fontSizeComplexScript2 = new W.FontSizeComplexScript() { Val = "24" };
 
-            runProperties2.Append(italic3);
-            runProperties2.Append(italicComplexScript3);
-            runProperties2.Append(color3);
-            runProperties2.Append(fontSize3);
-            runProperties2.Append(fontSizeComplexScript2);
-            W.Text text1 = new W.Text();
-            text1.Text = text;
+        //    runProperties2.Append(italic3);
+        //    runProperties2.Append(italicComplexScript3);
+        //    runProperties2.Append(color3);
+        //    runProperties2.Append(fontSize3);
+        //    runProperties2.Append(fontSizeComplexScript2);
+        //    W.Text text1 = new W.Text();
+        //    text1.Text = text;
 
-            run1.Append(runProperties2);
-            run1.Append(text1);
+        //    run1.Append(runProperties2);
+        //    run1.Append(text1);
 
-            paragraph1.Append(paragraphProperties1);
-            paragraph1.Append(run1);
+        //    paragraph1.Append(paragraphProperties1);
+        //    paragraph1.Append(run1);
 
-            sdtContentBlock1.Append(paragraph1);
+        //    sdtContentBlock1.Append(paragraph1);
 
-            sdtBlock1.Append(sdtProperties1);
-            sdtBlock1.Append(sdtContentBlock1);
+        //    sdtBlock1.Append(sdtProperties1);
+        //    sdtBlock1.Append(sdtContentBlock1);
 
-            textBoxContent1.Append(sdtBlock1);
+        //    textBoxContent1.Append(sdtBlock1);
 
-            textBox1.Append(textBoxContent1);
+        //    textBox1.Append(textBoxContent1);
 
-            Wvml.TextWrap textWrap1 = new Wvml.TextWrap() { Type = Wvml.WrapValues.TopAndBottom, AnchorX = Wvml.HorizontalAnchorValues.Page, AnchorY = Wvml.VerticalAnchorValues.Page };
-            textWrap1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
+        //    Wvml.TextWrap textWrap1 = new Wvml.TextWrap() { Type = Wvml.WrapValues.TopAndBottom, AnchorX = Wvml.HorizontalAnchorValues.Page, AnchorY = Wvml.VerticalAnchorValues.Page };
+        //    textWrap1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
 
-            shape1.Append(textBox1);
-            shape1.Append(textWrap1);
+        //    shape1.Append(textBox1);
+        //    shape1.Append(textWrap1);
 
-            picture1.Append(shapetype1);
-            picture1.Append(shape1);
+        //    picture1.Append(shapetype1);
+        //    picture1.Append(shape1);
 
-            alternateContentFallback1.Append(picture1);
-            return alternateContentFallback1;
-        }
+        //    alternateContentFallback1.Append(picture1);
+        //    return alternateContentFallback1;
+        //}
 
         public Anchor GenerateAnchor(string text) {
             Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
