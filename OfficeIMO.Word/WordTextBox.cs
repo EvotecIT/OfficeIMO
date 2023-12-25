@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private W.SdtBlock _sdtBlock {
+        private SdtBlock _sdtBlock {
             get {
                 var wordprocessingShape = _wordprocessingShape;
                 if (wordprocessingShape != null) {
@@ -152,6 +152,73 @@ namespace OfficeIMO.Word {
                     }
                 }
                 return null;
+            }
+        }
+
+        public HorizontalRelativePositionValues? HorizontalPositionRelativeFrom {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        return horizontalPosition.RelativeFrom;
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        horizontalPosition.RelativeFrom = value;
+                    }
+                }
+            }
+        }
+
+        public Wp.HorizontalAlignmentValues HorizontalAlignment {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
+                    }
+                }
+                return Wp.HorizontalAlignmentValues.Center;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
+                    }
+                }
+            }
+        }
+
+        public VerticalRelativePositionValues VerticalPositionRelativeFrom {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        return verticalPosition.RelativeFrom;
+                    }
+                }
+                return VerticalRelativePositionValues.Page;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        verticalPosition.RelativeFrom = value;
+                    }
+                }
             }
         }
 
@@ -512,6 +579,20 @@ namespace OfficeIMO.Word {
             anchor1.Append(relativeWidth1);
             anchor1.Append(relativeHeight1);
             return anchor1;
+        }
+        public Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
+            switch (text) {
+                case "Left":
+                    return Wp.HorizontalAlignmentValues.Left;
+                case "Right":
+                    return Wp.HorizontalAlignmentValues.Right;
+                case "Center":
+                    return Wp.HorizontalAlignmentValues.Center;
+                case "Outside":
+                    return Wp.HorizontalAlignmentValues.Outside;
+                default:
+                    return Wp.HorizontalAlignmentValues.Center;
+            }
         }
     }
 }
