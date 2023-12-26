@@ -192,6 +192,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsWordTextBoxes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsWordTextBoxes);
+                }
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsFootNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -371,6 +381,17 @@ namespace OfficeIMO.Word {
 
                 return list;
             }
+        }
+
+        public List<WordTextBox> WordTextBoxes {
+            get {
+                List<WordTextBox> list = new List<WordTextBox>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.WordTextBoxes);
+                }
+                return list;
+            }
+
         }
 
         public List<WordTabChar> TabChars {
