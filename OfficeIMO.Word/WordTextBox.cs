@@ -15,6 +15,7 @@ using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using System.Linq;
+using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
     public class WordTextBox {
@@ -222,6 +223,93 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public int? VerticalPositionOffset {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        return int.Parse(verticalPosition.PositionOffset.Text);
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        verticalPosition.PositionOffset.Text = value.ToString();
+                    }
+                }
+            }
+        }
+
+        public int? HorizonalPositionOffset {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        return int.Parse(horizontalPosition.PositionOffset.Text);
+                    }
+                }
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        horizontalPosition.PositionOffset.Text = value.ToString();
+                    }
+                }
+            }
+        }
+
+        public double? HorizonalPositionOffsetCentimeters {
+            get {
+                if (HorizonalPositionOffset != null) {
+                    return ConvertTwipsToCentimeters(HorizonalPositionOffset.Value);
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    HorizonalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                }
+            }
+        }
+
+        public double? VerticalPositionOffsetCentimeters {
+            get {
+                if (VerticalPositionOffset != null) {
+                    return ConvertTwipsToCentimeters(VerticalPositionOffset.Value);
+                }
+
+                return null;
+            }
+
+            set {
+                if (value != null) {
+                    VerticalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                }
+            }
+        }
+
+        private int? ConvertCentimetersToTwips(double value) {
+            int twips = (int)(value * 360000);
+            return twips;
+        }
+
+
+        private double? ConvertTwipsToCentimeters(int horizonalPositionOffset) {
+            double centimeters = (double)((double)horizonalPositionOffset / (double)360000);
+            return centimeters;
+        }
+
         private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text) {
 
             AlternateContent alternateContent1 = new AlternateContent();
@@ -387,10 +475,10 @@ namespace OfficeIMO.Word {
 
             VerticalPosition verticalPosition1 = new VerticalPosition() { RelativeFrom = VerticalRelativePositionValues.Page };
             PositionOffset positionOffset1 = new PositionOffset();
-            positionOffset1.Text = "2901950";
+            positionOffset1.Text = "182880";
 
             verticalPosition1.Append(positionOffset1);
-            Extent extent1 = new Extent() { Cx = 3474720L, Cy = 1403985L };
+            Extent extent1 = new Extent() { Cx = 2360930L, Cy = 1404620L };
             EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L };
             WrapTopBottom wrapTopBottom1 = new WrapTopBottom();
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)307U, Name = "Text Box 2" };
@@ -415,36 +503,36 @@ namespace OfficeIMO.Word {
 
             nonVisualDrawingShapeProperties1.Append(shapeLocks1);
 
-            Wps.ShapeProperties shapeProperties1 = new Wps.ShapeProperties() { BlackWhiteMode = A.BlackWhiteModeValues.Auto };
+            Wps.ShapeProperties shapeProperties1 = GenerateShapeProperties();
 
-            A.Transform2D transform2D1 = new A.Transform2D();
-            A.Offset offset1 = new A.Offset() { X = 0L, Y = 0L };
-            A.Extents extents1 = new A.Extents() { Cx = 3474720L, Cy = 1403985L };
+            //A.Transform2D transform2D1 = new A.Transform2D();
+            //A.Offset offset1 = new A.Offset() { X = 0L, Y = 0L };
+            //A.Extents extents1 = new A.Extents() { Cx = 3474720L, Cy = 1403985L };
 
-            transform2D1.Append(offset1);
-            transform2D1.Append(extents1);
+            //transform2D1.Append(offset1);
+            //transform2D1.Append(extents1);
 
-            A.PresetGeometry presetGeometry1 = new A.PresetGeometry() { Preset = A.ShapeTypeValues.Rectangle };
-            A.AdjustValueList adjustValueList1 = new A.AdjustValueList();
+            //A.PresetGeometry presetGeometry1 = new A.PresetGeometry() { Preset = A.ShapeTypeValues.Rectangle };
+            //A.AdjustValueList adjustValueList1 = new A.AdjustValueList();
 
-            presetGeometry1.Append(adjustValueList1);
-            A.NoFill noFill1 = new A.NoFill();
+            //presetGeometry1.Append(adjustValueList1);
+            //A.NoFill noFill1 = new A.NoFill();
 
-            A.Outline outline1 = new A.Outline() { Width = 9525 };
-            A.NoFill noFill2 = new A.NoFill();
-            A.Miter miter1 = new A.Miter() { Limit = 800000 };
-            A.HeadEnd headEnd1 = new A.HeadEnd();
-            A.TailEnd tailEnd1 = new A.TailEnd();
+            //A.Outline outline1 = new A.Outline() { Width = 9525 };
+            //A.NoFill noFill2 = new A.NoFill();
+            //A.Miter miter1 = new A.Miter() { Limit = 800000 };
+            //A.HeadEnd headEnd1 = new A.HeadEnd();
+            //A.TailEnd tailEnd1 = new A.TailEnd();
 
-            outline1.Append(noFill2);
-            outline1.Append(miter1);
-            outline1.Append(headEnd1);
-            outline1.Append(tailEnd1);
+            //outline1.Append(noFill2);
+            //outline1.Append(miter1);
+            //outline1.Append(headEnd1);
+            //outline1.Append(tailEnd1);
 
-            shapeProperties1.Append(transform2D1);
-            shapeProperties1.Append(presetGeometry1);
-            shapeProperties1.Append(noFill1);
-            shapeProperties1.Append(outline1);
+            //shapeProperties1.Append(transform2D1);
+            //shapeProperties1.Append(presetGeometry1);
+            //shapeProperties1.Append(noFill1);
+            //shapeProperties1.Append(outline1);
 
             Wps.TextBoxInfo2 textBoxInfo21 = new Wps.TextBoxInfo2();
 
@@ -548,6 +636,11 @@ namespace OfficeIMO.Word {
 
             wordprocessingShape1.Append(nonVisualDrawingShapeProperties1);
             wordprocessingShape1.Append(shapeProperties1);
+
+            //ShapeStyle shapeStyle1 = GenerateShapeStyle();
+            //wordprocessingShape1.Append(shapeStyle1);
+
+
             wordprocessingShape1.Append(textBoxInfo21);
             wordprocessingShape1.Append(textBodyProperties1);
 
@@ -580,7 +673,7 @@ namespace OfficeIMO.Word {
             anchor1.Append(relativeHeight1);
             return anchor1;
         }
-        public Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
+        private Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
             switch (text.ToLower()) {
                 case "left":
                     return Wp.HorizontalAlignmentValues.Left;
@@ -594,5 +687,81 @@ namespace OfficeIMO.Word {
                     return Wp.HorizontalAlignmentValues.Center;
             }
         }
+
+
+        public ShapeProperties GenerateShapeProperties() {
+            ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = A.BlackWhiteModeValues.Auto };
+
+            A.Transform2D transform2D1 = new A.Transform2D();
+            A.Offset offset1 = new A.Offset() { X = 0L, Y = 0L };
+            A.Extents extents1 = new A.Extents() { Cx = 2360930L, Cy = 1404620L };
+
+            transform2D1.Append(offset1);
+            transform2D1.Append(extents1);
+
+            A.PresetGeometry presetGeometry1 = new A.PresetGeometry() { Preset = A.ShapeTypeValues.Rectangle };
+            A.AdjustValueList adjustValueList1 = new A.AdjustValueList();
+
+            presetGeometry1.Append(adjustValueList1);
+
+            A.SolidFill solidFill1 = new A.SolidFill();
+            A.RgbColorModelHex rgbColorModelHex1 = new A.RgbColorModelHex() { Val = "FFFFFF" };
+
+            solidFill1.Append(rgbColorModelHex1);
+
+            A.Outline outline1 = new A.Outline() { Width = 9525 };
+
+            A.SolidFill solidFill2 = new A.SolidFill();
+            A.RgbColorModelHex rgbColorModelHex2 = new A.RgbColorModelHex() { Val = "000000" };
+
+            solidFill2.Append(rgbColorModelHex2);
+            A.Miter miter1 = new A.Miter() { Limit = 800000 };
+            A.HeadEnd headEnd1 = new A.HeadEnd();
+            A.TailEnd tailEnd1 = new A.TailEnd();
+
+            outline1.Append(solidFill2);
+            outline1.Append(miter1);
+            outline1.Append(headEnd1);
+            outline1.Append(tailEnd1);
+
+            shapeProperties1.Append(transform2D1);
+            shapeProperties1.Append(presetGeometry1);
+            shapeProperties1.Append(solidFill1);
+            shapeProperties1.Append(outline1);
+            return shapeProperties1;
+        }
+
+        public ShapeStyle GenerateShapeStyle() {
+            ShapeStyle shapeStyle1 = new ShapeStyle();
+
+            A.LineReference lineReference1 = new A.LineReference() { Index = (UInt32Value)0U };
+            A.SchemeColor schemeColor1 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+
+            lineReference1.Append(schemeColor1);
+
+            A.FillReference fillReference1 = new A.FillReference() { Index = (UInt32Value)0U };
+            A.SchemeColor schemeColor2 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+
+            fillReference1.Append(schemeColor2);
+
+            A.EffectReference effectReference1 = new A.EffectReference() { Index = (UInt32Value)0U };
+            A.SchemeColor schemeColor3 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+
+            effectReference1.Append(schemeColor3);
+
+            A.FontReference fontReference1 = new A.FontReference() { Index = A.FontCollectionIndexValues.Minor };
+            A.SchemeColor schemeColor4 = new A.SchemeColor() { Val = A.SchemeColorValues.Dark1 };
+
+            fontReference1.Append(schemeColor4);
+
+            shapeStyle1.Append(lineReference1);
+            shapeStyle1.Append(fillReference1);
+            shapeStyle1.Append(effectReference1);
+            shapeStyle1.Append(fontReference1);
+            return shapeStyle1;
+        }
+
+
+
     }
 }
