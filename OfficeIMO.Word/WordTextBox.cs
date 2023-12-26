@@ -21,9 +21,13 @@ namespace OfficeIMO.Word {
     public class WordTextBox {
         private WordDocument _document;
         private WordParagraph _wordParagraph;
-
         private Run _run => _wordParagraph._run;
 
+        /// <summary>
+        /// Add a new text box to the document
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="text"></param>
         public WordTextBox(WordDocument wordDocument, string text) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
@@ -33,6 +37,225 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
             _wordParagraph = paragraph;
         }
+
+        /// <summary>
+        /// Initialize a text box from an existing paragraph
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="paragraph"></param>
+        /// <param name="run"></param>
+        public WordTextBox(WordDocument wordDocument, Paragraph paragraph, Run run) {
+            _document = wordDocument;
+            _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
+        }
+
+        /// <summary>
+        /// Allows to set the text of the text box
+        /// For more advanced text formatting use WordParagraph property
+        /// </summary>
+        public string Text {
+            get {
+                if (_sdtBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        if (run != null) {
+                            var text = run.GetFirstChild<W.Text>();
+                            if (text != null) {
+                                return text.Text;
+                            }
+                        }
+                    }
+                }
+                return "";
+            }
+            set {
+                if (_sdtBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        if (run != null) {
+                            var text = run.GetFirstChild<W.Text>();
+                            if (text != null) {
+                                text.Text = value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allows to modify the paragraph of the text box, along with other text formatting
+        /// </summary>
+        public WordParagraph WordParagraph {
+            get {
+                if (_sdtContentBlock != null) {
+                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    if (paragraph != null) {
+                        var run = paragraph.GetFirstChild<W.Run>();
+                        return new WordParagraph(_document, paragraph, run);
+                    }
+                }
+                return null;
+            }
+        }
+
+        public HorizontalRelativePositionValues? HorizontalPositionRelativeFrom {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        return horizontalPosition.RelativeFrom;
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        horizontalPosition.RelativeFrom = value;
+                    }
+                }
+            }
+        }
+
+        public Wp.HorizontalAlignmentValues HorizontalAlignment {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null && horizontalPosition.HorizontalAlignment != null) {
+                        return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
+                    }
+                }
+                return Wp.HorizontalAlignmentValues.Center;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
+                    }
+                }
+            }
+        }
+
+        public VerticalRelativePositionValues VerticalPositionRelativeFrom {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        return verticalPosition.RelativeFrom;
+                    }
+                }
+                return VerticalRelativePositionValues.Page;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        verticalPosition.RelativeFrom = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allows to set vertically position of the text box in twips (twentieths of a point)
+        /// </summary>
+        public int? VerticalPositionOffset {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = anchor.VerticalPosition;
+                    if (verticalPosition != null) {
+                        return int.Parse(verticalPosition.PositionOffset.Text);
+                    }
+                }
+
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var verticalPosition = AddVerticalPosition(anchor, true);
+                    if (verticalPosition != null) {
+                        verticalPosition.PositionOffset.Text = value.ToString();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allows to set vertically position of the text box in twips (twentieths of a point)
+        /// </summary>
+        public int? HorizonalPositionOffset {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = anchor.HorizontalPosition;
+                    if (horizontalPosition != null) {
+                        return int.Parse(horizontalPosition.PositionOffset.Text);
+                    }
+                }
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var horizontalPosition = AddHorizontalPosition(anchor, true);
+                    if (horizontalPosition != null) {
+                        horizontalPosition.PositionOffset.Text = value.ToString();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allows to set horizontally position of the text box in centimeters
+        /// </summary>
+        public double? HorizonalPositionOffsetCentimeters {
+            get {
+                if (HorizonalPositionOffset != null) {
+                    return ConvertTwipsToCentimeters(HorizonalPositionOffset.Value);
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    HorizonalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allows to set vertically position of the text box in centimeters
+        /// </summary>
+        public double? VerticalPositionOffsetCentimeters {
+            get {
+                if (VerticalPositionOffset != null) {
+                    return ConvertTwipsToCentimeters(VerticalPositionOffset.Value);
+                }
+
+                return null;
+            }
+
+            set {
+                if (value != null) {
+                    VerticalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                }
+            }
+        }
+
 
         private Anchor _anchor {
             get {
@@ -111,200 +334,70 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public string Text {
-            get {
-                if (_sdtBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
-                    if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
-                        if (run != null) {
-                            var text = run.GetFirstChild<W.Text>();
-                            if (text != null) {
-                                return text.Text;
-                            }
+        private VerticalPosition AddVerticalPosition(Anchor anchor, bool expectedPositionOffset = false) {
+            if (anchor != null) {
+                var verticalPosition = anchor.VerticalPosition;
+                if (verticalPosition == null) {
+                    anchor.VerticalPosition = new VerticalPosition() {
+                        RelativeFrom = VerticalRelativePositionValues.Page, VerticalAlignment = new VerticalAlignment() {
+                            Text = "top"
                         }
+                    };
+                    verticalPosition = anchor.VerticalPosition;
+                }
+
+                if (expectedPositionOffset) {
+                    var positionOffset = verticalPosition.PositionOffset;
+                    if (positionOffset == null) {
+                        verticalPosition.PositionOffset = new PositionOffset() {
+                            Text = "0"
+                        };
                     }
                 }
-                return "";
+                return verticalPosition;
             }
-            set {
-                if (_sdtBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
-                    if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
-                        if (run != null) {
-                            var text = run.GetFirstChild<W.Text>();
-                            if (text != null) {
-                                text.Text = value;
-                            }
+            return null;
+        }
+        private HorizontalPosition AddHorizontalPosition(Anchor anchor, bool expectedPositionOffset = false) {
+            if (anchor != null) {
+                var horizontalPosition = anchor.HorizontalPosition;
+                if (horizontalPosition == null) {
+                    anchor.HorizontalPosition = new HorizontalPosition() {
+                        RelativeFrom = HorizontalRelativePositionValues.Page,
+                        HorizontalAlignment = new HorizontalAlignment() {
+                            Text = "center"
                         }
+                    };
+                    horizontalPosition = anchor.HorizontalPosition;
+                }
+                if (expectedPositionOffset) {
+                    var positionOffset = horizontalPosition.PositionOffset;
+                    if (positionOffset == null) {
+                        horizontalPosition.PositionOffset = new PositionOffset() {
+                            Text = "0"
+                        };
                     }
                 }
+                return horizontalPosition;
             }
+            return null;
         }
 
-        public WordParagraph WordParagraph {
-            get {
-                if (_sdtContentBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
-                    if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
-                        return new WordParagraph(_document, paragraph, run);
-                    }
-                }
-                return null;
-            }
-        }
-
-        public HorizontalRelativePositionValues? HorizontalPositionRelativeFrom {
-            get {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        return horizontalPosition.RelativeFrom;
-                    }
-                }
-
-                return null;
-            }
-            set {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        horizontalPosition.RelativeFrom = value;
-                    }
-                }
-            }
-        }
-
-        public Wp.HorizontalAlignmentValues HorizontalAlignment {
-            get {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
-                    }
-                }
-                return Wp.HorizontalAlignmentValues.Center;
-            }
-            set {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
-                    }
-                }
-            }
-        }
-
-        public VerticalRelativePositionValues VerticalPositionRelativeFrom {
-            get {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var verticalPosition = anchor.VerticalPosition;
-                    if (verticalPosition != null) {
-                        return verticalPosition.RelativeFrom;
-                    }
-                }
-                return VerticalRelativePositionValues.Page;
-            }
-            set {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var verticalPosition = anchor.VerticalPosition;
-                    if (verticalPosition != null) {
-                        verticalPosition.RelativeFrom = value;
-                    }
-                }
-            }
-        }
-
-        public int? VerticalPositionOffset {
-            get {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var verticalPosition = anchor.VerticalPosition;
-                    if (verticalPosition != null) {
-                        return int.Parse(verticalPosition.PositionOffset.Text);
-                    }
-                }
-
-                return null;
-            }
-            set {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var verticalPosition = anchor.VerticalPosition;
-                    if (verticalPosition != null) {
-                        verticalPosition.PositionOffset.Text = value.ToString();
-                    }
-                }
-            }
-        }
-
-        public int? HorizonalPositionOffset {
-            get {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        return int.Parse(horizontalPosition.PositionOffset.Text);
-                    }
-                }
-                return null;
-            }
-            set {
-                var anchor = _anchor;
-                if (anchor != null) {
-                    var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        horizontalPosition.PositionOffset.Text = value.ToString();
-                    }
-                }
-            }
-        }
-
-        public double? HorizonalPositionOffsetCentimeters {
-            get {
-                if (HorizonalPositionOffset != null) {
-                    return ConvertTwipsToCentimeters(HorizonalPositionOffset.Value);
-                }
-
-                return null;
-            }
-            set {
-                if (value != null) {
-                    HorizonalPositionOffset = ConvertCentimetersToTwips(value.Value);
-                }
-            }
-        }
-
-        public double? VerticalPositionOffsetCentimeters {
-            get {
-                if (VerticalPositionOffset != null) {
-                    return ConvertTwipsToCentimeters(VerticalPositionOffset.Value);
-                }
-
-                return null;
-            }
-
-            set {
-                if (value != null) {
-                    VerticalPositionOffset = ConvertCentimetersToTwips(value.Value);
-                }
-            }
-        }
-
+        /// <summary>
+        /// Converts centimeters to twips (twentieths of a point)
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         private int? ConvertCentimetersToTwips(double value) {
             int twips = (int)(value * 360000);
             return twips;
         }
 
-
+        /// <summary>
+        /// Converts twips (twentieths of a point) to centimeters
+        /// </summary>
+        /// <param name="horizonalPositionOffset"></param>
+        /// <returns></returns>
         private double? ConvertTwipsToCentimeters(int horizonalPositionOffset) {
             double centimeters = (double)((double)horizonalPositionOffset / (double)360000);
             return centimeters;
@@ -461,7 +554,7 @@ namespace OfficeIMO.Word {
         //    return alternateContentFallback1;
         //}
 
-        public Anchor GenerateAnchor(string text) {
+        private Anchor GenerateAnchor(string text) {
             Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
             anchor1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
             anchor1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
@@ -673,6 +766,12 @@ namespace OfficeIMO.Word {
             anchor1.Append(relativeHeight1);
             return anchor1;
         }
+
+        /// <summary>
+        /// Helps to translate text to HorizontalAlignment
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         private Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
             switch (text.ToLower()) {
                 case "left":
@@ -689,7 +788,7 @@ namespace OfficeIMO.Word {
         }
 
 
-        public ShapeProperties GenerateShapeProperties() {
+        private ShapeProperties GenerateShapeProperties() {
             ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = A.BlackWhiteModeValues.Auto };
 
             A.Transform2D transform2D1 = new A.Transform2D();
@@ -731,7 +830,7 @@ namespace OfficeIMO.Word {
             return shapeProperties1;
         }
 
-        public ShapeStyle GenerateShapeStyle() {
+        private ShapeStyle GenerateShapeStyle() {
             ShapeStyle shapeStyle1 = new ShapeStyle();
 
             A.LineReference lineReference1 = new A.LineReference() { Index = (UInt32Value)0U };
