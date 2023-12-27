@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
         internal static void Example_AddingTextbox(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with some textbox");
 
-            var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox13.docx");
+            var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox15.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
@@ -78,6 +78,14 @@ namespace OfficeIMO.Examples.Word {
                 document.WordTextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
 
                 document.WordTextBoxes[1].WordParagraph.Borders.Type = WordBorder.Shadow;
+
+                document.WordTextBoxes[1].RelativeWidthPercentage = 0;
+                document.WordTextBoxes[1].RelativeHeightPercentage = 0;
+
+                document.WordTextBoxes[1].WidthCentimeters = 7;
+                document.WordTextBoxes[1].HeightCentimeters = 2.5;
+
+                document.WordTextBoxes[0].WordParagraph.Borders.Type = WordBorder.None;
 
                 document.Save(openWord);
             }
