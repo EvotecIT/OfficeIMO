@@ -3,9 +3,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-        public WordBordersParagraph Borders {
+        public WordParagraphBorders Borders {
             get {
-                return new WordBordersParagraph(_document, this);
+                return new WordParagraphBorders(_document, this);
             }
         }
 
