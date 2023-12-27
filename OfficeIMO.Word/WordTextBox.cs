@@ -139,7 +139,14 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
+                    if (horizontalPosition == null) {
+                        horizontalPosition = AddHorizontalPosition(anchor, true);
+                    }
+                    if (horizontalPosition.HorizontalAlignment == null) {
+                        horizontalPosition.HorizontalAlignment = new HorizontalAlignment() {
+                            Text = value.ToString().ToLower()
+                        };
+                    } else {
                         horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
                     }
                 }
@@ -202,7 +209,7 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
+                    if (horizontalPosition != null && horizontalPosition.PositionOffset != null) {
                         return int.Parse(horizontalPosition.PositionOffset.Text);
                     }
                 }
@@ -256,6 +263,183 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public int? RelativeWidthPercentage {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                    if (relativeWidth != null) {
+                        if (relativeWidth.PercentageWidth != null) {
+                            return int.Parse(relativeWidth.PercentageWidth.Text) / 1000;
+                        }
+                    }
+                }
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    if (value != null) {
+                        var setValue = value.Value * 1000;
+
+                        var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                        if (relativeWidth == null) {
+                            relativeWidth = new Wp14.RelativeWidth() {
+                                PercentageWidth = new Wp14.PercentageWidth() {
+                                    Text = setValue.ToString()
+                                }
+                            };
+                            anchor.Append(relativeWidth);
+                        } else {
+                            if (relativeWidth.PercentageWidth == null) {
+                                relativeWidth.PercentageWidth = new Wp14.PercentageWidth() {
+                                    Text = setValue.ToString()
+                                };
+                            } else {
+                                relativeWidth.PercentageWidth.Text = setValue.ToString();
+                            }
+                        }
+                    } else {
+                        // value is null
+                    }
+                }
+            }
+        }
+
+        public int? RelativeHeightPercentage {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var relativeHeight = anchor.ChildElements.OfType<Wp14.RelativeHeight>().FirstOrDefault();
+                    if (relativeHeight != null) {
+                        if (relativeHeight.PercentageHeight != null) {
+                            return int.Parse(relativeHeight.PercentageHeight.Text) / 1000;
+                        }
+                    }
+                }
+                return null;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    if (value != null) {
+                        var setValue = value.Value * 1000;
+
+                        var relativeHeight = anchor.ChildElements.OfType<Wp14.RelativeHeight>().FirstOrDefault();
+                        if (relativeHeight == null) {
+                            relativeHeight = new Wp14.RelativeHeight() {
+                                PercentageHeight = new Wp14.PercentageHeight() {
+                                    Text = setValue.ToString()
+                                }
+                            };
+                            anchor.Append(relativeHeight);
+                        } else {
+                            if (relativeHeight.PercentageHeight == null) {
+                                relativeHeight.PercentageHeight = new Wp14.PercentageHeight() {
+                                    Text = setValue.ToString()
+                                };
+                            } else {
+                                relativeHeight.PercentageHeight.Text = setValue.ToString();
+                            }
+                        }
+                    } else {
+                        // value is null
+                    }
+                }
+            }
+        }
+
+        public Wp14.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                    if (relativeWidth != null) {
+                        if (relativeWidth.ObjectId != null) {
+                            return relativeWidth.ObjectId;
+                        }
+                    }
+                }
+                return null;
+            }
+            set {
+
+            }
+        }
+
+        public Int64 Width {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    if (extent != null) {
+                        return Int64.Parse(extent.Cx);
+                    }
+                }
+                return 0;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    if (extent == null) {
+                        extent = new Wp.Extent() {
+                            Cx = value,
+                            Cy = 0L
+                        };
+                        anchor.Append(extent);
+                    } else {
+                        extent.Cx = value;
+                    }
+                }
+            }
+        }
+
+        public Int64 Height {
+            get {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    if (extent != null) {
+                        return Int64.Parse(extent.Cy);
+                    }
+                }
+                return 0;
+            }
+            set {
+                var anchor = _anchor;
+                if (anchor != null) {
+                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    if (extent == null) {
+                        extent = new Wp.Extent() {
+                            Cx = 0L,
+                            Cy = value
+                        };
+                        anchor.Append(extent);
+                    } else {
+                        extent.Cy = value;
+                    }
+                }
+            }
+        }
+
+        public double WidthCentimeters {
+            get {
+                return ConvertTwipsToCentimeters(Width);
+            }
+            set {
+                Width = ConvertCentimetersToTwipsInt64(value);
+            }
+        }
+
+        public double HeightCentimeters {
+            get {
+                return ConvertTwipsToCentimeters(Height);
+            }
+            set {
+                Height = ConvertCentimetersToTwipsInt64(value);
+            }
+        }
 
         private Anchor _anchor {
             get {
@@ -358,10 +542,23 @@ namespace OfficeIMO.Word {
             }
             return null;
         }
+
+        /// <summary>
+        /// Small helper to create horizontal position if it doesn't exist
+        /// </summary>
+        /// <param name="anchor"></param>
+        /// <param name="expectedPositionOffset"></param>
+        /// <returns></returns>
         private HorizontalPosition AddHorizontalPosition(Anchor anchor, bool expectedPositionOffset = false) {
             if (anchor != null) {
                 var horizontalPosition = anchor.HorizontalPosition;
-                if (horizontalPosition == null) {
+                if (horizontalPosition == null && expectedPositionOffset) {
+                    // position offset and horizontal alignment don't play together
+                    anchor.HorizontalPosition = new HorizontalPosition() {
+                        RelativeFrom = HorizontalRelativePositionValues.Page,
+                    };
+                    horizontalPosition = anchor.HorizontalPosition;
+                } else if (horizontalPosition == null) {
                     anchor.HorizontalPosition = new HorizontalPosition() {
                         RelativeFrom = HorizontalRelativePositionValues.Page,
                         HorizontalAlignment = new HorizontalAlignment() {
@@ -373,9 +570,14 @@ namespace OfficeIMO.Word {
                 if (expectedPositionOffset) {
                     var positionOffset = horizontalPosition.PositionOffset;
                     if (positionOffset == null) {
-                        horizontalPosition.PositionOffset = new PositionOffset() {
+                        positionOffset = new PositionOffset() {
                             Text = "0"
                         };
+                        horizontalPosition.Append(positionOffset);
+                    }
+                    // we need to remove horizontal alignment if we want to use position offset
+                    if (horizontalPosition.HorizontalAlignment != null) {
+                        horizontalPosition.HorizontalAlignment.Remove();
                     }
                 }
                 return horizontalPosition;
@@ -394,12 +596,42 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Converts centimeters to twips (twentieths of a point) (Int64)
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private Int64 ConvertCentimetersToTwipsInt64(double value) {
+            Int64 twips = (Int64)(value * 360000);
+            return twips;
+        }
+
+        /// <summary>
         /// Converts twips (twentieths of a point) to centimeters
         /// </summary>
         /// <param name="horizonalPositionOffset"></param>
         /// <returns></returns>
-        private double? ConvertTwipsToCentimeters(int horizonalPositionOffset) {
-            double centimeters = (double)((double)horizonalPositionOffset / (double)360000);
+        private double? ConvertTwipsToCentimeters(int twipsValue) {
+            double centimeters = (double)((double)twipsValue / (double)360000);
+            return centimeters;
+        }
+
+        private double ConvertEmuToCentimeters(Int64 emuValue) {
+            double centimeters = (double)((double)emuValue / (double)914400);
+            return centimeters;
+        }
+
+        private Int64 ConvertCentimetersToEmu(double value) {
+            Int64 emu = (Int64)(value * 914400);
+            return emu;
+        }
+
+        /// <summary>
+        /// Converts twips (twentieths of a point) to centimeters (Int64)
+        /// </summary>
+        /// <param name="twipsValue"></param>
+        /// <returns></returns>
+        private double ConvertTwipsToCentimeters(Int64 twipsValue) {
+            double centimeters = (double)((double)twipsValue / (double)360000);
             return centimeters;
         }
 
@@ -667,12 +899,12 @@ namespace OfficeIMO.Word {
 
             W.ParagraphProperties paragraphProperties1 = new W.ParagraphProperties();
 
-            W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
-            W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
-            W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+            //W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
+            //W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+            //W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
 
-            paragraphBorders1.Append(topBorder1);
-            paragraphBorders1.Append(bottomBorder1);
+            //paragraphBorders1.Append(topBorder1);
+            //paragraphBorders1.Append(bottomBorder1);
             W.SpacingBetweenLines spacingBetweenLines1 = new W.SpacingBetweenLines() { After = "0" };
 
             W.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new W.ParagraphMarkRunProperties();
@@ -686,7 +918,7 @@ namespace OfficeIMO.Word {
             paragraphMarkRunProperties1.Append(color2);
             paragraphMarkRunProperties1.Append(fontSize2);
 
-            paragraphProperties1.Append(paragraphBorders1);
+            //paragraphProperties1.Append(paragraphBorders1);
             paragraphProperties1.Append(spacingBetweenLines1);
             paragraphProperties1.Append(paragraphMarkRunProperties1);
 
@@ -825,8 +1057,8 @@ namespace OfficeIMO.Word {
 
             shapeProperties1.Append(transform2D1);
             shapeProperties1.Append(presetGeometry1);
-            shapeProperties1.Append(solidFill1);
-            shapeProperties1.Append(outline1);
+            //shapeProperties1.Append(solidFill1);
+            //shapeProperties1.Append(outline1);
             return shapeProperties1;
         }
 
