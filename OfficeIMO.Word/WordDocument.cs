@@ -192,11 +192,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordParagraph> ParagraphsWordTextBoxes {
+        public List<WordParagraph> ParagraphsTextBoxes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
                 foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsWordTextBoxes);
+                    list.AddRange(section.ParagraphsTextBoxes);
                 }
                 return list;
             }
@@ -383,11 +383,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<WordTextBox> WordTextBoxes {
+        public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
                 foreach (var section in this.Sections) {
-                    list.AddRange(section.WordTextBoxes);
+                    list.AddRange(section.TextBoxes);
                 }
                 return list;
             }

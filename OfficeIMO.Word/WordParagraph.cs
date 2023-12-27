@@ -554,7 +554,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordTextBox WordTextBox {
+        public WordTextBox TextBox {
             get {
                 if (_run != null && _runProperties != null) {
                     var wordTextboxes = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
@@ -566,9 +566,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public bool IsWordTextBox {
+        public bool IsTextBox {
             get {
-                if (this.WordTextBox != null) {
+                if (this.TextBox != null) {
                     return true;
                 }
 
