@@ -203,6 +203,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Allows to set vertically position of the text box in twips (twentieths of a point)
+        /// Please remember that this property will remove alignment of the text box and instead use Absolute position
         /// </summary>
         public int? HorizonalPositionOffset {
             get {
@@ -228,6 +229,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Allows to set horizontally position of the text box in centimeters
+        /// Please remember that this property will remove alignment of the text box and instead use Absolute position
         /// </summary>
         public double? HorizonalPositionOffsetCentimeters {
             get {
