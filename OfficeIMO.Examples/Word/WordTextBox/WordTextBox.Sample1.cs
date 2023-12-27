@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using SixLabors.ImageSharp;
+using Color = SixLabors.ImageSharp.Color;
+using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {
         internal static void Example_AddingTextbox(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with some textbox");
 
-            var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox12.docx");
+            var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox13.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
@@ -38,21 +41,43 @@ namespace OfficeIMO.Examples.Word {
 
                 textBox.HorizontalAlignment = HorizontalAlignmentValues.Right;
 
-                //                textBox.HorizonalPositionOffset = 1901950;
+                //textBox.HorizonalPositionOffset = 1901950;
 
-                //textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.HorizonalPositionOffsetCentimeters = 1.5;
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
                 textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
 
-                textBox.VerticalPositionOffset = 1901950;
+                //textBox.VerticalPositionOffset = 1901950;
 
                 textBox.VerticalPositionOffsetCentimeters = 5;
 
                 Console.WriteLine("Vertical Position Offset: " + textBox.VerticalPositionOffset);
                 Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffsetCentimeters);
 
+                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].WordTextBoxes.Count);
+
+                Console.WriteLine("Count WordTextboxes (document): " + document.WordTextBoxes.Count);
+
+                var textBox1 = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
+
+                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].WordTextBoxes.Count);
+
+                Console.WriteLine("Count WordTextboxes (document): " + document.WordTextBoxes.Count);
+
+                document.WordTextBoxes[1].VerticalPositionOffsetCentimeters = 15;
+
+                Console.WriteLine("Color Bottom Border: " + document.WordTextBoxes[1].WordParagraph.Borders.BottomColor);
+
+                document.WordTextBoxes[1].WordParagraph.Borders.BottomColor = Color.Red;
+                document.WordTextBoxes[1].WordParagraph.Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
+
+                Console.WriteLine("Color Bottom Border: " + document.WordTextBoxes[1].WordParagraph.Borders.BottomColor);
+
+                document.WordTextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
+
+                document.WordTextBoxes[1].WordParagraph.Borders.Type = WordBorder.Shadow;
 
                 document.Save(openWord);
             }
