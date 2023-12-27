@@ -21,14 +21,22 @@ namespace OfficeIMO.Examples.Word {
                 var textBox = document.AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox.HorizonalPositionOffsetCentimeters = 3;
+                // horizontal alignment overwrites the horizontal position offset so only one will work
                 textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox.VerticalPositionOffsetCentimeters = 3;
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox2.HorizonalPositionOffsetCentimeters = 3;
                 textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
+                // horizontal alignment overwrites the horizontal position offset so only one will work
                 textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.VerticalPositionOffsetCentimeters = 3;
+
+                Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
+
+                Console.WriteLine(document.TextBoxes[0].VerticalPositionOffsetCentimeters);
+
+                Console.WriteLine(document.TextBoxes[1].VerticalPositionOffsetCentimeters);
 
                 document.Save(openWord);
             }

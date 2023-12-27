@@ -56,36 +56,36 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Vertical Position Offset: " + textBox.VerticalPositionOffset);
                 Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffsetCentimeters);
 
-                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].WordTextBoxes.Count);
+                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].TextBoxes.Count);
 
-                Console.WriteLine("Count WordTextboxes (document): " + document.WordTextBoxes.Count);
+                Console.WriteLine("Count WordTextboxes (document): " + document.TextBoxes.Count);
 
                 var textBox1 = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
 
-                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].WordTextBoxes.Count);
+                Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].TextBoxes.Count);
 
-                Console.WriteLine("Count WordTextboxes (document): " + document.WordTextBoxes.Count);
+                Console.WriteLine("Count WordTextboxes (document): " + document.TextBoxes.Count);
 
-                document.WordTextBoxes[1].VerticalPositionOffsetCentimeters = 15;
+                document.TextBoxes[1].VerticalPositionOffsetCentimeters = 15;
 
-                Console.WriteLine("Color Bottom Border: " + document.WordTextBoxes[1].WordParagraph.Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph.Borders.BottomColor);
 
-                document.WordTextBoxes[1].WordParagraph.Borders.BottomColor = Color.Red;
-                document.WordTextBoxes[1].WordParagraph.Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
+                document.TextBoxes[1].WordParagraph.Borders.BottomColor = Color.Red;
+                document.TextBoxes[1].WordParagraph.Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
 
-                Console.WriteLine("Color Bottom Border: " + document.WordTextBoxes[1].WordParagraph.Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph.Borders.BottomColor);
 
-                document.WordTextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
+                document.TextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
 
-                document.WordTextBoxes[1].WordParagraph.Borders.Type = WordBorder.Shadow;
+                document.TextBoxes[1].WordParagraph.Borders.Type = WordBorder.Shadow;
 
-                document.WordTextBoxes[1].RelativeWidthPercentage = 0;
-                document.WordTextBoxes[1].RelativeHeightPercentage = 0;
+                document.TextBoxes[1].RelativeWidthPercentage = 0;
+                document.TextBoxes[1].RelativeHeightPercentage = 0;
 
-                document.WordTextBoxes[1].WidthCentimeters = 7;
-                document.WordTextBoxes[1].HeightCentimeters = 2.5;
+                document.TextBoxes[1].WidthCentimeters = 7;
+                document.TextBoxes[1].HeightCentimeters = 2.5;
 
-                document.WordTextBoxes[0].WordParagraph.Borders.Type = WordBorder.None;
+                document.TextBoxes[0].WordParagraph.Borders.Type = WordBorder.None;
 
                 document.Save(openWord);
             }
