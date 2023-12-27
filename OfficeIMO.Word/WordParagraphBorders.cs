@@ -5,18 +5,18 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public enum WordBorderParagraph {
+    public enum WordParagraphBorder {
         None,
         Custom,
         Box,
         Shadow
     }
 
-    public class WordBordersParagraph {
+    public class WordParagraphBorders {
         private readonly WordDocument _document;
         private readonly WordParagraph _wordParagraph;
 
-        internal WordBordersParagraph(WordDocument wordDocument, WordParagraph wordParagraph) {
+        internal WordParagraphBorders(WordDocument wordDocument, WordParagraph wordParagraph) {
             _document = wordDocument;
             _wordParagraph = wordParagraph;
         }
