@@ -66,9 +66,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[0].VerticalPositionOffsetCentimeters == 3);
 
                 document.Save(false);
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxes.docx"))) {
                 Assert.True(document.Paragraphs.Count == 3);
+                Assert.True(document.TextBoxes.Count == 2);
 
                 document.Save();
             }
