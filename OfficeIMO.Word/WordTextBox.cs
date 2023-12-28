@@ -1,20 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml.Vml;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using A = DocumentFormat.OpenXml.Drawing;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
-using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using System.Linq;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
@@ -56,11 +44,11 @@ namespace OfficeIMO.Word {
         public string Text {
             get {
                 if (_sdtBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    var paragraph = _sdtContentBlock.GetFirstChild<Paragraph>();
                     if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
+                        var run = paragraph.GetFirstChild<Run>();
                         if (run != null) {
-                            var text = run.GetFirstChild<W.Text>();
+                            var text = run.GetFirstChild<Text>();
                             if (text != null) {
                                 return text.Text;
                             }
@@ -71,11 +59,11 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_sdtBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    var paragraph = _sdtContentBlock.GetFirstChild<Paragraph>();
                     if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
+                        var run = paragraph.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Run>();
                         if (run != null) {
-                            var text = run.GetFirstChild<W.Text>();
+                            var text = run.GetFirstChild<Text>();
                             if (text != null) {
                                 text.Text = value;
                             }
@@ -91,9 +79,9 @@ namespace OfficeIMO.Word {
         public WordParagraph WordParagraph {
             get {
                 if (_sdtContentBlock != null) {
-                    var paragraph = _sdtContentBlock.GetFirstChild<W.Paragraph>();
+                    var paragraph = _sdtContentBlock.GetFirstChild<Paragraph>();
                     if (paragraph != null) {
-                        var run = paragraph.GetFirstChild<W.Run>();
+                        var run = paragraph.GetFirstChild<Run>();
                         return new WordParagraph(_document, paragraph, run);
                     }
                 }
@@ -124,7 +112,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public Wp.HorizontalAlignmentValues HorizontalAlignment {
+        public DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues HorizontalAlignment {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
@@ -133,7 +121,7 @@ namespace OfficeIMO.Word {
                         return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
                     }
                 }
-                return Wp.HorizontalAlignmentValues.Center;
+                return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
             }
             set {
                 var anchor = _anchor;
@@ -229,7 +217,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Allows to set horizontally position of the text box in centimeters
-        /// Please remember that this property will remove alignment of the text box and instead use Absolute position
+        /// Please 
         /// </summary>
         public double? HorizonalPositionOffsetCentimeters {
             get {
@@ -269,7 +257,7 @@ namespace OfficeIMO.Word {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                    var relativeWidth = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth>().FirstOrDefault();
                     if (relativeWidth != null) {
                         if (relativeWidth.PercentageWidth != null) {
                             return int.Parse(relativeWidth.PercentageWidth.Text) / 1000;
@@ -284,17 +272,17 @@ namespace OfficeIMO.Word {
                     if (value != null) {
                         var setValue = value.Value * 1000;
 
-                        var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                        var relativeWidth = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth>().FirstOrDefault();
                         if (relativeWidth == null) {
-                            relativeWidth = new Wp14.RelativeWidth() {
-                                PercentageWidth = new Wp14.PercentageWidth() {
+                            relativeWidth = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth() {
+                                PercentageWidth = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth() {
                                     Text = setValue.ToString()
                                 }
                             };
                             anchor.Append(relativeWidth);
                         } else {
                             if (relativeWidth.PercentageWidth == null) {
-                                relativeWidth.PercentageWidth = new Wp14.PercentageWidth() {
+                                relativeWidth.PercentageWidth = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth() {
                                     Text = setValue.ToString()
                                 };
                             } else {
@@ -312,7 +300,7 @@ namespace OfficeIMO.Word {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var relativeHeight = anchor.ChildElements.OfType<Wp14.RelativeHeight>().FirstOrDefault();
+                    var relativeHeight = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight>().FirstOrDefault();
                     if (relativeHeight != null) {
                         if (relativeHeight.PercentageHeight != null) {
                             return int.Parse(relativeHeight.PercentageHeight.Text) / 1000;
@@ -327,17 +315,17 @@ namespace OfficeIMO.Word {
                     if (value != null) {
                         var setValue = value.Value * 1000;
 
-                        var relativeHeight = anchor.ChildElements.OfType<Wp14.RelativeHeight>().FirstOrDefault();
+                        var relativeHeight = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight>().FirstOrDefault();
                         if (relativeHeight == null) {
-                            relativeHeight = new Wp14.RelativeHeight() {
-                                PercentageHeight = new Wp14.PercentageHeight() {
+                            relativeHeight = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight() {
+                                PercentageHeight = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight() {
                                     Text = setValue.ToString()
                                 }
                             };
                             anchor.Append(relativeHeight);
                         } else {
                             if (relativeHeight.PercentageHeight == null) {
-                                relativeHeight.PercentageHeight = new Wp14.PercentageHeight() {
+                                relativeHeight.PercentageHeight = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight() {
                                     Text = setValue.ToString()
                                 };
                             } else {
@@ -351,11 +339,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public Wp14.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
+        public DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var relativeWidth = anchor.ChildElements.OfType<Wp14.RelativeWidth>().FirstOrDefault();
+                    var relativeWidth = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth>().FirstOrDefault();
                     if (relativeWidth != null) {
                         if (relativeWidth.ObjectId != null) {
                             return relativeWidth.ObjectId;
@@ -373,7 +361,7 @@ namespace OfficeIMO.Word {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    var extent = anchor.ChildElements.OfType<Extent>().FirstOrDefault();
                     if (extent != null) {
                         return Int64.Parse(extent.Cx);
                     }
@@ -383,9 +371,9 @@ namespace OfficeIMO.Word {
             set {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    var extent = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>().FirstOrDefault();
                     if (extent == null) {
-                        extent = new Wp.Extent() {
+                        extent = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() {
                             Cx = value,
                             Cy = 0L
                         };
@@ -401,7 +389,7 @@ namespace OfficeIMO.Word {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    var extent = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>().FirstOrDefault();
                     if (extent != null) {
                         return Int64.Parse(extent.Cy);
                     }
@@ -411,9 +399,9 @@ namespace OfficeIMO.Word {
             set {
                 var anchor = _anchor;
                 if (anchor != null) {
-                    var extent = anchor.ChildElements.OfType<Wp.Extent>().FirstOrDefault();
+                    var extent = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>().FirstOrDefault();
                     if (extent == null) {
-                        extent = new Wp.Extent() {
+                        extent = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() {
                             Cx = 0L,
                             Cy = value
                         };
@@ -449,7 +437,7 @@ namespace OfficeIMO.Word {
                 if (alternateContent != null) {
                     var alternateContentChoice = alternateContent.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
                     if (alternateContentChoice != null) {
-                        var drawing = alternateContentChoice.ChildElements.OfType<W.Drawing>().FirstOrDefault();
+                        var drawing = alternateContentChoice.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault();
                         if (drawing != null) {
                             var anchor = drawing.Anchor;
                             if (anchor != null) {
@@ -472,11 +460,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Wps.WordprocessingShape _wordprocessingShape {
+        private DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape _wordprocessingShape {
             get {
                 var graphicData = _graphicData;
                 if (graphicData != null) {
-                    var wsp = graphicData.GetFirstChild<Wps.WordprocessingShape>();
+                    var wsp = graphicData.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape>();
                     if (wsp != null) {
                         return wsp;
                     }
@@ -491,11 +479,11 @@ namespace OfficeIMO.Word {
                 if (wordprocessingShape != null) {
 
 
-                    var textBoxInfo = wordprocessingShape.GetFirstChild<Wps.TextBoxInfo2>();
+                    var textBoxInfo = wordprocessingShape.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();
                     if (textBoxInfo != null) {
-                        var textBoxContent = textBoxInfo.GetFirstChild<W.TextBoxContent>();
+                        var textBoxContent = textBoxInfo.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>();
                         if (textBoxContent != null) {
-                            var sdtBlock = textBoxContent.GetFirstChild<W.SdtBlock>();
+                            var sdtBlock = textBoxContent.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.SdtBlock>();
                             if (sdtBlock != null) {
                                 return sdtBlock;
                             }
@@ -642,7 +630,7 @@ namespace OfficeIMO.Word {
             AlternateContent alternateContent1 = new AlternateContent();
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wps" };
 
-            W.Drawing drawing1 = new W.Drawing {
+            DocumentFormat.OpenXml.Wordprocessing.Drawing drawing1 = new DocumentFormat.OpenXml.Wordprocessing.Drawing {
                 Anchor = GenerateAnchor(text)
             };
 
@@ -663,7 +651,7 @@ namespace OfficeIMO.Word {
         //public AlternateContentFallback GenerateAlternateContentFallback(string text) {
         //    AlternateContentFallback alternateContentFallback1 = new AlternateContentFallback();
 
-        //    W.Picture picture1 = new W.Picture();
+        //    DocumentFormat.OpenXml.Wordprocessing.Picture picture1 = new DocumentFormat.OpenXml.Wordprocessing.Picture();
 
         //    V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t202", CoordinateSize = "21600,21600", OptionalNumber = 202, EdgePath = "m,l,21600r21600,l21600,xe" };
         //    shapetype1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
@@ -682,29 +670,29 @@ namespace OfficeIMO.Word {
 
         //    V.TextBox textBox1 = new V.TextBox() { Style = "mso-fit-shape-to-text:t" };
 
-        //    W.TextBoxContent textBoxContent1 = new W.TextBoxContent();
+        //    DocumentFormat.OpenXml.Wordprocessing.TextBoxContent textBoxContent1 = new DocumentFormat.OpenXml.Wordprocessing.TextBoxContent();
 
-        //    W.SdtBlock sdtBlock1 = new W.SdtBlock();
+        //    DocumentFormat.OpenXml.Wordprocessing.SdtBlock sdtBlock1 = new DocumentFormat.OpenXml.Wordprocessing.SdtBlock();
 
-        //    W.SdtProperties sdtProperties1 = new W.SdtProperties();
+        //    DocumentFormat.OpenXml.Wordprocessing.SdtProperties sdtProperties1 = new DocumentFormat.OpenXml.Wordprocessing.SdtProperties();
 
-        //    W.RunProperties runProperties1 = new W.RunProperties();
-        //    W.Italic italic1 = new W.Italic();
-        //    W.ItalicComplexScript italicComplexScript1 = new W.ItalicComplexScript();
-        //    W.Color color1 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-        //    W.FontSize fontSize1 = new W.FontSize() { Val = "24" };
-        //    W.FontSizeComplexScript fontSizeComplexScript1 = new W.FontSizeComplexScript() { Val = "24" };
+        //    DocumentFormat.OpenXml.Wordprocessing.RunProperties runProperties1 = new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+        //    DocumentFormat.OpenXml.Wordprocessing.Italic italic1 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+        //    DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript1 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+        //    DocumentFormat.OpenXml.Wordprocessing.Color color1 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+        //    DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize1 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
+        //    DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript fontSizeComplexScript1 = new DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript() { Val = "24" };
 
         //    runProperties1.Append(italic1);
         //    runProperties1.Append(italicComplexScript1);
         //    runProperties1.Append(color1);
         //    runProperties1.Append(fontSize1);
         //    runProperties1.Append(fontSizeComplexScript1);
-        //    W.SdtId sdtId1 = new W.SdtId() { Val = 1469011327 };
-        //    W.TemporarySdt temporarySdt1 = new W.TemporarySdt();
-        //    W.ShowingPlaceholder showingPlaceholder1 = new W.ShowingPlaceholder();
+        //    DocumentFormat.OpenXml.Wordprocessing.SdtId sdtId1 = new DocumentFormat.OpenXml.Wordprocessing.SdtId() { Val = 1469011327 };
+        //    DocumentFormat.OpenXml.Wordprocessing.TemporarySdt temporarySdt1 = new DocumentFormat.OpenXml.Wordprocessing.TemporarySdt();
+        //    DocumentFormat.OpenXml.Wordprocessing.ShowingPlaceholder showingPlaceholder1 = new DocumentFormat.OpenXml.Wordprocessing.ShowingPlaceholder();
 
-        //    W15.Appearance appearance1 = new W15.Appearance() { Val = W15.SdtAppearance.Hidden };
+        //    DocumentFormat.OpenXml.Office2013.Word.Appearance appearance1 = new DocumentFormat.OpenXml.Office2013.Word.Appearance() { Val = DocumentFormat.OpenXml.Office2013.Word.SdtAppearance.Hidden };
         //    appearance1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
 
         //    sdtProperties1.Append(runProperties1);
@@ -713,26 +701,26 @@ namespace OfficeIMO.Word {
         //    sdtProperties1.Append(showingPlaceholder1);
         //    sdtProperties1.Append(appearance1);
 
-        //    W.SdtContentBlock sdtContentBlock1 = new W.SdtContentBlock();
+        //    DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock sdtContentBlock1 = new DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock();
 
-        //    W.Paragraph paragraph1 = new W.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
+        //    DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph1 = new DocumentFormat.OpenXml.Wordprocessing.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
         //    paragraph1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
 
-        //    W.ParagraphProperties paragraphProperties1 = new W.ParagraphProperties();
+        //    DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties paragraphProperties1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties();
 
-        //    W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
-        //    W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
-        //    W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+        //    DocumentFormat.OpenXml.Wordprocessing.ParagraphBorders paragraphBorders1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphBorders();
+        //    DocumentFormat.OpenXml.Wordprocessing.TopBorder topBorder1 = new DocumentFormat.OpenXml.Wordprocessing.TopBorder() { Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+        //    DocumentFormat.OpenXml.Wordprocessing.BottomBorder bottomBorder1 = new DocumentFormat.OpenXml.Wordprocessing.BottomBorder() { Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
 
         //    paragraphBorders1.Append(topBorder1);
         //    paragraphBorders1.Append(bottomBorder1);
-        //    W.SpacingBetweenLines spacingBetweenLines1 = new W.SpacingBetweenLines() { After = "0" };
+        //    DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines spacingBetweenLines1 = new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines() { After = "0" };
 
-        //    W.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new W.ParagraphMarkRunProperties();
-        //    W.Italic italic2 = new W.Italic();
-        //    W.ItalicComplexScript italicComplexScript2 = new W.ItalicComplexScript();
-        //    W.Color color2 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-        //    W.FontSize fontSize2 = new W.FontSize() { Val = "24" };
+        //    DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties();
+        //    DocumentFormat.OpenXml.Wordprocessing.Italic italic2 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+        //    DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript2 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+        //    DocumentFormat.OpenXml.Wordprocessing.Color color2 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+        //    DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize2 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
 
         //    paragraphMarkRunProperties1.Append(italic2);
         //    paragraphMarkRunProperties1.Append(italicComplexScript2);
@@ -743,21 +731,21 @@ namespace OfficeIMO.Word {
         //    paragraphProperties1.Append(spacingBetweenLines1);
         //    paragraphProperties1.Append(paragraphMarkRunProperties1);
 
-        //    W.Run run1 = new W.Run();
+        //    DocumentFormat.OpenXml.Wordprocessing.Run run1 = new DocumentFormat.OpenXml.Wordprocessing.Run();
 
-        //    W.RunProperties runProperties2 = new W.RunProperties();
-        //    W.Italic italic3 = new W.Italic();
-        //    W.ItalicComplexScript italicComplexScript3 = new W.ItalicComplexScript();
-        //    W.Color color3 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-        //    W.FontSize fontSize3 = new W.FontSize() { Val = "24" };
-        //    W.FontSizeComplexScript fontSizeComplexScript2 = new W.FontSizeComplexScript() { Val = "24" };
+        //    DocumentFormat.OpenXml.Wordprocessing.RunProperties runProperties2 = new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+        //    DocumentFormat.OpenXml.Wordprocessing.Italic italic3 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+        //    DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript3 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+        //    DocumentFormat.OpenXml.Wordprocessing.Color color3 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+        //    DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize3 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
+        //    DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript fontSizeComplexScript2 = new DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript() { Val = "24" };
 
         //    runProperties2.Append(italic3);
         //    runProperties2.Append(italicComplexScript3);
         //    runProperties2.Append(color3);
         //    runProperties2.Append(fontSize3);
         //    runProperties2.Append(fontSizeComplexScript2);
-        //    W.Text text1 = new W.Text();
+        //    DocumentFormat.OpenXml.Wordprocessing.Text text1 = new DocumentFormat.OpenXml.Wordprocessing.Text();
         //    text1.Text = text;
 
         //    run1.Append(runProperties2);
@@ -812,44 +800,44 @@ namespace OfficeIMO.Word {
 
             NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = new NonVisualGraphicFrameDrawingProperties();
 
-            A.GraphicFrameLocks graphicFrameLocks1 = new A.GraphicFrameLocks();
+            DocumentFormat.OpenXml.Drawing.GraphicFrameLocks graphicFrameLocks1 = new DocumentFormat.OpenXml.Drawing.GraphicFrameLocks();
             graphicFrameLocks1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
             nonVisualGraphicFrameDrawingProperties1.Append(graphicFrameLocks1);
 
-            A.Graphic graphic1 = new A.Graphic();
+            DocumentFormat.OpenXml.Drawing.Graphic graphic1 = new DocumentFormat.OpenXml.Drawing.Graphic();
             graphic1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
-            A.GraphicData graphicData1 = new A.GraphicData() { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" };
+            DocumentFormat.OpenXml.Drawing.GraphicData graphicData1 = new DocumentFormat.OpenXml.Drawing.GraphicData() { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" };
 
-            Wps.WordprocessingShape wordprocessingShape1 = new Wps.WordprocessingShape();
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape wordprocessingShape1 = new DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape();
             wordprocessingShape1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
 
-            Wps.NonVisualDrawingShapeProperties nonVisualDrawingShapeProperties1 = new Wps.NonVisualDrawingShapeProperties() { TextBox = true };
-            A.ShapeLocks shapeLocks1 = new A.ShapeLocks() { NoChangeArrowheads = true };
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.NonVisualDrawingShapeProperties nonVisualDrawingShapeProperties1 = new DocumentFormat.OpenXml.Office2010.Word.DrawingShape.NonVisualDrawingShapeProperties() { TextBox = true };
+            DocumentFormat.OpenXml.Drawing.ShapeLocks shapeLocks1 = new DocumentFormat.OpenXml.Drawing.ShapeLocks() { NoChangeArrowheads = true };
 
             nonVisualDrawingShapeProperties1.Append(shapeLocks1);
 
-            Wps.ShapeProperties shapeProperties1 = GenerateShapeProperties();
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.ShapeProperties shapeProperties1 = GenerateShapeProperties();
 
-            //A.Transform2D transform2D1 = new A.Transform2D();
-            //A.Offset offset1 = new A.Offset() { X = 0L, Y = 0L };
-            //A.Extents extents1 = new A.Extents() { Cx = 3474720L, Cy = 1403985L };
+            //A.Transform2D transform2D1 = new DocumentFormat.OpenXml.Drawing.Transform2D();
+            //A.Offset offset1 = new DocumentFormat.OpenXml.Drawing.Offset() { X = 0L, Y = 0L };
+            //A.Extents extents1 = new DocumentFormat.OpenXml.Drawing.Extents() { Cx = 3474720L, Cy = 1403985L };
 
             //transform2D1.Append(offset1);
             //transform2D1.Append(extents1);
 
-            //A.PresetGeometry presetGeometry1 = new A.PresetGeometry() { Preset = A.ShapeTypeValues.Rectangle };
-            //A.AdjustValueList adjustValueList1 = new A.AdjustValueList();
+            //A.PresetGeometry presetGeometry1 = new DocumentFormat.OpenXml.Drawing.PresetGeometry() { Preset = DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Rectangle };
+            //A.AdjustValueList adjustValueList1 = new DocumentFormat.OpenXml.Drawing.AdjustValueList();
 
             //presetGeometry1.Append(adjustValueList1);
-            //A.NoFill noFill1 = new A.NoFill();
+            //A.NoFill noFill1 = new DocumentFormat.OpenXml.Drawing.NoFill();
 
-            //A.Outline outline1 = new A.Outline() { Width = 9525 };
-            //A.NoFill noFill2 = new A.NoFill();
-            //A.Miter miter1 = new A.Miter() { Limit = 800000 };
-            //A.HeadEnd headEnd1 = new A.HeadEnd();
-            //A.TailEnd tailEnd1 = new A.TailEnd();
+            //A.Outline outline1 = new DocumentFormat.OpenXml.Drawing.Outline() { Width = 9525 };
+            //A.NoFill noFill2 = new DocumentFormat.OpenXml.Drawing.NoFill();
+            //A.Miter miter1 = new DocumentFormat.OpenXml.Drawing.Miter() { Limit = 800000 };
+            //A.HeadEnd headEnd1 = new DocumentFormat.OpenXml.Drawing.HeadEnd();
+            //A.TailEnd tailEnd1 = new DocumentFormat.OpenXml.Drawing.TailEnd();
 
             //outline1.Append(noFill2);
             //outline1.Append(miter1);
@@ -861,31 +849,31 @@ namespace OfficeIMO.Word {
             //shapeProperties1.Append(noFill1);
             //shapeProperties1.Append(outline1);
 
-            Wps.TextBoxInfo2 textBoxInfo21 = new Wps.TextBoxInfo2();
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2 textBoxInfo21 = new DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2();
 
-            W.TextBoxContent textBoxContent1 = new W.TextBoxContent();
+            DocumentFormat.OpenXml.Wordprocessing.TextBoxContent textBoxContent1 = new DocumentFormat.OpenXml.Wordprocessing.TextBoxContent();
 
-            W.SdtBlock sdtBlock1 = new W.SdtBlock();
+            DocumentFormat.OpenXml.Wordprocessing.SdtBlock sdtBlock1 = new DocumentFormat.OpenXml.Wordprocessing.SdtBlock();
 
-            W.SdtProperties sdtProperties1 = new W.SdtProperties();
+            DocumentFormat.OpenXml.Wordprocessing.SdtProperties sdtProperties1 = new DocumentFormat.OpenXml.Wordprocessing.SdtProperties();
 
-            W.RunProperties runProperties1 = new W.RunProperties();
-            W.Italic italic1 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript1 = new W.ItalicComplexScript();
-            W.Color color1 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize1 = new W.FontSize() { Val = "24" };
-            W.FontSizeComplexScript fontSizeComplexScript1 = new W.FontSizeComplexScript() { Val = "24" };
+            DocumentFormat.OpenXml.Wordprocessing.RunProperties runProperties1 = new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+            DocumentFormat.OpenXml.Wordprocessing.Italic italic1 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+            DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript1 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+            DocumentFormat.OpenXml.Wordprocessing.Color color1 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize1 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
+            DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript fontSizeComplexScript1 = new DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript() { Val = "24" };
 
             runProperties1.Append(italic1);
             runProperties1.Append(italicComplexScript1);
             runProperties1.Append(color1);
             runProperties1.Append(fontSize1);
             runProperties1.Append(fontSizeComplexScript1);
-            W.SdtId sdtId1 = new W.SdtId() { Val = 1469011327 };
-            W.TemporarySdt temporarySdt1 = new W.TemporarySdt();
-            W.ShowingPlaceholder showingPlaceholder1 = new W.ShowingPlaceholder();
+            DocumentFormat.OpenXml.Wordprocessing.SdtId sdtId1 = new DocumentFormat.OpenXml.Wordprocessing.SdtId() { Val = 1469011327 };
+            DocumentFormat.OpenXml.Wordprocessing.TemporarySdt temporarySdt1 = new DocumentFormat.OpenXml.Wordprocessing.TemporarySdt();
+            DocumentFormat.OpenXml.Wordprocessing.ShowingPlaceholder showingPlaceholder1 = new DocumentFormat.OpenXml.Wordprocessing.ShowingPlaceholder();
 
-            W15.Appearance appearance1 = new W15.Appearance() { Val = W15.SdtAppearance.Hidden };
+            DocumentFormat.OpenXml.Office2013.Word.Appearance appearance1 = new DocumentFormat.OpenXml.Office2013.Word.Appearance() { Val = DocumentFormat.OpenXml.Office2013.Word.SdtAppearance.Hidden };
             appearance1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
 
             sdtProperties1.Append(runProperties1);
@@ -894,26 +882,26 @@ namespace OfficeIMO.Word {
             sdtProperties1.Append(showingPlaceholder1);
             sdtProperties1.Append(appearance1);
 
-            W.SdtContentBlock sdtContentBlock1 = new W.SdtContentBlock();
+            DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock sdtContentBlock1 = new DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock();
 
-            W.Paragraph paragraph1 = new W.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
+            DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph1 = new DocumentFormat.OpenXml.Wordprocessing.Paragraph() { RsidParagraphAddition = "00B16DB6", RsidRunAdditionDefault = "00B16DB6", ParagraphId = "506E57D5", TextId = "77777777" };
             paragraph1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
 
-            W.ParagraphProperties paragraphProperties1 = new W.ParagraphProperties();
+            DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties paragraphProperties1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties();
 
-            //W.ParagraphBorders paragraphBorders1 = new W.ParagraphBorders();
-            //W.TopBorder topBorder1 = new W.TopBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
-            //W.BottomBorder bottomBorder1 = new W.BottomBorder() { Val = W.BorderValues.Single, Color = "156082", ThemeColor = W.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+            //W.ParagraphBorders paragraphBorders1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphBorders();
+            //W.TopBorder topBorder1 = new DocumentFormat.OpenXml.Wordprocessing.TopBorder() { Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
+            //W.BottomBorder bottomBorder1 = new DocumentFormat.OpenXml.Wordprocessing.BottomBorder() { Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1, Size = (UInt32Value)24U, Space = (UInt32Value)8U };
 
             //paragraphBorders1.Append(topBorder1);
             //paragraphBorders1.Append(bottomBorder1);
-            W.SpacingBetweenLines spacingBetweenLines1 = new W.SpacingBetweenLines() { After = "0" };
+            DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines spacingBetweenLines1 = new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines() { After = "0" };
 
-            W.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new W.ParagraphMarkRunProperties();
-            W.Italic italic2 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript2 = new W.ItalicComplexScript();
-            W.Color color2 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize2 = new W.FontSize() { Val = "24" };
+            DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties paragraphMarkRunProperties1 = new DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties();
+            DocumentFormat.OpenXml.Wordprocessing.Italic italic2 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+            DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript2 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+            DocumentFormat.OpenXml.Wordprocessing.Color color2 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize2 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
 
             paragraphMarkRunProperties1.Append(italic2);
             paragraphMarkRunProperties1.Append(italicComplexScript2);
@@ -924,21 +912,21 @@ namespace OfficeIMO.Word {
             paragraphProperties1.Append(spacingBetweenLines1);
             paragraphProperties1.Append(paragraphMarkRunProperties1);
 
-            W.Run run1 = new W.Run();
+            DocumentFormat.OpenXml.Wordprocessing.Run run1 = new DocumentFormat.OpenXml.Wordprocessing.Run();
 
-            W.RunProperties runProperties2 = new W.RunProperties();
-            W.Italic italic3 = new W.Italic();
-            W.ItalicComplexScript italicComplexScript3 = new W.ItalicComplexScript();
-            W.Color color3 = new W.Color() { Val = "156082", ThemeColor = W.ThemeColorValues.Accent1 };
-            W.FontSize fontSize3 = new W.FontSize() { Val = "24" };
-            W.FontSizeComplexScript fontSizeComplexScript2 = new W.FontSizeComplexScript() { Val = "24" };
+            DocumentFormat.OpenXml.Wordprocessing.RunProperties runProperties2 = new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+            DocumentFormat.OpenXml.Wordprocessing.Italic italic3 = new DocumentFormat.OpenXml.Wordprocessing.Italic();
+            DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript italicComplexScript3 = new DocumentFormat.OpenXml.Wordprocessing.ItalicComplexScript();
+            DocumentFormat.OpenXml.Wordprocessing.Color color3 = new DocumentFormat.OpenXml.Wordprocessing.Color() { Val = "156082", ThemeColor = DocumentFormat.OpenXml.Wordprocessing.ThemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Wordprocessing.FontSize fontSize3 = new DocumentFormat.OpenXml.Wordprocessing.FontSize() { Val = "24" };
+            DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript fontSizeComplexScript2 = new DocumentFormat.OpenXml.Wordprocessing.FontSizeComplexScript() { Val = "24" };
 
             runProperties2.Append(italic3);
             runProperties2.Append(italicComplexScript3);
             runProperties2.Append(color3);
             runProperties2.Append(fontSize3);
             runProperties2.Append(fontSizeComplexScript2);
-            W.Text text1 = new W.Text();
+            DocumentFormat.OpenXml.Wordprocessing.Text text1 = new DocumentFormat.OpenXml.Wordprocessing.Text();
             text1.Text = text;
 
             run1.Append(runProperties2);
@@ -956,8 +944,8 @@ namespace OfficeIMO.Word {
 
             textBoxInfo21.Append(textBoxContent1);
 
-            Wps.TextBodyProperties textBodyProperties1 = new Wps.TextBodyProperties() { Rotation = 0, Vertical = A.TextVerticalValues.Horizontal, Wrap = A.TextWrappingValues.Square, LeftInset = 91440, TopInset = 45720, RightInset = 91440, BottomInset = 45720, Anchor = A.TextAnchoringTypeValues.Top, AnchorCenter = false };
-            A.ShapeAutoFit shapeAutoFit1 = new A.ShapeAutoFit();
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBodyProperties textBodyProperties1 = new DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBodyProperties() { Rotation = 0, Vertical = DocumentFormat.OpenXml.Drawing.TextVerticalValues.Horizontal, Wrap = DocumentFormat.OpenXml.Drawing.TextWrappingValues.Square, LeftInset = 91440, TopInset = 45720, RightInset = 91440, BottomInset = 45720, Anchor = DocumentFormat.OpenXml.Drawing.TextAnchoringTypeValues.Top, AnchorCenter = false };
+            DocumentFormat.OpenXml.Drawing.ShapeAutoFit shapeAutoFit1 = new DocumentFormat.OpenXml.Drawing.ShapeAutoFit();
 
             textBodyProperties1.Append(shapeAutoFit1);
 
@@ -975,14 +963,14 @@ namespace OfficeIMO.Word {
 
             graphic1.Append(graphicData1);
 
-            Wp14.RelativeWidth relativeWidth1 = new Wp14.RelativeWidth() { ObjectId = Wp14.SizeRelativeHorizontallyValues.Margin };
-            Wp14.PercentageWidth percentageWidth1 = new Wp14.PercentageWidth();
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth relativeWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth() { ObjectId = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues.Margin };
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth percentageWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth();
             percentageWidth1.Text = "58500";
 
             relativeWidth1.Append(percentageWidth1);
 
-            Wp14.RelativeHeight relativeHeight1 = new Wp14.RelativeHeight() { RelativeFrom = Wp14.SizeRelativeVerticallyValues.Margin };
-            Wp14.PercentageHeight percentageHeight1 = new Wp14.PercentageHeight();
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight relativeHeight1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight() { RelativeFrom = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeVerticallyValues.Margin };
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight percentageHeight1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight();
             percentageHeight1.Text = "20000";
 
             relativeHeight1.Append(percentageHeight1);
@@ -1006,51 +994,51 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        private Wp.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
+        private DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
             switch (text.ToLower()) {
                 case "left":
-                    return Wp.HorizontalAlignmentValues.Left;
+                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Left;
                 case "right":
-                    return Wp.HorizontalAlignmentValues.Right;
+                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Right;
                 case "center":
-                    return Wp.HorizontalAlignmentValues.Center;
+                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
                 case "outside":
-                    return Wp.HorizontalAlignmentValues.Outside;
+                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Outside;
                 default:
-                    return Wp.HorizontalAlignmentValues.Center;
+                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
             }
         }
 
 
         private ShapeProperties GenerateShapeProperties() {
-            ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = A.BlackWhiteModeValues.Auto };
+            ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = DocumentFormat.OpenXml.Drawing.BlackWhiteModeValues.Auto };
 
-            A.Transform2D transform2D1 = new A.Transform2D();
-            A.Offset offset1 = new A.Offset() { X = 0L, Y = 0L };
-            A.Extents extents1 = new A.Extents() { Cx = 2360930L, Cy = 1404620L };
+            DocumentFormat.OpenXml.Drawing.Transform2D transform2D1 = new DocumentFormat.OpenXml.Drawing.Transform2D();
+            DocumentFormat.OpenXml.Drawing.Offset offset1 = new DocumentFormat.OpenXml.Drawing.Offset() { X = 0L, Y = 0L };
+            DocumentFormat.OpenXml.Drawing.Extents extents1 = new DocumentFormat.OpenXml.Drawing.Extents() { Cx = 2360930L, Cy = 1404620L };
 
             transform2D1.Append(offset1);
             transform2D1.Append(extents1);
 
-            A.PresetGeometry presetGeometry1 = new A.PresetGeometry() { Preset = A.ShapeTypeValues.Rectangle };
-            A.AdjustValueList adjustValueList1 = new A.AdjustValueList();
+            DocumentFormat.OpenXml.Drawing.PresetGeometry presetGeometry1 = new DocumentFormat.OpenXml.Drawing.PresetGeometry() { Preset = DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Rectangle };
+            DocumentFormat.OpenXml.Drawing.AdjustValueList adjustValueList1 = new DocumentFormat.OpenXml.Drawing.AdjustValueList();
 
             presetGeometry1.Append(adjustValueList1);
 
-            A.SolidFill solidFill1 = new A.SolidFill();
-            A.RgbColorModelHex rgbColorModelHex1 = new A.RgbColorModelHex() { Val = "FFFFFF" };
+            DocumentFormat.OpenXml.Drawing.SolidFill solidFill1 = new DocumentFormat.OpenXml.Drawing.SolidFill();
+            DocumentFormat.OpenXml.Drawing.RgbColorModelHex rgbColorModelHex1 = new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = "FFFFFF" };
 
             solidFill1.Append(rgbColorModelHex1);
 
-            A.Outline outline1 = new A.Outline() { Width = 9525 };
+            DocumentFormat.OpenXml.Drawing.Outline outline1 = new DocumentFormat.OpenXml.Drawing.Outline() { Width = 9525 };
 
-            A.SolidFill solidFill2 = new A.SolidFill();
-            A.RgbColorModelHex rgbColorModelHex2 = new A.RgbColorModelHex() { Val = "000000" };
+            DocumentFormat.OpenXml.Drawing.SolidFill solidFill2 = new DocumentFormat.OpenXml.Drawing.SolidFill();
+            DocumentFormat.OpenXml.Drawing.RgbColorModelHex rgbColorModelHex2 = new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = "000000" };
 
             solidFill2.Append(rgbColorModelHex2);
-            A.Miter miter1 = new A.Miter() { Limit = 800000 };
-            A.HeadEnd headEnd1 = new A.HeadEnd();
-            A.TailEnd tailEnd1 = new A.TailEnd();
+            DocumentFormat.OpenXml.Drawing.Miter miter1 = new DocumentFormat.OpenXml.Drawing.Miter() { Limit = 800000 };
+            DocumentFormat.OpenXml.Drawing.HeadEnd headEnd1 = new DocumentFormat.OpenXml.Drawing.HeadEnd();
+            DocumentFormat.OpenXml.Drawing.TailEnd tailEnd1 = new DocumentFormat.OpenXml.Drawing.TailEnd();
 
             outline1.Append(solidFill2);
             outline1.Append(miter1);
@@ -1067,23 +1055,23 @@ namespace OfficeIMO.Word {
         private ShapeStyle GenerateShapeStyle() {
             ShapeStyle shapeStyle1 = new ShapeStyle();
 
-            A.LineReference lineReference1 = new A.LineReference() { Index = (UInt32Value)0U };
-            A.SchemeColor schemeColor1 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Drawing.LineReference lineReference1 = new DocumentFormat.OpenXml.Drawing.LineReference() { Index = (UInt32Value)0U };
+            DocumentFormat.OpenXml.Drawing.SchemeColor schemeColor1 = new DocumentFormat.OpenXml.Drawing.SchemeColor() { Val = DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent1 };
 
             lineReference1.Append(schemeColor1);
 
-            A.FillReference fillReference1 = new A.FillReference() { Index = (UInt32Value)0U };
-            A.SchemeColor schemeColor2 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Drawing.FillReference fillReference1 = new DocumentFormat.OpenXml.Drawing.FillReference() { Index = (UInt32Value)0U };
+            DocumentFormat.OpenXml.Drawing.SchemeColor schemeColor2 = new DocumentFormat.OpenXml.Drawing.SchemeColor() { Val = DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent1 };
 
             fillReference1.Append(schemeColor2);
 
-            A.EffectReference effectReference1 = new A.EffectReference() { Index = (UInt32Value)0U };
-            A.SchemeColor schemeColor3 = new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 };
+            DocumentFormat.OpenXml.Drawing.EffectReference effectReference1 = new DocumentFormat.OpenXml.Drawing.EffectReference() { Index = (UInt32Value)0U };
+            DocumentFormat.OpenXml.Drawing.SchemeColor schemeColor3 = new DocumentFormat.OpenXml.Drawing.SchemeColor() { Val = DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent1 };
 
             effectReference1.Append(schemeColor3);
 
-            A.FontReference fontReference1 = new A.FontReference() { Index = A.FontCollectionIndexValues.Minor };
-            A.SchemeColor schemeColor4 = new A.SchemeColor() { Val = A.SchemeColorValues.Dark1 };
+            DocumentFormat.OpenXml.Drawing.FontReference fontReference1 = new DocumentFormat.OpenXml.Drawing.FontReference() { Index = DocumentFormat.OpenXml.Drawing.FontCollectionIndexValues.Minor };
+            DocumentFormat.OpenXml.Drawing.SchemeColor schemeColor4 = new DocumentFormat.OpenXml.Drawing.SchemeColor() { Val = DocumentFormat.OpenXml.Drawing.SchemeColorValues.Dark1 };
 
             fontReference1.Append(schemeColor4);
 
