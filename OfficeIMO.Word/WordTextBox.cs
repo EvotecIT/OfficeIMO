@@ -1083,6 +1083,10 @@ namespace OfficeIMO.Word {
         }
 
 
-
+        public void Remove() {
+            if (this._wordParagraph != null) {
+                this._wordParagraph.Remove();
+            }
+        }
     }
 }
