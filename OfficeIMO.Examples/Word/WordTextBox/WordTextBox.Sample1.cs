@@ -77,8 +77,6 @@ namespace OfficeIMO.Examples.Word {
 
                 document.TextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
 
-                document.TextBoxes[1].WordParagraph.Borders.Type = WordBorder.Shadow;
-
                 document.TextBoxes[1].RelativeWidthPercentage = 0;
                 document.TextBoxes[1].RelativeHeightPercentage = 0;
 

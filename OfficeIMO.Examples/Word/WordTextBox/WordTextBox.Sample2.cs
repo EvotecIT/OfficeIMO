@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -37,6 +35,21 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.TextBoxes[0].VerticalPositionOffsetCentimeters);
 
                 Console.WriteLine(document.TextBoxes[1].VerticalPositionOffsetCentimeters);
+
+
+                var textBox3 = document.AddTextBox("My textbox in the center with borders");
+                textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.VerticalPositionOffsetCentimeters = 10;
+                textBox3.WordParagraph.Borders.BottomStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph.Borders.BottomSize = 10;
+                textBox3.WordParagraph.Borders.BottomColor = Color.Red;
+                textBox3.WordParagraph.Borders.BottomShadow = false;
+                textBox3.WordParagraph.Borders.TopStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph.Borders.LeftStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph.Borders.RightStyle = BorderValues.BasicWideOutline;
+
+                textBox3.WordParagraph.Borders.SetBorder(WordParagraphBorderType.Left, BorderValues.BasicWideOutline, Color.Red, 10, false);
 
                 document.Save(openWord);
             }
