@@ -263,6 +263,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesBorders.docx"))) {
 
 
+                Assert.True(document.Paragraphs.Count == 3);
+                Assert.True(document.TextBoxes.Count == 2);
+
+                document.TextBoxes[1].Remove();
+
+                Assert.True(document.Paragraphs.Count == 2);
+                Assert.True(document.TextBoxes.Count == 1);
             }
         }
     }
