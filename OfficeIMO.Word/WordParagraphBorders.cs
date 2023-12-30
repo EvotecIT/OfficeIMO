@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     public enum WordParagraphBorder {
@@ -10,6 +11,13 @@ namespace OfficeIMO.Word {
         Custom,
         Box,
         Shadow
+    }
+
+    public enum WordParagraphBorderType {
+        Left,
+        Right,
+        Top,
+        Bottom
     }
 
     public class WordParagraphBorders {
@@ -48,7 +56,7 @@ namespace OfficeIMO.Word {
         public string LeftColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
+                if (pageBorder != null && pageBorder.LeftBorder != null && pageBorder.LeftBorder.Color != null) {
                     return (pageBorder.LeftBorder.Color).Value.Replace("#", "");
                 }
 
@@ -69,9 +77,14 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color LeftColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex); }
-            set { this.LeftColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? LeftColor {
+            get {
+                if (LeftColorHex == null || LeftColorHex == "auto") {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex);
+            }
+            set => LeftColorHex = value.Value.ToHexColor();
         }
 
         public ThemeColorValues? LeftThemeColor {
@@ -220,7 +233,7 @@ namespace OfficeIMO.Word {
         public string RightColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
+                if (pageBorder != null && pageBorder.RightBorder != null && pageBorder.RightBorder.Color != null) {
                     return (pageBorder.RightBorder.Color).Value.Replace("#", "");
                 }
 
@@ -241,9 +254,14 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color RightColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex); }
-            set { this.RightColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? RightColor {
+            get {
+                if (RightColorHex == null || RightColorHex == "auto") {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex);
+            }
+            set => RightColorHex = value.Value.ToHexColor();
         }
 
         public ThemeColorValues? RightThemeColor {
@@ -392,7 +410,7 @@ namespace OfficeIMO.Word {
         public string TopColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
+                if (pageBorder != null && pageBorder.TopBorder != null && pageBorder.TopBorder.Color != null) {
                     return (pageBorder.TopBorder.Color).Value.Replace("#", "");
                 }
 
@@ -413,9 +431,15 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color TopColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex); }
-            set { this.TopColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? TopColor {
+            get {
+                if (TopColorHex == null || TopColorHex == "auto"
+                    ) {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex);
+            }
+            set { this.TopColorHex = value.Value.ToHexColor(); }
         }
 
         public ThemeColorValues? TopThemeColor {
@@ -565,7 +589,7 @@ namespace OfficeIMO.Word {
         public string BottomColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
+                if (pageBorder != null && pageBorder.BottomBorder != null && pageBorder.BottomBorder.Color != null) {
                     return (pageBorder.BottomBorder.Color).Value.Replace("#", "");
                 }
 
@@ -586,9 +610,20 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public SixLabors.ImageSharp.Color BottomColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex); }
-            set { this.BottomColorHex = value.ToHexColor(); }
+        public SixLabors.ImageSharp.Color? BottomColor {
+            get {
+                if (BottomColorHex == null || BottomColorHex == "auto") {
+                    return null;
+                }
+                return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex);
+            }
+            set {
+                if (value == null) {
+                    this.BottomColorHex = null;
+                    return;
+                }
+                this.BottomColorHex = value.Value.ToHexColor();
+            }
         }
 
         public ThemeColorValues? BottomThemeColor {
@@ -821,6 +856,30 @@ namespace OfficeIMO.Word {
                 ParagraphBorders1.Append(bottomBorder1);
                 ParagraphBorders1.Append(rightBorder1);
                 return ParagraphBorders1;
+            }
+        }
+
+        public void SetBorder(WordParagraphBorderType type, BorderValues style, Color color, UInt32Value size, bool shadow) {
+            if (type == WordParagraphBorderType.Left) {
+                LeftStyle = style;
+                LeftColor = color;
+                LeftSize = (UInt32Value)size;
+                LeftShadow = shadow;
+            } else if (type == WordParagraphBorderType.Right) {
+                RightStyle = style;
+                RightColor = color;
+                RightSize = (UInt32Value)size;
+                RightShadow = shadow;
+            } else if (type == WordParagraphBorderType.Top) {
+                TopStyle = style;
+                TopColor = color;
+                TopSize = (UInt32Value)size;
+                TopShadow = shadow;
+            } else if (type == WordParagraphBorderType.Bottom) {
+                BottomStyle = style;
+                BottomColor = color;
+                BottomSize = (UInt32Value)size;
+                BottomShadow = shadow;
             }
         }
     }
