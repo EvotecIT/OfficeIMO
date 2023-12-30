@@ -148,6 +148,9 @@ namespace OfficeIMO.Examples {
             FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
 
             SaveToStream.Example_StreamDocumentProperties(folderPath, false);
+
+            WordTextBox.Example_AddingTextbox(folderPath, false);
+            WordTextBox.Example_AddingTextbox2(folderPath, false);
         }
     }
 }
