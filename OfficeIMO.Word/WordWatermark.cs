@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
 
                     // Style = "position:absolute;margin-left:0;margin-top:0;width:527.85pt;height:131.95pt;rotation:315;z-index:-251657216;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin", OptionalString = "_x0000_s1025", AllowInCell = false, FillColor = "silver", Stroked = false, Type = "#_x0000_t136" };
-                    // 
+                    //
                     var style = shape.Style.Value;
                     if (style != null) {
                         var rotation = style.Split(';').FirstOrDefault(c => c.StartsWith("rotation:"));
@@ -309,6 +309,25 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string text) {
+            this._document = wordDocument;
+            this._section = wordSection;
+
+            if (style == WordWatermarkStyle.Text) {
+                this._sdtBlock = GetStyle(style);
+
+                this.Text = text;
+
+                //this._document._document.Body.Append(_sdtBlock);
+                if (this._section.Paragraphs.Count == 0) {
+                    this._document._document.Body.Append(_sdtBlock);
+                } else {
+                    var lastParagraph = this._section.Paragraphs.Last();
+                    lastParagraph._paragraph.Parent.Append(_sdtBlock);
+                }
+            }
+        }
+
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text) {
             this._document = wordDocument;
             this._section = wordSection;
@@ -323,12 +342,6 @@ namespace OfficeIMO.Word {
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
 
-                if (_sdtBlock != null) {
-                    //var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                    //foreach (var paragraph in paragraphs) {
-                    //    this._wordParagraph = new WordParagraph(_document, paragraph);
-                    //}
-                }
 
                 this.Text = text;
 
@@ -633,6 +646,10 @@ namespace OfficeIMO.Word {
                 paragraph1.Append(run1);
                 return paragraph1;
             }
+        }
+
+        public void Remove() {
+            _sdtBlock.Remove();
         }
     }
 }
