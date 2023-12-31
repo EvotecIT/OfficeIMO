@@ -61,27 +61,34 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
-        public WordChart AddBarChart() {
+        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var barChart = WordBarChart.AddBarChart(this, paragraph);
+            var barChart = WordBarChart.AddBarChart(this, paragraph, title, roundedCorners, width, height);
+
             return barChart;
         }
 
-        public WordChart AddLineChart() {
+        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var lineChart = WordLineChart.AddLineChart(this, paragraph);
+            var lineChart = WordLineChart.AddLineChart(this, paragraph, title, roundedCorners, width, height);
             return lineChart;
         }
 
-        public WordBarChart3D AddBarChart3D() {
+        public WordChart AddAreaChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
-            return barChart;
+            var lineChart = WordAreaChart.AddAreaChart(this, paragraph, title, roundedCorners, width, height);
+            return lineChart;
         }
 
-        public WordChart AddPieChart() {
+        //public WordBarChart3D AddBarChart3D() {
+        //    var paragraph = this.AddParagraph();
+        //    var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
+        //    return barChart;
+        //}
+
+        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var pieChart = WordPieChart.AddPieChart(this, paragraph);
+            var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
             return pieChart;
         }
 
@@ -110,6 +117,11 @@ namespace OfficeIMO.Word {
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
             WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
             return wordCoverPage;
+        }
+
+        public WordTextBox AddTextBox(string text) {
+            WordTextBox wordTextBox = new WordTextBox(this, text);
+            return wordTextBox;
         }
 
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
@@ -236,14 +248,35 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the whole doc
+        /// </summary>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
         public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             int countFind = 0;
             FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the range parparagraphs
+        /// </summary>
+        /// <param name="paragraphs"></param>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        public static int FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            int countFind = 0;
+            FindAndReplaceNested(paragraphs, textToFind, textToReplace, ref countFind, true, stringComparison);
+            return countFind;
+        }
 
-        private List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+
+        private static List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             List<WordParagraph> foundParagraphs = ReplaceText(paragraphs, textToFind, textToReplace, ref count, replace, stringComparison);
             return foundParagraphs;
         }

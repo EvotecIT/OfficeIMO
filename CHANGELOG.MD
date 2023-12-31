@@ -1,3 +1,15 @@
+## 0.10.0 - 2023.10.24
+
+### What's Changed
+* Add set styleId and set paragraph alignment method by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/160
+* Fixed pos image by @boatwrong in https://github.com/EvotecIT/OfficeIMO/pull/165
+* Add Areachat by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/166
+
+### New Contributors
+* @boatwrong made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/165
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.9.0...v0.10.0
+
 ## 0.9.0 - 2023.08.15
 
 ### What's Changed
