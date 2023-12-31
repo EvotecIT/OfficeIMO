@@ -98,6 +98,10 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsTextBoxes {
+            get { return Paragraphs.Where(p => p.IsTextBox).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -216,6 +220,19 @@ namespace OfficeIMO.Word {
                 }
                 return list;
             }
+        }
+
+
+        public List<WordTextBox> TextBoxes {
+            get {
+                List<WordTextBox> list = new List<WordTextBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsTextBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.TextBox);
+                }
+                return list;
+            }
+
         }
 
         public List<WordEquation> Equations {
