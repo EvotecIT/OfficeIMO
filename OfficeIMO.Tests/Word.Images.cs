@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
             var table = document.AddTable(2, 2);
             table.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
 
-            // not really nessessary to add new paragraph since one is already there by default
+            // not really necessary to add new paragraph since one is already there by default
             var paragraph = table.Rows[0].Cells[1].AddParagraph();
             paragraph.AddImage(filePathImage, 200, 200);
 
@@ -313,7 +313,7 @@ namespace OfficeIMO.Tests {
             var tableInHeader = document.Header.Default.AddTable(2, 2);
             tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
 
-            // not really nessessary to add new paragraph since one is already there by default
+            // not really necessary to add new paragraph since one is already there by default
             var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
             paragraphInHeader.AddImage(filePathImage, 200, 200);
 
