@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -80,6 +80,7 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.PageBreak);
                 }
+
                 return list;
             }
         }
@@ -94,9 +95,11 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Image);
                 }
+
                 return list;
             }
         }
+
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -104,6 +107,7 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Bookmark);
                 }
+
                 return list;
             }
         }
@@ -115,6 +119,7 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Field);
                 }
+
                 return list;
             }
         }
@@ -126,6 +131,7 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Hyperlink);
                 }
+
                 return list;
             }
         }
@@ -137,6 +143,7 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Equation);
                 }
+
                 return list;
             }
         }
@@ -148,7 +155,20 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.StructuredDocumentTag);
                 }
+
                 return list;
+            }
+        }
+
+        public List<WordWatermark> Watermarks {
+            get {
+                if (_header != null) {
+                    return WordSection.ConvertStdBlockToWatermark(_document, _header.ChildElements.OfType<SdtBlock>());
+                } else if (_footer != null) {
+                    return WordSection.ConvertStdBlockToWatermark(_document, _footer.ChildElements.OfType<SdtBlock>());
+                }
+
+                return new List<WordWatermark>();
             }
         }
     }

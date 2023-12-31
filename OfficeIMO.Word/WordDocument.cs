@@ -299,6 +299,20 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all watermarks within the document from all the sections
+        /// </summary>
+        public List<WordWatermark> Watermarks {
+            get {
+                List<WordWatermark> list = new List<WordWatermark>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Watermarks);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordEmbeddedDocument> EmbeddedDocuments {
             get {
                 List<WordEmbeddedDocument> list = new List<WordEmbeddedDocument>();
