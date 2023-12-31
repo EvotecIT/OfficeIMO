@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -120,7 +121,8 @@ namespace OfficeIMO.Word {
                         if (width != null) {
                             var widthValue = width.Split(':').LastOrDefault();
                             if (widthValue != null) {
-                                return double.Parse(widthValue.Replace("pt", "").Replace(".", ","));
+                                string stringValue = widthValue.Replace("pt", "");
+                                return double.Parse(stringValue, CultureInfo.InvariantCulture);
                             }
                         }
                     }
@@ -154,7 +156,8 @@ namespace OfficeIMO.Word {
                         if (height != null) {
                             var heightValue = height.Split(':').LastOrDefault();
                             if (heightValue != null) {
-                                return double.Parse(heightValue.Replace("pt", ""));
+                                string stringValue = heightValue.Replace("pt", "");
+                                return double.Parse(stringValue, CultureInfo.InvariantCulture);
                             }
                         }
                     }
