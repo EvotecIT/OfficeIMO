@@ -274,8 +274,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
-                var body = _wordprocessingDocument.MainDocumentPart.Document.Body;
-                return WordSection.ConvertStdBlockToWatermark(_document, body.ChildElements.OfType<SdtBlock>());
+                var sdtBlockList = GetSdtBlockList();
+                return WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList);
             }
         }
 
@@ -331,9 +331,9 @@ namespace OfficeIMO.Word {
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
                 if (element is HeaderReference) {
-                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element, this);
                 } else if (element is FooterReference) {
-                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element, this);
                 } else if (element is PageSize) {
                 } else if (element is PageMargin) {
                 } else if (element is PageBorders) {

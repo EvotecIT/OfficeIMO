@@ -35,7 +35,8 @@ namespace OfficeIMO.Word {
         }
 
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
-            return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
+            // return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
+            return new WordWatermark(this._document, this, watermarkStyle, text);
         }
 
         public WordSection SetBorders(WordBorder wordBorder) {
