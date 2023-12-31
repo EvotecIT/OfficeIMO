@@ -154,7 +154,7 @@ namespace OfficeIMO.Word {
                         if (height != null) {
                             var heightValue = height.Split(':').LastOrDefault();
                             if (heightValue != null) {
-                                return double.Parse(heightValue.Replace("pt", "").Replace('.', ','));
+                                return double.Parse(heightValue.Replace("pt", ""));
                             }
                         }
                     }
