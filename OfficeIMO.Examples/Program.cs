@@ -106,6 +106,7 @@ namespace OfficeIMO.Examples {
             Images.Example_AddingImagesMultipleTypes(folderPath, false);
             Images.Example_ReadWordWithImagesAndDiffWraps();
             Images.Example_AddingFixedImages(folderPath, false);
+            Images.Example_AddingImagesSampleToTable(folderPath, false);
 
             PageBreaks.Example_PageBreaks(folderPath, false);
             PageBreaks.Example_PageBreaks1(folderPath, false);

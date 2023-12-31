@@ -291,6 +291,40 @@ namespace OfficeIMO.Tests {
 
             document.Save(false);
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesInTable() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImagesInTable.docx");
+            using var document = WordDocument.Create(filePath);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+
+            var table = document.AddTable(2, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+
+            // not really necessary to add new paragraph since one is already there by default
+            var paragraph = table.Rows[0].Cells[1].AddParagraph();
+            paragraph.AddImage(filePathImage, 200, 200);
+
+            document.AddHeadersAndFooters();
+
+            var tableInHeader = document.Header.Default.AddTable(2, 2);
+            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+
+            // not really necessary to add new paragraph since one is already there by default
+            var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
+            paragraphInHeader.AddImage(filePathImage, 200, 200);
+
+            Assert.True(document.Tables.Count == 1);
+            Assert.True(document.Tables[0].Rows.Count == 2);
+            Assert.True(document.Tables[0].Rows[0].Cells.Count == 2);
+
+            Assert.True(document.Header.Default.Tables.Count == 1);
+
+            document.Save(false);
+        }
     }
 
 }
