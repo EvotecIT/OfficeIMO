@@ -50,6 +50,9 @@ namespace OfficeIMO.Examples.Word {
                 watermark.Width = 500.18;
 
                 document.AddSection();
+
+                document.AddParagraph("Section 1");
+
                 document.Sections[1].AddHeadersAndFooters();
                 document.Sections[1].Margins.Type = WordMargin.Narrow;
 
@@ -67,10 +70,42 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
+                Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
 
+                Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+                Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+                Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+                Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+                Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+
+                Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+                Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Console.WriteLine("----");
+                Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
+
+                Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+                Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+                Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+                Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+                Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+
+                Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+                Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
 
                 document.Save(openWord);
             }
         }
+
     }
 }
