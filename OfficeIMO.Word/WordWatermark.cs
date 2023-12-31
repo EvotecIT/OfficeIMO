@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
                         if (width != null) {
                             var widthValue = width.Split(':').LastOrDefault();
                             if (widthValue != null) {
-                                return double.Parse(widthValue.Replace("pt", "").Replace(".",","));
+                                return double.Parse(widthValue.Replace("pt", "").Replace(".", ","));
                             }
                         }
                     }
@@ -334,6 +334,11 @@ namespace OfficeIMO.Word {
 
                 wordHeader._header.Append(_sdtBlock);
             }
+        }
+
+        public WordWatermark(WordDocument wordDocument, SdtBlock sdtBlock) {
+            _document = wordDocument;
+            _sdtBlock = sdtBlock;
         }
 
         private static SdtBlock TextWatermark {
