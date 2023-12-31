@@ -10,15 +10,39 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordSection {
 
-        internal static List<WordParagraph> ConvertRunsToWordParagraphs(WordDocument document, Run run) {
-            var list = new List<WordParagraph>();
-            return list;
-        }
+        //internal static List<WordParagraph> ConvertRunsToWordParagraphs(WordDocument document, Run run) {
+        //    var list = new List<WordParagraph>();
+        //    return list;
+        //}
 
         internal static List<WordTable> ConvertTableToWordTable(WordDocument document, IEnumerable<Table> tables) {
             var list = new List<WordTable>();
             foreach (Table table in tables) {
                 list.Add(new WordTable(document, table));
+            }
+            return list;
+        }
+
+        internal static List<WordWatermark> ConvertStdBlockToWatermark(WordDocument document, IEnumerable<SdtBlock> sdtBlock) {
+            var list = new List<WordWatermark>();
+            foreach (SdtBlock block in sdtBlock) {
+                var sdtContent = block.SdtContentBlock;
+                if (sdtContent == null) {
+                    continue;
+                }
+                var paragraphs = sdtContent.ChildElements.OfType<Paragraph>().FirstOrDefault();
+                if (paragraphs == null) {
+                    continue;
+                }
+                var run = paragraphs.ChildElements.OfType<Run>().FirstOrDefault();
+                if (run == null) {
+                    continue;
+                }
+                var picture = run.ChildElements.OfType<Picture>().FirstOrDefault();
+                if (picture == null) {
+                    continue;
+                }
+                list.Add(new WordWatermark(document, block));
             }
             return list;
         }
