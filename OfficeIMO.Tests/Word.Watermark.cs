@@ -23,6 +23,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(watermark.Stroked == false);
                 Assert.True(watermark.AllowInCell == false);
                 Assert.True(watermark.Rotation == 90);
+
+                Console.WriteLine("Height: " + watermark.Height);
+
                 Assert.True(watermark.Height == 131.95);
                 Assert.True(watermark.Width == 527.85);
                 Assert.True(watermark.ColorHex == "silver");
