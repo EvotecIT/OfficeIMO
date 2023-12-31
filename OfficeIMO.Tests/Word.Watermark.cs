@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 document.Sections[1].AddHeadersAndFooters();
                 document.Sections[1].Margins.Type = WordMargin.Narrow;
 
-               
+
                 document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Draft");
 
                 document.Settings.SetBackgroundColor(Color.Azure);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark.docx"))) {
-               
+
                 document.Save();
             }
 
@@ -50,10 +50,20 @@ namespace OfficeIMO.Tests {
                 document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Draft");
                 document.Settings.SetBackgroundColor(Color.Azure);
                 document.AddSection();
+
+                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
+
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark2.docx"))) {
+
+                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
 
                 document.Save();
             }
