@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
         public static void Watermark_Sample1(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Watermark 2");
-            string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 3.docx");
+            string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 4.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
@@ -25,11 +25,10 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].Margins.Type = WordMargin.Wide;
 
-
                 Console.WriteLine(document.Sections[0].Margins.Type);
 
                 Console.WriteLine("----");
-                var watermark = document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
                 watermark.Color = Color.Red;
 
                 // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
@@ -50,6 +49,9 @@ namespace OfficeIMO.Examples.Word {
                 watermark.Height = 100.15;
                 watermark.Width = 500.18;
 
+                document.AddPageBreak();
+                document.AddPageBreak();
+
                 document.AddSection();
 
                 document.AddParagraph("Section 1");
@@ -63,7 +65,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 1 - Paragraphs Count: " + document.Sections[1].Header.Default.Paragraphs.Count);
 
                 Console.WriteLine("----");
-                document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Draft");
+                document.Sections[1].AddParagraph("Test");
+                document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
                 Console.WriteLine(document.Sections[0].Margins.Right.Value);
