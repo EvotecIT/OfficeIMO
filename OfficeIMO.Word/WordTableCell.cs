@@ -99,9 +99,25 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Add paragraph to the table cell
         /// </summary>
-        /// <param name="paragraph"></param>
-        /// <returns></returns>
-        public WordParagraph AddParagraph(WordParagraph paragraph = null) {
+        /// <param name="paragraph">The paragraph to add to this cell, if
+        /// this is not passed then a new empty paragraph with settings from
+        /// the previous paragraph will be added.</param>
+        /// <param name="reset">If reset is not passed or false then add
+        /// the given paragraph into the cell. If reset is true then clear
+        /// every existing paragraph before adding the new paragraph.
+        /// </param>
+        /// <returns>A reference to the added paragraph.</returns>
+        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool reset = false) {
+            // Considering between implementing a reset that clears all paragraphs or
+            // a deletePrevious that will replace the last paragraph.
+            // NOTE: Raise this during PR.
+            if (reset) {
+                var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                foreach (var paragraph in paragraphs) {
+                    paragraph.Remove();
+                }
+                
+            }
             if (paragraph == null) {
                 paragraph = new WordParagraph(this._document);
             }
