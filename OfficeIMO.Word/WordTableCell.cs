@@ -113,8 +113,8 @@ namespace OfficeIMO.Word {
             // NOTE: Raise this during PR.
             if (reset) {
                 var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
-                foreach (var paragraph in paragraphs) {
-                    paragraph.Remove();
+                foreach (var wordParagraph in paragraphs) {
+                    wordParagraph.Remove();
                 }
                 
             }
