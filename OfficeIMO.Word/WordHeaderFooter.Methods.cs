@@ -13,8 +13,8 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: false);
+        public WordParagraph AddParagraph(bool newRun = false) {
+            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (_footer != null) {
                 _footer.Append(wordParagraph._paragraph);
             } else if (_header != null) {

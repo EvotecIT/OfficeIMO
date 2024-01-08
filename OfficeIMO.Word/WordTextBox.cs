@@ -9,6 +9,7 @@ namespace OfficeIMO.Word {
     public class WordTextBox {
         private WordDocument _document;
         private WordParagraph _wordParagraph;
+        private readonly WordHeaderFooter _headerFooter;
         private Run _run => _wordParagraph._run;
 
         /// <summary>
@@ -35,6 +36,18 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, Paragraph paragraph, Run run) {
             _document = wordDocument;
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
+        }
+
+        public WordTextBox(WordDocument wordDocument, WordHeaderFooter wordHeaderFooter, string text) {
+            _document = wordDocument;
+            _headerFooter = wordHeaderFooter;
+
+            var paragraph = wordHeaderFooter.AddParagraph(newRun: true);
+            paragraph._run.Append(new RunProperties());
+            AddAlternateContent(wordDocument, paragraph, text);
+
+            _document = wordDocument;
+            _wordParagraph = paragraph;
         }
 
         /// <summary>

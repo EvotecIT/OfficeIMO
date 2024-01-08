@@ -83,5 +83,10 @@ namespace OfficeIMO.Word {
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
             return new WordWatermark(this._document, this._section, this, watermarkStyle, text);
         }
+
+        public WordTextBox AddTextBox(string text) {
+            WordTextBox wordTextBox = new WordTextBox(this._document, this, text);
+            return wordTextBox;
+        }
     }
 }
