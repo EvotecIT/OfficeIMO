@@ -350,6 +350,22 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool AutoFitToTextSize {
+            get {
+                return TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().Any();
+            }
+            set {
+                TextBodyProperties.RemoveChild(TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().FirstOrDefault());
+                if (value) {
+                    TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.ShapeAutoFit());
+                }
+                else
+                {
+                    TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.NoAutoFit());
+                }
+            }
+        }
+
         public DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
             get {
                 var anchor = _anchor;
