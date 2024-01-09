@@ -913,7 +913,7 @@ namespace OfficeIMO.Word {
             RunProperties runProperties1 = new RunProperties();
             run1.Append(runProperties1);
 
-            foreach (var part in text.Split(new string[] { Environment.NewLine, "\r\n", "\n" }, StringSplitOptions.None)) {
+            foreach (var part in text.Split(new string[] { Environment.NewLine, "\r\n", "\n", "\r" }, StringSplitOptions.None)) {
                 Text textPart = new Text();
                 textPart.Text = part;
                 run1.Append(textPart);
