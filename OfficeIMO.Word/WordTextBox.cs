@@ -17,11 +17,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument"></param>
         /// <param name="text"></param>
-        public WordTextBox(WordDocument wordDocument, string text) {
+        public WordTextBox(WordDocument wordDocument, string text, bool noWrap = false) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
             paragraph._run.Append(new RunProperties());
-            AddAlternateContent(wordDocument, paragraph, text);
+            AddAlternateContent(wordDocument, paragraph, text, noWrap);
 
             _document = wordDocument;
             _wordParagraph = paragraph;
@@ -38,13 +38,13 @@ namespace OfficeIMO.Word {
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
         }
 
-        public WordTextBox(WordDocument wordDocument, WordHeaderFooter wordHeaderFooter, string text) {
+        public WordTextBox(WordDocument wordDocument, WordHeaderFooter wordHeaderFooter, string text, bool noWrap = false) {
             _document = wordDocument;
             _headerFooter = wordHeaderFooter;
 
             var paragraph = wordHeaderFooter.AddParagraph(newRun: true);
             paragraph._run.Append(new RunProperties());
-            AddAlternateContent(wordDocument, paragraph, text);
+            AddAlternateContent(wordDocument, paragraph, text, noWrap);
 
             _document = wordDocument;
             _wordParagraph = paragraph;
@@ -638,13 +638,13 @@ namespace OfficeIMO.Word {
             return centimeters;
         }
 
-        private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text) {
+        private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text, bool noWrap = false) {
 
             AlternateContent alternateContent1 = new AlternateContent();
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wps" };
 
             DocumentFormat.OpenXml.Wordprocessing.Drawing drawing1 = new DocumentFormat.OpenXml.Wordprocessing.Drawing {
-                Anchor = GenerateAnchor(text)
+                Anchor = GenerateAnchor(text, noWrap)
             };
 
             alternateContentChoice1.Append(drawing1);
@@ -789,7 +789,7 @@ namespace OfficeIMO.Word {
         //    return alternateContentFallback1;
         //}
 
-        private Anchor GenerateAnchor(string text) {
+        private Anchor GenerateAnchor(string text, bool noWrap = false) {
             Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
             anchor1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
             anchor1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
@@ -808,7 +808,6 @@ namespace OfficeIMO.Word {
             verticalPosition1.Append(positionOffset1);
             Extent extent1 = new Extent() { Cx = 2360930L, Cy = 1404620L };
             EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L };
-            WrapTopBottom wrapTopBottom1 = new WrapTopBottom();
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)307U, Name = "Text Box 2" };
 
             NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = new NonVisualGraphicFrameDrawingProperties();
@@ -993,7 +992,16 @@ namespace OfficeIMO.Word {
             anchor1.Append(verticalPosition1);
             anchor1.Append(extent1);
             anchor1.Append(effectExtent1);
-            anchor1.Append(wrapTopBottom1);
+            if(noWrap)
+            {
+                WrapNone wrapNone = new WrapNone();
+                anchor1.Append(wrapNone);
+
+            } else
+            {
+                WrapTopBottom wrapTopBottom1 = new WrapTopBottom();
+                anchor1.Append(wrapTopBottom1);
+            }
             anchor1.Append(docProperties1);
             anchor1.Append(nonVisualGraphicFrameDrawingProperties1);
             anchor1.Append(graphic1);
