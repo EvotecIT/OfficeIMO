@@ -344,6 +344,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public TextBodyProperties TextBodyProperties {
+            get {
+                return _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
+            }
+        }
+
         public DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
             get {
                 var anchor = _anchor;
