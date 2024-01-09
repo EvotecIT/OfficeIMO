@@ -358,9 +358,7 @@ namespace OfficeIMO.Word {
                 TextBodyProperties.RemoveChild(TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().FirstOrDefault());
                 if (value) {
                     TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.ShapeAutoFit());
-                }
-                else
-                {
+                } else {
                     TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.NoAutoFit());
                 }
             }
@@ -913,12 +911,14 @@ namespace OfficeIMO.Word {
 
             Run run1 = new Run();
             RunProperties runProperties1 = new RunProperties();
-
-            Text text1 = new Text();
-            text1.Text = text;
-
             run1.Append(runProperties1);
-            run1.Append(text1);
+
+            foreach (var part in text.Split(new string[] { Environment.NewLine, "\r\n", "\n" }, StringSplitOptions.None)) {
+                Text textPart = new Text();
+                textPart.Text = part;
+                run1.Append(textPart);
+                run1.Append(new Break());
+            }
 
             paragraph1.Append(paragraphProperties1);
             paragraph1.Append(run1);
