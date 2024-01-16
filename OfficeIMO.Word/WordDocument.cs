@@ -575,7 +575,7 @@ namespace OfficeIMO.Word {
             WordSection wordSection = new WordSection(word, null);
             WordBackground wordBackground = new WordBackground(word);
 
-            word.Save();
+            //word.Save();
             return word;
         }
 
@@ -778,10 +778,16 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
+            if (_fileStream != null) _fileStream.Dispose();
+            _fileStream = null;
+
+            if (filePath == "") {
+                filePath = this.FilePath;
+                Helpers.MakeOpenOfficeCompatible(this.FilePath);
+            }
+
             if (openWord) {
-                _fileStream.Dispose();
-                _fileStream = null;
-                this.Open(filePath, openWord);
+                this.Open(filePath, true);
             }
         }
 
