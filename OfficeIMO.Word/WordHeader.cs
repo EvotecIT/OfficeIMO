@@ -84,8 +84,8 @@ namespace OfficeIMO.Word {
             return new WordWatermark(this._document, this._section, this, watermarkStyle, text);
         }
 
-        public WordTextBox AddTextBox(string text, bool noWrap = false) {
-            WordTextBox wordTextBox = new WordTextBox(this._document, this, text, noWrap);
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
         }
     }
