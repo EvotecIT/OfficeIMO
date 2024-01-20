@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
                 Assert.True(document.Images[1].WrapText == WrapTextImage.Square);
-                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontText);
+                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontOfText);
                 Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
                 Assert.True(document.Header.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
 
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
-            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontText);
+            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
 
             var paragraph4 = document.AddParagraph("This is a test document with images wraps");
             paragraph4.AddImage(filePathImage, 100, 100, WrapTextImage.TopAndBottom);
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Paragraphs.Count == 7);
             Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
             Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.BehindText);
-            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontText);
+            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontOfText);
             Assert.True(document.Paragraphs[3].Image.WrapText == WrapTextImage.TopAndBottom);
             Assert.True(document.Paragraphs[4].Image.WrapText == WrapTextImage.Square);
             Assert.True(document.Paragraphs[5].Image.WrapText == WrapTextImage.Tight);
