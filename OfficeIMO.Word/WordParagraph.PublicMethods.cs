@@ -175,8 +175,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="section"></param>
         /// <returns></returns>
-        public WordParagraph AddParagraphAfterSelf(WordSection section) {
-            WordParagraph paragraph = new WordParagraph(section._document, true, false);
+        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph paragraph = null) {
+            if (paragraph == null) {
+                paragraph = new WordParagraph(section._document, true, false);
+            }
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             return paragraph;
         }
@@ -356,6 +358,11 @@ namespace OfficeIMO.Word {
             var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
             return wordEndNote;
 
+        }
+
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
+            WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
+            return wordTextBox;
         }
     }
 }
