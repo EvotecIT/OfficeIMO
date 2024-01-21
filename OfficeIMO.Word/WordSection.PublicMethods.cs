@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
-        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             return AddParagraph(newRun: true).AddTextBox(text, wrapTextImage);
         }
     }
