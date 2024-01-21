@@ -76,6 +76,19 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Textbox7 (body) wraptext (Through): " + textBox7.WrapText);
 
+                document.AddPageBreak();
+
+                document.Sections[0].AddTextBox("My textbox 8 center - Square", WrapTextImage.Square);
+                document.Sections[0].TextBoxes[0].HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Margin;
+                document.Sections[0].TextBoxes[0].VerticalPositionOffsetCentimeters = 10;
+
+                //document.AddPageBreak();
+
+                document.AddSection();
+
+                var wordTextbox = document.Sections[1].AddTextBox("My textbox 9 center - Square", WrapTextImage.Square);
+                wordTextbox.VerticalPositionOffsetCentimeters = 10;
+
                 document.Save(openWord);
             }
         }
