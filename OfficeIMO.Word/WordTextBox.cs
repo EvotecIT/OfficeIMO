@@ -47,7 +47,15 @@ namespace OfficeIMO.Word {
             paragraph._run.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
+            _wordParagraph = paragraph;
+        }
+
+        public WordTextBox(WordDocument wordDocument, WordParagraph paragraph, string text, WrapTextImage wrapTextImage) {
             _document = wordDocument;
+
+            paragraph._run.Append(new RunProperties());
+            AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
+
             _wordParagraph = paragraph;
         }
 
