@@ -6,7 +6,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
-using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {
@@ -39,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
-                textBox.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox.HorizontalAlignment = HorizontalAlignmentValue.Right;
 
                 //textBox.HorizonalPositionOffset = 1901950;
 
@@ -85,7 +84,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.TextBoxes[0].WordParagraph.Borders.Type = WordBorder.None;
 
-                document.Save(openWord);
+                document.Save(true);
             }
         }
     }

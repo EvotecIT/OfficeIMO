@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
-using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {
@@ -20,14 +19,14 @@ namespace OfficeIMO.Examples.Word {
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox.HorizontalAlignment = HorizontalAlignmentValue.Left;
                 textBox.VerticalPositionOffsetCentimeters = 3;
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = HorizontalAlignmentValue.Right;
                 textBox2.VerticalPositionOffsetCentimeters = 3;
 
                 Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
@@ -38,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.HorizontalAlignment = HorizontalAlignmentValue.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 10;
                 textBox3.WordParagraph.Borders.BottomStyle = BorderValues.BasicWideOutline;
                 textBox3.WordParagraph.Borders.BottomSize = 10;
