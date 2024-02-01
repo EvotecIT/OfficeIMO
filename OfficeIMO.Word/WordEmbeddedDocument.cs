@@ -3,12 +3,6 @@ using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using V = DocumentFormat.OpenXml.Vml;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
     public class WordEmbeddedDocument {
@@ -74,21 +68,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordEmbeddedDocument(WordDocument wordDocument, string fileName, AlternativeFormatImportPartType? alternativeFormatImportPartType) {
-            AlternativeFormatImportPartType partType;
+        public WordEmbeddedDocument(WordDocument wordDocument, string fileName, string alternativeFormatImportPartType) {
+            string partType;
             if (alternativeFormatImportPartType == null) {
                 FileInfo fileInfo = new FileInfo(fileName);
                 if (fileInfo.Extension == ".rtf") {
-                    partType = AlternativeFormatImportPartType.Rtf;
+                    partType = "application/rtf";
                 } else if (fileInfo.Extension == ".html") {
-                    partType = AlternativeFormatImportPartType.Html;
+                    partType = "text/html";
                 } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
-                    partType = AlternativeFormatImportPartType.TextPlain;
+                    partType = "text/plain";
                 } else {
-                    throw new Exception("Only RTF and HTML files are supported for now :-)");
+                    throw new Exception("Only RTF, HTML, LOG and TXT files are supported for now :-)");
                 }
             } else {
-                partType = alternativeFormatImportPartType.Value;
+                partType = alternativeFormatImportPartType;
             }
 
             AltChunk altChunk = new AltChunk {
@@ -97,7 +91,7 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
-            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partType, altChunk.Id);
+            var chunk = mainDocPart.AddAlternativeFormatImportPart(partType, altChunk.Id);
 
             var documentContent = File.ReadAllText(fileName, Encoding.ASCII);
 
