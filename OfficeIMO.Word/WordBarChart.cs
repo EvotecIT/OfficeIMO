@@ -30,7 +30,10 @@ namespace OfficeIMO.Word {
             return new WordChart(_document, _paragraph._paragraph, drawing);
         }
 
-        internal static BarChart CreateBarChart(BarDirectionValues barDirection = BarDirectionValues.Bar) {
+        internal static BarChart CreateBarChart(BarDirectionValues? barDirection = null) {
+            if (barDirection == null) {
+                barDirection = BarDirectionValues.Bar;
+            }
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 

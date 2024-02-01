@@ -6,6 +6,13 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
+    public enum HorizontalAlignmentValue {
+        Left,
+        Center,
+        Right,
+        Outside
+    }
+
     public class WordTextBox {
         private WordDocument _document;
         private WordParagraph _wordParagraph;
@@ -125,7 +132,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues HorizontalAlignment {
+        public HorizontalAlignmentValue HorizontalAlignment {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
@@ -134,7 +141,7 @@ namespace OfficeIMO.Word {
                         return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
                     }
                 }
-                return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
+                return HorizontalAlignmentValue.Center;
             }
             set {
                 var anchor = _anchor;
@@ -144,8 +151,9 @@ namespace OfficeIMO.Word {
                         horizontalPosition = AddHorizontalPosition(anchor, true);
                     }
                     if (horizontalPosition.HorizontalAlignment == null) {
+
                         horizontalPosition.HorizontalAlignment = new HorizontalAlignment() {
-                            Text = value.ToString().ToLower()
+                            Text = value.ToString()
                         };
                     } else {
                         horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
@@ -1007,18 +1015,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        private DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
+        private HorizontalAlignmentValue GetHorizontalAlignmentFromText(string text) {
             switch (text.ToLower()) {
                 case "left":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Left;
+                    return HorizontalAlignmentValue.Left;
                 case "right":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Right;
+                    return HorizontalAlignmentValue.Right;
                 case "center":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
+                    return HorizontalAlignmentValue.Center;
                 case "outside":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Outside;
+                    return HorizontalAlignmentValue.Outside;
                 default:
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
+                    return HorizontalAlignmentValue.Center;
             }
         }
 

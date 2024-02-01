@@ -579,11 +579,12 @@ namespace OfficeIMO.Word {
             double? height,
             WrapTextImage wrapImage = WrapTextImage.InLineWithText,
             string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            ShapeTypeValues? shape = null,
+            BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open);
+
             AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
         }
 
@@ -596,9 +597,10 @@ namespace OfficeIMO.Word {
             double? height,
             WrapTextImage wrapImage = WrapTextImage.InLineWithText,
             string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+            ShapeTypeValues? shape = null,
+            BlipCompressionValues? compressionQuality = null) {
             FilePath = fileName;
+
             AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
         }
 
@@ -841,18 +843,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width,
-            double? height,
-            ShapeTypeValues shape,
-            BlipCompressionValues compressionQuality,
-            string description,
-            WrapTextImage wrapImage
-        ) {
+        private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues? shape, BlipCompressionValues? compressionQuality, string description, WrapTextImage wrapImage) {
+            ShapeTypeValues shapeValue;
+            if (shape == null) {
+                shapeValue = ShapeTypeValues.Rectangle;
+            } else {
+                shapeValue = shape.Value;
+            }
+            BlipCompressionValues compressionQualityValue;
+            if (compressionQuality == null) {
+                compressionQualityValue = BlipCompressionValues.Print;
+            } else {
+                compressionQualityValue = compressionQuality.Value;
+            }
             _document = document;
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
@@ -896,10 +899,10 @@ namespace OfficeIMO.Word {
             var drawing = new Drawing();
 
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
+                var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shapeValue, compressionQualityValue, description);
                 drawing.Append(inline);
             } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
+                var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shapeValue, compressionQualityValue, description);
                 var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description, wrapImage);
                 drawing.Append(anchor);
             }

@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Add TEXT 2");
 
                 // but you can specify type as you want, if the extension would be .ext, and the content type would be text/plain
-                document.AddEmbeddedDocument(txtFilePath, AlternativeFormatImportPartType.TextPlain);
+                document.AddEmbeddedDocument(txtFilePath, "text/plain");
 
 
                 Console.WriteLine("Embedded documents in word: " + document.EmbeddedDocuments.Count);

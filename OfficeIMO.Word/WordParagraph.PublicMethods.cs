@@ -220,7 +220,10 @@ namespace OfficeIMO.Word {
         /// <param name="size"></param>
         /// <param name="space"></param>
         /// <returns></returns>
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            if (lineType == null) {
+                lineType = BorderValues.Single;
+            }
             this._paragraphProperties.ParagraphBorders = new ParagraphBorders();
             this._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
                 Val = lineType,
@@ -300,7 +303,13 @@ namespace OfficeIMO.Word {
         /// <param name="alignment"></param>
         /// <param name="leader"></param>
         /// <returns></returns>
-        public WordTabStop AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+        public WordTabStop AddTabStop(int position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
+            if (alignment == null) {
+                alignment = TabStopValues.Left; ;
+            }
+            if (leader == null) {
+                leader = TabStopLeaderCharValues.None;
+            }
             var wordTab = new WordTabStop(this);
             wordTab.AddTab(position, alignment, leader);
             return wordTab;
