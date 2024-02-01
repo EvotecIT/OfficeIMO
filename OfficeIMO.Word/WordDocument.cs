@@ -463,7 +463,9 @@ namespace OfficeIMO.Word {
         private FileStream _fileStream;
 
         public FileAccess FileOpenAccess {
-            get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
+            get {
+                return _wordprocessingDocument.FileOpenAccess;
+            }
         }
 
         private static string GetUniqueFilePath(string filePath) {
@@ -709,7 +711,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="src"></param>
         /// <param name="dest"></param>
-        private static void CopyPackageProperties(PackageProperties src, PackageProperties dest) {
+        private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
             dest.ContentType = src.ContentType;
@@ -848,11 +850,6 @@ namespace OfficeIMO.Word {
             }
 
             if (this._wordprocessingDocument != null) {
-                try {
-                    this._wordprocessingDocument.Close();
-                } catch {
-                    // ignored
-                }
                 this._wordprocessingDocument.Dispose();
             }
 
