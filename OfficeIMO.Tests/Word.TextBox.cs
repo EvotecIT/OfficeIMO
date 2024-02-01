@@ -24,10 +24,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.TextBoxes[0].HorizonalPositionOffsetCentimeters == 3);
 
-                textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox.HorizontalAlignment = HorizontalAlignmentValue.Left;
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                Assert.True(document.TextBoxes[0].HorizontalAlignment == HorizontalAlignmentValues.Left);
+                Assert.True(document.TextBoxes[0].HorizontalAlignment == HorizontalAlignmentValue.Left);
                 Assert.True(document.TextBoxes[0].HorizonalPositionOffsetCentimeters == null);
 
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox2.HorizonalPositionOffsetCentimeters = 3;
                 textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
-                textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = HorizontalAlignmentValue.Right;
 
                 Assert.True(document.Paragraphs.Count == 3);
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
                 var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.HorizontalAlignment = HorizontalAlignmentValue.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 10;
                 textBox3.WordParagraph.Borders.BottomStyle = BorderValues.BasicWideOutline;
 
