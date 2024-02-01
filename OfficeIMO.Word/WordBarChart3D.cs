@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
             AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            OpenXmlUnknownElement openXmlUnknownElement1 = OpenXmlUnknownElement.CreateOpenXmlUnknownElement("<c:overlap val=\"0\" xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" />");
+            OpenXmlUnknownElement openXmlUnknownElement1 = new OpenXmlUnknownElement("<c:overlap val=\"0\" xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" />");
 
             DataLabels dataLabels1 = new DataLabels();
             dataLabels1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
