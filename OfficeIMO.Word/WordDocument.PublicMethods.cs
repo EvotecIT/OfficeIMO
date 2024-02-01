@@ -41,7 +41,10 @@ namespace OfficeIMO.Word {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
-        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
+        public WordParagraph AddBreak(BreakValues? breakType = null) {
+            if (breakType == null) {
+                breakType = BreakValues.Page;
+            }
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
                 _document = this
@@ -124,7 +127,7 @@ namespace OfficeIMO.Word {
             return wordTextBox;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
 
@@ -162,7 +165,7 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
-        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
+        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, string type = null) {
             WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
             return embeddedDocument;
         }

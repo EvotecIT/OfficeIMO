@@ -54,7 +54,14 @@ namespace OfficeIMO.Word {
             _tabStop = tab;
         }
 
-        internal WordTabStop AddTab(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+        internal WordTabStop AddTab(int position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
+            if (alignment == null) {
+                alignment = TabStopValues.Left; ;
+            }
+            if (leader == null) {
+                leader = TabStopLeaderCharValues.None;
+            }
+
             TabStop tabStop1 = new TabStop() { Val = alignment, Leader = leader, Position = position };
             _tabs.Append(tabStop1);
             _tabStop = tabStop1;

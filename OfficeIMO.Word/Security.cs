@@ -40,7 +40,10 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        internal static void ProtectWordDoc(WordprocessingDocument wordDocument, string password, DocumentProtectionValues documentProtectionValue = DocumentProtectionValues.ReadOnly) {
+        internal static void ProtectWordDoc(WordprocessingDocument wordDocument, string password, DocumentProtectionValues? documentProtectionValue = null) {
+            if (documentProtectionValue == null) {
+                documentProtectionValue = DocumentProtectionValues.ReadOnly;
+            }
             // Generate the Salt
             byte[] arrSalt = new byte[16];
             RandomNumberGenerator rand = new RNGCryptoServiceProvider();
@@ -72,12 +75,12 @@ namespace OfficeIMO.Word {
 
                 // Compute the high-order word of the new key:
 
-                // --> Initialize from the initial code array (see below), depending on the strPassword’s length. 
+                // --> Initialize from the initial code array (see below), depending on the strPassword’s length.
                 int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
 
                 // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding) 
-                //          the most significant, if the bit is set, XOR the key’s high-order word with the corresponding word from 
+                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding)
+                //          the most significant, if the bit is set, XOR the key’s high-order word with the corresponding word from
                 //          the Encryption Matrix
 
                 for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
@@ -115,8 +118,8 @@ namespace OfficeIMO.Word {
             }
 
             // Implementation Notes List:
-            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex 
-            // --> string representation 
+            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex
+            // --> string representation
             StringBuilder sb = new StringBuilder();
             for (int intTemp = 0; intTemp < 4; intTemp++) {
                 sb.Append(Convert.ToString(generatedKey[intTemp], 16));
@@ -167,7 +170,7 @@ namespace OfficeIMO.Word {
             documentProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
             documentProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
             documentProtection.CryptographicAlgorithmSid = 4; // SHA1
-            //    The iteration count is unsigned
+                                                              //    The iteration count is unsigned
             UInt32Value uintVal = new UInt32Value();
             uintVal.Value = (uint)iterations;
             documentProtection.CryptographicSpinCount = uintVal;
@@ -215,12 +218,12 @@ namespace OfficeIMO.Word {
 
                 // Compute the high-order word of the new key:
 
-                // --> Initialize from the initial code array (see below), depending on the strPassword’s length. 
+                // --> Initialize from the initial code array (see below), depending on the strPassword’s length.
                 int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
 
                 // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding) 
-                //          the most significant, if the bit is set, XOR the key’s high-order word with the corresponding word from 
+                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding)
+                //          the most significant, if the bit is set, XOR the key’s high-order word with the corresponding word from
                 //          the Encryption Matrix
 
                 for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
@@ -258,8 +261,8 @@ namespace OfficeIMO.Word {
             }
 
             // Implementation Notes List:
-            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex 
-            // --> string representation 
+            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex
+            // --> string representation
             StringBuilder sb = new StringBuilder();
             for (int intTemp = 0; intTemp < 4; intTemp++) {
                 sb.Append(Convert.ToString(generatedKey[intTemp], 16));
@@ -312,7 +315,7 @@ namespace OfficeIMO.Word {
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmSid = 4; // SHA1
-            //    The iteration count is unsigned
+            //    The iteration count is unsigned                                                                                                 //    The iteration count is unsigned
             UInt32Value uintVal = new UInt32Value {
                 Value = (uint)iterations
             };
