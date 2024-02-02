@@ -823,7 +823,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 
     var paragraph3 = document.AddParagraph("Image will be in front of text");
-    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontOfText, "Przemek and Kulek on an image");
 
 
     var paragraph5 = document.AddParagraph("Image will be Square");
