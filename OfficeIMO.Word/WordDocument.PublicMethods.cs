@@ -119,8 +119,8 @@ namespace OfficeIMO.Word {
             return wordCoverPage;
         }
 
-        public WordTextBox AddTextBox(string text) {
-            WordTextBox wordTextBox = new WordTextBox(this, text);
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
             return wordTextBox;
         }
 

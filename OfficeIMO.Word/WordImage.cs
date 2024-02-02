@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -12,16 +11,6 @@ using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 
 namespace OfficeIMO.Word {
-    public enum WrapTextImage {
-        InLineWithText,
-        Square,
-        Tight,
-        Through,
-        TopAndBottom,
-        BehindText,
-        InFrontText
-    }
-
     public class WordImage {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
@@ -485,91 +474,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-
+        /// <summary>
+        /// Gets or sets the image's wrap text.
+        /// </summary>
         public WrapTextImage? WrapText {
-            get {
-                if (_Image.Inline != null) {
-                    return WrapTextImage.InLineWithText;
-                } else if (_Image.Anchor != null) {
-                    var wrapSquare = _Image.Anchor.OfType<WrapSquare>().FirstOrDefault();
-                    if (wrapSquare != null) {
-                        return WrapTextImage.Square;
-                    }
-                    var wrapTight = _Image.Anchor.OfType<WrapTight>().FirstOrDefault();
-                    if (wrapTight != null) {
-                        return WrapTextImage.Tight;
-                    }
-                    var wrapThrough = _Image.Anchor.OfType<WrapThrough>().FirstOrDefault();
-                    if (wrapThrough != null) {
-                        return WrapTextImage.Through;
-                    }
-                    var wrapTopAndBottom = _Image.Anchor.OfType<WrapTopBottom>().FirstOrDefault();
-                    if (wrapTopAndBottom != null) {
-                        return WrapTextImage.TopAndBottom;
-                    }
-                    var wrapNone = _Image.Anchor.OfType<WrapNone>().FirstOrDefault();
-                    var behindDoc = _Image.Anchor.BehindDoc;
-                    if (wrapNone != null && behindDoc != null && behindDoc.Value == true) {
-                        return WrapTextImage.BehindText;
-                    } else if (wrapNone != null && behindDoc != null && behindDoc.Value == false) {
-                        return WrapTextImage.InFrontText;
-                    }
-                }
-
-                return null;
-            }
-            set {
-                throw new NotImplementedException("This needs to be implemented properly!");
-                // TODO - Implement
-                // REQUIRES FIXING, DOESNT WORK AT ALL
-                if (value == WrapTextImage.InLineWithText) {
-                    if (_Image.Inline != null) {
-                        // we don't do anything, because it's already inline
-                    } else if (_Image.Anchor != null) {
-
-                    }
-                } else {
-
-
-                }
-
-
-                //if (_Image.Anchor == null) {
-                //    var inline = _Image.Inline.CloneNode(true);
-
-                //    IEnumerable<OpenXmlElement> clonedElements = _Image.Inline
-                //        .Elements()
-                //        .Select(e => e.CloneNode(true))
-                //        .ToList();
-
-                //    var childInline = inline.Descendants();
-                //    //Anchor anchor1 = new Anchor() { BehindDoc = true };
-                //    var graphic = clonedElements.OfType<Graphic>().FirstOrDefault();
-                //    Anchor anchor1 = GetAnchor(100, 100, graphic, _Image.Inline.DocProperties.Name, "dfdfdf", WrapImageText.BehindText);
-
-                //    //WrapNone wrapNone1 = new WrapNone();
-                //    //anchor1.Append(wrapNone1);
-                //    _Image.Append(anchor1);
-                //    //_Image.Anchor.OfType<DocProperties>().FirstOrDefault().Remove();
-                //    //_Image.Anchor.Append(clonedElements.OfType<DocProperties>().FirstOrDefault());
-
-                //    _Image.Inline.Remove();
-
-                //    //_Image.Anchor.Append(clonedElements);
-                //} else {
-                //    _Image.Anchor.AllowOverlap = true;
-                //}
-            }
+            get => WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline);
+            set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
-
-        //public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
-        //    double width;
-        //    double height;
-        //    using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
-        //        width = img.Width;
-        //        height = img.Height;
-        //    }
-        //}
 
         public WordImage(
             WordDocument document,
@@ -684,7 +595,7 @@ namespace OfficeIMO.Word {
             bool behindDoc;
             if (wrapImage == WrapTextImage.BehindText) {
                 behindDoc = true;
-            } else if (wrapImage == WrapTextImage.InFrontText) {
+            } else if (wrapImage == WrapTextImage.InFrontOfText) {
                 behindDoc = false;
             } else {
                 // i think this is default for other cases, except for InlineText which is handled outside of Anchor
@@ -725,60 +636,7 @@ namespace OfficeIMO.Word {
             EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 1905L };
             anchor1.Append(effectExtent1);
 
-            if (wrapImage == WrapTextImage.Square) {
-                WrapSquare wrapSquare1 = new WrapSquare() {
-                    WrapText = WrapTextValues.BothSides
-                };
-                anchor1.Append(wrapSquare1);
-            } else if (wrapImage == WrapTextImage.Tight) {
-                WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };
-                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
-                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
-                // the values are probably wrong and content oriented
-                // would require some more research on how to calculate them
-                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
-                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
-                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
-                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
-
-                wrapPolygon1.Append(startPoint1);
-                wrapPolygon1.Append(lineTo1);
-                wrapPolygon1.Append(lineTo2);
-                wrapPolygon1.Append(lineTo3);
-                wrapPolygon1.Append(lineTo4);
-
-                wrapTight1.Append(wrapPolygon1);
-                anchor1.Append(wrapTight1);
-            } else if (wrapImage == WrapTextImage.Through) {
-                WrapThrough wrapThrough1 = new WrapThrough() { WrapText = WrapTextValues.BothSides };
-                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
-                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
-                // the values are probably wrong and content oriented
-                // would require some more research on how to calculate them
-                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
-                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
-                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
-                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
-
-                wrapPolygon1.Append(startPoint1);
-                wrapPolygon1.Append(lineTo1);
-                wrapPolygon1.Append(lineTo2);
-                wrapPolygon1.Append(lineTo3);
-                wrapPolygon1.Append(lineTo4);
-                wrapThrough1.Append(wrapPolygon1);
-                anchor1.Append(wrapThrough1);
-            } else if (wrapImage == WrapTextImage.TopAndBottom) {
-                WrapTopBottom wrapTopBottom1 = new WrapTopBottom() {
-                    //Values don't seem to matter
-                    //DistanceFromTop = (UInt32Value)20U,
-                    //DistanceFromBottom = (UInt32Value)20U
-                };
-                anchor1.Append(wrapTopBottom1);
-            } else {
-                // behind text, in front of text have this option 
-                WrapNone wrapNone1 = new WrapNone();
-                anchor1.Append(wrapNone1);
-            }
+            WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
 
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
             anchor1.Append(docProperties1);
