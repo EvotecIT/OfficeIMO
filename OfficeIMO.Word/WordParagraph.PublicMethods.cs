@@ -171,6 +171,7 @@ namespace OfficeIMO.Word {
         /// Add paragraph after self but by allowing to specify section
         /// </summary>
         /// <param name="section"></param>
+        /// <param name="paragraph"></param>
         /// <returns></returns>
         public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph paragraph = null) {
             if (paragraph == null) {

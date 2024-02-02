@@ -747,18 +747,28 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Converts twips (twentieths of a point) to centimeters
         /// </summary>
-        /// <param name="horizonalPositionOffset"></param>
+        /// <param name="twipsValue"></param>
         /// <returns></returns>
         private double? ConvertTwipsToCentimeters(int twipsValue) {
             double centimeters = (double)((double)twipsValue / (double)360000);
             return centimeters;
         }
 
+        /// <summary>
+        /// Converts emu (English Metric Units) to centimeters  
+        /// </summary>
+        /// <param name="emuValue"></param>
+        /// <returns></returns>
         private double ConvertEmuToCentimeters(Int64 emuValue) {
             double centimeters = (double)((double)emuValue / (double)914400);
             return centimeters;
         }
 
+        /// <summary>
+        /// Converts centimeters to emu (English Metric Units)
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         private Int64 ConvertCentimetersToEmu(double value) {
             Int64 emu = (Int64)(value * 914400);
             return emu;
