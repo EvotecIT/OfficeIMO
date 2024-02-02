@@ -438,9 +438,9 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+        public WordList AddList(WordListStyle style, bool continueNumbering = false, int? fontSize = null) {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());
-            wordList.AddList(style, continueNumbering);
+            wordList.AddList(style, continueNumbering, fontSize);
             return wordList;
         }
     }
