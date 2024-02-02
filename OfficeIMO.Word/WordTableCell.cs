@@ -102,21 +102,20 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">The paragraph to add to this cell, if
         /// this is not passed then a new empty paragraph with settings from
         /// the previous paragraph will be added.</param>
-        /// <param name="reset">If reset is not passed or false then add
-        /// the given paragraph into the cell. If reset is true then clear
+        /// <param name="removeExistingParagraphs">If value is not passed or false then add
+        /// the given paragraph into the cell. If set to true then clear
         /// every existing paragraph before adding the new paragraph.
         /// </param>
         /// <returns>A reference to the added paragraph.</returns>
-        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool reset = false) {
+        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool removeExistingParagraphs = false) {
             // Considering between implementing a reset that clears all paragraphs or
             // a deletePrevious that will replace the last paragraph.
             // NOTE: Raise this during PR.
-            if (reset) {
+            if (removeExistingParagraphs) {
                 var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
                 foreach (var wordParagraph in paragraphs) {
                     wordParagraph.Remove();
                 }
-                
             }
             if (paragraph == null) {
                 paragraph = new WordParagraph(this._document);
@@ -355,7 +354,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Splits (unmerge) cells that were merged 
+        /// Splits (unmerge) cells that were merged
         /// </summary>
         /// <param name="cellsCount"></param>
         public void SplitHorizontally(int cellsCount) {
@@ -375,7 +374,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Merges two or more cells together vertically 
+        /// Merges two or more cells together vertically
         /// </summary>
         /// <param name="cellsCount"></param>
         /// <param name="copyParagraphs"></param>
