@@ -40,6 +40,7 @@ variables:
   #DotNet3Version: '3.x'
   DotNet6Version: '6.x'
   DotNet7Version: '7.x'
+  DotNet8Version: '8.x'
   MSBuildArgs: '"/p:Platform=$(BuildPlatform)" "/p:Configuration=$(BuildConfiguration)" "/BinaryLogger:$(Build.SourcesDirectory)\$(ArtifactsDirectoryName)\msbuild.binlog"'
 
 steps:
@@ -64,6 +65,13 @@ steps:
   inputs:
     packageType: 'sdk'
     version: '7.0.x'
+    includePreviewVersions: true
+
+- task: UseDotNet@2
+  displayName: 'Install .NET 8.0'
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.x'
     includePreviewVersions: true
 
 #- task: UseDotNet@2
@@ -129,4 +137,12 @@ steps:
     command: 'test'
     arguments: '--framework net7.0 /noautorsp'
     testRunTitle: 'macOS .NET 7.0'
+  condition: succeededOrFailed()
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 8.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net8.0 /noautorsp'
+    testRunTitle: 'macOS .NET 8.0'
   condition: succeededOrFailed()
