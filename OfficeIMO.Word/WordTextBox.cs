@@ -132,7 +132,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WrapTextImage? WrapText {
             get => WordWrapTextImage.GetWrapTextImage(_anchor, _inline);
-            set => WordWrapTextImage.SetWrapTextImage(_anchor, _inline, value);
+            set => WordWrapTextImage.SetWrapTextImage(_drawing, _anchor, _inline, value);
         }
 
         public DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues HorizontalAlignment {
@@ -474,6 +474,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private Drawing _drawing {
+            get {
+                var alternateContent = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
+                if (alternateContent != null) {
+                    var alternateContentChoice = alternateContent.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                    if (alternateContentChoice != null) {
+                        var drawing = alternateContentChoice.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault();
+                        if (drawing != null) {
+                            return drawing;
+                        }
+                    }
+                }
+
+                return null;
+            }
+        }
+
         private Inline _inline {
             get {
                 var alternateContent = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
@@ -510,6 +527,76 @@ namespace OfficeIMO.Word {
                 }
                 return null;
             }
+        }
+
+        internal static Anchor ConvertInlineToAnchor(Inline inline, WrapTextImage wrapTextImage) {
+            Anchor anchor1 = new Anchor() { DistanceFromTop = (UInt32Value)91440U, DistanceFromBottom = (UInt32Value)91440U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "39C62DE8", AnchorId = "3E379294" };
+            anchor1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
+            anchor1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
+            SimplePosition simplePosition1 = new SimplePosition() { X = 0L, Y = 0L };
+
+            HorizontalPosition horizontalPosition1 = new HorizontalPosition() { RelativeFrom = HorizontalRelativePositionValues.Page };
+            HorizontalAlignment horizontalAlignment1 = new HorizontalAlignment();
+            horizontalAlignment1.Text = "center";
+            horizontalPosition1.Append(horizontalAlignment1);
+
+            VerticalPosition verticalPosition1 = new VerticalPosition() { RelativeFrom = VerticalRelativePositionValues.Page };
+            PositionOffset positionOffset1 = new PositionOffset();
+            positionOffset1.Text = "182880";
+            verticalPosition1.Append(positionOffset1);
+
+            // Copy INLINE to ANCHOR
+            Extent extent1 = (Extent)inline.Extent.CloneNode(true);
+            EffectExtent effectExtent1 = (EffectExtent)inline.EffectExtent.CloneNode(true);
+            DocProperties docProperties1 = (DocProperties)inline.DocProperties.CloneNode(true);
+            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)inline.NonVisualGraphicFrameDrawingProperties.CloneNode(true);
+            Graphic graphic1 = (Graphic)inline.Graphic.CloneNode(true);
+
+            // continuation of anchor
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth relativeWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth() { ObjectId = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues.Margin };
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth percentageWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageWidth();
+            percentageWidth1.Text = "58500";
+
+            relativeWidth1.Append(percentageWidth1);
+
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight relativeHeight1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeHeight() { RelativeFrom = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeVerticallyValues.Margin };
+            DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight percentageHeight1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.PercentageHeight();
+            percentageHeight1.Text = "20000";
+
+            relativeHeight1.Append(percentageHeight1);
+
+            anchor1.Append(simplePosition1);
+            anchor1.Append(horizontalPosition1);
+            anchor1.Append(verticalPosition1);
+            anchor1.Append(extent1);
+            anchor1.Append(effectExtent1);
+
+            WordWrapTextImage.AppendWrapTextImage(anchor1, wrapTextImage);
+
+            anchor1.Append(docProperties1);
+            anchor1.Append(nonVisualGraphicFrameDrawingProperties1);
+            anchor1.Append(graphic1);
+            anchor1.Append(relativeWidth1);
+            anchor1.Append(relativeHeight1);
+            return anchor1;
+        }
+
+        internal static Inline ConvertAnchorToInline(Anchor anchor) {
+            Inline inline1 = new Inline() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)0U, DistanceFromRight = (UInt32Value)0U, AnchorId = "29D0141D", EditId = "5A52866D" };
+
+            Extent extent1 = (Extent)anchor.Extent.CloneNode(true);
+            EffectExtent effectExtent1 = (EffectExtent)anchor.EffectExtent.CloneNode(true);
+            DocProperties docProperties1 = (DocProperties)anchor.OfType<DocProperties>().FirstOrDefault()?.CloneNode(true);
+            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)anchor.OfType<NonVisualGraphicFrameDrawingProperties>().FirstOrDefault()?.CloneNode(true);
+            Graphic graphic1 = (Graphic)anchor.OfType<Graphic>().FirstOrDefault()?.CloneNode(true);
+
+            inline1.Append(extent1);
+            inline1.Append(effectExtent1);
+            inline1.Append(docProperties1);
+            inline1.Append(nonVisualGraphicFrameDrawingProperties1);
+            inline1.Append(graphic1);
+
+            return inline1;
         }
 
         private DocumentFormat.OpenXml.Drawing.GraphicData _graphicData {
