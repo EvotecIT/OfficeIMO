@@ -31,11 +31,9 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
-            //var wordImage = new WordImage(_document, filePathImage, width, height);
-            var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
-            return paragraph;
+            return this;
         }
         /// <summary>
         /// Add image from Stream with ability to provide width and height of the image
@@ -50,10 +48,9 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
-            var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
-            return paragraph;
+            return this;
         }
 
         /// <summary>
