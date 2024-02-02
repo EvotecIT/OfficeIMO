@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -80,65 +78,75 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        public static void SetWrapTextImage(Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
+        public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
             if (currentWrap == wrapImage) {
                 // nothing to do
                 return;
             }
             if (anchor != null) {
-                // remove current Wrap
-                if (currentWrap == WrapTextImage.Square) {
-                    anchor.OfType<WrapSquare>().FirstOrDefault()?.Remove();
-                } else if (currentWrap == WrapTextImage.Tight) {
-                    anchor.OfType<WrapTight>().FirstOrDefault()?.Remove();
-                } else if (currentWrap == WrapTextImage.Through) {
-                    anchor.OfType<WrapThrough>().FirstOrDefault()?.Remove();
-                } else if (currentWrap == WrapTextImage.TopAndBottom) {
-                    anchor.OfType<WrapTopBottom>().FirstOrDefault()?.Remove();
-                } else if (currentWrap == WrapTextImage.BehindText) {
-                    anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
-                    anchor.BehindDoc = true;
-                } else if (currentWrap == WrapTextImage.InFrontOfText) {
-                    anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
-                    anchor.BehindDoc = false;
-                } else if (currentWrap == WrapTextImage.InLineWithText) {
-                    // this requires support for Inline rather than Anchor which is not yet implemented
-                    throw new InvalidOperationException("InLineWithText is not supported.");
-                }
-
-                // wrap needs to be inserted after extent or it will not work
-                var extent = anchor.Elements<Extent>().FirstOrDefault();
-                if (extent != null) {
-                    if (wrapImage == WrapTextImage.Square) {
-                        var wrap = new WrapSquare() { WrapText = WrapTextValues.BothSides };
-                        extent.InsertAfterSelf(wrap);
-                    } else if (wrapImage == WrapTextImage.Tight) {
-                        anchor.Append(new WrapTight() { WrapText = WrapTextValues.BothSides });
-                    } else if (wrapImage == WrapTextImage.Through) {
-                        var wrap = WordWrapTextImage.WrapThrough;
-                        extent.InsertAfterSelf(wrap);
-                    } else if (wrapImage == WrapTextImage.TopAndBottom) {
-                        var wrap = WordWrapTextImage.WrapTopBottom;
-                        extent.InsertAfterSelf(wrap);
-                    } else if (wrapImage == WrapTextImage.BehindText) {
-                        var wrap = new WrapNone();
-                        extent.InsertAfterSelf(wrap);
-                        anchor.BehindDoc = false;
-                    } else if (wrapImage == WrapTextImage.InFrontOfText) {
-                        var wrap = new WrapNone();
-                        extent.InsertAfterSelf(wrap);
-                        anchor.BehindDoc = true;
-                    } else if (wrapImage == WrapTextImage.InLineWithText) {
-                        // this requires support for Inline rather than Anchor which is not yet implemented
-                        throw new InvalidOperationException("InLineWithText is not supported.");
-                    }
+                if (wrapImage == WrapTextImage.InLineWithText) {
+                    var convertedInline = WordTextBox.ConvertAnchorToInline(anchor);
+                    drawing.Append(convertedInline);
+                    drawing.OfType<Anchor>().FirstOrDefault()?.Remove();
                 } else {
-                    throw new InvalidOperationException("Extent is missing. Weird. Shouldn't happen.");
+                    // remove current Wrap
+                    if (currentWrap == WrapTextImage.Square) {
+                        anchor.OfType<WrapSquare>().FirstOrDefault()?.Remove();
+                    } else if (currentWrap == WrapTextImage.Tight) {
+                        anchor.OfType<WrapTight>().FirstOrDefault()?.Remove();
+                    } else if (currentWrap == WrapTextImage.Through) {
+                        anchor.OfType<WrapThrough>().FirstOrDefault()?.Remove();
+                    } else if (currentWrap == WrapTextImage.TopAndBottom) {
+                        anchor.OfType<WrapTopBottom>().FirstOrDefault()?.Remove();
+                    } else if (currentWrap == WrapTextImage.BehindText) {
+                        anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
+                        anchor.BehindDoc = true;
+                    } else if (currentWrap == WrapTextImage.InFrontOfText) {
+                        anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
+                        anchor.BehindDoc = false;
+                    } else if (currentWrap == WrapTextImage.InLineWithText) {
+                        // this won't really happen
+                    }
+
+                    // wrap needs to be inserted after extent or it will not work
+                    var extent = anchor.Elements<Extent>().FirstOrDefault();
+                    if (extent != null) {
+                        if (wrapImage == WrapTextImage.Square) {
+                            var wrap = new WrapSquare() { WrapText = WrapTextValues.BothSides };
+                            extent.InsertAfterSelf(wrap);
+                        } else if (wrapImage == WrapTextImage.Tight) {
+                            anchor.Append(new WrapTight() { WrapText = WrapTextValues.BothSides });
+                        } else if (wrapImage == WrapTextImage.Through) {
+                            var wrap = WordWrapTextImage.WrapThrough;
+                            extent.InsertAfterSelf(wrap);
+                        } else if (wrapImage == WrapTextImage.TopAndBottom) {
+                            var wrap = WordWrapTextImage.WrapTopBottom;
+                            extent.InsertAfterSelf(wrap);
+                        } else if (wrapImage == WrapTextImage.BehindText) {
+                            var wrap = new WrapNone();
+                            extent.InsertAfterSelf(wrap);
+                            anchor.BehindDoc = false;
+                        } else if (wrapImage == WrapTextImage.InFrontOfText) {
+                            var wrap = new WrapNone();
+                            extent.InsertAfterSelf(wrap);
+                            anchor.BehindDoc = true;
+                        } else if (wrapImage == WrapTextImage.InLineWithText) {
+                            throw new InvalidOperationException("WrapTextImage.InLineWithText should be handled before.");
+                        }
+                    } else {
+                        throw new InvalidOperationException("Extent is missing. Weird. Shouldn't happen.");
+                    }
                 }
             } else if (inline != null) {
-                // this requires support for Inline rather than Anchor which is not yet implemented
-                throw new InvalidOperationException("InLineWithText is not supported.");
+                if (wrapImage == WrapTextImage.InLineWithText) {
+                    // nothing to do
+                    return;
+                } else {
+                    var convertedAnchor = WordTextBox.ConvertInlineToAnchor(inline, wrapImage.Value);
+                    drawing.Append(convertedAnchor);
+                    drawing.OfType<Inline>().FirstOrDefault()?.Remove();
+                }
             }
         }
 
