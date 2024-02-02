@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -480,7 +479,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WrapTextImage? WrapText {
             get => WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline);
-            set => WordWrapTextImage.SetWrapTextImage(_Image.Anchor, _Image.Inline, value);
+            set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
 
         public WordImage(
