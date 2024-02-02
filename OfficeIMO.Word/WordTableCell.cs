@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             // a deletePrevious that will replace the last paragraph.
             // NOTE: Raise this during PR.
             if (removeExistingParagraphs) {
-                var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
+                var paragraphs = _tableCell.ChildElements.OfType<Paragraph>().ToList();
                 foreach (var wordParagraph in paragraphs) {
                     wordParagraph.Remove();
                 }
@@ -128,9 +128,10 @@ namespace OfficeIMO.Word {
         /// Add paragraph to the table cell with text
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="removeExistingParagraphs"></param>
         /// <returns></returns>
-        public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
+        public WordParagraph AddParagraph(string text, bool removeExistingParagraphs = false) {
+            return AddParagraph(paragraph: null, removeExistingParagraphs).SetText(text);
         }
 
         /// <summary>
