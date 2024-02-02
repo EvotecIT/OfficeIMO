@@ -364,5 +364,41 @@ namespace OfficeIMO.Tests {
 
             }
         }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTextBoxAdditionalFeatures() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var wrapTextList = (WrapTextImage[])Enum.GetValues(typeof(WrapTextImage));
+                var count = 0;
+                foreach (var wrapper in wrapTextList) {
+                    count += 3;
+                    var textBox2 = document.AddTextBox("My textbox - " + wrapper, wrapper);
+                    textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                    textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                    textBox2.VerticalPositionOffsetCentimeters = count;
+                }
+
+                count = 0;
+                foreach (var wrapper in wrapTextList) {
+                    Assert.True(document.TextBoxes[count].WrapText == wrapper);
+                    count++;
+                }
+
+                document.Save(false);
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx"))) {
+
+
+                document.Save();
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx"))) {
+
+
+            }
+        }
     }
 }
