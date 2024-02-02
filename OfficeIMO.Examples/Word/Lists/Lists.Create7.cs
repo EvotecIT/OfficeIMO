@@ -121,7 +121,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Lists count in a document (11): " + document.Lists.Count);
 
-                document.Save(true);
+                document.Save(false);
             }
 
 

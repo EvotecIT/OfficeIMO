@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
     internal static partial class BasicDocument {
         public static void Example_BasicDocument(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Save");
-            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
+            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentFirst.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Title = "This is my title";
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             // We're checking if the file is locked (it shouldn't be - yet)
             Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
-            document.Save(filePathOutput, openWord);
+            document.Save(filePathOutput, false);
 
             // both files should not be locked
             Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());

@@ -24,7 +24,7 @@ internal static partial class Protect {
 
             //document.Settings.ReadOnlyPassword = "Test123";
 
-            document.Save(true);
+            document.Save(openWord);
         }
     }
 }
