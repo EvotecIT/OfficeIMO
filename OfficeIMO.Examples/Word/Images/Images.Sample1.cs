@@ -18,8 +18,10 @@ namespace OfficeIMO.Examples.Word {
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
             // lets add image to paragraph
-            paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            //paragraph1.Image.WrapText = true; // WrapSideValues.Both;
+            var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WrapTextImage.BehindText);
+
+            Console.WriteLine(paragraph1.Image.WrapText);
+            Console.WriteLine(paragraphImage.Image.WrapText);
 
             var paragraph2 = paragraph1.AddText("and more text");
             paragraph2.Bold = true;
