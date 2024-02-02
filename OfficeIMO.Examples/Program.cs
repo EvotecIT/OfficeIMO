@@ -156,6 +156,8 @@ namespace OfficeIMO.Examples {
 
             WordTextBox.Example_AddingTextbox(folderPath, false);
             WordTextBox.Example_AddingTextbox2(folderPath, false);
+            WordTextBox.Example_AddingTextbox4(folderPath, false);
+            WordTextBox.Example_AddingTextbox5(folderPath, false);
             WordTextBox.Example_AddingTextbox3(folderPath, false);
         }
     }
