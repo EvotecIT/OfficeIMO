@@ -400,5 +400,38 @@ namespace OfficeIMO.Tests {
 
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTextBoxCheckingSize() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTextBoxCheckingSize.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
+
+                textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
+
+                textBox.VerticalPositionOffsetCentimeters = 5;
+
+                Assert.True(textBox.VerticalPositionOffset == 1800000);
+                Assert.True(textBox.VerticalPositionOffsetCentimeters == 5.0);
+
+                document.TextBoxes[0].RelativeWidthPercentage = 0;
+                document.TextBoxes[0].RelativeHeightPercentage = 0;
+
+                document.TextBoxes[0].WidthCentimeters = 10;
+                document.TextBoxes[0].HeightCentimeters = 5;
+
+                Assert.True(textBox.WidthCentimeters == 10.0);
+                Assert.True(textBox.HeightCentimeters == 5);
+                Assert.True(textBox.Width == 3600000);
+                Assert.True(textBox.Height == 1800000);
+
+
+                document.Save(false);
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+        }
     }
 }

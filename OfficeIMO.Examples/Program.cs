@@ -26,6 +26,7 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
             BasicDocument.Example_BasicWordWithTabs(folderPath, false);
             BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsInCentimeters(folderPath, false);
             BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
             BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
 
@@ -159,6 +160,7 @@ namespace OfficeIMO.Examples {
             WordTextBox.Example_AddingTextbox4(folderPath, false);
             WordTextBox.Example_AddingTextbox5(folderPath, false);
             WordTextBox.Example_AddingTextbox3(folderPath, false);
+            WordTextBox.Example_AddingTextboxCentimeters(folderPath, false);
         }
     }
 }
