@@ -245,14 +245,14 @@ namespace OfficeIMO.Word {
         public double? HorizonalPositionOffsetCentimeters {
             get {
                 if (HorizonalPositionOffset != null) {
-                    return ConvertTwipsToCentimeters(HorizonalPositionOffset.Value);
+                    return Helpers.ConvertEmusToCentimeters(HorizonalPositionOffset.Value);
                 }
 
                 return null;
             }
             set {
                 if (value != null) {
-                    HorizonalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                    HorizonalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
                 }
             }
         }
@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
         public double? VerticalPositionOffsetCentimeters {
             get {
                 if (VerticalPositionOffset != null) {
-                    return ConvertTwipsToCentimeters(VerticalPositionOffset.Value);
+                    return Helpers.ConvertEmusToCentimeters(VerticalPositionOffset.Value);
                 }
 
                 return null;
@@ -271,7 +271,7 @@ namespace OfficeIMO.Word {
 
             set {
                 if (value != null) {
-                    VerticalPositionOffset = ConvertCentimetersToTwips(value.Value);
+                    VerticalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
                 }
             }
         }
@@ -458,19 +458,19 @@ namespace OfficeIMO.Word {
 
         public double WidthCentimeters {
             get {
-                return ConvertTwipsToCentimeters(Width);
+                return Helpers.ConvertEmusToCentimeters(Width);
             }
             set {
-                Width = ConvertCentimetersToTwipsInt64(value);
+                Width = Helpers.ConvertCentimetersToEmusInt64(value);
             }
         }
 
         public double HeightCentimeters {
             get {
-                return ConvertTwipsToCentimeters(Height);
+                return Helpers.ConvertEmusToCentimeters(Height);
             }
             set {
-                Height = ConvertCentimetersToTwipsInt64(value);
+                Height = Helpers.ConvertCentimetersToEmusInt64(value);
             }
         }
 
@@ -722,66 +722,6 @@ namespace OfficeIMO.Word {
                 return horizontalPosition;
             }
             return null;
-        }
-
-        /// <summary>
-        /// Converts centimeters to twips (twentieths of a point)
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private int? ConvertCentimetersToTwips(double value) {
-            int twips = (int)(value * 360000);
-            return twips;
-        }
-
-        /// <summary>
-        /// Converts centimeters to twips (twentieths of a point) (Int64)
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private Int64 ConvertCentimetersToTwipsInt64(double value) {
-            Int64 twips = (Int64)(value * 360000);
-            return twips;
-        }
-
-        /// <summary>
-        /// Converts twips (twentieths of a point) to centimeters
-        /// </summary>
-        /// <param name="twipsValue"></param>
-        /// <returns></returns>
-        private double? ConvertTwipsToCentimeters(int twipsValue) {
-            double centimeters = (double)((double)twipsValue / (double)360000);
-            return centimeters;
-        }
-
-        /// <summary>
-        /// Converts emu (English Metric Units) to centimeters  
-        /// </summary>
-        /// <param name="emuValue"></param>
-        /// <returns></returns>
-        private double ConvertEmuToCentimeters(Int64 emuValue) {
-            double centimeters = (double)((double)emuValue / (double)914400);
-            return centimeters;
-        }
-
-        /// <summary>
-        /// Converts centimeters to emu (English Metric Units)
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private Int64 ConvertCentimetersToEmu(double value) {
-            Int64 emu = (Int64)(value * 914400);
-            return emu;
-        }
-
-        /// <summary>
-        /// Converts twips (twentieths of a point) to centimeters (Int64)
-        /// </summary>
-        /// <param name="twipsValue"></param>
-        /// <returns></returns>
-        private double ConvertTwipsToCentimeters(Int64 twipsValue) {
-            double centimeters = (double)((double)twipsValue / (double)360000);
-            return centimeters;
         }
 
         private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text, WrapTextImage wrapTextImage) {
