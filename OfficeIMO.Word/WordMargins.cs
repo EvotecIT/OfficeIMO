@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2010.PowerPoint;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -24,6 +21,10 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
             _section = wordSection;
         }
+
+        /// <summary>
+        /// Get or set the left margin in Twips
+        /// </summary>
         public UInt32Value Left {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -43,6 +44,10 @@ namespace OfficeIMO.Word {
                 pageMargin.Left = value;
             }
         }
+
+        /// <summary>
+        /// Get or set the right margin in Twips
+        /// </summary>
         public UInt32Value Right {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -62,6 +67,10 @@ namespace OfficeIMO.Word {
                 pageMargin.Right = value;
             }
         }
+
+        /// <summary>
+        /// Get or set the top margin in Twips
+        /// </summary>
         public int? Top {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -81,6 +90,10 @@ namespace OfficeIMO.Word {
                 pageMargin.Top = value;
             }
         }
+
+        /// <summary>
+        /// Get or set the left margin in Twips
+        /// </summary>
         public int? Bottom {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -100,6 +113,63 @@ namespace OfficeIMO.Word {
                 pageMargin.Bottom = value;
             }
         }
+
+        /// <summary>
+        /// Get or set the top margin in centimeters
+        /// </summary>
+        public double? TopCentimeters {
+            get {
+                if (Top != null) {
+                    return Helpers.ConvertTwipsToCentimeters(Top.Value);
+                }
+                return null;
+            }
+            set => Top = Helpers.ConvertCentimetersToTwips(value.Value);
+        }
+
+        /// <summary>
+        /// Get or set the bottom margin in centimeters
+        /// </summary>
+        public double? BottomCentimeters {
+            get {
+                if (Bottom != null) {
+                    return Helpers.ConvertTwipsToCentimeters(Bottom.Value);
+
+                }
+                return null;
+            }
+            set => Bottom = Helpers.ConvertCentimetersToTwips(value.Value);
+        }
+
+        /// <summary>
+        /// Get or set the left margin in centimeters
+        /// </summary>
+        public double? LeftCentimeters {
+            get {
+                if (Left != null) {
+                    return Helpers.ConvertTwipsToCentimeters(Left.Value);
+                }
+                return null;
+            }
+            set => Left = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+        }
+
+        /// <summary>
+        /// Get or set the right margin in centimeters
+        /// </summary>
+        public double? RightCentimeters {
+            get {
+                if (Right != null) {
+                    return Helpers.ConvertTwipsToCentimeters(Right.Value);
+                }
+                return null;
+            }
+            set => Right = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+        }
+
+        /// <summary>
+        /// Get or set the header distance in Twips
+        /// </summary>
         public UInt32Value HeaderDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -119,6 +189,10 @@ namespace OfficeIMO.Word {
                 pageMargin.Header = value;
             }
         }
+
+        /// <summary>
+        /// Get or set the footer distance in Twips
+        /// </summary>
         public UInt32Value FooterDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -138,6 +212,7 @@ namespace OfficeIMO.Word {
                 pageMargin.Footer = value;
             }
         }
+
         public UInt32Value Gutter {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
