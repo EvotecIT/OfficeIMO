@@ -29,11 +29,23 @@ namespace OfficeIMO.Word {
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }
+
+        /// <summary>
+        /// Generates a random NSID value
+        /// </summary>
+        /// <returns></returns>
+        private static string GenerateNsidValue() {
+            Random random = new Random();
+            int randomNumber = random.Next();
+            string nsidValue = randomNumber.ToString("X8");
+            return nsidValue;
+        }
+
         private static AbstractNum ArticleSections {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 0 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "134A280B" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "04090023" };
 
@@ -231,7 +243,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 1 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "21351BF1" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "04090025" };
 
@@ -408,7 +420,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 2 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "2E8B4B8F" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "04090027" };
 
@@ -586,7 +598,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 3 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "3AAC06B1" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "04090029" };
 
@@ -782,7 +794,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 4 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "475F51D7" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "04090021" };
 
@@ -1014,7 +1026,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 5 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "4CC437CB" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "0409001D" };
 
@@ -1191,7 +1203,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 6 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "53650A6C" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "0409001F" };
 
@@ -1368,7 +1380,7 @@ namespace OfficeIMO.Word {
             get {
                 AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 7 };
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
-                Nsid nsid1 = new Nsid() { Val = "433F0C6C" };
+                Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
                 TemplateCode templateCode1 = new TemplateCode() { Val = "934E79A6" };
 
