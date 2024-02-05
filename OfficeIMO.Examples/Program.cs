@@ -26,6 +26,7 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
             BasicDocument.Example_BasicWordWithTabs(folderPath, false);
             BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsInCentimeters(folderPath, false);
             BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
             BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
 
@@ -50,6 +51,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_BasicLists4(folderPath, false);
             Lists.Example_BasicLists2Load(folderPath, false);
             Lists.Example_BasicLists7(folderPath, false);
+            Lists.Example_BasicLists8(folderPath, false);
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
             Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
@@ -151,12 +153,15 @@ namespace OfficeIMO.Examples {
 
             SaveToStream.Example_StreamDocumentProperties(folderPath, false);
 
-            Protect.Example_ProtectFinalDocument(folderPath, true);
-            Protect.Example_ProtectAlwaysReadOnly(folderPath, true);
+            Protect.Example_ProtectFinalDocument(folderPath, false);
+            Protect.Example_ProtectAlwaysReadOnly(folderPath, false);
 
             WordTextBox.Example_AddingTextbox(folderPath, false);
             WordTextBox.Example_AddingTextbox2(folderPath, false);
+            WordTextBox.Example_AddingTextbox4(folderPath, false);
+            WordTextBox.Example_AddingTextbox5(folderPath, false);
             WordTextBox.Example_AddingTextbox3(folderPath, false);
+            WordTextBox.Example_AddingTextboxCentimeters(folderPath, false);
         }
     }
 }

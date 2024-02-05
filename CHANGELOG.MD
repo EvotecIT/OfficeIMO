@@ -1,3 +1,25 @@
+## 0.13.0 - 2024.02.02
+### What's Changed
+* Add basic method to add textbox to header/footer by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/187
+* [WordTextBox] Add additional features by @TopperDEL in https://github.com/EvotecIT/OfficeIMO/pull/188
+    * Use Paragraph instead of StdBlock (so that text within a TextBox is no "variable" anymore)
+    * Allow changing the insets of the TextBox so that there is no gap between the text of the TextBox and its border
+    * Allow the TextBox to be set to "AutoFitText" or not
+    * Allow the text to be multiline by respecting the page breaks
+    * Added Wrapping functionality including inline
+    * Added ability to convert inline to other wrapping types and vice versa (keep in mind that some properties are lost then or go to their defaults)
+    * Fixes wrong paragraph being returned when AddImage is used
+    * **Breaking Change** Changes WrapTextImage.InFrontText to WrapTextImage.InFrontOfText to match Word naming
+* Improve WordTextBox functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/197
+* Add support for Net8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/198
+* Fixes some warnings as reported by Visual Studio by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/199
+* Added the ability to clear the default empty paragraph in TableCell. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/182
+
+### New Contributors
+* @TopperDEL made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/188
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.12.0...v0.13.0
+
 ## 0.12.0 - 2023.12.31
 
 ### What's Changed
@@ -823,7 +845,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 
     var paragraph3 = document.AddParagraph("Image will be in front of text");
-    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontOfText, "Przemek and Kulek on an image");
 
 
     var paragraph5 = document.AddParagraph("Image will be Square");

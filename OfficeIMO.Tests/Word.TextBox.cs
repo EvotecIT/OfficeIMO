@@ -272,5 +272,166 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes.Count == 1);
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTextBoxInSectionsAndHeaders() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesInSectionsAndHeaders.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.AddHeadersAndFooters();
+
+                Assert.True(document.Sections.Count == 1);
+
+                document.AddPageBreak();
+                document.AddSection();
+
+                Assert.True(document.Sections.Count == 2);
+
+                document.AddTextBox("This is a textbox");
+
+                Assert.True(document.Sections[0].TextBoxes.Count == 0);
+                Assert.True(document.Sections[1].TextBoxes.Count == 1);
+
+                document.Sections[0].AddTextBox("This is a textbox in section 0");
+
+                Assert.True(document.Sections[0].TextBoxes.Count == 1);
+                Assert.True(document.Sections[1].TextBoxes.Count == 1);
+                Assert.True(document.TextBoxes.Count == 2);
+
+                document.AddPageBreak();
+                document.AddSection();
+
+                document.Save(false);
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesInSectionsAndHeaders.docx"))) {
+                Assert.True(document.Sections[0].TextBoxes.Count == 1);
+                Assert.True(document.Sections[1].TextBoxes.Count == 1);
+                Assert.True(document.TextBoxes.Count == 2);
+
+                var textBox2 = document.AddTextBox("My textbox 2 right - square", WrapTextImage.Square);
+                textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.VerticalPositionOffsetCentimeters = 6;
+
+                Assert.True(textBox2.WrapText == WrapTextImage.Square);
+
+                var textBox3 = document.AddTextBox("My textbox 3 center - tight", WrapTextImage.Tight);
+                textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.VerticalPositionOffsetCentimeters = 6;
+
+                Assert.True(textBox3.WrapText == WrapTextImage.Tight);
+
+                var textBox4 = document.AddTextBox("My textbox 4 left - behind text", WrapTextImage.BehindText);
+                textBox4.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox4.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox4.VerticalPositionOffsetCentimeters = 9;
+
+                Assert.True(textBox4.WrapText == WrapTextImage.BehindText);
+
+                var textBox5 = document.AddTextBox("My textbox 5 right - in front of text", WrapTextImage.InFrontOfText);
+                textBox5.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox5.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox5.VerticalPositionOffsetCentimeters = 9;
+
+                Assert.True(textBox5.WrapText == WrapTextImage.InFrontOfText);
+
+                var textBox6 = document.AddTextBox("My textbox 6 left - top and bottom", WrapTextImage.TopAndBottom);
+                textBox6.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox6.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox6.VerticalPositionOffsetCentimeters = 12;
+
+                Assert.True(textBox6.WrapText == WrapTextImage.TopAndBottom);
+
+                var textBox7 = document.AddTextBox("My textbox 7 right - through", WrapTextImage.Through);
+                textBox7.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox7.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox7.VerticalPositionOffsetCentimeters = 12;
+
+                Assert.True(textBox7.WrapText == WrapTextImage.Through);
+
+                Assert.True(document.Sections[0].TextBoxes.Count == 1);
+                Assert.True(document.Sections[1].TextBoxes.Count == 1);
+                Assert.True(document.Sections[2].TextBoxes.Count == 6);
+                Assert.True(document.TextBoxes.Count == 8);
+
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesInSectionsAndHeaders.docx"))) {
+
+
+            }
+        }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTextBoxAdditionalFeatures() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var wrapTextList = (WrapTextImage[])Enum.GetValues(typeof(WrapTextImage));
+                var count = 0;
+                foreach (var wrapper in wrapTextList) {
+                    count += 3;
+                    var textBox2 = document.AddTextBox("My textbox - " + wrapper, wrapper);
+                    textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                    textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                    textBox2.VerticalPositionOffsetCentimeters = count;
+                }
+
+                count = 0;
+                foreach (var wrapper in wrapTextList) {
+                    Assert.True(document.TextBoxes[count].WrapText == wrapper);
+                    count++;
+                }
+
+                document.Save(false);
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx"))) {
+
+
+                document.Save();
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx"))) {
+
+
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTextBoxCheckingSize() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTextBoxCheckingSize.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
+
+                textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+                textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
+
+                textBox.VerticalPositionOffsetCentimeters = 5;
+
+                Assert.True(textBox.VerticalPositionOffset == 1800000);
+                Assert.True(textBox.VerticalPositionOffsetCentimeters == 5.0);
+
+                document.TextBoxes[0].RelativeWidthPercentage = 0;
+                document.TextBoxes[0].RelativeHeightPercentage = 0;
+
+                document.TextBoxes[0].WidthCentimeters = 10;
+                document.TextBoxes[0].HeightCentimeters = 5;
+
+                Assert.True(textBox.WidthCentimeters == 10.0);
+                Assert.True(textBox.HeightCentimeters == 5);
+                Assert.True(textBox.Width == 3600000);
+                Assert.True(textBox.Height == 1800000);
+
+
+                document.Save(false);
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+        }
     }
 }

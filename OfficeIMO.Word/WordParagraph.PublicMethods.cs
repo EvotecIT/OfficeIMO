@@ -31,11 +31,9 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
-            //var wordImage = new WordImage(_document, filePathImage, width, height);
-            var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
-            return paragraph;
+            return this;
         }
         /// <summary>
         /// Add image from Stream with ability to provide width and height of the image
@@ -50,10 +48,9 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
-            var paragraph = new WordParagraph(_document);
             VerifyRun();
             _run.Append(wordImage._Image);
-            return paragraph;
+            return this;
         }
 
         /// <summary>
@@ -174,9 +171,12 @@ namespace OfficeIMO.Word {
         /// Add paragraph after self but by allowing to specify section
         /// </summary>
         /// <param name="section"></param>
+        /// <param name="paragraph"></param>
         /// <returns></returns>
-        public WordParagraph AddParagraphAfterSelf(WordSection section) {
-            WordParagraph paragraph = new WordParagraph(section._document, true, false);
+        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph paragraph = null) {
+            if (paragraph == null) {
+                paragraph = new WordParagraph(section._document, true, false);
+            }
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             return paragraph;
         }
@@ -356,6 +356,11 @@ namespace OfficeIMO.Word {
             var wordEndNote = WordEndNote.AddEndNote(this._document, this, endNoteWordParagraph);
             return wordEndNote;
 
+        }
+
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
+            WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
+            return wordTextBox;
         }
     }
 }

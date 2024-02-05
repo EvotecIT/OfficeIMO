@@ -119,8 +119,8 @@ namespace OfficeIMO.Word {
             return wordCoverPage;
         }
 
-        public WordTextBox AddTextBox(string text) {
-            WordTextBox wordTextBox = new WordTextBox(this, text);
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
             return wordTextBox;
         }
 
@@ -285,8 +285,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Replace text inside each paragraph
         /// </summary>
-        /// <param name="oldText">target text</param>
-        /// <param name="newText">replacement text</param>
+        /// <param name="paragraphs"></param>
+        /// <param name="oldText"></param>
+        /// <param name="newText"></param>
+        /// <param name="count"></param>
+        /// <param name="replace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         private static List<WordParagraph> ReplaceText(List<WordParagraph> paragraphs, string oldText, string newText, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             if (string.IsNullOrEmpty(oldText)) {
                 throw new ArgumentNullException("oldText should not be null");
