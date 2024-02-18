@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 // add list and nest a list
-                WordList wordList1 = document.AddList(WordListStyle.Headings111, false);
+                WordList wordList1 = document.AddList(WordListStyle.Headings111);
                 Console.WriteLine("List (0) ElementsCount (0): " + wordList1.ListItems.Count);
                 Console.WriteLine("List (0) ElementsCount (1): " + document.Lists[0].ListItems.Count);
                 wordList1.AddItem("Text 1");
@@ -26,28 +26,26 @@ namespace OfficeIMO.Examples.Word {
                 wordList1.AddItem("Text 2.1", 1);
                 Console.WriteLine("List (0) ElementsCount (3): " + wordList1.ListItems.Count);
 
-                WordList wordListNested = document.AddList(WordListStyle.Bulleted, false);
+                WordList wordListNested = document.AddList(WordListStyle.Bulleted);
                 wordListNested.AddItem("Nested 1", 1);
                 wordListNested.AddItem("Nested 2", 1);
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111, true);
-                Console.WriteLine("List 2 - Restart numbering: " + wordList2.RestartNumbering);
+                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+
                 wordList2.AddItem("Section 2");
                 wordList2.AddItem("Section 2.1", 1);
 
-                WordList wordList3 = document.AddList(WordListStyle.Headings111, true);
-                Console.WriteLine("List 3 - Restart numbering: " + wordList3.RestartNumbering);
-                wordList3.RestartNumbering = true;
-                Console.WriteLine("List 3 - Restart numbering after change: " + wordList3.RestartNumbering);
+                WordList wordList3 = document.AddList(WordListStyle.Headings111);
+
                 wordList3.AddItem("Section 1");
                 wordList3.AddItem("Section 1.1", 1);
 
-                WordList wordList4 = document.AddList(WordListStyle.Headings111, true);
+                WordList wordList4 = document.AddList(WordListStyle.Headings111);
                 //wordList4.RestartNumbering = true;
                 wordList4.AddItem("Section 2");
                 wordList4.AddItem("Section 2.1", 1);
 
-                WordList wordList5 = document.AddList(WordListStyle.Headings111, true);
+                WordList wordList5 = document.AddList(WordListStyle.Headings111);
                 //wordList5.RestartNumbering = true;
                 wordList5.AddItem("Section 3");
                 wordList5.AddItem("Section 3.1", 1);
