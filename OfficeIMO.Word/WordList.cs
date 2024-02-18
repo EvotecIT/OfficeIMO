@@ -534,4 +534,25 @@ public class WordList {
         return numberingInstance1;
     }
 
+    public void Remove() {
+        // Get the Numbering part from the document
+        var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+
+        // Find and remove the AbstractNum associated with this list
+        var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+        if (abstractNum != null) {
+            numbering.RemoveChild(abstractNum);
+        }
+
+        // Find and remove the NumberingInstance associated with this list
+        var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
+        if (numberingInstance != null) {
+            numbering.RemoveChild(numberingInstance);
+        }
+
+        // Remove the list items from the document
+        foreach (var listItem in ListItems) {
+            listItem.Remove();
+        }
+    }
 }
