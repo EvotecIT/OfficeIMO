@@ -32,13 +32,13 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
                 WordList wordList3 = document.AddList(WordListStyle.Bulleted);
-                wordList3.AddItem("Text 8.1", 1);
-                wordList3.AddItem("Text 8.2", 2);
-                wordList3.AddItem("Text 8.3", 2);
-                wordList3.AddItem("Text 8.4", 0);
-                wordList3.AddItem("Text 8.5", 0);
-                wordList3.AddItem("Text 8.6", 1);
-                wordList3.AddItem("Text 8");
+                wordList3.AddItem("Text 7.1", 1);
+                wordList3.AddItem("Text 7.2", 2);
+                wordList3.AddItem("Text 7.3", 2);
+                wordList3.AddItem("Text 7.4", 0);
+                wordList3.AddItem("Text 7.5", 0);
+                wordList3.AddItem("Text 7.6", 1);
+                wordList3.AddItem("Text 7");
 
                 paragraph = document.AddParagraph("This is 4th list").SetColor(Color.Aqua).SetUnderline(UnderlineValues.Double);
                 paragraph.ParagraphAlignment = JustificationValues.Center;
@@ -57,6 +57,10 @@ namespace OfficeIMO.Examples.Word {
                 document.Lists[0].Remove();
 
                 Console.WriteLine("List count: " + document.Lists.Count); // "List count: 3
+
+                document.Lists[0].Merge(document.Lists[1]);
+
+                Console.WriteLine("List count: " + document.Lists.Count); // "List count: 2
 
                 document.Save(openWord);
             }
