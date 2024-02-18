@@ -206,43 +206,6 @@ public class WordList {
         }
     }
 
-    public bool RestartNumbering {
-        get {
-            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-            var listNumbering = numbering.ChildElements.OfType<NumberingInstance>();
-            foreach (var numberingInstance in listNumbering) {
-                if (numberingInstance.NumberID == _numberId) {
-                    var level = numberingInstance.ChildElements.OfType<LevelOverride>().FirstOrDefault();
-                    if (level != null) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        set {
-            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-            var listNumbering = numbering.ChildElements.OfType<NumberingInstance>();
-            foreach (var numberingInstance in listNumbering) {
-                if (numberingInstance.NumberID == _numberId) {
-                    var abstractNumId = new AbstractNumId {
-                        Val = _abstractId
-                    };
-                    NumberingInstance foundNumberingInstance;
-                    if (value == false) {
-                        // continue numbering as it was by default
-                        foundNumberingInstance = DefaultNumberingInstance(abstractNumId, _numberId);
-                    } else {
-                        // restart numbering from 1
-                        foundNumberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
-                    }
-                    numberingInstance.InsertBeforeSelf(foundNumberingInstance);
-                    numberingInstance.Remove();
-                }
-            }
-        }
-    }
-
     /// <summary>
     /// Restarts numbering of a list after a break. Requires a list to be set to RestartNumbering overall.
     /// </summary>
@@ -401,7 +364,7 @@ public class WordList {
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
 
-    internal void AddList(WordListStyle style, bool continueNumbering) {
+    internal void AddList(WordListStyle style) {
         CreateNumberingDefinition(_document);
         var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
 
@@ -414,11 +377,7 @@ public class WordList {
             Val = _abstractId
         };
         NumberingInstance numberingInstance = new NumberingInstance();
-        if (continueNumbering) {
-            numberingInstance = DefaultNumberingInstance(abstractNumId, _numberId);
-        } else {
-            numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
-        }
+        numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
         numbering.Append(numberingInstance, abstractNum);
     }
 

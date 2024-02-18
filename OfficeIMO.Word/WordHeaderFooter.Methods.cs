@@ -53,9 +53,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+        public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this);
-            wordList.AddList(style, continueNumbering);
+            wordList.AddList(style);
             return wordList;
         }
     }
