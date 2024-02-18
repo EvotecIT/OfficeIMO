@@ -406,7 +406,7 @@ public partial class Word {
             WordList wordList1 = document.AddList(WordListStyle.Headings111);
             Assert.True(wordList1.ListItems.Count == 0);
             Assert.True(document.Lists[0].ListItems.Count == 0);
-            wordList1.AddItem("Text 1");
+            wordList1.AddItem("Text 1 - First List");
             Assert.True(wordList1.ListItems.Count == 1);
             Assert.True(document.Lists[0].ListItems.Count == 1);
             Assert.True(document.Lists.Count == 1);
@@ -566,6 +566,11 @@ public partial class Word {
             Assert.True(document.Lists[12].ListItems[1].Text == "Test Footer 2");
 
             Assert.True(document.Lists.Count == 13);
+
+            document.Lists[0].Remove();
+
+            Assert.True(document.Lists.Count == 12);
+            Assert.True(document.Lists[0].ListItems[0].Text == "Nested 1");
 
             document.Save(false);
 
