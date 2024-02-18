@@ -555,4 +555,17 @@ public class WordList {
             listItem.Remove();
         }
     }
+
+    public void Merge(WordList documentList) {
+        // Reattach all items from the other list to this list
+        foreach (var item in documentList.ListItems) {
+            var numberingProperties = item._paragraphProperties.NumberingProperties;
+            // Change the NumId to the NumId of this list
+            if (numberingProperties != null && numberingProperties.NumberingId != null) {
+                numberingProperties.NumberingId.Val = this._numberId;
+            }
+        }
+        // Remove the other list
+        documentList.Remove();
+    }
 }
