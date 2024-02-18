@@ -233,6 +233,21 @@ public class WordList {
         }
     }
 
+    /// <summary>
+    /// Exposes the numbering properties of the list allowing for customizations of lists
+    /// </summary>
+    /// <value>
+    /// The numbering.
+    /// </value>
+    public WordListNumbering Numbering {
+        get {
+            var abstractNum = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
+                .ChildElements.OfType<AbstractNum>()
+                .FirstOrDefault(a => a.AbstractNumberId == _abstractId);
+            return new WordListNumbering(abstractNum);
+        }
+    }
+
     public WordList(WordDocument wordDocument, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
