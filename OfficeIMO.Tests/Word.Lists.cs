@@ -195,6 +195,12 @@ public partial class Word {
             var section = Assert.Single(document.Sections);
             Assert.Equal(45, section.Paragraphs.Count);
 
+            // we merge the first two lists
+            document.Lists[0].Merge(document.Lists[1]);
+
+            Assert.Equal(9, document.Lists.Count);
+            Assert.Equal(45, document.Paragraphs.Count);
+
             document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
