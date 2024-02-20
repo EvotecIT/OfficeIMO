@@ -48,6 +48,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_BasicLists6(folderPath, false);
             Lists.Example_BasicLists2(folderPath, false);
             Lists.Example_BasicLists3(folderPath, false);
+            Lists.Example_BasicLists9(folderPath, false);
             Lists.Example_BasicLists4(folderPath, false);
             Lists.Example_BasicLists2Load(folderPath, false);
             Lists.Example_BasicLists7(folderPath, false);

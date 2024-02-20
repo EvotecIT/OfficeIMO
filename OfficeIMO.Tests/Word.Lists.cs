@@ -583,4 +583,26 @@ public partial class Word {
         }
     }
 
+
+    [Fact]
+    public void Test_CreatingWordDocumentWithAllListTypesDefined() {
+        var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsWithAllTypes.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            Assert.True(document.Lists.Count == 0);
+
+            foreach (WordListStyle style in Enum.GetValues(typeof(WordListStyle))) {
+
+                document.AddParagraph(style.ToString()).SetColor(Color.Red).SetBold().SetItalic();
+
+                WordList wordList = document.AddList(style);
+            }
+
+            Assert.True(document.Lists.Count == Enum.GetValues(typeof(WordListStyle)).Length);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+    }
+
 }
