@@ -10,7 +10,7 @@ using Color = SixLabors.ImageSharp.Color;
 namespace OfficeIMO.Examples.Word {
     internal static partial class Lists {
         internal static void Example_CustomList1(string folderPath, bool openWord) {
-            string filePath = System.IO.Path.Combine(folderPath, "Document with Lists3.docx");
+            string filePath = System.IO.Path.Combine(folderPath, "Document with Custom Lists 1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("This is 1st list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
