@@ -41,6 +41,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// The next abstract number identifier stored to be used when creating new abstract numbers
+        /// </summary>
+        private static int nextAbstractNumberId;
+
+        /// <summary>
         /// Generates a random NSID value
         /// </summary>
         /// <returns></returns>
@@ -51,11 +56,21 @@ namespace OfficeIMO.Word {
             return nsidValue;
         }
 
-        private static int nextAbstractNumberId;
-
-        private static void InitializeAbstractNumberId(WordprocessingDocument document) {
+        /// <summary>
+        /// Initializes the abstract number identifier, starting from the highest value currently in use
+        /// It makes sure that the next abstract number identifier is unique
+        /// </summary>
+        /// <param name="document">The document.</param>
+        internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
             // Find the highest AbstractNumberId currently in use
-            nextAbstractNumberId = document.MainDocumentPart.NumberingDefinitionsPart
+
+            var numberingDefinitionPart = document.MainDocumentPart.NumberingDefinitionsPart;
+            if (numberingDefinitionPart == null) {
+                // No numbering definitions part found, so no abstract numbers are in use
+                nextAbstractNumberId = 0;
+                return;
+            }
+            nextAbstractNumberId = numberingDefinitionPart
                 .Numbering.Descendants<AbstractNum>()
                 .Select(an => (int)an.AbstractNumberId.Value)
                 .DefaultIfEmpty(0)
@@ -65,6 +80,10 @@ namespace OfficeIMO.Word {
             nextAbstractNumberId++;
         }
 
+        /// <summary>
+        /// Creates the new abstract number.
+        /// </summary>
+        /// <returns></returns>
         private static AbstractNum CreateNewAbstractNum() {
             AbstractNum newAbstractNum = new AbstractNum() { AbstractNumberId = nextAbstractNumberId };
             nextAbstractNumberId++;
