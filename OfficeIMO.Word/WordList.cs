@@ -401,7 +401,7 @@ public class WordList {
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
 
-    internal void AddList(WordListStyle style, bool continueNumbering) {
+    internal void AddList(WordListStyle style, bool continueNumbering, int? numberingSymbolFontSize = null) {
         CreateNumberingDefinition(_document);
         var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
 
@@ -409,6 +409,22 @@ public class WordList {
         _numberId = GetNextNumberingInstance(numbering);
 
         var abstractNum = WordListStyles.GetStyle(style);
+
+        // set font size for numbering symbol
+        if (numberingSymbolFontSize != null) {
+            
+            // Convert to half-point measure
+            var val = numberingSymbolFontSize * 2;
+
+            foreach (Level level in abstractNum.Elements<Level>()) {
+                NumberingSymbolRunProperties numberingSymbolRunProperties1 = new NumberingSymbolRunProperties();
+                numberingSymbolRunProperties1.Append(new FontSize() { 
+                    Val = val.ToString() 
+                    });
+                level.Append(numberingSymbolRunProperties1);
+            }
+        }
+
         abstractNum.AbstractNumberId = _abstractId;
         var abstractNumId = new AbstractNumId {
             Val = _abstractId

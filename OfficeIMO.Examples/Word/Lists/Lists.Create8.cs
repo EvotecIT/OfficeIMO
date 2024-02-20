@@ -8,8 +8,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with Lists11.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                // add list and nest a list
-                WordList wordList1 = document.AddList(WordListStyle.Headings111, false);
+                WordList wordList1 = document.AddList(WordListStyle.Headings111, false, 15);
                 wordList1.AddItem("Text 1");
                 wordList1.AddItem("Text 1.1");
                 wordList1.AddItem("Text 1.2");
@@ -18,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Second List");
                 document.AddParagraph();
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111, false);
+                WordList wordList2 = document.AddList(WordListStyle.Headings111, false, 25);
                 wordList2.AddItem("Text 2");
                 wordList2.AddItem("Text 2.1");
                 wordList2.AddItem("Text 2.2");
@@ -28,13 +27,12 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Third List");
                 document.AddParagraph();
 
-                WordList wordList3 = document.AddList(WordListStyle.Headings111, false);
+                WordList wordList3 = document.AddList(WordListStyle.Headings111, false, 50);
                 wordList3.AddItem("Text 3");
                 wordList3.AddItem("Text 3.1");
                 wordList3.AddItem("Text 3.2");
                 wordList3.AddItem("Text 3.3");
                 wordList3.AddItem("Text 3.4");
-
 
                 document.Save(openWord);
             }
