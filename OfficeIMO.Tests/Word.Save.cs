@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                 document.Save(filePath1);
 
                 Assert.True(File.Exists(filePath1));
-                Assert.True(filePath1.IsFileLocked());
+                Assert.False(filePath1.IsFileLocked());
 
                 Assert.Single(document.Paragraphs);
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Paragraphs.Count);
 
                 Assert.True(File.Exists(filePath2));
-                Assert.True(filePath2.IsFileLocked());
+                Assert.False(filePath2.IsFileLocked());
 
                 document.AddParagraph("This is my test in document 3");
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 document.Save(filePath3);
 
                 Assert.True(File.Exists(filePath3));
-                Assert.True(filePath3.IsFileLocked());
+                Assert.False(filePath3.IsFileLocked());
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             document.Save();
 
-            Assert.True(filePath1.IsFileLocked());
+            Assert.False(filePath1.IsFileLocked());
 
             document.Dispose();
 
