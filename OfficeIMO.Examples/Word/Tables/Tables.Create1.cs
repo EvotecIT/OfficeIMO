@@ -46,6 +46,13 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.Rows[2].Cells[0].Paragraphs[0].AddParagraphAfterSelf().AddParagraphAfterSelf().AddParagraphAfterSelf().Text = "Works differently";
 
+                int paragraphCount = wordTable.Rows[1].Cells[0].Paragraphs.Count;
+                Console.WriteLine(wordTable.Rows[1].Cells[0].Paragraphs.Count); // should be 5
+                for (int i = 1; i < paragraphCount; i++) {
+                    Console.WriteLine("Removing paragraph");
+                    wordTable.Rows[1].Cells[0].Paragraphs[0].Remove();
+                }
+                Console.WriteLine(wordTable.Rows[1].Cells[0].Paragraphs.Count); // should be 1
 
 
                 Console.WriteLine(wordTable.Style);

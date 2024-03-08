@@ -53,8 +53,8 @@ namespace OfficeIMO.Examples {
             // Lists.Example_BasicLists2Load(folderPath, false);
             // Lists.Example_BasicLists7(folderPath, false);
             // Lists.Example_BasicLists8(folderPath, false);
-            Lists.Example_CustomList1(folderPath, true);
-            // Tables.Example_BasicTables1(folderPath, false);
+            //Lists.Example_CustomList1(folderPath, true);
+            Tables.Example_BasicTables1(folderPath, true);
             // Tables.Example_BasicTablesLoad1(folderPath, false);
             // Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
             // Tables.Example_BasicTablesLoad3(templatesPath, false);
