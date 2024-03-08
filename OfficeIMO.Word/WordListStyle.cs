@@ -5,6 +5,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// List of styles for Word lists
+    /// Most of the styles are based on the built-in Word list styles, except for the Custom style
+    /// </summary>
     public enum WordListStyle {
         Bulleted,
         ArticleSections,
