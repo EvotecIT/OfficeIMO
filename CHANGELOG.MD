@@ -1,3 +1,13 @@
+## 0.14.0 - 2024.04.04
+## What's Changed
+* Add centimeters conversions to Margins, fix naming emus/twips by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/200
+* Fixes lists NSID value which prevents lists using correct settings when using same type multiple times by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/202
+* Add 4 more list types with letters by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/209
+* **Breaking Change** - Remove continue & restart numbering from Lists  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/205
+* Add Remove & Merge Lists by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/207
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.13.0...v0.14.0
+
 ## 0.13.0 - 2024.02.02
 ### What's Changed
 * Add basic method to add textbox to header/footer by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/187
