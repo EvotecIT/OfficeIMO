@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OfficeIMO.Word;
 
-public class ShapeStyle {
+public class ImageShapeStyle {
     public string Position { get; set; }
     public string MarginLeft { get; set; }
     public string MarginTop { get; set; }
@@ -16,14 +16,14 @@ public class ShapeStyle {
     public string MsoPositionVertical { get; set; }
     public string MsoPositionVerticalRelative { get; set; }
 
-    public static ShapeStyle FromString(string styleString) {
+    public static ImageShapeStyle FromString(string styleString) {
         var styleParts = styleString.Split(';')
             .Select(part => part.Split(':'))
             .ToDictionary(split => split[0], split => split[1]);
 
-        var shapeStyle = new ShapeStyle();
+        var shapeStyle = new ImageShapeStyle();
 
-        var properties = typeof(ShapeStyle).GetProperties();
+        var properties = typeof(ImageShapeStyle).GetProperties();
         foreach (var property in properties) {
             if (styleParts.ContainsKey(property.Name.ToLower())) {
                 property.SetValue(shapeStyle, styleParts[property.Name.ToLower()]);
@@ -36,7 +36,7 @@ public class ShapeStyle {
     }
 
     public override string ToString() {
-        var properties = typeof(ShapeStyle).GetProperties();
+        var properties = typeof(ImageShapeStyle).GetProperties();
         var styleParts = new List<string>();
 
         foreach (var property in properties) {
