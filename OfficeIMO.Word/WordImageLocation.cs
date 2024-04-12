@@ -1,7 +1,4 @@
 using DocumentFormat.OpenXml.Packaging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OfficeIMO.Word {
     public class WordImageLocation {
