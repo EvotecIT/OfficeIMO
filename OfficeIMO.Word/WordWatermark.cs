@@ -312,14 +312,14 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string text) {
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath) {
             this._document = wordDocument;
             this._section = wordSection;
 
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
 
-                this.Text = text;
+                this.Text = textOrFilePath;
 
                 //this._document._document.Body.Append(_sdtBlock);
                 if (this._section.Paragraphs.Count == 0) {
@@ -328,6 +328,10 @@ namespace OfficeIMO.Word {
                     var lastParagraph = this._section.Paragraphs.Last();
                     lastParagraph._paragraph.Parent.Append(_sdtBlock);
                 }
+            } else {
+                // TODO: Add handling for watermark image
+
+
             }
         }
 

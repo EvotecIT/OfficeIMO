@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using OfficeIMO.Word;
+
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
@@ -20,6 +22,9 @@ namespace OfficeIMO.Examples.Word {
                 var imagePathToAdd = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
                 var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
 
+                // TODO: Add handling for watermark image
+                Console.WriteLine(watermark.Height);
+                Console.WriteLine(watermark.Width);
 
 
                 document.Save(false);
