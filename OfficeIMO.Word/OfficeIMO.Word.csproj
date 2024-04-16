@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <Description>An Open Source cross-platform .NET library providing an easy way to create Microsoft Word (DocX) documents.</Description>
@@ -63,7 +63,7 @@
 
     <ItemGroup>
         <PackageReference Include="DocumentFormat.OpenXml" Version="[2.16.0,3.0.0)" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="[2.1.7,3.0.0)" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="[2.1.8,3.0.0)" />
     </ItemGroup>
 
     <ItemGroup>
