@@ -17,7 +17,6 @@ using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 
 namespace OfficeIMO.VerifyTests;
 
-[UsesVerify]
 public abstract class VerifyTestBase {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
 
