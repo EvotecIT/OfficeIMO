@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -99,13 +99,13 @@ namespace OfficeIMO.Word {
 
             if (headerFooterValue == HeaderFooterValues.Default) {
                 //  section._headerDefault = headerPart.Header;
-                section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header);
+                section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {
                 //  section._headerFirst = headerPart.Header;
-                section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header);
+                section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header, section);
             } else {
                 // section._headerEven = headerPart.Header;
-                section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header);
+                section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header, section);
             }
         }
 
@@ -145,13 +145,13 @@ namespace OfficeIMO.Word {
 
             if (headerFooterValue == HeaderFooterValues.Default) {
                 //section._footerDefault = footerPart.Footer;
-                section.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer);
+                section.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {
                 //section._footerFirst = footerPart.Footer;
-                section.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer);
+                section.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer, section);
             } else {
                 //section._footerEven = footerPart.Footer;
-                section.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer);
+                section.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer, section);
             }
         }
 

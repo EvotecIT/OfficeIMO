@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
 
 
             var paragraph3 = document.AddParagraph("Image will be in front of text");
-            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.InFrontText, "Przemek and Kulek on an image");
+            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.InFrontOfText, "Przemek and Kulek on an image");
 
 
             var paragraph5 = document.AddParagraph("Image will be Square");

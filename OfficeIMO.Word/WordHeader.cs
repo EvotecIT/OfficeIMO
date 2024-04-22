@@ -21,10 +21,13 @@ namespace OfficeIMO.Word {
         }
     }
     public partial class WordHeader : WordHeaderFooter {
-        internal WordHeader(WordDocument document, HeaderReference headerReference) {
+        private readonly WordSection _section;
+
+        internal WordHeader(WordDocument document, HeaderReference headerReference, WordSection section) {
             _document = document;
             _id = headerReference.Id;
             _type = WordSection.GetType(headerReference.Type);
+            _section = section;
 
             var listHeaders = document._wordprocessingDocument.MainDocumentPart.HeaderParts.ToList();
             foreach (HeaderPart headerPart in listHeaders) {
@@ -45,10 +48,11 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Shouldn't happen?");
             }
         }
-        internal WordHeader(WordDocument document, HeaderFooterValues type, Header headerPartHeader) {
+        internal WordHeader(WordDocument document, HeaderFooterValues type, Header headerPartHeader, WordSection section) {
             _document = document;
             _header = headerPartHeader;
             _type = type;
+            _section = section;
         }
 
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
@@ -74,6 +78,15 @@ namespace OfficeIMO.Word {
         }
         public static void RemoveHeaders(WordDocument document) {
             RemoveHeaders(document._wordprocessingDocument);
+        }
+
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
+            return new WordWatermark(this._document, this._section, this, watermarkStyle, text);
+        }
+
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
+            return wordTextBox;
         }
     }
 }

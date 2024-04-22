@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
@@ -550,6 +551,28 @@ namespace OfficeIMO.Word {
                     }
                 }
                 return list;
+            }
+        }
+
+        public WordTextBox TextBox {
+            get {
+                if (_run != null && _runProperties != null) {
+                    var wordTextboxes = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
+                    if (wordTextboxes != null) {
+                        return new WordTextBox(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
+        public bool IsTextBox {
+            get {
+                if (this.TextBox != null) {
+                    return true;
+                }
+
+                return false;
             }
         }
     }

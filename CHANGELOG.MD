@@ -1,3 +1,319 @@
+## 0.14.0 - 2024.04.04
+## What's Changed
+* Add centimeters conversions to Margins, fix naming emus/twips by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/200
+* Fixes lists NSID value which prevents lists using correct settings when using same type multiple times by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/202
+* Add 4 more list types with letters by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/209
+* **Breaking Change** - Remove continue & restart numbering from Lists  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/205
+* Add Remove & Merge Lists by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/207
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.13.0...v0.14.0
+
+## 0.13.0 - 2024.02.02
+### What's Changed
+* Add basic method to add textbox to header/footer by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/187
+* [WordTextBox] Add additional features by @TopperDEL in https://github.com/EvotecIT/OfficeIMO/pull/188
+    * Use Paragraph instead of StdBlock (so that text within a TextBox is no "variable" anymore)
+    * Allow changing the insets of the TextBox so that there is no gap between the text of the TextBox and its border
+    * Allow the TextBox to be set to "AutoFitText" or not
+    * Allow the text to be multiline by respecting the page breaks
+    * Added Wrapping functionality including inline
+    * Added ability to convert inline to other wrapping types and vice versa (keep in mind that some properties are lost then or go to their defaults)
+    * Fixes wrong paragraph being returned when AddImage is used
+    * **Breaking Change** Changes WrapTextImage.InFrontText to WrapTextImage.InFrontOfText to match Word naming
+* Improve WordTextBox functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/197
+* Add support for Net8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/198
+* Fixes some warnings as reported by Visual Studio by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/199
+* Added the ability to clear the default empty paragraph in TableCell. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/182
+
+### New Contributors
+* @TopperDEL made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/188
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.12.0...v0.13.0
+
+## 0.12.0 - 2023.12.31
+
+### What's Changed
+* Add descriptions to AddImage parameters to documentation by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/175
+* Add ability to add TextBox to Word Document (new class WordTextBox) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/180
+* **BREAKING CHANGE** Improve Watermark with colors, rotation and other settings by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/181
+* Word table cell paragraph add image fix by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/176
+* Add support for WriteProtection (Always Read Only) and MarkAsFinal settings by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/163
+
+### New Contributors
+* @tmheath made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/175
+
+More details. This change adds:
+- Ability to modify watermark (colors, text, rotation, width, height)
+- Ability to remove watermark
+- Ability to find watermarks in document, sections, headers
+- Ability to add watermark to document/section which makes watermark show up only on single page
+- Ability to add watermark to headers/footers which makes watermark show up on whole section
+
+**Breaking changes**
+- This change breaks how watermarks are added. If you add them directly within section/document it will only apply to single page/pages as the SdtBlock gets added to body directly. If you need watermark for the whole section/document you need to add watermark to header/footer for it to apply to given section.
+
+This example shows per section in header:
+
+```cs
+public static void Watermark_Sample1(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with Watermark 2");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 4.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.AddParagraph("Section 0");
+        document.AddHeadersAndFooters();
+        document.Sections[0].Header.Default.AddParagraph("Section 0 - In header");
+        document.Sections[0].SetMargins(WordMargin.Normal);
+
+        Console.WriteLine(document.Sections[0].Margins.Left.Value);
+        Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[0].Margins.Type);
+
+        document.Sections[0].Margins.Type = WordMargin.Wide;
+
+        Console.WriteLine(document.Sections[0].Margins.Type);
+
+        Console.WriteLine("----");
+        var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+        watermark.Color = Color.Red;
+
+        // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
+        Console.WriteLine(watermark.ColorHex);
+
+        Console.WriteLine(watermark.Rotation);
+
+        watermark.Rotation = 180;
+
+        Console.WriteLine(watermark.Rotation);
+
+        watermark.Stroked = true;
+
+        Console.WriteLine(watermark.Height);
+        Console.WriteLine(watermark.Width);
+
+        // width and height in points (HTML wise)
+        watermark.Height = 100.15;
+        watermark.Width = 500.18;
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        document.AddSection();
+
+        document.AddParagraph("Section 1");
+
+        document.Sections[1].AddHeadersAndFooters();
+        document.Sections[1].Header.Default.AddParagraph("Section 1 - In header");
+        document.Sections[1].Margins.Type = WordMargin.Narrow;
+        Console.WriteLine("----");
+
+        Console.WriteLine("Section 0 - Paragraphs Count: " + document.Sections[0].Header.Default.Paragraphs.Count);
+        Console.WriteLine("Section 1 - Paragraphs Count: " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("----");
+        document.Sections[1].AddParagraph("Test");
+        document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
+
+        Console.WriteLine(document.Sections[0].Margins.Left.Value);
+        Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[1].Margins.Left.Value);
+        Console.WriteLine(document.Sections[1].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[1].Margins.Type);
+
+
+        document.Settings.SetBackgroundColor(Color.Azure);
+
+        Console.WriteLine("----");
+
+        Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
+
+        Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+        Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+        Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks in section 1 (header): " + document.Sections[1].Header.Default.Watermarks.Count);
+        Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+
+        document.Save(false);
+    }
+
+    using (WordDocument document = WordDocument.Load(filePath)) {
+        //Console.WriteLine("----");
+        //Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
+
+        //Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+        //Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+        //Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+        //Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+        //Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+
+        //Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        //Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+This example shows per page:
+
+```
+public static void Watermark_Sample3(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with watermark");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark and sections.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+
+        document.AddParagraph("Section 0");
+        document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        var section = document.AddSection();
+        section.AddWatermark(WordWatermarkStyle.Text, "Second Mark");
+
+        document.AddParagraph("Section 1");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        var section1 = document.AddSection();
+
+        document.AddParagraph("Section 2");
+
+        document.Sections[2].AddWatermark(WordWatermarkStyle.Text, "New");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        Console.WriteLine("----");
+        Console.WriteLine("Watermarks: " + document.Watermarks.Count);
+        Console.WriteLine("Watermarks section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks section 2: " + document.Sections[2].Watermarks.Count);
+
+        Console.WriteLine("Paragraphs: " + document.Paragraphs.Count);
+
+        Console.WriteLine("Removing last watermark");
+
+        document.Sections[2].Watermarks[0].Remove();
+
+        Console.WriteLine("Watermarks: " + document.Watermarks.Count);
+        Console.WriteLine("Watermarks section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks section 2: " + document.Sections[2].Watermarks.Count);
+        Console.WriteLine("Paragraphs: " + document.Paragraphs.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Adds WordBordersParagraph type and allows setting borders for paragraphs
+- Adds ability to add TextBox
+
+```cs
+internal static void Example_AddingTextbox2(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with some textbox");
+
+    var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox3.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Adding paragraph with some text");
+
+        var textBox = document.AddTextBox("My textbox on the left");
+
+        textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+        // horizontal alignment overwrites the horizontal position offset so only one will work
+        textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+        textBox.VerticalPositionOffsetCentimeters = 3;
+
+        var textBox2 = document.AddTextBox("My textbox on the right");
+        textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+        textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
+        // horizontal alignment overwrites the horizontal position offset so only one will work
+        textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+        textBox2.VerticalPositionOffsetCentimeters = 3;
+
+        Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
+
+        Console.WriteLine(document.TextBoxes[0].VerticalPositionOffsetCentimeters);
+
+        Console.WriteLine(document.TextBoxes[1].VerticalPositionOffsetCentimeters);
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Allow setting document to AlwaysOpenReadOnly
+
+```cs
+internal static void Example_ProtectAlwaysReadOnly(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with protection 'Always Read Only'");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with always read only protection.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+        paragraph.AddText(" This is continutation in the same line");
+
+        Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+
+        document.Settings.AlwaysOpenReadOnly = true;
+
+        Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+
+        document.Save(true);
+    }
+}
+```
+
+- Allow setting document to FinalDocument
+
+```cs
+internal static void Example_ProtectFinalDocument(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating basic document with protection - Final Document");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with setting Word to Final Document.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph - Page 1");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+        paragraph.AddText(" This is continutation in the same line");
+        paragraph.AddBreak(BreakValues.TextWrapping);
+
+        Console.WriteLine("Final document: " + document.Settings.FinalDocument);
+
+        document.Settings.FinalDocument = true;
+
+        Console.WriteLine("Final document: " + document.Settings.FinalDocument);
+
+        document.Save(openWord);
+    }
+}
+```
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.11.0...v0.12.0
+
+## 0.11.0 - 2023.11.27
+
+### What's Changed
+* FindAndReplace allowed for specific paragraphs by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/171
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.10.0...v0.11.0
+
 ## 0.10.0 - 2023.10.24
 
 ### What's Changed
@@ -539,7 +855,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 
     var paragraph3 = document.AddParagraph("Image will be in front of text");
-    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontOfText, "Przemek and Kulek on an image");
 
 
     var paragraph5 = document.AddParagraph("Image will be Square");

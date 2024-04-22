@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2010.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -199,7 +201,7 @@ namespace OfficeIMO.Word {
             document.Settings = this;
         }
 
-        private RunPropertiesBaseStyle? GetDefaultStyleProperties() {
+        private RunPropertiesBaseStyle GetDefaultStyleProperties() {
             if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
                 if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults != null) {
                     if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault != null) {
@@ -214,7 +216,7 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private RunPropertiesBaseStyle? SetDefaultStyleProperties() {
+        private RunPropertiesBaseStyle SetDefaultStyleProperties() {
             if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
                 if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults == null) {
                     this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults = new DocDefaults();
@@ -484,5 +486,68 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Sets property in document recommending user to open the document as read only
+        /// User can choose to do so, or ignore this recommendation
+        /// This setting can in theory go with a ReadOnlyPassword but it doesn't seem to work the same way as Document Password
+        /// </summary>
+        public bool? ReadOnlyRecommended {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                if (settings.WriteProtection == null) {
+                    return false;
+                }
+                if (settings.WriteProtection.Recommended == null) {
+                    return false;
+                }
+                return settings.WriteProtection.Recommended.Value;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                if (settings.WriteProtection == null) {
+                    if (value == null) {
+                        // user wanted to remove read only protection
+                        return;
+                    }
+                    settings.WriteProtection = new WriteProtection();
+                } else {
+                    if (value == null) {
+                        // user wanted to remove read only protection
+                        settings.WriteProtection.Remove();
+                        return;
+                    }
+                }
+                settings.WriteProtection.Recommended = value;
+            }
+        }
+
+        /// <summary>
+        /// Sets password protection when recommending document to be read only
+        /// Doesn't seem to work
+        /// </summary>
+        public string ReadOnlyPassword {
+            set {
+                Security.SetWriteProtection(this._document._wordprocessingDocument, value);
+            }
+        }
+
+        public bool FinalDocument {
+            get {
+                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
+                    // key exists in dictionary
+                    var markFinalProperty = _document.CustomDocumentProperties["_MarkAsFinal"];
+                    return markFinalProperty != null && (bool)markFinalProperty.Value;
+                } else {
+                    return false;
+                }
+            }
+            set {
+                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
+                    _document.CustomDocumentProperties["_MarkAsFinal"].Value = value;
+                } else {
+                    _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                }
+            }
+        }
     }
 }

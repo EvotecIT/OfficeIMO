@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -22,7 +23,15 @@ namespace OfficeIMO.Tests {
 
             // lets add image to paragraph
             paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            //paragraph.Image.WrapText = true; // WrapSideValues.Both;
+            Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
+
+            paragraph.Image.WrapText = WrapTextImage.BehindText;
+
+            Assert.True(paragraph.Image.WrapText == WrapTextImage.BehindText);
+
+            paragraph.Image.WrapText = WrapTextImage.InLineWithText;
+
+            Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
 
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
@@ -79,6 +88,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, document.Images.Count);
             Assert.Equal(4, document.Sections[0].Images.Count);
             document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
 
@@ -174,7 +185,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
                 Assert.True(document.Images[1].WrapText == WrapTextImage.Square);
-                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontText);
+                Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontOfText);
                 Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
                 Assert.True(document.Header.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
 
@@ -206,7 +217,7 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
-            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontText);
+            paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
 
             var paragraph4 = document.AddParagraph("This is a test document with images wraps");
             paragraph4.AddImage(filePathImage, 100, 100, WrapTextImage.TopAndBottom);
@@ -223,13 +234,15 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Paragraphs.Count == 7);
             Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
             Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.BehindText);
-            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontText);
+            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontOfText);
             Assert.True(document.Paragraphs[3].Image.WrapText == WrapTextImage.TopAndBottom);
             Assert.True(document.Paragraphs[4].Image.WrapText == WrapTextImage.Square);
             Assert.True(document.Paragraphs[5].Image.WrapText == WrapTextImage.Tight);
             Assert.True(document.Paragraphs[6].Image.WrapText == WrapTextImage.Through);
 
             document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
         [Fact]
@@ -290,7 +303,74 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
 
             document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesInTable() {
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImagesInTable.docx");
+            using var document = WordDocument.Create(filePath);
+
+            const string fileNameImage = "Kulek.jpg";
+            var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
+
+            var table = document.AddTable(2, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+
+            // not really necessary to add new paragraph since one is already there by default
+            var paragraph = table.Rows[0].Cells[1].AddParagraph();
+            paragraph.AddImage(filePathImage, 200, 200);
+
+            document.AddHeadersAndFooters();
+
+            var tableInHeader = document.Header.Default.AddTable(2, 2);
+            tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
+
+            // not really necessary to add new paragraph since one is already there by default
+            var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
+            paragraphInHeader.AddImage(filePathImage, 200, 200);
+
+            Assert.True(document.Tables.Count == 1);
+            Assert.True(document.Tables[0].Rows.Count == 2);
+            Assert.True(document.Tables[0].Rows[0].Cells.Count == 2);
+
+            Assert.True(document.Header.Default.Tables.Count == 1);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithImagesInline() {
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImagesInline.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var paragraph = document.AddParagraph("This paragraph starts with some text");
+            paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";
+
+            // lets add image to paragraph
+            var imageParagraph = paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WrapTextImage.InLineWithText);
+
+            Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
+
+            Assert.True(imageParagraph.Image.WrapText == WrapTextImage.InLineWithText);
+
+            imageParagraph.Image.WrapText = WrapTextImage.Square;
+
+            Assert.True(imageParagraph.Image.WrapText == WrapTextImage.Square);
+
+            var paragraph5 = paragraph.AddText("and more text");
+            paragraph5.Bold = true;
+
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
     }
 
 }

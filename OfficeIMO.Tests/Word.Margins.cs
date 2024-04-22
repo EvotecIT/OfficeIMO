@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -88,6 +83,35 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[6].Margins.Type == WordMargin.Unknown);
 
             }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithPageMarginsCentimeters() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMarginsCentimeters.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.Sections[0].Margins.BottomCentimeters = 2.30;
+                document.Sections[0].Margins.TopCentimeters = 5.50;
+                document.Sections[0].Margins.LeftCentimeters = 3.01;
+                document.Sections[0].Margins.RightCentimeters = 3.05;
+
+                Assert.True(document.Sections[0].Margins.BottomCentimeters == 2.2998236331569664);
+                Assert.True(document.Sections[0].Margins.TopCentimeters == 5.499118165784832);
+                Assert.True(document.Sections[0].Margins.LeftCentimeters == 3.0088183421516757);
+                Assert.True(document.Sections[0].Margins.RightCentimeters == 3.049382716049383);
+
+                Assert.True(document.Sections[0].Margins.Bottom == 1304);
+                Assert.True(document.Sections[0].Margins.Top == 3118);
+                Assert.True(document.Sections[0].Margins.Left.Value == 1706);
+                Assert.True(document.Sections[0].Margins.Right.Value == 1729);
+
+
+
+                document.Save(false);
+
+                Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+            }
+
         }
     }
 

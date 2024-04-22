@@ -811,7 +811,112 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
 
             }
-          
+
+        }
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesWithReplace() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesReplace.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+
+                document.AddParagraph("Table1 - Test 1");
+                document.AddParagraph("Test1");
+
+
+                WordTable wordTable = document.AddTable(3, 4);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+
+                Assert.True(document.Tables.Count == 1);
+
+                var wordTable = document.Tables[0];
+
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 1");
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
+
+                WordDocument.FindAndReplace(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
+                WordDocument.FindAndReplace(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
+
+                // lets make sure find and replace works only on table
+                Assert.True(document.Paragraphs[0].Text == "Table1 - Test 1");
+                Assert.True(document.Paragraphs[1].Text == "Test1");
+
+                // lets check data for table
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Test 11");
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 21");
+                Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
+
+                document.Save();
+            }
+
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesClearParagraphs() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Tables.Count == 0, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                WordTable wordTable = document.AddTable(3, 4);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "Test Row 0 Cell 1";
+
+                Assert.True(document.Tables.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 1);
+
+                // add 2 more texts to the same cell as new paragraphs
+                wordTable.Rows[0].Cells[0].Paragraphs[0].AddParagraph("New");
+                wordTable.Rows[0].Cells[0].Paragraphs[1].AddParagraph("New more");
+
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 3);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text == "Test 1");
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Text == "New");
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[2].Text == "New more");
+
+                // replace existing paragraphs with single one 
+                wordTable.Rows[0].Cells[0].AddParagraph("New paragraph, delete rest", true);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text == "New paragraph, delete rest");
+
+                // lets try to add new paragraph to the same cell, using WordParagraph
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Test Row 0 Cell 1");
+
+                WordParagraph paragraph1 = new WordParagraph {
+                    Text = "Paragraph added separately as WordParagraph",
+                    Bold = true,
+                    Italic = true
+                };
+
+                wordTable.Rows[0].Cells[1].AddParagraph(paragraph1);
+
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 2);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Test Row 0 Cell 1");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Paragraph added separately as WordParagraph");
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Bold == true);
+                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Italic == true);
+
+                document.Save(false);
+            }
         }
     }
 }

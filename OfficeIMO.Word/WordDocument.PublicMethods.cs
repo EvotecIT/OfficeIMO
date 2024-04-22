@@ -92,15 +92,15 @@ namespace OfficeIMO.Word {
             return pieChart;
         }
 
-        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+        public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this);
-            wordList.AddList(style, continueNumbering);
+            wordList.AddList(style);
             return wordList;
         }
 
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
-            wordList.AddList(style, continueNumbering: true);
+            wordList.AddList(style);
             return wordList;
         }
 
@@ -117,6 +117,11 @@ namespace OfficeIMO.Word {
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
             WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
             return wordCoverPage;
+        }
+
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
+            return wordTextBox;
         }
 
         public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
@@ -243,14 +248,35 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the whole doc
+        /// </summary>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
         public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             int countFind = 0;
             FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
         }
 
+        /// <summary>
+        /// FindAdnReplace from the range parparagraphs
+        /// </summary>
+        /// <param name="paragraphs"></param>
+        /// <param name="textToFind"></param>
+        /// <param name="textToReplace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        public static int FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            int countFind = 0;
+            FindAndReplaceNested(paragraphs, textToFind, textToReplace, ref countFind, true, stringComparison);
+            return countFind;
+        }
 
-        private List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+
+        private static List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             List<WordParagraph> foundParagraphs = ReplaceText(paragraphs, textToFind, textToReplace, ref count, replace, stringComparison);
             return foundParagraphs;
         }
@@ -259,8 +285,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Replace text inside each paragraph
         /// </summary>
-        /// <param name="oldText">target text</param>
-        /// <param name="newText">replacement text</param>
+        /// <param name="paragraphs"></param>
+        /// <param name="oldText"></param>
+        /// <param name="newText"></param>
+        /// <param name="count"></param>
+        /// <param name="replace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         private static List<WordParagraph> ReplaceText(List<WordParagraph> paragraphs, string oldText, string newText, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             if (string.IsNullOrEmpty(oldText)) {
                 throw new ArgumentNullException("oldText should not be null");

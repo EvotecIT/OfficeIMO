@@ -10,11 +10,12 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordSection {
 
-        internal static List<WordParagraph> ConvertRunsToWordParagraphs(WordDocument document, Run run) {
-            var list = new List<WordParagraph>();
-            return list;
-        }
-
+        /// <summary>
+        /// Converts tables to WordTables
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="tables"></param>
+        /// <returns></returns>
         internal static List<WordTable> ConvertTableToWordTable(WordDocument document, IEnumerable<Table> tables) {
             var list = new List<WordTable>();
             foreach (Table table in tables) {
@@ -23,6 +24,43 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// Converts SdtBlock to WordWatermark if it's a watermark
+        /// Hopefully detection is good enough, but it's possible that it will catch other things as well
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlock"></param>
+        /// <returns></returns>
+        internal static List<WordWatermark> ConvertStdBlockToWatermark(WordDocument document, IEnumerable<SdtBlock> sdtBlock) {
+            var list = new List<WordWatermark>();
+            foreach (SdtBlock block in sdtBlock) {
+                var sdtContent = block.SdtContentBlock;
+                if (sdtContent == null) {
+                    continue;
+                }
+                var paragraphs = sdtContent.ChildElements.OfType<Paragraph>().FirstOrDefault();
+                if (paragraphs == null) {
+                    continue;
+                }
+                var run = paragraphs.ChildElements.OfType<Run>().FirstOrDefault();
+                if (run == null) {
+                    continue;
+                }
+                var picture = run.ChildElements.OfType<Picture>().FirstOrDefault();
+                if (picture == null) {
+                    continue;
+                }
+                list.Add(new WordWatermark(document, block));
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Converts paragraphs to WordParagraphs
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="paragraphs"></param>
+        /// <returns></returns>
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
             Dictionary<BookmarkStart, WordBookmark> bookmarks = new Dictionary<BookmarkStart, WordBookmark>();
@@ -96,6 +134,10 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// Get all paragraphs in given section
+        /// </summary>
+        /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
             Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
             var count = 0;
@@ -245,6 +287,44 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            return dataSections[foundCount];
+        }
+
+        /// <summary>
+        /// Gets list of watermarks in given section
+        /// </summary>
+        /// <returns></returns>
+        private List<SdtBlock> GetSdtBlockList() {
+            Dictionary<int, List<SdtBlock>> dataSections = new Dictionary<int, List<SdtBlock>>();
+            var count = 0;
+
+            dataSections[count] = new List<SdtBlock>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                    foundCount = count;
+                                }
+
+                                count++;
+                                dataSections[count] = new List<SdtBlock>();
+                            }
+                        } else if (element is SdtBlock) {
+                            dataSections[count].Add((SdtBlock)element);
+                        }
+                    }
+
+                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    if (sectionProperties == _sectionProperties) {
+                        foundCount = count;
+                    }
+                }
+            }
             return dataSections[foundCount];
         }
 
