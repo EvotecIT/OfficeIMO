@@ -127,9 +127,23 @@ public abstract class VerifyTestBase {
             i++;
         }
 
+        i = 1;
+        foreach (var nsid in document.Descendants<Nsid>()) {
+            nsid.Val = i.ToString("X8");
+            i++;
+        }
+
         if (document.MainDocumentPart!.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
             foreach (var comment in document.MainDocumentPart.WordprocessingCommentsPart!.RootElement!.Descendants<Comment>()) {
                 comment.Date = DateTime.MaxValue;
+            }
+        }
+
+        if (document.MainDocumentPart!.GetPartsOfType<NumberingDefinitionsPart>().Any()) {
+            i = 1;
+            foreach (var nsid in document.MainDocumentPart.NumberingDefinitionsPart!.RootElement!.Descendants<Nsid>()) {
+                nsid.Val = i.ToString("X8");
+                i++;
             }
         }
     }
@@ -137,8 +151,8 @@ public abstract class VerifyTestBase {
     private static void NormalizeCustomFilePropertiesPart(CustomFilePropertiesPart? part) {
         var fileTime = part?.Properties
             .FirstOrDefault(x => ((CustomDocumentProperty?)x)?.VTFileTime != null);
-        if (fileTime != null) {
-            ((CustomDocumentProperty?) fileTime)!.VTFileTime!.Text = LastTime;
+        if (fileTime is CustomDocumentProperty property) {
+            property.VTFileTime!.Text = LastTime;
         }
     }
 }
