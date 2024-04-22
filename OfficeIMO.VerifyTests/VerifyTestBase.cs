@@ -126,12 +126,6 @@ public abstract class VerifyTestBase {
             i++;
         }
 
-        i = 1;
-        foreach (var nsid in document.Descendants<Nsid>()) {
-            nsid.Val = i.ToString("X8");
-            i++;
-        }
-
         if (document.MainDocumentPart!.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
             foreach (var comment in document.MainDocumentPart.WordprocessingCommentsPart!.RootElement!.Descendants<Comment>()) {
                 comment.Date = DateTime.MaxValue;
