@@ -72,6 +72,7 @@
         <Using Include="System.Collections.Generic" />
         <Using Include="System.Collections" />
         <Using Include="System.Linq" />
+        <Using Include="System.IO" />
     </ItemGroup>
 
     <ItemGroup>
