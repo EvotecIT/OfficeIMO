@@ -73,23 +73,9 @@ namespace OfficeIMO.Word {
             return lineChart;
         }
 
-        //public WordBarChart3D AddBarChart3D() {
-        //    var paragraph = this.AddParagraph();
-        //    var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
-        //    return barChart;
-        //}
-
-        //public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-        //    var paragraph = this.AddParagraph();
-        //    var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
-        //    return pieChart;
-        //}
-
         public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
-            //chartInstance.AddChart(this, paragraph, title, roundedCorners, width, height);
-            //var chart = WordPieChart.AddChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
         }
 
