@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Drawing.Charts;
+
 using OfficeIMO.Word;
+
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,9 +11,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Charts Document.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                List<string> categories = new List<string>() {
-                    "Food", "Housing", "Mix", "Data"
-                };
+                List<string> categories = new List<string>() { "Food", "Housing", "Mix", "Data" };
 
                 var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
 
@@ -41,13 +36,21 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                document.AddParagraph("This is a pie chart");
-                var pieChart = document.AddPieChart();
-                pieChart.AddCategories(categories);
-                pieChart.AddChartPie("Poland", new List<int> { 15, 20, 30 });
-
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
+
+                document.AddParagraph("This is a pie chart with 3 pies");
+                var pieChart2 = document.AddPieChart("Test");
+                pieChart2.AddPie("Poland", 15);
+                pieChart2.AddPie("USA", 30);
+                pieChart2.AddPie("Brazil", 20.2);
+
+
+                document.AddParagraph("This is a pie chart with 3 pies");
+                document.AddPieChart("Test")
+                    .AddPie("Poland", 15)
+                    .AddPie("USA", 30)
+                    .AddPie("Brazil", 20.2);
 
                 document.AddParagraph("Adding a line chart as required 1");
 
@@ -92,7 +95,9 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
                 var pieChart1 = paragraph2.AddPieChart();
                 pieChart1.AddCategories(categories);
-                pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+                pieChart1.AddPie("Poland", 15);
+                pieChart1.AddPie("USA", 18);
+                pieChart1.AddPie("Brazil", 10);
 
                 var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
                 var lineChart3 = paragraph3.AddLineChart();
