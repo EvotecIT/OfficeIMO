@@ -15,29 +15,26 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
 
-                //// adding charts to document
-                //document.AddParagraph("This is a bar chart");
-                //var barChart1 = document.AddBarChart();
-                //barChart1.AddCategories(categories);
-                //barChart1.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                //barChart1.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                //barChart1.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //barChart1.BarGrouping = BarGroupingValues.Clustered;
-                //barChart1.BarDirection = BarDirectionValues.Column;
+                // adding charts to document
+                document.AddParagraph("This is a bar chart");
+                var barChart1 = document.AddChart();
+                barChart1.AddCategories(categories);
+                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart1.BarGrouping = BarGroupingValues.Clustered;
+                barChart1.BarDirection = BarDirectionValues.Column;
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //document.AddParagraph("This is a bar chart");
-                //var barChart2 = document.AddBarChart();
-                //barChart2.AddCategories(categories);
-                //barChart2.AddChartBar("USA", 15, Color.Aqua);
-                //barChart2.RoundedCorners = true;
+                document.AddParagraph("This is a bar chart");
+                var barChart2 = document.AddChart();
+                barChart2.AddCategories(categories);
+                barChart2.AddBar("USA", 15, Color.Aqua);
+                barChart2.AddBar("Poland", 11, Color.Blue);
+                barChart2.RoundedCorners = true;
 
-
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
-
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
-
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
                 document.AddParagraph("This is a pie chart with 2 pies");
                 var pieChart2 = document.AddChart("Test");
@@ -56,102 +53,99 @@ namespace OfficeIMO.Examples.Word {
                 pieChart1.AddPie("Poland", 10);
                 pieChart1.AddPie("Poland", 20);
 
-                //document.AddParagraph("Adding a line chart as required 1");
+                document.AddParagraph("Adding a line chart as required 1");
 
-                //var lineChart = document.AddLineChart();
-                //lineChart.AddChartAxisX(categories);
-                //lineChart.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //lineChart.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                //lineChart.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                var lineChart = document.AddChart();
+                lineChart.AddChartAxisX(categories);
+                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //document.AddParagraph("Adding a line chart as required 2");
+                document.AddParagraph("Adding a line chart as required 2");
 
-                //var lineChart2 = document.AddLineChart();
-                //lineChart2.AddChartAxisX(categories);
-                //lineChart2.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //lineChart2.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                //lineChart2.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                var lineChart2 = document.AddChart();
+                lineChart2.AddChartAxisX(categories);
+                lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart2.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart2.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //// adding charts to paragraphs directly
-                //var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
-                //var barChart3 = paragraph.AddBarChart();
-                //barChart3.AddCategories(categories);
-                //barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                //barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                //barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //barChart3.BarGrouping = BarGroupingValues.Clustered;
-                //barChart3.BarDirection = BarDirectionValues.Column;
+                // adding charts to paragraphs directly
+                var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
+                var barChart3 = paragraph.AddChart();
+                barChart3.AddCategories(categories);
+                barChart3.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                barChart3.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart3.BarGrouping = BarGroupingValues.Clustered;
+                barChart3.BarDirection = BarDirectionValues.Column;
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //var paragraph1 = document.AddParagraph("This is a bar chart - but assigned to paragraph 2");
-                //var barChart5 = paragraph1.AddBarChart();
-                //barChart5.AddCategories(categories);
-                //barChart5.AddChartBar("USA", 15, Color.Aqua);
-                //barChart5.RoundedCorners = true;
+                var paragraph1 = document.AddParagraph("This is a bar chart - but assigned to paragraph 2");
+                var barChart5 = paragraph1.AddChart();
+                barChart5.AddCategories(categories);
+                barChart5.AddBar("USA", 15, Color.Aqua);
+                barChart5.RoundedCorners = true;
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
-                //var pieChart1 = paragraph2.AddPieChart();
-                //pieChart1.AddCategories(categories);
-                //pieChart1.AddPie("Poland", 15);
-                //pieChart1.AddPie("USA", 18);
-                //pieChart1.AddPie("Brazil", 10);
+                var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
+                var pieChart4 = paragraph2.AddChart();
+                pieChart4.AddCategories(categories);
+                pieChart4.AddPie("Poland", 15);
+                pieChart4.AddPie("USA", 18);
+                pieChart4.AddPie("Brazil", 10);
 
-                //var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
-                //var lineChart3 = paragraph3.AddLineChart();
-                //lineChart3.AddChartAxisX(categories);
-                //lineChart3.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //lineChart3.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                //lineChart3.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
+                var lineChart3 = paragraph3.AddChart();
+                lineChart3.AddChartAxisX(categories);
+                lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart3.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart3.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
-                //var lineChart4 = paragraph4.AddLineChart();
-                //lineChart4.AddChartAxisX(categories);
-                //lineChart4.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                //lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
+                var lineChart4 = paragraph4.AddChart();
+                lineChart4.AddChartAxisX(categories);
+                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //// lets add chart to first paragraph
-                //var lineChart5 = paragraphToTest.AddLineChart();
-                //lineChart5.AddChartAxisX(categories);
-                //lineChart5.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //lineChart5.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                //lineChart5.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                // lets add chart to first paragraph
+                var lineChart5 = paragraphToTest.AddChart();
+                lineChart5.AddChartAxisX(categories);
+                lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart5.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart5.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                //var table = document.AddTable(3, 3);
-                //table.Rows[0].Cells[0].Paragraphs[0].AddBarChart();
-                //barChart3.AddCategories(categories);
-                //barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                //barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                //barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                //barChart3.BarGrouping = BarGroupingValues.Clustered;
-                //barChart3.BarDirection = BarDirectionValues.Column;
+                var table = document.AddTable(3, 3);
+                var barChart4 = table.Rows[0].Cells[0].Paragraphs[0].AddChart();
+                barChart4.AddCategories(categories);
+                barChart4.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                barChart4.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart4.BarGrouping = BarGroupingValues.Clustered;
+                barChart4.BarDirection = BarDirectionValues.Column;
 
-                //var areaChart = document.AddAreaChart("AreaChart");
-                //areaChart.AddCategories(categories);
-
-                //areaChart.AddChartArea("Brazil", new List<int>() { 100, 1, 18, 230 }, SixLabors.ImageSharp.Color.Brown);
-                //areaChart.AddChartArea("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                //areaChart.AddChartArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-
-                //areaChart.AddLegend(LegendPositionValues.Top);
+                var areaChart = document.AddChart("AreaChart");
+                areaChart.AddCategories(categories);
+                areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, SixLabors.ImageSharp.Color.Brown);
+                areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                areaChart.AddLegend(LegendPositionValues.Top);
 
 
-                //Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
-
-                //Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
+                Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+                Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
 
                 document.Save(openWord);
             }

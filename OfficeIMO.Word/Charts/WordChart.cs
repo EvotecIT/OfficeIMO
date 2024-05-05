@@ -24,6 +24,7 @@ namespace OfficeIMO.Word {
         internal Chart _internalChart;
         private const long EnglishMetricUnitsPerInch = 914400;
         private const long PixelsPerInch = 96;
+
         private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
 
@@ -43,6 +44,10 @@ namespace OfficeIMO.Word {
         protected UInt32Value _index {
             get {
                 var ids = new List<UInt32Value>();
+                if (_internalChart != null) {
+                    // TODO: This is a hack to get the index - to replace _chart permamently
+                    _chart = _internalChart;
+                }
                 if (_chart != null) {
                     var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
                     var barChart = _chart.PlotArea.GetFirstChild<BarChart>();

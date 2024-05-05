@@ -352,43 +352,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Add a bar chart to the document after this paragraph.
-        /// <param name="title">The optional title of the chart.<\param>
-        /// <param name="roundedCorners">Whether to round the corners of the chart, defaults to false.<\param>
-        /// <param name="width">The optional width of the chart.<\param>
-        /// <param name="height">The optional height of the chart.<\param>
-        /// <returns>The new bar chart.<\returns>
-        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var barChart = WordBarChart.AddBarChart(this._document, this, title, roundedCorners, width, height);
-            return barChart;
-        }
-
-        /// <summary>
-        /// Add a line chart to the word document.
-        /// <\summary>
-        /// <param name="title">The optional title of the line chart.<\param>
-        /// <param name="roundedCorners">Whether to round the corners of the line chart, defaults to false.<\param>
-        /// <param name="width">The optional width of the chart.<\param>
-        /// <param name="height">The optional height of the chart.<\param>
-        /// <returns>The new line chart.<\returns>
-        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var lineChart = WordLineChart.AddLineChart(this._document, this, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        //public WordBarChart3D AddBarChart3D(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-        //    var barChart = WordBarChart3D.AddBarChart3D(this._document, this, title, roundedCorners, width, height);
-        //    return barChart;
-        //}
-
-        /// <summary>
         /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
+        /// You can use multiple:
+        /// .AddBar() to add a bar chart
+        /// .AddLine() to add a line chart
+        /// .AddPie() to add a pie chart
+        /// .AddArea() to add an area chart.
+        /// You can't mix and match the types of charts.
         /// </summary>
         /// <param name="title">The title.</param>
         /// <param name="roundedCorners">if set to <c>true</c> [rounded corners].</param>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
-        /// <returns></returns>
+        /// <returns>WordChart</returns>
         public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this._document, paragraph, title, roundedCorners, width, height);
