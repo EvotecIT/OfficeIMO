@@ -1,18 +1,8 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
-        /// <summary>
-        /// The current index for values
-        /// </summary>
-        private uint _currentIndexValues = 0;
-        /// <summary>
-        /// The current index for categories
-        /// </summary>
-        private UInt32Value _currentIndexCategory = 0;
-
-        internal CategoryAxisData InitializeCategoryAxisData() {
+        private CategoryAxisData InitializeCategoryAxisData() {
             var pieChartSeries = InitializePieChartSeries();
             CategoryAxisData categoryAxis = pieChartSeries?.GetFirstChild<CategoryAxisData>();
             // If CategoryAxisData does not exist, create it
@@ -24,9 +14,8 @@ namespace OfficeIMO.Word {
             return categoryAxis;
         }
 
-
-        internal NumberLiteral InitializeNumberLiteral() {
-            NumberLiteral literal = _chart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
+        private NumberLiteral InitializeNumberLiteral() {
+            NumberLiteral literal = InternalChart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
             // If NumberLiteral does not exist, create it
             if (literal == null) {
                 literal = new NumberLiteral();
@@ -36,15 +25,15 @@ namespace OfficeIMO.Word {
             return literal;
         }
 
-        internal Values InitializeValues() {
+        private Values InitializeValues() {
             var pieChartSeries = InitializePieChartSeries();
             Values values = pieChartSeries?.GetFirstChild<Values>() ?? new Values() { NumberLiteral = InitializeNumberLiteral() };
             return values;
         }
 
-        internal PieChartSeries InitializePieChartSeries() {
-            if (_internalChart != null) {
-                var pieChart = _internalChart.PlotArea.GetFirstChild<PieChart>();
+        private PieChartSeries InitializePieChartSeries() {
+            if (InternalChart != null) {
+                var pieChart = InternalChart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
                     var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
                     if (pieChartSeries == null) {
@@ -58,7 +47,7 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        internal static PieChartSeries CreatePieChartSeries(UInt32Value index, string series) {
+        private PieChartSeries CreatePieChartSeries(UInt32Value index, string series) {
             PieChartSeries pieChartSeries1 = new PieChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
 
@@ -80,7 +69,7 @@ namespace OfficeIMO.Word {
         /// Adds single category to charts
         /// </summary>
         /// <param name="category">The category.</param>
-        internal void AddSingleCategory(string category) {
+        private void AddSingleCategory(string category) {
             var pieChartSeries = InitializePieChartSeries();
 
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
@@ -112,7 +101,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="data">The data.</param>
-        internal void AddSingleValue<T>(T data) {
+        private void AddSingleValue<T>(T data) {
             // Initialize the PieChartSeries
             var pieChartSeries = InitializePieChartSeries();
             // Initialize the Values
@@ -135,9 +124,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-
-
-        internal static Chart CreatePieChart(Chart chart) {
+        private Chart CreatePieChart(Chart chart) {
             PieChart pieChart1 = new PieChart();
             DataLabels dataLabels1 = AddDataLabel();
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -147,8 +134,8 @@ namespace OfficeIMO.Word {
         }
 
 
-        private static Chart GenerateChartBar(Chart chart) {
-            BarChart barChart1 = CreateBarChart();
+        private Chart GenerateChartBar(Chart chart) {
+            BarChart barChart1 = CreateBarChart1();
 
 
             CategoryAxis categoryAxis1 = AddCategoryAxis();
@@ -160,7 +147,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        internal static BarChart CreateBarChart(BarDirectionValues barDirection = BarDirectionValues.Bar) {
+        private BarChart CreateBarChart1(BarDirectionValues barDirection = BarDirectionValues.Bar) {
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
@@ -187,47 +174,42 @@ namespace OfficeIMO.Word {
             return barChart1;
         }
 
-        internal void CreatePieChart() {
+        private void EnsureChartExistsPie() {
             // minimum required to create chart
-            if (_internalChart == null) {
-                var chart = GenerateChart();
-                chart = CreatePieChart(chart);
-                _chartPart.ChartSpace.Append(chart);
-                _internalChart = chart;
+            if (InternalChart == null) {
+                InternalChart = GenerateChart();
+                InternalChart = CreatePieChart(InternalChart);
+                _chartPart.ChartSpace.Append(InternalChart);
             }
         }
 
-        internal void CreateBarChart() {
-            if (_internalChart == null) {
-                var chart = GenerateChart();
-                chart = GenerateChartBar(chart);
-                _chartPart.ChartSpace.Append(chart);
-                _internalChart = chart;
+        private void EnsureChartExistsBar() {
+            if (InternalChart == null) {
+                InternalChart = GenerateChart();
+                InternalChart = GenerateChartBar(InternalChart);
+                _chartPart.ChartSpace.Append(InternalChart);
             }
         }
 
-        internal void CreateArea() {
-            if (_internalChart == null) {
-                var chart = GenerateChart();
-                chart = GenerateAreaChart(chart);
-                _chartPart.ChartSpace.Append(chart);
-                _internalChart = chart;
+        private void EnsureChartExistsArea() {
+            if (InternalChart == null) {
+                InternalChart = GenerateChart();
+                InternalChart = GenerateAreaChart(InternalChart);
+                _chartPart.ChartSpace.Append(InternalChart);
             }
         }
 
-        internal void CreateLineCharts() {
-            if (_internalChart == null) {
-                var chart = GenerateChart();
-                chart = GenerateLineChart(chart);
-                _chartPart.ChartSpace.Append(chart);
-                _internalChart = chart;
+        private void EnsureChartExistsLine() {
+            if (InternalChart == null) {
+                InternalChart = GenerateChart();
+                InternalChart = GenerateLineChart(InternalChart);
+                _chartPart.ChartSpace.Append(InternalChart);
             }
         }
 
 
-        internal static BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
+        private BarChartSeries AddBarChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             BarChartSeries barChartSeries1 = new BarChartSeries();
-
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
             SeriesText seriesText1 = new SeriesText();
@@ -247,7 +229,7 @@ namespace OfficeIMO.Word {
             return barChartSeries1;
         }
 
-        internal static ChartShapeProperties AddShapeProperties(SixLabors.ImageSharp.Color color) {
+        private ChartShapeProperties AddShapeProperties(SixLabors.ImageSharp.Color color) {
             ChartShapeProperties chartShapeProperties1 = new ChartShapeProperties();
 
             DocumentFormat.OpenXml.Drawing.SolidFill solidFill1 = new DocumentFormat.OpenXml.Drawing.SolidFill();
@@ -259,7 +241,7 @@ namespace OfficeIMO.Word {
             return chartShapeProperties1;
 
         }
-        internal static LineChart CreateLineChart() {
+        private LineChart CreateLineChart() {
             LineChart lineChart1 = new LineChart();
             lineChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
@@ -280,24 +262,18 @@ namespace OfficeIMO.Word {
             return lineChart1;
         }
 
-        private static Chart GenerateLineChart(Chart chart) {
+        private Chart GenerateLineChart(Chart chart) {
             LineChart lineChart1 = CreateLineChart();
-
             CategoryAxis categoryAxis1 = AddCategoryAxis();
             ValueAxis valueAxis1 = AddValueAxis();
-
-
-
             //chart.PlotArea.Append(layout1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
             chart.PlotArea.Append(lineChart1);
-
-
             return chart;
         }
 
-        internal static LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
+        private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -329,7 +305,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        internal static AreaChart CreateAreaChart() {
+        private AreaChart CreateAreaChart() {
             AreaChart chart = new AreaChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
@@ -350,7 +326,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private static Chart GenerateAreaChart(Chart chart) {
+        private Chart GenerateAreaChart(Chart chart) {
             AreaChart areaChart = CreateAreaChart();
 
             CategoryAxis categoryAxis1 = AddCategoryAxis();
@@ -365,7 +341,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        internal static AreaChartSeries AddAreaChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
+        private AreaChartSeries AddAreaChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             AreaChartSeries lineChartSeries1 = new AreaChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
             Order order1 = new Order() { Val = index };
@@ -394,8 +370,6 @@ namespace OfficeIMO.Word {
             lineChartSeries1.Append(values1);
 
             return lineChartSeries1;
-
-
         }
     }
 }

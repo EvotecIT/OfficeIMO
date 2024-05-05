@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
                 throw new NotSupportedException("Value must be of type int, double, or float");
             }
 
-            CreatePieChart();
+            EnsureChartExistsPie();
 
             AddSingleCategory(category);
             AddSingleValue(value);
@@ -21,9 +21,9 @@ namespace OfficeIMO.Word {
         }
 
         public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
-            CreateLineCharts();
-            if (_internalChart != null) {
-                var lineChart = _internalChart.PlotArea.GetFirstChild<LineChart>();
+            EnsureChartExistsLine();
+            if (InternalChart != null) {
+                var lineChart = InternalChart.PlotArea.GetFirstChild<LineChart>();
                 if (lineChart != null) {
                     LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
                     lineChart.Append(lineChartSeries);
@@ -39,8 +39,8 @@ namespace OfficeIMO.Word {
         /// <param name="values"></param>
         /// <param name="color"></param>
         public void AddLine<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
-            CreateLineCharts();
-            var lineChart = _internalChart.PlotArea.GetFirstChild<LineChart>();
+            EnsureChartExistsLine();
+            var lineChart = InternalChart.PlotArea.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values);
                 lineChart.Append(lineChartSeries);
@@ -53,8 +53,8 @@ namespace OfficeIMO.Word {
         }
 
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
-            CreateBarChart();
-            var barChart = _internalChart.PlotArea.GetFirstChild<BarChart>();
+            EnsureChartExistsBar();
+            var barChart = InternalChart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, new List<int>() { values });
                 barChart.Append(barChartSeries);
@@ -62,8 +62,8 @@ namespace OfficeIMO.Word {
         }
 
         public void AddBar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
-            CreateBarChart();
-            var barChart = _internalChart.PlotArea.GetFirstChild<BarChart>();
+            EnsureChartExistsBar();
+            var barChart = InternalChart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values);
                 barChart.Append(barChartSeries);
@@ -71,8 +71,8 @@ namespace OfficeIMO.Word {
         }
 
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
-            CreateBarChart();
-            var barChart = _internalChart.PlotArea.GetFirstChild<BarChart>();
+            EnsureChartExistsBar();
+            var barChart = InternalChart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
                 barChart.Append(barChartSeries);
@@ -80,9 +80,9 @@ namespace OfficeIMO.Word {
         }
 
         public void AddArea<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
-            CreateArea();
-            if (_internalChart != null) {
-                var barChart = _internalChart.PlotArea.GetFirstChild<AreaChart>();
+            EnsureChartExistsArea();
+            if (InternalChart != null) {
+                var barChart = InternalChart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values);
                     barChart.Append(areaChartSeries);
@@ -91,9 +91,9 @@ namespace OfficeIMO.Word {
         }
 
         public void AddArea<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
-            CreateArea();
-            if (_internalChart != null) {
-                var barChart = _internalChart.PlotArea.GetFirstChild<AreaChart>();
+            EnsureChartExistsArea();
+            if (InternalChart != null) {
+                var barChart = InternalChart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
                     barChart.Append(areaChartSeries);
@@ -102,15 +102,13 @@ namespace OfficeIMO.Word {
         }
 
         public void AddLegend(LegendPositionValues legendPosition) {
-            if (_chart != null) {
-
+            if (InternalChart != null) {
                 Legend legend = new Legend();
                 LegendPosition postion = new LegendPosition() { Val = legendPosition };
                 Overlay overlay = new Overlay() { Val = false };
                 legend.Append(postion);
                 legend.Append(overlay);
-                _chart.Append(legend);
-
+                InternalChart.Append(legend);
             }
         }
 

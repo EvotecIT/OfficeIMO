@@ -1,4 +1,7 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -72,5 +75,27 @@ namespace OfficeIMO.Word {
         public List<string> Categories { get; set; }
 
         public List<int> Values { get; set; } = new List<int>();
+
+        /// <summary>
+        /// The current index for values
+        /// </summary>
+        private uint _currentIndexValues = 0;
+        /// <summary>
+        /// The current index for categories
+        /// </summary>
+        private UInt32Value _currentIndexCategory = 0;
+
+        public string Title { get; set; }
+
+        private WordDocument _document;
+        private WordParagraph _paragraph;
+        private ChartPart _chartPart;
+        private Drawing _drawing;
+        internal Chart InternalChart;
+        private const long EnglishMetricUnitsPerInch = 914400;
+        private const long PixelsPerInch = 96;
+
+        //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
+
     }
 }

@@ -14,20 +14,6 @@ using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
-        public string Title { get; set; }
-
-        protected static WordDocument _document;
-        protected static WordParagraph _paragraph;
-        protected static ChartPart _chartPart;
-        protected static Drawing _drawing;
-        protected static Chart _chart;
-        internal Chart _internalChart;
-        private const long EnglishMetricUnitsPerInch = 914400;
-        private const long PixelsPerInch = 96;
-
-        private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
-
-
         public WordChart(WordDocument document, Paragraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
@@ -41,18 +27,14 @@ namespace OfficeIMO.Word {
         }
 
 
-        protected UInt32Value _index {
+        private UInt32Value _index {
             get {
                 var ids = new List<UInt32Value>();
-                if (_internalChart != null) {
-                    // TODO: This is a hack to get the index - to replace _chart permamently
-                    _chart = _internalChart;
-                }
-                if (_chart != null) {
-                    var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
-                    var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
-                    var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                    var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                if (InternalChart != null) {
+                    var lineChart = InternalChart.PlotArea.GetFirstChild<LineChart>();
+                    var barChart = InternalChart.PlotArea.GetFirstChild<BarChart>();
+                    var pieChart = InternalChart.PlotArea.GetFirstChild<PieChart>();
+                    var areaChart = InternalChart.PlotArea.GetFirstChild<AreaChart>();
                     if (lineChart != null) {
                         var series = lineChart.ChildElements.OfType<LineChartSeries>();
                         foreach (var index in series) {
@@ -82,7 +64,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        internal static CategoryAxis AddCategoryAxis() {
+        internal CategoryAxis AddCategoryAxis() {
             CategoryAxis categoryAxis1 = new CategoryAxis();
             categoryAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId3 = new AxisId() { Val = (UInt32Value)148921728U };
@@ -120,7 +102,7 @@ namespace OfficeIMO.Word {
             return categoryAxis1;
         }
 
-        internal static ValueAxis AddValueAxis() {
+        internal ValueAxis AddValueAxis() {
             ValueAxis valueAxis1 = new ValueAxis();
             valueAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId4 = new AxisId() { Val = (UInt32Value)154227840U };
@@ -156,7 +138,7 @@ namespace OfficeIMO.Word {
             return valueAxis1;
         }
 
-        internal static DataLabels AddDataLabel() {
+        internal DataLabels AddDataLabel() {
             DataLabels dataLabels1 = new DataLabels();
             dataLabels1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             ShowLegendKey showLegendKey1 = new ShowLegendKey() { Val = false };
@@ -177,23 +159,6 @@ namespace OfficeIMO.Word {
             return dataLabels1;
         }
 
-        internal static WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, Chart chart, bool roundedCorners, int width = 600, int height = 600) {
-            ChartPart part = CreateChartPart(wordDocument, roundedCorners);
-            _chartPart = part;
-            var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
-
-            Drawing chartDrawing = CreateChartDrawing(id, width, height);
-            _drawing = chartDrawing;
-
-            var run = new Run();
-            run.Append(chartDrawing);
-            paragraph._paragraph.Append(run);
-            _chartPart.ChartSpace.Append(chart);
-
-            _chart = chart;
-            return paragraph;
-        }
-
         internal WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
             ChartPart part = CreateChartPart(wordDocument, roundedCorners);
             _chartPart = part;
@@ -208,7 +173,7 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        internal static ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
+        internal ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
             ChartPart part = document._wordprocessingDocument.MainDocumentPart.AddNewPart<ChartPart>(); //("rId1");
 
             ChartSpace chartSpace1 = new ChartSpace();
@@ -221,7 +186,7 @@ namespace OfficeIMO.Word {
             return part;
         }
 
-        internal static Chart GenerateChart(string title = null) {
+        internal Chart GenerateChart(string title = null) {
             Chart chart1 = new Chart();
             AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
             PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
@@ -249,51 +214,16 @@ namespace OfficeIMO.Word {
         }
 
         internal void UpdateTitle() {
-            if (_internalChart != null) {
-                if (_internalChart.Title == null) {
-                    _internalChart.Append(TempTitle(Title));
+            if (InternalChart != null) {
+                if (InternalChart.Title == null) {
+                    InternalChart.Append(AddTitle(Title));
                 } else {
-                    var text = _internalChart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
+                    var text = InternalChart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
                     if (text != null) {
                         text.Text = Title;
                     }
                 }
             }
-        }
-
-        internal Title TempTitle(string title) {
-            Title title1 = new Title();
-            ChartText chartText1 = new ChartText();
-
-            RichText richText1 = new RichText();
-            DocumentFormat.OpenXml.Drawing.BodyProperties bodyProperties1 = new DocumentFormat.OpenXml.Drawing.BodyProperties();
-            DocumentFormat.OpenXml.Drawing.ListStyle listStyle1 = new DocumentFormat.OpenXml.Drawing.ListStyle();
-
-            DocumentFormat.OpenXml.Drawing.Paragraph paragraph1 = new DocumentFormat.OpenXml.Drawing.Paragraph();
-
-            DocumentFormat.OpenXml.Drawing.ParagraphProperties paragraphProperties1 = new DocumentFormat.OpenXml.Drawing.ParagraphProperties();
-            DocumentFormat.OpenXml.Drawing.DefaultRunProperties defaultRunProperties1 = new DocumentFormat.OpenXml.Drawing.DefaultRunProperties();
-
-            paragraphProperties1.Append(defaultRunProperties1);
-
-            DocumentFormat.OpenXml.Drawing.Run run1 = new DocumentFormat.OpenXml.Drawing.Run();
-            DocumentFormat.OpenXml.Drawing.Text text1 = new DocumentFormat.OpenXml.Drawing.Text();
-            text1.Text = title;
-            run1.Append(text1);
-            paragraph1.Append(paragraphProperties1);
-            paragraph1.Append(run1);
-
-
-            richText1.Append(bodyProperties1);
-            richText1.Append(listStyle1);
-            richText1.Append(paragraph1);
-
-            chartText1.Append(richText1);
-            Overlay overlay1 = new Overlay() { Val = false };
-
-            title1.Append(chartText1);
-            title1.Append(overlay1);
-            return title1;
         }
 
         internal static Title AddTitle(string title) {
@@ -332,7 +262,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        internal static Values AddValuesAxisData<T>(List<T> dataList) {
+        internal Values AddValuesAxisData<T>(List<T> dataList) {
 
             NumberLiteral literal = new NumberLiteral();
             FormatCode format = new FormatCode() { Text = "General" };
@@ -350,7 +280,7 @@ namespace OfficeIMO.Word {
             return values1;
         }
 
-        internal static CategoryAxisData AddCategoryAxisData(List<string> categories) {
+        internal CategoryAxisData AddCategoryAxisData(List<string> categories) {
             CategoryAxisData categoryAxis = new CategoryAxisData();
             StringLiteral stringLiteral = new StringLiteral();
             PointCount pointCount = new PointCount() { Val = (uint)categories.Count };
@@ -367,7 +297,7 @@ namespace OfficeIMO.Word {
             return categoryAxis;
         }
 
-        internal static StringReference AddSeries(UInt32Value index, string series) {
+        internal StringReference AddSeries(UInt32Value index, string series) {
             StringReference stringReference1 = new StringReference();
 
             Formula formula1 = new Formula() { Text = "" };
@@ -382,7 +312,7 @@ namespace OfficeIMO.Word {
             return stringReference1;
         }
 
-        internal static Drawing CreateChartDrawing(string id, int width = 600, int height = 600) {
+        internal Drawing CreateChartDrawing(string id, int width = 600, int height = 600) {
             Drawing drawing1 = new Drawing();
 
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline inline1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline();
