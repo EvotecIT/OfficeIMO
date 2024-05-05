@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 using CategoryAxis = DocumentFormat.OpenXml.Drawing.Charts.CategoryAxis;

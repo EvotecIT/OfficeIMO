@@ -6,22 +6,6 @@ namespace OfficeIMO.Word {
             Categories = categories;
         }
 
-        public void AddChartPie<T>(string name, int[] values) {
-            if (_chart != null) {
-                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                if (pieChart != null) {
-                    PieChartSeries pieChartSeries = WordPieChart.AddPieChartSeries(this._index, name, this.Categories, values.ToList());
-                    pieChart.Append(pieChartSeries);
-                }
-            }
-        }
-
-        public void ChartPie(string name, int value) {
-            if (_chart != null) {
-                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-            }
-        }
-
         public WordChart AddPie<T>(string category, T value) {
             // if value is a list we need to throw as not supported
             if (!(value is int || value is double || value is float)) {

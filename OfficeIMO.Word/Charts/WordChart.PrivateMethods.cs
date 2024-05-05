@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
-using PieChartSeries = DocumentFormat.OpenXml.Drawing.Charts.PieChartSeries;
-
 namespace OfficeIMO.Word {
     public partial class WordChart {
         /// <summary>

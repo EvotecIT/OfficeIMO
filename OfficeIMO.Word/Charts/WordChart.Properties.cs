@@ -1,8 +1,4 @@
-using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Office.Drawing;
-
-using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {

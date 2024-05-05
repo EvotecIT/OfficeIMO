@@ -1,13 +1,11 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace OfficeIMO.Word {
     public class WordAreaChart : WordChart {
 
-        public static WordChart AddAreaChart(WordDocument wordDocument, WordParagraph paragraph,string title=null, bool roundedCorners = false, int width = 600, int height = 600) {
+        public static WordChart AddAreaChart(WordDocument wordDocument, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             _document = wordDocument;
             _paragraph = paragraph;
 
