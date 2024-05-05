@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml.Drawing.Charts;
-using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -21,14 +16,20 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public void AddChartPie<T>(string name, List<T> values) {
+        public void ChartPie(string name, int value) {
             if (_chart != null) {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                if (pieChart != null) {
-                    PieChartSeries pieChartSeries = WordPieChart.AddPieChartSeries(this._index, name, this.Categories, values);
-                    pieChart.Append(pieChartSeries);
-                }
             }
+        }
+
+        public WordChart AddPie<T>(string category, T value) {
+            // if value is a list we need to throw as not supported
+            if (!(value is int || value is double || value is float)) {
+                throw new NotSupportedException("Value must be of type int, double, or float");
+            }
+            AddSingleCategory(category);
+            AddSingleValue(value);
+            return this;
         }
 
         public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {

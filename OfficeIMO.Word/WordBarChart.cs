@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+
 using CategoryAxis = DocumentFormat.OpenXml.Drawing.Charts.CategoryAxis;
 using Color = SixLabors.ImageSharp.Color;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;

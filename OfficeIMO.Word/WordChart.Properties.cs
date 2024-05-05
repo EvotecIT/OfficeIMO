@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office.Drawing;
+
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 
 namespace OfficeIMO.Word {
@@ -76,9 +74,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<string> Categories {
-            get;
-            set;
-        }
+        public List<string> Categories { get; set; }
+
+        public List<int> Values { get; set; } = new List<int>();
     }
 }

@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
             dataLabels1.Append(showLeaderLines1);
 
             BarChartSeries barChartSeries1 = new BarChartSeries();
-            Index index1 = new Index() { Val = (UInt32Value)1U };
+            DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = (UInt32Value)1U };
             Order order1 = new Order() { Val = (UInt32Value)1U };
 
             SeriesText seriesText1 = new SeriesText();
