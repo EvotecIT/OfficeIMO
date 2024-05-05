@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -86,10 +79,18 @@ namespace OfficeIMO.Word {
         //    return barChart;
         //}
 
-        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        //public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        //    var paragraph = this.AddParagraph();
+        //    var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
+        //    return pieChart;
+        //}
+
+        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
-            return pieChart;
+            var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
+            //chartInstance.AddChart(this, paragraph, title, roundedCorners, width, height);
+            //var chart = WordPieChart.AddChart(this, paragraph, title, roundedCorners, width, height);
+            return chartInstance;
         }
 
         public WordList AddList(WordListStyle style) {

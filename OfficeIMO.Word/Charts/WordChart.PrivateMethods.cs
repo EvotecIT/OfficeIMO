@@ -43,12 +43,12 @@ namespace OfficeIMO.Word {
         }
 
         internal PieChartSeries InitializePieChartSeries() {
-            if (_chart != null) {
-                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+            if (_internalChart != null) {
+                var pieChart = _internalChart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
                     var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
                     if (pieChartSeries == null) {
-                        pieChartSeries = WordPieChart.CreatePieChartSeries(_index, "Title?");
+                        pieChartSeries = CreatePieChartSeries(_index, "Title?");
                         pieChart.Append(pieChartSeries);
 
                     }
@@ -135,5 +135,15 @@ namespace OfficeIMO.Word {
             }
         }
 
+
+
+        internal static Chart CreatePieChart(Chart chart) {
+            PieChart pieChart1 = new PieChart();
+            DataLabels dataLabels1 = AddDataLabel();
+            pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            pieChart1.Append(dataLabels1);
+            chart.PlotArea.Append(pieChart1);
+            return chart;
+        }
     }
 }

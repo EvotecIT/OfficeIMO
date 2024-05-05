@@ -73,6 +73,7 @@
         <Using Include="System.Collections" />
         <Using Include="System.Linq" />
         <Using Include="System.IO" />
+        <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 
     <ItemGroup>

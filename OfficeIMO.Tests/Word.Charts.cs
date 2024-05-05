@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Charts.Count == 2);
 
                 var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
-                var pieChart1 = paragraph2.AddPieChart();
+                var pieChart1 = paragraph2.AddChart();
                 pieChart1.AddPie("Poland", 1);
                 pieChart1.AddPie("Poland", 10);
                 pieChart1.AddPie("Poland", 20);

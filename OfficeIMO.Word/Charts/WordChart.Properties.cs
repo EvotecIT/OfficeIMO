@@ -50,7 +50,6 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
         public bool RoundedCorners {
             get {
                 var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();

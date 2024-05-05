@@ -6,13 +6,26 @@ namespace OfficeIMO.Word {
             Categories = categories;
         }
 
+        private int _i = 0;
         public WordChart AddPie<T>(string category, T value) {
             // if value is a list we need to throw as not supported
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
             }
+
+            var title = $"Pie Chart{_i++}";
+            // minimum required to create chart
+            if (_internalChart == null) {
+                var chart = GenerateChart(title);
+                chart = CreatePieChart(chart);
+                _chartPart.ChartSpace.Append(chart);
+                _internalChart = chart;
+            }
+
             AddSingleCategory(category);
             AddSingleValue(value);
+            // since the title may have changed, we need to update it
+            UpdateTitle();
             return this;
         }
 
