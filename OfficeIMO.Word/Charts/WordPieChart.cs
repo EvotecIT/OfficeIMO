@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;

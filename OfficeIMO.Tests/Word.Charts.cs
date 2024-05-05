@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
+
 using OfficeIMO.Word;
+
 using Xunit;
+
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
@@ -49,8 +53,9 @@ namespace OfficeIMO.Tests {
 
                 var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
                 var pieChart1 = paragraph2.AddPieChart();
-                pieChart1.AddCategories(categories);
-                pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+                pieChart1.AddPie("Poland", 1);
+                pieChart1.AddPie("Poland", 10);
+                pieChart1.AddPie("Poland", 20);
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
                 Assert.True(document.Charts.Count == 3);
