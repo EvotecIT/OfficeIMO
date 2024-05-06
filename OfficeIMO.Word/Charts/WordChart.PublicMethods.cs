@@ -112,5 +112,60 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public View3D GenerateView3D() {
+            View3D view3D1 = new View3D();
+            RotateX rotateX1 = new RotateX() { Val = 15 };
+            RotateY rotateY1 = new RotateY() { Val = (UInt16Value)20U };
+            RightAngleAxes rightAngleAxes1 = new RightAngleAxes() { Val = false };
+
+            view3D1.Append(rotateX1);
+            view3D1.Append(rotateY1);
+            view3D1.Append(rightAngleAxes1);
+            return view3D1;
+        }
+
+        public Floor GenerateFloor() {
+            Floor floor1 = new Floor();
+            Thickness thickness1 = new Thickness() { Val = 0 };
+
+            floor1.Append(thickness1);
+            return floor1;
+        }
+
+
+        public SideWall GenerateSideWall() {
+            SideWall sideWall1 = new SideWall();
+            Thickness thickness1 = new Thickness() { Val = 0 };
+
+            sideWall1.Append(thickness1);
+            return sideWall1;
+        }
+
+        public BackWall GenerateBackWall() {
+            BackWall backWall1 = new BackWall();
+            Thickness thickness1 = new Thickness() { Val = 0 };
+
+            backWall1.Append(thickness1);
+            return backWall1;
+        }
+
+
+
+        public PlotVisibleOnly GeneratePlotVisibleOnly() {
+            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
+            return plotVisibleOnly1;
+        }
+
+
+        public DisplayBlanksAs GenerateDisplayBlanksAs() {
+            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
+            return displayBlanksAs1;
+        }
+
+
+        public ShowDataLabelsOverMaximum GenerateShowDataLabelsOverMaximum() {
+            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
+            return showDataLabelsOverMaximum1;
+        }
     }
 }
