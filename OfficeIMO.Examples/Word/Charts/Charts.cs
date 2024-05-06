@@ -8,14 +8,13 @@ namespace OfficeIMO.Examples.Word {
     internal static class Charts {
         public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with charts");
-            string filePath = System.IO.Path.Combine(folderPath, "Charts Document.docx");
+            string filePath = System.IO.Path.Combine(folderPath, "Charts Document2.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 List<string> categories = new List<string>() { "Food", "Housing", "Mix", "Data" };
 
                 var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
 
-                // adding charts to document
                 document.AddParagraph("This is a bar chart");
                 var barChart1 = document.AddChart();
                 barChart1.AddCategories(categories);
