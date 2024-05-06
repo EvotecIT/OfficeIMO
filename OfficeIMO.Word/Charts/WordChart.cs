@@ -14,9 +14,10 @@ using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
-        public WordChart(WordDocument document, Paragraph paragraph, Drawing drawing) {
+        public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
+            _paragraph = paragraph;
         }
 
         public WordChart(WordDocument document, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
@@ -161,8 +162,8 @@ namespace OfficeIMO.Word {
 
         internal WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
             ChartPart part = CreateChartPart(wordDocument, roundedCorners);
-            _chartPart = part;
-            var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
+            // _chartPart = part;
+            var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part);
 
             Drawing chartDrawing = CreateChartDrawing(id, width, height);
             _drawing = chartDrawing;
