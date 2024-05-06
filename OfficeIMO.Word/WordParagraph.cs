@@ -398,7 +398,7 @@ namespace OfficeIMO.Word {
                                 if (drawing.Inline.Graphic.GraphicData != null) {
                                     var chart = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().FirstOrDefault();
                                     if (chart != null) {
-                                        return new WordChart(_document, _paragraph, drawing);
+                                        return new WordChart(_document, this, drawing);
                                     }
                                 }
                             }
