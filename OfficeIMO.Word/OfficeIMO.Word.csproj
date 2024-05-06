@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <Description>An Open Source cross-platform .NET library providing an easy way to create Microsoft Word (DocX) documents.</Description>
