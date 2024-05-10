@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public class WordTextBox {
@@ -64,27 +65,20 @@ namespace OfficeIMO.Word {
         /// Allows to set the text of the text box
         /// For more advanced text formatting use WordParagraph property
         /// </summary>
-        public string Text {
+        public List<string> Text {
             get {
                 if (_sdtBlock != null) {
-
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
-                        if (text != null) {
-                            return text.Text;
-                        }
-                    }
+                    return _sdtBlock.Descendants<Text>().Select(t => t.Text).ToList();
                 }
-                return "";
+                return new List<string>();
             }
             set {
                 if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
+                    var runs = _sdtBlock.Descendants<Run>().ToList();
+                    for (int i = 0; i < Math.Min(runs.Count, value.Count); i++) {
+                        var text = runs[i].GetFirstChild<Text>();
                         if (text != null) {
-                            text.Text = value;
+                            text.Text = value[i];
                         }
                     }
                 }
@@ -94,13 +88,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Allows to modify the paragraph of the text box, along with other text formatting
         /// </summary>
-        public WordParagraph WordParagraph {
+        public List<WordParagraph> WordParagraph {
             get {
                 if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    return new WordParagraph(_document, _sdtBlock, run);
+                    return _sdtBlock.Descendants<Run>().Select(run => new WordParagraph(_document, _sdtBlock, run)).ToList();
                 }
-                return null;
+                return new List<WordParagraph>();
             }
         }
 

@@ -38,18 +38,18 @@ namespace OfficeIMO.Tests {
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox2.HorizonalPositionOffsetCentimeters = 3;
-                textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
+                textBox2.WordParagraph[0].ParagraphAlignment = JustificationValues.Right;
                 textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
 
                 Assert.True(document.Paragraphs.Count == 3);
 
                 Assert.True(document.TextBoxes.Count == 2);
 
-                Assert.True(document.TextBoxes[0].Text == "My textbox on the left");
+                Assert.True(document.TextBoxes[0].Text[0] == "My textbox on the left");
 
-                Assert.True(document.TextBoxes[1].Text == "My textbox on the right");
+                Assert.True(document.TextBoxes[1].Text[0] == "My textbox on the right");
 
-                Assert.True(document.TextBoxes[1].WordParagraph.ParagraphAlignment == JustificationValues.Right);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].ParagraphAlignment == JustificationValues.Right);
 
                 Assert.True(document.TextBoxes[0].HorizontalPositionRelativeFrom == HorizontalRelativePositionValues.Page);
 
@@ -94,43 +94,43 @@ namespace OfficeIMO.Tests {
                 textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 10;
-                textBox3.WordParagraph.Borders.BottomStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph[0].Borders.BottomStyle = BorderValues.BasicWideOutline;
 
 
-                textBox3.WordParagraph.Borders.BottomSize = 10;
-                textBox3.WordParagraph.Borders.BottomColor = Color.Red;
-                textBox3.WordParagraph.Borders.BottomShadow = false;
-                textBox3.WordParagraph.Borders.TopStyle = BorderValues.BasicWideOutline;
-                textBox3.WordParagraph.Borders.LeftStyle = BorderValues.BasicWideOutline;
-                textBox3.WordParagraph.Borders.RightStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph[0].Borders.BottomSize = 10;
+                textBox3.WordParagraph[0].Borders.BottomColor = Color.Red;
+                textBox3.WordParagraph[0].Borders.BottomShadow = false;
+                textBox3.WordParagraph[0].Borders.TopStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph[0].Borders.LeftStyle = BorderValues.BasicWideOutline;
+                textBox3.WordParagraph[0].Borders.RightStyle = BorderValues.BasicWideOutline;
 
-                Assert.True(textBox3.WordParagraph.Borders.BottomColorHex == "FF0000");
-                Assert.True(textBox3.WordParagraph.Borders.LeftColorHex == null);
-                Assert.True(textBox3.WordParagraph.Borders.RightColorHex == null);
-                Assert.True(textBox3.WordParagraph.Borders.TopColorHex == null);
-                Assert.True(textBox3.WordParagraph.Borders.LeftColor == null);
-                Assert.True(textBox3.WordParagraph.Borders.RightColor == null);
-                Assert.True(textBox3.WordParagraph.Borders.TopColor == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.BottomColorHex == "FF0000");
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftColorHex == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.RightColorHex == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.TopColorHex == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftColor == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.RightColor == null);
+                Assert.True(textBox3.WordParagraph[0].Borders.TopColor == null);
 
                 Assert.True(document.Paragraphs.Count == 2);
                 Assert.True(document.Sections[0].TextBoxes.Count == 1);
 
-                Assert.True(textBox3.WordParagraph.Borders.BottomStyle == BorderValues.BasicWideOutline);
-                Assert.True(textBox3.WordParagraph.Borders.BottomSize == 10);
-                Assert.True(textBox3.WordParagraph.Borders.BottomColor == Color.Red);
-                Assert.True(textBox3.WordParagraph.Borders.BottomShadow == false);
-                Assert.True(textBox3.WordParagraph.Borders.TopStyle == BorderValues.BasicWideOutline);
-                Assert.True(textBox3.WordParagraph.Borders.LeftStyle == BorderValues.BasicWideOutline);
-                Assert.True(textBox3.WordParagraph.Borders.RightStyle == BorderValues.BasicWideOutline);
+                Assert.True(textBox3.WordParagraph[0].Borders.BottomStyle == BorderValues.BasicWideOutline);
+                Assert.True(textBox3.WordParagraph[0].Borders.BottomSize == 10);
+                Assert.True(textBox3.WordParagraph[0].Borders.BottomColor == Color.Red);
+                Assert.True(textBox3.WordParagraph[0].Borders.BottomShadow == false);
+                Assert.True(textBox3.WordParagraph[0].Borders.TopStyle == BorderValues.BasicWideOutline);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftStyle == BorderValues.BasicWideOutline);
+                Assert.True(textBox3.WordParagraph[0].Borders.RightStyle == BorderValues.BasicWideOutline);
 
-                textBox3.WordParagraph.Borders.SetBorder(WordParagraphBorderType.Left, BorderValues.BasicThinLines, Color.Green, 15, false);
+                textBox3.WordParagraph[0].Borders.SetBorder(WordParagraphBorderType.Left, BorderValues.BasicThinLines, Color.Green, 15, false);
 
-                Assert.True(textBox3.WordParagraph.Borders.LeftStyle == BorderValues.BasicThinLines);
-                Assert.True(textBox3.WordParagraph.Borders.LeftSize == 15);
-                Assert.True(textBox3.WordParagraph.Borders.LeftColor == Color.Green);
-                Assert.True(textBox3.WordParagraph.Borders.LeftShadow == false);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftStyle == BorderValues.BasicThinLines);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftSize == 15);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftColor == Color.Green);
+                Assert.True(textBox3.WordParagraph[0].Borders.LeftShadow == false);
 
-                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph.Borders.LeftColorHex == "008000");
+                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph[0].Borders.LeftColorHex == "008000");
 
 
                 document.Save(false);
@@ -141,122 +141,116 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 2);
                 Assert.True(document.TextBoxes.Count == 1);
 
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.BottomStyle == BorderValues.BasicWideOutline);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.BottomSize == 10);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.BottomColor == Color.Red);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.BottomShadow == false);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.TopStyle == BorderValues.BasicWideOutline);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.RightStyle == BorderValues.BasicWideOutline);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.BottomStyle == BorderValues.BasicWideOutline);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.BottomSize == 10);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.BottomColor == Color.Red);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.BottomShadow == false);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.TopStyle == BorderValues.BasicWideOutline);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.RightStyle == BorderValues.BasicWideOutline);
 
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.LeftStyle == BorderValues.BasicThinLines);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.LeftSize == 15);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.LeftColor == Color.Green);
-                Assert.True(document.TextBoxes[0].WordParagraph.Borders.LeftShadow == false);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.LeftStyle == BorderValues.BasicThinLines);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.LeftSize == 15);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.LeftColor == Color.Green);
+                Assert.True(document.TextBoxes[0].WordParagraph[0].Borders.LeftShadow == false);
 
-                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph.Borders.LeftStyle == BorderValues.BasicThinLines);
-                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph.Borders.LeftSize == 15);
-                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph.Borders.LeftColor == Color.Green);
-                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph.Borders.LeftShadow == false);
-
-
-                document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.Type = WordBorder.Shadow;
+                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph[0].Borders.LeftStyle == BorderValues.BasicThinLines);
+                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph[0].Borders.LeftSize == 15);
+                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph[0].Borders.LeftColor == Color.Green);
+                Assert.True(document.Sections[0].TextBoxes[0].WordParagraph[0].Borders.LeftShadow == false);
 
 
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.Type == WordBorder.Shadow);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.BottomStyle == BorderValues.Single);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.BottomSize == 4);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.BottomColor == null);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.BottomShadow == true);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.BottomSpace == 24);
+                document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.Type = WordBorder.Shadow;
 
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.TopStyle == BorderValues.Single);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.TopSize == 4);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.TopColor == null);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.TopShadow == true);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.TopSpace == 24);
 
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.LeftStyle == BorderValues.Single);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.LeftSize == 4);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.LeftColor == null);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.LeftShadow == true);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.LeftSpace == 24);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.Type == WordBorder.Shadow);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.BottomStyle == BorderValues.Single);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.BottomSize == 4);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.BottomColor == null);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.BottomShadow == true);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.BottomSpace == 24);
 
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.RightStyle == BorderValues.Single);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.RightSize == 4);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.RightColor == null);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.RightShadow == true);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph.Borders.RightSpace == 24);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.TopStyle == BorderValues.Single);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.TopSize == 4);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.TopColor == null);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.TopShadow == true);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.TopSpace == 24);
+
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.LeftStyle == BorderValues.Single);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.LeftSize == 4);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.LeftColor == null);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.LeftShadow == true);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.LeftSpace == 24);
+
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.RightStyle == BorderValues.Single);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.RightSize == 4);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.RightColor == null);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.RightShadow == true);
+                Assert.True(document.ParagraphsTextBoxes[0].TextBox.WordParagraph[0].Borders.RightSpace == 24);
 
                 var textBox1 = document.AddTextBox("My textbox in the center with borders");
 
                 Assert.True(document.Paragraphs.Count == 3);
                 Assert.True(document.TextBoxes.Count == 2);
 
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomStyle == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomSize == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomSpace == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomFrame == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomColorHex == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomThemeColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomStyle == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomSize == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomSpace == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomColorHex == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomThemeColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopStyle == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopSize == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopColorHex == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopSpace == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopThemeColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftStyle == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftSize == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftColorHex == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftSpace == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftThemeColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightStyle == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightSize == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightColorHex == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightSpace == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightThemeColor == null);
 
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopStyle == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopSize == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopColorHex == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopSpace == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopFrame == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopThemeColor == null);
+                document.TextBoxes[1].WordParagraph[0].Borders.Type = WordBorder.Box;
 
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftStyle == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftSize == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftColorHex == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftSpace == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftFrame == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftThemeColor == null);
-
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightStyle == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightSize == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightColorHex == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightSpace == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightFrame == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightThemeColor == null);
-
-                document.TextBoxes[1].WordParagraph.Borders.Type = WordBorder.Box;
-
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomStyle == BorderValues.Single);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomSize == 4);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomSpace == 24);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.BottomFrame == null);
-
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopStyle == BorderValues.Single);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopSize == 4);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopSpace == 24);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.TopFrame == null);
-
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftStyle == BorderValues.Single);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftSize == 4);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftSpace == 24);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.LeftFrame == null);
-
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightStyle == BorderValues.Single);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightSize == 4);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightColor == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightShadow == null);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightSpace == 24);
-                Assert.True(document.TextBoxes[1].WordParagraph.Borders.RightFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomStyle == BorderValues.Single);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomSize == 4);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomSpace == 24);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.BottomFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopStyle == BorderValues.Single);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopSize == 4);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopSpace == 24);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.TopFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftStyle == BorderValues.Single);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftSize == 4);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftSpace == 24);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.LeftFrame == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightStyle == BorderValues.Single);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightSize == 4);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightColor == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightShadow == null);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightSpace == 24);
+                Assert.True(document.TextBoxes[1].WordParagraph[0].Borders.RightFrame == null);
 
                 document.Save();
             }

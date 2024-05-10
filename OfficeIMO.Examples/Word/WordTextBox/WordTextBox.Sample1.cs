@@ -1,6 +1,9 @@
 using System;
+
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+
 using OfficeIMO.Word;
+
 using Color = SixLabors.ImageSharp.Color;
 using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 
@@ -18,17 +21,17 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("TextBox Text: " + textBox.Text);
 
-                textBox.Text = "We can then modify the text box text";
+                textBox.Text[0] = "We can then modify the text box text";
 
-                Console.WriteLine("TextBox Text: " + textBox.WordParagraph.Text);
+                Console.WriteLine("TextBox Text: " + textBox.WordParagraph[0].Text);
 
-                Console.WriteLine("TextBoc Color: " + textBox.WordParagraph.Color.ToString());
+                Console.WriteLine("TextBoc Color: " + textBox.WordParagraph[0].Color.ToString());
 
-                textBox.WordParagraph.Text = "This is a text box 1";
+                textBox.WordParagraph[0].Text = "This is a text box 1";
 
-                Console.WriteLine("TextBox Text: " + textBox.WordParagraph.Text);
+                Console.WriteLine("TextBox Text: " + textBox.WordParagraph[0].Text);
 
-                textBox.WordParagraph.Color = Color.Red;
+                textBox.WordParagraph[0].Color = Color.Red;
 
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
@@ -64,14 +67,14 @@ namespace OfficeIMO.Examples.Word {
 
                 document.TextBoxes[1].VerticalPositionOffsetCentimeters = 15;
 
-                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph.Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph[0].Borders.BottomColor);
 
-                document.TextBoxes[1].WordParagraph.Borders.BottomColor = Color.Red;
-                document.TextBoxes[1].WordParagraph.Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
+                document.TextBoxes[1].WordParagraph[0].Borders.BottomColor = Color.Red;
+                document.TextBoxes[1].WordParagraph[0].Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
 
-                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph.Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph[0].Borders.BottomColor);
 
-                document.TextBoxes[1].WordParagraph.Borders.BottomThemeColor = null;
+                document.TextBoxes[1].WordParagraph[0].Borders.BottomThemeColor = null;
 
                 document.TextBoxes[1].RelativeWidthPercentage = 0;
                 document.TextBoxes[1].RelativeHeightPercentage = 0;
@@ -79,7 +82,7 @@ namespace OfficeIMO.Examples.Word {
                 document.TextBoxes[1].WidthCentimeters = 7;
                 document.TextBoxes[1].HeightCentimeters = 2.5;
 
-                document.TextBoxes[0].WordParagraph.Borders.Type = WordBorder.None;
+                document.TextBoxes[0].WordParagraph[0].Borders.Type = WordBorder.None;
 
                 document.Save(openWord);
             }
