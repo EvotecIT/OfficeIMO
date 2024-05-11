@@ -19,19 +19,19 @@ namespace OfficeIMO.Examples.Word {
 
                 var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
 
-                Console.WriteLine("TextBox Text: " + textBox.Text);
+                Console.WriteLine("TextBox Text: " + textBox.Paragraphs[0].Text);
 
-                textBox.Text[0] = "We can then modify the text box text";
+                textBox.Paragraphs[0].Text = "We can then modify the text box text";
 
-                Console.WriteLine("TextBox Text: " + textBox.WordParagraph[0].Text);
+                Console.WriteLine("TextBox Text: " + textBox.Paragraphs[0].Text);
 
-                Console.WriteLine("TextBoc Color: " + textBox.WordParagraph[0].Color.ToString());
+                Console.WriteLine("TextBoc Color: " + textBox.Paragraphs[0].Color.ToString());
 
-                textBox.WordParagraph[0].Text = "This is a text box 1";
+                textBox.Paragraphs[0].Text = "This is a text box 1";
 
-                Console.WriteLine("TextBox Text: " + textBox.WordParagraph[0].Text);
+                Console.WriteLine("TextBox Text: " + textBox.Paragraphs[0].Text);
 
-                textBox.WordParagraph[0].Color = Color.Red;
+                textBox.Paragraphs[0].Color = Color.Red;
 
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
@@ -67,14 +67,14 @@ namespace OfficeIMO.Examples.Word {
 
                 document.TextBoxes[1].VerticalPositionOffsetCentimeters = 15;
 
-                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph[0].Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
 
-                document.TextBoxes[1].WordParagraph[0].Borders.BottomColor = Color.Red;
-                document.TextBoxes[1].WordParagraph[0].Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
+                document.TextBoxes[1].Paragraphs[0].Borders.BottomColor = Color.Red;
+                document.TextBoxes[1].Paragraphs[0].Borders.BottomStyle = DocumentFormat.OpenXml.Wordprocessing.BorderValues.DashDotStroked;
 
-                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].WordParagraph[0].Borders.BottomColor);
+                Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
 
-                document.TextBoxes[1].WordParagraph[0].Borders.BottomThemeColor = null;
+                document.TextBoxes[1].Paragraphs[0].Borders.BottomThemeColor = null;
 
                 document.TextBoxes[1].RelativeWidthPercentage = 0;
                 document.TextBoxes[1].RelativeHeightPercentage = 0;
@@ -82,7 +82,17 @@ namespace OfficeIMO.Examples.Word {
                 document.TextBoxes[1].WidthCentimeters = 7;
                 document.TextBoxes[1].HeightCentimeters = 2.5;
 
-                document.TextBoxes[0].WordParagraph[0].Borders.Type = WordBorder.None;
+                document.TextBoxes[0].Paragraphs[0].Borders.Type = WordBorder.None;
+
+                document.TextBoxes[1].Paragraphs[0].AddParagraph("This is a new paragraph in the text box");
+                Console.WriteLine(document.TextBoxes[1].Paragraphs.Count);
+                Console.WriteLine(document.TextBoxes[1].Paragraphs[0].Text);
+                Console.WriteLine(document.TextBoxes[1].Paragraphs[1].Text);
+
+                document.TextBoxes[1].Paragraphs[1].Text = "New text";
+                Console.WriteLine(document.TextBoxes[1].Paragraphs[1].Text);
+
+                Console.WriteLine(document.TextBoxes[1].Paragraphs[1].Text);
 
                 document.Save(openWord);
             }
