@@ -5,11 +5,12 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public class WordTextBox {
-        private WordDocument _document;
-        private WordParagraph _wordParagraph;
+        private readonly WordDocument _document;
+        private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter _headerFooter;
         private Run _run => _wordParagraph._run;
 
@@ -61,46 +62,15 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Allows to set the text of the text box
-        /// For more advanced text formatting use WordParagraph property
+        /// Gets a list of WordParagraph instances representing the paragraphs in the text box.
+        /// Each WordParagraph is initialized with the WordDocument, the Paragraph, and the Run.
         /// </summary>
-        public string Text {
+        public List<WordParagraph> Paragraphs {
             get {
-                if (_sdtBlock != null) {
-
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
-                        if (text != null) {
-                            return text.Text;
-                        }
-                    }
+                if (_textBoxInfo2 != null) {
+                    return _textBoxInfo2.Descendants<Run>().Select(run => new WordParagraph(_document, _paragraph, run)).ToList();
                 }
-                return "";
-            }
-            set {
-                if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
-                        if (text != null) {
-                            text.Text = value;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Allows to modify the paragraph of the text box, along with other text formatting
-        /// </summary>
-        public WordParagraph WordParagraph {
-            get {
-                if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    return new WordParagraph(_document, _sdtBlock, run);
-                }
-                return null;
+                return new List<WordParagraph>();
             }
         }
 
@@ -622,12 +592,23 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Paragraph _sdtBlock {
+        private TextBoxInfo2 _textBoxInfo2 {
             get {
                 var wordprocessingShape = _wordprocessingShape;
                 if (wordprocessingShape != null) {
+                    var textBoxInfo = wordprocessingShape.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();
+                    if (textBoxInfo != null) {
+                        return textBoxInfo;
+                    }
+                }
+                return null;
+            }
+        }
 
-
+        private Paragraph _paragraph {
+            get {
+                var wordprocessingShape = _wordprocessingShape;
+                if (wordprocessingShape != null) {
                     var textBoxInfo = wordprocessingShape.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();
                     if (textBoxInfo != null) {
                         var textBoxContent = textBoxInfo.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>();
@@ -646,7 +627,7 @@ namespace OfficeIMO.Word {
 
         private SdtContentBlock _sdtContentBlock {
             get {
-                var sdtBlock = _sdtBlock;
+                var sdtBlock = _paragraph;
                 if (sdtBlock != null) {
                     var sdtContentBlock = sdtBlock.GetFirstChild<SdtContentBlock>();
                     if (sdtContentBlock != null) {
@@ -974,8 +955,6 @@ namespace OfficeIMO.Word {
 
             shapeProperties1.Append(transform2D1);
             shapeProperties1.Append(presetGeometry1);
-            //shapeProperties1.Append(solidFill1);
-            //shapeProperties1.Append(outline1);
             return shapeProperties1;
         }
 
