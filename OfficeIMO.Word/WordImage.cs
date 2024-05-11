@@ -712,6 +712,36 @@ namespace OfficeIMO.Word {
             WrapTextImage wrapImage
         ) {
             _document = document;
+            var imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
+
+            this._imagePart = imageLocation.ImagePart;
+
+            //calculate size in emu
+            double emuWidth = imageLocation.Width * EnglishMetricUnitsPerInch / PixelsPerInch;
+            double emuHeight = imageLocation.Height * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var drawing = new Drawing();
+
+            if (wrapImage == WrapTextImage.InLineWithText) {
+                var inline = GetInline(emuWidth, emuHeight, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                drawing.Append(inline);
+            } else {
+                var graphic = GetGraphic(emuWidth, emuHeight, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageLocation.ImageName, description, wrapImage);
+                drawing.Append(anchor);
+            }
+            this._Image = drawing;
+        }
+
+        internal static WordImageLocation AddImageToLocation(
+            WordDocument document,
+            WordParagraph paragraph,
+            Stream imageStream,
+            string fileName,
+            double? width = null,
+            double? height = null
+        ) {
+
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
@@ -721,10 +751,8 @@ namespace OfficeIMO.Word {
                 height = imageСharacteristics.Height;
             }
 
-            //var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
-            // decide where to put an image based on the location of paragraph
             ImagePart imagePart;
             string relationshipId;
             var location = paragraph.Location();
@@ -744,24 +772,15 @@ namespace OfficeIMO.Word {
                 throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
             }
 
-            this._imagePart = imagePart;
             imagePart.FeedData(imageStream);
 
-            //calculate size in emu
-            double emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-            double emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-
-            var drawing = new Drawing();
-
-            if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
-                drawing.Append(inline);
-            } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
-                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description, wrapImage);
-                drawing.Append(anchor);
-            }
-            this._Image = drawing;
+            return new WordImageLocation() {
+                ImagePart = imagePart,
+                RelationshipId = relationshipId,
+                Width = width.Value,
+                Height = height.Value,
+                ImageName = imageName
+            };
         }
     }
 }

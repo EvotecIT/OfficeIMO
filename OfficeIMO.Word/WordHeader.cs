@@ -80,8 +80,8 @@ namespace OfficeIMO.Word {
             RemoveHeaders(document._wordprocessingDocument);
         }
 
-        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
-            return new WordWatermark(this._document, this._section, this, watermarkStyle, text);
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
+            return new WordWatermark(this._document, this._section, this, watermarkStyle, textOrFilePath);
         }
 
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
