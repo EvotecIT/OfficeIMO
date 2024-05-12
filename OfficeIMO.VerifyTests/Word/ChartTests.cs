@@ -44,7 +44,7 @@ public class ChartTests : VerifyTestBase {
         barChart2.RoundedCorners = true;
 
         document.AddParagraph("This is a pie chart");
-        var pieChart = document.AddPieChart();
+        var pieChart = document.AddChart();
         //pieChart.AddCategories(categories);
         pieChart.AddPie("Poland", 15);
         pieChart.AddPie("USA", 25);
