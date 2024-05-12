@@ -214,13 +214,15 @@ namespace OfficeIMO.Word {
         }
 
         internal void UpdateTitle() {
-            if (_chart != null) {
-                if (_chart.Title == null) {
-                    _chart.Append(AddTitle(PrivateTitle));
-                } else {
-                    var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.Text = PrivateTitle;
+            if (PrivateTitle != null) {
+                if (_chart != null) {
+                    if (_chart.Title == null) {
+                        _chart.Append(AddTitle(PrivateTitle));
+                    } else {
+                        var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
+                        if (text != null) {
+                            text.Text = PrivateTitle;
+                        }
                     }
                 }
             }
