@@ -356,5 +356,5 @@ In addition to the fact that `OfficeIMO.Word` uses Unit Tests, [Characterization
 Characterization test were added in order to not overlook a change that breaks the behavior. These tests are based on [Verify](https://github.com/VerifyTests/Verify) (["Snapshot Testing in .NET with Verify"](https://youtu.be/wA7oJDyvn4c)).
 if you need to add or update a verified snapshot, you can use the powershell script:
 ```bash
-$ pwsh -c ./Build/approve-all.ps1
+$ pwsh -c ./Build/ApproveVerifyTests.ps1
 ```
