@@ -11326,12 +11326,26 @@
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>Poland</c:v>
+                  <c:v>Title?</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:invertIfNegative />
+          <c:cat>
+            <c:strLit>
+              <c:ptCount val="3" />
+              <c:pt idx="0">
+                <c:v>Poland</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>USA</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Brazil</c:v>
+              </c:pt>
+            </c:strLit>
+          </c:cat>
           <c:val>
             <c:numLit>
               <c:ptCount val="3" />
@@ -11340,30 +11354,13 @@
                 <c:v>15</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>20</c:v>
+                <c:v>25</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>30</c:v>
+                <c:v>60</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
-          <c:cat>
-            <c:strLit>
-              <c:ptCount val="4" />
-              <c:pt idx="0">
-                <c:v>Food</c:v>
-              </c:pt>
-              <c:pt idx="1">
-                <c:v>Housing</c:v>
-              </c:pt>
-              <c:pt idx="2">
-                <c:v>Mix</c:v>
-              </c:pt>
-              <c:pt idx="3">
-                <c:v>Data</c:v>
-              </c:pt>
-            </c:strLit>
-          </c:cat>
         </c:ser>
       </c:pieChart>
     </c:plotArea>
@@ -11441,11 +11438,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="F0F8FF" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="F0F8FF" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
@@ -11498,11 +11493,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="A52A2A" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="A52A2A" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
@@ -11555,11 +11548,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="008000" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="008000" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
@@ -11674,11 +11665,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="F0F8FF" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="F0F8FF" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
@@ -11731,11 +11720,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="A52A2A" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="A52A2A" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
@@ -11788,11 +11775,9 @@
             </c:strRef>
           </c:tx>
           <c:spPr>
-            <a:ln>
-              <a:solidFill>
-                <a:srgbClr val="008000" />
-              </a:solidFill>
-            </a:ln>
+            <a:solidFill>
+              <a:srgbClr val="008000" />
+            </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
           <c:cat>
