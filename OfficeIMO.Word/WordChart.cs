@@ -31,11 +31,11 @@ namespace OfficeIMO.Word {
         private UInt32Value _index {
             get {
                 var ids = new List<UInt32Value>();
-                if (InternalChart != null) {
-                    var lineChart = InternalChart.PlotArea.GetFirstChild<LineChart>();
-                    var barChart = InternalChart.PlotArea.GetFirstChild<BarChart>();
-                    var pieChart = InternalChart.PlotArea.GetFirstChild<PieChart>();
-                    var areaChart = InternalChart.PlotArea.GetFirstChild<AreaChart>();
+                if (_chart != null) {
+                    var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                    var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+                    var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+                    var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                     if (lineChart != null) {
                         var series = lineChart.ChildElements.OfType<LineChartSeries>();
                         foreach (var index in series) {
@@ -209,19 +209,19 @@ namespace OfficeIMO.Word {
         }
 
         public WordChart SetTitle(string title) {
-            Title = title;
+            PrivateTitle = title;
             UpdateTitle();
             return this;
         }
 
         internal void UpdateTitle() {
-            if (InternalChart != null) {
-                if (InternalChart.Title == null) {
-                    InternalChart.Append(AddTitle(Title));
+            if (_chart != null) {
+                if (_chart.Title == null) {
+                    _chart.Append(AddTitle(PrivateTitle));
                 } else {
-                    var text = InternalChart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
+                    var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
                     if (text != null) {
-                        text.Text = Title;
+                        text.Text = PrivateTitle;
                     }
                 }
             }
@@ -243,8 +243,9 @@ namespace OfficeIMO.Word {
             paragraphProperties1.Append(defaultRunProperties1);
 
             DocumentFormat.OpenXml.Drawing.Run run1 = new DocumentFormat.OpenXml.Drawing.Run();
-            DocumentFormat.OpenXml.Drawing.Text text1 = new DocumentFormat.OpenXml.Drawing.Text();
-            text1.Text = title;
+            DocumentFormat.OpenXml.Drawing.Text text1 = new DocumentFormat.OpenXml.Drawing.Text {
+                Text = title
+            };
             run1.Append(text1);
             paragraph1.Append(paragraphProperties1);
             paragraph1.Append(run1);

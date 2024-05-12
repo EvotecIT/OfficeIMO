@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -7,7 +6,7 @@ namespace OfficeIMO.Word {
     public partial class WordChart {
         private const long EnglishMetricUnitsPerInch = 914400;
         private const long PixelsPerInch = 96;
-        private WordDocument _document;
+        private readonly WordDocument _document;
         private WordParagraph _paragraph;
         private ChartPart _chartPart {
             get {
@@ -20,7 +19,7 @@ namespace OfficeIMO.Word {
             }
         }
         private Drawing _drawing;
-        private Chart InternalChart;
+        private Chart _chart;
         /// <summary>
         /// The current index for values
         /// </summary>
@@ -108,10 +107,40 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<string> Categories { get; set; }
+        private List<string> Categories { get; set; }
 
-        //public List<int> Values { get; set; } = new List<int>();
+        /// <summary>
+        /// Holds the title of the chart until we can add it to the chart
+        ///
+        /// Note: the title can't really be added to a chart before we know what type of chart it is
+        /// Since we don't know what type of chart it is until we add the first Pie, Bar, Line or Area
+        /// we need to wait until then to add the title
+        /// This is why we have a separate property for the title, but the method to add the title is in the WordChart class
+        /// </summary>
+        private string PrivateTitle { get; set; }
 
-        public string Title { get; set; }
+        /// <summary>
+        /// Get or set the title of the chart
+        /// </summary>
+        public string Title {
+            get {
+                if (_chart != null && _chart.Title != null) {
+                    var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
+                    if (text != null) {
+                        return text.Text;
+                    }
+                }
+                if (PrivateTitle != null) {
+                    return PrivateTitle;
+                }
+                return null;
+            }
+            set {
+                if (_chart != null) {
+                    SetTitle(value);
+                }
+                PrivateTitle = value;
+            }
+        }
     }
 }

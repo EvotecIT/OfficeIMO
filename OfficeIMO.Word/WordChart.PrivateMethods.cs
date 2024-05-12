@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
         }
 
         private NumberLiteral InitializeNumberLiteral() {
-            NumberLiteral literal = InternalChart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
+            NumberLiteral literal = _chart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
             // If NumberLiteral does not exist, create it
             if (literal == null) {
                 literal = new NumberLiteral();
@@ -32,8 +32,8 @@ namespace OfficeIMO.Word {
         }
 
         private PieChartSeries InitializePieChartSeries() {
-            if (InternalChart != null) {
-                var pieChart = InternalChart.PlotArea.GetFirstChild<PieChart>();
+            if (_chart != null) {
+                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
                     var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
                     if (pieChartSeries == null) {
@@ -173,34 +173,46 @@ namespace OfficeIMO.Word {
 
         private void EnsureChartExistsPie() {
             // minimum required to create chart
-            if (InternalChart == null) {
-                InternalChart = GenerateChart();
-                InternalChart = CreatePieChart(InternalChart);
-                _chartPart.ChartSpace.Append(InternalChart);
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = CreatePieChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+
+                // since the title may have changed, we need to update it
+                UpdateTitle();
             }
         }
 
         private void EnsureChartExistsBar() {
-            if (InternalChart == null) {
-                InternalChart = GenerateChart();
-                InternalChart = GenerateChartBar(InternalChart);
-                _chartPart.ChartSpace.Append(InternalChart);
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateChartBar(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+
+                // since the title may have changed, we need to update it
+                UpdateTitle();
             }
         }
 
         private void EnsureChartExistsArea() {
-            if (InternalChart == null) {
-                InternalChart = GenerateChart();
-                InternalChart = GenerateAreaChart(InternalChart);
-                _chartPart.ChartSpace.Append(InternalChart);
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateAreaChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+
+                // since the title may have changed, we need to update it
+                UpdateTitle();
             }
         }
 
         private void EnsureChartExistsLine() {
-            if (InternalChart == null) {
-                InternalChart = GenerateChart();
-                InternalChart = GenerateLineChart(InternalChart);
-                _chartPart.ChartSpace.Append(InternalChart);
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateLineChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+
+                // since the title may have changed, we need to update it
+                UpdateTitle();
             }
         }
 
