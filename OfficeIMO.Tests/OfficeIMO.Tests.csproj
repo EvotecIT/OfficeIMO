@@ -31,6 +31,15 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Text" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Collections" />
+        <Using Include="System.Linq" />
+        <Using Include="System.IO" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Update="Documents\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>

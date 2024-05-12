@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-	// Should the return type be changed to signify the difference between paragraph and run?
+        // Should the return type be changed to signify the difference between paragraph and run?
         /// <summary>
         /// Add a text to existing paragraph
         /// </summary>
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word {
         /// This can be useful to add empty lines, or moving cursor to next line
         /// </summary>
         /// <param name="wordParagraph">Optional WordParagraph to insert after the
-	/// given WordParagraph instead of at the end of the document.</param>
+        /// given WordParagraph instead of at the end of the document.</param>
         /// <returns>The inserted WordParagraph.</returns>
         public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
@@ -150,11 +150,11 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
-	/// <summary>
-	/// Add a paragraph with the given text to the end of the document.
-	/// <\summary>
-	/// <param name="text">The text to fill the paragraph with.<\param>
-	/// <returns> The appended WordParagraph.<\returns>
+        /// <summary>
+        /// Add a paragraph with the given text to the end of the document.
+        /// </summary>
+        /// <param name="text">The text to fill the paragraph with.</param>
+        /// <returns> The appended WordParagraph.</returns>
         public WordParagraph AddParagraph(string text) {
             // we create paragraph (and within that add it to document)
             var wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false) {
@@ -199,7 +199,7 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-	// Should author and initials be made optional or should the user handle that with ""?
+        // Should author and initials be made optional or should the user handle that with ""?
         /// <summary>
         /// Add a comment to paragraph
         /// </summary>
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word {
             this._paragraph.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
         }
 
-	// Does this return the paragraph after the line, or does this return the paragraph containing the line?
+        // Does this return the paragraph after the line, or does this return the paragraph containing the line?
         /// <summary>
         /// Add horizontal line (sometimes known as horizontal rule) to document proceeding from the paragraph that this is called on.
         /// </summary>
@@ -257,8 +257,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordFieldFormat">The format of the field to add.</param>
         /// <param name="advanced"></param>
         /// <param name="parameters">Usages like <code>parameters = new List&lt; String&gt;{ @"\d 'Default'", @"\c" };</code><br/>
-	/// Also see available List of switches per field code:
-	/// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
+        /// Also see available List of switches per field code:
+        /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced, parameters);
@@ -293,25 +293,25 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-	/// <summary>
-	/// Add a table after this paragraph and return the table.
-	/// <\summary>
-	/// <param name="rows">The number of rows in the table.<\param>
-	/// <param name="columns">The number of columns in the table.<\param>
-	/// <param name="tableStyle">The optional style to be applied to the new table, defaults to TableGrid.<\param>
-	/// <returns>The new added table.<\returns>
+        /// <summary>
+        /// Add a table after this paragraph and return the table.
+        /// </summary>
+        /// <param name="rows">The number of rows in the table.</param>
+        /// <param name="columns">The number of columns in the table.</param>
+        /// <param name="tableStyle">The optional style to be applied to the new table, defaults to TableGrid.</param>
+        /// <returns>The new added table.</returns>
         public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
             return wordTable;
         }
 
-	/// <summary>
-	/// Add a table before this paragraph and return the table.
-	/// <\summary>
-	/// <param name="rows">The number of rows in this table<\param>
-	/// <param name="columns">The number of columns in this table<\param>
-	/// <param name="tableStyle">The style of the table being added.<\param>
-	/// <returns>The new added table.<\returns>
+        /// <summary>
+        /// Add a table before this paragraph and return the table.
+        /// </summary>
+        /// <param name="rows">The number of rows in this table</param>
+        /// <param name="columns">The number of columns in this table</param>
+        /// <param name="tableStyle">The style of the table being added.</param>
+        /// <returns>The new added table.</returns>
         public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
@@ -340,65 +340,42 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
-	/// <summary>
-	/// Add a list after this paragraph.
-	/// <\summary>
-	/// <param name="style">The style of this list.<\param>
-	/// <returns>The new list.<\returns>
+        /// <summary>
+        /// Add a list after this paragraph.
+        /// </summary>
+        /// <param name="style">The style of this list.</param>
+        /// <returns>The new list.</returns>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this);
             wordList.AddList(style);
             return wordList;
         }
 
-	/// <summary>
-	/// Add a bar chart to the document after this paragraph.
-	/// <param name="title">The optional title of the chart.<\param>
-	/// <param name="roundedCorners">Whether to round the corners of the chart, defaults to false.<\param>
-	/// <param name="width">The optional width of the chart.<\param>
-	/// <param name="height">The optional height of the chart.<\param>
-	/// <returns>The new bar chart.<\returns>
-        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var barChart = WordBarChart.AddBarChart(this._document, this, title, roundedCorners, width, height);
-            return barChart;
+        /// <summary>
+        /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
+        /// You can use multiple:
+        /// .AddBar() to add a bar chart
+        /// .AddLine() to add a line chart
+        /// .AddPie() to add a pie chart
+        /// .AddArea() to add an area chart.
+        /// You can't mix and match the types of charts.
+        /// </summary>
+        /// <param name="title">The title.</param>
+        /// <param name="roundedCorners">if set to <c>true</c> [rounded corners].</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns>WordChart</returns>
+        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+            var paragraph = this.AddParagraph();
+            var chartInstance = new WordChart(this._document, paragraph, title, roundedCorners, width, height);
+            return chartInstance;
         }
 
-	/// <summary>
-	/// Add a line chart to the word document.
-	/// <\summary>
-	/// <param name="title">The optional title of the line chart.<\param>
-	/// <param name="roundedCorners">Whether to round the corners of the line chart, defaults to false.<\param>
-	/// <param name="width">The optional width of the chart.<\param>
-	/// <param name="height">The optional height of the chart.<\param>
-	/// <returns>The new line chart.<\returns>
-        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var lineChart = WordLineChart.AddLineChart(this._document, this, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        //public WordBarChart3D AddBarChart3D(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-        //    var barChart = WordBarChart3D.AddBarChart3D(this._document, this, title, roundedCorners, width, height);
-        //    return barChart;
-        //}
-
-	/// <summary>
-	/// Add a pie chart to the document.
-	/// <\summary>
-	/// <param name="title">The optional title of the chart.<\param>
-	/// <param name="roundedCorners">Whether to round the corners of the chart, defaults to false.<\param>
-	/// <param name="width">The optional width of the chart.<\param>
-	/// <param name="height">The optional height of the chart.<\param>
-	/// <returns>The new pie chart.<\returns>
-        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var pieChart = WordPieChart.AddPieChart(this._document, this, title, roundedCorners, width, height);
-            return pieChart;
-        }
-
-	/// <summary>
-	/// Add a foot note for the current paragraph.
-	/// <\summary>
-	/// <param name="text">The text of the note.<\param>
-	/// <returns>The footnote.<\returns>
+        /// <summary>
+        /// Add a foot note for the current paragraph.
+        /// </summary>
+        /// <param name="text">The text of the note.</param>
+        /// <returns>The footnote.</returns>
         public WordParagraph AddFootNote(string text) {
             var footerWordParagraph = new WordParagraph(this._document, true, true);
             footerWordParagraph.Text = text;
@@ -407,11 +384,11 @@ namespace OfficeIMO.Word {
             return wordFootNote;
         }
 
-	/// <summary>
-	/// Add an end note to the document for this paragraph.
-	/// <\summary>
-	/// <param name="text">The text of the end note.<\param>
-	/// <returns>The end note.<\returns>
+        /// <summary>
+        /// Add an end note to the document for this paragraph.
+        /// </summary>
+        /// <param name="text">The text of the end note.</param>
+        /// <returns>The end note.</returns>
         public WordParagraph AddEndNote(string text) {
             var endNoteWordParagraph = new WordParagraph(this._document, true, true);
             endNoteWordParagraph.Text = text;
@@ -421,11 +398,11 @@ namespace OfficeIMO.Word {
 
         }
 
-	/// <summary>
-	/// Add a text box to the document.
-	/// <\summary>
-	/// <param name="text">The text inside the text box.<\param>
-	/// <param name="wrapTextImage">The text image wrapping settings.<\param>
+        /// <summary>
+        /// Add a text box to the document.
+        /// </summary>
+        /// <param name="text">The text inside the text box.</param>
+        /// <param name="wrapTextImage">The text image wrapping settings.</param>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
