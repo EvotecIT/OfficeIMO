@@ -15,8 +15,8 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
 
-                document.AddParagraph("This is a bar chart");
-                var barChart1 = document.AddChart();
+                document.AddParagraph("This is a bar chart 1");
+                var barChart1 = document.AddChart("New title");
                 barChart1.AddCategories(categories);
                 barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
                 barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
@@ -24,9 +24,14 @@ namespace OfficeIMO.Examples.Word {
                 barChart1.BarGrouping = BarGroupingValues.Clustered;
                 barChart1.BarDirection = BarDirectionValues.Column;
 
+                Console.WriteLine("Title: " + barChart1.Title);
+
+                barChart1.Title = "New title 2";
+                Console.WriteLine("Title: " + barChart1.Title);
+
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                document.AddParagraph("This is a bar chart");
+                document.AddParagraph("This is a bar chart 2");
                 var barChart2 = document.AddChart();
                 barChart2.AddCategories(categories);
                 barChart2.AddBar("USA", 15, Color.Aqua);
@@ -117,7 +122,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
-                // lets add chart to first paragraph
+                // let's add chart to first paragraph
                 var lineChart5 = paragraphToTest.AddChart();
                 lineChart5.AddChartAxisX(categories);
                 lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
