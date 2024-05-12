@@ -152,9 +152,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a paragraph with the given text to the end of the document.
-        /// <\summary>
-        /// <param name="text">The text to fill the paragraph with.<\param>
-        /// <returns> The appended WordParagraph.<\returns>
+        /// </summary>
+        /// <param name="text">The text to fill the paragraph with.</param>
+        /// <returns> The appended WordParagraph.</returns>
         public WordParagraph AddParagraph(string text) {
             // we create paragraph (and within that add it to document)
             var wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false) {
@@ -295,11 +295,11 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a table after this paragraph and return the table.
-        /// <\summary>
-        /// <param name="rows">The number of rows in the table.<\param>
-        /// <param name="columns">The number of columns in the table.<\param>
-        /// <param name="tableStyle">The optional style to be applied to the new table, defaults to TableGrid.<\param>
-        /// <returns>The new added table.<\returns>
+        /// </summary>
+        /// <param name="rows">The number of rows in the table.</param>
+        /// <param name="columns">The number of columns in the table.</param>
+        /// <param name="tableStyle">The optional style to be applied to the new table, defaults to TableGrid.</param>
+        /// <returns>The new added table.</returns>
         public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
             return wordTable;
@@ -307,11 +307,11 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a table before this paragraph and return the table.
-        /// <\summary>
-        /// <param name="rows">The number of rows in this table<\param>
-        /// <param name="columns">The number of columns in this table<\param>
-        /// <param name="tableStyle">The style of the table being added.<\param>
-        /// <returns>The new added table.<\returns>
+        /// </summary>
+        /// <param name="rows">The number of rows in this table</param>
+        /// <param name="columns">The number of columns in this table</param>
+        /// <param name="tableStyle">The style of the table being added.</param>
+        /// <returns>The new added table.</returns>
         public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
@@ -342,9 +342,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a list after this paragraph.
-        /// <\summary>
-        /// <param name="style">The style of this list.<\param>
-        /// <returns>The new list.<\returns>
+        /// </summary>
+        /// <param name="style">The style of this list.</param>
+        /// <returns>The new list.</returns>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this);
             wordList.AddList(style);
@@ -373,9 +373,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a foot note for the current paragraph.
-        /// <\summary>
-        /// <param name="text">The text of the note.<\param>
-        /// <returns>The footnote.<\returns>
+        /// </summary>
+        /// <param name="text">The text of the note.</param>
+        /// <returns>The footnote.</returns>
         public WordParagraph AddFootNote(string text) {
             var footerWordParagraph = new WordParagraph(this._document, true, true);
             footerWordParagraph.Text = text;
@@ -386,9 +386,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add an end note to the document for this paragraph.
-        /// <\summary>
-        /// <param name="text">The text of the end note.<\param>
-        /// <returns>The end note.<\returns>
+        /// </summary>
+        /// <param name="text">The text of the end note.</param>
+        /// <returns>The end note.</returns>
         public WordParagraph AddEndNote(string text) {
             var endNoteWordParagraph = new WordParagraph(this._document, true, true);
             endNoteWordParagraph.Text = text;
@@ -400,9 +400,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a text box to the document.
-        /// <\summary>
-        /// <param name="text">The text inside the text box.<\param>
-        /// <param name="wrapTextImage">The text image wrapping settings.<\param>
+        /// </summary>
+        /// <param name="text">The text inside the text box.</param>
+        /// <param name="wrapTextImage">The text image wrapping settings.</param>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
