@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -65,7 +64,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-        internal CategoryAxis AddCategoryAxis() {
+        private CategoryAxis AddCategoryAxis() {
             CategoryAxis categoryAxis1 = new CategoryAxis();
             categoryAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId3 = new AxisId() { Val = (UInt32Value)148921728U };
@@ -103,7 +102,7 @@ namespace OfficeIMO.Word {
             return categoryAxis1;
         }
 
-        internal ValueAxis AddValueAxis() {
+        private ValueAxis AddValueAxis() {
             ValueAxis valueAxis1 = new ValueAxis();
             valueAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId4 = new AxisId() { Val = (UInt32Value)154227840U };
@@ -139,7 +138,7 @@ namespace OfficeIMO.Word {
             return valueAxis1;
         }
 
-        internal DataLabels AddDataLabel() {
+        private DataLabels AddDataLabel() {
             DataLabels dataLabels1 = new DataLabels();
             dataLabels1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             ShowLegendKey showLegendKey1 = new ShowLegendKey() { Val = false };
@@ -160,7 +159,7 @@ namespace OfficeIMO.Word {
             return dataLabels1;
         }
 
-        internal WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
+        private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
             ChartPart part = CreateChartPart(wordDocument, roundedCorners);
             // _chartPart = part;
             var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part);
@@ -174,7 +173,7 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        internal ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
+        private ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
             ChartPart part = document._wordprocessingDocument.MainDocumentPart.AddNewPart<ChartPart>(); //("rId1");
 
             ChartSpace chartSpace1 = new ChartSpace();
@@ -187,7 +186,7 @@ namespace OfficeIMO.Word {
             return part;
         }
 
-        internal Chart GenerateChart(string title = null) {
+        private Chart GenerateChart(string title = null) {
             Chart chart1 = new Chart();
             AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
             PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
@@ -227,7 +226,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal static Title AddTitle(string title) {
+        private static Title AddTitle(string title) {
             Title title1 = new Title();
             ChartText chartText1 = new ChartText();
 
