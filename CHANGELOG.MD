@@ -1,5 +1,15 @@
+## 0.15.0 - 2024.05.13
+### What's Changed
+* Bump dependency of ImageSharp to 2.1.8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/221
+* Filled in documentation for the public paragraph methods. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/212
+* Improve textboxes to allow multiple Runs/Paragraphs **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/225
+* Improve Charts **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/223
+* Add VerifyTests by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/86
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.14.0...v0.15.0
+
 ## 0.14.0 - 2024.04.04
-## What's Changed
+### What's Changed
 * Add centimeters conversions to Margins, fix naming emus/twips by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/200
 * Fixes lists NSID value which prevents lists using correct settings when using same type multiple times by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/202
 * Add 4 more list types with letters by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/209
