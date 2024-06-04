@@ -52,5 +52,33 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(openWord);
             }
         }
+
+        internal static void Example_InsertTables1(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Creating standard document with tables");
+            string filePath = System.IO.Path.Combine(folderPath, "Document with Tables1.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+                paragraph.ParagraphAlignment = JustificationValues.Center;
+
+                document.AddParagraph();
+
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+
+                var sencondRow = wordTable.Rows[1];
+
+                var thirdRow = wordTable.InsertRow(sencondRow);
+
+                thirdRow.Cells[0].Paragraphs[0].Text = $"R3C1";
+
+              
+
+                Console.WriteLine(wordTable.Style);
+
+                // lets overwrite style
+                wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
+
+                document.Save(openWord);
+            }
+        }
     }
 }
