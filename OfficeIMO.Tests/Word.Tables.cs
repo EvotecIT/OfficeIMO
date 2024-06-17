@@ -24,8 +24,35 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
+                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == false);
+
+                Assert.True(wordTable.LastRow.RepeatHeaderRowAtTheTopOfEachPage == false);
+                foreach (var row in wordTable.Rows) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
+                }
+
+                wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
+
+                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == true);
+
+                Assert.True(wordTable.LastRow.RepeatHeaderRowAtTheTopOfEachPage == true);
+
+                foreach (var row in wordTable.Rows) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == true);
+                }
+
+                Assert.True(wordTable.Rows.Count == 3);
+
+                wordTable.AddRow(2, 2);
+
+                Assert.True(wordTable.Rows.Count == 5);
+
+                foreach (var row in wordTable.Rows) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == true);
+                }
+
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable.Paragraphs.Count == 12, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
                 Assert.True(document.Tables.Count == 1, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
@@ -45,7 +72,7 @@ namespace OfficeIMO.Tests {
 
                 var wordTable = document.Tables[0];
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable.Paragraphs.Count == 12, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
                 WordTable wordTable2 = document.AddTable(5, 5);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -96,7 +123,7 @@ namespace OfficeIMO.Tests {
 
                 var wordTable1 = document.Tables[0];
                 Assert.True(wordTable1.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable1.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable1.Paragraphs.Count == 12, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
+                Assert.True(wordTable1.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
 
                 var wordTable2 = document.Tables[1];
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table matches. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
