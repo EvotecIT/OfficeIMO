@@ -143,6 +143,7 @@ namespace OfficeIMO.Examples {
             Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
             Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
             Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
+            Embed.Example_EmbedHTMLFragment(folderPath, false);
 
             CleanupDocuments.CleanupDocuments_Sample01(false);
             CleanupDocuments.CleanupDocuments_Sample02(folderPath, false);
