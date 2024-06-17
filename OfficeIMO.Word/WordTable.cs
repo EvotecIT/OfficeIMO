@@ -232,6 +232,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Specifies that the first row shall be repeated at the top of each page on which the table is displayed.
+        /// </summary>
+        public bool RepeatHeaderRowAtTheTopOfEachPage {
+            get => Rows[0].RepeatHeaderRowAtTheTopOfEachPage;
+            set {
+                foreach (var row in Rows) {
+                    row.RepeatHeaderRowAtTheTopOfEachPage = value;
+                }
+            }
+        }
+
         public int RowsCount => this.Rows.Count;
 
         public List<WordTableRow> Rows {
@@ -406,7 +418,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="cellsCount"></param>
         public WordTableRow AddRow(int cellsCount = 0) {
-            WordTableRow row = new WordTableRow(_document, this);
+            // when adding a row to the table, we need to check if the last row has RepeatHeaderRowAtTheTopOfEachPage set
+            // if it does, we need to set it for the new row as well
+            var repeatHeaders = this.LastRow.RepeatHeaderRowAtTheTopOfEachPage;
+            WordTableRow row = new WordTableRow(_document, this) {
+                RepeatHeaderRowAtTheTopOfEachPage = repeatHeaders
+            };
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
             return row;
