@@ -1,3 +1,11 @@
+## 0.16.0 - 2024.06.17
+##W What's Changed
+* Add RepeatHeaderRowAtTheTopOfEachPage to Tables by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/231
+* Add AddEmbeddedFragment method by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/233
+* Bump test dependencies by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/232
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.15.0...v0.16.0
+
 ## 0.15.0 - 2024.05.13
 ### What's Changed
 * Bump dependency of ImageSharp to 2.1.8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/221
