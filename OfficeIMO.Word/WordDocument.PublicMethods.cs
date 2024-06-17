@@ -145,7 +145,12 @@ namespace OfficeIMO.Word {
         }
 
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
+            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type, false);
+            return embeddedDocument;
+        }
+
+        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, AlternativeFormatImportPartType type) {
+            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, htmlContent, type, true);
             return embeddedDocument;
         }
 

@@ -68,10 +68,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordEmbeddedDocument(WordDocument wordDocument, string fileName, AlternativeFormatImportPartType? alternativeFormatImportPartType) {
+        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, AlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
             AlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {
-                FileInfo fileInfo = new FileInfo(fileName);
+                FileInfo fileInfo = new FileInfo(fileNameOrContent);
                 if (fileInfo.Extension == ".rtf") {
                     partType = AlternativeFormatImportPartType.Rtf;
                 } else if (fileInfo.Extension == ".html") {
@@ -93,7 +93,8 @@ namespace OfficeIMO.Word {
 
             AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partType, altChunk.Id);
 
-            var documentContent = File.ReadAllText(fileName, Encoding.ASCII);
+            // if it's a fragment, we don't need to read the file
+            var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.ASCII);
 
             using (MemoryStream ms = new MemoryStream(Encoding.ASCII.GetBytes(documentContent))) {
                 chunk.FeedData(ms);
