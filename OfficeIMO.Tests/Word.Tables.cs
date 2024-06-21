@@ -26,7 +26,6 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == false);
 
-                Assert.True(wordTable.LastRow.RepeatHeaderRowAtTheTopOfEachPage == false);
                 foreach (var row in wordTable.Rows) {
                     Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
                 }
@@ -35,10 +34,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == true);
 
-                Assert.True(wordTable.LastRow.RepeatHeaderRowAtTheTopOfEachPage == true);
-
-                foreach (var row in wordTable.Rows) {
-                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == true);
+                foreach (var row in wordTable.Rows.Skip(1)) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
                 }
 
                 Assert.True(wordTable.Rows.Count == 3);
@@ -47,9 +44,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows.Count == 5);
 
-                foreach (var row in wordTable.Rows) {
-                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == true);
-                }
+                Assert.True(wordTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage == true);
 
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
                 Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
