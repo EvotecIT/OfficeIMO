@@ -1,5 +1,11 @@
+## 0.17.0 - 2024.06.21
+### What's Changed
+* Fixes wrong implementation of repeat header by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/234
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.16.0...v0.17.0
+
 ## 0.16.0 - 2024.06.17
-##W What's Changed
+### What's Changed
 * Add RepeatHeaderRowAtTheTopOfEachPage to Tables by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/231
 * Add AddEmbeddedFragment method by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/233
 * Bump test dependencies by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/232
