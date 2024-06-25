@@ -64,6 +64,7 @@ namespace OfficeIMO.Examples {
             Tables.Example_TableBorders(folderPath, false);
             Tables.Example_NestedTables(folderPath, false);
             Tables.Example_TablesAddedAfterParagraph(folderPath, false);
+            Tables.Example_BasicTables8(folderPath, false);
 
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
