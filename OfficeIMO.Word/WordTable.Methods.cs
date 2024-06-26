@@ -44,5 +44,22 @@ namespace OfficeIMO.Word {
             }
             return this;
         }
+
+
+        /// <summary>
+        /// Insert newRow after  `row`
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public WordTableRow InsertRow(WordTableRow row) {
+
+
+            WordTableRow insertRow = new WordTableRow(_document, this);
+
+            _table.InsertAfter(insertRow._tableRow, row._tableRow);
+            AddCells(insertRow, row.CellsCount);
+            return insertRow;
+        }
+
     }
 }
