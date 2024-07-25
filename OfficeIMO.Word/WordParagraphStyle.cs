@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
@@ -16,7 +16,8 @@ namespace OfficeIMO.Word {
         Heading7,
         Heading8,
         Heading9,
-        ListParagraph
+        ListParagraph,
+        Custom
     }
 
     public static class WordParagraphStyle {
@@ -69,9 +70,8 @@ namespace OfficeIMO.Word {
                 case "Heading8": return WordParagraphStyles.Heading8;
                 case "Heading9": return WordParagraphStyles.Heading9;
                 case "ListParagraph": return WordParagraphStyles.ListParagraph;
+                default: return WordParagraphStyles.Custom;
             }
-
-            throw new ArgumentOutOfRangeException(nameof(style));
         }
         /// <summary>
         /// This method is used to simplify creating TOC List with Headings
