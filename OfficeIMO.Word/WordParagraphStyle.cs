@@ -34,6 +34,7 @@ namespace OfficeIMO.Word {
                 case WordParagraphStyles.Heading8: return StyleHeading8;
                 case WordParagraphStyles.Heading9: return StyleHeading9;
                 case WordParagraphStyles.ListParagraph: return StyleListParagraph;
+                case WordParagraphStyles.Custom: return null;
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));
@@ -52,6 +53,7 @@ namespace OfficeIMO.Word {
                 case WordParagraphStyles.Heading8: return "Heading8";
                 case WordParagraphStyles.Heading9: return "Heading9";
                 case WordParagraphStyles.ListParagraph: return "ListParagraph";
+                case WordParagraphStyles.Custom: return "Custom";
             }
 
             throw new ArgumentOutOfRangeException(nameof(style));

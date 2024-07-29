@@ -430,5 +430,14 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_OpeningDocumentWithCustomStyle() {
+            string filePath = Path.Combine(_directoryDocuments, "ParagraphStyle.docx");
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs.Count);
+                Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs[0].Style);
+                Assert.Equal(WordParagraphStyles.Custom, document.Paragraphs[1].Style);
+            }
+        }
     }
 }
