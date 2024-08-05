@@ -1,4 +1,3 @@
-﻿using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -34,6 +33,17 @@ namespace OfficeIMO.Tests {
 
                 // This table has 12 Paragraphs.
                 //Assert.True(t0.Paragraphs.Count() == 12);
+            }
+        }
+
+        [Fact]
+        public void Test_AllElements() {
+            var docs = Directory.GetFiles(_directoryDocuments, "*.docx");
+            foreach (var doc in docs) {
+                using (WordDocument document = WordDocument.Load(doc)) {
+                    var allElements = document.AllElements();
+                    Assert.True(allElements.Count > 0);
+                }
             }
         }
     }
