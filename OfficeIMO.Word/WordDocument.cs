@@ -214,9 +214,10 @@ namespace OfficeIMO.Word {
         }
 
         public List<object> AllElements() {
-            var list = new List<object>(); foreach (var element in _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements) {
+            var list = new List<object>(); 
+            foreach (var element in _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements) {
                 if (element is Paragraph) 
-                    list.Add(new WordParagraph(this, element as Paragraph));
+                    list.AddRange(WordSection.ConvertParagraphToWordParagraphs(this, element as Paragraph));
                 else if (element is Table) 
                     list.Add(new WordTable(this, element as Table));
                 else if (element is SectionProperties) { 

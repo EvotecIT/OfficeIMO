@@ -6,6 +6,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
@@ -63,74 +64,79 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
-            Dictionary<BookmarkStart, WordBookmark> bookmarks = new Dictionary<BookmarkStart, WordBookmark>();
-
+            
             foreach (Paragraph paragraph in paragraphs) {
-                var childElements = paragraph.ChildElements;
-                if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
-                    // basically empty, we still want to track it, but that's about it
-                    list.Add(new WordParagraph(document, paragraph));
-                } else if (childElements.Any()) {
-                    List<Run> runList = new List<Run>();
-                    bool foundField = false;
-                    foreach (var element in paragraph.ChildElements) {
-                        WordParagraph wordParagraph;
-                        if (element is Run) {
-                            var run = (Run)element;
-                            var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                            if (foundField == true) {
-                                if (fieldChar != null && fieldChar.FieldCharType == FieldCharValues.End) {
-                                    foundField = false;
-                                    runList.Add(run);
-                                    wordParagraph = new WordParagraph(document, paragraph, runList);
-                                    list.Add(wordParagraph);
-                                } else {
-                                    runList.Add(run);
-                                }
-                            } else {
-                                if (fieldChar != null) {
-                                    if (fieldChar.FieldCharType == FieldCharValues.Begin) {
-                                        runList.Add(run);
-                                        foundField = true;
-                                    }
-                                } else {
-                                    wordParagraph = new WordParagraph(document, paragraph, run);
-                                    list.Add(wordParagraph);
-                                }
-                            }
-                        } else if (element is Hyperlink) {
-                            wordParagraph = new WordParagraph(document, paragraph, (Hyperlink)element);
-                            list.Add(wordParagraph);
-                        } else if (element is SimpleField) {
-                            wordParagraph = new WordParagraph(document, paragraph, (SimpleField)element);
-                            list.Add(wordParagraph);
-                        } else if (element is BookmarkStart) {
-                            wordParagraph = new WordParagraph(document, paragraph, (BookmarkStart)element);
-                            list.Add(wordParagraph);
-                        } else if (element is BookmarkEnd) {
-                            // not needed, we will search for matching bookmark end in the bookmark (i guess)
-                        } else if (element is DocumentFormat.OpenXml.Math.OfficeMath) {
-                            wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.OfficeMath)element);
-                            list.Add(wordParagraph);
-                        } else if (element is DocumentFormat.OpenXml.Math.Paragraph) {
-                            wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.Paragraph)element);
-                            list.Add(wordParagraph);
-                        } else if (element is SdtRun) {
-                            list.Add(new WordParagraph(document, paragraph, (SdtRun)element));
-                        } else if (element is ProofError) {
-
-                        } else if (element is ParagraphProperties) {
-
-                        } else {
-                            Debug.WriteLine("Please implement me! " + element.GetType().Name);
-                        }
-                    }
-                } else {
-                    // add empty word paragraph
-                    list.Add(new WordParagraph(document, paragraph));
-                }
+                list.AddRange(ConvertParagraphToWordParagraphs(document, paragraph));
             }
 
+            return list;
+        }
+
+        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph) {
+            var list = new List<WordParagraph>();
+            var childElements = paragraph.ChildElements;
+            if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
+                // basically empty, we still want to track it, but that's about it
+                list.Add(new WordParagraph(document, paragraph));
+            } else if (childElements.Any()) {
+                List<Run> runList = new List<Run>();
+                bool foundField = false;
+                foreach (var element in paragraph.ChildElements) {
+                    WordParagraph wordParagraph;
+                    if (element is Run) {
+                        var run = (Run)element;
+                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                        if (foundField == true) {
+                            if (fieldChar != null && fieldChar.FieldCharType == FieldCharValues.End) {
+                                foundField = false;
+                                runList.Add(run);
+                                wordParagraph = new WordParagraph(document, paragraph, runList);
+                                list.Add(wordParagraph);
+                            } else {
+                                runList.Add(run);
+                            }
+                        } else {
+                            if (fieldChar != null) {
+                                if (fieldChar.FieldCharType == FieldCharValues.Begin) {
+                                    runList.Add(run);
+                                    foundField = true;
+                                }
+                            } else {
+                                wordParagraph = new WordParagraph(document, paragraph, run);
+                                list.Add(wordParagraph);
+                            }
+                        }
+                    } else if (element is Hyperlink) {
+                        wordParagraph = new WordParagraph(document, paragraph, (Hyperlink)element);
+                        list.Add(wordParagraph);
+                    } else if (element is SimpleField) {
+                        wordParagraph = new WordParagraph(document, paragraph, (SimpleField)element);
+                        list.Add(wordParagraph);
+                    } else if (element is BookmarkStart) {
+                        wordParagraph = new WordParagraph(document, paragraph, (BookmarkStart)element);
+                        list.Add(wordParagraph);
+                    } else if (element is BookmarkEnd) {
+                        // not needed, we will search for matching bookmark end in the bookmark (i guess)
+                    } else if (element is DocumentFormat.OpenXml.Math.OfficeMath) {
+                        wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.OfficeMath)element);
+                        list.Add(wordParagraph);
+                    } else if (element is DocumentFormat.OpenXml.Math.Paragraph) {
+                        wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.Paragraph)element);
+                        list.Add(wordParagraph);
+                    } else if (element is SdtRun) {
+                        list.Add(new WordParagraph(document, paragraph, (SdtRun)element));
+                    } else if (element is ProofError) {
+
+                    } else if (element is ParagraphProperties) {
+
+                    } else {
+                        Debug.WriteLine("Please implement me! " + element.GetType().Name);
+                    }
+                }
+            } else {
+                // add empty word paragraph
+                list.Add(new WordParagraph(document, paragraph));
+            }
             return list;
         }
 
