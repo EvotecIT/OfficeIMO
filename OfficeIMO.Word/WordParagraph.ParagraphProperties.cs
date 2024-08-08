@@ -306,5 +306,14 @@ namespace OfficeIMO.Word {
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
+
+        public VerticalPositionValues VerticalTextAlignment {
+            get {
+                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
+                    return _runProperties.VerticalTextAlignment.Val;
+                }
+                return VerticalPositionValues.Baseline;
+            }
+        }
     }
 }

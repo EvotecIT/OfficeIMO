@@ -439,5 +439,16 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordParagraphStyles.Custom, document.Paragraphs[1].Style);
             }
         }
+
+        [Fact]
+        public void Test_SubscriptAndSuperscript() {
+            string filePath = Path.Combine(_directoryDocuments, "Normal Subscript Superscript.docx");
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Paragraphs.Count);
+                Assert.Equal(VerticalPositionValues.Baseline, document.Paragraphs[0].VerticalTextAlignment);
+                Assert.Equal(VerticalPositionValues.Subscript, document.Paragraphs[1].VerticalTextAlignment);
+                Assert.Equal(VerticalPositionValues.Superscript, document.Paragraphs[2].VerticalTextAlignment);
+            }
+        }
     }
 }
