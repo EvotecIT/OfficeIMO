@@ -55,15 +55,21 @@ namespace OfficeIMO.Word {
 
         public bool IsLastRun {
             get {
-                var runs = _run.Parent.ChildElements.OfType<Run>();
-                return runs.Last() == _run;
+                if (_run != null) {
+                    var runs = _run.Parent.ChildElements.OfType<Run>();
+                    return runs.Last() == _run;
+                }
+                return false;
             }
         }
 
         public bool IsFirstRun {
             get {
-                var runs = _run.Parent.ChildElements.OfType<Run>();
-                return runs.First() == _run;
+                if (_run != null) {
+                    var runs = _run.Parent.ChildElements.OfType<Run>();
+                    return runs.First() == _run;
+                }
+                return false;
             }
         }
 
