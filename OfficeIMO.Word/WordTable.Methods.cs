@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -45,21 +40,30 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-
         /// <summary>
-        /// Insert newRow after  `row`
+        /// Copy existing WordTableRow and inserts it as a last row in a Table
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
-        public WordTableRow InsertRow(WordTableRow row) {
+        public WordTableRow CopyRow(WordTableRow row) {
+            // Ensure the table and row are not null
+            if (_table == null || row == null) {
+                throw new InvalidOperationException("The table doesn't exists or rows doesn't exists");
+            }
 
+            // Get the last row in the table
+            var lastRow = _table.Elements<TableRow>().LastOrDefault();
+            if (lastRow == null) {
+                throw new InvalidOperationException("The table does not contain any rows.");
+            }
 
-            WordTableRow insertRow = new WordTableRow(_document, this);
+            // Clone the row to avoid the "part of a tree" error
+            var clonedRow = (TableRow)row._tableRow.CloneNode(true);
 
-            _table.InsertAfter(insertRow._tableRow, row._tableRow);
-            AddCells(insertRow, row.CellsCount);
-            return insertRow;
+            // Insert the new row after the last row
+            var insertedRow = lastRow.InsertAfterSelf(clonedRow);
+
+            return new WordTableRow(this, insertedRow, _document);
         }
-
     }
 }
