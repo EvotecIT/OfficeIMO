@@ -16,6 +16,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public static void MakeOpenOfficeCompatible(Stream fileStream) {
+            using (Package package = Package.Open(fileStream, FileMode.Open, FileAccess.ReadWrite)) {
+                // Fix relationships in /_rels/.rels
+                Uri globalRelsUri = new Uri("/_rels/.rels", UriKind.Relative);
+                FixPartIfExists(package, globalRelsUri, false);
+
+                // Fix relationships in /word/_rels/document.xml.rels (remove /word/)
+                Uri documentRelsUri = new Uri("/word/_rels/document.xml.rels", UriKind.Relative);
+                FixPartIfExists(package, documentRelsUri, true);
+            }
+        }
+
         private static void FixPartIfExists(Package package, Uri partUri, bool removeWordPrefix) {
             if (package.PartExists(partUri)) {
                 PackagePart part = package.GetPart(partUri);
