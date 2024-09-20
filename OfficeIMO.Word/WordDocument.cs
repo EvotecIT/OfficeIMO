@@ -490,6 +490,12 @@ namespace OfficeIMO.Word {
             return filePath;
         }
 
+        /// <summary>
+        /// Create a new WordDocument
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
 
@@ -579,6 +585,9 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>
+        /// PreSaving function to be called before saving the document
+        /// </summary>
         private void LoadDocument() {
             Sections.Clear();
             // add settings if not existing
@@ -617,6 +626,9 @@ namespace OfficeIMO.Word {
             RearrangeSectionsAfterLoad();
         }
 
+        /// <summary>
+        /// Rearrange sections after loading the document
+        /// </summary>
         private void RearrangeSectionsAfterLoad() {
             if (Sections.Count > 0) {
                 //var firstElement = Sections[0];
@@ -647,6 +659,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Load WordDocument from filePath
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="readOnly"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
+        /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
@@ -665,7 +685,14 @@ namespace OfficeIMO.Word {
             word._fileStream.CopyTo(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
+            // Save the memoryStream to a file for inspection
+            using (var fileStream = new FileStream("debug_output.docx", FileMode.Create, FileAccess.Write)) {
+                memoryStream.CopyTo(fileStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+            }
+
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+
 
             InitialiseStyleDefinitions(wordDocument, readOnly);
 
@@ -676,6 +703,13 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>
+        /// Load WordDocument from stream
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="readOnly"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false) {
             var document = new WordDocument();
 
@@ -692,10 +726,19 @@ namespace OfficeIMO.Word {
             return document;
         }
 
+        /// <summary>
+        /// Open WordDocument in Microsoft Word (if Word is present)
+        /// </summary>
+        /// <param name="openWord"></param>
         public void Open(bool openWord = true) {
             this.Open("", openWord);
         }
 
+        /// <summary>
+        /// Open WordDocument in Microsoft Word (if Word is present)
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="openWord"></param>
         public void Open(string filePath = "", bool openWord = true) {
             if (filePath == "") {
                 filePath = this.FilePath;
@@ -729,7 +772,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Save WordDOcument to filePath (SaveAs), and open the file in Microsoft Word
+        /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="openWord"></param>
@@ -771,19 +814,17 @@ namespace OfficeIMO.Word {
                             _fileStream.Flush();
                         }
                     }
+                    Helpers.MakeOpenOfficeCompatible(_fileStream);
                 } catch {
                     throw;
+                } finally {
+                    if (_fileStream != null) {
+                        _fileStream.Dispose();
+                        _fileStream = null;
+                    }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
-            }
-
-            if (_fileStream != null) _fileStream.Dispose();
-            _fileStream = null;
-
-            if (filePath == "") {
-                filePath = this.FilePath;
-                Helpers.MakeOpenOfficeCompatible(this.FilePath);
             }
 
             if (openWord) {
