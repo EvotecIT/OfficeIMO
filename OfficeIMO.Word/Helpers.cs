@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using SixLabors.ImageSharp.Formats;
@@ -27,6 +27,12 @@ namespace OfficeIMO.Word {
                 Process.Start(startInfo);
             }
         }
+
+        /// <summary>
+        /// Checks if file is locked
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
         public static bool IsFileLocked(this FileInfo file) {
             try {
                 using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
@@ -43,26 +49,23 @@ namespace OfficeIMO.Word {
             //file is not locked
             return false;
         }
-        public static bool IsFileLocked(this string fileName) {
-            try {
-                var file = new FileInfo(fileName);
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
-                    stream.Close();
-                }
-            } catch (IOException) {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                return true;
-            }
 
-            //file is not locked
-            return false;
+        /// <summary>
+        /// Checks if file is locked
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        public static bool IsFileLocked(this string fileName) {
+            if (string.IsNullOrEmpty(fileName)) {
+                return false;
+            }
+            if (!File.Exists(fileName)) {
+                return false;
+            }
+            return IsFileLocked(new FileInfo(fileName));
         }
 
-        internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream)
-        {
+        internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream) {
             using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
             imageStream.Position = 0;
             var type = ConvertToImagePartType(imageFormat);
@@ -70,8 +73,7 @@ namespace OfficeIMO.Word {
         }
 
         private static ImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
-            imageFormat.Name switch
-            {
+            imageFormat.Name switch {
                 "BMP" => ImagePartType.Bmp,
                 "GIF" => ImagePartType.Gif,
                 "JPEG" => ImagePartType.Jpeg,
