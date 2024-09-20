@@ -147,8 +147,6 @@ namespace OfficeIMO.Word {
                     }
                     return instruction;
                 }
-
-                return null;
             }
         }
 

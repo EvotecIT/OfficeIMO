@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
+
 using OfficeIMO.Word;
+
 using Xunit;
+
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
@@ -23,11 +23,11 @@ namespace OfficeIMO.Tests {
 
                 // adding charts to document
                 document.AddParagraph("This is a bar chart");
-                var barChart1 = document.AddBarChart();
+                var barChart1 = document.AddChart();
                 barChart1.AddCategories(categories);
-                barChart1.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                barChart1.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                barChart1.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
                 barChart1.BarGrouping = BarGroupingValues.Clustered;
                 barChart1.BarDirection = BarDirectionValues.Column;
 
@@ -38,19 +38,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Charts.Count == 1);
                 Assert.True(document.Charts.Count == 1);
 
-                var lineChart = paragraphToTest.AddLineChart();
+                var lineChart = paragraphToTest.AddChart();
                 lineChart.AddChartAxisX(categories);
-                lineChart.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
                 Assert.True(document.Sections[0].Charts.Count == 2);
                 Assert.True(document.Charts.Count == 2);
 
                 var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
-                var pieChart1 = paragraph2.AddPieChart();
-                pieChart1.AddCategories(categories);
-                pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+                var pieChart1 = paragraph2.AddChart();
+                pieChart1.AddPie("Poland", 1);
+                pieChart1.AddPie("Poland", 10);
+                pieChart1.AddPie("Poland", 20);
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
                 Assert.True(document.Charts.Count == 3);
@@ -58,11 +59,11 @@ namespace OfficeIMO.Tests {
                 document.AddSection();
 
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
-                var lineChart4 = paragraph4.AddLineChart();
+                var lineChart4 = paragraph4.AddChart();
                 lineChart4.AddChartAxisX(categories);
-                lineChart4.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
 
                 Assert.True(paragraph4.IsChart == false);
 
@@ -83,12 +84,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Charts.Count == 4);
                 Assert.True(document.ParagraphsCharts.Count == 4);
 
-                var areaChart = document.AddAreaChart("AreaChart");
+                var areaChart = document.AddChart("AreaChart");
                 areaChart.AddCategories(categories);
 
-                areaChart.AddChartArea("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                areaChart.AddChartArea("Brazil", new List<int>() { 10, 35, 300, 13 }, SixLabors.ImageSharp.Color.Green);
-                areaChart.AddChartArea("Poland", new List<int>() { 10, 35, 230, 150 }, SixLabors.ImageSharp.Color.AliceBlue);
+                areaChart.AddArea("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+                areaChart.AddArea("Brazil", new List<int>() { 10, 35, 300, 13 }, SixLabors.ImageSharp.Color.Green);
+                areaChart.AddArea("Poland", new List<int>() { 10, 35, 230, 150 }, SixLabors.ImageSharp.Color.AliceBlue);
 
                 areaChart.AddLegend(LegendPositionValues.Top);
 

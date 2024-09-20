@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.Underline = UnderlineValues.DotDash;
 
                 WordTable wordTable = document.AddTable(4, 4, WordTableStyle.TableNormal);
+                wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
@@ -69,6 +70,8 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable2.Style = WordTableStyle.GridTable7Colorful;
 
+
+                wordTable.AddRow(5);
 
                 document.Save(openWord);
             }

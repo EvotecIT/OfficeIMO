@@ -232,6 +232,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Specifies that the first row shall be repeated at the top of each page on which the table is displayed.
+        /// </summary>
+        public bool RepeatHeaderRowAtTheTopOfEachPage {
+            get => Rows[0].RepeatHeaderRowAtTheTopOfEachPage;
+            set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
+        }
+
         public int RowsCount => this.Rows.Count;
 
         public List<WordTableRow> Rows {

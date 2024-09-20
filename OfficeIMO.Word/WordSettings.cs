@@ -201,7 +201,7 @@ namespace OfficeIMO.Word {
             document.Settings = this;
         }
 
-        private RunPropertiesBaseStyle? GetDefaultStyleProperties() {
+        private RunPropertiesBaseStyle GetDefaultStyleProperties() {
             if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
                 if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults != null) {
                     if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault != null) {
@@ -216,7 +216,7 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private RunPropertiesBaseStyle? SetDefaultStyleProperties() {
+        private RunPropertiesBaseStyle SetDefaultStyleProperties() {
             if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles != null) {
                 if (this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults == null) {
                     this._document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.DocDefaults = new DocDefaults();

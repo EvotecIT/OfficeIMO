@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -135,6 +136,36 @@ public partial class Word {
 
             var list2 = document._document.MainDocumentPart.AlternativeFormatImportParts;
             Assert.True(list2.Count() == 2);
+
+
+            var htmlContent = """
+                              <html lang="en">
+                              <P>This is a paragraph.</P>
+                              <P>This is another paragraph.</P>
+                              <P>This is a paragraph with <STRONG>bold</STRONG> text.</P>
+                              <P>This is a paragraph with <EM>italic</EM> text.</P>
+                              <ul>
+                                <li>Item 1</li>
+                                <li>Item 2</li>
+                                <li>Item 3</li>
+                              </ul>
+                              <ol>
+                                <li>Item 1</li>
+                                <li>Item 2</li>
+                                <li>Item 3</li>
+                              </ol>
+                              <P>This is a paragraph with a <A href=""https://www.google.com"">link</A>.</P>
+                              </html>
+                              """;
+
+            document.AddEmbeddedFragment(htmlContent, AlternativeFormatImportPartType.Html);
+
+            Assert.True(document.EmbeddedDocuments.Count == 3);
+            Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
+            Assert.True(document.Sections[1].EmbeddedDocuments.Count == 1);
+
+            var list3 = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            Assert.True(list3.Count() == 3);
         }
     }
 }

@@ -99,9 +99,24 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Add paragraph to the table cell
         /// </summary>
-        /// <param name="paragraph"></param>
-        /// <returns></returns>
-        public WordParagraph AddParagraph(WordParagraph paragraph = null) {
+        /// <param name="paragraph">The paragraph to add to this cell, if
+        /// this is not passed then a new empty paragraph with settings from
+        /// the previous paragraph will be added.</param>
+        /// <param name="removeExistingParagraphs">If value is not passed or false then add
+        /// the given paragraph into the cell. If set to true then clear
+        /// every existing paragraph before adding the new paragraph.
+        /// </param>
+        /// <returns>A reference to the added paragraph.</returns>
+        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool removeExistingParagraphs = false) {
+            // Considering between implementing a reset that clears all paragraphs or
+            // a deletePrevious that will replace the last paragraph.
+            // NOTE: Raise this during PR.
+            if (removeExistingParagraphs) {
+                var paragraphs = _tableCell.ChildElements.OfType<Paragraph>().ToList();
+                foreach (var wordParagraph in paragraphs) {
+                    wordParagraph.Remove();
+                }
+            }
             if (paragraph == null) {
                 paragraph = new WordParagraph(this._document);
             }
@@ -113,9 +128,10 @@ namespace OfficeIMO.Word {
         /// Add paragraph to the table cell with text
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="removeExistingParagraphs"></param>
         /// <returns></returns>
-        public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
+        public WordParagraph AddParagraph(string text, bool removeExistingParagraphs = false) {
+            return AddParagraph(paragraph: null, removeExistingParagraphs).SetText(text);
         }
 
         /// <summary>
@@ -339,7 +355,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Splits (unmerge) cells that were merged 
+        /// Splits (unmerge) cells that were merged
         /// </summary>
         /// <param name="cellsCount"></param>
         public void SplitHorizontally(int cellsCount) {
@@ -359,7 +375,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Merges two or more cells together vertically 
+        /// Merges two or more cells together vertically
         /// </summary>
         /// <param name="cellsCount"></param>
         /// <param name="copyParagraphs"></param>
@@ -438,9 +454,9 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+        public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());
-            wordList.AddList(style, continueNumbering);
+            wordList.AddList(style);
             return wordList;
         }
     }
