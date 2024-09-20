@@ -57,21 +57,13 @@ namespace OfficeIMO.Word {
         /// <param name="fileName"></param>
         /// <returns></returns>
         public static bool IsFileLocked(this string fileName) {
-            try {
-                var file = new FileInfo(fileName);
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
-                    stream.Close();
-                }
-            } catch (IOException) {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                return true;
+            if (string.IsNullOrEmpty(fileName)) {
+                return false;
             }
-
-            //file is not locked
-            return false;
+            if (!File.Exists(fileName)) {
+                return false;
+            }
+            return IsFileLocked(new FileInfo(fileName));
         }
 
         internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream) {
