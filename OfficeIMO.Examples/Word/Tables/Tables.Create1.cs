@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
             }
         }
 
-        internal static void Example_InsertTables1(string folderPath, bool openWord) {
+        internal static void Example_Tables1CopyRow(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with tables");
             string filePath = System.IO.Path.Combine(folderPath, "Document with TablesInsert.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -64,18 +64,21 @@ namespace OfficeIMO.Examples.Word {
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
 
-                var sencondRow = wordTable.Rows[1];
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Cell 0";
+                wordTable.Rows[1].Cells[1].Paragraphs[0].Text = "Cell 1";
+                wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "Cell 2";
 
-                var thirdRow = wordTable.InsertRow(sencondRow);
+                var secondRow = wordTable.Rows[1];
 
+                var thirdRow = wordTable.CopyRow(secondRow);
                 thirdRow.Cells[0].Paragraphs[0].Text = $"R3C1";
-
-              
 
                 Console.WriteLine(wordTable.Style);
 
-                // lets overwrite style
+                // let's overwrite style
                 wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
+
+                wordTable.AddRow(2, 4);
 
                 document.Save(openWord);
             }
