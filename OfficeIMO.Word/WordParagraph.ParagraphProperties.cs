@@ -310,16 +310,23 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
         /// </summary>
-        public VerticalPositionValues VerticalTextAlignment {
+        public VerticalPositionValues? VerticalTextAlignment {
             get {
                 if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
                     return _runProperties.VerticalTextAlignment.Val;
                 }
-                return VerticalPositionValues.Baseline;
+                return null;
             }
             set {
                 _runProperties ??= new RunProperties();
-                _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                if (value == null) {
+                    if (_runProperties.VerticalTextAlignment == null) {
+                        return;
+                    }
+                    _runProperties.VerticalTextAlignment = null;
+                } else {
+                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                }
             }
         }
     }
