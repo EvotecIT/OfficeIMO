@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     /// Represents a break in the text.
     /// Be it page break, soft break, column or text wrapping
     /// </summary>
-    public class WordBreak {
+    public class WordBreak : WordElement {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;

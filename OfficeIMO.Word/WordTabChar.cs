@@ -5,7 +5,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordTabChar {
+    public class WordTabChar : WordElement {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;

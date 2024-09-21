@@ -8,7 +8,7 @@ using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
-    public class WordTextBox {
+    public class WordTextBox : WordElement {
         private readonly WordDocument _document;
         private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter _headerFooter;
