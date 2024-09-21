@@ -38,15 +38,19 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_AllElements() {
-            var docs = Directory.GetFiles(_directoryDocuments, "*.docx");
+            var docs = Directory.GetFiles(_directoryDocuments, "*.docx")
+                .Where(doc => !Path.GetFileName(doc).StartsWith("~"))
+                .ToArray();
             foreach (var doc in docs) {
+                Console.WriteLine($"Processing document: {doc}");
+
                 using (WordDocument document = WordDocument.Load(doc)) {
                     var allElements = document.Elements;
-                    Assert.True(allElements.Count > 0);
-                    var allElementsByType = document.ElementsByType;
-                    Assert.True(allElementsByType.Count > 0);
-                }
+                    Assert.True(allElements.Count > 0, $"Document '{doc}' has no elements.");
 
+                    var allElementsByType = document.ElementsByType;
+                    Assert.True(allElementsByType.Count > 0, $"Document '{doc}' has no elements by type.");
+                }
             }
         }
     }
