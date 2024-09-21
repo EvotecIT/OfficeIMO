@@ -798,6 +798,7 @@ namespace OfficeIMO.Word {
                         using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
+                        Helpers.MakeOpenOfficeCompatible(_fileStream);
                         _fileStream.Flush();
                         FilePath = filePath;
                     } else {
@@ -808,10 +809,10 @@ namespace OfficeIMO.Word {
                             using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
                                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                             }
+                            Helpers.MakeOpenOfficeCompatible(_fileStream);
                             _fileStream.Flush();
                         }
                     }
-                    Helpers.MakeOpenOfficeCompatible(_fileStream);
                 } catch {
                     throw;
                 } finally {
