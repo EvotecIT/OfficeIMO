@@ -28,36 +28,14 @@ namespace OfficeIMO.Word {
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                        return new WordTableOfContent(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
             }
         }
 
         public WordCoverPage CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
-                        return new WordCoverPage(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToCoverPage(this, sdtBlocks);
             }
         }
 
@@ -213,25 +191,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordElement> Elements {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Elements);
+                }
+                return list;
+            }
+        }
+
         public List<object> AllElements() {
-            var list = new List<object>(); 
+            var list = new List<object>();
             foreach (var element in _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements) {
-                if (element is Paragraph) 
+                if (element is Paragraph)
                     list.AddRange(WordSection.ConvertParagraphToWordParagraphs(this, element as Paragraph));
-                else if (element is Table) 
+                else if (element is Table)
                     list.Add(new WordTable(this, element as Table));
-                else if (element is SectionProperties) { 
+                else if (element is SectionProperties) {
                     // ignore?
-                } else if (element is SdtBlock) { 
+                } else if (element is SdtBlock) {
                     // ignore?
                 } else if (element is BookmarkStart) {
                     list.Add(new WordBookmark(this, null, element as BookmarkStart));
                 } else if (element is BookmarkEnd) {
                     // ignore?
                 } else
-                    throw new Exception("Unrecognised type - " + element.GetType().Name); 
-            } 
-            return list; 
+                    throw new Exception("Unrecognised type - " + element.GetType().Name);
+            }
+            return list;
         }
 
         public List<WordBreak> PageBreaks {
@@ -280,17 +268,7 @@ namespace OfficeIMO.Word {
             get { return WordComment.GetAllComments(this); }
         }
 
-        public List<WordList> Lists {
-            get {
-                return WordSection.GetAllDocumentsLists(this);
-                //List<WordList> list = new List<WordList>();
-                //foreach (var section in this.Sections) {
-                //    list.AddRange(section.Lists);
-                //}
-
-                //return list;
-            }
-        }
+        public List<WordList> Lists => WordSection.GetAllDocumentsLists(this);
 
         /// <summary>
         /// Provides a list of Bookmarks in the document from all the sections
