@@ -41,9 +41,12 @@ namespace OfficeIMO.Tests {
             var docs = Directory.GetFiles(_directoryDocuments, "*.docx");
             foreach (var doc in docs) {
                 using (WordDocument document = WordDocument.Load(doc)) {
-                    var allElements = document.AllElements();
+                    var allElements = document.Elements;
                     Assert.True(allElements.Count > 0);
+                    var allElementsByType = document.ElementsByType;
+                    Assert.True(allElementsByType.Count > 0);
                 }
+
             }
         }
     }
