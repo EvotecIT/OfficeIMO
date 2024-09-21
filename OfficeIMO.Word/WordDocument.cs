@@ -191,6 +191,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// List of all elements in the document from all the sections
+        /// </summary>
         public List<WordElement> Elements {
             get {
                 List<WordElement> list = new List<WordElement>();
@@ -201,27 +204,22 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public List<object> AllElements() {
-            var list = new List<object>();
-            foreach (var element in _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements) {
-                if (element is Paragraph)
-                    list.AddRange(WordSection.ConvertParagraphToWordParagraphs(this, element as Paragraph));
-                else if (element is Table)
-                    list.Add(new WordTable(this, element as Table));
-                else if (element is SectionProperties) {
-                    // ignore?
-                } else if (element is SdtBlock) {
-                    // ignore?
-                } else if (element is BookmarkStart) {
-                    list.Add(new WordBookmark(this, null, element as BookmarkStart));
-                } else if (element is BookmarkEnd) {
-                    // ignore?
-                } else
-                    throw new Exception("Unrecognised type - " + element.GetType().Name);
+        /// <summary>
+        /// List of all elements in the document from all the sections by their subtype
+        /// </summary>
+        public List<WordElement> ElementsByType {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ElementsByType);
+                }
+                return list;
             }
-            return list;
         }
 
+        /// <summary>
+        /// List of all PageBreaks in the document from all the sections
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();

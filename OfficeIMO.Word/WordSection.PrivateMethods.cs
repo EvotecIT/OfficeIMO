@@ -444,6 +444,54 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets list of word elements by type in given section
+        /// </summary>
+        /// <returns></returns>
+        private List<WordElement> GetWordElementsByType() {
+            var listElements = GetWordElements();
+            var additionalElements = new List<WordElement>();
+
+            foreach (var element in listElements) {
+                if (element is WordParagraph wordParagraph) {
+                    if (wordParagraph.IsBookmark) {
+                        additionalElements.Add(wordParagraph.Bookmark);
+                    } else if (wordParagraph.IsBreak) {
+                        additionalElements.Add(wordParagraph.Break);
+                    } else if (wordParagraph.IsChart) {
+                        additionalElements.Add(wordParagraph.Chart);
+                    } else if (wordParagraph.IsEndNote) {
+                        additionalElements.Add(wordParagraph.EndNote);
+                    } else if (wordParagraph.IsEquation) {
+                        additionalElements.Add(wordParagraph.Equation);
+                    } else if (wordParagraph.IsField) {
+                        additionalElements.Add(wordParagraph.Field);
+                    } else if (wordParagraph.IsFootNote) {
+                        additionalElements.Add(wordParagraph.FootNote);
+                    } else if (wordParagraph.IsImage) {
+                        additionalElements.Add(wordParagraph.Image);
+                    } else if (wordParagraph.IsListItem) {
+                        additionalElements.Add(wordParagraph);
+                    } else if (wordParagraph.IsPageBreak) {
+                        additionalElements.Add(wordParagraph.PageBreak);
+                    } else if (wordParagraph.IsStructuredDocumentTag) {
+                        additionalElements.Add(wordParagraph.StructuredDocumentTag);
+                    } else if (wordParagraph.IsTab) {
+                        additionalElements.Add(wordParagraph.Tab);
+                    } else if (wordParagraph.IsTextBox) {
+                        additionalElements.Add(wordParagraph.TextBox);
+                    } else if (wordParagraph.IsHyperLink) {
+                        additionalElements.Add(wordParagraph.Hyperlink);
+                    } else {
+                        additionalElements.Add(wordParagraph);
+                    }
+                } else {
+                    additionalElements.Add(element);
+                }
+            }
+            return additionalElements;
+        }
+
+        /// <summary>
         /// Gets list of watermarks in given section
         /// </summary>
         /// <returns></returns>
@@ -483,7 +531,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// This method moves headers and footers and title page to section before it.
-        /// It also copies copies all other parts of sections (PageSize,PageMargin and others) to section before it.
+        /// It also copies all other parts of sections (PageSize,PageMargin and others) to section before it.
         /// This is because headers/footers when applied to section apply to the rest of the document
         /// unless there are headers/footers on next section.
         /// On the other hand page size doesn't apply to other sections
