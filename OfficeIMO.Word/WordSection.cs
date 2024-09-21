@@ -7,6 +7,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+        /// <summary>
+        /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
 
         /// <summary>
         /// Provides a list of all paragraphs within the section
