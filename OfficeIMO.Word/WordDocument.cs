@@ -28,36 +28,14 @@ namespace OfficeIMO.Word {
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                        return new WordTableOfContent(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
             }
         }
 
         public WordCoverPage CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
-                        return new WordCoverPage(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToCoverPage(this, sdtBlocks);
             }
         }
 
@@ -213,6 +191,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// List of all elements in the document from all the sections
+        /// </summary>
+        public List<WordElement> Elements {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Elements);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// List of all elements in the document from all the sections by their subtype
+        /// </summary>
+        public List<WordElement> ElementsByType {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ElementsByType);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// List of all PageBreaks in the document from all the sections
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -259,17 +266,7 @@ namespace OfficeIMO.Word {
             get { return WordComment.GetAllComments(this); }
         }
 
-        public List<WordList> Lists {
-            get {
-                return WordSection.GetAllDocumentsLists(this);
-                //List<WordList> list = new List<WordList>();
-                //foreach (var section in this.Sections) {
-                //    list.AddRange(section.Lists);
-                //}
-
-                //return list;
-            }
-        }
+        public List<WordList> Lists => WordSection.GetAllDocumentsLists(this);
 
         /// <summary>
         /// Provides a list of Bookmarks in the document from all the sections

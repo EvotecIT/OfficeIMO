@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public class WordEmbeddedDocument {
+    public class WordEmbeddedDocument : WordElement {
         private string _id;
         private AltChunk _altChunk;
         private readonly AlternativeFormatImportPart _altContent;

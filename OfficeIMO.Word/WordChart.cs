@@ -12,7 +12,7 @@ using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
-    public partial class WordChart {
+    public partial class WordChart : WordElement {
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
