@@ -30,6 +30,7 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithMarginsInCentimeters(folderPath, false);
             BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
             BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+            BasicDocument.Example_BasicWordWithSomeParagraphs(folderPath, false);
 
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
