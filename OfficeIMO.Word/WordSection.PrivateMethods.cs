@@ -1,16 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
-using System.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Section in WordDocument
+    /// </summary>
     public partial class WordSection {
-
         /// <summary>
         /// Converts tables to WordTables
         /// </summary>
@@ -35,26 +30,122 @@ namespace OfficeIMO.Word {
         internal static List<WordWatermark> ConvertStdBlockToWatermark(WordDocument document, IEnumerable<SdtBlock> sdtBlock) {
             var list = new List<WordWatermark>();
             foreach (SdtBlock block in sdtBlock) {
-                var sdtContent = block.SdtContentBlock;
-                if (sdtContent == null) {
-                    continue;
+                var watermark = ConvertStdBlockToWatermark(document, block);
+                if (watermark != null) {
+                    list.Add(watermark);
                 }
-                var paragraphs = sdtContent.ChildElements.OfType<Paragraph>().FirstOrDefault();
-                if (paragraphs == null) {
-                    continue;
-                }
-                var run = paragraphs.ChildElements.OfType<Run>().FirstOrDefault();
-                if (run == null) {
-                    continue;
-                }
-                var picture = run.ChildElements.OfType<Picture>().FirstOrDefault();
-                if (picture == null) {
-                    continue;
-                }
-                list.Add(new WordWatermark(document, block));
             }
             return list;
         }
+
+        /// <summary>
+        /// Converts SdtBlock to WordWatermark if it's a watermark
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlock"></param>
+        /// <returns></returns>
+        internal static WordWatermark ConvertStdBlockToWatermark(WordDocument document, SdtBlock sdtBlock) {
+            var sdtContent = sdtBlock.SdtContentBlock;
+            if (sdtContent == null) {
+                return null;
+            }
+            var paragraphs = sdtContent.ChildElements.OfType<Paragraph>().FirstOrDefault();
+            if (paragraphs == null) {
+                return null;
+            }
+            var run = paragraphs.ChildElements.OfType<Run>().FirstOrDefault();
+            if (run == null) {
+                return null;
+            }
+            var picture = run.ChildElements.OfType<Picture>().FirstOrDefault();
+            if (picture == null) {
+                return null;
+            }
+            return new WordWatermark(document, sdtBlock);
+        }
+
+        /// <summary>
+        /// Converts StdBlock to WordCoverPage
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlocks"></param>
+        /// <returns></returns>
+        internal static WordCoverPage ConvertStdBlockToCoverPage(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+            foreach (var sdtBlock in sdtBlocks) {
+                var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+
+                if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
+                    return new WordCoverPage(document, sdtBlock);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Converts StdBlock to WordTableOfContent
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlocks"></param>
+        /// <returns></returns>
+        internal static WordTableOfContent ConvertStdBlockToTableOfContent(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+            foreach (var sdtBlock in sdtBlocks) {
+                var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+                var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+
+                if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
+                    return new WordTableOfContent(document, sdtBlock);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Converts StdBlock to WordElement
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlock"></param>
+        /// <returns></returns>
+        internal static WordElement ConvertStdBlockToWordElements(WordDocument document, SdtBlock sdtBlock) {
+            var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+            var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
+            var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
+
+            if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
+                return new WordCoverPage(document, sdtBlock);
+            } else if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
+                return new WordTableOfContent(document, sdtBlock);
+            } else {
+                var watermark = ConvertStdBlockToWatermark(document, sdtBlock);
+                if (watermark != null) {
+                    return watermark;
+                } else {
+                    Debug.WriteLine("Please implement me! " + docPartGallery.Val);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Converts StdBlock to WordElement
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="sdtBlocks"></param>
+        /// <returns></returns>
+        internal static List<WordElement> ConvertStdBlockToWordElements(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+            var list = new List<WordElement>();
+            foreach (var sdtBlock in sdtBlocks) {
+                var element = ConvertStdBlockToWordElements(document, sdtBlock);
+                if (element != null) {
+                    list.Add(element);
+                }
+            }
+            return list;
+        }
+
 
         /// <summary>
         /// Converts paragraphs to WordParagraphs
@@ -64,7 +155,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static List<WordParagraph> ConvertParagraphsToWordParagraphs(WordDocument document, IEnumerable<Paragraph> paragraphs) {
             var list = new List<WordParagraph>();
-            
+
             foreach (Paragraph paragraph in paragraphs) {
                 list.AddRange(ConvertParagraphToWordParagraphs(document, paragraph));
             }
@@ -72,6 +163,12 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// Converts paragraph to WordParagraphs
+        /// </summary>
+        /// <param name="document"></param>
+        /// <param name="paragraph"></param>
+        /// <returns></returns>
         internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph) {
             var list = new List<WordParagraph>();
             var childElements = paragraph.ChildElements;
@@ -181,7 +278,6 @@ namespace OfficeIMO.Word {
             return ConvertParagraphsToWordParagraphs(_document, dataSections[foundCount]);
         }
 
-
         /// <summary>
         /// This method gets all lists for given document (for all sections)
         /// </summary>
@@ -283,6 +379,57 @@ namespace OfficeIMO.Word {
                         } else if (element is AltChunk) {
                             WordEmbeddedDocument wordEmbeddedDocument = new WordEmbeddedDocument(_document, (AltChunk)element);
                             dataSections[count].Add(wordEmbeddedDocument);
+                        }
+                    }
+
+                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                    if (sectionProperties == _sectionProperties) {
+                        foundCount = count;
+                    }
+                }
+            }
+
+            return dataSections[foundCount];
+        }
+
+        /// <summary>
+        /// Gets list of word elements in given section
+        /// </summary>
+        /// <returns></returns>
+        private List<WordElement> GetWordElements() {
+            Dictionary<int, List<WordElement>> dataSections = new Dictionary<int, List<WordElement>>();
+            var count = 0;
+
+            dataSections[count] = new List<WordElement>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph) {
+                            // converts Paragraph to WordParagraph
+                            Paragraph paragraph = (Paragraph)element;
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                    foundCount = count;
+                                }
+
+                                count++;
+                                dataSections[count] = new List<WordElement>();
+                            } else {
+                                dataSections[count].AddRange(ConvertParagraphToWordParagraphs(_document, paragraph));
+                            }
+                        } else if (element is AltChunk) {
+                            // converts AltChunk to WordEmbeddedDocument
+                            WordEmbeddedDocument wordEmbeddedDocument = new WordEmbeddedDocument(_document, (AltChunk)element);
+                            dataSections[count].Add(wordEmbeddedDocument);
+                        } else if (element is SdtBlock) {
+                            // converts SdtBlock to WordElement
+                            dataSections[count].Add(ConvertStdBlockToWordElements(_document, (SdtBlock)element));
+                        } else if (element is Table) {
+                            // converts Table to WordTable
+                            WordTable wordTable = new WordTable(_document, (Table)element);
+                            dataSections[count].Add(wordTable);
                         }
                     }
 
