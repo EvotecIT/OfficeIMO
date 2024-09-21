@@ -141,3 +141,14 @@ steps:
       **/*.Tests.csproj
       !**/OfficeIMO.VerifyTests.csproj
   condition: succeededOrFailed()
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 8.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net8.0 /noautorsp'
+    testRunTitle: 'macOS .NET 8.0'
+    projects: |
+      **/*.Tests.csproj
+      !**/OfficeIMO.VerifyTests.csproj
+  condition: succeededOrFailed()
