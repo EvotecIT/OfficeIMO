@@ -79,5 +79,14 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Set the vertical text alignment
+        /// </summary>
+        /// <param name="verticalPositionValue"></param>
+        /// <returns></returns>
+        public WordParagraph SetVerticalTextAlignment(VerticalPositionValues verticalPositionValue) {
+            VerticalTextAlignment = verticalPositionValue;
+            return this;
+        }
     }
 }

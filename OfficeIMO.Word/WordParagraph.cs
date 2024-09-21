@@ -76,6 +76,11 @@ namespace OfficeIMO.Word {
 
                 return null;
             }
+            set {
+                if (_run != null) {
+                    _run.RunProperties = value;
+                }
+            }
         }
 
         internal Text _text {
