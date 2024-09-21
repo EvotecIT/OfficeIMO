@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
@@ -17,7 +12,7 @@ using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace OfficeIMO.Word {
-    public partial class WordParagraph {
+    public partial class WordParagraph : WordElement {
         internal WordDocument _document;
         internal Paragraph _paragraph;
 
