@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
-        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
+        public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
@@ -34,7 +34,8 @@ namespace OfficeIMO.Word {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
-        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
+        public WordParagraph AddBreak(BreakValues? breakType = null) {
+            breakType ??= BreakValues.Page;
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
                 _document = this
@@ -68,7 +69,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -106,8 +107,9 @@ namespace OfficeIMO.Word {
             return wordTextBox;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
         public WordSection AddSection(SectionMarkValues? sectionMark = null) {
@@ -140,7 +142,7 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String>? parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 

@@ -40,7 +40,8 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        internal static void ProtectWordDoc(WordprocessingDocument wordDocument, string password, DocumentProtectionValues documentProtectionValue = DocumentProtectionValues.ReadOnly) {
+        internal static void ProtectWordDoc(WordprocessingDocument wordDocument, string password, DocumentProtectionValues? documentProtectionValue = null) {
+            documentProtectionValue ??= DocumentProtectionValues.ReadOnly;
             // Generate the Salt
             byte[] arrSalt = new byte[16];
             RandomNumberGenerator rand = new RNGCryptoServiceProvider();

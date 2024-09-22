@@ -335,7 +335,7 @@ namespace OfficeIMO.Word {
         /// <param name="sectionProperties"></param>
         /// <param name="paragraph"></param>
         /// <exception cref="NotImplementedException"></exception>
-        internal WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
+        internal WordSection(WordDocument wordDocument, SectionProperties? sectionProperties = null, Paragraph? paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
@@ -384,7 +384,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument"></param>
         /// <param name="paragraph"></param>
-        internal WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
+        internal WordSection(WordDocument wordDocument, Paragraph? paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;

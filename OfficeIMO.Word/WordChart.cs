@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
         }
 
-        public WordChart(WordDocument document, WordParagraph paragraph, string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             _document = document;
             _paragraph = paragraph;
             SetTitle(title);
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word {
             return part;
         }
 
-        private Chart GenerateChart(string title = null) {
+        private Chart GenerateChart(string title = "") {
             Chart chart1 = new Chart();
             AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
             PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };

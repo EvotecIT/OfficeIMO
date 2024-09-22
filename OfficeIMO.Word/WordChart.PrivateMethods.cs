@@ -144,7 +144,8 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private BarChart CreateBarChart(BarDirectionValues barDirection = BarDirectionValues.Bar) {
+        private BarChart CreateBarChart(BarDirectionValues? barDirection = null) {
+            barDirection ??= BarDirectionValues.Bar;
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 

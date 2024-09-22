@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
+        public WordParagraph(WordDocument? document = null, bool newParagraph = true, bool newRun = true) {
             this._document = document;
 
             if (newParagraph) {
