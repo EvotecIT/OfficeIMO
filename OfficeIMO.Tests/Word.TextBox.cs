@@ -20,15 +20,15 @@ namespace OfficeIMO.Tests {
                 var textBox = document.AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox.HorizonalPositionOffsetCentimeters = 3;
+                textBox.HorizontalPositionOffsetCentimeters = 3;
 
-                Assert.True(document.TextBoxes[0].HorizonalPositionOffsetCentimeters == 3);
+                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == 3);
 
                 textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
                 Assert.True(document.TextBoxes[0].HorizontalAlignment == HorizontalAlignmentValues.Left);
-                Assert.True(document.TextBoxes[0].HorizonalPositionOffsetCentimeters == null);
+                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == null);
 
 
                 Assert.True(document.Paragraphs.Count == 2);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox2.HorizonalPositionOffsetCentimeters = 3;
+                textBox2.HorizontalPositionOffsetCentimeters = 3;
                 textBox2.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
                 textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
 
@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].HorizontalPositionRelativeFrom == HorizontalRelativePositionValues.Page);
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                Assert.True(document.TextBoxes[0].HorizonalPositionOffsetCentimeters == null);
-                Assert.True(document.TextBoxes[1].HorizonalPositionOffsetCentimeters == null);
+                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == null);
+                Assert.True(document.TextBoxes[1].HorizontalPositionOffsetCentimeters == null);
 
                 Assert.True(document.Sections[0].TextBoxes.Count == 2);
                 Assert.True(document.Sections[0].ParagraphsTextBoxes.Count == 2);
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
                 var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffsetCentimeters = 1.5;
                 textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
 
                 textBox.VerticalPositionOffsetCentimeters = 5;

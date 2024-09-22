@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryDocuments, "Normal Subscript Superscript.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(3, document.Paragraphs.Count);
-                Assert.Equal(null, document.Paragraphs[0].VerticalTextAlignment);
+                Assert.Null(document.Paragraphs[0].VerticalTextAlignment);
                 Assert.Equal(VerticalPositionValues.Subscript, document.Paragraphs[1].VerticalTextAlignment);
                 Assert.Equal(VerticalPositionValues.Superscript, document.Paragraphs[2].VerticalTextAlignment);
 
@@ -460,10 +460,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(document.Paragraphs[3].VerticalTextAlignment, VerticalPositionValues.Subscript);
                 Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Baseline);
                 Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, VerticalPositionValues.Superscript);
-                Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, null);
+                Assert.Null(document.Paragraphs[6].VerticalTextAlignment);
 
                 document.Paragraphs[3].VerticalTextAlignment = null;
-                Assert.Equal(document.Paragraphs[3].VerticalTextAlignment, null);
+                Assert.Null(document.Paragraphs[3].VerticalTextAlignment);
                 document.Paragraphs[4].SetSubScript();
                 Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Subscript);
                 document.Paragraphs[5].SetSubScript();
