@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
-        public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String>? parameters = null) {
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 

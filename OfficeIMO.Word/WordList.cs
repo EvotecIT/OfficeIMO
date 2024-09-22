@@ -268,7 +268,7 @@ public class WordList : WordElement {
         return AddItem(null, level, wordParagraph);
     }
 
-    public WordParagraph AddItem(string text, int level = 0, WordParagraph? wordParagraph = null) {
+    public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
         if (wordParagraph != null) {
             wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
             wordParagraph._paragraphProperties.Append(

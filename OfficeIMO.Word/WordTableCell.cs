@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
         /// every existing paragraph before adding the new paragraph.
         /// </param>
         /// <returns>A reference to the added paragraph.</returns>
-        public WordParagraph AddParagraph(WordParagraph? paragraph = null, bool removeExistingParagraphs = false) {
+        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool removeExistingParagraphs = false) {
             // Considering between implementing a reset that clears all paragraphs or
             // a deletePrevious that will replace the last paragraph.
             // NOTE: Raise this during PR.

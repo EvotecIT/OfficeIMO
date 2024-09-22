@@ -141,7 +141,7 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">Optional WordParagraph to insert after the
         /// given WordParagraph instead of at the end of the document.</param>
         /// <returns>The inserted WordParagraph.</returns>
-        public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
         /// <param name="section">The section to add the paragraph to. When paragraph is given this has no effect.</param>
         /// <param name="paragraph">The optional paragraph to add the paragraph to.</param>
         /// <returns>The new WordParagraph</returns>
-        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph? paragraph = null) {
+        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph paragraph = null) {
             if (paragraph == null) {
                 paragraph = new WordParagraph(section._document, true, false);
             }
@@ -262,7 +262,7 @@ namespace OfficeIMO.Word {
         /// Also see available List of switches per field code:
         /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String>? parameters = null) {
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced, parameters);
             return this;
         }

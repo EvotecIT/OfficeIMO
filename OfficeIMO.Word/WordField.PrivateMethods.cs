@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordField {
-        private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String>? parameters = null) {
+        private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String> parameters = null) {
             SimpleField simpleField1 = new SimpleField() { Instruction = GenerateField(wordFieldType, wordFieldFormat, parameters) };
 
             Run run1 = new Run();
@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
         }
 
 
-        private static Run AddAdvancedField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String>? parameters = null) {
+        private static Run AddAdvancedField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String> parameters = null) {
             Run run = new Run();
 
             RunProperties runProperties = new RunProperties();
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private static string GenerateField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String>? parameters = null) {
+        private static string GenerateField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String> parameters = null) {
             var fieldType = " " + wordFieldType.ToString().ToUpper() + " ";
             var fieldFormat = "";
             if (wordFieldFormat != null) {
