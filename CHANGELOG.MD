@@ -1,3 +1,21 @@
+## 0.18.0 - 2024.09.22
+### What's Changed
+* Added WordParagraphStyles.Custom by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/237
+* Bump SixLabors.ImageSharp to 2.1.9 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/247
+* Copy/Clone row after the current row by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/226
+* Adds compatibility of created documents with OpenOffice/LibreOffice by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/191
+* Added basic Elements/ElementsByType property and few other improvements by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/240
+* Fix tests after adding OpenOffice compatibility and add missing NET 8 tests for macOs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/248
+* Fix test to ignore temporary word documents by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/249
+* Bump OpenXMLSDK to 2.20 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/250
+* Add docs, fix typos and removes requirement to set relative width/hei… by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/251
+* Remove obsolete stuff by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/252
+
+### New Contributors
+* @ChrisBellBO made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/237
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.17.0...v0.18.0
+
 ## 0.17.0 - 2024.06.21
 ### What's Changed
 * Fixes wrong implementation of repeat header by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/234
