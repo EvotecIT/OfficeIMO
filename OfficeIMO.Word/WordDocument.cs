@@ -459,9 +459,10 @@ namespace OfficeIMO.Word {
 
         private FileStream _fileStream;
 
-        public FileAccess FileOpenAccess {
-            get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
-        }
+        /// <summary>
+        /// FileOpenAccess of the document
+        /// </summary>
+        public FileAccess FileOpenAccess => _wordprocessingDocument.FileOpenAccess;
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
