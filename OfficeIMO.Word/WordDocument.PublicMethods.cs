@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -64,46 +57,35 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
-        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        /// <summary>
+        /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
+        /// You can use multiple:
+        /// .AddBar() to add a bar chart
+        /// .AddLine() to add a line chart
+        /// .AddPie() to add a pie chart
+        /// .AddArea() to add an area chart.
+        /// You can't mix and match the types of charts.
+        /// </summary>
+        /// <param name="title">The title.</param>
+        /// <param name="roundedCorners">if set to <c>true</c> [rounded corners].</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns>WordChart</returns>
+        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var barChart = WordBarChart.AddBarChart(this, paragraph, title, roundedCorners, width, height);
-
-            return barChart;
+            var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
+            return chartInstance;
         }
 
-        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var lineChart = WordLineChart.AddLineChart(this, paragraph, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        public WordChart AddAreaChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var lineChart = WordAreaChart.AddAreaChart(this, paragraph, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        //public WordBarChart3D AddBarChart3D() {
-        //    var paragraph = this.AddParagraph();
-        //    var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
-        //    return barChart;
-        //}
-
-        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
-            return pieChart;
-        }
-
-        public WordList AddList(WordListStyle style, bool continueNumbering = false) {
+        public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this);
-            wordList.AddList(style, continueNumbering);
+            wordList.AddList(style);
             return wordList;
         }
 
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
-            wordList.AddList(style, continueNumbering: true);
+            wordList.AddList(style);
             return wordList;
         }
 
@@ -122,12 +104,12 @@ namespace OfficeIMO.Word {
             return wordCoverPage;
         }
 
-        public WordTextBox AddTextBox(string text) {
-            WordTextBox wordTextBox = new WordTextBox(this, text);
+        public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
+            WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
             return wordTextBox;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
         }
 
@@ -166,7 +148,12 @@ namespace OfficeIMO.Word {
         }
 
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, string type = null) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
+            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type, false);
+            return embeddedDocument;
+        }
+
+        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, string type = null) {
+            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, htmlContent, type, true);
             return embeddedDocument;
         }
 
@@ -288,8 +275,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Replace text inside each paragraph
         /// </summary>
-        /// <param name="oldText">target text</param>
-        /// <param name="newText">replacement text</param>
+        /// <param name="paragraphs"></param>
+        /// <param name="oldText"></param>
+        /// <param name="newText"></param>
+        /// <param name="count"></param>
+        /// <param name="replace"></param>
+        /// <param name="stringComparison"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         private static List<WordParagraph> ReplaceText(List<WordParagraph> paragraphs, string oldText, string newText, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             if (string.IsNullOrEmpty(oldText)) {
                 throw new ArgumentNullException("oldText should not be null");

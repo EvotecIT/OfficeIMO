@@ -1,4 +1,3 @@
-﻿using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -19,7 +18,7 @@ namespace OfficeIMO.Word {
         Retrospect
     }
 
-    public partial class WordCoverPage {
+    public partial class WordCoverPage : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
 
@@ -32,8 +31,6 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
             _sdtBlock = GetStyle(coverPageTemplate);
             this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
-
-            //this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
         }
 
         private SdtBlock GetStyle(CoverPageTemplate template) {

@@ -430,5 +430,47 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_OpeningDocumentWithCustomStyle() {
+            string filePath = Path.Combine(_directoryDocuments, "ParagraphStyle.docx");
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs.Count);
+                Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs[0].Style);
+                Assert.Equal(WordParagraphStyles.Custom, document.Paragraphs[1].Style);
+            }
+        }
+
+        [Fact]
+        public void Test_SubscriptAndSuperscript() {
+            string filePath = Path.Combine(_directoryDocuments, "Normal Subscript Superscript.docx");
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Paragraphs.Count);
+                Assert.Null(document.Paragraphs[0].VerticalTextAlignment);
+                Assert.Equal(VerticalPositionValues.Subscript, document.Paragraphs[1].VerticalTextAlignment);
+                Assert.Equal(VerticalPositionValues.Superscript, document.Paragraphs[2].VerticalTextAlignment);
+
+                Assert.True(document.Paragraphs.Count == 3);
+
+                var wordParagraph1 = document.AddParagraph("Subscript").SetVerticalTextAlignment(VerticalPositionValues.Subscript);
+                var wordParagraph2 = document.AddParagraph("Baseline").SetVerticalTextAlignment(VerticalPositionValues.Baseline);
+                var wordParagraph3 = document.AddParagraph("Superscript").SetVerticalTextAlignment(VerticalPositionValues.Superscript);
+                var wordParagraph4 = document.AddParagraph("Normal");
+
+                Assert.True(document.Paragraphs.Count == 7);
+                Assert.Equal(document.Paragraphs[3].VerticalTextAlignment, VerticalPositionValues.Subscript);
+                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Baseline);
+                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, VerticalPositionValues.Superscript);
+                Assert.Null(document.Paragraphs[6].VerticalTextAlignment);
+
+                document.Paragraphs[3].VerticalTextAlignment = null;
+                Assert.Null(document.Paragraphs[3].VerticalTextAlignment);
+                document.Paragraphs[4].SetSubScript();
+                Assert.Equal(document.Paragraphs[4].VerticalTextAlignment, VerticalPositionValues.Subscript);
+                document.Paragraphs[5].SetSubScript();
+                Assert.Equal(document.Paragraphs[5].VerticalTextAlignment, VerticalPositionValues.Subscript);
+                document.Paragraphs[6].SetSuperScript();
+                Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, VerticalPositionValues.Superscript);
+            }
+        }
     }
 }

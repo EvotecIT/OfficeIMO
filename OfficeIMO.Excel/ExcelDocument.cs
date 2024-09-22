@@ -85,6 +85,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument excelDocument = Create(filePath);
             excelDocument.AddWorkSheet(workSheetName);
             return excelDocument;
+            return excelDocument;
         }
 
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
@@ -92,6 +93,7 @@ namespace OfficeIMO.Excel {
 
             return excelSheet;
         }
+
 
         public void Open(string filePath = "", bool openExcel = true) {
             if (filePath == "") {
@@ -101,6 +103,7 @@ namespace OfficeIMO.Excel {
         }
 
         public void Close() {
+            this._spreadSheetDocument.Dispose();
             this._spreadSheetDocument.Dispose();
         }
 

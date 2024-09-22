@@ -17,17 +17,17 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("This is my test");
 
-                document.Save(openWord);
+                document.Save(false);
             }
         }
 
         public static void Example_BasicDocumentSaveAs1(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Creating standard document with SaveAs");
-            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument1.docx");
+            Console.WriteLine("[*] Creating standard document with SaveAs 1");
+            string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentStart.docx");
             string filePathOutput = System.IO.Path.Combine(folderPath, "EmptyDocumentSaveAs1.docx");
             string filePathOutput2 = System.IO.Path.Combine(folderPath, "EmptyDocumentSaveAs2.docx");
 
-            WordDocument document = WordDocument.Create(filePath);
+            WordDocument document = WordDocument.Create();
             document.BuiltinDocumentProperties.Title = "This is my title";
             document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
             document.BuiltinDocumentProperties.Keywords = "word, docx, test";
@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());
             Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
-            WordDocument document1 = WordDocument.Load(filePath);
+            WordDocument document1 = WordDocument.Load(filePathOutput);
 
             document1.AddParagraph("This is my test in document 2");
             document1.Save(filePathOutput2, openWord);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
 
 
         public static void Example_BasicDocumentSaveAs2(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Creating standard document with SaveAs");
+            Console.WriteLine("[*] Creating standard document with SaveAs 2");
             string filePath = System.IO.Path.Combine(folderPath, "FirstDocument1.docx");
 
             WordDocument document = WordDocument.Create();

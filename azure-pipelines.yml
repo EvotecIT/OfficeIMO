@@ -54,6 +54,12 @@ steps:
     packageType: 'sdk'
     version: '7.0.x'
 
+- task: UseDotNet@2
+  displayName: 'Install .NET 8.0'
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.x'
+
 #- task: UseDotNet@2
 #  displayName: Install .NET 3.1
 #  inputs:
@@ -96,7 +102,9 @@ steps:
     command: 'test'
     arguments: --configuration $(buildConfiguration) --collect "Code coverage"
     publishTestResults: true
-    projects: '**/*.Tests.csproj'
+    projects: |
+      **/*.Tests.csproj
+      !**/OfficeIMO.VerifyTests.csproj
     testRunTitle: 'Windows Test Run $(buildConfiguration), CPU: $(buildPlatform)'
 
 # - task: PublishCodeCoverageResults@1

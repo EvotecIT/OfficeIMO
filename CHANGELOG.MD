@@ -1,3 +1,77 @@
+## 0.18.0 - 2024.09.22
+### What's Changed
+* Added WordParagraphStyles.Custom by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/237
+* Bump SixLabors.ImageSharp to 2.1.9 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/247
+* Copy/Clone row after the current row by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/226
+* Adds compatibility of created documents with OpenOffice/LibreOffice by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/191
+* Added basic Elements/ElementsByType property and few other improvements by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/240
+* Fix tests after adding OpenOffice compatibility and add missing NET 8 tests for macOs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/248
+* Fix test to ignore temporary word documents by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/249
+* Bump OpenXMLSDK to 2.20 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/250
+* Add docs, fix typos and removes requirement to set relative width/hei… by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/251
+* Remove obsolete stuff by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/252
+
+### New Contributors
+* @ChrisBellBO made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/237
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.17.0...v0.18.0
+
+## 0.17.0 - 2024.06.21
+### What's Changed
+* Fixes wrong implementation of repeat header by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/234
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.16.0...v0.17.0
+
+## 0.16.0 - 2024.06.17
+### What's Changed
+* Add RepeatHeaderRowAtTheTopOfEachPage to Tables by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/231
+* Add AddEmbeddedFragment method by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/233
+* Bump test dependencies by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/232
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.15.0...v0.16.0
+
+## 0.15.0 - 2024.05.13
+### What's Changed
+* Bump dependency of ImageSharp to 2.1.8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/221
+* Filled in documentation for the public paragraph methods. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/212
+* Improve textboxes to allow multiple Runs/Paragraphs **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/225
+* Improve Charts **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/223
+* Add VerifyTests by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/86
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.14.0...v0.15.0
+
+## 0.14.0 - 2024.04.04
+### What's Changed
+* Add centimeters conversions to Margins, fix naming emus/twips by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/200
+* Fixes lists NSID value which prevents lists using correct settings when using same type multiple times by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/202
+* Add 4 more list types with letters by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/209
+* **Breaking Change** - Remove continue & restart numbering from Lists  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/205
+* Add Remove & Merge Lists by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/207
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.13.0...v0.14.0
+
+## 0.13.0 - 2024.02.02
+### What's Changed
+* Add basic method to add textbox to header/footer by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/187
+* [WordTextBox] Add additional features by @TopperDEL in https://github.com/EvotecIT/OfficeIMO/pull/188
+    * Use Paragraph instead of StdBlock (so that text within a TextBox is no "variable" anymore)
+    * Allow changing the insets of the TextBox so that there is no gap between the text of the TextBox and its border
+    * Allow the TextBox to be set to "AutoFitText" or not
+    * Allow the text to be multiline by respecting the page breaks
+    * Added Wrapping functionality including inline
+    * Added ability to convert inline to other wrapping types and vice versa (keep in mind that some properties are lost then or go to their defaults)
+    * Fixes wrong paragraph being returned when AddImage is used
+    * **Breaking Change** Changes WrapTextImage.InFrontText to WrapTextImage.InFrontOfText to match Word naming
+* Improve WordTextBox functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/197
+* Add support for Net8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/198
+* Fixes some warnings as reported by Visual Studio by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/199
+* Added the ability to clear the default empty paragraph in TableCell. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/182
+
+### New Contributors
+* @TopperDEL made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/188
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.12.0...v0.13.0
+
 ## 0.12.0 - 2023.12.31
 
 ### What's Changed
@@ -823,7 +897,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 
     var paragraph3 = document.AddParagraph("Image will be in front of text");
-    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontOfText, "Przemek and Kulek on an image");
 
 
     var paragraph5 = document.AddParagraph("Image will be Square");

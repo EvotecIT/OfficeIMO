@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
         Arabic,
     }
 
-    public partial class WordField {
+    public partial class WordField : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly List<Run> _runs = new List<Run>();
@@ -147,8 +147,6 @@ namespace OfficeIMO.Word {
                     }
                     return instruction;
                 }
-
-                return null;
             }
         }
 

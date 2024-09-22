@@ -30,6 +30,106 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.VerifyTests", "OfficeIMO.VerifyTests\OfficeIMO.VerifyTests.csproj", "{91F78177-72D4-429C-A29E-1B28B37F7BC6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{5A10AB86-32EA-42AE-A029-222CCE1E282C}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\index.md = Docs\index.md
+		Docs\officeimo.word.applicationproperties.md = Docs\officeimo.word.applicationproperties.md
+		Docs\officeimo.word.builtindocumentproperties.md = Docs\officeimo.word.builtindocumentproperties.md
+		Docs\officeimo.word.capsstyle.md = Docs\officeimo.word.capsstyle.md
+		Docs\officeimo.word.coverpagetemplate.md = Docs\officeimo.word.coverpagetemplate.md
+		Docs\officeimo.word.customliststyle.md = Docs\officeimo.word.customliststyle.md
+		Docs\officeimo.word.customliststyles.md = Docs\officeimo.word.customliststyles.md
+		Docs\officeimo.word.helpers.md = Docs\officeimo.word.helpers.md
+		Docs\officeimo.word.imageformatnotsupportedexception.md = Docs\officeimo.word.imageformatnotsupportedexception.md
+		Docs\officeimo.word.officeimoexception.md = Docs\officeimo.word.officeimoexception.md
+		Docs\officeimo.word.propertytypes.md = Docs\officeimo.word.propertytypes.md
+		Docs\officeimo.word.tableofcontentstyle.md = Docs\officeimo.word.tableofcontentstyle.md
+		Docs\officeimo.word.targetframe.md = Docs\officeimo.word.targetframe.md
+		Docs\officeimo.word.wordbackground.md = Docs\officeimo.word.wordbackground.md
+		Docs\officeimo.word.wordbarchart.md = Docs\officeimo.word.wordbarchart.md
+		Docs\officeimo.word.wordbarchart3d.md = Docs\officeimo.word.wordbarchart3d.md
+		Docs\officeimo.word.wordbookmark.md = Docs\officeimo.word.wordbookmark.md
+		Docs\officeimo.word.wordborder.md = Docs\officeimo.word.wordborder.md
+		Docs\officeimo.word.wordborders.md = Docs\officeimo.word.wordborders.md
+		Docs\officeimo.word.wordbreak.md = Docs\officeimo.word.wordbreak.md
+		Docs\officeimo.word.wordcharacterstyle.md = Docs\officeimo.word.wordcharacterstyle.md
+		Docs\officeimo.word.wordcharacterstyles.md = Docs\officeimo.word.wordcharacterstyles.md
+		Docs\officeimo.word.wordcomment.md = Docs\officeimo.word.wordcomment.md
+		Docs\officeimo.word.wordcoverpage.md = Docs\officeimo.word.wordcoverpage.md
+		Docs\officeimo.word.wordcustomproperties.md = Docs\officeimo.word.wordcustomproperties.md
+		Docs\officeimo.word.wordcustomproperty.md = Docs\officeimo.word.wordcustomproperty.md
+		Docs\officeimo.word.wordequation.md = Docs\officeimo.word.wordequation.md
+		Docs\officeimo.word.wordfield.md = Docs\officeimo.word.wordfield.md
+		Docs\officeimo.word.wordfieldformat.md = Docs\officeimo.word.wordfieldformat.md
+		Docs\officeimo.word.wordfieldtype.md = Docs\officeimo.word.wordfieldtype.md
+		Docs\officeimo.word.wordfooters.md = Docs\officeimo.word.wordfooters.md
+		Docs\officeimo.word.wordheaderfooter.md = Docs\officeimo.word.wordheaderfooter.md
+		Docs\officeimo.word.wordheaders.md = Docs\officeimo.word.wordheaders.md
+		Docs\officeimo.word.wordhelpers.md = Docs\officeimo.word.wordhelpers.md
+		Docs\officeimo.word.wordhyperlink.md = Docs\officeimo.word.wordhyperlink.md
+		Docs\officeimo.word.wordimage.md = Docs\officeimo.word.wordimage.md
+		Docs\officeimo.word.wordlinechart.md = Docs\officeimo.word.wordlinechart.md
+		Docs\officeimo.word.wordlist.md = Docs\officeimo.word.wordlist.md
+		Docs\officeimo.word.wordliststyle.md = Docs\officeimo.word.wordliststyle.md
+		Docs\officeimo.word.wordliststyles.md = Docs\officeimo.word.wordliststyles.md
+		Docs\officeimo.word.wordmargin.md = Docs\officeimo.word.wordmargin.md
+		Docs\officeimo.word.wordmargins.md = Docs\officeimo.word.wordmargins.md
+		Docs\officeimo.word.wordpagebreak.md = Docs\officeimo.word.wordpagebreak.md
+		Docs\officeimo.word.wordpagenumber.md = Docs\officeimo.word.wordpagenumber.md
+		Docs\officeimo.word.wordpagenumberstyle.md = Docs\officeimo.word.wordpagenumberstyle.md
+		Docs\officeimo.word.wordpagesize.md = Docs\officeimo.word.wordpagesize.md
+		Docs\officeimo.word.wordpagesizes.md = Docs\officeimo.word.wordpagesizes.md
+		Docs\officeimo.word.wordparagraph.md = Docs\officeimo.word.wordparagraph.md
+		Docs\officeimo.word.wordparagraphstyle.md = Docs\officeimo.word.wordparagraphstyle.md
+		Docs\officeimo.word.wordparagraphstyles.md = Docs\officeimo.word.wordparagraphstyles.md
+		Docs\officeimo.word.wordpiechart.md = Docs\officeimo.word.wordpiechart.md
+		Docs\officeimo.word.wordsection.md = Docs\officeimo.word.wordsection.md
+		Docs\officeimo.word.wordsettings.md = Docs\officeimo.word.wordsettings.md
+		Docs\officeimo.word.wordstructureddocumenttag.md = Docs\officeimo.word.wordstructureddocumenttag.md
+		Docs\officeimo.word.wordtable.md = Docs\officeimo.word.wordtable.md
+		Docs\officeimo.word.wordtablecell.md = Docs\officeimo.word.wordtablecell.md
+		Docs\officeimo.word.wordtablecellborder.md = Docs\officeimo.word.wordtablecellborder.md
+		Docs\officeimo.word.wordtableofcontent.md = Docs\officeimo.word.wordtableofcontent.md
+		Docs\officeimo.word.wordtableposition.md = Docs\officeimo.word.wordtableposition.md
+		Docs\officeimo.word.wordtablerow.md = Docs\officeimo.word.wordtablerow.md
+		Docs\officeimo.word.wordtablestyle.md = Docs\officeimo.word.wordtablestyle.md
+		Docs\officeimo.word.wordtablestyles.md = Docs\officeimo.word.wordtablestyles.md
+		Docs\officeimo.word.wordwatermark.md = Docs\officeimo.word.wordwatermark.md
+		Docs\officeimo.word.wordwatermarkstyle.md = Docs\officeimo.word.wordwatermarkstyle.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{B261C012-2D98-485E-AD5D-BD4CB31EE7E4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExamplesAddingHeadersAndFooters", "ExamplesAddingHeadersAndFooters", "{AF836F5B-8CAB-4AF4-AEEB-3C4E718D9AFD}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\Examples\ExamplesAddingHeadersAndFooters\README.MD = Docs\Examples\ExamplesAddingHeadersAndFooters\README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExamplesAddingTablesWithStylesAndBorders", "ExamplesAddingTablesWithStylesAndBorders", "{3265256C-A216-4CA9-8D5E-940FE94C4901}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\AddingTablesWithStylesAndBorders.png = Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\AddingTablesWithStylesAndBorders.png
+		Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\README.MD = Docs\Examples\ExamplesAddingTablesWithStylesAndBorders\README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{CA6E8F53-622F-4D80-8EB3-EEC9D1B91718}"
+	ProjectSection(SolutionItems) = preProject
+		Build\approve-all.ps1 = Build\approve-all.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{F5B007BB-DF10-4E60-9B1B-D9F58B4422F9}"
+	ProjectSection(SolutionItems) = preProject
+		Assets\OfficeIMO.ico = Assets\OfficeIMO.ico
+		Assets\OfficeIMO.png = Assets\OfficeIMO.png
+		Assets\README.MD = Assets\README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{D54570C8-E903-4A61-BB37-06F8E4BD0711}"
+	ProjectSection(SolutionItems) = preProject
+		.github\FUNDING.yml = .github\FUNDING.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,11 +152,20 @@ Global
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80B77D75-D25C-4168-B6A3-FA58DB118EF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DAC88AB0-9011-4EED-A7F3-F9E8C5958DBF}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B261C012-2D98-485E-AD5D-BD4CB31EE7E4} = {5A10AB86-32EA-42AE-A029-222CCE1E282C}
+		{AF836F5B-8CAB-4AF4-AEEB-3C4E718D9AFD} = {B261C012-2D98-485E-AD5D-BD4CB31EE7E4}
+		{3265256C-A216-4CA9-8D5E-940FE94C4901} = {B261C012-2D98-485E-AD5D-BD4CB31EE7E4}
 	EndGlobalSection
 EndGlobal

@@ -79,5 +79,32 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Set the vertical text alignment
+        /// </summary>
+        /// <param name="verticalPositionValue"></param>
+        /// <returns></returns>
+        public WordParagraph SetVerticalTextAlignment(VerticalPositionValues? verticalPositionValue) {
+            VerticalTextAlignment = verticalPositionValue;
+            return this;
+        }
+
+        /// <summary>
+        /// Set the text as subscript
+        /// </summary>
+        /// <returns></returns>
+        public WordParagraph SetSubScript() {
+            VerticalTextAlignment = VerticalPositionValues.Subscript;
+            return this;
+        }
+
+        /// <summary>
+        /// Set the text as superscript
+        /// </summary>
+        /// <returns></returns>
+        public WordParagraph SetSuperScript() {
+            VerticalTextAlignment = VerticalPositionValues.Superscript;
+            return this;
+        }
     }
 }

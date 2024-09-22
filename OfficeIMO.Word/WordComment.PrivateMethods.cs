@@ -38,13 +38,16 @@ namespace OfficeIMO.Word {
 
         internal static Comments GetCommentsPart(WordDocument document) {
             Comments comments = null;
-            if (document._wordprocessingDocument.MainDocumentPart.Parts.Count(p => p.OpenXmlPart is WordprocessingCommentsPart) > 0) {
-                comments = document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
+            if (document._wordprocessingDocument.MainDocumentPart != null && document._wordprocessingDocument.MainDocumentPart.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
+                if (document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart != null)
+                    comments = document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
             } else {
                 // No WordprocessingCommentsPart part exists, so add one to the package.
-                WordprocessingCommentsPart commentPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
-                commentPart.Comments = new Comments();
-                comments = commentPart.Comments;
+                if (document._wordprocessingDocument.MainDocumentPart != null) {
+                    WordprocessingCommentsPart commentPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
+                    commentPart.Comments = new Comments();
+                    comments = commentPart.Comments;
+                }
             }
 
             return comments;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -138,7 +138,6 @@ namespace OfficeIMO.Word {
         }
 
         private void Add(string name, CustomDocumentProperty newProp) {
-            string returnValue = null;
             if (_customProperties != null) {
                 // This will trigger an exception if the property's Name 
                 // property is null, but if that happens, the property is damaged, 
@@ -148,10 +147,7 @@ namespace OfficeIMO.Word {
                 // Does the property exist? If so, get the return value, 
                 // and then delete the property.
                 if (prop != null) {
-                    //returnValue = prop.InnerText;
                     prop.Remove();
-
-                    //_customProperties.RemoveChild(prop);
                 }
 
                 // Append the new property, and 
@@ -162,14 +158,8 @@ namespace OfficeIMO.Word {
                 foreach (CustomDocumentProperty item in _customProperties) {
                     item.PropertyId = pid++;
                 }
-
-                //this._wordprocessingDocument.CustomFilePropertiesPart.Properties.Save();
                 _customProperties.Save();
-
-                //this._wordprocessingDocument.CustomFilePropertiesPart.Properties = _customProperties;
             }
-
-            //            return returnValue;
         }
 
         private void CreateCustomProperty(WordDocument document) {

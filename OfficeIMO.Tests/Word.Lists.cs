@@ -133,8 +133,6 @@ public partial class Word {
 
             var wordList8 = document.AddList(WordListStyle.Bulleted);
 
-            Assert.True(wordList8.RestartNumbering == true);
-
             wordList8.AddItem("Text 9");
             wordList8.AddItem("Text 9.1", 1);
             wordList8.AddItem("Text 9.2", 2);
@@ -151,12 +149,6 @@ public partial class Word {
             var wordList2 = document.AddList(WordListStyle.Headings111);
             wordList2.AddItem("Temp 10");
             wordList2.AddItem("Text 10.1", 1);
-
-            Assert.True(wordList2.RestartNumbering == true);
-
-            wordList2.RestartNumbering = false;
-
-            Assert.True(wordList2.RestartNumbering == false);
 
             paragraph = document
                 .AddParagraph("Paragraph in the middle of the list")
@@ -202,6 +194,12 @@ public partial class Word {
 
             var section = Assert.Single(document.Sections);
             Assert.Equal(45, section.Paragraphs.Count);
+
+            // we merge the first two lists
+            document.Lists[0].Merge(document.Lists[1]);
+
+            Assert.Equal(9, document.Lists.Count);
+            Assert.Equal(45, document.Paragraphs.Count);
 
             document.Save();
 
@@ -411,10 +409,10 @@ public partial class Word {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx");
         using (var document = WordDocument.Create(filePath)) {
             Assert.True(document.Lists.Count == 0);
-            WordList wordList1 = document.AddList(WordListStyle.Headings111, true);
+            WordList wordList1 = document.AddList(WordListStyle.Headings111);
             Assert.True(wordList1.ListItems.Count == 0);
             Assert.True(document.Lists[0].ListItems.Count == 0);
-            wordList1.AddItem("Text 1");
+            wordList1.AddItem("Text 1 - First List");
             Assert.True(wordList1.ListItems.Count == 1);
             Assert.True(document.Lists[0].ListItems.Count == 1);
             Assert.True(document.Lists.Count == 1);
@@ -429,8 +427,8 @@ public partial class Word {
             Assert.True(document.Lists.Count == 1);
 
 
-            WordList wordListNested = document.AddList(WordListStyle.Bulleted, false);
-            Assert.True(wordListNested.RestartNumbering == true);
+            WordList wordListNested = document.AddList(WordListStyle.Bulleted);
+
             Assert.True(wordListNested.RestartNumberingAfterBreak == false);
             wordListNested.RestartNumberingAfterBreak = true;
             Assert.True(wordListNested.RestartNumberingAfterBreak == true);
@@ -440,8 +438,8 @@ public partial class Word {
             Assert.True(document.Lists[1].ListItems.Count == 2);
             Assert.True(document.Lists.Count == 2);
 
-            WordList wordList2 = document.AddList(WordListStyle.Headings111, true);
-            Assert.True(wordList2.RestartNumbering == false);
+            WordList wordList2 = document.AddList(WordListStyle.Headings111);
+
             wordList2.AddItem("Section 2");
             wordList2.AddItem("Section 2.1", 1);
 
@@ -450,19 +448,17 @@ public partial class Word {
             Assert.True(document.Lists.Count == 3);
 
 
-            WordList wordList3 = document.AddList(WordListStyle.Headings111, true);
-            Assert.True(wordList3.RestartNumbering == false);
-            wordList3.RestartNumbering = true;
-            Assert.True(wordList3.RestartNumbering == true);
+            WordList wordList3 = document.AddList(WordListStyle.Headings111);
+
             wordList3.AddItem("Section 1");
             wordList3.AddItem("Section 1.1", 1);
             Assert.True(wordList3.ListItems.Count == 2);
 
-            WordList wordList4 = document.AddList(WordListStyle.Headings111, true);
+            WordList wordList4 = document.AddList(WordListStyle.Headings111);
             wordList4.AddItem("Section 2");
             wordList4.AddItem("Section 2.1", 1);
 
-            WordList wordList5 = document.AddList(WordListStyle.Headings111, true);
+            WordList wordList5 = document.AddList(WordListStyle.Headings111);
             wordList5.AddItem("Section 3");
             wordList5.AddItem("Section 3.1", 1);
 
@@ -576,6 +572,33 @@ public partial class Word {
             Assert.True(document.Lists[12].ListItems[1].Text == "Test Footer 2");
 
             Assert.True(document.Lists.Count == 13);
+
+            document.Lists[0].Remove();
+
+            Assert.True(document.Lists.Count == 12);
+            Assert.True(document.Lists[0].ListItems[0].Text == "Nested 1");
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+    }
+
+
+    [Fact]
+    public void Test_CreatingWordDocumentWithAllListTypesDefined() {
+        var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsWithAllTypes.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            Assert.True(document.Lists.Count == 0);
+
+            foreach (WordListStyle style in Enum.GetValues(typeof(WordListStyle))) {
+
+                document.AddParagraph(style.ToString()).SetColor(Color.Red).SetBold().SetItalic();
+
+                WordList wordList = document.AddList(style);
+            }
+
+            Assert.True(document.Lists.Count == Enum.GetValues(typeof(WordListStyle)).Length);
 
             document.Save(false);
 
