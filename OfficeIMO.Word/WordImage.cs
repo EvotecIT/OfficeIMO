@@ -688,11 +688,13 @@ namespace OfficeIMO.Word {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
-            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
+            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream);
             if (width == null || height == null) {
-                width = imageСharacteristics.Width;
-                height = imageСharacteristics.Height;
+                width = imageCharacteristics.Width;
+                height = imageCharacteristics.Height;
             }
+
+            var imagePartType = imageCharacteristics.Type;
 
             //var fileName = System.IO.Path.GetFileName(filePath);
             var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
@@ -703,15 +705,15 @@ namespace OfficeIMO.Word {
             var location = paragraph.Location();
             if (location.GetType() == typeof(Header)) {
                 var part = ((Header)location).HeaderPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Footer)) {
                 var part = ((Footer)location).FooterPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Document)) {
                 var part = document._wordprocessingDocument.MainDocumentPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
                 throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");

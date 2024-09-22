@@ -146,14 +146,12 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
-        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type, false);
-            return embeddedDocument;
+        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, CustomAlternativeFormatImportPartType? type = null) {
+            return new WordEmbeddedDocument(this, fileName, type, false);
         }
 
-        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, AlternativeFormatImportPartType type) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, htmlContent, type, true);
-            return embeddedDocument;
+        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, CustomAlternativeFormatImportPartType type) {
+            return new WordEmbeddedDocument(this, htmlContent, type, true);
         }
 
 

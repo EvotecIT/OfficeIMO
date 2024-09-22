@@ -66,20 +66,20 @@ namespace OfficeIMO.Word {
             return IsFileLocked(new FileInfo(fileName));
         }
 
-        internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream) {
+        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream) {
             using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
             imageStream.Position = 0;
             var type = ConvertToImagePartType(imageFormat);
-            return new ImageСharacteristics(img.Width, img.Height, type);
+            return new ImageCharacteristics(img.Width, img.Height, type);
         }
 
-        private static ImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
+        private static CustomImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
             imageFormat.Name switch {
-                "BMP" => ImagePartType.Bmp,
-                "GIF" => ImagePartType.Gif,
-                "JPEG" => ImagePartType.Jpeg,
-                "PNG" => ImagePartType.Png,
-                "TIFF" => ImagePartType.Tiff,
+                "BMP" => CustomImagePartType.Bmp,
+                "GIF" => CustomImagePartType.Gif,
+                "JPEG" => CustomImagePartType.Jpeg,
+                "PNG" => CustomImagePartType.Png,
+                "TIFF" => CustomImagePartType.Tiff,
                 _ => throw new ImageFormatNotSupportedException($"Image format not supported: {imageFormat.Name}.")
             };
 
@@ -164,5 +164,5 @@ namespace OfficeIMO.Word {
         }
     }
 
-    internal record ImageСharacteristics(double Width, double Height, ImagePartType Type);
+    internal record ImageCharacteristics(double Width, double Height, CustomImagePartType Type);
 }

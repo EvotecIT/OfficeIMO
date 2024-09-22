@@ -68,16 +68,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, AlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
-            AlternativeFormatImportPartType partType;
+        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, CustomAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
+            CustomAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {
                 FileInfo fileInfo = new FileInfo(fileNameOrContent);
                 if (fileInfo.Extension == ".rtf") {
-                    partType = AlternativeFormatImportPartType.Rtf;
+                    partType = CustomAlternativeFormatImportPartType.Rtf;
                 } else if (fileInfo.Extension == ".html") {
-                    partType = AlternativeFormatImportPartType.Html;
+                    partType = CustomAlternativeFormatImportPartType.Html;
                 } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
-                    partType = AlternativeFormatImportPartType.TextPlain;
+                    partType = CustomAlternativeFormatImportPartType.TextPlain;
                 } else {
                     throw new Exception("Only RTF and HTML files are supported for now :-)");
                 }
@@ -91,7 +91,14 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
-            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partType, altChunk.Id);
+            PartTypeInfo partTypeInfo = partType switch {
+                CustomAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
+                CustomAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
+                CustomAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
+                _ => throw new Exception("Unsupported format type")
+            };
+
+            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo, altChunk.Id);
 
             // if it's a fragment, we don't need to read the file
             var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.ASCII);

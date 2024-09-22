@@ -158,7 +158,7 @@ public partial class Word {
                               </html>
                               """;
 
-            document.AddEmbeddedFragment(htmlContent, AlternativeFormatImportPartType.Html);
+            document.AddEmbeddedFragment(htmlContent, CustomAlternativeFormatImportPartType.Html);
 
             Assert.True(document.EmbeddedDocuments.Count == 3);
             Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
