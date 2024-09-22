@@ -899,7 +899,6 @@ namespace OfficeIMO.Word {
                 } catch {
                     // ignored
                 }
-                this._wordprocessingDocument.Dispose();
             }
 
             if (_fileStream != null) {
