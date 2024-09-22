@@ -3,7 +3,7 @@ param (
 )
 
 $ErrorActionPreference = 'Stop'
-$DotnetVersions = @('6.0', '7.0', '8.0')
+$DotnetVersions = @('6_0', '7_0', '8_0')
 $SolutionPath = [io.path]::Combine($SolutionRoot, 'OfficeImo.sln')
 if ($SolutionRoot -and (Test-Path -Path $SolutionPath)) {
     Write-Host "Solution found at $($SolutionPath). Processing files..." -ForegroundColor Green
