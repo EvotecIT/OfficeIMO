@@ -40,9 +40,9 @@ namespace OfficeIMO.Examples.Word {
 
                 textBox.HorizontalAlignment = HorizontalAlignmentValues.Right;
 
-                //textBox.HorizonalPositionOffset = 1901950;
+                //textBox.HorizontalPositionOffset = 1901950;
 
-                textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffsetCentimeters = 1.5;
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
