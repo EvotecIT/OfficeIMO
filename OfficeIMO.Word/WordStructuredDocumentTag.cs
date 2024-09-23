@@ -1,11 +1,11 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Word {
-    public class WordStructuredDocumentTag {
+    public class WordStructuredDocumentTag : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
         private SdtRun _stdRun;

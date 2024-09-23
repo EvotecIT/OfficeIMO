@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public partial class WordTable {
+    public partial class WordTable : WordElement {
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -230,6 +230,14 @@ namespace OfficeIMO.Word {
                     _tableProperties.TableLook.NoVerticalBand = value;
                 }
             }
+        }
+
+        /// <summary>
+        /// Specifies that the first row shall be repeated at the top of each page on which the table is displayed.
+        /// </summary>
+        public bool RepeatHeaderRowAtTheTopOfEachPage {
+            get => Rows[0].RepeatHeaderRowAtTheTopOfEachPage;
+            set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
         }
 
         public int RowsCount => this.Rows.Count;

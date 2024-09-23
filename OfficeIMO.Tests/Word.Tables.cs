@@ -24,8 +24,30 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
+                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == false);
+
+                foreach (var row in wordTable.Rows) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
+                }
+
+                wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
+
+                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == true);
+
+                foreach (var row in wordTable.Rows.Skip(1)) {
+                    Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
+                }
+
+                Assert.True(wordTable.Rows.Count == 3);
+
+                wordTable.AddRow(2, 2);
+
+                Assert.True(wordTable.Rows.Count == 5);
+
+                Assert.True(wordTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage == true);
+
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable.Paragraphs.Count == 12, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
                 Assert.True(document.Tables.Count == 1, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
@@ -45,7 +67,7 @@ namespace OfficeIMO.Tests {
 
                 var wordTable = document.Tables[0];
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable.Paragraphs.Count == 12, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
+                Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during load in table is wrong. Current: " + wordTable.Paragraphs.Count);
 
                 WordTable wordTable2 = document.AddTable(5, 5);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -96,7 +118,7 @@ namespace OfficeIMO.Tests {
 
                 var wordTable1 = document.Tables[0];
                 Assert.True(wordTable1.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable1.Rows[2].Cells[0].Paragraphs[0].Text);
-                Assert.True(wordTable1.Paragraphs.Count == 12, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
+                Assert.True(wordTable1.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
 
                 var wordTable2 = document.Tables[1];
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table matches. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
@@ -914,6 +936,46 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Paragraph added separately as WordParagraph");
                 Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Bold == true);
                 Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Italic == true);
+
+                document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTableInsertCopyRow() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesInsertRow.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Tables.Count == 0, "Tables count matches");
+                Assert.True(document.Lists.Count == 0, "List count matches");
+
+                WordTable wordTable = document.AddTable(3, 4);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2.1";
+                wordTable.Rows[1].Cells[1].Paragraphs[0].Text = "Test 2.2";
+                wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "Test 2.3";
+
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+
+                Assert.True(document.Tables.Count == 1);
+                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 1);
+
+                var newRow = wordTable.Rows[1];
+
+                wordTable.CopyRow(newRow);
+
+                Assert.True(document.Tables[0].Rows.Count == 4);
+                Assert.True(document.Tables[0].Rows[3].Cells[0].Paragraphs[0].Text == "Test 2.1");
+                Assert.True(document.Tables[0].Rows[3].Cells[1].Paragraphs[0].Text == "Test 2.2");
+                Assert.True(document.Tables[0].Rows[3].Cells[2].Paragraphs[0].Text == "Test 2.3");
+
+                wordTable.AddRow(4);
+
+                Assert.True(document.Tables[0].Rows.Count == 5);
+
+                wordTable.AddRow(3, 4);
+                Assert.True(document.Tables[0].Rows.Count == 8);
 
                 document.Save(false);
             }

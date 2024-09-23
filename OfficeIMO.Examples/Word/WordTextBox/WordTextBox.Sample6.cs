@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
 
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox.HorizonalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffsetCentimeters = 1.5;
                 textBox.VerticalPositionRelativeFrom = VerticalRelativePositionValues.Page;
 
                 textBox.VerticalPositionOffsetCentimeters = 5;

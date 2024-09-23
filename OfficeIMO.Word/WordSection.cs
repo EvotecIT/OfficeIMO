@@ -7,6 +7,15 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+        /// <summary>
+        /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
+
+        /// <summary>
+        /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
+        /// </summary>
+        public List<WordElement> ElementsByType => GetWordElementsByType();
 
         /// <summary>
         /// Provides a list of all paragraphs within the section
@@ -331,7 +340,7 @@ namespace OfficeIMO.Word {
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
             if (sectionProperties != null) {
-                this._sectionProperties = sectionProperties;
+                this._sectionProperties = sectionProperties.MakeSureSectionIsValid();
             } else {
                 sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {

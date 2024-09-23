@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -41,7 +34,8 @@ namespace OfficeIMO.Word {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
-        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
+        public WordParagraph AddBreak(BreakValues? breakType = null) {
+            breakType ??= BreakValues.Page;
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
                 _document = this
@@ -61,35 +55,24 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
-        public WordChart AddBarChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        /// <summary>
+        /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
+        /// You can use multiple:
+        /// .AddBar() to add a bar chart
+        /// .AddLine() to add a line chart
+        /// .AddPie() to add a pie chart
+        /// .AddArea() to add an area chart.
+        /// You can't mix and match the types of charts.
+        /// </summary>
+        /// <param name="title">The title.</param>
+        /// <param name="roundedCorners">if set to <c>true</c> [rounded corners].</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <returns>WordChart</returns>
+        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
-            var barChart = WordBarChart.AddBarChart(this, paragraph, title, roundedCorners, width, height);
-
-            return barChart;
-        }
-
-        public WordChart AddLineChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var lineChart = WordLineChart.AddLineChart(this, paragraph, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        public WordChart AddAreaChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var lineChart = WordAreaChart.AddAreaChart(this, paragraph, title, roundedCorners, width, height);
-            return lineChart;
-        }
-
-        //public WordBarChart3D AddBarChart3D() {
-        //    var paragraph = this.AddParagraph();
-        //    var barChart = WordBarChart3D.AddBarChart3D(this, paragraph);
-        //    return barChart;
-        //}
-
-        public WordChart AddPieChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
-            var paragraph = this.AddParagraph();
-            var pieChart = WordPieChart.AddPieChart(this, paragraph, title, roundedCorners, width, height);
-            return pieChart;
+            var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
+            return chartInstance;
         }
 
         public WordList AddList(WordListStyle style) {
@@ -124,18 +107,17 @@ namespace OfficeIMO.Word {
             return wordTextBox;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
         public WordSection AddSection(SectionMarkValues? sectionMark = null) {
-            //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
             Paragraph paragraph = new Paragraph();
 
             ParagraphProperties paragraphProperties = new ParagraphProperties();
 
-            SectionProperties sectionProperties = new SectionProperties();
-            // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
+            SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
             if (sectionMark != null) {
                 SectionType sectionType = new SectionType() { Val = sectionMark };
@@ -162,9 +144,12 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
-        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type);
-            return embeddedDocument;
+        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
+            return new WordEmbeddedDocument(this, fileName, type, false);
+        }
+
+        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, WordAlternativeFormatImportPartType type) {
+            return new WordEmbeddedDocument(this, htmlContent, type, true);
         }
 
 

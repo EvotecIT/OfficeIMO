@@ -46,9 +46,9 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text) {
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
             // return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
-            return new WordWatermark(this._document, this, watermarkStyle, text);
+            return new WordWatermark(this._document, this, watermarkStyle, textOrFilePath);
         }
 
         public WordSection SetBorders(WordBorder wordBorder) {
@@ -57,8 +57,9 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph("").AddHorizontalLine(lineType, color, size, space);
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            return this.AddParagraph("").AddHorizontalLine(lineType.Value, color, size, space);
         }
 
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {

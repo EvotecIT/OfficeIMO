@@ -22,12 +22,12 @@ namespace OfficeIMO.Word {
         Image
     }
 
-    public class WordWatermark {
+    public class WordWatermark : WordElement {
         private WordDocument _document;
         private SdtBlock _sdtBlock;
         private WordHeader _wordHeader;
         private WordSection _section;
-        private WordParagraph _wordParagraph;
+        //private WordParagraph _wordParagraph;
 
         public string Text {
             get {
@@ -312,14 +312,14 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string text) {
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath) {
             this._document = wordDocument;
             this._section = wordSection;
 
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
 
-                this.Text = text;
+                this.Text = textOrFilePath;
 
                 //this._document._document.Body.Append(_sdtBlock);
                 if (this._section.Paragraphs.Count == 0) {
@@ -328,10 +328,14 @@ namespace OfficeIMO.Word {
                     var lastParagraph = this._section.Paragraphs.Last();
                     lastParagraph._paragraph.Parent.Append(_sdtBlock);
                 }
+            } else {
+                // TODO: Add handling for watermark image
+
+
             }
         }
 
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text) {
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath) {
             this._document = wordDocument;
             this._section = wordSection;
 
@@ -346,9 +350,17 @@ namespace OfficeIMO.Word {
                 this._sdtBlock = GetStyle(style);
 
 
-                this.Text = text;
+                this.Text = textOrFilePath;
 
                 wordHeader._header.Append(_sdtBlock);
+            } else {
+                var fileName = System.IO.Path.GetFileName(textOrFilePath);
+                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
+
+                var wordParagraph = this._wordHeader.AddParagraph();
+
+                var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
+                AddWatermarkImage(wordParagraph, imageLocation);
             }
         }
 
@@ -579,76 +591,89 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Paragraph ImageWatermark {
-            get {
-                Paragraph paragraph1 = new Paragraph() { RsidParagraphAddition = "00083637", RsidRunAdditionDefault = "00083637", ParagraphId = "1543700F", TextId = "24264FF5" };
+        private void AddWatermarkImage(WordParagraph wordParagraph, WordImageLocation imageLocation) {
+            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
+            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "Header" };
 
-                ParagraphProperties paragraphProperties1 = new ParagraphProperties();
-                ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "Header" };
+            paragraphProperties1.Append(paragraphStyleId1);
 
-                paragraphProperties1.Append(paragraphStyleId1);
+            Run run1 = new Run();
 
-                Run run1 = new Run();
+            RunProperties runProperties1 = new RunProperties();
+            NoProof noProof1 = new NoProof();
 
-                RunProperties runProperties1 = new RunProperties();
-                NoProof noProof1 = new NoProof();
+            runProperties1.Append(noProof1);
 
-                runProperties1.Append(noProof1);
+            Picture picture1 = new Picture() { AnchorId = "6CD641E4" };
 
-                Picture picture1 = new Picture() { AnchorId = "6CD641E4" };
+            V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t75", CoordinateSize = "21600,21600", Filled = false, Stroked = false, OptionalNumber = 75, PreferRelative = true, EdgePath = "m@4@5l@4@11@9@11@9@5xe" };
+            V.Stroke stroke1 = new V.Stroke() { JoinStyle = V.StrokeJoinStyleValues.Miter };
 
-                V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t75", CoordinateSize = "21600,21600", Filled = false, Stroked = false, OptionalNumber = 75, PreferRelative = true, EdgePath = "m@4@5l@4@11@9@11@9@5xe" };
-                V.Stroke stroke1 = new V.Stroke() { JoinStyle = V.StrokeJoinStyleValues.Miter };
+            V.Formulas formulas1 = new V.Formulas();
+            V.Formula formula1 = new V.Formula() { Equation = "if lineDrawn pixelLineWidth 0" };
+            V.Formula formula2 = new V.Formula() { Equation = "sum @0 1 0" };
+            V.Formula formula3 = new V.Formula() { Equation = "sum 0 0 @1" };
+            V.Formula formula4 = new V.Formula() { Equation = "prod @2 1 2" };
+            V.Formula formula5 = new V.Formula() { Equation = "prod @3 21600 pixelWidth" };
+            V.Formula formula6 = new V.Formula() { Equation = "prod @3 21600 pixelHeight" };
+            V.Formula formula7 = new V.Formula() { Equation = "sum @0 0 1" };
+            V.Formula formula8 = new V.Formula() { Equation = "prod @6 1 2" };
+            V.Formula formula9 = new V.Formula() { Equation = "prod @7 21600 pixelWidth" };
+            V.Formula formula10 = new V.Formula() { Equation = "sum @8 21600 0" };
+            V.Formula formula11 = new V.Formula() { Equation = "prod @7 21600 pixelHeight" };
+            V.Formula formula12 = new V.Formula() { Equation = "sum @10 21600 0" };
 
-                V.Formulas formulas1 = new V.Formulas();
-                V.Formula formula1 = new V.Formula() { Equation = "if lineDrawn pixelLineWidth 0" };
-                V.Formula formula2 = new V.Formula() { Equation = "sum @0 1 0" };
-                V.Formula formula3 = new V.Formula() { Equation = "sum 0 0 @1" };
-                V.Formula formula4 = new V.Formula() { Equation = "prod @2 1 2" };
-                V.Formula formula5 = new V.Formula() { Equation = "prod @3 21600 pixelWidth" };
-                V.Formula formula6 = new V.Formula() { Equation = "prod @3 21600 pixelHeight" };
-                V.Formula formula7 = new V.Formula() { Equation = "sum @0 0 1" };
-                V.Formula formula8 = new V.Formula() { Equation = "prod @6 1 2" };
-                V.Formula formula9 = new V.Formula() { Equation = "prod @7 21600 pixelWidth" };
-                V.Formula formula10 = new V.Formula() { Equation = "sum @8 21600 0" };
-                V.Formula formula11 = new V.Formula() { Equation = "prod @7 21600 pixelHeight" };
-                V.Formula formula12 = new V.Formula() { Equation = "sum @10 21600 0" };
+            formulas1.Append(formula1);
+            formulas1.Append(formula2);
+            formulas1.Append(formula3);
+            formulas1.Append(formula4);
+            formulas1.Append(formula5);
+            formulas1.Append(formula6);
+            formulas1.Append(formula7);
+            formulas1.Append(formula8);
+            formulas1.Append(formula9);
+            formulas1.Append(formula10);
+            formulas1.Append(formula11);
+            formulas1.Append(formula12);
+            V.Path path1 = new V.Path() { AllowGradientShape = true, ConnectionPointType = Ovml.ConnectValues.Rectangle, AllowExtrusion = false };
+            Ovml.Lock lock1 = new Ovml.Lock() { Extension = V.ExtensionHandlingBehaviorValues.Edit, AspectRatio = true };
 
-                formulas1.Append(formula1);
-                formulas1.Append(formula2);
-                formulas1.Append(formula3);
-                formulas1.Append(formula4);
-                formulas1.Append(formula5);
-                formulas1.Append(formula6);
-                formulas1.Append(formula7);
-                formulas1.Append(formula8);
-                formulas1.Append(formula9);
-                formulas1.Append(formula10);
-                formulas1.Append(formula11);
-                formulas1.Append(formula12);
-                V.Path path1 = new V.Path() { AllowGradientShape = true, ConnectionPointType = Ovml.ConnectValues.Rectangle, AllowExtrusion = false };
-                Ovml.Lock lock1 = new Ovml.Lock() { Extension = V.ExtensionHandlingBehaviorValues.Edit, AspectRatio = true };
+            shapetype1.Append(stroke1);
+            shapetype1.Append(formulas1);
+            shapetype1.Append(path1);
+            shapetype1.Append(lock1);
 
-                shapetype1.Append(stroke1);
-                shapetype1.Append(formulas1);
-                shapetype1.Append(path1);
-                shapetype1.Append(lock1);
+            V.Shape shape1 = new V.Shape() {
+                Id = "WordPictureWatermark" + Guid.NewGuid().ToString("N"),
+                Style = "position:absolute;margin-left:0;margin-top:0;width:467.3pt;height:148.7pt;z-index:-251658240;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin",
+                OptionalString = "_x0000_s1025",
+                AllowInCell = false,
+                Type = "#_x0000_t75"
+            };
 
-                V.Shape shape1 = new V.Shape() { Id = "WordPictureWatermark269216046", Style = "position:absolute;margin-left:0;margin-top:0;width:467.3pt;height:148.7pt;z-index:-251658240;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin", OptionalString = "_x0000_s1025", AllowInCell = false, Type = "#_x0000_t75" };
-                V.ImageData imageData1 = new V.ImageData() { Gain = "19661f", BlackLevel = "22938f", Title = "Logo-evotec-012", RelationshipId = "rId1" };
+            V.ImageData imageData1 = new V.ImageData() {
+                Gain = "19661f",
+                BlackLevel = "22938f",
+                Title = imageLocation.ImageName,
+                RelationshipId = imageLocation.RelationshipId
+            };
 
-                shape1.Append(imageData1);
+            var style = ImageShapeStyleHelper.GetStyle(shape1);
+            style["width"] = imageLocation.Width + "pt";
+            style["height"] = imageLocation.Height + "pt";
+            ImageShapeStyleHelper.SetStyle(shape1, style);
 
-                picture1.Append(shapetype1);
-                picture1.Append(shape1);
+            shape1.Append(imageData1);
 
-                run1.Append(runProperties1);
-                run1.Append(picture1);
+            picture1.Append(shapetype1);
+            picture1.Append(shape1);
 
-                paragraph1.Append(paragraphProperties1);
-                paragraph1.Append(run1);
-                return paragraph1;
-            }
+            run1.Append(runProperties1);
+            run1.Append(picture1);
+
+            wordParagraph._paragraphProperties.Remove();
+            wordParagraph._paragraph.Append(paragraphProperties1);
+            wordParagraph._paragraph.Append(run1);
         }
 
         public void Remove() {
