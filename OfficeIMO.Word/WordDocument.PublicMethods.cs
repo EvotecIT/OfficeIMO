@@ -113,13 +113,11 @@ namespace OfficeIMO.Word {
         }
 
         public WordSection AddSection(SectionMarkValues? sectionMark = null) {
-            //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
             Paragraph paragraph = new Paragraph();
 
             ParagraphProperties paragraphProperties = new ParagraphProperties();
 
-            SectionProperties sectionProperties = new SectionProperties();
-            // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
+            SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
             if (sectionMark != null) {
                 SectionType sectionType = new SectionType() { Val = sectionMark };
