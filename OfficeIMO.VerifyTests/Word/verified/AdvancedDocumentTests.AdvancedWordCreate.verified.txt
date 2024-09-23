@@ -798,7 +798,7 @@
     </w:p>
     <w:p>
       <w:pPr>
-        <w:sectPr w:rsidR="A49FFE8E">
+        <w:sectPr w:rsidR="R00000001">
           <w:headerReference w:type="default" r:id="R00000001" />
           <w:footerReference w:type="default" r:id="R00000001" />
         </w:sectPr>
@@ -819,7 +819,7 @@
     </w:p>
     <w:p>
       <w:pPr>
-        <w:sectPr w:rsidR="08C4650D">
+        <w:sectPr w:rsidR="R00000002">
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
         </w:sectPr>
       </w:pPr>
@@ -889,7 +889,7 @@
         </w:p>
       </w:sdtContent>
     </w:sdt>
-    <w:sectPr w:rsidR="46730548">
+    <w:sectPr w:rsidR="R00000003">
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
     </w:sectPr>
   </w:body>

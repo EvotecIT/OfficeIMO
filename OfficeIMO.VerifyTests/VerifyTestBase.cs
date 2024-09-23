@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -56,8 +56,7 @@ public abstract class VerifyTestBase {
         return result.ToString();
     }
 
-    private static async Task<string> GetVerifyResult(IdPartPair id)
-    {
+    private static async Task<string> GetVerifyResult(IdPartPair id) {
         if (id.OpenXmlPart.RootElement is null)
             return "";
 
@@ -136,6 +135,23 @@ public abstract class VerifyTestBase {
             i = 1;
             foreach (var nsid in document.MainDocumentPart.NumberingDefinitionsPart!.RootElement!.Descendants<Nsid>()) {
                 nsid.Val = i.ToString("X8");
+                i++;
+            }
+        }
+
+        // Normalize RSID in SectionProperties
+        i = 1;
+        foreach (var sectionProperties in document.Descendants<SectionProperties>()) {
+            if (sectionProperties.RsidRPr != null) {
+                sectionProperties.RsidRPr = "R" + i.ToString("X8");
+                i++;
+            }
+            if (sectionProperties.RsidR != null) {
+                sectionProperties.RsidR = "R" + i.ToString("X8");
+                i++;
+            }
+            if (sectionProperties.RsidDel != null) {
+                sectionProperties.RsidDel = "R" + i.ToString("X8");
                 i++;
             }
         }
