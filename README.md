@@ -55,8 +55,8 @@ By becoming a sponsor, you can help ensure that it stays free and accessible to 
 
 To become a sponsor, you can choose from the following options:
 
- - [Become a sponsor via GitHub Sponsors :heart:](https://github.com/sponsors/PrzemyslawKlys)
- - [Become a sponsor via PayPal :heart:](https://paypal.me/PrzemyslawKlys)
+- [Become a sponsor via GitHub Sponsors :heart:](https://github.com/sponsors/PrzemyslawKlys)
+- [Become a sponsor via PayPal :heart:](https://paypal.me/PrzemyslawKlys)
 
 Your sponsorship is completely optional and not required for using this project.
 We want this project to remain open-source and available for anyone to use for free,
@@ -83,91 +83,91 @@ Please consider sharing a post about OfficeIMO and the value it provides. It rea
 Here's a list of features currently supported (and probably a lot I forgot) and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:
 
 - ☑️ Word basics
-  - ☑️ Create
-  - ☑️ Load
-  - ☑️ Save (auto open on save as an option)
-  - ☑️ SaveAs (auto open on save as an option)
+    - ☑️ Create
+    - ☑️ Load
+    - ☑️ Save (auto open on save as an option)
+    - ☑️ SaveAs (auto open on save as an option)
 - ☑️ Word properties
-  - ☑️ Reading basic and custom properties
-  - ☑️ Setting basic and custom properties
+    - ☑️ Reading basic and custom properties
+    - ☑️ Setting basic and custom properties
 - ☑️ Sections
-  - ☑️ Add Paragraphs
-  - ☑️ Add Headers and Footers (Odd/Even/First)
-  - ◼️ Remove Headers and Footers (Odd/Even/First)
-  - ☑️ Remove Paragraphs
-  - ◼️ Remove Sections
+    - ☑️ Add Paragraphs
+    - ☑️ Add Headers and Footers (Odd/Even/First)
+    - ◼️ Remove Headers and Footers (Odd/Even/First)
+    - ☑️ Remove Paragraphs
+    - ◼️ Remove Sections
 - ☑️ Headers and Footers in the document (not including sections)
-  - ☑️ Add Default, Odd, Even, First
-  - ◼️ Remove Default, Odd, Even, First
+    - ☑️ Add Default, Odd, Even, First
+    - ◼️ Remove Default, Odd, Even, First
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
 - ☑️ Paragraphs and change alignment
 - ☑️ Tables
-  - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
-  - ☑️ Add rows and columns
-  - ☑️ Add cells
-  - ☑️ Add cell properties
-  - ☑️ [Add and modify table cell borders](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
-  - ☑️ Remove rows
-  - ☑️ Remove cells
-  - ☑️ Others
-    - ☑️ Merge cells (vertically, horizontally)
-    - ◼️ Split cells (vertically)
-    - ☑️ Split cells (horizontally)
+    - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
+    - ☑️ Add rows and columns
+    - ☑️ Add cells
+    - ☑️ Add cell properties
+    - ☑️ [Add and modify table cell borders](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
+    - ☑️ Remove rows
+    - ☑️ Remove cells
+    - ☑️ Others
+        - ☑️ Merge cells (vertically, horizontally)
+        - ◼️ Split cells (vertically)
+        - ☑️ Split cells (horizontally)
 - ☑️ Images/Pictures (limited support - jpg only / inline type only)
-  - ☑️ Add images from file to Word
-  - ☑️ Save image from Word to File
-  - ◼️ Other image types
-  - ◼️ Other location types
+    - ☑️ Add images from file to Word
+    - ☑️ Save image from Word to File
+    - ◼️ Other image types
+    - ◼️ Other location types
 - ☑️ Hyperlinks
-  - ☑️ Add HyperLink
-  - ☑️ Read HyperLink
-  - ◼️ Remove HyperLink
-  - ☑️ Change HyperLink
+    - ☑️ Add HyperLink
+    - ☑️ Read HyperLink
+    - ◼️ Remove HyperLink
+    - ☑️ Change HyperLink
 - ☑️ PageBreaks
-  - ☑️ Add PageBreak
-  - ☑️ Read PageBreak
-  - ☑️ Remove PageBreak
-  - ☑️ Change PageBreak
+    - ☑️ Add PageBreak
+    - ☑️ Read PageBreak
+    - ☑️ Remove PageBreak
+    - ☑️ Change PageBreak
 - ☑️ Bookmarks
-  - ☑️ Add Bookmark
-  - ☑️ Read Bookmark
-  - ☑️ Remove Bookmark
-  - ☑️ Change Bookmark
+    - ☑️ Add Bookmark
+    - ☑️ Read Bookmark
+    - ☑️ Remove Bookmark
+    - ☑️ Change Bookmark
 - ◼️ Comments
-  - ☑️ Add comments
-  - ☑️ Read comments
-  - ◼️ Remove comments
-  - ◼️ Track comments
+    - ☑️ Add comments
+    - ☑️ Read comments
+    - ◼️ Remove comments
+    - ◼️ Track comments
 - ☑️ Fields
-  - ☑️ Add Field
-  - ☑️ Read Field
-  - ☑️ Remove Field
-  - ☑️ Change Field
+    - ☑️ Add Field
+    - ☑️ Read Field
+    - ☑️ Remove Field
+    - ☑️ Change Field
 - ☑️ Footnotes
-  - ☑️ Add new footnotes
-  - ☑️ Read footnotes
-  - ☑️ Remove footnotes
+    - ☑️ Add new footnotes
+    - ☑️ Read footnotes
+    - ☑️ Remove footnotes
 - ☑️ Endnotes
-  - ☑️Add new endnotes
-  - ☑️Read endnotes
-  - ☑️Remove endnotes
+    - ☑️Add new endnotes
+    - ☑️Read endnotes
+    - ☑️Remove endnotes
 - ◼️ Shapes
 - ◼️ Charts
-  - ☑️ Add charts
+    - ☑️ Add charts
 - ◼️ Lists
-  - ☑️ Add lists
-  - ◼️ Remove lists
+    - ☑️ Add lists
+    - ◼️ Remove lists
 - ◼️ Table of contents
-  - ☑️ Add TOC
+    - ☑️ Add TOC
 - ☑️ Borders
 - ☑️ Background
 - ◼️ Watermarks
-  - ☑️ Add watermark
-  - ◼️ Remove watermark
+    - ☑️ Add watermark
+    - ◼️ Remove watermark
 - ☑️ PageBreaks
-  - ☑️Add pagebreak
-  - ☑️Find pagebreak
-  - ☑️Remove pagebreak
+    - ☑️Add pagebreak
+    - ☑️Find pagebreak
+    - ☑️Remove pagebreak
 
 
 ## Features (oneliners):
@@ -348,4 +348,13 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     document.Save(openWord);
 }
+```
+
+## Tests
+
+In addition to the fact that `OfficeIMO.Word` uses Unit Tests, [Characterization Tests](https://en.wikipedia.org/wiki/Characterization_test) are also used.
+Characterization test were added in order to not overlook a change that breaks the behavior. These tests are based on [Verify](https://github.com/VerifyTests/Verify) (["Snapshot Testing in .NET with Verify"](https://youtu.be/wA7oJDyvn4c)).
+if you need to add or update a verified snapshot, you can use the powershell script:
+```bash
+$ pwsh -c ./Build/ApproveVerifyTests.ps1
 ```

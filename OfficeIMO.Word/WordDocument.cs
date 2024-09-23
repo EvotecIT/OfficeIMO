@@ -28,36 +28,14 @@ namespace OfficeIMO.Word {
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                        return new WordTableOfContent(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
             }
         }
 
         public WordCoverPage CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-
-                foreach (var sdtBlock in sdtBlocks) {
-                    var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
-                    var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
-                    var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
-
-                    if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
-                        return new WordCoverPage(this, sdtBlock);
-                    }
-                }
-
-                return null;
+                return WordSection.ConvertStdBlockToCoverPage(this, sdtBlocks);
             }
         }
 
@@ -213,6 +191,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// List of all elements in the document from all the sections
+        /// </summary>
+        public List<WordElement> Elements {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.Elements);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// List of all elements in the document from all the sections by their subtype
+        /// </summary>
+        public List<WordElement> ElementsByType {
+            get {
+                List<WordElement> list = new List<WordElement>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ElementsByType);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// List of all PageBreaks in the document from all the sections
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -259,17 +266,7 @@ namespace OfficeIMO.Word {
             get { return WordComment.GetAllComments(this); }
         }
 
-        public List<WordList> Lists {
-            get {
-                return WordSection.GetAllDocumentsLists(this);
-                //List<WordList> list = new List<WordList>();
-                //foreach (var section in this.Sections) {
-                //    list.AddRange(section.Lists);
-                //}
-
-                //return list;
-            }
-        }
+        public List<WordList> Lists => WordSection.GetAllDocumentsLists(this);
 
         /// <summary>
         /// Provides a list of Bookmarks in the document from all the sections
@@ -462,9 +459,10 @@ namespace OfficeIMO.Word {
 
         private FileStream _fileStream;
 
-        public FileAccess FileOpenAccess {
-            get { return _wordprocessingDocument.MainDocumentPart.OpenXmlPackage.Package.FileOpenAccess; }
-        }
+        /// <summary>
+        /// FileOpenAccess of the document
+        /// </summary>
+        public FileAccess FileOpenAccess => _wordprocessingDocument.FileOpenAccess;
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
@@ -490,6 +488,12 @@ namespace OfficeIMO.Word {
             return filePath;
         }
 
+        /// <summary>
+        /// Create a new WordDocument
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             WordDocument word = new WordDocument();
 
@@ -575,10 +579,13 @@ namespace OfficeIMO.Word {
             WordSection wordSection = new WordSection(word, null);
             WordBackground wordBackground = new WordBackground(word);
 
-            word.Save();
+            //word.Save();
             return word;
         }
 
+        /// <summary>
+        /// PreSaving function to be called before saving the document
+        /// </summary>
         private void LoadDocument() {
             Sections.Clear();
             // add settings if not existing
@@ -617,6 +624,9 @@ namespace OfficeIMO.Word {
             RearrangeSectionsAfterLoad();
         }
 
+        /// <summary>
+        /// Rearrange sections after loading the document
+        /// </summary>
         private void RearrangeSectionsAfterLoad() {
             if (Sections.Count > 0) {
                 //var firstElement = Sections[0];
@@ -647,6 +657,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Load WordDocument from filePath
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="readOnly"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
+        /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
@@ -665,7 +683,14 @@ namespace OfficeIMO.Word {
             word._fileStream.CopyTo(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
+            // Save the memoryStream to a file for inspection
+            using (var fileStream = new FileStream("debug_output.docx", FileMode.Create, FileAccess.Write)) {
+                memoryStream.CopyTo(fileStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+            }
+
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+
 
             InitialiseStyleDefinitions(wordDocument, readOnly);
 
@@ -676,6 +701,13 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>
+        /// Load WordDocument from stream
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="readOnly"></param>
+        /// <param name="autoSave"></param>
+        /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false) {
             var document = new WordDocument();
 
@@ -692,10 +724,19 @@ namespace OfficeIMO.Word {
             return document;
         }
 
+        /// <summary>
+        /// Open WordDocument in Microsoft Word (if Word is present)
+        /// </summary>
+        /// <param name="openWord"></param>
         public void Open(bool openWord = true) {
             this.Open("", openWord);
         }
 
+        /// <summary>
+        /// Open WordDocument in Microsoft Word (if Word is present)
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="openWord"></param>
         public void Open(string filePath = "", bool openWord = true) {
             if (filePath == "") {
                 filePath = this.FilePath;
@@ -729,7 +770,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Save WordDOcument to filePath (SaveAs), and open the file in Microsoft Word
+        /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="openWord"></param>
@@ -758,6 +799,7 @@ namespace OfficeIMO.Word {
                         using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
+                        Helpers.MakeOpenOfficeCompatible(_fileStream);
                         _fileStream.Flush();
                         FilePath = filePath;
                     } else {
@@ -768,20 +810,24 @@ namespace OfficeIMO.Word {
                             using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
                                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                             }
+                            Helpers.MakeOpenOfficeCompatible(_fileStream);
                             _fileStream.Flush();
                         }
                     }
                 } catch {
                     throw;
+                } finally {
+                    if (_fileStream != null) {
+                        _fileStream.Dispose();
+                        _fileStream = null;
+                    }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
             if (openWord) {
-                _fileStream.Dispose();
-                _fileStream = null;
-                this.Open(filePath, openWord);
+                this.Open(filePath, true);
             }
         }
 
@@ -849,7 +895,7 @@ namespace OfficeIMO.Word {
 
             if (this._wordprocessingDocument != null) {
                 try {
-                    this._wordprocessingDocument.Close();
+                    this._wordprocessingDocument.Dispose();
                 } catch {
                     // ignored
                 }

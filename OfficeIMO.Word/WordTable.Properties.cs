@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -169,8 +169,7 @@ namespace OfficeIMO.Word {
         public bool HasNestedTables {
             get {
                 foreach (var cell in this.Cells) {
-                    var list = cell._tableCell.Descendants<Table>().ToList();
-                    if (list.Count > 0) {
+                    if (cell.HasNestedTables) {
                         return true;
                     }
                 }
@@ -185,10 +184,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<WordTable>();
                 foreach (var cell in this.Cells) {
-                    var list = cell._tableCell.Descendants<Table>().ToList();
-                    foreach (var table in list) {
-                        listReturn.Add(new WordTable(this._document, table));
-                    }
+                    listReturn.AddRange(cell.NestedTables);
                 }
                 return listReturn;
             }

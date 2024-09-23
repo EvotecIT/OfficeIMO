@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
@@ -16,15 +16,12 @@ namespace OfficeIMO.Excel {
                 List<ExcelSheet> listExcel = new List<ExcelSheet>();
                 if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
                     var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
-                    
-                        
-                        foreach (Sheet s in elements) {
-                            ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
-                            id.Add(s.SheetId);
-                            listExcel.Add(excelSheet);
-                        }
+                    foreach (Sheet s in elements) {
+                        ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
+                        id.Add(s.SheetId);
+                        listExcel.Add(excelSheet);
                     }
-                
+                }
 
                 return listExcel;
             }
@@ -41,7 +38,6 @@ namespace OfficeIMO.Excel {
             // Create a spreadsheet document by supplying the filepath.
             // By default, AutoSave = true, Editable = true, and Type = xlsx.
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
-            
             document._spreadSheetDocument = spreadSheetDocument;
 
             // Add a WorkbookPart to the document.
@@ -73,9 +69,6 @@ namespace OfficeIMO.Excel {
             document._spreadSheetDocument = spreadSheetDocument;
 
             //// Add a WorkbookPart to the document.
-            //WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
-            //workbookpart.Workbook = new Workbook();
-            
             document._workBookPart = document._spreadSheetDocument.WorkbookPart;
 
             return document;
@@ -84,7 +77,7 @@ namespace OfficeIMO.Excel {
         public static ExcelDocument Create(string filePath, string workSheetName) {
             ExcelDocument excelDocument = Create(filePath);
             excelDocument.AddWorkSheet(workSheetName);
-            return excelDocument; 
+            return excelDocument;
         }
 
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
@@ -92,7 +85,7 @@ namespace OfficeIMO.Excel {
 
             return excelSheet;
         }
-        
+
         public void Open(string filePath = "", bool openExcel = true) {
             if (filePath == "") {
                 filePath = this.FilePath;
@@ -101,7 +94,7 @@ namespace OfficeIMO.Excel {
         }
 
         public void Close() {
-            this._spreadSheetDocument.Close();
+            this._spreadSheetDocument.Dispose();
         }
 
         public void Save(string filePath, bool openExcel) {

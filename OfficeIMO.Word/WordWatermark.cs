@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         Image
     }
 
-    public class WordWatermark {
+    public class WordWatermark : WordElement {
         private WordDocument _document;
         private SdtBlock _sdtBlock;
         private WordHeader _wordHeader;
