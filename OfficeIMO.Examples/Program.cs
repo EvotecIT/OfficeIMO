@@ -140,6 +140,7 @@ namespace OfficeIMO.Examples {
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
             Watermark.Watermark_Sample3(folderPath, false);
+            Watermark.Watermark_SampleImage1(folderPath, false);
 
             Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
             Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
