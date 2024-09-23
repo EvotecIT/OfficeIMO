@@ -68,16 +68,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, CustomAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
-            CustomAlternativeFormatImportPartType partType;
+        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
+            WordAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {
                 FileInfo fileInfo = new FileInfo(fileNameOrContent);
                 if (fileInfo.Extension == ".rtf") {
-                    partType = CustomAlternativeFormatImportPartType.Rtf;
+                    partType = WordAlternativeFormatImportPartType.Rtf;
                 } else if (fileInfo.Extension == ".html") {
-                    partType = CustomAlternativeFormatImportPartType.Html;
+                    partType = WordAlternativeFormatImportPartType.Html;
                 } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
-                    partType = CustomAlternativeFormatImportPartType.TextPlain;
+                    partType = WordAlternativeFormatImportPartType.TextPlain;
                 } else {
                     throw new Exception("Only RTF and HTML files are supported for now :-)");
                 }
@@ -92,9 +92,9 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
             PartTypeInfo partTypeInfo = partType switch {
-                CustomAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
-                CustomAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
-                CustomAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
+                WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
+                WordAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
+                WordAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
                 _ => throw new Exception("Unsupported format type")
             };
 
