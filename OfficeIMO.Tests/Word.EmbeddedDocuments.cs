@@ -1,12 +1,5 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests;
 
@@ -50,17 +43,17 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments[0].ContentType == "application/rtf");
             Assert.True(document.EmbeddedDocuments[1].ContentType == "text/html");
 
-            var tempfilePath1 = Path.Combine(_directoryWithFiles, "CreatedDocumentWithEmbeddedDocuments.rtf");
-            var tempfilePath2 = Path.Combine(_directoryWithFiles, "CreatedDocumentWithEmbeddedDocuments.html");
+            var tempFilePath1 = Path.Combine(_directoryWithFiles, "CreatedDocumentWithEmbeddedDocuments.rtf");
+            var tempFilePath2 = Path.Combine(_directoryWithFiles, "CreatedDocumentWithEmbeddedDocuments.html");
 
-            document.EmbeddedDocuments[0].Save(tempfilePath1);
-            document.EmbeddedDocuments[1].Save(tempfilePath2);
+            document.EmbeddedDocuments[0].Save(tempFilePath1);
+            document.EmbeddedDocuments[1].Save(tempFilePath2);
 
-            Assert.True(File.Exists(tempfilePath1));
-            Assert.True(File.Exists(tempfilePath2));
+            Assert.True(File.Exists(tempFilePath1));
+            Assert.True(File.Exists(tempFilePath2));
 
-            FileInfo info1 = new FileInfo(tempfilePath1);
-            FileInfo info2 = new FileInfo(tempfilePath2);
+            FileInfo info1 = new FileInfo(tempFilePath1);
+            FileInfo info2 = new FileInfo(tempFilePath2);
             FileInfo infoRtf = new FileInfo(rtfFilePath);
             FileInfo infoHtml = new FileInfo(htmlFilePath);
 
@@ -73,12 +66,19 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments[1].ContentType == "text/html");
             Assert.True(document.EmbeddedDocuments[2].ContentType == "application/rtf");
 
+            Assert.True(document.EmbeddedDocuments.Count == 3);
+
             document.AddSection();
 
-            document.AddEmbeddedDocument(rtfFilePath);
+            Assert.True(document.EmbeddedDocuments.Count == 3);
 
             document.AddEmbeddedDocument(rtfFilePath);
 
+            Assert.True(document.EmbeddedDocuments.Count == 4);
+            Assert.True(document.Sections[0].EmbeddedDocuments.Count == 3);
+            Assert.True(document.Sections[1].EmbeddedDocuments.Count == 1);
+
+            document.AddEmbeddedDocument(rtfFilePath);
 
             Assert.True(document.EmbeddedDocuments.Count == 5);
             Assert.True(document.Sections[0].EmbeddedDocuments.Count == 3);
@@ -158,7 +158,7 @@ public partial class Word {
                               </html>
                               """;
 
-            document.AddEmbeddedFragment(htmlContent, AlternativeFormatImportPartType.Html);
+            document.AddEmbeddedFragment(htmlContent, WordAlternativeFormatImportPartType.Html);
 
             Assert.True(document.EmbeddedDocuments.Count == 3);
             Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
@@ -166,6 +166,44 @@ public partial class Word {
 
             var list3 = document._document.MainDocumentPart.AlternativeFormatImportParts;
             Assert.True(list3.Count() == 3);
+        }
+    }
+
+    [Fact]
+    public void Test_LoadingWordDocumentWithEmbeddedDocumentsAndBrokenSections() {
+        // Those section have no RSID so comparison of sections is very risky
+        string rtfFilePath = System.IO.Path.Combine(_directoryDocuments, "SampleFileRTF.rtf");
+
+        using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmbeddedFileBrokenSections.docx"))) {
+            Assert.True(document.EmbeddedDocuments.Count == 4);
+            Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
+            Assert.True(document.Sections[1].EmbeddedDocuments.Count == 2);
+            Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[1].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[2].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[3].ContentType == "text/html");
+
+            document.AddEmbeddedDocument(rtfFilePath);
+
+            Assert.True(document.EmbeddedDocuments[4].ContentType == "application/rtf");
+
+            Assert.True(document.EmbeddedDocuments.Count == 5);
+            Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
+            Assert.True(document.Sections[1].EmbeddedDocuments.Count == 3);
+
+            document.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmbeddedFileBrokenSections.docx"))) {
+            Assert.True(document.EmbeddedDocuments.Count == 5);
+            Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
+            Assert.True(document.Sections[1].EmbeddedDocuments.Count == 3);
+
+            Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[1].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[2].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[3].ContentType == "text/html");
+            Assert.True(document.EmbeddedDocuments[4].ContentType == "application/rtf");
         }
     }
 }

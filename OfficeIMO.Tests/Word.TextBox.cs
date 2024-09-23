@@ -1,10 +1,7 @@
-using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
-using System;
-using System.IO;
 using Xunit;
-using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
@@ -22,12 +19,12 @@ namespace OfficeIMO.Tests {
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox.HorizontalPositionOffsetCentimeters = 3;
 
-                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == 3);
+                Assert.Equal(document.TextBoxes[0].HorizontalPositionOffsetCentimeters, 3);
 
-                textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                Assert.True(document.TextBoxes[0].HorizontalAlignment == HorizontalAlignmentValues.Left);
+                Assert.True(document.TextBoxes[0].HorizontalAlignment == WordHorizontalAlignmentValues.Left);
                 Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == null);
 
 
@@ -39,7 +36,7 @@ namespace OfficeIMO.Tests {
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 textBox2.HorizontalPositionOffsetCentimeters = 3;
                 textBox2.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-                textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
 
                 Assert.True(document.Paragraphs.Count == 3);
 
@@ -92,7 +89,7 @@ namespace OfficeIMO.Tests {
 
                 var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.HorizontalAlignment = WordHorizontalAlignmentValues.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 10;
                 textBox3.Paragraphs[0].Borders.BottomStyle = BorderValues.BasicWideOutline;
 
@@ -306,42 +303,42 @@ namespace OfficeIMO.Tests {
 
                 var textBox2 = document.AddTextBox("My textbox 2 right - square", WrapTextImage.Square);
                 textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox2.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
                 textBox2.VerticalPositionOffsetCentimeters = 6;
 
                 Assert.True(textBox2.WrapText == WrapTextImage.Square);
 
                 var textBox3 = document.AddTextBox("My textbox 3 center - tight", WrapTextImage.Tight);
                 textBox3.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox3.HorizontalAlignment = HorizontalAlignmentValues.Center;
+                textBox3.HorizontalAlignment = WordHorizontalAlignmentValues.Center;
                 textBox3.VerticalPositionOffsetCentimeters = 6;
 
                 Assert.True(textBox3.WrapText == WrapTextImage.Tight);
 
                 var textBox4 = document.AddTextBox("My textbox 4 left - behind text", WrapTextImage.BehindText);
                 textBox4.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox4.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox4.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
                 textBox4.VerticalPositionOffsetCentimeters = 9;
 
                 Assert.True(textBox4.WrapText == WrapTextImage.BehindText);
 
                 var textBox5 = document.AddTextBox("My textbox 5 right - in front of text", WrapTextImage.InFrontOfText);
                 textBox5.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox5.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox5.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
                 textBox5.VerticalPositionOffsetCentimeters = 9;
 
                 Assert.True(textBox5.WrapText == WrapTextImage.InFrontOfText);
 
                 var textBox6 = document.AddTextBox("My textbox 6 left - top and bottom", WrapTextImage.TopAndBottom);
                 textBox6.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox6.HorizontalAlignment = HorizontalAlignmentValues.Left;
+                textBox6.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
                 textBox6.VerticalPositionOffsetCentimeters = 12;
 
                 Assert.True(textBox6.WrapText == WrapTextImage.TopAndBottom);
 
                 var textBox7 = document.AddTextBox("My textbox 7 right - through", WrapTextImage.Through);
                 textBox7.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                textBox7.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox7.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
                 textBox7.VerticalPositionOffsetCentimeters = 12;
 
                 Assert.True(textBox7.WrapText == WrapTextImage.Through);
@@ -370,7 +367,7 @@ namespace OfficeIMO.Tests {
                     count += 3;
                     var textBox2 = document.AddTextBox("My textbox - " + wrapper, wrapper);
                     textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
-                    textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                    textBox2.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
                     textBox2.VerticalPositionOffsetCentimeters = count;
                 }
 

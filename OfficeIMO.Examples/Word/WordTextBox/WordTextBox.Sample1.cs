@@ -1,11 +1,7 @@
 using System;
-
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
-
 using OfficeIMO.Word;
-
 using Color = SixLabors.ImageSharp.Color;
-using HorizontalAlignmentValues = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {
@@ -38,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
-                textBox.HorizontalAlignment = HorizontalAlignmentValues.Right;
+                textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Right;
 
                 //textBox.HorizontalPositionOffset = 1901950;
 

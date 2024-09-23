@@ -59,7 +59,7 @@
         <w:t xml:space="preserve">Adding paragraph4 with some text and pressing SHIFT+ENTER</w:t>
       </w:r>
     </w:p>
-    <w:sectPr />
+    <w:sectPr w:rsidR="R00000001" />
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

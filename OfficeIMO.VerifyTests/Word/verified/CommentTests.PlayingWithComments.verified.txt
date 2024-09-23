@@ -45,7 +45,7 @@
         <w:t xml:space="preserve">Test Section - another line</w:t>
       </w:r>
     </w:p>
-    <w:sectPr />
+    <w:sectPr w:rsidR="R00000001" />
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

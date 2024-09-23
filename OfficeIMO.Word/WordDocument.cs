@@ -750,7 +750,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="src"></param>
         /// <param name="dest"></param>
-        private static void CopyPackageProperties(PackageProperties src, PackageProperties dest) {
+        private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
             dest.ContentType = src.ContentType;
@@ -899,7 +899,6 @@ namespace OfficeIMO.Word {
                 } catch {
                     // ignored
                 }
-                this._wordprocessingDocument.Dispose();
             }
 
             if (_fileStream != null) {

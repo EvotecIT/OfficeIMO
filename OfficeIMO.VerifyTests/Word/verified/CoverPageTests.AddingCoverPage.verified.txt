@@ -452,7 +452,7 @@
         <w:t xml:space="preserve">More on the next page</w:t>
       </w:r>
     </w:p>
-    <w:sectPr>
+    <w:sectPr w:rsidR="R00000001">
       <w:pgSz w:w="11906" w:h="16838" w:code="9" />
     </w:sectPr>
   </w:body>

@@ -29,7 +29,7 @@
         <w:t xml:space="preserve">Section 0</w:t>
       </w:r>
     </w:p>
-    <w:sectPr>
+    <w:sectPr w:rsidR="R00000001">
       <w:pgBorders>
         <w:top w:val="sharksTeeth" w:color="ADFF2F" w:sz="10" />
         <w:left w:val="palmsColor" w:color="00FFFF" w:sz="24" w:space="24" />

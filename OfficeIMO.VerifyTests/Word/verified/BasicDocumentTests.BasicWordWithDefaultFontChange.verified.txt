@@ -35,7 +35,7 @@
         <w:t xml:space="preserve">INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE GARANTIA DE ALIENAÇÃO FIDUCIÁRIA DE IMÓVEL</w:t>
       </w:r>
     </w:p>
-    <w:sectPr />
+    <w:sectPr w:rsidR="R00000001" />
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

@@ -798,7 +798,7 @@
     </w:p>
     <w:p>
       <w:pPr>
-        <w:sectPr>
+        <w:sectPr w:rsidR="R00000001">
           <w:headerReference w:type="default" r:id="R00000001" />
           <w:footerReference w:type="default" r:id="R00000001" />
         </w:sectPr>
@@ -819,7 +819,7 @@
     </w:p>
     <w:p>
       <w:pPr>
-        <w:sectPr>
+        <w:sectPr w:rsidR="R00000002">
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
         </w:sectPr>
       </w:pPr>
@@ -889,7 +889,7 @@
         </w:p>
       </w:sdtContent>
     </w:sdt>
-    <w:sectPr>
+    <w:sectPr w:rsidR="R00000003">
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
     </w:sectPr>
   </w:body>
@@ -12103,7 +12103,7 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/footer1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:ftr xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:sdt>
     <w:sdtPr>
       <w:id w:val="-94168831" />
@@ -12118,7 +12118,7 @@
       </w:rPr>
     </w:sdtEndPr>
     <w:sdtContent>
-      <w:p w:rsidR="000003E1" w:rsidRDefault="000003E1" w14:paraId="2D5F018E" w14:textId="0961F169" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+      <w:p xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" w:rsidR="000003E1" w:rsidRDefault="000003E1" w14:paraId="2D5F018E" w14:textId="0961F169">
         <w:pPr>
           <w:pStyle w:val="Header" />
         </w:pPr>
@@ -12156,7 +12156,7 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /docProps/custom.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
+<op:Properties xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes" xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
   <op:property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="TestProperty">
     <vt:filetime xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">9999-12-31T23:59:59Z</vt:filetime>
   </op:property>

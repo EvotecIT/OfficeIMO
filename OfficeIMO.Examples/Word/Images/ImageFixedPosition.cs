@@ -28,9 +28,9 @@ namespace OfficeIMO.Examples.Word {
 
             Console.WriteLine("PRE position edit.");
             // Before editing, we can assess the RelativeFrom and PositionOffset properties of the image.
-            DocumentFormat.OpenXml.EnumValue<HorizontalRelativePositionValues> hRelativeFrom;
-            string hOffset, vOffset;
-            DocumentFormat.OpenXml.EnumValue<VerticalRelativePositionValues> vRelativeFrom;
+            //DocumentFormat.OpenXml.EnumValue<HorizontalRelativePositionValues> hRelativeFrom;
+            //string hOffset, vOffset;
+            //DocumentFormat.OpenXml.EnumValue<VerticalRelativePositionValues> vRelativeFrom;
             checkImageProps(paragraph1);
 
             // Begin editing the fixed position properties of the image. You may edit both, however it
@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.Word {
 
             document.Save(openWord);
 
-            static void checkImageProps(WordParagraph paragraph1) { 
+            static void checkImageProps(WordParagraph paragraph1) {
                 var hRelativeFrom = paragraph1.Image.horizontalPosition.RelativeFrom;
                 var hOffset = paragraph1.Image.horizontalPosition.PositionOffset.Text;
                 var vRelativeFrom = paragraph1.Image.verticalPosition.RelativeFrom;

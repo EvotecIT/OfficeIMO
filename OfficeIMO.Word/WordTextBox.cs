@@ -124,16 +124,16 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the horizontal alignment of the text box
         /// </summary>
-        public DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues HorizontalAlignment {
+        public WordHorizontalAlignmentValues HorizontalAlignment {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
                     if (horizontalPosition != null && horizontalPosition.HorizontalAlignment != null) {
-                        return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
+                        return HorizontalAlignmentHelper.FromString(horizontalPosition.HorizontalAlignment.Text);
                     }
                 }
-                return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
+                return WordHorizontalAlignmentValues.Center;
             }
             set {
                 var anchor = _anchor;
@@ -144,10 +144,10 @@ namespace OfficeIMO.Word {
                     }
                     if (horizontalPosition.HorizontalAlignment == null) {
                         horizontalPosition.HorizontalAlignment = new HorizontalAlignment() {
-                            Text = value.ToString().ToLower()
+                            Text = HorizontalAlignmentHelper.ToString(value)
                         };
                     } else {
-                        horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
+                        horizontalPosition.HorizontalAlignment.Text = HorizontalAlignmentHelper.ToString(value);
                     }
                 }
             }
@@ -232,7 +232,6 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Allows to set horizontally position of the text box in centimeters
-        /// Please 
         /// </summary>
         public double? HorizontalPositionOffsetCentimeters {
             get {
@@ -946,27 +945,6 @@ namespace OfficeIMO.Word {
             textBoxContent1.Append(paragraph1);
             return textBoxContent1;
         }
-
-        /// <summary>
-        /// Helps to translate text to HorizontalAlignment
-        /// </summary>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        private DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
-            switch (text.ToLower()) {
-                case "left":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Left;
-                case "right":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Right;
-                case "center":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
-                case "outside":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Outside;
-                default:
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
-            }
-        }
-
 
         private ShapeProperties GenerateShapeProperties() {
             ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = DocumentFormat.OpenXml.Drawing.BlackWhiteModeValues.Auto };

@@ -229,13 +229,15 @@ namespace OfficeIMO.Word {
         /// <param name="size">The size of the line.</param>
         /// <param name="space">The space the line takes up.</param>
         /// <returns>The new Paragraph after the line.</returns>
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            this._paragraphProperties.ParagraphBorders = new ParagraphBorders();
-            this._paragraphProperties.ParagraphBorders.BottomBorder = new BottomBorder() {
-                Val = lineType,
-                Size = size,
-                Space = space,
-                Color = color != null ? color.Value.ToHexColor() : "auto"
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            this._paragraphProperties.ParagraphBorders = new ParagraphBorders {
+                BottomBorder = new BottomBorder() {
+                    Val = lineType.Value,
+                    Size = size,
+                    Space = space,
+                    Color = color != null ? color.Value.ToHexColor() : "auto"
+                }
             };
             return this;
         }
@@ -325,7 +327,9 @@ namespace OfficeIMO.Word {
         /// <param name="alignment">The optional alignment for the tabs.</param>
         /// <param name="leader">The optional rune to use before the tabs.</param>
         /// <returns>The added tabs.</returns>
-        public WordTabStop AddTabStop(int position, TabStopValues alignment = TabStopValues.Left, TabStopLeaderCharValues leader = TabStopLeaderCharValues.None) {
+        public WordTabStop AddTabStop(int position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
+            alignment ??= TabStopValues.Left;
+            leader ??= TabStopLeaderCharValues.None;
             var wordTab = new WordTabStop(this);
             wordTab.AddTab(position, alignment, leader);
             return wordTab;
@@ -365,7 +369,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this._document, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -377,8 +381,9 @@ namespace OfficeIMO.Word {
         /// <param name="text">The text of the note.</param>
         /// <returns>The footnote.</returns>
         public WordParagraph AddFootNote(string text) {
-            var footerWordParagraph = new WordParagraph(this._document, true, true);
-            footerWordParagraph.Text = text;
+            var footerWordParagraph = new WordParagraph(this._document, true, true) {
+                Text = text
+            };
 
             var wordFootNote = WordFootNote.AddFootNote(this._document, this, footerWordParagraph);
             return wordFootNote;

@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     public class WordEquation : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
-        private DocumentFormat.OpenXml.Math.Paragraph mathParagraph;
+        //private DocumentFormat.OpenXml.Math.Paragraph mathParagraph;
         private readonly DocumentFormat.OpenXml.Math.OfficeMath _officeMath;
         private readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
 

@@ -34,7 +34,8 @@ namespace OfficeIMO.Word {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
-        public WordParagraph AddBreak(BreakValues breakType = BreakValues.Page) {
+        public WordParagraph AddBreak(BreakValues? breakType = null) {
+            breakType ??= BreakValues.Page;
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
                 _document = this
@@ -68,7 +69,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = null, bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -106,18 +107,17 @@ namespace OfficeIMO.Word {
             return wordTextBox;
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
         public WordSection AddSection(SectionMarkValues? sectionMark = null) {
-            //Paragraph paragraph = new Paragraph() { RsidParagraphAddition = "fff0", RsidRunAdditionDefault = "fff0"};
             Paragraph paragraph = new Paragraph();
 
             ParagraphProperties paragraphProperties = new ParagraphProperties();
 
-            SectionProperties sectionProperties = new SectionProperties();
-            // SectionProperties sectionProperties = new SectionProperties() { RsidR = "fff0"  };
+            SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
             if (sectionMark != null) {
                 SectionType sectionType = new SectionType() { Val = sectionMark };
@@ -144,14 +144,12 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
-        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, AlternativeFormatImportPartType? type = null) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, fileName, type, false);
-            return embeddedDocument;
+        public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
+            return new WordEmbeddedDocument(this, fileName, type, false);
         }
 
-        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, AlternativeFormatImportPartType type) {
-            WordEmbeddedDocument embeddedDocument = new WordEmbeddedDocument(this, htmlContent, type, true);
-            return embeddedDocument;
+        public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, WordAlternativeFormatImportPartType type) {
+            return new WordEmbeddedDocument(this, htmlContent, type, true);
         }
 
 

@@ -482,39 +482,23 @@ namespace OfficeIMO.Word {
             set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
 
-        public WordImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            string filePath,
-            double? width,
-            double? height,
-            WrapTextImage wrapImage = WrapTextImage.InLineWithText,
-            string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open);
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
+            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
+            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
-        public WordImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width,
-            double? height,
-            WrapTextImage wrapImage = WrapTextImage.InLineWithText,
-            string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = fileName;
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
+            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
+            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
-
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
             var newOffset = new Offset() { X = 0L, Y = 0L };
@@ -699,18 +683,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width,
-            double? height,
-            ShapeTypeValues shape,
-            BlipCompressionValues compressionQuality,
-            string description,
-            WrapTextImage wrapImage
-        ) {
+        private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
             _document = document;
             var imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
 
@@ -745,12 +718,14 @@ namespace OfficeIMO.Word {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
-            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
+            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream);
             if (width == null || height == null) {
-                width = imageСharacteristics.Width;
-                height = imageСharacteristics.Height;
+                width = imageCharacteristics.Width;
+                height = imageCharacteristics.Height;
             }
 
+
+            var imagePartType = imageCharacteristics.Type;
             var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
             ImagePart imagePart;
@@ -758,15 +733,15 @@ namespace OfficeIMO.Word {
             var location = paragraph.Location();
             if (location.GetType() == typeof(Header)) {
                 var part = ((Header)location).HeaderPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Footer)) {
                 var part = ((Footer)location).FooterPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Document)) {
                 var part = document._wordprocessingDocument.MainDocumentPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
                 throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");

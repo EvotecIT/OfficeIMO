@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         private SdtBlock _sdtBlock;
         private WordHeader _wordHeader;
         private WordSection _section;
-        private WordParagraph _wordParagraph;
+        //private WordParagraph _wordParagraph;
 
         public string Text {
             get {

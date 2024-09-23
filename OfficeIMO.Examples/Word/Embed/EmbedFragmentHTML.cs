@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
                                   </html>
                                   """;
 
-                document.AddEmbeddedFragment(htmlContent, AlternativeFormatImportPartType.Html);
+                document.AddEmbeddedFragment(htmlContent, WordAlternativeFormatImportPartType.Html);
 
                 document.EmbeddedDocuments[0].Save("C:\\TEMP\\EmbeddedFragment.html");
 

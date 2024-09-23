@@ -32,7 +32,7 @@
     </w:p>
     <w:p>
       <w:pPr>
-        <w:sectPr>
+        <w:sectPr w:rsidR="R00000001">
           <w:pgBorders w:offsetFrom="page">
             <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" />
             <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" />
@@ -42,7 +42,7 @@
         </w:sectPr>
       </w:pPr>
     </w:p>
-    <w:sectPr>
+    <w:sectPr w:rsidR="R00000002">
       <w:pgBorders w:offsetFrom="page">
         <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
         <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />

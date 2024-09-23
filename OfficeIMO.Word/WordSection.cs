@@ -340,7 +340,7 @@ namespace OfficeIMO.Word {
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
             if (sectionProperties != null) {
-                this._sectionProperties = sectionProperties;
+                this._sectionProperties = sectionProperties.MakeSureSectionIsValid();
             } else {
                 sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
