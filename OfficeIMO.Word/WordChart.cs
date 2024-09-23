@@ -207,14 +207,22 @@ namespace OfficeIMO.Word {
             return chart1;
         }
 
+        /// <summary>
+        /// Set the title of the chart
+        /// </summary>
+        /// <param name="title"></param>
+        /// <returns></returns>
         public WordChart SetTitle(string title) {
             PrivateTitle = title;
             UpdateTitle();
             return this;
         }
 
+        /// <summary>
+        /// Update the title of the chart
+        /// </summary>
         internal void UpdateTitle() {
-            if (PrivateTitle != null) {
+            if (!string.IsNullOrEmpty(PrivateTitle)) {
                 if (_chart != null) {
                     if (_chart.Title == null) {
                         _chart.Append(AddTitle(PrivateTitle));
