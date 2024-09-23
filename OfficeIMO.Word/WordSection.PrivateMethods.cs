@@ -254,7 +254,7 @@ namespace OfficeIMO.Word {
                         if (element is Paragraph) {
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
                                     foundCount = count;
                                 }
 
@@ -268,7 +268,7 @@ namespace OfficeIMO.Word {
 
                     if (foundCount < 0) {
                         var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (sectionProperties == _sectionProperties) {
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
                             foundCount = count;
                         }
                     }
@@ -329,7 +329,7 @@ namespace OfficeIMO.Word {
                         if (element is Paragraph) {
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
                                     foundCount = count;
                                 }
 
@@ -342,9 +342,11 @@ namespace OfficeIMO.Word {
                         }
                     }
 
-                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                    if (sectionProperties == _sectionProperties) {
-                        foundCount = count;
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
+                            foundCount = count;
+                        }
                     }
                 }
             }
@@ -369,10 +371,9 @@ namespace OfficeIMO.Word {
                         if (element is Paragraph) {
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
                                     foundCount = count;
                                 }
-
                                 count++;
                                 dataSections[count] = new List<WordEmbeddedDocument>();
                             }
@@ -382,14 +383,30 @@ namespace OfficeIMO.Word {
                         }
                     }
 
-                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                    if (sectionProperties == _sectionProperties) {
-                        foundCount = count;
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
+                            foundCount = count;
+                        }
                     }
                 }
             }
-
             return dataSections[foundCount];
+        }
+
+        /// <summary>
+        /// Checks if two SectionProperties are equal
+        /// </summary>
+        /// <param name="sp1"></param>
+        /// <param name="sp2"></param>
+        /// <returns></returns>
+        private bool AreSectionPropertiesEqual(SectionProperties sp1, SectionProperties sp2) {
+            if (sp1 == null || sp2 == null) {
+                return sp1 == sp2;
+            }
+
+            // Compare the XML representation of the SectionProperties
+            return sp1.OuterXml == sp2.OuterXml;
         }
 
         /// <summary>
@@ -410,7 +427,7 @@ namespace OfficeIMO.Word {
                             // converts Paragraph to WordParagraph
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
                                     foundCount = count;
                                 }
 
@@ -430,12 +447,17 @@ namespace OfficeIMO.Word {
                             // converts Table to WordTable
                             WordTable wordTable = new WordTable(_document, (Table)element);
                             dataSections[count].Add(wordTable);
+                        } else {
+                            // TODO: Implement other types
+                            Debug.WriteLine("Missing type? " + element.GetType().Name + ". Maybe lets add it?");
                         }
                     }
 
-                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                    if (sectionProperties == _sectionProperties) {
-                        foundCount = count;
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
+                            foundCount = count;
+                        }
                     }
                 }
             }
@@ -508,7 +530,7 @@ namespace OfficeIMO.Word {
                         if (element is Paragraph) {
                             Paragraph paragraph = (Paragraph)element;
                             if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (paragraph.ParagraphProperties.SectionProperties == _sectionProperties) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
                                     foundCount = count;
                                 }
 
@@ -520,9 +542,11 @@ namespace OfficeIMO.Word {
                         }
                     }
 
-                    var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                    if (sectionProperties == _sectionProperties) {
-                        foundCount = count;
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
+                            foundCount = count;
+                        }
                     }
                 }
             }
