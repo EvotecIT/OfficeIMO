@@ -28,7 +28,7 @@
     -->
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.MD</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
