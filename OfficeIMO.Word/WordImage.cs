@@ -706,15 +706,7 @@ namespace OfficeIMO.Word {
             this._Image = drawing;
         }
 
-        internal static WordImageLocation AddImageToLocation(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width = null,
-            double? height = null
-        ) {
-
+        internal static WordImageLocation AddImageToLocation(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width = null, double? height = null) {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
