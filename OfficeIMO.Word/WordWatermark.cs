@@ -261,7 +261,6 @@ namespace OfficeIMO.Word {
 
         private Shape _shape {
             get {
-
                 var shape = _picture.Descendants().OfType<Shape>().FirstOrDefault();
                 if (shape != null) {
                     return shape;
@@ -285,19 +284,18 @@ namespace OfficeIMO.Word {
                             }
                         }
                     }
-                }
-                return null;
-            }
-        }
-
-        private SdtContentBlock _sdtContentBlock {
-            get {
-                var sdtBlock = _sdtBlock;
-                if (sdtBlock != null) {
-                    var sdtContentBlock = sdtBlock.GetFirstChild<SdtContentBlock>();
-                    if (sdtContentBlock != null) {
-                        return sdtContentBlock;
+                } else if (_wordHeader != null) {
+                    var paragraph = _wordHeader._header.Descendants().OfType<Paragraph>().FirstOrDefault();
+                    if (paragraph != null) {
+                        var run = paragraph.Descendants().OfType<Run>().FirstOrDefault();
+                        if (run != null) {
+                            var picture = run.Descendants().OfType<Picture>().FirstOrDefault();
+                            if (picture != null) {
+                                return picture;
+                            }
+                        }
                     }
+
                 }
                 return null;
             }
@@ -677,7 +675,12 @@ namespace OfficeIMO.Word {
         }
 
         public void Remove() {
-            _sdtBlock.Remove();
+            if (_sdtBlock != null) {
+                _sdtBlock.Remove();
+            } else if (_wordHeader != null) {
+                // TODO: Add handling for watermark image
+                throw new NotImplementedException("Removing watermark from header is not implemented yet.");
+            }
         }
     }
 }

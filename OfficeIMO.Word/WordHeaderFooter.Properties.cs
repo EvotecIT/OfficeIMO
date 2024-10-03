@@ -160,6 +160,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// List of Watermarks in the Header/Footer
+        /// </summary>
         public List<WordWatermark> Watermarks {
             get {
                 if (_header != null) {
