@@ -4,11 +4,18 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 public partial class WordList : WordElement {
+    /// <summary>
+    /// Retrieves the <see cref="AbstractNum"/> associated with this list.
+    /// </summary>
     private AbstractNum GetAbstractNum() {
         return _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
             .Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
     }
 
+    /// <summary>
+    /// Gets the next available abstract numbering ID.
+    /// </summary>
+    /// <param name="numbering">The numbering definitions.</param>
     private static int GetNextAbstractNum(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<AbstractNum>()
@@ -17,6 +24,10 @@ public partial class WordList : WordElement {
         return ids.Count > 0 ? ids.Max() + 1 : 0;
     }
 
+    /// <summary>
+    /// Gets the next available numbering instance ID.
+    /// </summary>
+    /// <param name="numbering">The numbering definitions.</param>
     private static int GetNextNumberingInstance(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<NumberingInstance>()
@@ -25,6 +36,12 @@ public partial class WordList : WordElement {
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
 
+    /// <summary>
+    /// Gets a numbering property using a selector function.
+    /// </summary>
+    /// <typeparam name="T">The type of the property.</typeparam>
+    /// <param name="propertySelector">The selector function to extract the property.</param>
+    /// <param name="defaultValue">The default value if the property is not found.</param>
     private T GetNumberingProperty<T>(Func<NumberingSymbolRunProperties, T> propertySelector, T defaultValue = default) {
         var abstractNum = GetAbstractNum();
         var level = abstractNum?.Elements<Level>().FirstOrDefault();
@@ -37,6 +54,11 @@ public partial class WordList : WordElement {
         return defaultValue;
     }
 
+    /// <summary>
+    /// Sets a numbering property using the specified action.
+    /// </summary>
+    /// <param name="setProperty">The action to set the property.</param>
+    /// <param name="applyWhenNull">Indicates whether to apply the property when it is null.</param>
     private void SetNumberingProperty(Action<NumberingSymbolRunProperties> setProperty, bool applyWhenNull = false) {
         var abstractNum = GetAbstractNum();
         if (abstractNum != null) {
@@ -53,7 +75,10 @@ public partial class WordList : WordElement {
         }
     }
 
-
+    /// <summary>
+    /// Creates the numbering definitions part if it doesn't exist.
+    /// </summary>
+    /// <param name="document">The Word document.</param>
     private void CreateNumberingDefinition(WordDocument document) {
         var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
         if (numberingDefinitionsPart.Numbering == null) {
@@ -98,11 +123,21 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Creates a default numbering instance.
+    /// </summary>
+    /// <param name="abstractNumId">The abstract numbering ID.</param>
+    /// <param name="numberId">The numbering instance ID.</param>
     private NumberingInstance DefaultNumberingInstance(AbstractNumId abstractNumId, int numberId) {
         var numberingInstance = new NumberingInstance(abstractNumId) { NumberID = numberId };
         return numberingInstance;
     }
 
+    /// <summary>
+    /// Creates a numbering instance that restarts numbering after a break.
+    /// </summary>
+    /// <param name="abstractNumId">The abstract numbering ID.</param>
+    /// <param name="numberId">The numbering instance ID.</param>
     private NumberingInstance RestartNumberingInstance(AbstractNumId abstractNumId, int numberId) {
         NumberingInstance numberingInstance1 = new NumberingInstance(abstractNumId) { NumberID = numberId };
 
@@ -163,6 +198,10 @@ public partial class WordList : WordElement {
         return numberingInstance1;
     }
 
+    /// <summary>
+    /// Adds a list to the document with the specified style.
+    /// </summary>
+    /// <param name="style">The list style to apply.</param>
     internal void AddList(WordListStyle style) {
         CreateNumberingDefinition(_document);
         var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
