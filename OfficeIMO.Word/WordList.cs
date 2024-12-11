@@ -8,7 +8,7 @@ using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word;
 
-public class WordList {
+public class WordList : WordElement {
     private readonly WordprocessingDocument _wordprocessingDocument;
     private readonly WordDocument _document;
     // private readonly WordSection _section;

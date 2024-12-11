@@ -161,8 +161,49 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument"></param>
         /// <returns></returns>
         internal static SectionProperties AddSectionProperties(this WordprocessingDocument wordDocument) {
-            var sectionProperties = new SectionProperties();
+            var sectionProperties = CreateSectionProperties();
             wordDocument.MainDocumentPart.Document.Body.Append(sectionProperties);
+            return sectionProperties;
+        }
+
+        /// <summary>
+        /// Some documents might not have section properties with proper rsidR. This method will fix that.
+        /// Due to the nature of the rsidR, it is important to have unique rsidR for each section.
+        /// Otherwise, comparison of sections will not work properly.
+        /// </summary>
+        /// <param name="sectionProperties"></param>
+        /// <returns></returns>
+        internal static SectionProperties MakeSureSectionIsValid(this SectionProperties sectionProperties) {
+            if (sectionProperties.RsidR == null) {
+                sectionProperties.RsidR = GenerateRsid();
+            }
+
+            return sectionProperties;
+        }
+
+        /// <summary>
+        /// Generate a unique rsid
+        /// </summary>
+        /// <returns></returns>
+        internal static string GenerateRsid() {
+            // Generate a unique rsid using a GUID
+            return Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+        }
+
+        /// <summary>
+        /// Create a new section properties
+        /// </summary>
+        /// <returns></returns>
+        internal static SectionProperties CreateSectionProperties() {
+            SectionProperties sectionProperties = new SectionProperties() { RsidR = GenerateRsid() };
+
+            // Set the page size and margins
+            //PageSize pageSize = new PageSize() { Width = 12240, Height = 15840 }; // A4 size
+            //PageMargin pageMargin = new PageMargin() { Top = 1440, Right = 1440, Bottom = 1440, Left = 1440 }; // 1 inch margins
+
+            //sectionProperties.Append(pageSize);
+            //sectionProperties.Append(pageMargin);
+
             return sectionProperties;
         }
     }

@@ -1,8 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -11,7 +6,7 @@ namespace OfficeIMO.Word {
         Template2
     }
 
-    public class WordTableOfContent {
+    public class WordTableOfContent : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
 

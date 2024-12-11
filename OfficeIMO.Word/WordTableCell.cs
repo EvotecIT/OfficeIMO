@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -458,6 +453,29 @@ namespace OfficeIMO.Word {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());
             wordList.AddList(style);
             return wordList;
+        }
+
+        /// <summary>
+        /// Gets information whether the cell contains other nested tables
+        /// </summary>
+        public bool HasNestedTables {
+            get {
+                return _tableCell.Descendants<Table>().Count() > 0;
+            }
+        }
+
+        /// <summary>
+        /// Get all nested tables in the cell
+        /// </summary>
+        public List<WordTable> NestedTables {
+            get {
+                var listReturn = new List<WordTable>();
+                var list = _tableCell.Descendants<Table>().ToList();
+                foreach (var table in list) {
+                    listReturn.Add(new WordTable(this._document, table));
+                }
+                return listReturn;
+            }
         }
     }
 }

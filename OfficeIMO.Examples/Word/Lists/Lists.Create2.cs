@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -49,9 +49,7 @@ namespace OfficeIMO.Examples.Word {
             document.Save(outputStream);
             File.WriteAllBytes(filePath, outputStream.ToArray());
 
-            if (openWord) {
-                Helpers.Open(filePath, true);
-            }
+            Helpers.Open(filePath, openWord);
         }
     }
 }

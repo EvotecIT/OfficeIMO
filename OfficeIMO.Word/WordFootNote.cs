@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
-    public partial class WordFootNote {
+    public partial class WordFootNote : WordElement {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;

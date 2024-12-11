@@ -1,4 +1,5 @@
 using System.IO;
+
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 
@@ -15,20 +16,21 @@ namespace OfficeIMO.Examples {
             string folderPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            // BasicDocument.Example_BasicEmptyWord(folderPath, false);
-            // BasicDocument.Example_BasicWord(folderPath, false);
-            // BasicDocument.Example_BasicWord2(folderPath, false);
-            // BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
-            // BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
-            // BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
-            // BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
-            // BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
-            // BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
-            // BasicDocument.Example_BasicWordWithTabs(folderPath, false);
-            // BasicDocument.Example_BasicWordWithMargins(folderPath, false);
-            // BasicDocument.Example_BasicWordWithMarginsInCentimeters(folderPath, false);
-            // BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
-            // BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+            BasicDocument.Example_BasicEmptyWord(folderPath, false);
+            BasicDocument.Example_BasicWord(folderPath, false);
+            BasicDocument.Example_BasicWord2(folderPath, false);
+            BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
+            BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
+            BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
+            BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
+            BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
+            BasicDocument.Example_BasicWordWithTabs(folderPath, false);
+            BasicDocument.Example_BasicWordWithMargins(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsInCentimeters(folderPath, false);
+            BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
+            BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
+            BasicDocument.Example_BasicWordWithSomeParagraphs(folderPath, false);
 
             // AdvancedDocument.Example_AdvancedWord(folderPath, false);
             // AdvancedDocument.Example_AdvancedWord2(folderPath, false);
@@ -44,26 +46,27 @@ namespace OfficeIMO.Examples {
             // BasicDocument.Example_BasicDocumentSaveAs3(folderPath, false);
             // BasicDocument.Example_BasicDocumentWithoutUsing(folderPath, false);
 
-            // Lists.Example_BasicLists(folderPath, false);
-            // Lists.Example_BasicLists6(folderPath, false);
-            // Lists.Example_BasicLists2(folderPath, false);
-            // Lists.Example_BasicLists3(folderPath, false);
-            // Lists.Example_BasicLists9(folderPath, false);
-            // Lists.Example_BasicLists4(folderPath, false);
-            // Lists.Example_BasicLists2Load(folderPath, false);
-            // Lists.Example_BasicLists7(folderPath, false);
-            // Lists.Example_BasicLists8(folderPath, false);
-            //Lists.Example_CustomList1(folderPath, true);
-            Tables.Example_BasicTables1(folderPath, true);
-            // Tables.Example_BasicTablesLoad1(folderPath, false);
-            // Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
-            // Tables.Example_BasicTablesLoad3(templatesPath, false);
-            // Tables.Example_TablesWidthAndAlignment(folderPath, false);
-            // Tables.Example_AllTables(folderPath, false);
-            // Tables.Example_Tables(folderPath, false);
-            // Tables.Example_TableBorders(folderPath, false);
-            // Tables.Example_NestedTables(folderPath, false);
-            // Tables.Example_TablesAddedAfterParagraph(folderPath, false);
+            Lists.Example_BasicLists(folderPath, false);
+            Lists.Example_BasicLists6(folderPath, false);
+            Lists.Example_BasicLists2(folderPath, false);
+            Lists.Example_BasicLists3(folderPath, false);
+            Lists.Example_BasicLists9(folderPath, false);
+            Lists.Example_BasicLists4(folderPath, false);
+            Lists.Example_BasicLists2Load(folderPath, false);
+            Lists.Example_BasicLists7(folderPath, false);
+            Lists.Example_BasicLists8(folderPath, false);
+            Tables.Example_BasicTables1(folderPath, false);
+            Tables.Example_BasicTablesLoad1(folderPath, false);
+            Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
+            Tables.Example_BasicTablesLoad3(templatesPath, false);
+            Tables.Example_TablesWidthAndAlignment(folderPath, false);
+            Tables.Example_AllTables(folderPath, false);
+            Tables.Example_Tables(folderPath, false);
+            Tables.Example_TableBorders(folderPath, false);
+            Tables.Example_NestedTables(folderPath, false);
+            Tables.Example_TablesAddedAfterParagraph(folderPath, false);
+            Tables.Example_BasicTables8(folderPath, false);
+            Tables.Example_Tables1CopyRow(folderPath, false);
 
             // PageSettings.Example_BasicSettings(folderPath, false);
             // PageSettings.Example_PageOrientation(folderPath, false);
@@ -134,15 +137,17 @@ namespace OfficeIMO.Examples {
             // Fields.Example_DocumentWithFields(folderPath, false);
             // Fields.Example_DocumentWithFields02(folderPath, false);
 
-            // Watermark.Watermark_Sample2(folderPath, false);
-            // Watermark.Watermark_Sample1(folderPath, false);
-            // Watermark.Watermark_Sample3(folderPath, false);
+            Watermark.Watermark_Sample2(folderPath, false);
+            Watermark.Watermark_Sample1(folderPath, false);
+            Watermark.Watermark_Sample3(folderPath, false);
+            Watermark.Watermark_SampleImage1(folderPath, false);
 
-            // Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
-            // Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
-            // Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
-            // Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
-            // Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTML(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileRTFandHTMLandTOC(folderPath, templatesPath, false);
+            Embed.Example_EmbedFileMultiple(folderPath, templatesPath, false);
+            Embed.Example_EmbedHTMLFragment(folderPath, false);
 
             // CleanupDocuments.CleanupDocuments_Sample01(false);
             // CleanupDocuments.CleanupDocuments_Sample02(folderPath, false);

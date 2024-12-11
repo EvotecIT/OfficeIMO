@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         _blank
     }
 
-    public class WordHyperLink {
+    public class WordHyperLink : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         internal readonly Hyperlink _hyperlink;

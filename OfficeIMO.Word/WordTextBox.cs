@@ -1,15 +1,15 @@
-using System;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 
 namespace OfficeIMO.Word {
-    public class WordTextBox {
-        private WordDocument _document;
-        private WordParagraph _wordParagraph;
+    /// <summary>
+    /// WordTextBox class
+    /// </summary>
+    public class WordTextBox : WordElement {
+        private readonly WordDocument _document;
+        private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter _headerFooter;
         private Run _run => _wordParagraph._run;
 
@@ -40,6 +40,13 @@ namespace OfficeIMO.Word {
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
         }
 
+        /// <summary>
+        /// Create a text box in a header or footer
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="wordHeaderFooter"></param>
+        /// <param name="text"></param>
+        /// <param name="wrapTextImage"></param>
         public WordTextBox(WordDocument wordDocument, WordHeaderFooter wordHeaderFooter, string text, WrapTextImage wrapTextImage) {
             _document = wordDocument;
             _headerFooter = wordHeaderFooter;
@@ -51,6 +58,13 @@ namespace OfficeIMO.Word {
             _wordParagraph = paragraph;
         }
 
+        /// <summary>
+        /// Create a text box from an existing paragraph
+        /// </summary>
+        /// <param name="wordDocument"></param>
+        /// <param name="paragraph"></param>
+        /// <param name="text"></param>
+        /// <param name="wrapTextImage"></param>
         public WordTextBox(WordDocument wordDocument, WordParagraph paragraph, string text, WrapTextImage wrapTextImage) {
             _document = wordDocument;
 
@@ -61,49 +75,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Allows to set the text of the text box
-        /// For more advanced text formatting use WordParagraph property
+        /// Gets a list of WordParagraph instances representing the paragraphs in the text box.
+        /// Each WordParagraph is initialized with the WordDocument, the Paragraph, and the Run.
         /// </summary>
-        public string Text {
+        public List<WordParagraph> Paragraphs {
             get {
-                if (_sdtBlock != null) {
-
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
-                        if (text != null) {
-                            return text.Text;
-                        }
-                    }
+                if (_textBoxInfo2 != null) {
+                    return _textBoxInfo2.Descendants<Run>().Select(run => new WordParagraph(_document, _paragraph, run)).ToList();
                 }
-                return "";
-            }
-            set {
-                if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Run>();
-                    if (run != null) {
-                        var text = run.GetFirstChild<Text>();
-                        if (text != null) {
-                            text.Text = value;
-                        }
-                    }
-                }
+                return new List<WordParagraph>();
             }
         }
 
         /// <summary>
-        /// Allows to modify the paragraph of the text box, along with other text formatting
+        /// Gets or sets horizontal relative position of the text box
         /// </summary>
-        public WordParagraph WordParagraph {
-            get {
-                if (_sdtBlock != null) {
-                    var run = _sdtBlock.GetFirstChild<Run>();
-                    return new WordParagraph(_document, _sdtBlock, run);
-                }
-                return null;
-            }
-        }
-
         public HorizontalRelativePositionValues? HorizontalPositionRelativeFrom {
             get {
                 var anchor = _anchor;
@@ -135,16 +121,19 @@ namespace OfficeIMO.Word {
             set => WordWrapTextImage.SetWrapTextImage(_drawing, _anchor, _inline, value);
         }
 
-        public DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues HorizontalAlignment {
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the text box
+        /// </summary>
+        public WordHorizontalAlignmentValues HorizontalAlignment {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
                     if (horizontalPosition != null && horizontalPosition.HorizontalAlignment != null) {
-                        return GetHorizontalAlignmentFromText(horizontalPosition.HorizontalAlignment.Text);
+                        return HorizontalAlignmentHelper.FromString(horizontalPosition.HorizontalAlignment.Text);
                     }
                 }
-                return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
+                return WordHorizontalAlignmentValues.Center;
             }
             set {
                 var anchor = _anchor;
@@ -155,15 +144,18 @@ namespace OfficeIMO.Word {
                     }
                     if (horizontalPosition.HorizontalAlignment == null) {
                         horizontalPosition.HorizontalAlignment = new HorizontalAlignment() {
-                            Text = value.ToString().ToLower()
+                            Text = HorizontalAlignmentHelper.ToString(value)
                         };
                     } else {
-                        horizontalPosition.HorizontalAlignment.Text = value.ToString().ToLower();
+                        horizontalPosition.HorizontalAlignment.Text = HorizontalAlignmentHelper.ToString(value);
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Gets or sets the relative4 vertical alignment of the text box
+        /// </summary>
         public VerticalRelativePositionValues VerticalPositionRelativeFrom {
             get {
                 var anchor = _anchor;
@@ -216,7 +208,7 @@ namespace OfficeIMO.Word {
         /// Allows to set vertically position of the text box in twips (twentieths of a point)
         /// Please remember that this property will remove alignment of the text box and instead use Absolute position
         /// </summary>
-        public int? HorizonalPositionOffset {
+        public int? HorizontalPositionOffset {
             get {
                 var anchor = _anchor;
                 if (anchor != null) {
@@ -240,19 +232,18 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Allows to set horizontally position of the text box in centimeters
-        /// Please 
         /// </summary>
-        public double? HorizonalPositionOffsetCentimeters {
+        public double? HorizontalPositionOffsetCentimeters {
             get {
-                if (HorizonalPositionOffset != null) {
-                    return Helpers.ConvertEmusToCentimeters(HorizonalPositionOffset.Value);
+                if (HorizontalPositionOffset != null) {
+                    return Helpers.ConvertEmusToCentimeters(HorizontalPositionOffset.Value);
                 }
 
                 return null;
             }
             set {
                 if (value != null) {
-                    HorizonalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
+                    HorizontalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
                 }
             }
         }
@@ -276,6 +267,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the relative width percentage
+        /// </summary>
         public int? RelativeWidthPercentage {
             get {
                 var anchor = _anchor;
@@ -319,6 +313,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the relative height percentage
+        /// </summary>
         public int? RelativeHeightPercentage {
             get {
                 var anchor = _anchor;
@@ -362,16 +359,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public TextBodyProperties TextBodyProperties {
-            get {
-                return _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
-            }
-        }
+        /// <summary>
+        /// Gets text body properties
+        /// </summary>
+        public TextBodyProperties TextBodyProperties => _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
 
+        /// <summary>
+        /// Gets or sets auto-fit to text size
+        /// </summary>
         public bool AutoFitToTextSize {
-            get {
-                return TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().Any();
-            }
+            get => TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().Any();
             set {
                 TextBodyProperties.RemoveChild(TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().FirstOrDefault());
                 if (value) {
@@ -382,6 +379,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Sets size relative horizontally
+        /// </summary>
         public DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues? SizeRelativeHorizontally {
             get {
                 var anchor = _anchor;
@@ -400,6 +400,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Width of the text box
+        /// </summary>
         public Int64 Width {
             get {
                 var anchor = _anchor;
@@ -428,6 +431,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Height of the text box
+        /// </summary>
         public Int64 Height {
             get {
                 var anchor = _anchor;
@@ -456,21 +462,29 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Width of the text box in centimeters
+        /// Sets the width of the text box in centimeters
+        /// Sets the relative width percentage to 0 as it seems to be required
+        /// </summary>
         public double WidthCentimeters {
-            get {
-                return Helpers.ConvertEmusToCentimeters(Width);
-            }
+            get => Helpers.ConvertEmusToCentimeters(Width);
             set {
                 Width = Helpers.ConvertCentimetersToEmusInt64(value);
+                RelativeWidthPercentage = 0;
             }
         }
 
+        /// <summary>
+        /// Height of the text box in centimeters
+        /// Sets the height of the text box in centimeters
+        /// Sets the relative height percentage to 0 as it seems to be required
+        /// </summary>
         public double HeightCentimeters {
-            get {
-                return Helpers.ConvertEmusToCentimeters(Height);
-            }
+            get => Helpers.ConvertEmusToCentimeters(Height);
             set {
                 Height = Helpers.ConvertCentimetersToEmusInt64(value);
+                RelativeHeightPercentage = 0;
             }
         }
 
@@ -622,12 +636,23 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Paragraph _sdtBlock {
+        private TextBoxInfo2 _textBoxInfo2 {
             get {
                 var wordprocessingShape = _wordprocessingShape;
                 if (wordprocessingShape != null) {
+                    var textBoxInfo = wordprocessingShape.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();
+                    if (textBoxInfo != null) {
+                        return textBoxInfo;
+                    }
+                }
+                return null;
+            }
+        }
 
-
+        private Paragraph _paragraph {
+            get {
+                var wordprocessingShape = _wordprocessingShape;
+                if (wordprocessingShape != null) {
                     var textBoxInfo = wordprocessingShape.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();
                     if (textBoxInfo != null) {
                         var textBoxContent = textBoxInfo.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>();
@@ -646,7 +671,7 @@ namespace OfficeIMO.Word {
 
         private SdtContentBlock _sdtContentBlock {
             get {
-                var sdtBlock = _sdtBlock;
+                var sdtBlock = _paragraph;
                 if (sdtBlock != null) {
                     var sdtContentBlock = sdtBlock.GetFirstChild<SdtContentBlock>();
                     if (sdtContentBlock != null) {
@@ -885,6 +910,11 @@ namespace OfficeIMO.Word {
             return anchor1;
         }
 
+        /// <summary>
+        /// Generates TextBoxContent from text
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
         public TextBoxContent GenerateTextBoxContent(string text) {
             TextBoxContent textBoxContent1 = new TextBoxContent();
 
@@ -915,27 +945,6 @@ namespace OfficeIMO.Word {
             textBoxContent1.Append(paragraph1);
             return textBoxContent1;
         }
-
-        /// <summary>
-        /// Helps to translate text to HorizontalAlignment
-        /// </summary>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        private DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues GetHorizontalAlignmentFromText(string text) {
-            switch (text.ToLower()) {
-                case "left":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Left;
-                case "right":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Right;
-                case "center":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
-                case "outside":
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Outside;
-                default:
-                    return DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignmentValues.Center;
-            }
-        }
-
 
         private ShapeProperties GenerateShapeProperties() {
             ShapeProperties shapeProperties1 = new ShapeProperties() { BlackWhiteMode = DocumentFormat.OpenXml.Drawing.BlackWhiteModeValues.Auto };
@@ -974,8 +983,6 @@ namespace OfficeIMO.Word {
 
             shapeProperties1.Append(transform2D1);
             shapeProperties1.Append(presetGeometry1);
-            //shapeProperties1.Append(solidFill1);
-            //shapeProperties1.Append(outline1);
             return shapeProperties1;
         }
 
@@ -1009,7 +1016,9 @@ namespace OfficeIMO.Word {
             return shapeStyle1;
         }
 
-
+        /// <summary>
+        /// Removes the text box from the document along with the paragraph
+        /// </summary>
         public void Remove() {
             if (this._wordParagraph != null) {
                 this._wordParagraph.Remove();

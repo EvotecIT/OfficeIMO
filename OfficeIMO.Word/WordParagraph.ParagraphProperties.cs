@@ -306,5 +306,28 @@ namespace OfficeIMO.Word {
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
+        /// </summary>
+        public VerticalPositionValues? VerticalTextAlignment {
+            get {
+                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
+                    return _runProperties.VerticalTextAlignment.Val;
+                }
+                return null;
+            }
+            set {
+                _runProperties ??= new RunProperties();
+                if (value == null) {
+                    if (_runProperties.VerticalTextAlignment == null) {
+                        return;
+                    }
+                    _runProperties.VerticalTextAlignment = null;
+                } else {
+                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                }
+            }
+        }
     }
 }

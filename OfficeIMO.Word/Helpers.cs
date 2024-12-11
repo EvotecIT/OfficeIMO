@@ -57,37 +57,29 @@ namespace OfficeIMO.Word {
         /// <param name="fileName"></param>
         /// <returns></returns>
         public static bool IsFileLocked(this string fileName) {
-            try {
-                var file = new FileInfo(fileName);
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
-                    stream.Close();
-                }
-            } catch (IOException) {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                return true;
+            if (string.IsNullOrEmpty(fileName)) {
+                return false;
             }
-
-            //file is not locked
-            return false;
+            if (!File.Exists(fileName)) {
+                return false;
+            }
+            return IsFileLocked(new FileInfo(fileName));
         }
 
-        internal static ImageСharacteristics GetImageСharacteristics(Stream imageStream) {
+        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream) {
             using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
             imageStream.Position = 0;
             var type = ConvertToImagePartType(imageFormat);
-            return new ImageСharacteristics(img.Width, img.Height, type);
+            return new ImageCharacteristics(img.Width, img.Height, type);
         }
 
-        private static ImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
+        private static CustomImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
             imageFormat.Name switch {
-                "BMP" => ImagePartType.Bmp,
-                "GIF" => ImagePartType.Gif,
-                "JPEG" => ImagePartType.Jpeg,
-                "PNG" => ImagePartType.Png,
-                "TIFF" => ImagePartType.Tiff,
+                "BMP" => CustomImagePartType.Bmp,
+                "GIF" => CustomImagePartType.Gif,
+                "JPEG" => CustomImagePartType.Jpeg,
+                "PNG" => CustomImagePartType.Png,
+                "TIFF" => CustomImagePartType.Tiff,
                 _ => throw new ImageFormatNotSupportedException($"Image format not supported: {imageFormat.Name}.")
             };
 
@@ -211,5 +203,5 @@ namespace OfficeIMO.Word {
         }
     }
 
-    internal record ImageСharacteristics(double Width, double Height, ImagePartType Type);
+    internal record ImageCharacteristics(double Width, double Height, CustomImagePartType Type);
 }
