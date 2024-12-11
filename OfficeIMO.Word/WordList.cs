@@ -19,7 +19,7 @@ public partial class WordList : WordElement {
     private readonly WordHeaderFooter _headerFooter;
 
     /// <summary>
-    /// This provides a way to set items to be treated with heading style during load
+    /// Indicates whether the list is treated as a Table of Contents (TOC).
     /// </summary>
     public bool IsToc {
         get {
@@ -29,6 +29,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets all the list items associated with this WordList.
+    /// </summary>
     public List<WordParagraph> ListItems {
         get {
             List<WordParagraph> list = new List<WordParagraph>();
@@ -190,11 +193,8 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Exposes the numbering properties of the list allowing for customizations of lists
+    /// Exposes the numbering properties of the list, allowing for customization.
     /// </summary>
-    /// <value>
-    /// The numbering.
-    /// </value>
     public WordListNumbering Numbering {
         get {
             var abstractNum = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
@@ -204,6 +204,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols are bold.
+    /// </summary>
     public bool Bold {
         get { return GetNumberingProperty<bool>(props => props.Elements<Bold>().Any(), false); }
         set {
@@ -218,6 +221,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the font size of the numbering symbols in points.
+    /// </summary>
     public int? FontSize {
         get {
             return GetNumberingProperty<int?>(props => {
@@ -240,6 +246,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the color of the numbering symbols.
+    /// </summary>
     public SixLabors.ImageSharp.Color? Color {
         get {
             if (ColorHex == "") {
@@ -256,6 +265,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the hexadecimal color value of the numbering symbols.
+    /// </summary>
     public string ColorHex {
         get {
             return GetNumberingProperty<string>(props => {
@@ -275,6 +287,9 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols are italicized.
+    /// </summary>
     public bool Italic {
         get => GetNumberingProperty(props => props.Elements<Italic>().Any(), false);
         set => SetNumberingProperty(props => {
@@ -287,6 +302,9 @@ public partial class WordList : WordElement {
         }, value);
     }
 
+    /// <summary>
+    /// Gets or sets the underline style of the numbering symbols.
+    /// </summary>
     public UnderlineValues? Underline {
         get => GetNumberingProperty<UnderlineValues?>(props =>
             props.Elements<Underline>().FirstOrDefault()?.Val);
@@ -298,6 +316,9 @@ public partial class WordList : WordElement {
         }, value.HasValue);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols have a strikethrough.
+    /// </summary>
     public bool Strike {
         get => GetNumberingProperty(props => props.Elements<Strike>().Any(), false);
         set => SetNumberingProperty(props => {
@@ -308,6 +329,9 @@ public partial class WordList : WordElement {
         }, value);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols have a double strikethrough.
+    /// </summary>
     public bool DoubleStrike {
         get => GetNumberingProperty(props => props.Elements<DoubleStrike>().Any(), false);
         set => SetNumberingProperty(props => {
@@ -318,6 +342,9 @@ public partial class WordList : WordElement {
         }, value);
     }
 
+    /// <summary>
+    /// Gets or sets the font name of the numbering symbols.
+    /// </summary>
     public string FontName {
         get => GetNumberingProperty<string>(props =>
             props.Elements<RunFonts>().FirstOrDefault()?.Ascii);
@@ -329,6 +356,11 @@ public partial class WordList : WordElement {
         }, !string.IsNullOrEmpty(value));
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="isToc">Indicates if the list should be treated as a TOC.</param>
     public WordList(WordDocument wordDocument, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -337,6 +369,12 @@ public partial class WordList : WordElement {
         // section.Lists.Add(this);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class with a starting paragraph.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="paragraph">The starting paragraph.</param>
+    /// <param name="isToc">Indicates if the list should be treated as a TOC.</param>
     public WordList(WordDocument wordDocument, WordParagraph paragraph, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -346,7 +384,11 @@ public partial class WordList : WordElement {
         // section.Lists.Add(this);
     }
 
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class with a specific number ID.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="numberId">The numbering ID.</param>
     public WordList(WordDocument wordDocument, int numberId) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -354,16 +396,34 @@ public partial class WordList : WordElement {
         _numberId = numberId;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class for headers and footers.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="headerFooter">The header or footer.</param>
     public WordList(WordDocument wordDocument, WordHeaderFooter headerFooter) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         _headerFooter = headerFooter;
     }
 
+    /// <summary>
+    /// Adds an item to the list using an existing paragraph.
+    /// </summary>
+    /// <param name="wordParagraph">The paragraph to add.</param>
+    /// <param name="level">The list level.</param>
+    /// <returns>The added <see cref="WordParagraph"/>.</returns>
     public WordParagraph AddItem(WordParagraph wordParagraph, int level = 0) {
         return AddItem(null, level, wordParagraph);
     }
 
+    /// <summary>
+    /// Adds an item to the list with specified text.
+    /// </summary>
+    /// <param name="text">The text of the list item.</param>
+    /// <param name="level">The list level.</param>
+    /// <param name="wordParagraph">An optional existing paragraph.</param>
+    /// <returns>The added <see cref="WordParagraph"/>.</returns>
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
         if (wordParagraph != null) {
             wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
@@ -443,7 +503,10 @@ public partial class WordList : WordElement {
 
         return wordParagraph;
     }
-    
+
+    /// <summary>
+    /// Removes the list and its items from the document.
+    /// </summary>
     public void Remove() {
         // Get the Numbering part from the document
         var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
@@ -466,6 +529,10 @@ public partial class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Merges another list into this list.
+    /// </summary>
+    /// <param name="documentList">The list to merge.</param>
     public void Merge(WordList documentList) {
         // Reattach all items from the other list to this list
         foreach (var item in documentList.ListItems) {
