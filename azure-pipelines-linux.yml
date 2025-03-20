@@ -1,7 +1,3 @@
-# Build and run tests for .NET Desktop or Windows classic desktop solutions.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
-
 trigger:
   batch: true
   branches:
@@ -37,33 +33,13 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  #DotNet3Version: '3.x'
-  DotNet6Version: '6.x'
-  DotNet7Version: '7.x'
   DotNet8Version: '8.x'
+  DotNet9Version: '9.x'
   MSBuildArgs: '"/p:Platform=$(BuildPlatform)" "/p:Configuration=$(BuildConfiguration)" "/BinaryLogger:$(Build.SourcesDirectory)\$(ArtifactsDirectoryName)\msbuild.binlog"'
 
 steps:
 - task: NuGetToolInstaller@1
   displayName: 'Install Nuget Tool Installer'
-
-#- script: |
-#    brew update
-#    brew tap caskroom/cask
-#    brew install mono-libgdiplus
-#  displayName: "Install Mono-libgdiplus"
-
-- task: UseDotNet@2
-  displayName: 'Install .NET 6.0'
-  inputs:
-    packageType: 'sdk'
-    version: '6.0.x'
-
-- task: UseDotNet@2
-  displayName: 'Install .NET 7.0'
-  inputs:
-    packageType: 'sdk'
-    version: '7.0.x'
 
 - task: UseDotNet@2
   displayName: 'Install .NET 8.0'
@@ -71,23 +47,17 @@ steps:
     packageType: 'sdk'
     version: '8.0.x'
 
-#- task: UseDotNet@2
-#  displayName: Install .NET 3.1
-#  inputs:
-#    version: '3.1.x'
-#    packageType: sdk
-#    includePreviewVersions: false
+- task: UseDotNet@2
+  displayName: 'Install .NET 9.0'
+  inputs:
+    packageType: 'sdk'
+    version: '9.0.x'
 
 # Add a Command To List the Current .NET SDKs (Sanity Check)
 - task: CmdLine@2
   displayName: 'List available .NET SDKs'
   inputs:
     script: 'dotnet --list-sdks'
-
-# - task: NuGetCommand@2
-#   displayName: Install Nuget Packages
-#   inputs:
-#     restoreSolution: '$(solution)'
 
 - task: DotNetCoreCLI@2
   displayName: 'Install Nuget Packages'
@@ -103,41 +73,6 @@ steps:
       dotnet tool install -g dotnet-reportgenerator-globaltool
   continueOnError: true
 
-#- task: DotNetCoreCLI@2
-#  displayName: 'Run Tests'
-#  inputs:
-#    command: 'test'
-#    arguments: '--configuration $(buildConfiguration) --collect:"Xplat Code Coverage"'
-#    publishTestResults: true
-#    projects: '**/*.Tests.csproj'
-
-#- task: DotNetCoreCLI@2
-#  displayName: 'Run Unit Tests (.NET 3.1)'
-#  inputs:
-#    command: 'test'
-#    arguments: '--framework netcoreapp3.1 /noautorsp'
-#    testRunTitle: 'Linux .NET 3.1'
-#  condition: succeededOrFailed()
-
-- task: DotNetCoreCLI@2
-  displayName: 'Run Unit Tests (.NET 6.0)'
-  inputs:
-    command: 'test'
-    arguments: '--framework net6.0 /noautorsp'
-    testRunTitle: 'Linux .NET 6.0'
-  condition: succeededOrFailed()
-
-- task: DotNetCoreCLI@2
-  displayName: 'Run Unit Tests (.NET 7.0)'
-  inputs:
-    command: 'test'
-    arguments: '--framework net7.0 /noautorsp'
-    testRunTitle: 'Linux .NET 7.0'
-    projects: |
-      **/*.Tests.csproj
-      !**/OfficeIMO.VerifyTests.csproj
-  condition: succeededOrFailed()
-
 - task: DotNetCoreCLI@2
   displayName: 'Run Unit Tests (.NET 8.0)'
   inputs:
@@ -146,8 +81,10 @@ steps:
     testRunTitle: 'Linux .NET 8.0'
   condition: succeededOrFailed()
 
-#- task: PublishCodeCoverageResults@1
-#  displayName: 'Publish Code Coverage Report'
-#  inputs:
-#    codeCoverageTool: 'Cobertura'
-#    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+- task: DotNetCoreCLI@2
+  displayName: 'Run Unit Tests (.NET 9.0)'
+  inputs:
+    command: 'test'
+    arguments: '--framework net9.0 /noautorsp'
+    testRunTitle: 'Linux .NET 9.0'
+  condition: succeededOrFailed()

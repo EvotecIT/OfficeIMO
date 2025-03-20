@@ -1,7 +1,3 @@
-# Build and run tests for .NET Desktop or Windows classic desktop solutions.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
-
 trigger:
   batch: true
   branches:
@@ -43,29 +39,16 @@ steps:
   displayName: 'Install Nuget Tool Installer'
 
 - task: UseDotNet@2
-  displayName: 'Install .NET 6.0'
-  inputs:
-    packageType: 'sdk'
-    version: '6.0.x'
-
-- task: UseDotNet@2
-  displayName: 'Install .NET 7.0'
-  inputs:
-    packageType: 'sdk'
-    version: '7.0.x'
-
-- task: UseDotNet@2
   displayName: 'Install .NET 8.0'
   inputs:
     packageType: 'sdk'
     version: '8.0.x'
 
-#- task: UseDotNet@2
-#  displayName: Install .NET 3.1
-#  inputs:
-#    version: '3.1.x'
-#    packageType: sdk
-#    includePreviewVersions: false
+- task: UseDotNet@2
+  displayName: 'Install .NET 9.0'
+  inputs:
+    packageType: 'sdk'
+    version: '9.0.x'
 
 # Add a Command To List the Current .NET SDKs (Sanity Check)
 - task: CmdLine@2
@@ -85,17 +68,6 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-# - task: VSTest@2
-#   displayName: Run Tests .NET Framework
-#   inputs:
-#     testSelector: 'testAssemblies'
-#     testAssemblyVer2: |
-#       **\*OfficeIMO.Tests.dll
-#     searchFolder: '$(System.DefaultWorkingDirectory)'
-#     publishRunAttachments: true
-#     codeCoverageEnabled: true
-#     runSettingsFile: CodeCoverage.runsettings
-
 - task: DotNetCoreCLI@2
   displayName: 'Run Tests'
   inputs:
@@ -106,9 +78,3 @@ steps:
       **/*.Tests.csproj
       !**/OfficeIMO.VerifyTests.csproj
     testRunTitle: 'Windows Test Run $(buildConfiguration), CPU: $(buildPlatform)'
-
-# - task: PublishCodeCoverageResults@1
-#   displayName: 'Publish Code Coverage Report'
-#   inputs:
-#     codeCoverageTool: 'Cobertura'
-#     summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
