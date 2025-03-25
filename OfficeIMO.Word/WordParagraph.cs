@@ -130,6 +130,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordPicture Picture {
+            get {
+                if (_run != null) {
+                    var picture = _run.ChildElements.OfType<Picture>().FirstOrDefault();
+                    if (picture != null) {
+                        return new WordPicture(_document, _paragraph, _run);
+                    }
+                }
+            }
+        }
+
         public bool IsListItem {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
