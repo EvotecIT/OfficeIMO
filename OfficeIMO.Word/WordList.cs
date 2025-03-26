@@ -269,83 +269,76 @@ public class WordList : WordElement {
     }
 
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
-        if (wordParagraph != null) {
-            wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
-            wordParagraph._paragraphProperties.Append(
-                new NumberingProperties(
-                    new NumberingLevelReference { Val = level },
-                    new NumberingId { Val = _numberId }
-                ));
-            if (text != null) {
-                wordParagraph.Text = text;
-            }
-        } else {
-            var paragraph = new Paragraph();
-            var run = new Run();
-            run.Append(new RunProperties());
-            run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
+        var paragraph = new Paragraph();
+        var run = new Run();
+        run.Append(new RunProperties());
+        run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
 
-            var paragraphProperties = new ParagraphProperties();
-            paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
-            paragraphProperties.Append(
-                new NumberingProperties(
-                    new NumberingLevelReference { Val = level },
-                    new NumberingId { Val = _numberId }
-                ));
-            paragraph.Append(paragraphProperties);
-            paragraph.Append(run);
+        var paragraphProperties = new ParagraphProperties();
+        paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+        paragraphProperties.Append(
+            new NumberingProperties(
+                new NumberingLevelReference { Val = level },
+                new NumberingId { Val = _numberId }
+            ));
+        paragraph.Append(paragraphProperties);
+        paragraph.Append(run);
 
-            if (_wordParagraph != null) {
-
-                if (this.ListItems.Count > 0) {
-                    var lastItem = this.ListItems.Last();
-                    var allElements = lastItem._paragraph.Parent.ChildElements.OfType<Paragraph>();
-                    if (allElements.Count() > 0) {
-                        var lastParagraph = allElements.Last();
-                        lastParagraph.Parent.Append(paragraph);
-                    }
+        // Determine where to insert the new paragraph
+        if (_wordParagraph != null) {
+            if (this.ListItems.Count > 0) {
+                var lastItem = this.ListItems.Last();
+                var allElements = lastItem._paragraph.Parent.ChildElements.OfType<Paragraph>();
+                if (allElements.Count() > 0) {
+                    var lastParagraph = allElements.Last();
+                    lastParagraph.Parent.Append(paragraph);
+                }
+            } else {
+                // First item in the list - use the reference paragraph
+                if (wordParagraph != null && !wordParagraph.IsListItem) {
+                    wordParagraph._paragraph.InsertAfterSelf(paragraph);
                 } else {
                     var allElements = _wordParagraph._paragraph.Parent.ChildElements.OfType<Paragraph>();
                     var lastElement = allElements.Last();
                     lastElement.Parent.Append(paragraph);
                 }
-
-                // _wordParagraph._paragraph.Append(paragraph);
-            } else {
-                if (this.ListItems.Count > 0) {
-                    var lastItem = this.ListItems.Last();
-                    var allElementsAfter = lastItem._paragraph.ElementsAfter();
-                    if (allElementsAfter.Count() > 0) {
-                        var lastParagraph = allElementsAfter.Last();
-                        lastParagraph.InsertAfterSelf(paragraph);
-                    } else {
-                        lastItem._paragraph.InsertAfterSelf(paragraph);
-                    }
+            }
+        } else {
+            if (this.ListItems.Count > 0) {
+                var lastItem = this.ListItems.Last();
+                var allElementsAfter = lastItem._paragraph.ElementsAfter();
+                if (allElementsAfter.Count() > 0) {
+                    var lastParagraph = allElementsAfter.Last();
+                    lastParagraph.InsertAfterSelf(paragraph);
                 } else {
-                    if (_headerFooter != null && _headerFooter._header != null) {
-                        _headerFooter._header.Append(paragraph);
-                    } else if (_headerFooter != null && _headerFooter._footer != null) {
-                        _headerFooter._footer.Append(paragraph);
-                    } else {
-                        _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
-                    }
+                    lastItem._paragraph.InsertAfterSelf(paragraph);
+                }
+            } else {
+                if (_headerFooter != null && _headerFooter._header != null) {
+                    _headerFooter._header.Append(paragraph);
+                } else if (_headerFooter != null && _headerFooter._footer != null) {
+                    _headerFooter._footer.Append(paragraph);
+                } else {
+                    _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
                 }
             }
-            wordParagraph = new WordParagraph(_document, paragraph, run) {
-                Text = text
-            };
         }
 
-        // this simplifies TOC for user usage
+        var newParagraph = new WordParagraph(_document, paragraph, run);
+        if (text != null) {
+            newParagraph.Text = text;
+        }
+
+        // Handle TOC styling
         if (_isToc || IsToc) {
-            wordParagraph.Style = WordParagraphStyle.GetStyle(level);
+            newParagraph.Style = WordParagraphStyle.GetStyle(level);
         }
 
         if (_wordParagraph == null) {
-            _wordParagraph = wordParagraph;
+            _wordParagraph = newParagraph;
         }
 
-        return wordParagraph;
+        return newParagraph;
     }
 
     private static int GetNextAbstractNum(Numbering numbering) {
