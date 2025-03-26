@@ -620,8 +620,8 @@ public partial class Word {
             // Verify order
             Assert.Equal("First", document.Paragraphs[0].Text);
             Assert.Equal("Important", document.Paragraphs[1].Text);
-            Assert.Equal("List", document.Paragraphs[2].Text);
-            Assert.Equal("Last", document.Paragraphs[3].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
 
             document.Save(false);
         }
@@ -630,8 +630,8 @@ public partial class Word {
         using (var document = WordDocument.Load(filePath)) {
             Assert.Equal("First", document.Paragraphs[0].Text);
             Assert.Equal("Important", document.Paragraphs[1].Text);
-            Assert.Equal("List", document.Paragraphs[2].Text);
-            Assert.Equal("Last", document.Paragraphs[3].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
         }
     }
 }
