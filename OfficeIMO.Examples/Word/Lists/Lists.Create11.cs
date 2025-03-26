@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 var list = first.AddList(WordListStyle.Bulleted);
                 Console.WriteLine("   - Adding first list item: 'Important'");
                 list.AddItem("Important", 0, first);
-                Console.WriteLine("   - Adding second list item: 'List'");
+                Console.WriteLine("   - Adding second list item: 'List', which will be added to the list, but after last paragraph.");
                 list.AddItem("List");
 
                 Console.WriteLine("\nFinal document structure:");
