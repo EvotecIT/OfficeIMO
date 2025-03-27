@@ -32,9 +32,11 @@ namespace OfficeIMO.Examples.Word {
                 wordList3.AddItem("Text 3");
                 wordList3.AddItem("Text 3.1");
                 wordList3.AddItem("Text 3.2");
+
+                document.AddParagraph("Some paragraph");
+
                 wordList3.AddItem("Text 3.3");
                 wordList3.AddItem("Text 3.4");
-
 
                 document.Save(openWord);
             }
