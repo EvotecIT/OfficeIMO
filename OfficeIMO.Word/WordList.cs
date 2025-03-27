@@ -63,7 +63,7 @@ public class WordList : WordElement {
     //    get {
     //        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
     //        var abstractNumList = numbering.ChildElements.OfType<AbstractNum>();
-    //        foreach (AbstractNum abstractNum in abstractNumList) {
+    //        foreach (var abstractNum in abstractNumList) {
     //            if (abstractNum.AbstractNumberId == _abstractId) {
     //                return abstractNum;
     //            }
@@ -284,44 +284,35 @@ public class WordList : WordElement {
         paragraph.Append(paragraphProperties);
         paragraph.Append(run);
 
-        // Determine where to insert the new paragraph
-        if (_wordParagraph != null) {
+        // Determine proper placement for the paragraph
+        if (wordParagraph != null) {
+            // If a specific paragraph reference is provided, insert after it
+            wordParagraph._paragraph.InsertAfterSelf(paragraph);
+        } else if (this.ListItems.Count == 0 && _wordParagraph != null) {
+            // First item in a paragraph-referenced list - insert after reference paragraph
+            _wordParagraph._paragraph.InsertAfterSelf(paragraph);
+        } else if (_isToc || IsToc) {
+            // TOC list items should be placed at the end of the document
+            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+        } else if (_headerFooter != null) {
+            // Header/footer list items
+            if (_headerFooter._header != null) {
+                _headerFooter._header.Append(paragraph);
+            } else if (_headerFooter._footer != null) {
+                _headerFooter._footer.Append(paragraph);
+            }
+        } else if (_wordParagraph != null && _wordParagraph._paragraph.Parent is TableCell) {
+            // Handle table cell lists
+            var parent = _wordParagraph._paragraph.Parent;
             if (this.ListItems.Count > 0) {
                 var lastItem = this.ListItems.Last();
-                var allElements = lastItem._paragraph.Parent.ChildElements.OfType<Paragraph>();
-                if (allElements.Count() > 0) {
-                    var lastParagraph = allElements.Last();
-                    lastParagraph.Parent.Append(paragraph);
-                }
+                lastItem._paragraph.InsertAfterSelf(paragraph);
             } else {
-                // First item in the list - use the reference paragraph
-                if (wordParagraph != null && !wordParagraph.IsListItem) {
-                    wordParagraph._paragraph.InsertAfterSelf(paragraph);
-                } else {
-                    var allElements = _wordParagraph._paragraph.Parent.ChildElements.OfType<Paragraph>();
-                    var lastElement = allElements.Last();
-                    lastElement.Parent.Append(paragraph);
-                }
+                parent.Append(paragraph);
             }
         } else {
-            if (this.ListItems.Count > 0) {
-                var lastItem = this.ListItems.Last();
-                var allElementsAfter = lastItem._paragraph.ElementsAfter();
-                if (allElementsAfter.Count() > 0) {
-                    var lastParagraph = allElementsAfter.Last();
-                    lastParagraph.InsertAfterSelf(paragraph);
-                } else {
-                    lastItem._paragraph.InsertAfterSelf(paragraph);
-                }
-            } else {
-                if (_headerFooter != null && _headerFooter._header != null) {
-                    _headerFooter._header.Append(paragraph);
-                } else if (_headerFooter != null && _headerFooter._footer != null) {
-                    _headerFooter._footer.Append(paragraph);
-                } else {
-                    _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
-                }
-            }
+            // For standard lists without specific placement, add at the end
+            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
         }
 
         var newParagraph = new WordParagraph(_document, paragraph, run);
@@ -332,10 +323,6 @@ public class WordList : WordElement {
         // Handle TOC styling
         if (_isToc || IsToc) {
             newParagraph.Style = WordParagraphStyle.GetStyle(level);
-        }
-
-        if (_wordParagraph == null) {
-            _wordParagraph = newParagraph;
         }
 
         return newParagraph;
