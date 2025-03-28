@@ -5,7 +5,13 @@
 
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "nuget"
+    directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "PrzemyslawKlys"
+    labels:
+      - "dependencies"
+      - "automated"
