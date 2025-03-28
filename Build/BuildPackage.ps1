@@ -2,6 +2,8 @@
     $SolutionRoot = "$PSScriptRoot\.."
 )
 
+Import-Module PSPublishModule
+
 $SolutionPath = [io.path]::Combine($SolutionRoot, 'OfficeImo.sln')
 if (-not $SolutionRoot -or -not (Test-Path -Path $SolutionPath)) {
     Write-Host -Object "Solution not found at $SolutionPath" -ForegroundColor Red

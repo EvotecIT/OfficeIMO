@@ -32,6 +32,44 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets all the list items associated with this WordList.
     /// </summary>
+    //private string NsidId {
+    //    get {
+    //        if (AbstractNum == null) {
+    //            return null;
+    //        }
+
+    //        return AbstractNum.Nsid.Val;
+
+    //    }
+    //    set {
+    //        if (AbstractNum != null) {
+    //            AbstractNum.Nsid.Val = value;
+    //        }
+    //    }
+    //}
+
+    //private string GenerateNsidId() {
+    //    // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.nsid?view=openxml-2.8.1
+    //    // Specifies a number value specified as a four digit hexadecimal number),
+    //    // whose contents of this decimal number are interpreted based on the context of the parent XML element.
+    //    // for example FFFFFF89 or D9842532
+    //    return Guid.NewGuid().ToString().ToUpper().Substring(0, 8);
+
+    //}
+
+    //private AbstractNum AbstractNum {
+    //    get {
+    //        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+    //        var abstractNumList = numbering.ChildElements.OfType<AbstractNum>();
+    //        foreach (var abstractNum in abstractNumList) {
+    //            if (abstractNum.AbstractNumberId == _abstractId) {
+    //                return abstractNum;
+    //            }
+    //        }
+
+    //        return null;
+    //    }
+    //}
     public List<WordParagraph> ListItems {
         get {
             List<WordParagraph> list = new List<WordParagraph>();
@@ -425,83 +463,63 @@ public partial class WordList : WordElement {
     /// <param name="wordParagraph">An optional existing paragraph.</param>
     /// <returns>The added <see cref="WordParagraph"/>.</returns>
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
+        var paragraph = new Paragraph();
+        var run = new Run();
+        run.Append(new RunProperties());
+        run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
+
+        var paragraphProperties = new ParagraphProperties();
+        paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+        paragraphProperties.Append(
+            new NumberingProperties(
+                new NumberingLevelReference { Val = level },
+                new NumberingId { Val = _numberId }
+            ));
+        paragraph.Append(paragraphProperties);
+        paragraph.Append(run);
+
+        // Determine proper placement for the paragraph
         if (wordParagraph != null) {
-            wordParagraph._paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
-            wordParagraph._paragraphProperties.Append(
-                new NumberingProperties(
-                    new NumberingLevelReference { Val = level },
-                    new NumberingId { Val = _numberId }
-                ));
-            if (text != null) {
-                wordParagraph.Text = text;
+            // If a specific paragraph reference is provided, insert after it
+            wordParagraph._paragraph.InsertAfterSelf(paragraph);
+        } else if (this.ListItems.Count == 0 && _wordParagraph != null) {
+            // First item in a paragraph-referenced list - insert after reference paragraph
+            _wordParagraph._paragraph.InsertAfterSelf(paragraph);
+        } else if (_isToc || IsToc) {
+            // TOC list items should be placed at the end of the document
+            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+        } else if (_headerFooter != null) {
+            // Header/footer list items
+            if (_headerFooter._header != null) {
+                _headerFooter._header.Append(paragraph);
+            } else if (_headerFooter._footer != null) {
+                _headerFooter._footer.Append(paragraph);
+            }
+        } else if (_wordParagraph != null && _wordParagraph._paragraph.Parent is TableCell) {
+            // Handle table cell lists
+            var parent = _wordParagraph._paragraph.Parent;
+            if (this.ListItems.Count > 0) {
+                var lastItem = this.ListItems.Last();
+                lastItem._paragraph.InsertAfterSelf(paragraph);
+            } else {
+                parent.Append(paragraph);
             }
         } else {
-            var paragraph = new Paragraph();
-            var run = new Run();
-            run.Append(new RunProperties());
-            run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
-
-            var paragraphProperties = new ParagraphProperties();
-            paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
-            paragraphProperties.Append(
-                new NumberingProperties(
-                    new NumberingLevelReference { Val = level },
-                    new NumberingId { Val = _numberId }
-                ));
-            paragraph.Append(paragraphProperties);
-            paragraph.Append(run);
-
-            if (_wordParagraph != null) {
-
-                if (this.ListItems.Count > 0) {
-                    var lastItem = this.ListItems.Last();
-                    var allElements = lastItem._paragraph.Parent.ChildElements.OfType<Paragraph>();
-                    if (allElements.Count() > 0) {
-                        var lastParagraph = allElements.Last();
-                        lastParagraph.Parent.Append(paragraph);
-                    }
-                } else {
-                    var allElements = _wordParagraph._paragraph.Parent.ChildElements.OfType<Paragraph>();
-                    var lastElement = allElements.Last();
-                    lastElement.Parent.Append(paragraph);
-                }
-
-                // _wordParagraph._paragraph.Append(paragraph);
-            } else {
-                if (this.ListItems.Count > 0) {
-                    var lastItem = this.ListItems.Last();
-                    var allElementsAfter = lastItem._paragraph.ElementsAfter();
-                    if (allElementsAfter.Count() > 0) {
-                        var lastParagraph = allElementsAfter.Last();
-                        lastParagraph.InsertAfterSelf(paragraph);
-                    } else {
-                        lastItem._paragraph.InsertAfterSelf(paragraph);
-                    }
-                } else {
-                    if (_headerFooter != null && _headerFooter._header != null) {
-                        _headerFooter._header.Append(paragraph);
-                    } else if (_headerFooter != null && _headerFooter._footer != null) {
-                        _headerFooter._footer.Append(paragraph);
-                    } else {
-                        _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
-                    }
-                }
-            }
-            wordParagraph = new WordParagraph(_document, paragraph, run) {
-                Text = text
-            };
+            // For standard lists without specific placement, add at the end
+            _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
         }
 
-        // this simplifies TOC for user usage
+        var newParagraph = new WordParagraph(_document, paragraph, run);
+        if (text != null) {
+            newParagraph.Text = text;
+        }
+
+        // Handle TOC styling
         if (_isToc || IsToc) {
-            wordParagraph.Style = WordParagraphStyle.GetStyle(level);
+            newParagraph.Style = WordParagraphStyle.GetStyle(level);
         }
 
-        if (_wordParagraph == null) {
-            _wordParagraph = wordParagraph;
-        }
-
-        return wordParagraph;
+        return newParagraph;
     }
 
     /// <summary>
