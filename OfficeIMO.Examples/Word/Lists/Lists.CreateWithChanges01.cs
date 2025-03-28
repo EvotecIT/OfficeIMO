@@ -9,8 +9,8 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Lists {
-        internal static void Example_BasicLists10(string folderPath, bool openWord) {
-            string filePath = System.IO.Path.Combine(folderPath, "Document with Lists with custom lists numbering.docx");
+        internal static void Example_BasicListsWithChangedStyling(string folderPath, bool openWord) {
+            string filePath = System.IO.Path.Combine(folderPath, "Document with Lists with custom styling.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("This is 1st list - LowerLetterWithBracket");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
