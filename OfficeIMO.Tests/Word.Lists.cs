@@ -606,4 +606,32 @@ public partial class Word {
         }
     }
 
+    [Fact]
+    public void Test_ListOrderVerification() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListOrderVerification.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var first = document.AddParagraph("First");
+            document.AddParagraph("Last");
+
+            var list = first.AddList(WordListStyle.Bulleted);
+            list.AddItem("Important", 0, first);
+            list.AddItem("List");
+
+            // Verify order
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+
+            document.Save(false);
+        }
+
+        // Verify order persists after reload
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+        }
+    }
 }
