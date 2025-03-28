@@ -303,8 +303,8 @@ namespace OfficeIMO.Word {
         public WordTablePosition Position;
 
         /// <summary>
-                /// Gets the table style details. WIP
-            /// </summary>
+        /// Gets the table style details. WIP
+        /// </summary>
         public WordTableStyleDetails StyleDetails {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
