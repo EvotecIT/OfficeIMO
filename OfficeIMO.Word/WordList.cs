@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word;
 
-public class WordList : WordElement {
+public partial class WordList : WordElement {
     private readonly WordprocessingDocument _wordprocessingDocument;
     private readonly WordDocument _document;
     // private readonly WordSection _section;
@@ -24,7 +19,7 @@ public class WordList : WordElement {
     private readonly WordHeaderFooter _headerFooter;
 
     /// <summary>
-    /// This provides a way to set items to be treated with heading style during load
+    /// Indicates whether the list is treated as a Table of Contents (TOC).
     /// </summary>
     public bool IsToc {
         get {
@@ -34,6 +29,9 @@ public class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Gets all the list items associated with this WordList.
+    /// </summary>
     //private string NsidId {
     //    get {
     //        if (AbstractNum == null) {
@@ -72,7 +70,6 @@ public class WordList : WordElement {
     //        return null;
     //    }
     //}
-
     public List<WordParagraph> ListItems {
         get {
             List<WordParagraph> list = new List<WordParagraph>();
@@ -233,6 +230,175 @@ public class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Exposes the numbering properties of the list, allowing for customization.
+    /// </summary>
+    public WordListNumbering Numbering {
+        get {
+            var abstractNum = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
+                .ChildElements.OfType<AbstractNum>()
+                .FirstOrDefault(a => a.AbstractNumberId == _abstractId);
+            return new WordListNumbering(abstractNum);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols are bold.
+    /// </summary>
+    public bool Bold {
+        get { return GetNumberingProperty<bool>(props => props.Elements<Bold>().Any(), false); }
+        set {
+            SetNumberingProperty(props => {
+                props.RemoveAllChildren<Bold>();
+                props.RemoveAllChildren<BoldComplexScript>();
+                if (value) {
+                    props.Append(new Bold());
+                    props.Append(new BoldComplexScript());
+                }
+            }, value);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the font size of the numbering symbols in points.
+    /// </summary>
+    public int? FontSize {
+        get {
+            return GetNumberingProperty<int?>(props => {
+                var fontSize = props.Elements<FontSize>().FirstOrDefault();
+                // Convert from half-points to points
+                return fontSize?.Val != null ? int.Parse(fontSize.Val) / 2 : null;
+            });
+        }
+        set {
+            SetNumberingProperty(props => {
+                props.RemoveAllChildren<FontSize>();
+                props.RemoveAllChildren<FontSizeComplexScript>();
+                if (value.HasValue) {
+                    // Convert from points to half-points
+                    var halfPoints = (value.Value * 2).ToString();
+                    props.Append(new FontSize { Val = halfPoints });
+                    props.Append(new FontSizeComplexScript { Val = halfPoints });
+                }
+            }, value.HasValue);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the color of the numbering symbols.
+    /// </summary>
+    public SixLabors.ImageSharp.Color? Color {
+        get {
+            if (ColorHex == "") {
+                return null;
+            }
+            return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+        }
+        set {
+            if (value != null) {
+                this.ColorHex = value.Value.ToHexColor();
+            } else {
+                this.ColorHex = "";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the hexadecimal color value of the numbering symbols.
+    /// </summary>
+    public string ColorHex {
+        get {
+            return GetNumberingProperty<string>(props => {
+                var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
+                return color?.Val ?? "";
+            });
+        }
+        set {
+            SetNumberingProperty(props => {
+                props.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Color>();
+                if (!string.IsNullOrEmpty(value)) {
+                    props.Append(new DocumentFormat.OpenXml.Wordprocessing.Color {
+                        Val = value.Replace("#", "")
+                    });
+                }
+            }, !string.IsNullOrEmpty(value));
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols are italicized.
+    /// </summary>
+    public bool Italic {
+        get => GetNumberingProperty(props => props.Elements<Italic>().Any(), false);
+        set => SetNumberingProperty(props => {
+            props.RemoveAllChildren<Italic>();
+            props.RemoveAllChildren<ItalicComplexScript>();
+            if (value) {
+                props.Append(new Italic());
+                props.Append(new ItalicComplexScript());
+            }
+        }, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the underline style of the numbering symbols.
+    /// </summary>
+    public UnderlineValues? Underline {
+        get => GetNumberingProperty<UnderlineValues?>(props =>
+            props.Elements<Underline>().FirstOrDefault()?.Val);
+        set => SetNumberingProperty(props => {
+            props.RemoveAllChildren<Underline>();
+            if (value.HasValue) {
+                props.Append(new Underline { Val = value.Value });
+            }
+        }, value.HasValue);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols have a strikethrough.
+    /// </summary>
+    public bool Strike {
+        get => GetNumberingProperty(props => props.Elements<Strike>().Any(), false);
+        set => SetNumberingProperty(props => {
+            props.RemoveAllChildren<Strike>();
+            if (value) {
+                props.Append(new Strike());
+            }
+        }, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the numbering symbols have a double strikethrough.
+    /// </summary>
+    public bool DoubleStrike {
+        get => GetNumberingProperty(props => props.Elements<DoubleStrike>().Any(), false);
+        set => SetNumberingProperty(props => {
+            props.RemoveAllChildren<DoubleStrike>();
+            if (value) {
+                props.Append(new DoubleStrike());
+            }
+        }, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the font name of the numbering symbols.
+    /// </summary>
+    public string FontName {
+        get => GetNumberingProperty<string>(props =>
+            props.Elements<RunFonts>().FirstOrDefault()?.Ascii);
+        set => SetNumberingProperty(props => {
+            props.RemoveAllChildren<RunFonts>();
+            if (!string.IsNullOrEmpty(value)) {
+                props.Append(new RunFonts { Ascii = value, HighAnsi = value });
+            }
+        }, !string.IsNullOrEmpty(value));
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="isToc">Indicates if the list should be treated as a TOC.</param>
     public WordList(WordDocument wordDocument, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -241,6 +407,12 @@ public class WordList : WordElement {
         // section.Lists.Add(this);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class with a starting paragraph.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="paragraph">The starting paragraph.</param>
+    /// <param name="isToc">Indicates if the list should be treated as a TOC.</param>
     public WordList(WordDocument wordDocument, WordParagraph paragraph, bool isToc = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -250,7 +422,11 @@ public class WordList : WordElement {
         // section.Lists.Add(this);
     }
 
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class with a specific number ID.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="numberId">The numbering ID.</param>
     public WordList(WordDocument wordDocument, int numberId) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
@@ -258,16 +434,34 @@ public class WordList : WordElement {
         _numberId = numberId;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WordList"/> class for headers and footers.
+    /// </summary>
+    /// <param name="wordDocument">The Word document.</param>
+    /// <param name="headerFooter">The header or footer.</param>
     public WordList(WordDocument wordDocument, WordHeaderFooter headerFooter) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         _headerFooter = headerFooter;
     }
 
+    /// <summary>
+    /// Adds an item to the list using an existing paragraph.
+    /// </summary>
+    /// <param name="wordParagraph">The paragraph to add.</param>
+    /// <param name="level">The list level.</param>
+    /// <returns>The added <see cref="WordParagraph"/>.</returns>
     public WordParagraph AddItem(WordParagraph wordParagraph, int level = 0) {
         return AddItem(null, level, wordParagraph);
     }
 
+    /// <summary>
+    /// Adds an item to the list with specified text.
+    /// </summary>
+    /// <param name="text">The text of the list item.</param>
+    /// <param name="level">The list level.</param>
+    /// <param name="wordParagraph">An optional existing paragraph.</param>
+    /// <returns>The added <see cref="WordParagraph"/>.</returns>
     public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
         var paragraph = new Paragraph();
         var run = new Run();
@@ -328,192 +522,9 @@ public class WordList : WordElement {
         return newParagraph;
     }
 
-    private static int GetNextAbstractNum(Numbering numbering) {
-        var ids = numbering.ChildElements
-            .OfType<AbstractNum>()
-            .Select(element => (int)element.AbstractNumberId)
-            .ToList();
-        return ids.Count > 0 ? ids.Max() + 1 : 0;
-    }
-
-    private static int GetNextNumberingInstance(Numbering numbering) {
-        var ids = numbering.ChildElements
-            .OfType<NumberingInstance>()
-            .Select(element => (int)element.NumberID)
-            .ToList();
-        return ids.Count > 0 ? ids.Max() + 1 : 1;
-    }
-
-    internal void AddList(WordListStyle style) {
-        CreateNumberingDefinition(_document);
-        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-
-        _abstractId = GetNextAbstractNum(numbering);
-        _numberId = GetNextNumberingInstance(numbering);
-
-        var abstractNum = WordListStyles.GetStyle(style);
-        abstractNum.AbstractNumberId = _abstractId;
-        var abstractNumId = new AbstractNumId {
-            Val = _abstractId
-        };
-        NumberingInstance numberingInstance = new NumberingInstance();
-        numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
-        numbering.Append(numberingInstance, abstractNum);
-    }
-
-    // TODO this isn't working yet, needs implementation
-    //internal void AddList(CustomListStyles style = CustomListStyles.Bullet, string levelText = "·", int levelIndex = 0) {
-    //    CreateNumberingDefinition(_document);
-
-    //    // we take current list number from the document
-    //    //_numberId = _document._listNumbers;
-
-    //    var numberingFormatValues = CustomListStyle.GetStyle(style);
-
-    //    var level = new Level(
-    //        new NumberingFormat { Val = numberingFormatValues },
-    //        new LevelText { Val = levelText }
-    //    ) {
-    //        LevelIndex = 1
-    //    };
-    //    var level1 = new Level(
-    //        new NumberingFormat { Val = numberingFormatValues },
-    //        new LevelText { Val = levelText }
-    //    ) {
-    //        LevelIndex = 2
-    //    };
-    //    var abstractNum = new AbstractNum(level, level1) {
-    //        AbstractNumberId = 0
-    //    };
-    //    //abstractNum.Nsid = new Nsid();
-
-    //    var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-    //    numbering.Append(abstractNum);
-
-    //    var abstractNumId = new AbstractNumId {
-    //        Val = 0
-    //    };
-    //    var numberingInstance = new NumberingInstance(abstractNumId) {
-    //        NumberID = _numberId
-    //    };
-
-    //    //LevelOverride levelOverride = new LevelOverride();
-    //    //levelOverride.StartOverrideNumberingValue = new StartOverrideNumberingValue();
-    //    //levelOverride.StartOverrideNumberingValue.Val = 1;
-    //    //numberingInstance.Append(levelOverride);
-
-    //    numbering.Append(numberingInstance);
-    //}
-
-    private void CreateNumberingDefinition(WordDocument document) {
-        var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
-        if (numberingDefinitionsPart.Numbering == null) {
-            // the check for null is required even tho Resharper claims it's not
-            Numbering numbering1 = new Numbering() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
-            numbering1.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
-            numbering1.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
-            numbering1.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
-            numbering1.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
-            numbering1.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
-            numbering1.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
-            numbering1.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
-            numbering1.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
-            numbering1.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
-            numbering1.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
-            numbering1.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            numbering1.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
-            numbering1.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
-            numbering1.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
-            numbering1.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
-            numbering1.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            numbering1.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
-            numbering1.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
-            numbering1.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
-            numbering1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            numbering1.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
-            numbering1.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-            numbering1.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            numbering1.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
-            numbering1.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
-            numbering1.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
-            numbering1.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
-            numbering1.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
-            numbering1.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
-            numbering1.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
-            numbering1.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
-            numbering1.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
-            numbering1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
-
-            numberingDefinitionsPart.Numbering = numbering1;
-            numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
-        }
-    }
-
-    private NumberingInstance DefaultNumberingInstance(AbstractNumId abstractNumId, int numberId) {
-        var numberingInstance = new NumberingInstance(abstractNumId) { NumberID = numberId };
-        return numberingInstance;
-    }
-
-    private NumberingInstance RestartNumberingInstance(AbstractNumId abstractNumId, int numberId) {
-        NumberingInstance numberingInstance1 = new NumberingInstance(abstractNumId) { NumberID = numberId };
-
-        LevelOverride levelOverride1 = new LevelOverride() { LevelIndex = 0 };
-        StartOverrideNumberingValue startOverrideNumberingValue1 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride1.Append(startOverrideNumberingValue1);
-
-        LevelOverride levelOverride2 = new LevelOverride() { LevelIndex = 1 };
-        StartOverrideNumberingValue startOverrideNumberingValue2 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride2.Append(startOverrideNumberingValue2);
-
-        LevelOverride levelOverride3 = new LevelOverride() { LevelIndex = 2 };
-        StartOverrideNumberingValue startOverrideNumberingValue3 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride3.Append(startOverrideNumberingValue3);
-
-        LevelOverride levelOverride4 = new LevelOverride() { LevelIndex = 3 };
-        StartOverrideNumberingValue startOverrideNumberingValue4 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride4.Append(startOverrideNumberingValue4);
-
-        LevelOverride levelOverride5 = new LevelOverride() { LevelIndex = 4 };
-        StartOverrideNumberingValue startOverrideNumberingValue5 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride5.Append(startOverrideNumberingValue5);
-
-        LevelOverride levelOverride6 = new LevelOverride() { LevelIndex = 5 };
-        StartOverrideNumberingValue startOverrideNumberingValue6 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride6.Append(startOverrideNumberingValue6);
-
-        LevelOverride levelOverride7 = new LevelOverride() { LevelIndex = 6 };
-        StartOverrideNumberingValue startOverrideNumberingValue7 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride7.Append(startOverrideNumberingValue7);
-
-        LevelOverride levelOverride8 = new LevelOverride() { LevelIndex = 7 };
-        StartOverrideNumberingValue startOverrideNumberingValue8 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride8.Append(startOverrideNumberingValue8);
-
-        LevelOverride levelOverride9 = new LevelOverride() { LevelIndex = 8 };
-        StartOverrideNumberingValue startOverrideNumberingValue9 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride9.Append(startOverrideNumberingValue9);
-
-        numberingInstance1.Append(levelOverride1);
-        numberingInstance1.Append(levelOverride2);
-        numberingInstance1.Append(levelOverride3);
-        numberingInstance1.Append(levelOverride4);
-        numberingInstance1.Append(levelOverride5);
-        numberingInstance1.Append(levelOverride6);
-        numberingInstance1.Append(levelOverride7);
-        numberingInstance1.Append(levelOverride8);
-        numberingInstance1.Append(levelOverride9);
-        return numberingInstance1;
-    }
-
+    /// <summary>
+    /// Removes the list and its items from the document.
+    /// </summary>
     public void Remove() {
         // Get the Numbering part from the document
         var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
@@ -536,6 +547,10 @@ public class WordList : WordElement {
         }
     }
 
+    /// <summary>
+    /// Merges another list into this list.
+    /// </summary>
+    /// <param name="documentList">The list to merge.</param>
     public void Merge(WordList documentList) {
         // Reattach all items from the other list to this list
         foreach (var item in documentList.ListItems) {
