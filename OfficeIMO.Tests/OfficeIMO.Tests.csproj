@@ -4,7 +4,8 @@
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             net472;net48;net8.0;net9.0
         </TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+        <TargetFrameworks
+            Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
             net8.0;net9.0
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
@@ -13,7 +14,6 @@
     <ItemGroup>
         <PackageReference Include="AutoFixture" Version="4.18.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-        <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.4.0" Condition="$([MSBuild]::IsOsPlatform('OSX'))" />
         <PackageReference Include="SemanticComparison" Version="4.1.0" />
         <PackageReference Include="xunit" Version="2.8.1" />
         <PackageReference Include="coverlet.collector" Version="6.0.4">
