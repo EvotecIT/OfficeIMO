@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace OfficeIMO.Word {
-    public class WordBookmark {
+    public class WordBookmark : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
         private BookmarkStart _bookmarkStart;

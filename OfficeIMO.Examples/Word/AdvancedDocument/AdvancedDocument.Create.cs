@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
@@ -30,6 +30,9 @@ namespace OfficeIMO.Examples.Word {
                 // lets create a list that will be binded to TOC
                 var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
+                var elements = document.Elements;
+                Console.WriteLine("Elements count: " + elements.Count);
+
                 wordListToc.AddItem("How to add a table to document?");
 
                 document.AddParagraph("In the first paragraph I would like to show you how to add a table to the document using one of the 105 built-in styles:");
@@ -47,9 +50,15 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Adding lists is similar to ading a table. Just define a list and add list items to it. ").SetText("Remember that you can add anything between list items! ");
                 paragraph.SetColor(Color.Blue).SetText("For example TOC List is just another list, but defining a specific style.");
 
+                elements = document.Elements;
+                Console.WriteLine("Elements count before list: " + elements.Count);
+
                 var list = document.AddList(WordListStyle.Bulleted);
                 list.AddItem("First element of list", 0);
                 list.AddItem("Second element of list", 1);
+
+                elements = document.Elements;
+                Console.WriteLine("Elements count after list: " + elements.Count);
 
                 var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip");
                 // you can also change the hyperlink text, uri later on using properties
@@ -94,6 +103,12 @@ namespace OfficeIMO.Examples.Word {
 
                 // add watermark
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
+
+                elements = document.Elements;
+                Console.WriteLine("Elements count in the end: " + elements.Count);
+
+                var elementsByType = document.ElementsByType;
+                Console.WriteLine("ElementsByType count in the end: " + elementsByType.Count);
 
                 document.Save(openWord);
             }

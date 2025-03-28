@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         private readonly string _directoryWithFiles;
         private readonly string _directoryWithImages;
 
-        public static void Setup(string path) {
+        internal static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
             } else {

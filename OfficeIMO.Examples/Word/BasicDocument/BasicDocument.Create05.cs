@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
@@ -26,9 +22,14 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
+                Console.WriteLine("Images count: " + document.Images.Count);
+
                 document.Header.Default.AddParagraph().AddImage(filePathImage, 734, 92);
                 document.Header.Default.Paragraphs[0].SetFontFamily("Arial");
                 document.Header.Default.Paragraphs[0].SetFontSize(7).Bold = false;
+
+                Console.WriteLine("Images Count: " + document.Images.Count);
+                Console.WriteLine("Images in Header Count: " + document.Header.Default.Images.Count);
 
                 document.Footer.Default.AddParagraph();
                 document.Footer.Default.Paragraphs[0].SetFontFamily("Arial");

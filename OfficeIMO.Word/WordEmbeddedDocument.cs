@@ -3,15 +3,9 @@ using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using V = DocumentFormat.OpenXml.Vml;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
-    public class WordEmbeddedDocument {
+    public class WordEmbeddedDocument : WordElement {
         private string _id;
         private AltChunk _altChunk;
         private readonly AlternativeFormatImportPart _altContent;
@@ -74,16 +68,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordEmbeddedDocument(WordDocument wordDocument, string fileName, AlternativeFormatImportPartType? alternativeFormatImportPartType) {
-            AlternativeFormatImportPartType partType;
+        public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
+            WordAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {
-                FileInfo fileInfo = new FileInfo(fileName);
+                FileInfo fileInfo = new FileInfo(fileNameOrContent);
                 if (fileInfo.Extension == ".rtf") {
-                    partType = AlternativeFormatImportPartType.Rtf;
+                    partType = WordAlternativeFormatImportPartType.Rtf;
                 } else if (fileInfo.Extension == ".html") {
-                    partType = AlternativeFormatImportPartType.Html;
+                    partType = WordAlternativeFormatImportPartType.Html;
                 } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
-                    partType = AlternativeFormatImportPartType.TextPlain;
+                    partType = WordAlternativeFormatImportPartType.TextPlain;
                 } else {
                     throw new Exception("Only RTF and HTML files are supported for now :-)");
                 }
@@ -97,9 +91,17 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
-            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partType, altChunk.Id);
+            PartTypeInfo partTypeInfo = partType switch {
+                WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
+                WordAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
+                WordAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
+                _ => throw new Exception("Unsupported format type")
+            };
 
-            var documentContent = File.ReadAllText(fileName, Encoding.ASCII);
+            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo, altChunk.Id);
+
+            // if it's a fragment, we don't need to read the file
+            var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.ASCII);
 
             using (MemoryStream ms = new MemoryStream(Encoding.ASCII.GetBytes(documentContent))) {
                 chunk.FeedData(ms);

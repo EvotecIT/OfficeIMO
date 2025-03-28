@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
                 // this can also change if we only add tables styles that are in use
                 // so far we're adding all, in future this may change
                 Assert.True(listTableStyles.Count == 105);
-                Assert.True(styles.Count == 108);
-
+                // this value will change if more styles are added and will need to be changed
+                Assert.True(styles.Count == 118);
 
                 // OfficeIMO settings
                 Assert.True(document.Tables.Count == 2);

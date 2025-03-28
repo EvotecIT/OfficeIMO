@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -99,11 +94,26 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Add paragraph to the table cell
         /// </summary>
-        /// <param name="paragraph"></param>
-        /// <returns></returns>
-        public WordParagraph AddParagraph(WordParagraph paragraph = null) {
+        /// <param name="paragraph">The paragraph to add to this cell, if
+        /// this is not passed then a new empty paragraph with settings from
+        /// the previous paragraph will be added.</param>
+        /// <param name="removeExistingParagraphs">If value is not passed or false then add
+        /// the given paragraph into the cell. If set to true then clear
+        /// every existing paragraph before adding the new paragraph.
+        /// </param>
+        /// <returns>A reference to the added paragraph.</returns>
+        public WordParagraph AddParagraph(WordParagraph paragraph = null, bool removeExistingParagraphs = false) {
+            // Considering between implementing a reset that clears all paragraphs or
+            // a deletePrevious that will replace the last paragraph.
+            // NOTE: Raise this during PR.
+            if (removeExistingParagraphs) {
+                var paragraphs = _tableCell.ChildElements.OfType<Paragraph>().ToList();
+                foreach (var wordParagraph in paragraphs) {
+                    wordParagraph.Remove();
+                }
+            }
             if (paragraph == null) {
-                paragraph = new WordParagraph();
+                paragraph = new WordParagraph(this._document);
             }
             _tableCell.Append(paragraph._paragraph);
             return paragraph;
@@ -113,9 +123,10 @@ namespace OfficeIMO.Word {
         /// Add paragraph to the table cell with text
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="removeExistingParagraphs"></param>
         /// <returns></returns>
-        public WordParagraph AddParagraph(string text) {
-            return AddParagraph().SetText(text);
+        public WordParagraph AddParagraph(string text, bool removeExistingParagraphs = false) {
+            return AddParagraph(paragraph: null, removeExistingParagraphs).SetText(text);
         }
 
         /// <summary>
@@ -207,6 +218,31 @@ namespace OfficeIMO.Word {
                 } else {
                     if (_tableCellProperties.TextDirection != null) {
                         _tableCellProperties.TextDirection.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets cell vertical alignment in a Table Cell
+        /// </summary>
+        public TableVerticalAlignmentValues? VerticalAlignment {
+            get {
+                if (_tableCellProperties.TableCellVerticalAlignment != null) {
+                    return _tableCellProperties.TableCellVerticalAlignment.Val;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TableCellVerticalAlignment == null) {
+                        _tableCellProperties.TableCellVerticalAlignment = new TableCellVerticalAlignment();
+                    }
+                    _tableCellProperties.TableCellVerticalAlignment.Val = value;
+                } else {
+                    if (_tableCellProperties.TableCellVerticalAlignment != null) {
+                        _tableCellProperties.TableCellVerticalAlignment.Remove();
                     }
                 }
             }
@@ -314,7 +350,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Splits (unmerge) cells that were merged 
+        /// Splits (unmerge) cells that were merged
         /// </summary>
         /// <param name="cellsCount"></param>
         public void SplitHorizontally(int cellsCount) {
@@ -334,7 +370,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Merges two or more cells together vertically 
+        /// Merges two or more cells together vertically
         /// </summary>
         /// <param name="cellsCount"></param>
         /// <param name="copyParagraphs"></param>
@@ -411,6 +447,35 @@ namespace OfficeIMO.Word {
             // we need to add an empty paragraph, because that's what is required for tables to work
             _tableCell.Append(new Paragraph());
             return wordTable;
+        }
+
+        public WordList AddList(WordListStyle style) {
+            WordList wordList = new WordList(this._document, this.Paragraphs.Last());
+            wordList.AddList(style);
+            return wordList;
+        }
+
+        /// <summary>
+        /// Gets information whether the cell contains other nested tables
+        /// </summary>
+        public bool HasNestedTables {
+            get {
+                return _tableCell.Descendants<Table>().Count() > 0;
+            }
+        }
+
+        /// <summary>
+        /// Get all nested tables in the cell
+        /// </summary>
+        public List<WordTable> NestedTables {
+            get {
+                var listReturn = new List<WordTable>();
+                var list = _tableCell.Descendants<Table>().ToList();
+                foreach (var table in list) {
+                    listReturn.Add(new WordTable(this._document, table));
+                }
+                return listReturn;
+            }
         }
     }
 }

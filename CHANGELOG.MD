@@ -1,3 +1,610 @@
+## 0.20.0 - 2024.09.27
+### What's Changed
+* Add converter from DOTX to DOCX by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/257
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.19.0...v0.20.0
+
+## 0.19.0 - 2024.09.24
+### What's Changed
+* Improve watermark (add watermark image) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/220
+* Migrate to 3.1.0 OpenXMLSDK by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/253
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.18.0...v0.19.0
+
+## 0.18.0 - 2024.09.22
+### What's Changed
+* Added WordParagraphStyles.Custom by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/237
+* Bump SixLabors.ImageSharp to 2.1.9 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/247
+* Copy/Clone row after the current row by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/226
+* Adds compatibility of created documents with OpenOffice/LibreOffice by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/191
+* Added basic Elements/ElementsByType property and few other improvements by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/240
+* Fix tests after adding OpenOffice compatibility and add missing NET 8 tests for macOs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/248
+* Fix test to ignore temporary word documents by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/249
+* Bump OpenXMLSDK to 2.20 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/250
+* Add docs, fix typos and removes requirement to set relative width/hei… by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/251
+* Remove obsolete stuff by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/252
+
+### New Contributors
+* @ChrisBellBO made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/237
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.17.0...v0.18.0
+
+## 0.17.0 - 2024.06.21
+### What's Changed
+* Fixes wrong implementation of repeat header by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/234
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.16.0...v0.17.0
+
+## 0.16.0 - 2024.06.17
+### What's Changed
+* Add RepeatHeaderRowAtTheTopOfEachPage to Tables by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/231
+* Add AddEmbeddedFragment method by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/233
+* Bump test dependencies by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/232
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.15.0...v0.16.0
+
+## 0.15.0 - 2024.05.13
+### What's Changed
+* Bump dependency of ImageSharp to 2.1.8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/221
+* Filled in documentation for the public paragraph methods. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/212
+* Improve textboxes to allow multiple Runs/Paragraphs **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/225
+* Improve Charts **Breaking Changes** by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/223
+* Add VerifyTests by @rstm-sf in https://github.com/EvotecIT/OfficeIMO/pull/86
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.14.0...v0.15.0
+
+## 0.14.0 - 2024.04.04
+### What's Changed
+* Add centimeters conversions to Margins, fix naming emus/twips by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/200
+* Fixes lists NSID value which prevents lists using correct settings when using same type multiple times by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/202
+* Add 4 more list types with letters by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/209
+* **Breaking Change** - Remove continue & restart numbering from Lists  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/205
+* Add Remove & Merge Lists by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/207
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.13.0...v0.14.0
+
+## 0.13.0 - 2024.02.02
+### What's Changed
+* Add basic method to add textbox to header/footer by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/187
+* [WordTextBox] Add additional features by @TopperDEL in https://github.com/EvotecIT/OfficeIMO/pull/188
+    * Use Paragraph instead of StdBlock (so that text within a TextBox is no "variable" anymore)
+    * Allow changing the insets of the TextBox so that there is no gap between the text of the TextBox and its border
+    * Allow the TextBox to be set to "AutoFitText" or not
+    * Allow the text to be multiline by respecting the page breaks
+    * Added Wrapping functionality including inline
+    * Added ability to convert inline to other wrapping types and vice versa (keep in mind that some properties are lost then or go to their defaults)
+    * Fixes wrong paragraph being returned when AddImage is used
+    * **Breaking Change** Changes WrapTextImage.InFrontText to WrapTextImage.InFrontOfText to match Word naming
+* Improve WordTextBox functionality by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/197
+* Add support for Net8 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/198
+* Fixes some warnings as reported by Visual Studio by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/199
+* Added the ability to clear the default empty paragraph in TableCell. by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/182
+
+### New Contributors
+* @TopperDEL made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/188
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.12.0...v0.13.0
+
+## 0.12.0 - 2023.12.31
+
+### What's Changed
+* Add descriptions to AddImage parameters to documentation by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/175
+* Add ability to add TextBox to Word Document (new class WordTextBox) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/180
+* **BREAKING CHANGE** Improve Watermark with colors, rotation and other settings by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/181
+* Word table cell paragraph add image fix by @tmheath in https://github.com/EvotecIT/OfficeIMO/pull/176
+* Add support for WriteProtection (Always Read Only) and MarkAsFinal settings by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/163
+
+### New Contributors
+* @tmheath made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/175
+
+More details. This change adds:
+- Ability to modify watermark (colors, text, rotation, width, height)
+- Ability to remove watermark
+- Ability to find watermarks in document, sections, headers
+- Ability to add watermark to document/section which makes watermark show up only on single page
+- Ability to add watermark to headers/footers which makes watermark show up on whole section
+
+**Breaking changes**
+- This change breaks how watermarks are added. If you add them directly within section/document it will only apply to single page/pages as the SdtBlock gets added to body directly. If you need watermark for the whole section/document you need to add watermark to header/footer for it to apply to given section.
+
+This example shows per section in header:
+
+```cs
+public static void Watermark_Sample1(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with Watermark 2");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 4.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        document.AddParagraph("Section 0");
+        document.AddHeadersAndFooters();
+        document.Sections[0].Header.Default.AddParagraph("Section 0 - In header");
+        document.Sections[0].SetMargins(WordMargin.Normal);
+
+        Console.WriteLine(document.Sections[0].Margins.Left.Value);
+        Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[0].Margins.Type);
+
+        document.Sections[0].Margins.Type = WordMargin.Wide;
+
+        Console.WriteLine(document.Sections[0].Margins.Type);
+
+        Console.WriteLine("----");
+        var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+        watermark.Color = Color.Red;
+
+        // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
+        Console.WriteLine(watermark.ColorHex);
+
+        Console.WriteLine(watermark.Rotation);
+
+        watermark.Rotation = 180;
+
+        Console.WriteLine(watermark.Rotation);
+
+        watermark.Stroked = true;
+
+        Console.WriteLine(watermark.Height);
+        Console.WriteLine(watermark.Width);
+
+        // width and height in points (HTML wise)
+        watermark.Height = 100.15;
+        watermark.Width = 500.18;
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        document.AddSection();
+
+        document.AddParagraph("Section 1");
+
+        document.Sections[1].AddHeadersAndFooters();
+        document.Sections[1].Header.Default.AddParagraph("Section 1 - In header");
+        document.Sections[1].Margins.Type = WordMargin.Narrow;
+        Console.WriteLine("----");
+
+        Console.WriteLine("Section 0 - Paragraphs Count: " + document.Sections[0].Header.Default.Paragraphs.Count);
+        Console.WriteLine("Section 1 - Paragraphs Count: " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("----");
+        document.Sections[1].AddParagraph("Test");
+        document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
+
+        Console.WriteLine(document.Sections[0].Margins.Left.Value);
+        Console.WriteLine(document.Sections[0].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[1].Margins.Left.Value);
+        Console.WriteLine(document.Sections[1].Margins.Right.Value);
+
+        Console.WriteLine(document.Sections[1].Margins.Type);
+
+
+        document.Settings.SetBackgroundColor(Color.Azure);
+
+        Console.WriteLine("----");
+
+        Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
+
+        Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+        Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+        Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks in section 1 (header): " + document.Sections[1].Header.Default.Watermarks.Count);
+        Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+
+        document.Save(false);
+    }
+
+    using (WordDocument document = WordDocument.Load(filePath)) {
+        //Console.WriteLine("----");
+        //Console.WriteLine("Watermarks in default header: " + document.Header.Default.Watermarks.Count);
+
+        //Console.WriteLine("Watermarks in default footer: " + document.Footer.Default.Watermarks.Count);
+
+        //Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
+        //Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header.Default.Watermarks.Count);
+        //Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header.Default.Paragraphs.Count);
+
+        //Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
+
+        //Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header.Default.Paragraphs.Count);
+
+        //Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+This example shows per page:
+
+```
+public static void Watermark_Sample3(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with watermark");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with watermark and sections.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+
+        document.AddParagraph("Section 0");
+        document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        var section = document.AddSection();
+        section.AddWatermark(WordWatermarkStyle.Text, "Second Mark");
+
+        document.AddParagraph("Section 1");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        var section1 = document.AddSection();
+
+        document.AddParagraph("Section 2");
+
+        document.Sections[2].AddWatermark(WordWatermarkStyle.Text, "New");
+
+        document.AddPageBreak();
+        document.AddPageBreak();
+
+        Console.WriteLine("----");
+        Console.WriteLine("Watermarks: " + document.Watermarks.Count);
+        Console.WriteLine("Watermarks section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks section 2: " + document.Sections[2].Watermarks.Count);
+
+        Console.WriteLine("Paragraphs: " + document.Paragraphs.Count);
+
+        Console.WriteLine("Removing last watermark");
+
+        document.Sections[2].Watermarks[0].Remove();
+
+        Console.WriteLine("Watermarks: " + document.Watermarks.Count);
+        Console.WriteLine("Watermarks section 0: " + document.Sections[0].Watermarks.Count);
+        Console.WriteLine("Watermarks section 1: " + document.Sections[1].Watermarks.Count);
+        Console.WriteLine("Watermarks section 2: " + document.Sections[2].Watermarks.Count);
+        Console.WriteLine("Paragraphs: " + document.Paragraphs.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Adds WordBordersParagraph type and allows setting borders for paragraphs
+- Adds ability to add TextBox
+
+```cs
+internal static void Example_AddingTextbox2(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with some textbox");
+
+    var filePath = System.IO.Path.Combine(folderPath, "BasicDocumentWithTextBox3.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Adding paragraph with some text");
+
+        var textBox = document.AddTextBox("My textbox on the left");
+
+        textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+        // horizontal alignment overwrites the horizontal position offset so only one will work
+        textBox.HorizontalAlignment = HorizontalAlignmentValues.Left;
+        textBox.VerticalPositionOffsetCentimeters = 3;
+
+        var textBox2 = document.AddTextBox("My textbox on the right");
+        textBox2.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
+        textBox2.WordParagraph.ParagraphAlignment = JustificationValues.Right;
+        // horizontal alignment overwrites the horizontal position offset so only one will work
+        textBox2.HorizontalAlignment = HorizontalAlignmentValues.Right;
+        textBox2.VerticalPositionOffsetCentimeters = 3;
+
+        Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
+
+        Console.WriteLine(document.TextBoxes[0].VerticalPositionOffsetCentimeters);
+
+        Console.WriteLine(document.TextBoxes[1].VerticalPositionOffsetCentimeters);
+
+        document.Save(openWord);
+    }
+}
+```
+
+- Allow setting document to AlwaysOpenReadOnly
+
+```cs
+internal static void Example_ProtectAlwaysReadOnly(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with protection 'Always Read Only'");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with always read only protection.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph - Page 4");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+        paragraph.AddText(" This is continutation in the same line");
+
+        Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+
+        document.Settings.AlwaysOpenReadOnly = true;
+
+        Console.WriteLine("Always read only: " + document.Settings.AlwaysOpenReadOnly);
+
+        document.Save(true);
+    }
+}
+```
+
+- Allow setting document to FinalDocument
+
+```cs
+internal static void Example_ProtectFinalDocument(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating basic document with protection - Final Document");
+    string filePath = System.IO.Path.Combine(folderPath, "Basic Document with setting Word to Final Document.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph - Page 1");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+        paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+        paragraph.AddText(" This is continutation in the same line");
+        paragraph.AddBreak(BreakValues.TextWrapping);
+
+        Console.WriteLine("Final document: " + document.Settings.FinalDocument);
+
+        document.Settings.FinalDocument = true;
+
+        Console.WriteLine("Final document: " + document.Settings.FinalDocument);
+
+        document.Save(openWord);
+    }
+}
+```
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.11.0...v0.12.0
+
+## 0.11.0 - 2023.11.27
+
+### What's Changed
+* FindAndReplace allowed for specific paragraphs by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/171
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.10.0...v0.11.0
+
+## 0.10.0 - 2023.10.24
+
+### What's Changed
+* Add set styleId and set paragraph alignment method by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/160
+* Fixed pos image by @boatwrong in https://github.com/EvotecIT/OfficeIMO/pull/165
+* Add Areachat by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/166
+
+### New Contributors
+* @boatwrong made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/165
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.9.0...v0.10.0
+
+## 0.9.0 - 2023.08.15
+
+### What's Changed
+* Fixes saving properties when using Stream by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/159
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.8.0...v0.9.0
+
+## 0.8.0 - 2023.07.30
+
+### What's Changed
+* AddRow functions return the created rows and table cell VerticalAlignment property by @The-Faulty in https://github.com/EvotecIT/OfficeIMO/pull/155
+* Improve Lists in few areas by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/110
+* Add Hyperlink inside table cell by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/157
+
+### New Contributors
+* @The-Faulty made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/155
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.7.0...v0.8.0
+
+## 0.7.0 - 2023.07.16
+
+### What's Changed
+* Implements muti paragraph search and replace by @startewho in https://github.com/EvotecIT/OfficeIMO/pull/149 heavily improving the FindAndReplace functionality
+* Add support for Footnotes and endnotes by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/154
+
+```cs
+internal static void Example_DocumentWithFootNotesEmpty(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with footnotes/end notes");
+    string filePath = System.IO.Path.Combine(folderPath, "Document with FootNotes02.docx");
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        var paragraph = document.AddParagraph("Basic paragraph");
+        paragraph.ParagraphAlignment = JustificationValues.Center;
+
+        document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
+            .AddText(" continuing").AddFootNote("2nd footnote!");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+
+        var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
+            .AddText(" more within paragraph").AddFootNote("4th footnote!");
+
+        Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
+
+        var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+
+        Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
+        Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
+        footNoteParagraphs[1].Bold = true;
+
+        document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
+
+        document.AddParagraph("Test 1");
+
+        document.AddSection();
+
+        document.AddParagraph("Testing endnote - 2").AddEndNote("Test end note 2");
+
+        Console.WriteLine("EndNotes count " + document.EndNotes.Count);
+        Console.WriteLine("EndNotes Section count " + document.Sections[0].EndNotes.Count);
+
+        Console.WriteLine("FootNotes count " + document.FootNotes.Count);
+        Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+### New Contributors
+* @startewho made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/149
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.6.0...v0.7.0
+
+## 0.6.0 - 2023.07.03
+
+### What's Changed
+- Add ability to add charts to WordParagraph by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/144
+- Add missing tests for AddTableAfter() and AddTableBefore()  by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/131
+
+This  release fixes
+- https://github.com/EvotecIT/OfficeIMO/issues/143
+- It allows to add `chart `to existing paragraph (before it was only possible to assign chart to document).
+- `WordParagraph `now contains `IsChart` and `Chart` object
+- `WordDocument `and `WordSection `contains `ParagraphsCharts `and `Charts `lists
+
+```cs
+public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
+    Console.WriteLine("[*] Creating standard document with charts");
+    string filePath = System.IO.Path.Combine(folderPath, "Charts Document.docx");
+
+    using (WordDocument document = WordDocument.Create(filePath)) {
+        List<string> categories = new List<string>() {
+            "Food", "Housing", "Mix", "Data"
+        };
+
+        var paragraphToTest = document.AddParagraph("Test showing adding chart right to existing paragraph");
+
+        // adding charts to document
+        document.AddParagraph("This is a bar chart");
+        var barChart1 = document.AddBarChart();
+        barChart1.AddCategories(categories);
+        barChart1.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart1.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart1.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart1.BarGrouping = BarGroupingValues.Clustered;
+        barChart1.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("This is a bar chart");
+        var barChart2 = document.AddBarChart();
+        barChart2.AddCategories(categories);
+        barChart2.AddChartBar("USA", 15, Color.Aqua);
+        barChart2.RoundedCorners = true;
+
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("This is a pie chart");
+        var pieChart = document.AddPieChart();
+        pieChart.AddCategories(categories);
+        pieChart.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+
+        document.AddParagraph("Adding a line chart as required 1");
+
+        var lineChart = document.AddLineChart();
+        lineChart.AddChartAxisX(categories);
+        lineChart.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        document.AddParagraph("Adding a line chart as required 2");
+
+        var lineChart2 = document.AddLineChart();
+        lineChart2.AddChartAxisX(categories);
+        lineChart2.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart2.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart2.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        // adding charts to paragraphs directly
+        var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
+        var barChart3 = paragraph.AddBarChart();
+        barChart3.AddCategories(categories);
+        barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart3.BarGrouping = BarGroupingValues.Clustered;
+        barChart3.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph1 = document.AddParagraph("This is a bar chart - but assigned to paragraph 2");
+        var barChart5 = paragraph1.AddBarChart();
+        barChart5.AddCategories(categories);
+        barChart5.AddChartBar("USA", 15, Color.Aqua);
+        barChart5.RoundedCorners = true;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph2 = document.AddParagraph("This is a pie chart - but assigned to paragraph");
+        var pieChart1 = paragraph2.AddPieChart();
+        pieChart1.AddCategories(categories);
+        pieChart1.AddChartPie("Poland", new List<int> { 15, 20, 30 });
+
+        var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
+        var lineChart3 = paragraph3.AddLineChart();
+        lineChart3.AddChartAxisX(categories);
+        lineChart3.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart3.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart3.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
+        var lineChart4 = paragraph4.AddLineChart();
+        lineChart4.AddChartAxisX(categories);
+        lineChart4.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart4.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart4.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        // lets add chart to first paragraph
+        var lineChart5 = paragraphToTest.AddLineChart();
+        lineChart5.AddChartAxisX(categories);
+        lineChart5.AddChartLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        lineChart5.AddChartLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
+        lineChart5.AddChartLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        var table = document.AddTable(3, 3);
+        table.Rows[0].Cells[0].Paragraphs[0].AddBarChart();
+        barChart3.AddCategories(categories);
+        barChart3.AddChartBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
+        barChart3.AddChartBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+        barChart3.AddChartBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+        barChart3.BarGrouping = BarGroupingValues.Clustered;
+        barChart3.BarDirection = BarDirectionValues.Column;
+
+        Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
+
+        Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
+
+        document.Save(openWord);
+    }
+}
+```
+
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.5.0...v0.6.0
+
 ## 0.5.0 - 2023.06.05
 ### What's Changed
 * Add example to show margins and font family by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/140
@@ -303,7 +910,7 @@ internal static void Example_AddingImagesSample4(string folderPath, bool openWor
 
 
     var paragraph3 = document.AddParagraph("Image will be in front of text");
-    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontText, "Przemek and Kulek on an image");
+    paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapImageText.InFrontOfText, "Przemek and Kulek on an image");
 
 
     var paragraph5 = document.AddParagraph("Image will be Square");

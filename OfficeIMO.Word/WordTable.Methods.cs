@@ -1,8 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -31,6 +26,44 @@ namespace OfficeIMO.Word {
 
             // Compose a run with CommentReference and insert it.
             reference.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
+        }
+
+        public WordTable SetStyleId(string styleId) {
+            //Todo Check the styleId exist
+            if (!string.IsNullOrEmpty(styleId)) {
+                if (_tableProperties?.TableStyle == null) {
+                    _tableProperties.TableStyle = new TableStyle() { Val = styleId };
+                } else {
+                    _tableProperties.TableStyle.Val = styleId;
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Copy existing WordTableRow and inserts it as a last row in a Table
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public WordTableRow CopyRow(WordTableRow row) {
+            // Ensure the table and row are not null
+            if (_table == null || row == null) {
+                throw new InvalidOperationException("The table doesn't exists or rows doesn't exists");
+            }
+
+            // Get the last row in the table
+            var lastRow = _table.Elements<TableRow>().LastOrDefault();
+            if (lastRow == null) {
+                throw new InvalidOperationException("The table does not contain any rows.");
+            }
+
+            // Clone the row to avoid the "part of a tree" error
+            var clonedRow = (TableRow)row._tableRow.CloneNode(true);
+
+            // Insert the new row after the last row
+            var insertedRow = lastRow.InsertAfterSelf(clonedRow);
+
+            return new WordTableRow(this, insertedRow, _document);
         }
     }
 }

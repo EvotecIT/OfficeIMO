@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
 
                 // added page number using fields which triggers fields refresh
-                document.AddField(WordFieldType.NumPages);
+                document.AddField(WordFieldType.Page).AddText(" of ").AddField(WordFieldType.NumPages);
 
                 document.AddField(WordFieldType.Author);
 

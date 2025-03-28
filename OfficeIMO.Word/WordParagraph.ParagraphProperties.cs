@@ -3,6 +3,12 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        public WordParagraphBorders Borders {
+            get {
+                return new WordParagraphBorders(_document, this);
+            }
+        }
+
         /// <summary>
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
@@ -298,6 +304,29 @@ namespace OfficeIMO.Word {
 
                 spacing.After = value.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
+        /// </summary>
+        public VerticalPositionValues? VerticalTextAlignment {
+            get {
+                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
+                    return _runProperties.VerticalTextAlignment.Val;
+                }
+                return null;
+            }
+            set {
+                _runProperties ??= new RunProperties();
+                if (value == null) {
+                    if (_runProperties.VerticalTextAlignment == null) {
+                        return;
+                    }
+                    _runProperties.VerticalTextAlignment = null;
+                } else {
+                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                }
             }
         }
     }
