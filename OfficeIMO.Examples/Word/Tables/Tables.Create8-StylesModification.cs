@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
@@ -59,6 +60,11 @@ namespace OfficeIMO.Examples.Word {
                     new InsideVerticalBorder() { Val = BorderValues.Single, Size = 12 }
                 );
                 wordTable2.StyleDetails.TableBorders = borders;
+
+                wordTable2.Rows[0].Cells[2].Borders.TopColor = Color.Red;
+                wordTable2.Rows[0].Cells[2].Borders.BottomColor = Color.Green;
+                wordTable2.Rows[0].Cells[2].Borders.TopSize = 24;
+                wordTable2.Rows[0].Cells[2].Borders.TopStyle = BorderValues.Single;
 
                 Console.WriteLine("\nSecond table settings:");
                 Console.WriteLine("Table style: " + wordTable2.Style);
