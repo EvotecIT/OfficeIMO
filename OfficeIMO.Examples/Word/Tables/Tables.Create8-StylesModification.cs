@@ -14,7 +14,6 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-
                 document.AddParagraph();
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
@@ -22,18 +21,51 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
-                Console.WriteLine("Table style: " + wordTable.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable.StyleDetails.MarginDefaultTopWidth);
-
-                wordTable.Style = WordTableStyle.GridTable1Light;
-
-                Console.WriteLine("Table style: " + wordTable.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable.StyleDetails.MarginDefaultTopWidth);
-
-                wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
+                // Set margins for all sides
+                wordTable.StyleDetails.MarginDefaultTopWidth = 110;
+                wordTable.StyleDetails.MarginDefaultBottomWidth = 110;
+                wordTable.StyleDetails.MarginDefaultLeftWidth = 110;
+                wordTable.StyleDetails.MarginDefaultRightWidth = 110;
+                wordTable.StyleDetails.CellSpacing = 50;
 
                 Console.WriteLine("Table style: " + wordTable.Style);
                 Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable.StyleDetails.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultBottomWidth: " + wordTable.StyleDetails.MarginDefaultBottomWidth);
+                Console.WriteLine("Table MarginDefaultLeftWidth: " + wordTable.StyleDetails.MarginDefaultLeftWidth);
+                Console.WriteLine("Table MarginDefaultRightWidth: " + wordTable.StyleDetails.MarginDefaultRightWidth);
+                Console.WriteLine("Table CellSpacing: " + wordTable.StyleDetails.CellSpacing);
+
+                document.AddParagraph();
+
+                // Create another table with different style and margins
+                WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.GridTable1Light);
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Style 2 Test 1";
+                wordTable2.Rows[1].Cells[0].Paragraphs[0].Text = "Style 2 Test 2";
+                wordTable2.Rows[2].Cells[0].Paragraphs[0].Text = "Style 2 Test 3";
+
+                // Set different margins for each side
+                wordTable2.StyleDetails.MarginDefaultTopWidth = 120;
+                wordTable2.StyleDetails.MarginDefaultBottomWidth = 180;
+                wordTable2.StyleDetails.MarginDefaultLeftWidth = 150;
+                wordTable2.StyleDetails.MarginDefaultRightWidth = 150;
+
+                // Add custom borders
+                TableBorders borders = new TableBorders(
+                    new TopBorder() { Val = BorderValues.Single, Size = 24 },
+                    new BottomBorder() { Val = BorderValues.Double, Size = 24 },
+                    new LeftBorder() { Val = BorderValues.Single, Size = 24 },
+                    new RightBorder() { Val = BorderValues.Single, Size = 24 },
+                    new InsideHorizontalBorder() { Val = BorderValues.Single, Size = 12 },
+                    new InsideVerticalBorder() { Val = BorderValues.Single, Size = 12 }
+                );
+                wordTable2.StyleDetails.TableBorders = borders;
+
+                Console.WriteLine("\nSecond table settings:");
+                Console.WriteLine("Table style: " + wordTable2.Style);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable2.StyleDetails.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultBottomWidth: " + wordTable2.StyleDetails.MarginDefaultBottomWidth);
+                Console.WriteLine("Table MarginDefaultLeftWidth: " + wordTable2.StyleDetails.MarginDefaultLeftWidth);
+                Console.WriteLine("Table MarginDefaultRightWidth: " + wordTable2.StyleDetails.MarginDefaultRightWidth);
 
                 document.Save(openWord);
             }
