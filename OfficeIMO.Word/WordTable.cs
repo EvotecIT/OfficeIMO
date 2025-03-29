@@ -302,6 +302,18 @@ namespace OfficeIMO.Word {
 
         public WordTablePosition Position;
 
+        /// <summary>
+        /// Gets the table style details. WIP
+        /// </summary>
+        public WordTableStyleDetails StyleDetails {
+            get {
+                if (_tableProperties != null && _tableProperties.TableStyle != null) {
+                    return new WordTableStyleDetails(this);
+                }
+                return null;
+            }
+        }
+
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
             Table table = new Table();

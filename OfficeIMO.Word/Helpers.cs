@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static double ConvertTwipsToCentimeters(int twipsValue) {
             double centimeters = twipsValue / 567.0;
-            return centimeters;
+            return Math.Round(centimeters, 2);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static double ConvertTwipsToCentimeters(UInt32 twipsValue) {
             double centimeters = twipsValue / 567.0;
-            return centimeters;
+            return Math.Round(centimeters, 2);
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace OfficeIMO.Word {
         /// <param name="cmValue"></param>
         /// <returns></returns>
         internal static int ConvertCentimetersToTwips(double cmValue) {
-            int twips = (int)(cmValue * 567.0);
+            int twips = (int)Math.Round(cmValue * 567.0);
             return twips;
         }
 
@@ -159,7 +159,7 @@ namespace OfficeIMO.Word {
         /// <param name="cmValue"></param>
         /// <returns></returns>
         internal static UInt32 ConvertCentimetersToTwipsUInt32(double cmValue) {
-            UInt32 twips = (UInt32)(cmValue * 567.0);
+            UInt32 twips = (UInt32)Math.Round(cmValue * 567.0);
             return twips;
         }
 

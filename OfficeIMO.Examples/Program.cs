@@ -73,7 +73,9 @@ namespace OfficeIMO.Examples {
             Tables.Example_TablesAddedAfterParagraph(folderPath, false);
             Tables.Example_BasicTables8(folderPath, false);
             Tables.Example_Tables1CopyRow(folderPath, false);
-
+            Tables.Example_BasicTables8_StylesModification(folderPath, false);
+            Tables.Example_UnifiedTableBorders(folderPath, false);
+            Tables.Example_BasicTables10_StylesModificationWithCentimeters(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 
