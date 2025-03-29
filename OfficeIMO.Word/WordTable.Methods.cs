@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Set width of the table to given percentage 
+        /// Set width of the table to given percentage
         /// </summary>
         /// <param name="percentage"></param>
         public void SetWidthPercentage(int percentage) {
@@ -107,6 +107,7 @@ namespace OfficeIMO.Word {
             }
             this.Width = percentage * 50;
             this.WidthType = TableWidthUnitValues.Pct;
+        }
 
         public WordTable SetStyleId(string styleId) {
             //Todo Check the styleId exist
