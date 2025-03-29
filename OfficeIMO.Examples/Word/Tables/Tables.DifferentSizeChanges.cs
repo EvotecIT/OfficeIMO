@@ -87,6 +87,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph();
                 document.AddParagraph("Table 10 - Shows setting up different sizes for each column");
                 WordTable wordTable9 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+
                 wordTable9.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
                 wordTable9.ColumnWidthType = TableWidthUnitValues.Pct;
                 wordTable9.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
@@ -122,6 +123,38 @@ namespace OfficeIMO.Examples.Word {
                 wordTable12.ColumnWidthType = TableWidthUnitValues.Pct;
                 wordTable12.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 14");
+
+                WordTable wordTable13 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
+                wordTable13.LayoutType = TableLayoutValues.Autofit;
+                wordTable13.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable13.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable13.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable13.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 15");
+
+                WordTable wordTable14 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
+                wordTable14.LayoutType = TableLayoutValues.Fixed;
+                wordTable14.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable14.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable14.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable14.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 16");
+
+                WordTable wordTable15 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
+                wordTable15.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable15.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
+                wordTable15.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                wordTable15.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
                 document.Save(openWord);
             }
