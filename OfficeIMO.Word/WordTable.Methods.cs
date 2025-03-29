@@ -175,10 +175,38 @@ namespace OfficeIMO.Word {
         /// Sets the table to AutoFit to Contents
         /// </summary>
         public void AutoFitToContents() {
-            // Set the table layout type to AutoFit
-            SetTableLayout(WordTableLayoutType.AutoFitToContents);
+            // Set table layout type to AutoFit
+            CheckTableProperties();
+            if (_tableProperties.TableLayout == null) {
+                _tableProperties.TableLayout = new TableLayout();
+            }
+            _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
 
-            // Calculate column widths based on content
+            // Set table width to auto
+            if (_tableProperties.TableWidth == null) {
+                _tableProperties.TableWidth = new TableWidth();
+            }
+            _tableProperties.TableWidth.Type = TableWidthUnitValues.Auto;
+            _tableProperties.TableWidth.Width = "0";
+
+            // Set all column widths to auto
+            foreach (var row in Rows) {
+                foreach (var cell in row.Cells) {
+                    var tcPr = cell._tableCellProperties;
+                    if (tcPr == null) {
+                        tcPr = new TableCellProperties();
+                        cell._tableCellProperties = tcPr;
+                    }
+
+                    if (tcPr.TableCellWidth == null) {
+                        tcPr.TableCellWidth = new TableCellWidth();
+                    }
+                    tcPr.TableCellWidth.Type = TableWidthUnitValues.Auto;
+                    tcPr.TableCellWidth.Width = "0";
+                }
+            }
+
+            // Calculate and apply content-based widths
             AdjustColumnWidthsBasedOnContent();
         }
 
@@ -269,52 +297,113 @@ namespace OfficeIMO.Word {
         /// Sets the table to AutoFit to Window (100% width)
         /// </summary>
         public void AutoFitToWindow() {
-            SetTableLayout(WordTableLayoutType.AutoFitToWindow);
+            // Set table layout type
+            CheckTableProperties();
+            if (_tableProperties.TableLayout != null) {
+                _tableProperties.TableLayout.Remove();
+            }
 
-            // Distribute columns evenly when fitting to window
-            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
+            // Set table width to 100%
+            if (_tableProperties.TableWidth == null) {
+                _tableProperties.TableWidth = new TableWidth();
+            }
+            _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
+            _tableProperties.TableWidth.Width = "5000"; // 5000 = 100%
+
+            // Remove table indentation if present
+            if (_tableProperties.TableIndentation != null) {
+                _tableProperties.TableIndentation.Remove();
+            }
+
+            // Distribute columns evenly
+            if (Rows.Count > 0) {
                 int columnCount = Rows[0].Cells.Count;
-                List<int> evenWidths = new List<int>();
+                int columnWidth = 5000 / columnCount; // Distribute percentage evenly
 
-                // Distribute widths evenly as percentages
-                int evenWidth = 5000 / columnCount; // 5000 = 100%
-                for (int i = 0; i < columnCount; i++) {
-                    evenWidths.Add(evenWidth);
+                foreach (var row in Rows) {
+                    foreach (var cell in row.Cells) {
+                        var tcPr = cell._tableCellProperties;
+                        if (tcPr == null) {
+                            tcPr = new TableCellProperties();
+                            cell._tableCellProperties = tcPr;
+                        }
+
+                        if (tcPr.TableCellWidth == null) {
+                            tcPr.TableCellWidth = new TableCellWidth();
+                        }
+                        tcPr.TableCellWidth.Type = TableWidthUnitValues.Pct;
+                        tcPr.TableCellWidth.Width = columnWidth.ToString();
+                    }
                 }
-
-                // Apply the widths
-                this.ColumnWidth = evenWidths;
-                this.ColumnWidthType = TableWidthUnitValues.Pct;
             }
         }
 
         /// <summary>
-        /// Sets the table to Fixed Width with specified percentage
+        /// Sets the table to Fixed Width with the specified percentage
         /// </summary>
         /// <param name="percentage">Width percentage (0-100)</param>
         public void SetFixedWidth(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
 
-            SetTableLayout(WordTableLayoutType.FixedWidth, percentage);
-
-            // Distribute columns evenly for the fixed width
-            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
-                int columnCount = Rows[0].Cells.Count;
-                List<int> evenWidths = new List<int>();
-
-                // Distribute widths evenly as percentages
-                int totalWidth = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
-                int evenWidth = totalWidth / columnCount;
-
-                for (int i = 0; i < columnCount; i++) {
-                    evenWidths.Add(evenWidth);
-                }
-
-                // Apply the widths
-                this.ColumnWidth = evenWidths;
-                this.ColumnWidthType = TableWidthUnitValues.Pct;
+            // Set table layout type to Fixed
+            CheckTableProperties();
+            if (_tableProperties.TableLayout == null) {
+                _tableProperties.TableLayout = new TableLayout();
             }
+            _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
+
+            // Set table width
+            if (_tableProperties.TableWidth == null) {
+                _tableProperties.TableWidth = new TableWidth();
+            }
+            _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
+            _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
+
+            // Set fixed column widths proportionally
+            if (Rows.Count > 0) {
+                int columnCount = Rows[0].Cells.Count;
+                int columnWidth = percentage * 50 / columnCount;
+
+                foreach (var row in Rows) {
+                    foreach (var cell in row.Cells) {
+                        var tcPr = cell._tableCellProperties;
+                        if (tcPr == null) {
+                            tcPr = new TableCellProperties();
+                            cell._tableCellProperties = tcPr;
+                        }
+
+                        if (tcPr.TableCellWidth == null) {
+                            tcPr.TableCellWidth = new TableCellWidth();
+                        }
+                        tcPr.TableCellWidth.Type = TableWidthUnitValues.Pct;
+                        tcPr.TableCellWidth.Width = columnWidth.ToString();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current table layout mode based on its properties
+        /// </summary>
+        /// <returns>The current WordTableLayoutType</returns>
+        public WordTableLayoutType GetCurrentLayoutType() {
+            if (_tableProperties?.TableWidth == null) {
+                return WordTableLayoutType.AutoFitToContents;
+            }
+
+            if (_tableProperties.TableWidth.Type == TableWidthUnitValues.Auto) {
+                return WordTableLayoutType.AutoFitToContents;
+            }
+
+            if (_tableProperties.TableWidth.Type == TableWidthUnitValues.Pct) {
+                if (_tableProperties.TableLayout?.Type == TableLayoutValues.Fixed) {
+                    return WordTableLayoutType.FixedWidth;
+                }
+                return WordTableLayoutType.AutoFitToWindow;
+            }
+
+            return WordTableLayoutType.AutoFitToContents;
         }
 
         /// <summary>
