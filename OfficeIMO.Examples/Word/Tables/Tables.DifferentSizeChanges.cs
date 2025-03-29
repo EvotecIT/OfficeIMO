@@ -129,7 +129,14 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Table 14");
 
                 WordTable wordTable13 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
+                var layoutType0 = wordTable13.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType0.ToString());
+
                 wordTable13.LayoutType = TableLayoutValues.Autofit;
+
+                layoutType0 = wordTable13.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType0.ToString());
+
                 wordTable13.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable13.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable13.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
@@ -140,7 +147,14 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Table 15");
 
                 WordTable wordTable14 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
+                var layoutType = wordTable14.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+
                 wordTable14.LayoutType = TableLayoutValues.Fixed;
+
+                layoutType = wordTable14.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+
                 wordTable14.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable14.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable14.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
@@ -161,8 +175,8 @@ namespace OfficeIMO.Examples.Word {
                 wordTable15.Rows[2].Cells[2].Paragraphs[0].Text = "Test 3";
                 wordTable15.Rows[3].Cells[3].Paragraphs[0].Text = "Test 4 - longer";
 
-                var layoutType = wordTable15.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+                var layoutType1 = wordTable15.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType1.ToString());
 
                 wordTable15.AutoFitToContents();
 
