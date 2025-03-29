@@ -95,14 +95,14 @@ namespace OfficeIMO.Tests {
                 document.Sections[0].Margins.LeftCentimeters = 3.01;
                 document.Sections[0].Margins.RightCentimeters = 3.05;
 
-                Assert.True(document.Sections[0].Margins.BottomCentimeters == 2.2998236331569664);
-                Assert.True(document.Sections[0].Margins.TopCentimeters == 5.499118165784832);
-                Assert.True(document.Sections[0].Margins.LeftCentimeters == 3.0088183421516757);
-                Assert.True(document.Sections[0].Margins.RightCentimeters == 3.049382716049383);
+                Assert.True(document.Sections[0].Margins.BottomCentimeters == 2.3);
+                Assert.True(document.Sections[0].Margins.TopCentimeters == 5.5);
+                Assert.True(document.Sections[0].Margins.LeftCentimeters == 3.01);
+                Assert.True(document.Sections[0].Margins.RightCentimeters == 3.05);
 
                 Assert.True(document.Sections[0].Margins.Bottom == 1304);
                 Assert.True(document.Sections[0].Margins.Top == 3118);
-                Assert.True(document.Sections[0].Margins.Left.Value == 1706);
+                Assert.True(document.Sections[0].Margins.Left.Value == 1707);
                 Assert.True(document.Sections[0].Margins.Right.Value == 1729);
 
 
