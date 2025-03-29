@@ -14,6 +14,9 @@ public partial class WordTableStyleDetails {
         _tableProperties = table._tableProperties;
     }
 
+    /// <summary>
+    /// Get or set the top margin in twips
+    /// </summary>
     public Int16? MarginDefaultTopWidth {
         get {
             if (_tableProperties != null && _tableProperties.TableCellMarginDefault?.TopMargin?.Width != null) {
@@ -42,6 +45,28 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the top margin in centimeters
+    /// </summary>
+    public double? MarginDefaultTopCentimeters {
+        get {
+            if (MarginDefaultTopWidth != null) {
+                return Helpers.ConvertTwipsToCentimeters(MarginDefaultTopWidth.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                MarginDefaultTopWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                MarginDefaultTopWidth = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the bottom margin in twips
+    /// </summary>
     public Int16? MarginDefaultBottomWidth {
         get {
             if (_tableProperties?.TableCellMarginDefault?.BottomMargin?.Width != null) {
@@ -70,6 +95,28 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the bottom margin in centimeters
+    /// </summary>
+    public double? MarginDefaultBottomCentimeters {
+        get {
+            if (MarginDefaultBottomWidth != null) {
+                return Helpers.ConvertTwipsToCentimeters(MarginDefaultBottomWidth.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                MarginDefaultBottomWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                MarginDefaultBottomWidth = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the left margin in twips
+    /// </summary>
     public Int16? MarginDefaultLeftWidth {
         get {
             if (_tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width != null) {
@@ -98,6 +145,28 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the left margin in centimeters
+    /// </summary>
+    public double? MarginDefaultLeftCentimeters {
+        get {
+            if (MarginDefaultLeftWidth != null) {
+                return Helpers.ConvertTwipsToCentimeters(MarginDefaultLeftWidth.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                MarginDefaultLeftWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                MarginDefaultLeftWidth = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the right margin in twips
+    /// </summary>
     public Int16? MarginDefaultRightWidth {
         get {
             if (_tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width != null) {
@@ -126,6 +195,28 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the right margin in centimeters
+    /// </summary>
+    public double? MarginDefaultRightCentimeters {
+        get {
+            if (MarginDefaultRightWidth != null) {
+                return Helpers.ConvertTwipsToCentimeters(MarginDefaultRightWidth.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                MarginDefaultRightWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                MarginDefaultRightWidth = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the cell spacing in twips
+    /// </summary>
     public Int16? CellSpacing {
         get {
             if (_tableProperties?.TableCellSpacing?.Width != null) {
@@ -150,6 +241,28 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the cell spacing in centimeters
+    /// </summary>
+    public double? CellSpacingCentimeters {
+        get {
+            if (CellSpacing != null) {
+                return Helpers.ConvertTwipsToCentimeters(CellSpacing.Value);
+            }
+            return null;
+        }
+        set {
+            if (value != null) {
+                CellSpacing = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+            } else {
+                CellSpacing = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get or set the table borders
+    /// </summary>
     public TableBorders TableBorders {
         get {
             return _tableProperties?.TableBorders;
@@ -169,6 +282,9 @@ public partial class WordTableStyleDetails {
         }
     }
 
+    /// <summary>
+    /// Get or set the table cell margin default
+    /// </summary>
     public TableCellMarginDefault TableCellMarginDefault {
         get {
             return _tableProperties?.TableCellMarginDefault;
@@ -187,6 +303,4 @@ public partial class WordTableStyleDetails {
             }
         }
     }
-
-
 }
