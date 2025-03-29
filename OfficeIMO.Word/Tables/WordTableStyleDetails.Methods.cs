@@ -144,43 +144,43 @@ public partial class WordTableStyleDetails {
     /// </summary>
     /// <param name="side">The border side to get properties for</param>
     /// <returns>A tuple with style, size, and color</returns>
-    public (BorderValues? Style, UInt32Value Size, string ColorHex) GetBorderProperties(BorderSide side) {
+    public (BorderValues? Style, UInt32Value Size, string ColorHex) GetBorderProperties(WordTableBorderSide side) {
         if (TableBorders == null) {
             return (null, null, null);
         }
 
         switch (side) {
-            case BorderSide.Top:
+            case WordTableBorderSide.Top:
                 return (
                     TableBorders.TopBorder?.Val,
                     TableBorders.TopBorder?.Size,
                     TableBorders.TopBorder?.Color?.Value
                 );
-            case BorderSide.Bottom:
+            case WordTableBorderSide.Bottom:
                 return (
                     TableBorders.BottomBorder?.Val,
                     TableBorders.BottomBorder?.Size,
                     TableBorders.BottomBorder?.Color?.Value
                 );
-            case BorderSide.Left:
+            case WordTableBorderSide.Left:
                 return (
                     TableBorders.LeftBorder?.Val,
                     TableBorders.LeftBorder?.Size,
                     TableBorders.LeftBorder?.Color?.Value
                 );
-            case BorderSide.Right:
+            case WordTableBorderSide.Right:
                 return (
                     TableBorders.RightBorder?.Val,
                     TableBorders.RightBorder?.Size,
                     TableBorders.RightBorder?.Color?.Value
                 );
-            case BorderSide.InsideHorizontal:
+            case WordTableBorderSide.InsideHorizontal:
                 return (
                     TableBorders.InsideHorizontalBorder?.Val,
                     TableBorders.InsideHorizontalBorder?.Size,
                     TableBorders.InsideHorizontalBorder?.Color?.Value
                 );
-            case BorderSide.InsideVertical:
+            case WordTableBorderSide.InsideVertical:
                 return (
                     TableBorders.InsideVerticalBorder?.Val,
                     TableBorders.InsideVerticalBorder?.Size,
