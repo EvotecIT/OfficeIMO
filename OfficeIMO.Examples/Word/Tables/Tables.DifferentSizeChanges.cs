@@ -155,6 +155,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable15.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable15.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable15.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
+                wordTable15.AutoFitToContents();
 
                 document.Save(openWord);
             }
