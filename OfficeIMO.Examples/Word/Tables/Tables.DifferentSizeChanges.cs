@@ -130,12 +130,12 @@ namespace OfficeIMO.Examples.Word {
 
                 WordTable wordTable13 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
                 var layoutType0 = wordTable13.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType0.ToString());
+                Console.WriteLine("Table 14 - Current Layout Type: " + layoutType0.ToString());
 
                 wordTable13.LayoutType = TableLayoutValues.Autofit;
 
                 layoutType0 = wordTable13.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType0.ToString());
+                Console.WriteLine("Table 14 - Current Layout Type after change: " + layoutType0.ToString());
 
                 wordTable13.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable13.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
@@ -148,12 +148,12 @@ namespace OfficeIMO.Examples.Word {
 
                 WordTable wordTable14 = document.AddTable(4, 4, WordTableStyle.PlainTable1);
                 var layoutType = wordTable14.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+                Console.WriteLine("Table 15 - Current Layout Type: " + layoutType.ToString());
 
                 wordTable14.LayoutType = TableLayoutValues.Fixed;
 
                 layoutType = wordTable14.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+                Console.WriteLine("Table 15 - Current Layout Type after change: " + layoutType.ToString());
 
                 wordTable14.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable14.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
@@ -176,12 +176,12 @@ namespace OfficeIMO.Examples.Word {
                 wordTable15.Rows[3].Cells[3].Paragraphs[0].Text = "Test 4 - longer";
 
                 var layoutType1 = wordTable15.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type: " + layoutType1.ToString());
+                Console.WriteLine("Table 16 - Current Layout Type: " + layoutType1.ToString());
 
                 wordTable15.AutoFitToContents();
 
                 var layoutType2 = wordTable15.GetCurrentLayoutType();
-                Console.WriteLine("Current Layout Type after change: " + layoutType2.ToString());
+                Console.WriteLine("Table 16 - Current Layout Type after change: " + layoutType2.ToString());
 
                 document.Save(openWord);
             }
