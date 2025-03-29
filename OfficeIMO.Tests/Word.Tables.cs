@@ -819,8 +819,10 @@ namespace OfficeIMO.Tests {
                 // lets fix it for full width
                 wordTable5.DistributeColumnsEvenly();
 
-                Assert.True(wordTable5.Width == 0);
-                Assert.True(wordTable5.WidthType == TableWidthUnitValues.Auto);
+                // Verify the NEW behavior: DistributeColumnsEvenly distributes within the current width context.
+                // Since Width was set to 2500 (Pct), it should remain 2500.
+                Assert.True(wordTable5.Width == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
+                Assert.True(wordTable5.WidthType == TableWidthUnitValues.Pct, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.WidthType}");
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -859,8 +861,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[4].Width == 2500);
                 Assert.True(document.Tables[4].WidthType == TableWidthUnitValues.Pct);
 
-                Assert.True(document.Tables[5].Width == 0);
-                Assert.True(document.Tables[5].WidthType == TableWidthUnitValues.Auto);
+                // Verify loaded state for the table where DistributeColumnsEvenly was called
+                Assert.True(document.Tables[5].Width == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
+                Assert.True(document.Tables[5].WidthType == TableWidthUnitValues.Pct, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].WidthType}");
 
                 Assert.True(document.Tables[6].Width == 2500);
                 Assert.True(document.Tables[6].WidthType == TableWidthUnitValues.Pct);
