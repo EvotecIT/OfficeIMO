@@ -868,6 +868,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[7].Width == 3750);
                 Assert.True(document.Tables[7].WidthType == TableWidthUnitValues.Pct);
 
+            }
+        }
+
+
         [Fact]
         public void Test_CreatingWordDocumentWithTables1() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTables1.docx");
@@ -1034,7 +1038,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Text == "New");
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[2].Text == "New more");
 
-                // replace existing paragraphs with single one 
+                // replace existing paragraphs with single one
                 wordTable.Rows[0].Cells[0].AddParagraph("New paragraph, delete rest", true);
 
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 1);
