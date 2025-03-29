@@ -151,6 +151,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Table 15 - Current Layout Type: " + layoutType.ToString());
 
                 wordTable14.LayoutType = TableLayoutValues.Fixed;
+                wordTable14.WidthType = TableWidthUnitValues.Pct;   // Specify width type
+                wordTable14.Width = 2500;
 
                 layoutType = wordTable14.GetCurrentLayoutType();
                 Console.WriteLine("Table 15 - Current Layout Type after change: " + layoutType.ToString());
