@@ -76,6 +76,7 @@ namespace OfficeIMO.Examples {
             Tables.Example_BasicTables8_StylesModification(folderPath, false);
             Tables.Example_UnifiedTableBorders(folderPath, false);
             Tables.Example_BasicTables10_StylesModificationWithCentimeters(folderPath, false);
+            Tables.Example_DifferentTableSizes(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 
