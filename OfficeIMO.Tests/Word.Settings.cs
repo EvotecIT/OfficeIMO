@@ -56,14 +56,40 @@ namespace OfficeIMO.Tests {
                 document.Settings.FontFamily = "Courier New";
 
                 Assert.True(document.Settings.FontFamily == "Courier New");
+                Assert.True(document.Settings.FontFamilyEastAsia == "Courier New");
+                Assert.True(document.Settings.FontFamilyComplexScript == "Courier New");
+                Assert.True(document.Settings.FontFamilyHighAnsi == "Courier New");
 
-                document.Settings.FontFamilyHighAnsi = "Courier New";
+                document.Settings.FontFamilyHighAnsi = "Arial";
+                Assert.True(document.Settings.FontFamilyHighAnsi == "Arial");
+                Assert.True(document.Settings.FontFamily == "Courier New");
+                Assert.True(document.Settings.FontFamilyEastAsia == "Courier New");
+                Assert.True(document.Settings.FontFamilyComplexScript == "Courier New");
+
+                document.Settings.FontFamily = "Times New Roman";
+                Assert.True(document.Settings.FontFamily == "Times New Roman");
+                Assert.True(document.Settings.FontFamilyHighAnsi == "Times New Roman");
+                Assert.True(document.Settings.FontFamilyEastAsia == "Times New Roman");
+                Assert.True(document.Settings.FontFamilyComplexScript == "Times New Roman");
+
+                document.Settings.FontFamilyHighAnsi = "Arial";
+                Assert.True(document.Settings.FontFamilyHighAnsi == "Arial");
+                Assert.True(document.Settings.FontFamily == "Times New Roman");
+                Assert.True(document.Settings.FontFamilyEastAsia == "Times New Roman");
+                Assert.True(document.Settings.FontFamilyComplexScript == "Times New Roman");
+
+                document.Settings.FontFamilyEastAsia = null;
+                Assert.True(document.Settings.FontFamilyEastAsia == null);
+
+                document.Settings.FontFamilyComplexScript = null;
+                Assert.True(document.Settings.FontFamilyComplexScript == null);
 
                 document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2003;
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
 
-
-                Assert.True(document.Settings.FontFamilyHighAnsi == "Courier New");
+                Assert.True(document.Settings.ReadOnlyRecommended == false);
+                document.Settings.ReadOnlyRecommended = true;
+                Assert.True(document.Settings.ReadOnlyRecommended == true);
 
                 document.Save(false);
             }
@@ -72,7 +98,7 @@ namespace OfficeIMO.Tests {
                 document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2007;
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2007);
 
-                Assert.True(document.Settings.FontFamilyHighAnsi == "Courier New");
+                Assert.True(document.Settings.FontFamilyHighAnsi == "Arial");
                 Assert.True(document.Settings.Language == "pl-PL");
 
                 document.Settings.Language = "en-US";
@@ -99,10 +125,13 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.FontSizeComplexScript == 20);
                 Assert.True(document.Settings.FontSize == 30);
-                Assert.True(document.Settings.FontFamily == "Courier New");
+                Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 document.Settings.FontFamilyHighAnsi = "Abadi";
-                document.Settings.FontFamily = "Arial Narrow";
+
+                Assert.True(document.Settings.ReadOnlyRecommended == true);
+                document.Settings.ReadOnlyRecommended = false;
+                Assert.True(document.Settings.ReadOnlyRecommended == false);
 
                 document.Save();
             }
@@ -111,14 +140,19 @@ namespace OfficeIMO.Tests {
                 document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2010;
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2010);
 
-
-                Assert.True(document.Settings.FontFamily == "Arial Narrow");
                 Assert.True(document.Settings.FontFamilyHighAnsi == "Abadi");
+                Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 Assert.True(document.Settings.ProtectionType == null);
                 Assert.True(document.Settings.BackgroundColor == "FFA07A");
                 Assert.True(document.Settings.ZoomPercentage == 100);
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+
+                Assert.True(document.Settings.ReadOnlyRecommended == false);
+
+                Assert.True(document.Settings.FinalDocument == false);
+                document.Settings.FinalDocument = true;
+                Assert.True(document.Settings.FinalDocument == true);
                 document.Save();
             }
 
@@ -143,6 +177,10 @@ namespace OfficeIMO.Tests {
                 document.Settings.ZoomPreset = PresetZoomValues.TextFit;
 
                 Assert.True(document.Settings.ZoomPreset == PresetZoomValues.TextFit);
+
+                Assert.True(document.Settings.FinalDocument == true);
+                document.Settings.FinalDocument = false;
+                Assert.True(document.Settings.FinalDocument == false);
 
                 document.Save();
             }

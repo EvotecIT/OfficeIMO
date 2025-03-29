@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -104,6 +104,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].TablesIncludingNestedTables.Count == 7);
 
                 document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ReadingWordDocumentWithNestedTables() {
+            string filePath = Path.Combine(_directoryDocuments, "NestedTables.docx");
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.Tables);
+                
+                var table = document.Tables[0];
+                Assert.True(table.HasNestedTables);
+                Assert.Equal(2, table.NestedTables.Count);
+                Assert.Equal(9, table.Cells.Count);
+                Assert.False(table.Cells[1].HasNestedTables);
+                Assert.True(table.Cells[8].HasNestedTables);
+
+                var cell = table.Cells[0];
+                Assert.True(cell.HasNestedTables);
+                Assert.Single(cell.NestedTables);
             }
         }
     }

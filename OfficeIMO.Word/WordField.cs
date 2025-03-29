@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
         Arabic,
     }
 
-    public partial class WordField {
+    public partial class WordField : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly List<Run> _runs = new List<Run>();
@@ -138,15 +138,15 @@ namespace OfficeIMO.Word {
                 if (_simpleField != null) {
                     return _simpleField.Instruction;
                 } else {
+                    var instruction = "";
                     foreach (var run in _runs) {
                         var fieldCode = run.ChildElements.OfType<FieldCode>().FirstOrDefault();
                         if (fieldCode != null) {
-                            return fieldCode.Text;
+                            instruction += fieldCode.Text;
                         }
                     }
+                    return instruction;
                 }
-
-                return null;
             }
         }
 

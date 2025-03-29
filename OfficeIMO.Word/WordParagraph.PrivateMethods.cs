@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -30,6 +29,7 @@ namespace OfficeIMO.Word {
 
                     parent = parent.Parent;
                 }
+
                 count++;
             } while (count < 10 || parent != null);
 
@@ -45,7 +45,42 @@ namespace OfficeIMO.Word {
                 this._run = new Run();
                 this._paragraph.Append(_run);
             }
+
             return this._run;
+        }
+
+        internal Run VerifyRun(Paragraph paragraph, Run run) {
+            if (run == null) {
+                run = new Run();
+                paragraph.Append(run);
+            }
+
+            return run;
+        }
+
+        internal Run VerifyRun(Hyperlink hyperlink, Run run) {
+            if (run == null) {
+                run = new Run();
+                hyperlink.Append(run);
+            }
+
+            return run;
+        }
+
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
+            VerifyRun(hyperlink, run);
+            if (run != null) {
+                if (runProperties == null) {
+                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    if (text != null) {
+                        text.InsertBeforeSelf(new RunProperties());
+                    } else {
+                        run.Append(new RunProperties());
+                    }
+                }
+            }
+
+            return runProperties;
         }
 
         /// <summary>
@@ -64,11 +99,12 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+
             return this._runProperties;
         }
 
         /// <summary>
-        /// Returns a Text field. If it doesn't exits creates it. 
+        /// Returns a Text field. If it doesn't exits creates it.
         /// </summary>
         /// <returns></returns>
         private Text VerifyText() {
@@ -81,27 +117,28 @@ namespace OfficeIMO.Word {
 
             return this._text;
         }
-        private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
-            if (wordParagraph.IsListItem) {
-                int? listId = wordParagraph._listNumberId;
-                if (listId != null) {
-                    if (!_document._listNumbersUsed.Contains(listId.Value)) {
-                        WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
-                        list.ListItems.Add(wordParagraph);
-                        _document._listNumbersUsed.Add(listId.Value);
-                        _document._currentSection.Lists.Add(list);
-                    } else {
-                        foreach (WordList list in _document.Lists) {
-                            if (list._numberId == listId.Value) {
-                                list.ListItems.Add(wordParagraph);
-                            }
-                        }
-                    }
-                } else {
-                    throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
-                }
-            }
-        }
+
+        //private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
+        //    if (wordParagraph.IsListItem) {
+        //        int? listId = wordParagraph._listNumberId;
+        //        if (listId != null) {
+        //            if (!_document._listNumbersUsed.Contains(listId.Value)) {
+        //                WordList list = new WordList(wordParagraph._document, document._currentSection, listId.Value);
+        //                list.ListItems.Add(wordParagraph);
+        //                _document._listNumbersUsed.Add(listId.Value);
+        //                _document._currentSection.Lists.Add(list);
+        //            } else {
+        //                foreach (WordList list in _document.Lists) {
+        //                    if (list._numberId == listId.Value) {
+        //                        list.ListItems.Add(wordParagraph);
+        //                    }
+        //                }
+        //            }
+        //        } else {
+        //            throw new InvalidOperationException("Couldn't load a list, probably some logic error :-)");
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Combines the identical runs.
@@ -131,9 +168,73 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+
             foreach (Run run in runsToRemove) {
                 run.Remove();
             }
+        }
+
+        private List<string> ConvertStringToList(string text) {
+            string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
+            string[] textSplit = text.Split(splitStrings, StringSplitOptions.RemoveEmptyEntries);
+            var list = new List<string>();
+            for (int i = 0; i < textSplit.Length; i++) {
+                // check if there's new line at the beginning of the text
+                // if there is add empty string to the list
+                if (i == 0 && text.StartsWith(Environment.NewLine)) {
+                    list.Add("");
+                } else if (i == 0 && text.StartsWith("\r\n")) {
+                    list.Add("");
+                } else if (i == 0 && text.StartsWith("\n")) {
+                    list.Add("");
+                }
+                // add splitted text to the list
+                list.Add(textSplit[i]);
+
+                if (i < textSplit.Length - 1) {
+                    // for every element in the list except the last element add empty string to the list
+                    list.Add("");
+                } else {
+                    // check if there's new line at the end of the text
+                    // if there is add an empty string to the list
+                    if (text.EndsWith(Environment.NewLine)) {
+                        list.Add("");
+                    } else if (text.EndsWith("\r\n")) {
+                        list.Add("");
+                    } else if (text.EndsWith("\n")) {
+                        list.Add("");
+                    }
+                }
+            }
+            return list;
+        }
+
+        private WordParagraph ConvertToTextWithBreaks(string text) {
+            string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
+
+            WordParagraph wordParagraph = null;
+
+            // check if there's a new line in the text
+            if (splitStrings.Any(text.Contains)) {
+                // if there is new line in the text, split the text and add a new paragraph for each line
+                // for any new line, add a break
+                var listOfText = ConvertStringToList(text);
+                foreach (string line in listOfText) {
+                    if (line == "") {
+                        wordParagraph = AddBreak();
+                    } else {
+                        wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+                        wordParagraph.Text = line;
+                        this._paragraph.Append(wordParagraph._run);
+                    }
+                }
+            } else {
+                wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+                wordParagraph.Text = text;
+                this._paragraph.Append(wordParagraph._run);
+            }
+
+            return wordParagraph;
         }
     }
 }

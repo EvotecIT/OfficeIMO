@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +14,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var para = document.AddHyperLink("Test", new Uri("https://evotec.xyz"));
+                var para1 = document.AddHyperLink("Test", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save(openWord);
                 Console.WriteLine("IsValid: " + document.DocumentIsValid);

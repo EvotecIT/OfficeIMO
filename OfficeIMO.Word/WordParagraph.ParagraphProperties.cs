@@ -1,7 +1,14 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        public WordParagraphBorders Borders {
+            get {
+                return new WordParagraphBorders(_document, this);
+            }
+        }
+
         /// <summary>
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
@@ -100,6 +107,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// The property which puts a paragraph on the beginning of a next side without add a page break to the document
+        /// </summary>
+        /// <value>bool</value>
+        public bool PageBreakBefore {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.PageBreakBefore is not null;
+            }
+            set {
+                if (value == true) {
+                    var pageBreakBefore = new PageBreakBefore();
+                    _paragraphProperties.PageBreakBefore = pageBreakBefore;
+                } else {
+                    _paragraphProperties.PageBreakBefore = null;
+                }
+            }
+        }
+
         public int? IndentationFirstLine {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
@@ -160,7 +185,6 @@ namespace OfficeIMO.Word {
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.TextDirection != null) {
                         return _paragraphProperties.TextDirection.Val;
                     } else {
@@ -196,8 +220,7 @@ namespace OfficeIMO.Word {
                 } else {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
-
-                spacing.After = value.ToString();
+                spacing.LineRule = value;
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
@@ -281,6 +304,29 @@ namespace OfficeIMO.Word {
 
                 spacing.After = value.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
+        /// </summary>
+        public VerticalPositionValues? VerticalTextAlignment {
+            get {
+                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
+                    return _runProperties.VerticalTextAlignment.Val;
+                }
+                return null;
+            }
+            set {
+                _runProperties ??= new RunProperties();
+                if (value == null) {
+                    if (_runProperties.VerticalTextAlignment == null) {
+                        return;
+                    }
+                    _runProperties.VerticalTextAlignment = null;
+                } else {
+                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                }
             }
         }
     }

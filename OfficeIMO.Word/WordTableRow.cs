@@ -67,6 +67,7 @@ namespace OfficeIMO.Word {
             }
         }
 
+
         public bool AllowRowToBreakAcrossPages {
             get {
                 if (_tableRow.TableRowProperties != null) {
@@ -95,6 +96,32 @@ namespace OfficeIMO.Word {
                     if (cantSplit == null) {
                         _tableRow.TableRowProperties.InsertAt(new CantSplit(), 0);
                     }
+
+        /// <summary>
+        /// Gets or sets header row at the top of each page
+        /// Since this is a table row property, it is not possible to set it for a single row
+        /// </summary>
+        internal bool RepeatHeaderRowAtTheTopOfEachPage {
+            get {
+                if (_tableRow.TableRowProperties != null) {
+                    var rowHeader = _tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                    if (rowHeader != null) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            set {
+                AddTableRowProperties();
+                var rowHeader = _tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                if (rowHeader != null) {
+                    if (value == false) {
+                        rowHeader.Remove();
+                    }
+                } else {
+                    // Add table header
+                    _tableRow.TableRowProperties.InsertAt(new TableHeader(), 0);
+
                 }
             }
         }

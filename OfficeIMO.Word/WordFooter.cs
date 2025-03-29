@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,10 +23,13 @@ namespace OfficeIMO.Word {
         }
     }
     public partial class WordFooter : WordHeaderFooter {
-        internal WordFooter(WordDocument document, FooterReference footerReference) {
+        private readonly WordSection _section;
+
+        internal WordFooter(WordDocument document, FooterReference footerReference, WordSection section) {
             _document = document;
             _id = footerReference.Id;
             _type = WordSection.GetType(footerReference.Type);
+            _section = section;
 
             var listHeaders = document._wordprocessingDocument.MainDocumentPart.FooterParts.ToList();
             foreach (FooterPart footerPart in listHeaders) {
@@ -48,10 +51,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal WordFooter(WordDocument document, HeaderFooterValues type, Footer footerPartFooter) {
+        internal WordFooter(WordDocument document, HeaderFooterValues type, Footer footerPartFooter, WordSection section) {
             _document = document;
             _footer = footerPartFooter;
             _type = type;
+            _section = section;
         }
 
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {

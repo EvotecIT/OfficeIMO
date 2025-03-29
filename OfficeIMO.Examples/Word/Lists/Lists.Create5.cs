@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,12 +18,12 @@ namespace OfficeIMO.Examples.Word {
 
                 WordList wordList = document.AddList(WordListStyle.Headings111);
                 wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
-                wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown);
-                wordList.AddItem("Text 2.2", 1).SetColor(Color.Brown);
-                wordList.AddItem("Text 2.3", 1).SetColor(Color.Brown);
-                wordList.AddItem("Text 2.3.4", 2).SetColor(Color.Brown);
+                wordList.AddItem("Text 1.1", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 1.2", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 1.3", 1).SetColor(Color.Brown);
+                wordList.AddItem("Text 1.3.1", 2).SetColor(Color.Brown);
                 // here we set another list element but we also change it using standard paragraph change
-                paragraph = wordList.AddItem("Text 3");
+                paragraph = wordList.AddItem("Text 2");
                 paragraph.Bold = true;
                 paragraph.SetItalic();
 
@@ -86,6 +86,10 @@ namespace OfficeIMO.Examples.Word {
                 document.Lists[3].AddItem("Added 2.3.5 to list number 4", 2).SetColor(Color.DimGrey);
                 document.Lists[2].AddItem("Added 2.3.5 to list number 3", 2).SetColor(Color.DimGrey);
 
+                document.AddBreak();
+
+                wordList.AddItem("Text 2.1.1", 2).SetColor(Color.Brown);
+                wordList.AddItem("Text 2.1.2", 2).SetColor(Color.Brown);
 
                 Console.WriteLine("Number of lists - section 1 (after updating existing lists): " + document.Sections[1].Lists.Count);
                 Console.WriteLine("Number of lists - all (after updating existing lists): " + document.Lists.Count);

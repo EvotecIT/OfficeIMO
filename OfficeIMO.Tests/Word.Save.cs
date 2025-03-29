@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                 document.Save(filePath1);
 
                 Assert.True(File.Exists(filePath1));
-                Assert.True(filePath1.IsFileLocked());
+                Assert.False(filePath1.IsFileLocked());
 
                 Assert.Single(document.Paragraphs);
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Paragraphs.Count);
 
                 Assert.True(File.Exists(filePath2));
-                Assert.True(filePath2.IsFileLocked());
+                Assert.False(filePath2.IsFileLocked());
 
                 document.AddParagraph("This is my test in document 3");
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 document.Save(filePath3);
 
                 Assert.True(File.Exists(filePath3));
-                Assert.True(filePath3.IsFileLocked());
+                Assert.False(filePath3.IsFileLocked());
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             document.Save();
 
-            Assert.True(filePath1.IsFileLocked());
+            Assert.False(filePath1.IsFileLocked());
 
             document.Dispose();
 
@@ -126,6 +126,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SaveToStream() {
             var document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
             document.AddParagraph("Hello world!");
 
             using var outputStream = new MemoryStream();
@@ -133,8 +136,53 @@ namespace OfficeIMO.Tests {
 
             var resultDoc = WordDocument.Load(outputStream);
 
+            Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+            Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+            Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+
             var paragraph = Assert.Single(resultDoc.Paragraphs);
             Assert.Equal("Hello world!", paragraph.Text);
         }
+
+
+        [Fact]
+        public void Test_SaveToStreamAndFile() {
+            var filePath = Path.Combine(_directoryWithFiles, "DisposeTesting1.docx");
+            File.Delete(filePath);
+
+            Assert.False(File.Exists(filePath));
+
+            var document = WordDocument.Create();
+            document.BuiltinDocumentProperties.Title = "This is my title";
+            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
+            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.AddParagraph("Hello world!");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
+                outputStream.CopyTo(fileStream);
+            }
+
+            using (var resultDoc = WordDocument.Load(filePath)) {
+                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+
+                var paragraph = Assert.Single(resultDoc.Paragraphs);
+                Assert.Equal("Hello world!", paragraph.Text);
+
+                resultDoc.Save();
+            }
+
+            using (var resultDoc = WordDocument.Load(filePath)) {
+                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+            }
+        }
+
     }
+
 }

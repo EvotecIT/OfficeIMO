@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -143,6 +143,54 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
                 Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
                 document.Save();
+            }
+        }
+        [Fact]
+        public void Test_ReadPageBreakProperty() {
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "EmptyDocumentWithParagraphPropertyPageBreakBefore.docx"))) {
+                Assert.True(document.Paragraphs[0].PageBreakBefore);
+            }
+        }
+        [Fact]
+        public void Test_SettingPageBreakProperty() {
+            bool stateBefore;
+            string originalFile = Path.Combine(_directoryDocuments, "EmptyDocumentWithParagraphPropertyPageBreakBefore.docx");
+            string tempFile = Path.GetTempFileName();
+
+            using (WordDocument document = WordDocument.Load(originalFile)) {
+                stateBefore = document.Paragraphs[0].PageBreakBefore;
+                document.Paragraphs[0].PageBreakBefore = false;
+                document.Save(tempFile);
+            }
+            using (WordDocument document = WordDocument.Load(tempFile)) {
+                Assert.True(document.Paragraphs[0].PageBreakBefore != stateBefore);
+            }
+        }
+
+        [Fact]
+        public void Test_SetStyleId() {
+           
+            string originalFile = Path.Combine(_directoryDocuments, "EmptyDocument.docx");
+            string tempFile = Path.GetTempFileName();
+
+            using (WordDocument document = WordDocument.Load(originalFile)) {
+
+                var p1 = document.Paragraphs[0];
+                p1.Text = "Chapter1";
+                p1.SetStyleId(WordParagraphStyles.Heading1.ToString());
+                var p2 = document.AddParagraph("Chatper2").SetStyle(WordParagraphStyles.Heading1);
+                var style1= p1.Style.Value;
+                var style2= p2.Style.Value;
+                Assert.True(style1 == style2);
+                document.Save(tempFile);    
+               
+            }
+            using (WordDocument document = WordDocument.Load(tempFile)) {
+                var p3 = document.Paragraphs[0];
+                var p4 = document.Paragraphs[1];
+                var style3 = p3.Style.Value;
+                var style4 = p4.Style.Value;
+                Assert.True(style3 == style4);
             }
         }
     }

@@ -42,10 +42,11 @@ internal static partial class Paragraphs {
             paragraph.DoNotCheckSpellingOrGrammar = false;
             paragraph.CapsStyle = CapsStyle.SmallCaps;
 
-            paragraph = document.AddParagraph("7th Highlight me?");
+            paragraph = document.AddParagraph("7th Highlight me on a new page?");
             paragraph.Highlight = HighlightColorValues.Yellow;
             paragraph.FontSize = 15;
             paragraph.ParagraphAlignment = JustificationValues.Center;
+            paragraph.PageBreakBefore = true;
 
 
             paragraph = document.AddParagraph("8th This text should be colored.");

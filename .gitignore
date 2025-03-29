@@ -364,6 +364,7 @@ FodyWeavers.xsd
 
 .vscode/*
 
-build/*
-
 /.idea/
+Ignore/*
+
+*.received.*
