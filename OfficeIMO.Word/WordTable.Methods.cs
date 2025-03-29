@@ -55,16 +55,16 @@ namespace OfficeIMO.Word {
                 targetTotalWidth = this.Width ?? 0;
                 // If Dxa width is 0 or not set, it's ambiguous. Default to distributing 100% Pct.
                 if (targetTotalWidth <= 0) {
-                     targetType = TableWidthUnitValues.Pct;
-                     targetTotalWidth = 5000;
+                    targetType = TableWidthUnitValues.Pct;
+                    targetTotalWidth = 5000;
                 }
             } else { // Auto or unspecified - default to distributing 100% Pct
                 targetType = TableWidthUnitValues.Pct;
                 targetTotalWidth = 5000;
             }
 
-             // Ensure Table Width properties reflect the distribution target
-             // Setting these ensures the table container matches the distributed columns
+            // Ensure Table Width properties reflect the distribution target
+            // Setting these ensures the table container matches the distributed columns
             this.WidthType = targetType;
             this.Width = targetTotalWidth;
 
@@ -74,25 +74,25 @@ namespace OfficeIMO.Word {
 
             List<int> newColumnWidths = new List<int>();
             for (int i = 0; i < columnCount; i++) {
-                 int currentWidth = baseColumnWidth;
-                 if (i == columnCount - 1) { // Add remainder to the last column
-                     currentWidth += remainder;
-                 }
-                 newColumnWidths.Add(currentWidth);
+                int currentWidth = baseColumnWidth;
+                if (i == columnCount - 1) { // Add remainder to the last column
+                    currentWidth += remainder;
+                }
+                newColumnWidths.Add(currentWidth);
             }
 
             // Apply the new widths to all cells in all rows
             foreach (var row in this.Rows) {
-                 // Ensure row has the expected number of cells for safety
-                 if (row.Cells.Count == columnCount) {
+                // Ensure row has the expected number of cells for safety
+                if (row.Cells.Count == columnCount) {
                     for (int j = 0; j < columnCount; j++) {
                         var cell = row.Cells[j];
                         // Ensure TableCellProperties and TableCellWidth exist
                         var tcPr = cell._tableCellProperties ?? new TableCellProperties();
-                        if(cell._tableCellProperties == null) cell._tableCell.InsertAt(tcPr, 0);
+                        if (cell._tableCellProperties == null) cell._tableCell.InsertAt(tcPr, 0);
 
                         var tcW = tcPr.Elements<TableCellWidth>().FirstOrDefault() ?? new TableCellWidth();
-                        if(!tcPr.Elements<TableCellWidth>().Any()) tcPr.Append(tcW);
+                        if (!tcPr.Elements<TableCellWidth>().Any()) tcPr.Append(tcW);
 
                         // Set the calculated type and width for the cell
                         tcW.Type = targetType;
@@ -333,8 +333,11 @@ namespace OfficeIMO.Word {
         public void AutoFitToWindow() {
             CheckTableProperties();
 
-            // 1. Remove Table Layout element (if exists)
-            _tableProperties.TableLayout?.Remove();
+            // 1. Set Table Layout to Fixed (or ensure it exists)
+            if (_tableProperties.TableLayout == null) {
+                _tableProperties.TableLayout = new TableLayout();
+            }
+            _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
 
             // 2. Set Table Width to 100% Pct
             if (_tableProperties.TableWidth == null) {
