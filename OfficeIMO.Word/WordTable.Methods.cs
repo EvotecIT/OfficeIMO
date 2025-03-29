@@ -269,10 +269,8 @@ namespace OfficeIMO.Word {
             width += text.Length * 100;
 
             // Add extra for formatting
-            if (paragraph.Bold != null || paragraph.Italic != null) {
-                if (paragraph.Bold == true) width += (int)(width * 0.1); // Bold text is wider
-                if (paragraph.Italic == true) width += (int)(width * 0.05); // Italic text is slightly wider
-            }
+            if (paragraph.Bold == true) width += (int)(width * 0.1); // Bold text is wider
+            if (paragraph.Italic == true) width += (int)(width * 0.05); // Italic text is slightly wider
 
             return width;
         }
@@ -388,21 +386,49 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>The current WordTableLayoutType</returns>
         public WordTableLayoutType GetCurrentLayoutType() {
-            if (_tableProperties?.TableWidth == null) {
+            // If there are no table properties, default to AutoFitToContents
+            if (_tableProperties == null) {
                 return WordTableLayoutType.AutoFitToContents;
             }
 
-            if (_tableProperties.TableWidth.Type == TableWidthUnitValues.Auto) {
-                return WordTableLayoutType.AutoFitToContents;
+            // Get table layout and width settings, being careful with null values
+            var tableWidth = _tableProperties.TableWidth;
+            var widthType = tableWidth?.Type;
+            var widthValue = tableWidth?.Width;
+
+            var tableLayout = _tableProperties.TableLayout;
+            TableLayoutValues? layoutType = null;
+            if (tableLayout != null) {
+                layoutType = tableLayout.Type;
             }
 
-            if (_tableProperties.TableWidth.Type == TableWidthUnitValues.Pct) {
-                if (_tableProperties.TableLayout?.Type == TableLayoutValues.Fixed) {
+            // First check explicit layout settings
+            if (layoutType.HasValue) {
+                if (layoutType.Value == TableLayoutValues.Autofit) {
+                    return WordTableLayoutType.AutoFitToContents;
+                }
+                if (layoutType.Value == TableLayoutValues.Fixed && widthType == TableWidthUnitValues.Pct) {
+                    if (widthValue == "5000") {
+                        return WordTableLayoutType.AutoFitToWindow;
+                    }
                     return WordTableLayoutType.FixedWidth;
                 }
-                return WordTableLayoutType.AutoFitToWindow;
             }
 
+            // If no explicit layout or it's not clearly defined, infer from width settings
+            if (widthType.HasValue) {
+                if (widthType.Value == TableWidthUnitValues.Auto) {
+                    return WordTableLayoutType.AutoFitToContents;
+                }
+                if (widthType.Value == TableWidthUnitValues.Pct) {
+                    return widthValue == "5000" ? WordTableLayoutType.AutoFitToWindow : WordTableLayoutType.FixedWidth;
+                }
+                if (widthType.Value == TableWidthUnitValues.Dxa) {
+                    return WordTableLayoutType.FixedWidth;
+                }
+            }
+
+            // Default fallback
             return WordTableLayoutType.AutoFitToContents;
         }
 
