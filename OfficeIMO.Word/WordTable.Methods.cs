@@ -36,45 +36,77 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Distribute columns evenly by setting their size to the same value
+        /// based on the current table width settings (or 100% Pct if not set).
         /// </summary>
         public void DistributeColumnsEvenly() {
-            this.Width = 0;
-            this.WidthType = TableWidthUnitValues.Auto;
+            if (Rows.Count == 0 || Rows[0].Cells.Count == 0) return;
+            int columnCount = Rows[0].Cells.Count;
+            if (columnCount == 0) return;
 
-            var columnWidth = this.ColumnWidth;
-            if (columnWidth.Count == 0) {
-                return;
-            }
-            // check if column width entries are the same
-            var firstWidth = columnWidth[0];
-            var allSame = columnWidth.All(w => w == firstWidth);
-            if (allSame) {
-                return;
-            }
+            CheckTableProperties();
 
-            // set all column widths to the same value
-            var sum = columnWidth.Sum(); // sum of all columns
-            var count = columnWidth.Count(); // count of all columns
+            // Determine the target total width and type to distribute
+            TableWidthUnitValues targetType = this.WidthType ?? TableWidthUnitValues.Pct; // Default to Pct if not set
+            int targetTotalWidth;
 
-            if (ColumnWidthType == TableWidthUnitValues.Pct) {
-                // 100% = 5000
-                var currentPercent = (int)(sum / 5000.0 * 100);
-                var newPercent = (int)(100.0 / count);
-                var diff = currentPercent - newPercent;
-                var newWidth = (int)(newPercent * 5000.0 / 100);
-                for (int i = 0; i < columnWidth.Count; i++) {
-                    columnWidth[i] = newWidth;
+            if (targetType == TableWidthUnitValues.Pct) {
+                targetTotalWidth = this.Width ?? 5000; // Default to 100% (5000) if width not set
+            } else if (targetType == TableWidthUnitValues.Dxa) {
+                targetTotalWidth = this.Width ?? 0;
+                // If Dxa width is 0 or not set, it's ambiguous. Default to distributing 100% Pct.
+                if (targetTotalWidth <= 0) {
+                     targetType = TableWidthUnitValues.Pct;
+                     targetTotalWidth = 5000;
                 }
-                // add the difference to the last column
-                columnWidth[columnWidth.Count - 1] += (int)(diff * 5000.0 / 100);
-                this.ColumnWidth = columnWidth;
+            } else { // Auto or unspecified - default to distributing 100% Pct
+                targetType = TableWidthUnitValues.Pct;
+                targetTotalWidth = 5000;
+            }
 
+             // Ensure Table Width properties reflect the distribution target
+             // Setting these ensures the table container matches the distributed columns
+            this.WidthType = targetType;
+            this.Width = targetTotalWidth;
 
-            } else if (ColumnWidthType == TableWidthUnitValues.Dxa) {
-                var totalWidth = columnWidth.Sum();
-                var newWidth = totalWidth / columnWidth.Count;
-                for (int i = 0; i < columnWidth.Count; i++) {
-                    columnWidth[i] = newWidth;
+            // Calculate width per column, handling potential rounding for the last column
+            int baseColumnWidth = targetTotalWidth / columnCount;
+            int remainder = targetTotalWidth % columnCount;
+
+            List<int> newColumnWidths = new List<int>();
+            for (int i = 0; i < columnCount; i++) {
+                 int currentWidth = baseColumnWidth;
+                 if (i == columnCount - 1) { // Add remainder to the last column
+                     currentWidth += remainder;
+                 }
+                 newColumnWidths.Add(currentWidth);
+            }
+
+            // Apply the new widths to all cells in all rows
+            foreach (var row in this.Rows) {
+                 // Ensure row has the expected number of cells for safety
+                 if (row.Cells.Count == columnCount) {
+                    for (int j = 0; j < columnCount; j++) {
+                        var cell = row.Cells[j];
+                        // Ensure TableCellProperties and TableCellWidth exist
+                        var tcPr = cell._tableCellProperties ?? new TableCellProperties();
+                        if(cell._tableCellProperties == null) cell._tableCell.InsertAt(tcPr, 0);
+
+                        var tcW = tcPr.Elements<TableCellWidth>().FirstOrDefault() ?? new TableCellWidth();
+                        if(!tcPr.Elements<TableCellWidth>().Any()) tcPr.Append(tcW);
+
+                        // Set the calculated type and width for the cell
+                        tcW.Type = targetType;
+                        tcW.Width = newColumnWidths[j].ToString();
+                    }
+                }
+            }
+
+            // Update the TableGrid for consistency
+            TableGrid tableGrid = _table.GetFirstChild<TableGrid>();
+            if (tableGrid != null) {
+                tableGrid.RemoveAllChildren<GridColumn>();
+                foreach (int width in newColumnWidths) {
+                    tableGrid.Append(new GridColumn() { Width = width.ToString() });
                 }
             }
         }
