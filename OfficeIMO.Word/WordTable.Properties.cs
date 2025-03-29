@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<int>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex >= this.Rows[0].CellsCount; cellIndex++) {
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
                     listReturn.Add(this.Rows[0].Cells[cellIndex].Width.Value);
                 }
                 return listReturn;
@@ -126,6 +126,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the column width type for a whole table simplifying setup of column width
+        /// </summary>
+        public TableWidthUnitValues? ColumnWidthType {
+            get {
+                var listReturn = new List<TableWidthUnitValues?>();
+                // we assume the first row has the same widths as all rows, which may or may not be true
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
+                    listReturn.Add(this.Rows[0].Cells[cellIndex].WidthType);
+                }
+                // we assume all cells have the same width type, which may or may not be true
+                return listReturn[0];
+            }
+            set {
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        cell.WidthType = value;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Get or Set Table Row Height for 1st row

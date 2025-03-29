@@ -750,6 +750,128 @@ namespace OfficeIMO.Tests {
             }
         }
 
+
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithTablesAndSizes() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Table 1");
+                WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                Assert.True(wordTable.Width == 0);
+                Assert.True(wordTable.WidthType == TableWidthUnitValues.Auto);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 2 - Sized for 2000 width / Centered");
+                WordTable wordTable1 = document.AddTable(2, 6, WordTableStyle.PlainTable1);
+                wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+                wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
+                wordTable1.WidthType = TableWidthUnitValues.Pct;
+                wordTable1.Width = 2000;
+                wordTable1.Alignment = TableRowAlignmentValues.Center;
+
+                Assert.True(wordTable1.Width == 2000);
+                Assert.True(wordTable1.WidthType == TableWidthUnitValues.Pct);
+                Assert.True(wordTable1.Alignment == TableRowAlignmentValues.Center);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 3 - By default the table is autosized for full width");
+                WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                Assert.True(wordTable2.Width == 0);
+                Assert.True(wordTable2.WidthType == TableWidthUnitValues.Auto);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 4 - Magic number 5000 (full width)");
+                WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable3.WidthType = TableWidthUnitValues.Pct;
+                wordTable3.Width = 5000;
+                wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                Assert.True(wordTable3.Width == 5000);
+                Assert.True(wordTable3.WidthType == TableWidthUnitValues.Pct);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 5 - 50% by using 2500 width (pct)");
+                WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable4.WidthType = TableWidthUnitValues.Pct;
+                wordTable4.Width = 2500;
+                wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
+
+                Assert.True(wordTable4.Width == 2500);
+                Assert.True(wordTable4.WidthType == TableWidthUnitValues.Pct);
+
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 6 - 50% by using 2500 width (pct), that we fix to full width");
+                WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                // this data is temporary just to prove things work
+                wordTable5.WidthType = TableWidthUnitValues.Pct;
+                wordTable5.Width = 2500;
+                // lets fix it for full width
+                wordTable5.DistributeColumnsEvenly();
+
+                Assert.True(wordTable5.Width == 0);
+                Assert.True(wordTable5.WidthType == TableWidthUnitValues.Auto);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 6 - 50%");
+                WordTable wordTable6 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable6.SetWidthPercentage(50);
+
+                Assert.True(wordTable6.Width == 2500);
+                Assert.True(wordTable6.WidthType == TableWidthUnitValues.Pct);
+
+                document.AddParagraph();
+                document.AddParagraph();
+                document.AddParagraph("Table 6 - 75%");
+                WordTable wordTable7 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
+                wordTable7.SetWidthPercentage(75);
+
+                Assert.True(wordTable7.Width == 3750);
+                Assert.True(wordTable7.WidthType == TableWidthUnitValues.Pct);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx"))) {
+                Assert.True(document.Tables[0].Width == 0);
+                Assert.True(document.Tables[0].WidthType == TableWidthUnitValues.Auto);
+
+                Assert.True(document.Tables[1].Width == 2000);
+                Assert.True(document.Tables[1].WidthType == TableWidthUnitValues.Pct);
+
+                Assert.True(document.Tables[2].Width == 0);
+                Assert.True(document.Tables[2].WidthType == TableWidthUnitValues.Auto);
+
+                Assert.True(document.Tables[3].Width == 5000);
+                Assert.True(document.Tables[3].WidthType == TableWidthUnitValues.Pct);
+
+                Assert.True(document.Tables[4].Width == 2500);
+                Assert.True(document.Tables[4].WidthType == TableWidthUnitValues.Pct);
+
+                Assert.True(document.Tables[5].Width == 0);
+                Assert.True(document.Tables[5].WidthType == TableWidthUnitValues.Auto);
+
+                Assert.True(document.Tables[6].Width == 2500);
+                Assert.True(document.Tables[6].WidthType == TableWidthUnitValues.Pct);
+
+                Assert.True(document.Tables[7].Width == 3750);
+                Assert.True(document.Tables[7].WidthType == TableWidthUnitValues.Pct);
+
+            }
+        }
+
+
         [Fact]
         public void Test_CreatingWordDocumentWithTables1() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTables1.docx");
@@ -876,10 +998,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 21");
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
 
+
                 document.Save();
             }
 
         }
+
+
 
         [Fact]
         public void Test_CreatingWordDocumentWithTablesClearParagraphs() {
@@ -913,7 +1038,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Text == "New");
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[2].Text == "New more");
 
-                // replace existing paragraphs with single one 
+                // replace existing paragraphs with single one
                 wordTable.Rows[0].Cells[0].AddParagraph("New paragraph, delete rest", true);
 
                 Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs.Count == 1);
@@ -980,5 +1105,6 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
     }
 }

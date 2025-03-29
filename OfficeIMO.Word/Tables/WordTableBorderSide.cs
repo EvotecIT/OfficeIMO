@@ -1,9 +1,9 @@
-﻿namespace OfficeIMO.Word;
+namespace OfficeIMO.Word;
 
 /// <summary>
 /// Enum to represent border sides for tables
 /// </summary>
-public enum BorderSide {
+public enum WordTableBorderSide {
     Top,
     Bottom,
     Left,

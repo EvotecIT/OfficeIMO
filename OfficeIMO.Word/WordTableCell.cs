@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+
 using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -190,6 +196,57 @@ namespace OfficeIMO.Word {
                     }
 
                     _tableCellProperties.TableCellWidth.Width = value.ToString();
+                } else {
+                    if (_tableCellProperties.TableCellWidth != null) {
+                        _tableCellProperties.TableCellWidth.Remove();
+                    }
+                }
+            }
+        }
+
+        //public int? WidthPercentage {
+        //    get {
+        //        if (_tableCellProperties.TableCellWidth != null) {
+        //            var width = _tableCellProperties.TableCellWidth.Width;
+        //            var type = _tableCellProperties.TableCellWidth.Type;
+        //            if (type == TableWidthUnitValues.Pct) {
+        //                if (width.Value.Contains("%")) {
+        //                    return int.Parse(width.Value.Replace("%", ""));
+        //                }
+        //            } else if (type == TableWidthUnitValues.Dxa) {
+        //                throw new NotImplementedException("WidthPercentage is not implemented for TableWidthUnitValues.Dxa");
+        //                //var widthInInches = (double.Parse(width.Value) / 1440);
+        //                //var widthInPercentage = (widthInInches / _wordTable.Width) * 100;
+        //                //return (int)widthInPercentage;
+        //            } else {
+        //                throw new NotImplementedException("WidthPercentage is not implemented for " + type);
+        //            }
+        //        }
+
+        //        return null;
+        //    }
+        //    set {
+
+        //    }
+        //}
+
+        /// <summary>
+        /// Gets or sets cell width type
+        /// </summary>
+        public TableWidthUnitValues? WidthType {
+            get {
+                if (_tableCellProperties.TableCellWidth != null) {
+                    return _tableCellProperties.TableCellWidth.Type;
+                }
+
+                return null;
+            }
+            set {
+                if (value != null) {
+                    if (_tableCellProperties.TableCellWidth == null) {
+                        _tableCellProperties.TableCellWidth = new TableCellWidth();
+                    }
+                    _tableCellProperties.TableCellWidth.Type = value;
                 } else {
                     if (_tableCellProperties.TableCellWidth != null) {
                         _tableCellProperties.TableCellWidth.Remove();
