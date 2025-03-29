@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -143,10 +143,10 @@ namespace OfficeIMO.Examples.Word {
                 );
 
                 // Retrieve the properties and display them
-                var topBorderProps = table5.StyleDetails.GetBorderProperties(BorderSide.Top);
-                var bottomBorderProps = table5.StyleDetails.GetBorderProperties(BorderSide.Bottom);
-                var leftBorderProps = table5.StyleDetails.GetBorderProperties(BorderSide.Left);
-                var rightBorderProps = table5.StyleDetails.GetBorderProperties(BorderSide.Right);
+                var topBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Top);
+                var bottomBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Bottom);
+                var leftBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Left);
+                var rightBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Right);
 
                 table5.Rows[0].Cells[0].Paragraphs[0].Text = "Top";
                 table5.Rows[0].Cells[1].Paragraphs[0].Text = $"Style: {topBorderProps.Style}";
