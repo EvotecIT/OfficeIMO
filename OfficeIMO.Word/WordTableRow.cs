@@ -96,6 +96,9 @@ namespace OfficeIMO.Word {
                     if (cantSplit == null) {
                         _tableRow.TableRowProperties.InsertAt(new CantSplit(), 0);
                     }
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets header row at the top of each page
