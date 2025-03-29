@@ -175,7 +175,94 @@ namespace OfficeIMO.Word {
         /// Sets the table to AutoFit to Contents
         /// </summary>
         public void AutoFitToContents() {
+            // Set the table layout type to AutoFit
             SetTableLayout(WordTableLayoutType.AutoFitToContents);
+
+            // Calculate column widths based on content
+            AdjustColumnWidthsBasedOnContent();
+        }
+
+        /// <summary>
+        /// Analyzes the content of each cell and adjusts column widths accordingly
+        /// </summary>
+        private void AdjustColumnWidthsBasedOnContent() {
+            if (Rows.Count == 0) return;
+
+            int columnCount = Rows[0].Cells.Count;
+            List<int> maxContentWidths = new List<int>(new int[columnCount]);
+
+            // Calculate the maximum content width for each column
+            foreach (var row in Rows) {
+                for (int i = 0; i < Math.Min(row.Cells.Count, columnCount); i++) {
+                    var cell = row.Cells[i];
+                    int contentWidth = EstimateContentWidth(cell);
+                    maxContentWidths[i] = Math.Max(maxContentWidths[i], contentWidth);
+                }
+            }
+
+            // Apply calculated widths to columns
+            ApplyCalculatedWidths(maxContentWidths);
+        }
+
+        /// <summary>
+        /// Estimates the width of content in a cell
+        /// </summary>
+        /// <param name="cell">The table cell to analyze</param>
+        /// <returns>Estimated width in DXA units</returns>
+        private int EstimateContentWidth(WordTableCell cell) {
+            int maxWidth = 0;
+
+            foreach (var paragraph in cell.Paragraphs) {
+                // Calculate the width based on text length
+                int textWidth = CalculateTextWidth(paragraph);
+                maxWidth = Math.Max(maxWidth, textWidth);
+            }
+
+            // Add some padding (minimum width of 1000 DXA units, ~0.7 inches)
+            return Math.Max(1000, maxWidth);
+        }
+
+        /// <summary>
+        /// Calculates approximate text width based on content
+        /// </summary>
+        /// <param name="paragraph">The paragraph to analyze</param>
+        /// <returns>Estimated width in DXA units</returns>
+        private int CalculateTextWidth(WordParagraph paragraph) {
+            // Simple estimation based on character count
+            // Average character is roughly 100 DXA units (~0.07 inches)
+            // This is a rough approximation - precise measurement would require font metrics
+            string text = paragraph.Text;
+            if (string.IsNullOrEmpty(text)) return 0;
+
+            // Start with a base width
+            int width = 0;
+
+            // Add width for each character (using average character width)
+            width += text.Length * 100;
+
+            // Add extra for formatting
+            if (paragraph.Bold != null || paragraph.Italic != null) {
+                if (paragraph.Bold == true) width += (int)(width * 0.1); // Bold text is wider
+                if (paragraph.Italic == true) width += (int)(width * 0.05); // Italic text is slightly wider
+            }
+
+            return width;
+        }
+
+        /// <summary>
+        /// Applies the calculated column widths to the table
+        /// </summary>
+        /// <param name="columnWidths">List of column widths in DXA units</param>
+        private void ApplyCalculatedWidths(List<int> columnWidths) {
+            // Set column widths
+            this.ColumnWidth = columnWidths;
+            this.ColumnWidthType = TableWidthUnitValues.Dxa;
+
+            // Ensure the overall table width is set appropriately
+            if (columnWidths.Sum() > 0) {
+                this.Width = columnWidths.Sum();
+                this.WidthType = TableWidthUnitValues.Dxa;
+            }
         }
 
         /// <summary>
@@ -183,6 +270,22 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AutoFitToWindow() {
             SetTableLayout(WordTableLayoutType.AutoFitToWindow);
+
+            // Distribute columns evenly when fitting to window
+            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
+                int columnCount = Rows[0].Cells.Count;
+                List<int> evenWidths = new List<int>();
+
+                // Distribute widths evenly as percentages
+                int evenWidth = 5000 / columnCount; // 5000 = 100%
+                for (int i = 0; i < columnCount; i++) {
+                    evenWidths.Add(evenWidth);
+                }
+
+                // Apply the widths
+                this.ColumnWidth = evenWidths;
+                this.ColumnWidthType = TableWidthUnitValues.Pct;
+            }
         }
 
         /// <summary>
@@ -192,7 +295,26 @@ namespace OfficeIMO.Word {
         public void SetFixedWidth(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
+
             SetTableLayout(WordTableLayoutType.FixedWidth, percentage);
+
+            // Distribute columns evenly for the fixed width
+            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
+                int columnCount = Rows[0].Cells.Count;
+                List<int> evenWidths = new List<int>();
+
+                // Distribute widths evenly as percentages
+                int totalWidth = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
+                int evenWidth = totalWidth / columnCount;
+
+                for (int i = 0; i < columnCount; i++) {
+                    evenWidths.Add(evenWidth);
+                }
+
+                // Apply the widths
+                this.ColumnWidth = evenWidths;
+                this.ColumnWidthType = TableWidthUnitValues.Pct;
+            }
         }
 
         /// <summary>
