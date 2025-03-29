@@ -47,7 +47,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Allow table to overlap or not
+        /// Allow table to overlap or not
         /// </summary>
         public bool AllowOverlap {
             get {
@@ -58,7 +58,30 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Allow text to wrap around table.
+        /// Gets or sets the effective layout mode of the table using WordTableLayoutType enum.
+        /// Setting FixedWidth via this property defaults to 100% width.
+        /// Use SetFixedWidth(percentage) for specific percentages.
+        /// </summary>
+        public WordTableLayoutType LayoutMode {
+            get => GetCurrentLayoutType();
+            set {
+                switch (value) {
+                    case WordTableLayoutType.AutoFitToContents:
+                        AutoFitToContents();
+                        break;
+                    case WordTableLayoutType.AutoFitToWindow:
+                        AutoFitToWindow();
+                        break;
+                    case WordTableLayoutType.FixedWidth:
+                        // Default to 100% when setting via this property
+                        SetFixedWidth(100);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allow text to wrap around table.
         /// </summary>
         public bool AllowTextWrap {
             get {
