@@ -34,7 +34,6 @@ namespace OfficeIMO.Word {
             reference.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
         }
 
-
         /// <summary>
         /// Distribute columns evenly by setting their size to the same value
         /// </summary>
@@ -78,35 +77,6 @@ namespace OfficeIMO.Word {
                     columnWidth[i] = newWidth;
                 }
             }
-
-
-            //// set all column widths to the same value
-            //var sum = columnWidth.Sum();
-            //var count = columnWidth.Count();
-            //var newWidth = sum / count;
-
-            //for (int i = 0; i < columnWidth.Count; i++) {
-            //    columnWidth[i] = newWidth;
-            //}
-            //ColumnWidth = columnWidth;
-
-            //// set table width to the sum of column widths
-            //this.Width = sum;
-            //this.WidthType = this.ColumnWidthType;
-        }
-
-        /// <summary>
-        /// Set width of the table to given percentage
-        /// </summary>
-        /// <param name="percentage"></param>
-        public void SetWidthPercentage(int percentage) {
-            if (percentage > 100) {
-                percentage = 100;
-            } else if (percentage < 0) {
-                percentage = 0;
-            }
-            this.Width = percentage * 50;
-            this.WidthType = TableWidthUnitValues.Pct;
         }
 
         public WordTable SetStyleId(string styleId) {
@@ -145,7 +115,95 @@ namespace OfficeIMO.Word {
             var insertedRow = lastRow.InsertAfterSelf(clonedRow);
 
             return new WordTableRow(this, insertedRow, _document);
+        }
 
+        /// <summary>
+        /// Sets the table layout with proper AutoFit options
+        /// </summary>
+        /// <param name="layoutType">Type of layout to apply</param>
+        /// <param name="percentage">Optional percentage for fixed width (0-100)</param>
+        public void SetTableLayout(WordTableLayoutType layoutType, int? percentage = null) {
+            CheckTableProperties();
+
+            // Apply the appropriate settings based on the layout type
+            switch (layoutType) {
+                case WordTableLayoutType.FixedWidth:
+                    // Set OpenXML layout type to Fixed
+                    if (_tableProperties.TableLayout == null) {
+                        _tableProperties.TableLayout = new TableLayout();
+                    }
+                    _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
+
+                    if (percentage.HasValue) {
+                        // For fixed width, set the width to the specified percentage
+                        this.WidthType = TableWidthUnitValues.Pct;
+                        this.Width = percentage.Value * 50; // Convert percentage to Word's internal units (50 = 1%)
+                    } else {
+                        // Default to 100% if no percentage specified
+                        this.WidthType = TableWidthUnitValues.Pct;
+                        this.Width = 5000; // 100% width
+                    }
+                    break;
+
+                case WordTableLayoutType.AutoFitToContents:
+                    // Set OpenXML layout type to Autofit
+                    if (_tableProperties.TableLayout == null) {
+                        _tableProperties.TableLayout = new TableLayout();
+                    }
+                    _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
+
+                    // For AutoFit to Contents
+                    this.WidthType = TableWidthUnitValues.Auto;
+                    this.Width = 0;
+                    break;
+
+                case WordTableLayoutType.AutoFitToWindow:
+                    // Set OpenXML layout type to Fixed
+                    if (_tableProperties.TableLayout == null) {
+                        _tableProperties.TableLayout = new TableLayout();
+                    }
+                    _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
+
+                    // For AutoFit to Window
+                    this.WidthType = TableWidthUnitValues.Pct;
+                    this.Width = 5000; // 100% width
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Sets the table to AutoFit to Contents
+        /// </summary>
+        public void AutoFitToContents() {
+            SetTableLayout(WordTableLayoutType.AutoFitToContents);
+        }
+
+        /// <summary>
+        /// Sets the table to AutoFit to Window (100% width)
+        /// </summary>
+        public void AutoFitToWindow() {
+            SetTableLayout(WordTableLayoutType.AutoFitToWindow);
+        }
+
+        /// <summary>
+        /// Sets the table to Fixed Width with specified percentage
+        /// </summary>
+        /// <param name="percentage">Width percentage (0-100)</param>
+        public void SetFixedWidth(int percentage) {
+            if (percentage < 0) percentage = 0;
+            if (percentage > 100) percentage = 100;
+            SetTableLayout(WordTableLayoutType.FixedWidth, percentage);
+        }
+
+        /// <summary>
+        /// Sets the table width to a percentage of the window width
+        /// </summary>
+        /// <param name="percentage">Width percentage (0-100)</param>
+        public void SetWidthPercentage(int percentage) {
+            if (percentage < 0) percentage = 0;
+            if (percentage > 100) percentage = 100;
+            this.WidthType = TableWidthUnitValues.Pct;
+            this.Width = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
         }
     }
 }
