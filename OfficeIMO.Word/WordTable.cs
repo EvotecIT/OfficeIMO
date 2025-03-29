@@ -18,6 +18,63 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Allow row to break across pages
+        /// This sets each row to allow page break
+        /// You can set each row separately as well
+        /// Getting value returns true if any row allows page break
+        /// For complete control use WordTableRow.AllowRowToBreakAcrossPages
+        /// </summary>
+        public bool AllowRowToBreakAcrossPages {
+            get {
+                bool allowRowToBreakAcrossPages = false;
+                foreach (var row in this.Rows) {
+                    if (row.AllowRowToBreakAcrossPages) {
+                        allowRowToBreakAcrossPages = true;
+                        break;
+                    }
+                }
+                return allowRowToBreakAcrossPages;
+            }
+            set {
+                foreach (var row in this.Rows) {
+                    row.AllowRowToBreakAcrossPages = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allow Header to repeat on each page
+        /// This applies to only header of the table (first row)
+        /// </summary>
+        public bool RepeatAsHeaderRowAtTheTopOfEachPage {
+            get {
+                var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                if (tableHeader != null) {
+                    return true;
+                }
+
+                return false;
+            }
+            set {
+                if (value) {
+                    this.Rows[0].AddTableRowProperties();
+                    var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                    if (tableHeader == null) {
+                        this.Rows[0]._tableRow.TableRowProperties.InsertAt(new TableHeader(), 0);
+                    }
+                } else {
+                    var tableRowTableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
+                    if (tableRowTableRowProperties != null) {
+                        var tableHeader = tableRowTableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                        if (tableHeader != null) {
+                            tableRowTableRowProperties.RemoveChild(tableHeader);
+                        }
+                    }
+                }
+            }
+        }
+
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
