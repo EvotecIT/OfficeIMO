@@ -161,7 +161,13 @@ namespace OfficeIMO.Examples.Word {
                 wordTable15.Rows[2].Cells[2].Paragraphs[0].Text = "Test 3";
                 wordTable15.Rows[3].Cells[3].Paragraphs[0].Text = "Test 4 - longer";
 
+                var layoutType = wordTable15.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type: " + layoutType.ToString());
+
                 wordTable15.AutoFitToContents();
+
+                var layoutType2 = wordTable15.GetCurrentLayoutType();
+                Console.WriteLine("Current Layout Type after change: " + layoutType2.ToString());
 
                 document.Save(openWord);
             }
