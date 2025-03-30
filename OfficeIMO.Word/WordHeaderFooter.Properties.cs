@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordHeaderFooter {
@@ -165,13 +166,40 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
+                List<WordWatermark> watermarks = new List<WordWatermark>();
+                OpenXmlElement container = null;
+
                 if (_header != null) {
-                    return WordSection.ConvertStdBlockToWatermark(_document, _header.ChildElements.OfType<SdtBlock>());
+                    container = _header;
                 } else if (_footer != null) {
-                    return WordSection.ConvertStdBlockToWatermark(_document, _footer.ChildElements.OfType<SdtBlock>());
+                    container = _footer;
                 }
 
-                return new List<WordWatermark>();
+                if (container != null) {
+                    // 1. Find Text Watermarks (SdtBlock based)
+                    var sdtBlocks = container.ChildElements.OfType<SdtBlock>();
+                    foreach (SdtBlock block in sdtBlocks) {
+                        var textWatermark = WordSection.ConvertStdBlockToWatermark(_document, block);
+                        if (textWatermark != null) {
+                            watermarks.Add(textWatermark);
+                        }
+                    }
+
+                    // 2. Find Image Watermarks (Direct Picture/VML based)
+                    var pictures = container.Descendants<Picture>();
+                    foreach (var picture in pictures) {
+                        var vmlShape = picture.Descendants<DocumentFormat.OpenXml.Vml.Shape>().FirstOrDefault();
+                        if (vmlShape != null && vmlShape.Id != null && vmlShape.Id.Value.StartsWith("WordPictureWatermark")) {
+                            // Safety check: Does a text watermark already contain this picture?
+                            bool alreadyAdded = watermarks.Any(wm => wm._sdtBlock != null && wm._sdtBlock.Descendants<Picture>().Contains(picture));
+                            if (!alreadyAdded) {
+                                // Use the constructor that takes Document and Picture
+                                watermarks.Add(new WordWatermark(_document, picture));
+                            }
+                        }
+                    }
+                }
+                return watermarks;
             }
         }
 
