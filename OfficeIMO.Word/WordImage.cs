@@ -9,6 +9,7 @@ using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public class WordImage : WordElement {
@@ -649,15 +650,43 @@ namespace OfficeIMO.Word {
         public WordImage(WordDocument document, Drawing drawing) {
             _document = document;
             _Image = drawing;
-            var imageParts = document._document.MainDocumentPart.ImageParts;
-            foreach (var imagePart in imageParts) {
-                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
-                if (this.RelationshipId == relationshipId) {
-                    this._imagePart = imagePart;
+            FindImagePart();
+        }
+
+        private void FindImagePart() {
+            string relationshipId = this.RelationshipId;
+            if (relationshipId != null && _document?._wordprocessingDocument?.MainDocumentPart != null) {
+                if (_document._wordprocessingDocument.MainDocumentPart.Parts != null) {
+                    var part = _document._wordprocessingDocument.MainDocumentPart.GetPartById(relationshipId);
+                    if (part is ImagePart imagePart) {
+                        this._imagePart = imagePart;
+                        return;
+                    }
+                }
+                if (_document._wordprocessingDocument.MainDocumentPart.HeaderParts != null) {
+                    foreach (var headerPart in _document._wordprocessingDocument.MainDocumentPart.HeaderParts) {
+                        try {
+                            var part = headerPart.GetPartById(relationshipId);
+                            if (part is ImagePart imagePart) {
+                                this._imagePart = imagePart;
+                                return;
+                            }
+                        } catch (ArgumentOutOfRangeException) { /* ID not found in this part */ }
+                    }
+                }
+                if (_document._wordprocessingDocument.MainDocumentPart.FooterParts != null) {
+                    foreach (var footerPart in _document._wordprocessingDocument.MainDocumentPart.FooterParts) {
+                        try {
+                            var part = footerPart.GetPartById(relationshipId);
+                            if (part is ImagePart imagePart) {
+                                this._imagePart = imagePart;
+                                return;
+                            }
+                        } catch (ArgumentOutOfRangeException) { /* ID not found in this part */ }
+                    }
                 }
             }
         }
-
         /// <summary>
         /// Extract image from Word Document and save it to file
         /// </summary>
