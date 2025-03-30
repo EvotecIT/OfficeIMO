@@ -25,61 +25,91 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("After adding Section 0 Default Text Watermark:");
                 Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
-                Console.WriteLine($"  Section 0 Header Default Watermarks: {document.Sections[0].Header.Default.Watermarks.Count}");
+                Console.WriteLine($"  Section 0 Header Default Watermarks: {document.Sections[0].Header.Default?.Watermarks.Count ?? 0}");
                 Console.WriteLine($"  Document Watermarks: {document.Watermarks.Count}");
                 Console.WriteLine($"  Document Images: {document.Images.Count}"); // Text watermark isn't an Image
                 Console.WriteLine("---");
 
-                // Add Section 1 with different first page header
+                // Section 1: Different First Page and Default Image Watermark
                 document.AddSection();
-                document.Sections[1].DifferentFirstPage = true; // This also adds header/footer parts if needed
-                document.AddParagraph("This is the first page of Section 1.");
-                var watermark2 = document.Sections[1].Header.First.AddWatermark(WordWatermarkStyle.Text, "FIRST PAGE S1");
-                watermark2.Color = Color.LightBlue;
+                document.Sections[1].AddParagraph("This is Section 1 (Page 2 - uses Default Header).");
+                document.AddPageBreak(); // Go to Page 3
+                document.Sections[1].AddParagraph("This is Section 1 (Page 3 - uses Default Header).");
 
-                document.AddPageBreak(); // Move to the default page of section 1
+                document.Sections[1].DifferentFirstPage = true; // Enable different first page *for section 1*
+                document.Sections[1].AddHeadersAndFooters(); // Ensure parts exist
+                var watermark2 = document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd); // Added to Default Header of Section 1
 
-                document.AddParagraph("This is a default page of Section 1.");
-                var watermark3 = document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
-
-                Console.WriteLine("After adding Section 1 First Page (Text) and Default (Image) Watermarks:");
-                Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
-                Console.WriteLine($"  Section 1 Watermarks: {document.Sections[1].Watermarks.Count}"); // Should be 2 (First + Default)
-                Console.WriteLine($"  Section 1 Header First Watermarks: {document.Sections[1].Header.First.Watermarks.Count}");
-                Console.WriteLine($"  Section 1 Header Default Watermarks: {document.Sections[1].Header.Default.Watermarks.Count}");
-                Console.WriteLine($"  Document Watermarks: {document.Watermarks.Count}"); // Should be 3 (S0.Default + S1.First + S1.Default)
-                Console.WriteLine($"  Document Images: {document.Images.Count}"); // Should be 1 (from S1.Default)
-                 Console.WriteLine($"  S1 Default Header Images: {document.Sections[1].Header.Default.Images.Count}"); // Should be 1
-                Console.WriteLine("---");
-
-                // Add Section 2 with different odd/even pages
-                document.AddSection();
-                document.Sections[2].DifferentOddAndEvenPages = true; // Adds header/footer parts if needed
-                document.AddParagraph("This is an odd page of Section 2 (inherits Default header).");
-                // Section 2 Default inherits from Section 1 Default (Image watermark)
-
-                document.AddPageBreak();
-                document.AddParagraph("This is an even page of Section 2.");
-                var watermark4 = document.Sections[2].Header.Even.AddWatermark(WordWatermarkStyle.Text, "EVEN S2");
-                watermark4.Color = Color.Orange;
-
-                Console.WriteLine("After adding Section 2 Even Page Watermark (Default inherited):");
-                Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
+                Console.WriteLine("After adding Section 1 Default Image Watermark & enabling First Page:");
                 Console.WriteLine($"  Section 1 Watermarks: {document.Sections[1].Watermarks.Count}");
-                Console.WriteLine($"  Section 2 Watermarks: {document.Sections[2].Watermarks.Count}"); // Should be 2 (Default(inherited from S1) + Even)
-                Console.WriteLine($"  Section 2 Header Default Watermarks: {document.Sections[2].Header.Default?.Watermarks.Count ?? 0}"); // Might be 0 if not explicitly created yet? Check inheritance
-                Console.WriteLine($"  Section 2 Header Even Watermarks: {document.Sections[2].Header.Even.Watermarks.Count}");
-                Console.WriteLine($"  Document Watermarks: {document.Watermarks.Count}"); // Should be 4 (S0.Def + S1.First + S1.Def + S2.Even)
-                Console.WriteLine($"  Document Images: {document.Images.Count}"); // Still 1 (from S1.Default)
+                Console.WriteLine($"  Section 1 Header Default Watermarks: {document.Sections[1].Header.Default?.Watermarks.Count ?? 0}");
+                // Use null-conditional access for potentially non-existent First/Even headers
+                Console.WriteLine($"  Section 1 First Header Watermarks: {document.Sections[1].Header.First?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 1 Even Header Watermarks: {document.Sections[1].Header.Even?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 1 Images: {document.Sections[1].Images.Count}"); // Image watermark is VML, not WordImage
+                Console.WriteLine($"  Document Watermarks: {document.Watermarks.Count}"); // Should reflect total unique definitions
+                Console.WriteLine($"  Document Images: {document.Images.Count}");
                 Console.WriteLine("---");
 
-                 // Test removing a watermark
-                Console.WriteLine("Removing Section 1 First Page Watermark...");
-                document.Sections[1].Header.First.Watermarks[0].Remove();
-                Console.WriteLine($"  Section 1 Watermarks after remove: {document.Sections[1].Watermarks.Count}"); // Should be 1 (Default)
-                Console.WriteLine($"  Document Watermarks after remove: {document.Watermarks.Count}"); // Should be 3
-                 Console.WriteLine($"  S1 First Header Watermarks: {document.Sections[1].Header.First.Watermarks.Count}");
-                 Console.WriteLine("---");
+                // Section 2: Different First Page, Add First Page Text Watermark
+                document.AddSection();
+                document.Sections[2].AddParagraph("This is Section 2 (Page 4 - uses First Page Header).");
+                document.AddPageBreak(); // Go to Page 5
+                document.Sections[2].AddParagraph("This is Section 2 (Page 5 - uses Default Header, inherited from Section 1).");
+
+                document.Sections[2].DifferentFirstPage = true; // Enable different first page *for section 2*
+                document.Sections[2].AddHeadersAndFooters(); // Ensure parts exist
+                var watermark3 = document.Sections[2].Header.First.AddWatermark(WordWatermarkStyle.Text, "FINAL"); // Add to First Page Header of Section 2
+                watermark3.Color = Color.Green;
+
+                Console.WriteLine("After adding Section 2 First Page Text Watermark:");
+                Console.WriteLine($"  Section 2 Watermarks: {document.Sections[2].Watermarks.Count}");
+                Console.WriteLine($"  Section 2 Header Default Watermarks: {document.Sections[2].Header.Default?.Watermarks.Count ?? 0}"); // Likely 0 unless explicitly added
+                Console.WriteLine($"  Section 2 First Header Watermarks: {document.Sections[2].Header.First?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 2 Even Header Watermarks: {document.Sections[2].Header.Even?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Document Watermarks: {document.Watermarks.Count}"); // Should reflect total unique definitions
+                Console.WriteLine($"  Document Images: {document.Images.Count}");
+                Console.WriteLine("---");
+
+
+                Console.WriteLine("Final Watermark Counts by Definition:");
+                Console.WriteLine($"  Total Document Watermarks: {document.Watermarks.Count}");
+                Console.WriteLine($"  Sec 0 Default: {document.Sections[0].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Sec 1 Default: {document.Sections[1].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Sec 1 First:   {document.Sections[1].Header.First?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Sec 2 Default: {document.Sections[2].Header.Default?.Watermarks.Count ?? 0}"); // Note: Sec 2 Default Header *might not exist* if only First was added
+                Console.WriteLine($"  Sec 2 First:   {document.Sections[2].Header.First?.Watermarks.Count ?? 0}");
+                Console.WriteLine("---");
+
+
+
+                Console.WriteLine("Before Removing Section 1 Default Watermark:");
+                Console.WriteLine($"  Total Document Watermarks: {document.Watermarks.Count}");
+                Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
+                Console.WriteLine($"  Section 0 Header Default Watermarks: {document.Sections[0].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 1 Watermarks: {document.Sections[1].Watermarks.Count}");
+                Console.WriteLine($"  Section 1 Header Default Watermarks: {document.Sections[1].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 2 Watermarks: {document.Sections[2].Watermarks.Count}");
+                Console.WriteLine($"  Section 2 Header Default Watermarks: {document.Sections[2].Header.Default?.Watermarks.Count ?? 0}");
+
+                Console.WriteLine("Removing Section 1 Default Watermark (Image)");
+
+                // Need to ensure we get the correct watermark object to remove
+                var watermarkToRemove = document.Sections[1].Header.Default?.Watermarks.FirstOrDefault();
+                if (watermarkToRemove != null) {
+                    watermarkToRemove.Remove();
+                }
+
+                Console.WriteLine("After Removing Section 1 Default Watermark:");
+                Console.WriteLine($"  Total Document Watermarks: {document.Watermarks.Count}");
+                Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
+                Console.WriteLine($"  Section 0 Header Default Watermarks: {document.Sections[0].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 1 Watermarks: {document.Sections[1].Watermarks.Count}");
+                Console.WriteLine($"  Section 1 Header Default Watermarks: {document.Sections[1].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine($"  Section 2 Watermarks: {document.Sections[2].Watermarks.Count}");
+                Console.WriteLine($"  Section 2 Header Default Watermarks: {document.Sections[2].Header.Default?.Watermarks.Count ?? 0}");
+                Console.WriteLine("---");
+
 
                 document.Save(openWord);
             }
