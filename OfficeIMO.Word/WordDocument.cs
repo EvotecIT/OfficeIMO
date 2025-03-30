@@ -355,6 +355,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Exposes Images in their Image form for easy access (saving, modifying)
+        /// Note: This aggregates DrawingML images only. VML images (like watermarks) are accessed via WordParagraph.Picture.
         /// </summary>
         public List<WordImage> Images {
             get {
@@ -362,7 +363,6 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Images);
                 }
-
                 return list;
             }
         }
