@@ -174,5 +174,37 @@ namespace OfficeIMO.Word {
                 return new List<WordWatermark>();
             }
         }
+
+        /// <summary>
+        /// Gets the type of this instance (Header or Footer).
+        /// </summary>
+        public HeaderFooterValues Type => _type;
+
+        /// <summary>
+        /// Gets whether this instance represents a Header.
+        /// </summary>
+        public bool IsHeader => _header != null;
+
+        /// <summary>
+        /// Gets whether this instance represents a Footer.
+        /// </summary>
+        public bool IsFooter => _footer != null;
+
+        /// <summary>
+        /// Gets the WordSection this Header or Footer belongs to.
+        /// </summary>
+        public WordSection Section {
+            // Find the section this header/footer belongs to
+            get {
+                return _document.Sections.FirstOrDefault(sec =>
+                       sec.Header.Default._id == this._id ||
+                       sec.Header.First._id == this._id ||
+                       sec.Header.Even._id == this._id ||
+                       sec.Footer.Default._id == this._id ||
+                       sec.Footer.First._id == this._id ||
+                       sec.Footer.Even._id == this._id
+                   );
+            }
+        }
     }
 }
