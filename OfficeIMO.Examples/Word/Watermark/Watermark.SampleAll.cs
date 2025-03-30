@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is Section 0.");
                 document.AddHeadersAndFooters(); // Ensure headers/footers exist
                 var watermark1 = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "DRAFT");
-                watermark1.Color = Color.Gray;
+                watermark1.Color = Color.Red;
 
                 Console.WriteLine("After adding Section 0 Default Text Watermark:");
                 Console.WriteLine($"  Section 0 Watermarks: {document.Sections[0].Watermarks.Count}");
