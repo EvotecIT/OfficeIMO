@@ -571,7 +571,7 @@ namespace OfficeIMO.Word {
             inline.Append(new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
-            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality));
+            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description));
 
             return inline;
         }
@@ -656,13 +656,21 @@ namespace OfficeIMO.Word {
         private void FindImagePart() {
             string relationshipId = this.RelationshipId;
             if (relationshipId != null && _document?._wordprocessingDocument?.MainDocumentPart != null) {
+                // Try to find the image part in the main document
                 if (_document._wordprocessingDocument.MainDocumentPart.Parts != null) {
-                    var part = _document._wordprocessingDocument.MainDocumentPart.GetPartById(relationshipId);
-                    if (part is ImagePart imagePart) {
-                        this._imagePart = imagePart;
-                        return;
+                    try {
+                        var part = _document._wordprocessingDocument.MainDocumentPart.GetPartById(relationshipId);
+                        if (part is ImagePart imagePart) {
+                            this._imagePart = imagePart;
+                            return;
+                        }
+                    } catch (ArgumentOutOfRangeException) {
+                        // Relationship ID not found in main document part, continue searching in headers/footers
+                        // We could add logging here in the future
                     }
                 }
+
+                // Try to find the image part in header parts
                 if (_document._wordprocessingDocument.MainDocumentPart.HeaderParts != null) {
                     foreach (var headerPart in _document._wordprocessingDocument.MainDocumentPart.HeaderParts) {
                         try {
@@ -671,9 +679,13 @@ namespace OfficeIMO.Word {
                                 this._imagePart = imagePart;
                                 return;
                             }
-                        } catch (ArgumentOutOfRangeException) { /* ID not found in this part */ }
+                        } catch (ArgumentOutOfRangeException) {
+                            // Relationship ID not found in this header part, continue to next one
+                        }
                     }
                 }
+
+                // Try to find the image part in footer parts
                 if (_document._wordprocessingDocument.MainDocumentPart.FooterParts != null) {
                     foreach (var footerPart in _document._wordprocessingDocument.MainDocumentPart.FooterParts) {
                         try {
@@ -682,9 +694,13 @@ namespace OfficeIMO.Word {
                                 this._imagePart = imagePart;
                                 return;
                             }
-                        } catch (ArgumentOutOfRangeException) { /* ID not found in this part */ }
+                        } catch (ArgumentOutOfRangeException) {
+                            // Relationship ID not found in this footer part, continue to next one
+                        }
                     }
                 }
+
+                // If we get here, the relationship ID wasn't found in any part
             }
         }
         /// <summary>
