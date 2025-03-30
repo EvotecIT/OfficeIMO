@@ -23,6 +23,7 @@ namespace OfficeIMO.Tests {
 
             // lets add image to paragraph
             paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
+            Assert.Equal(1, document.Images.Count);
             Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
 
             paragraph.Image.WrapText = WrapTextImage.BehindText;
@@ -44,6 +45,7 @@ namespace OfficeIMO.Tests {
             var filePathImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
             var paragraph2 = document.AddParagraph();
             paragraph2.AddImage(filePathImage, 500, 500);
+            Assert.Equal(2, document.Images.Count);
             //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
             paragraph2.Image.Rotation = 180;
             paragraph2.Image.Shape = ShapeTypeValues.ActionButtonMovie;
@@ -55,6 +57,7 @@ namespace OfficeIMO.Tests {
 
             var paragraph3 = document.AddParagraph();
             paragraph3.AddImage(filePathImage, 100, 100);
+            Assert.Equal(3, document.Images.Count);
 
             // we add paragraph with an image
             var paragraph4 = document.AddParagraph();
