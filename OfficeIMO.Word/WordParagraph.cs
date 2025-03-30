@@ -516,14 +516,21 @@ namespace OfficeIMO.Word {
         /// Check the 'Image' property for DrawingML images or the 'Picture' property for VML images.
         /// </summary>
         public bool IsImage {
+            // get {
+            //     if (_paragraph != null && _paragraph.Descendants<Drawing>().Any()) {
+            //         return true;
+            //     }
+            //     // Also check for VML pictures used in watermarks and potentially other legacy shapes
+            //     if (_paragraph != null && _paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any(pic => pic.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any())) {
+            //         return true;
+            //     }
+            //     return false;
+            // }
             get {
-                if (_paragraph != null && _paragraph.Descendants<Drawing>().Any()) {
+                if (this.Image != null) {
                     return true;
                 }
-                // Also check for VML pictures used in watermarks and potentially other legacy shapes
-                if (_paragraph != null && _paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any(pic => pic.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any())) {
-                    return true;
-                }
+
                 return false;
             }
         }
