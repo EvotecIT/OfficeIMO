@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static double ConvertTwipsToCentimeters(int twipsValue) {
             double centimeters = twipsValue / 567.0;
-            return centimeters;
+            return Math.Round(centimeters, 2);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static double ConvertTwipsToCentimeters(UInt32 twipsValue) {
             double centimeters = twipsValue / 567.0;
-            return centimeters;
+            return Math.Round(centimeters, 2);
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace OfficeIMO.Word {
         /// <param name="cmValue"></param>
         /// <returns></returns>
         internal static int ConvertCentimetersToTwips(double cmValue) {
-            int twips = (int)(cmValue * 567.0);
+            int twips = (int)Math.Round(cmValue * 567.0);
             return twips;
         }
 
@@ -159,8 +159,47 @@ namespace OfficeIMO.Word {
         /// <param name="cmValue"></param>
         /// <returns></returns>
         internal static UInt32 ConvertCentimetersToTwipsUInt32(double cmValue) {
-            UInt32 twips = (UInt32)(cmValue * 567.0);
+            UInt32 twips = (UInt32)Math.Round(cmValue * 567.0);
             return twips;
+        }
+
+        /// <summary>
+        /// Converts centimeters to twentieths of a point
+        /// </summary>
+        /// <param name="cm"></param>
+        /// <returns></returns>
+        internal static double ConvertCentimetersToTwentiethsOfPoint(double cm) {
+            double inches = cm / 2.54;
+            double points = inches * 72;
+            double twentiethsOfPoint = points * 20;
+            return twentiethsOfPoint;
+        }
+
+        internal static double ConvertTwentiethsOfPointToCentimeters(double twentiethsOfPoint) {
+            double points = twentiethsOfPoint / 20;
+            double centimeters = (points / 72) * 2.54;
+            return centimeters;
+        }
+
+        /// <summary>
+        /// Converts centimeters to points
+        /// </summary>
+        /// <param name="cm"></param>
+        /// <returns></returns>
+        internal static double ConvertCentimetersToPoints(double cm) {
+            double inches = cm / 2.54;
+            double points = inches * 72;
+            return points;
+        }
+
+        /// <summary>
+        /// Converts the points to centimeters.
+        /// </summary>
+        /// <param name="points">The points.</param>
+        /// <returns></returns>
+        internal static double ConvertPointsToCentimeters(double points) {
+            double centimeters = (points / 72) * 2.54;
+            return centimeters;
         }
     }
 

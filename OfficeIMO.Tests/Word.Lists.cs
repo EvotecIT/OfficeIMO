@@ -606,4 +606,103 @@ public partial class Word {
         }
     }
 
+    [Fact]
+    public void Test_ListOrderVerification() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListOrderVerification.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var first = document.AddParagraph("First");
+            document.AddParagraph("Last");
+
+            var list = first.AddList(WordListStyle.Bulleted);
+            list.AddItem("Important", 0, first);
+            list.AddItem("List");
+
+            // Verify order
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+
+            document.Save(false);
+        }
+
+        // Verify order persists after reload
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+        }
+    }
+
+    [Fact]
+    public void Test_ListWithCustomStyling() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListWithCustomStyling.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            // Add header paragraph first
+            var paragraph = document.AddParagraph("List with LowerLetterWithBracket style");
+            paragraph.ParagraphAlignment = JustificationValues.Center;
+
+            // Create list
+            WordList wordList1 = document.AddList(WordListStyle.LowerLetterWithBracket);
+
+            // Add items and set their style individually
+            var listItem1 = wordList1.AddItem("Text 1");
+            listItem1.Bold = true;
+            listItem1.FontSize = 16;
+            listItem1.Color = Color.DarkRed;
+
+            var listItem2 = wordList1.AddItem("Text 2", 1);
+            listItem2.Bold = true;
+            listItem2.FontSize = 16;
+            listItem2.Color = Color.DarkRed;
+
+            var listItem3 = wordList1.AddItem("Text 3", 2);
+            listItem3.Bold = true;
+            listItem3.FontSize = 16;
+            listItem3.Color = Color.DarkRed;
+
+            // Verify list item count and styling
+            Assert.Equal(3, wordList1.ListItems.Count);
+            Assert.True(document.Lists[0].ListItems.All(item => item.Bold));
+            Assert.True(document.Lists[0].ListItems.All(item => item.FontSize == 16));
+            Assert.True(document.Lists[0].ListItems.All(item => item.Color == Color.DarkRed));
+
+            // Add final paragraph with different styling
+            paragraph = document.AddParagraph("Second list title");
+            paragraph.Bold = true;
+            paragraph.FontSize = 16;
+            paragraph.Color = Color.AliceBlue;
+            paragraph.ParagraphAlignment = JustificationValues.Center;
+
+            listItem3.Bold = false;
+            listItem3.FontSize = 12;
+            listItem3.Color = Color.Blue;
+
+            Assert.Equal(3, document.Lists[0].ListItems.Count);
+            Assert.True(document.Lists[0].ListItems[2].Bold == false);
+            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
+
+            document.Save(false);
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
+        // Verify the styling persists after reload
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Single(document.Lists);
+            Assert.Equal(3, document.Lists[0].ListItems.Count);
+            Assert.True(document.Lists[0].ListItems[0].Bold);
+            Assert.True(document.Lists[0].ListItems[0].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[0].Color == Color.DarkRed);
+
+            Assert.True(document.Lists[0].ListItems[1].Bold);
+            Assert.True(document.Lists[0].ListItems[1].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[1].Color == Color.DarkRed);
+
+            Assert.True(document.Lists[0].ListItems[2].Bold == false);
+            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
+        }
+    }
 }

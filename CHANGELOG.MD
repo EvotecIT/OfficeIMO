@@ -1,3 +1,16 @@
+## 0.20.0 - 2024.09.27
+### What's Changed
+* Add converter from DOTX to DOCX by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/257
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.19.0...v0.20.0
+
+## 0.19.0 - 2024.09.24
+### What's Changed
+* Improve watermark (add watermark image) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/220
+* Migrate to 3.1.0 OpenXMLSDK by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/253
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.18.0...v0.19.0
+
 ## 0.18.0 - 2024.09.22
 ### What's Changed
 * Added WordParagraphStyles.Custom by @ChrisBellBO in https://github.com/EvotecIT/OfficeIMO/pull/237

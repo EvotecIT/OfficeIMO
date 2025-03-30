@@ -1,8 +1,14 @@
 using System;
+using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// List of styles for Word lists
+    /// Most of the styles are based on the built-in Word list styles, except for the Custom style
+    /// </summary>
     public enum WordListStyle {
         Bulleted,
         ArticleSections,
@@ -15,7 +21,8 @@ namespace OfficeIMO.Word {
         LowerLetterWithBracket,
         LowerLetterWithDot,
         UpperLetterWithDot,
-        UpperLetterWithBracket
+        UpperLetterWithBracket,
+        Custom
     }
     public static class WordListStyles {
         public static AbstractNum GetStyle(WordListStyle style) {
@@ -32,9 +39,15 @@ namespace OfficeIMO.Word {
                 case WordListStyle.LowerLetterWithDot: return LowerLetterWithDot;
                 case WordListStyle.UpperLetterWithDot: return UpperLetterWithDot;
                 case WordListStyle.UpperLetterWithBracket: return UpperLetterWithBracket;
+                case WordListStyle.Custom: return Custom;
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }
+
+        /// <summary>
+        /// The next abstract number identifier stored to be used when creating new abstract numbers
+        /// </summary>
+        private static int nextAbstractNumberId;
 
         /// <summary>
         /// Generates a random NSID value
@@ -47,9 +60,43 @@ namespace OfficeIMO.Word {
             return nsidValue;
         }
 
+        /// <summary>
+        /// Initializes the abstract number identifier, starting from the highest value currently in use
+        /// It makes sure that the next abstract number identifier is unique
+        /// </summary>
+        /// <param name="document">The document.</param>
+        internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
+            // Find the highest AbstractNumberId currently in use
+
+            var numberingDefinitionPart = document.MainDocumentPart.NumberingDefinitionsPart;
+            if (numberingDefinitionPart == null) {
+                // No numbering definitions part found, so no abstract numbers are in use
+                nextAbstractNumberId = 0;
+                return;
+            }
+            nextAbstractNumberId = numberingDefinitionPart
+                .Numbering.Descendants<AbstractNum>()
+                .Select(an => (int)an.AbstractNumberId.Value)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            // Start assigning AbstractNumberId values from the next number
+            nextAbstractNumberId++;
+        }
+
+        /// <summary>
+        /// Creates the new abstract number.
+        /// </summary>
+        /// <returns></returns>
+        private static AbstractNum CreateNewAbstractNum() {
+            AbstractNum newAbstractNum = new AbstractNum() { AbstractNumberId = nextAbstractNumberId };
+            nextAbstractNumberId++;
+            return newAbstractNum;
+        }
+
         private static AbstractNum ArticleSections {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 0 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -247,7 +294,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum Headings111 {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 1 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -424,7 +471,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum HeadingIA1 {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 2 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -602,7 +649,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum Chapters {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 3 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -798,7 +845,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum BulletedChars {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 4 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -1030,7 +1077,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum Heading1ai {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 5 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -1207,7 +1254,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum Headings111Shifted {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 6 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.Multilevel };
@@ -1384,7 +1431,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum Bulleted {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 7 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
@@ -1615,7 +1662,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum UpperLetterWithDot {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 0 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
@@ -1792,7 +1839,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum LowerLetterWithDot {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 1 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
@@ -1969,7 +2016,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum LowerLetterWithBracket {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 3 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
@@ -2146,7 +2193,7 @@ namespace OfficeIMO.Word {
 
         private static AbstractNum UpperLetterWithBracket {
             get {
-                AbstractNum abstractNum1 = new AbstractNum() { AbstractNumberId = 0 };
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
                 abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
                 Nsid nsid1 = new Nsid() { Val = GenerateNsidValue() };
                 MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
@@ -2321,6 +2368,20 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static AbstractNum Custom {
+            get {
+                AbstractNum abstractNum1 = CreateNewAbstractNum();
+                abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));
+                Nsid nsid = new Nsid() { Val = GenerateNsidValue() };
+                MultiLevelType multiLevelType1 = new MultiLevelType() { Val = MultiLevelValues.HybridMultilevel };
+                TemplateCode templateCode1 = new TemplateCode() { Val = GenerateNsidValue() };
 
+                abstractNum1.Append(nsid);
+                abstractNum1.Append(multiLevelType1);
+                abstractNum1.Append(templateCode1);
+
+                return abstractNum1;
+            }
+        }
     }
 }
