@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
 
             // lets add image to paragraph
             paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            Assert.Equal(1, document.Images.Count);
+            Assert.Single(document.Images);
             Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
 
             paragraph.Image.WrapText = WrapTextImage.BehindText;
