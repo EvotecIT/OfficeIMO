@@ -296,12 +296,47 @@ namespace OfficeIMO.Word {
         public List<WordEmbeddedDocument> EmbeddedDocuments => GetEmbeddedDocumentsList();
 
         /// <summary>
-        /// Provides a list of all watermarks within the section
+        /// Provides a list of all watermarks defined within this section's headers (Default, First, Even).
+        /// Note: This counts watermark definitions. Due to Word's header inheritance, a single watermark
+        /// definition might appear visually on multiple pages across sections.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
+                var watermarks = new List<WordWatermark>();
+
                 var sdtBlockList = GetSdtBlockList();
-                return WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList);
+                watermarks.AddRange(WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList));
+
+                // Aggregate from Default Header
+                if (this.Header?.Default?.Watermarks != null) {
+                    watermarks.AddRange(this.Header.Default.Watermarks);
+                }
+                // Aggregate from First Page Header
+                if (this.Header?.First?.Watermarks != null) {
+                    watermarks.AddRange(this.Header.First.Watermarks);
+                }
+                // Aggregate from Even Page Header
+                if (this.Header?.Even?.Watermarks != null) {
+                    watermarks.AddRange(this.Header.Even.Watermarks);
+                }
+
+                // Aggregate from Footer Default
+                if (this.Footer?.Default?.Watermarks != null) {
+                    watermarks.AddRange(this.Footer.Default.Watermarks);
+                }
+                // Aggregate from Footer First Page
+                if (this.Footer?.First?.Watermarks != null) {
+                    watermarks.AddRange(this.Footer.First.Watermarks);
+                }
+                // Aggregate from Footer Even Page
+                if (this.Footer?.Even?.Watermarks != null) {
+                    watermarks.AddRange(this.Footer.Even.Watermarks);
+                }
+
+                // Currently returns potentially duplicate references if the same watermark
+                // exists in multiple header types (e.g., Default and First).
+                // Add .Distinct() here if IEquatable is implemented on WordWatermark later.
+                return watermarks;
             }
         }
 
