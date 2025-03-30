@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Header.Default.Watermarks[0].Stroked == true);
                 Assert.True(document.Sections[0].Header.Default.Watermarks[0].AllowInCell == false);
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 3);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
                 document.Settings.SetBackgroundColor(Color.Azure);
                 document.AddSection();
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -119,15 +119,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark2.docx"))) {
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
 
-                document.Save();
-            }
-
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark2.docx"))) {
                 document.Save();
             }
         }
