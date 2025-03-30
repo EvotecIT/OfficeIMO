@@ -189,5 +189,110 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_AddRemoveMultipleWatermarks() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_AddRemoveMultipleWatermarks.docx");
+            var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+            var imagePathToAdd = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                // Initial State
+                Assert.Equal(0, document.Watermarks.Count);
+                document.AddParagraph("Section 0 Content");
+
+                // 1. Add Text Watermark to S0 Default Header
+                document.AddHeadersAndFooters(); // Ensure headers exist for S0
+                var watermarkText0 = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "TEXT_S0_DEFAULT");
+                watermarkText0.Color = Color.Blue;
+
+                Assert.Equal(1, document.Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Header.Default.Watermarks.Count);
+
+                // 2. Add Image Watermark to S1 Default Header
+                document.AddSection();
+                document.Sections[1].AddParagraph("Section 1 Content");
+                document.Sections[1].AddHeadersAndFooters(); // Ensure headers exist for S1
+                var watermarkImage1 = document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
+
+                Assert.Equal(2, document.Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Watermarks.Count); // S0 unchanged
+                Assert.Equal(1, document.Sections[0].Header.Default.Watermarks.Count);
+                Assert.Equal(1, document.Sections[1].Watermarks.Count); // S1 has 1 definition
+                Assert.Equal(1, document.Sections[1].Header.Default.Watermarks.Count);
+                Assert.Null(document.Sections[1].Header.First); // First shouldn't exist yet
+
+                // 3. Add Text Watermark to S1 First Header
+                document.Sections[1].DifferentFirstPage = true;
+                // AddHeadersAndFooters might be needed again AFTER setting DifferentFirstPage if it doesn't create parts automatically
+                // Or ensure AddWatermark creates the header if needed (current logic does)
+                var watermarkText1First = document.Sections[1].Header.First.AddWatermark(WordWatermarkStyle.Text, "TEXT_S1_FIRST");
+                watermarkText1First.Color = Color.Orange;
+
+                Assert.Equal(3, document.Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Watermarks.Count); // S0 unchanged
+                Assert.Equal(2, document.Sections[1].Watermarks.Count); // S1 now has 2 definitions (Default Image, First Text)
+                Assert.Equal(1, document.Sections[1].Header.Default.Watermarks.Count);
+                Assert.NotNull(document.Sections[1].Header.First);
+                Assert.Equal(1, document.Sections[1].Header.First.Watermarks.Count);
+
+                document.Save();
+            }
+
+            // Re-load and verify counts
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Header.Default.Watermarks.Count);
+                Assert.Equal(2, document.Sections[1].Watermarks.Count);
+                Assert.Equal(1, document.Sections[1].Header.Default.Watermarks.Count);
+                Assert.NotNull(document.Sections[1].Header.First);
+                Assert.Equal(1, document.Sections[1].Header.First.Watermarks.Count);
+
+                // Verify content
+                Assert.Equal("TEXT_S0_DEFAULT", document.Sections[0].Header.Default.Watermarks[0].Text);
+                Assert.Equal(Color.Blue, document.Sections[0].Header.Default.Watermarks[0].Color);
+                Assert.Equal(WordWatermarkStyle.Image, document.Sections[1].Header.Default.Watermarks[0].Type);
+                Assert.Equal("TEXT_S1_FIRST", document.Sections[1].Header.First.Watermarks[0].Text);
+                Assert.Equal(Color.Orange, document.Sections[1].Header.First.Watermarks[0].Color);
+
+                // 4. Remove Image Watermark (S1 Default)
+                var imageToRemove = document.Sections[1].Header.Default.Watermarks.FirstOrDefault(wm => wm.Type == WordWatermarkStyle.Image);
+                Assert.NotNull(imageToRemove);
+                imageToRemove.Remove();
+
+                Assert.Equal(2, document.Watermarks.Count);
+                Assert.Equal(1, document.Sections[0].Watermarks.Count); // S0 unchanged
+                Assert.Equal(1, document.Sections[1].Watermarks.Count); // S1 should have 1 left (First Text)
+                Assert.Equal(0, document.Sections[1].Header.Default.Watermarks.Count); // S1 Default should be empty
+                Assert.Equal(1, document.Sections[1].Header.First.Watermarks.Count); // S1 First unchanged
+
+                // 5. Remove Text Watermark (S0 Default)
+                var textToRemove = document.Sections[0].Header.Default.Watermarks.FirstOrDefault(wm => wm.Type == WordWatermarkStyle.Text);
+                Assert.NotNull(textToRemove);
+                textToRemove.Remove();
+
+                Assert.Equal(1, document.Watermarks.Count); // Only S1 First Text should remain
+                Assert.Equal(0, document.Sections[0].Watermarks.Count);
+                Assert.Equal(0, document.Sections[0].Header.Default.Watermarks.Count);
+                Assert.Equal(1, document.Sections[1].Watermarks.Count);
+                Assert.Equal(0, document.Sections[1].Header.Default.Watermarks.Count);
+                Assert.Equal(1, document.Sections[1].Header.First.Watermarks.Count);
+
+                document.Save();
+            }
+
+            // Final Load check
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(1, document.Watermarks.Count);
+                Assert.Equal(0, document.Sections[0].Watermarks.Count);
+                Assert.Equal(1, document.Sections[1].Watermarks.Count);
+                Assert.Equal(0, document.Sections[1].Header.Default.Watermarks.Count);
+                Assert.NotNull(document.Sections[1].Header.First);
+                Assert.Equal(1, document.Sections[1].Header.First.Watermarks.Count);
+                Assert.Equal("TEXT_S1_FIRST", document.Sections[1].Header.First.Watermarks[0].Text);
+            }
+        }
     }
 }
