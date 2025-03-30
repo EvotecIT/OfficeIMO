@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
 
     public class WordWatermark : WordElement {
         private WordDocument _document;
-        private SdtBlock _sdtBlock;
+        internal SdtBlock _sdtBlock;
         private WordHeader _wordHeader;
         private WordSection _section;
         //private WordParagraph _wordParagraph;
@@ -261,11 +261,8 @@ namespace OfficeIMO.Word {
 
         private Shape _shape {
             get {
-                var shape = _picture.Descendants().OfType<Shape>().FirstOrDefault();
-                if (shape != null) {
-                    return shape;
-                }
-                return null;
+                var shape = _picture?.Descendants<Shape>().FirstOrDefault();
+                return shape;
             }
         }
 
@@ -285,17 +282,18 @@ namespace OfficeIMO.Word {
                         }
                     }
                 } else if (_wordHeader != null) {
-                    var paragraph = _wordHeader._header.Descendants().OfType<Paragraph>().FirstOrDefault();
+                    // Check associated header if no SdtBlock
+                    // This logic assumes image watermarks added via constructor are in _wordHeader
+                    var paragraph = _wordHeader._header?.Descendants<Paragraph>().FirstOrDefault();
                     if (paragraph != null) {
-                        var run = paragraph.Descendants().OfType<Run>().FirstOrDefault();
+                        var run = paragraph.Descendants<Run>().FirstOrDefault();
                         if (run != null) {
-                            var picture = run.Descendants().OfType<Picture>().FirstOrDefault();
+                            var picture = run.Descendants<Picture>().FirstOrDefault();
                             if (picture != null) {
                                 return picture;
                             }
                         }
                     }
-
                 }
                 return null;
             }
@@ -365,6 +363,10 @@ namespace OfficeIMO.Word {
         public WordWatermark(WordDocument wordDocument, SdtBlock sdtBlock) {
             _document = wordDocument;
             _sdtBlock = sdtBlock;
+        }
+
+        internal WordWatermark(WordDocument document, Picture picture) {
+            this._document = document;
         }
 
         private static SdtBlock TextWatermark {
