@@ -9,6 +9,7 @@ using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     public class WordImage : WordElement {
@@ -570,7 +571,7 @@ namespace OfficeIMO.Word {
             inline.Append(new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
-            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality));
+            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description));
 
             return inline;
         }
@@ -649,15 +650,59 @@ namespace OfficeIMO.Word {
         public WordImage(WordDocument document, Drawing drawing) {
             _document = document;
             _Image = drawing;
-            var imageParts = document._document.MainDocumentPart.ImageParts;
-            foreach (var imagePart in imageParts) {
-                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
-                if (this.RelationshipId == relationshipId) {
-                    this._imagePart = imagePart;
-                }
-            }
+            FindImagePart();
         }
 
+        private void FindImagePart() {
+            string relationshipId = this.RelationshipId;
+            if (relationshipId != null && _document?._wordprocessingDocument?.MainDocumentPart != null) {
+                // Try to find the image part in the main document
+                if (_document._wordprocessingDocument.MainDocumentPart.Parts != null) {
+                    try {
+                        var part = _document._wordprocessingDocument.MainDocumentPart.GetPartById(relationshipId);
+                        if (part is ImagePart imagePart) {
+                            this._imagePart = imagePart;
+                            return;
+                        }
+                    } catch (ArgumentOutOfRangeException) {
+                        // Relationship ID not found in main document part, continue searching in headers/footers
+                        // We could add logging here in the future
+                    }
+                }
+
+                // Try to find the image part in header parts
+                if (_document._wordprocessingDocument.MainDocumentPart.HeaderParts != null) {
+                    foreach (var headerPart in _document._wordprocessingDocument.MainDocumentPart.HeaderParts) {
+                        try {
+                            var part = headerPart.GetPartById(relationshipId);
+                            if (part is ImagePart imagePart) {
+                                this._imagePart = imagePart;
+                                return;
+                            }
+                        } catch (ArgumentOutOfRangeException) {
+                            // Relationship ID not found in this header part, continue to next one
+                        }
+                    }
+                }
+
+                // Try to find the image part in footer parts
+                if (_document._wordprocessingDocument.MainDocumentPart.FooterParts != null) {
+                    foreach (var footerPart in _document._wordprocessingDocument.MainDocumentPart.FooterParts) {
+                        try {
+                            var part = footerPart.GetPartById(relationshipId);
+                            if (part is ImagePart imagePart) {
+                                this._imagePart = imagePart;
+                                return;
+                            }
+                        } catch (ArgumentOutOfRangeException) {
+                            // Relationship ID not found in this footer part, continue to next one
+                        }
+                    }
+                }
+
+                // If we get here, the relationship ID wasn't found in any part
+            }
+        }
         /// <summary>
         /// Extract image from Word Document and save it to file
         /// </summary>
@@ -706,15 +751,7 @@ namespace OfficeIMO.Word {
             this._Image = drawing;
         }
 
-        internal static WordImageLocation AddImageToLocation(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width = null,
-            double? height = null
-        ) {
-
+        internal static WordImageLocation AddImageToLocation(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width = null, double? height = null) {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
