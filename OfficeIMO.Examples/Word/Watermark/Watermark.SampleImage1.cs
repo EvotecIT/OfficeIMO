@@ -14,23 +14,23 @@ namespace OfficeIMO.Examples.Word {
                 var imagePathToAdd = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
                 var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
 
-                //Console.WriteLine(watermark.Height);
-                //Console.WriteLine(watermark.Width);
+                Console.WriteLine(watermark.Height);
+                Console.WriteLine(watermark.Width);
 
-                //Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
-                //Console.WriteLine("Images in document: " + document.Images.Count);
-                //Console.WriteLine("Watermarks in header: " + document.Header.Default.Watermarks.Count);
-                //Console.WriteLine("Images in header: " + document.Header.Default.Images.Count);
+                Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+                Console.WriteLine("Images in document: " + document.Images.Count);
+                Console.WriteLine("Watermarks in header: " + document.Header.Default.Watermarks.Count);
+                Console.WriteLine("Images in header: " + document.Header.Default.Images.Count);
 
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
-                //Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
-                //Console.WriteLine("Images in document: " + document.Images.Count);
-                //Console.WriteLine("Watermarks in header: " + document.Header.Default.Watermarks.Count);
-                //Console.WriteLine("Images in header: " + document.Header.Default.Images.Count);
+                Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
+                Console.WriteLine("Images in document: " + document.Images.Count);
+                Console.WriteLine("Watermarks in header: " + document.Header.Default.Watermarks.Count);
+                Console.WriteLine("Images in header: " + document.Header.Default.Images.Count);
                 document.Save(openWord);
             }
         }
