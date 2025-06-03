@@ -130,6 +130,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordPicture Picture {
+            get {
+                if (_run != null) {
+                    var picture = _run.ChildElements.OfType<Picture>().FirstOrDefault();
+                    if (picture != null) {
+                        return new WordPicture(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
         public bool IsListItem {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -499,7 +511,21 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns true if paragraph contains any type of image (DrawingML or VML).
+        /// Check the 'Image' property for DrawingML images or the 'Picture' property for VML images.
+        /// </summary>
         public bool IsImage {
+            // get {
+            //     if (_paragraph != null && _paragraph.Descendants<Drawing>().Any()) {
+            //         return true;
+            //     }
+            //     // Also check for VML pictures used in watermarks and potentially other legacy shapes
+            //     if (_paragraph != null && _paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any(pic => pic.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any())) {
+            //         return true;
+            //     }
+            //     return false;
+            // }
             get {
                 if (this.Image != null) {
                     return true;
