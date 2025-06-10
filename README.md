@@ -176,7 +176,6 @@ This list of features is for times when you want to quickly fix something rather
 This features are available as part of `WordHelpers` class.
 
 - ☑️ Remove Headers and Footers from a file
-- ☑️ Set paragraph indentation using point values
 
 ## Examples
 

@@ -52,8 +52,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationBefore {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
@@ -97,8 +95,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationAfter {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
@@ -160,8 +156,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationFirstLine {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (_paragraphProperties.Indentation.FirstLine != "") {
@@ -204,8 +198,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationHanging {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
