@@ -33,7 +33,7 @@ jobs:
         if: matrix.build-mode == 'manual'
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '9.0.100-preview.3' # Change to '8.0.x' if targeting .NET 8
+          dotnet-version: '9.0.x' # Change to '8.0.x' if targeting .NET 8
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
