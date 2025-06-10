@@ -39,6 +39,23 @@ namespace OfficeIMO.Word {
         //    return paragraph1;
         //}
 
+        private (string contentType, string programId) GetObjectInfo(string fileName) {
+            string extension = System.IO.Path.GetExtension(fileName).ToLower();
+            return extension switch {
+                ".xlsx" => ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Excel.Sheet.12"),
+                ".xls"  => ("application/vnd.ms-excel", "Excel.Sheet.8"),
+                ".docx" => ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Word.Document.12"),
+                ".doc"  => ("application/msword", "Word.Document.8"),
+                ".pptx" => ("application/vnd.openxmlformats-officedocument.presentationml.presentation", "PowerPoint.Show.12"),
+                ".ppt"  => ("application/vnd.ms-powerpoint", "PowerPoint.Show.8"),
+                ".pdf"  => ("application/pdf", "AcroExch.Document.DC"),
+                ".html" => ("text/html", "htmlfile"),
+                ".htm"  => ("text/html", "htmlfile"),
+                ".rtf"  => ("application/rtf", "Word.RTF.8"),
+                _       => ("application/octet-stream", "Package")
+            };
+        }
+
         private EmbeddedObject ConvertFileToEmbeddedObject(WordDocument wordDocument, string fileName, string fileImage) {
             ImagePart imagePart = wordDocument._document.MainDocumentPart.AddImagePart(ImagePartType.Png);
             using (FileStream stream = new FileStream(fileImage, FileMode.Open)) {
@@ -46,8 +63,7 @@ namespace OfficeIMO.Word {
             }
             MainDocumentPart mainPart = wordDocument._document.MainDocumentPart;
 
-            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            var programId = "Excel.Sheet.12";
+            var (contentType, programId) = GetObjectInfo(fileName);
             //ProgId = "Package",
             //var contentType = "application/vnd.openxmlformats-officedocument.oleObject";
             //var programId = "Package";
@@ -58,8 +74,6 @@ namespace OfficeIMO.Word {
             using (FileStream fileStream = new FileStream(fileName, FileMode.Open)) {
                 embeddedObjectPart.FeedData(fileStream);
             }
-
-            var test = embeddedObjectPart.ContentType;
 
             var idImagePart = mainPart.GetIdOfPart(imagePart);
             var idEmbeddedObjectPart = mainPart.GetIdOfPart(embeddedObjectPart);
@@ -151,19 +165,9 @@ namespace OfficeIMO.Word {
                 Type = Ovml.OleValues.Embed,
                 ProgId = programId,
                 ShapeId = "_x0000_i1029",
-                // DrawAspect = Ovml.OleDrawAspectValues.Content,
                 DrawAspect = Ovml.OleDrawAspectValues.Content,
-                ObjectId = "_1736428651",
+                ObjectId = "_" + Guid.NewGuid().ToString("N"),
                 Id = packageEmbedId
-            };
-
-
-            Ovml.OleObject oleObject2 = new Ovml.OleObject() {
-                Type = Ovml.OleValues.Embed,
-                ProgId = "Package",
-                ShapeId = "_x0000_i1025",
-                DrawAspect = Ovml.OleDrawAspectValues.Content,
-                ObjectId = "_1736440255", Id = "rId5"
             };
 
 
