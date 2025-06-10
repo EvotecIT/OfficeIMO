@@ -269,6 +269,10 @@ namespace OfficeIMO.Word {
                 return _paragraphProperties != null && _paragraphProperties.BiDi is not null;
             }
             set {
+                if (_paragraphProperties == null) {
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
+                }
+
                 if (value) {
                     if (_paragraphProperties.BiDi == null) {
                         _paragraphProperties.BiDi = new BiDi();
