@@ -201,6 +201,66 @@ namespace OfficeIMO.Word {
             double centimeters = (points / 72) * 2.54;
             return centimeters;
         }
+
+        /// <summary>
+        /// Converts twips (twentieths of a point) to points
+        /// </summary>
+        /// <param name="twipsValue">The value in twips.</param>
+        /// <returns>Points value.</returns>
+        internal static double ConvertTwipsToPoints(int twipsValue) {
+            double points = twipsValue / 20.0;
+            return Math.Round(points, 2);
+        }
+
+        /// <summary>
+        /// Converts twips (twentieths of a point) to points
+        /// </summary>
+        /// <param name="twipsValue">The value in twips.</param>
+        /// <returns>Points value.</returns>
+        internal static double ConvertTwipsToPoints(UInt32 twipsValue) {
+            double points = twipsValue / 20.0;
+            return Math.Round(points, 2);
+        }
+
+        /// <summary>
+        /// Converts points to twips (twentieths of a point)
+        /// </summary>
+        /// <param name="points">The points value.</param>
+        /// <returns>Twips value.</returns>
+        internal static int ConvertPointsToTwips(double points) {
+            int twips = (int)Math.Round(points * 20.0);
+            return twips;
+        }
+
+        /// <summary>
+        /// Converts points to twips (twentieths of a point)
+        /// </summary>
+        /// <param name="points">The points value.</param>
+        /// <returns>Twips value.</returns>
+        internal static UInt32 ConvertPointsToTwipsUInt32(double points) {
+            UInt32 twips = (UInt32)Math.Round(points * 20.0);
+            return twips;
+        }
+
+        /// <summary>
+        /// Converts EMUs to points
+        /// </summary>
+        /// <param name="emusValue">EMUs value.</param>
+        /// <returns>Points value.</returns>
+        internal static double ConvertEmusToPoints(Int64 emusValue) {
+            double points = emusValue / 12700.0;
+            return points;
+        }
+
+        /// <summary>
+        /// Converts points to EMUs
+        /// </summary>
+        /// <param name="points">Points value.</param>
+        /// <returns>EMUs value.</returns>
+        internal static Int64 ConvertPointsToEmusInt64(double points) {
+            Int64 emus = (Int64)(points * 12700.0);
+            return emus;
+        }
     }
 
     internal record ImageCharacteristics(double Width, double Height, CustomImagePartType Type);

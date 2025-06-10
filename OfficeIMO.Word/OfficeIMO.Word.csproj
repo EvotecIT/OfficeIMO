@@ -6,7 +6,7 @@
         <AssemblyName>OfficeIMO.Word</AssemblyName>
         <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
-        <VersionPrefix>0.21.0</VersionPrefix>
+        <VersionPrefix>0.22.0</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;netstandard2.1;net472;net48;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks
