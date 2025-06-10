@@ -282,6 +282,16 @@ public Nullable<TextDirectionValues> TextDirection { get; set; }
 
 [Nullable&lt;TextDirectionValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### **BiDi**
+
+```csharp
+public bool BiDi { get; set; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **LineSpacingRule**
 
 ```csharp
