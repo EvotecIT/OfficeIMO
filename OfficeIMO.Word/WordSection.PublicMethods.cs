@@ -77,5 +77,73 @@ namespace OfficeIMO.Word {
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             return AddParagraph(newRun: true).AddTextBox(text, wrapTextImage);
         }
+
+        public WordSection AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
+            FootnotePositionValues? position = null,
+            RestartNumberValues? restartNumbering = null,
+            int? startNumber = null) {
+            var props = _sectionProperties.GetFirstChild<FootnoteProperties>();
+            if (props == null) {
+                props = new FootnoteProperties();
+                _sectionProperties.Append(props);
+            }
+
+            props.RemoveAllChildren<NumberingFormat>();
+            props.RemoveAllChildren<FootnotePosition>();
+            props.RemoveAllChildren<NumberingRestart>();
+            props.RemoveAllChildren<NumberingStart>();
+
+            if (numberingFormat != null) {
+                props.Append(new NumberingFormat() { Val = numberingFormat });
+            }
+
+            if (position != null) {
+                props.Append(new FootnotePosition() { Val = position });
+            }
+
+            if (restartNumbering != null) {
+                props.Append(new NumberingRestart() { Val = restartNumbering });
+            }
+
+            if (startNumber != null) {
+                props.Append(new NumberingStart() { Val = (UInt16Value)startNumber.Value });
+            }
+
+            return this;
+        }
+
+        public WordSection AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
+            EndnotePositionValues? position = null,
+            RestartNumberValues? restartNumbering = null,
+            int? startNumber = null) {
+            var props = _sectionProperties.GetFirstChild<EndnoteProperties>();
+            if (props == null) {
+                props = new EndnoteProperties();
+                _sectionProperties.Append(props);
+            }
+
+            props.RemoveAllChildren<NumberingFormat>();
+            props.RemoveAllChildren<EndnotePosition>();
+            props.RemoveAllChildren<NumberingRestart>();
+            props.RemoveAllChildren<NumberingStart>();
+
+            if (numberingFormat != null) {
+                props.Append(new NumberingFormat() { Val = numberingFormat });
+            }
+
+            if (position != null) {
+                props.Append(new EndnotePosition() { Val = position });
+            }
+
+            if (restartNumbering != null) {
+                props.Append(new NumberingRestart() { Val = restartNumbering });
+            }
+
+            if (startNumber != null) {
+                props.Append(new NumberingStart() { Val = (UInt16Value)startNumber.Value });
+            }
+
+            return this;
+        }
     }
 }
