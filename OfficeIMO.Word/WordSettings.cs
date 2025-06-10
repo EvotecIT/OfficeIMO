@@ -549,5 +549,25 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public bool GutterAtTop {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
+                if (gutterAtTop == null) {
+                    return false;
+                }
+                return gutterAtTop.Val;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
+                if (gutterAtTop == null) {
+                    gutterAtTop = new GutterAtTop();
+                    settings.Append(gutterAtTop);
+                }
+                gutterAtTop.Val = value;
+            }
+        }
     }
 }
