@@ -321,6 +321,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "");
             return this;
+        }
 
         /// <summary>
         /// Provides ability for configuration of Tabs in a paragraph
