@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public partial class WordComment {
+    public partial class WordComment : WordElement {
         private WordParagraph _paragraph;
         private readonly WordDocument _document;
         private readonly Comment _comment;

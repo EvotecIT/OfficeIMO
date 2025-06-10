@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,8 +13,8 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        public WordParagraph AddParagraph() {
-            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: false);
+        public WordParagraph AddParagraph(bool newRun = false) {
+            var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (_footer != null) {
                 _footer.Append(wordParagraph._paragraph);
             } else if (_header != null) {
@@ -31,8 +31,9 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
-        public WordParagraph AddHorizontalLine(BorderValues lineType = BorderValues.Single, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
-            return this.AddParagraph().AddHorizontalLine(lineType, color, size, space);
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+            lineType ??= BorderValues.Single;
+            return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
         public WordParagraph AddBookmark(string bookmarkName) {
@@ -51,6 +52,12 @@ namespace OfficeIMO.Word {
             } else {
                 throw new InvalidOperationException("No footer or header defined. That is weird.");
             }
+        }
+
+        public WordList AddList(WordListStyle style) {
+            WordList wordList = new WordList(this._document, this);
+            wordList.AddList(style);
+            return wordList;
         }
     }
 }

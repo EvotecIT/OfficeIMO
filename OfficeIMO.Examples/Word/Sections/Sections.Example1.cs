@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,6 +39,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
                 Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
 
+                Console.WriteLine("+ Paragraphs section 0 Text: " + document.Sections[0].Paragraphs[0].Text);
+                Console.WriteLine("+ Paragraphs section 2 Text: " + document.Sections[2].Paragraphs[0].Text);
                 document.Save();
             }
 
@@ -52,6 +54,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
                 Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
 
+                Console.WriteLine("+ Paragraphs section 0 Text: " + document.Sections[0].Paragraphs[0].Text);
+                Console.WriteLine("+ Paragraphs section 2 Text: " + document.Sections[2].Paragraphs[0].Text);
 
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Section4");

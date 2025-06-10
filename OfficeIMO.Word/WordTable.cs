@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public partial class WordTable {
+    public partial class WordTable : WordElement {
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -15,6 +15,63 @@ namespace OfficeIMO.Word {
                     }
                 }
                 return list;
+            }
+        }
+
+        /// <summary>
+        /// Allow row to break across pages
+        /// This sets each row to allow page break
+        /// You can set each row separately as well
+        /// Getting value returns true if any row allows page break
+        /// For complete control use WordTableRow.AllowRowToBreakAcrossPages
+        /// </summary>
+        public bool AllowRowToBreakAcrossPages {
+            get {
+                bool allowRowToBreakAcrossPages = false;
+                foreach (var row in this.Rows) {
+                    if (row.AllowRowToBreakAcrossPages) {
+                        allowRowToBreakAcrossPages = true;
+                        break;
+                    }
+                }
+                return allowRowToBreakAcrossPages;
+            }
+            set {
+                foreach (var row in this.Rows) {
+                    row.AllowRowToBreakAcrossPages = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allow Header to repeat on each page
+        /// This applies to only header of the table (first row)
+        /// </summary>
+        public bool RepeatAsHeaderRowAtTheTopOfEachPage {
+            get {
+                var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                if (tableHeader != null) {
+                    return true;
+                }
+
+                return false;
+            }
+            set {
+                if (value) {
+                    this.Rows[0].AddTableRowProperties();
+                    var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                    if (tableHeader == null) {
+                        this.Rows[0]._tableRow.TableRowProperties.InsertAt(new TableHeader(), 0);
+                    }
+                } else {
+                    var tableRowTableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
+                    if (tableRowTableRowProperties != null) {
+                        var tableHeader = tableRowTableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                        if (tableHeader != null) {
+                            tableRowTableRowProperties.RemoveChild(tableHeader);
+                        }
+                    }
+                }
             }
         }
 
@@ -232,6 +289,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Specifies that the first row shall be repeated at the top of each page on which the table is displayed.
+        /// </summary>
+        public bool RepeatHeaderRowAtTheTopOfEachPage {
+            get => Rows[0].RepeatHeaderRowAtTheTopOfEachPage;
+            set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
+        }
+
         public int RowsCount => this.Rows.Count;
 
         public List<WordTableRow> Rows {
@@ -294,13 +359,24 @@ namespace OfficeIMO.Word {
 
         public WordTablePosition Position;
 
+        /// <summary>
+        /// Gets the table style details. WIP
+        /// </summary>
+        public WordTableStyleDetails StyleDetails {
+            get {
+                if (_tableProperties != null && _tableProperties.TableStyle != null) {
+                    return new WordTableStyleDetails(this);
+                }
+                return null;
+            }
+        }
+
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
-            // Create an empty table.
             Table table = new Table();
 
             TableProperties tableProperties1 = new TableProperties();
-            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);  //new DocumentFormat.OpenXml.Wordprocessing.TableStyle() { Val = tableStyle.ToString() };
+            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
             TableLook tableLook1 = new TableLook() { Val = "04A0", FirstRow = true, LastRow = false, FirstColumn = true, LastColumn = false, NoHorizontalBand = false, NoVerticalBand = true };
 
@@ -310,6 +386,13 @@ namespace OfficeIMO.Word {
 
             // Append the TableProperties object to the empty table.
             table.AppendChild<TableProperties>(tableProperties1);
+
+            TableGrid tableGrid1 = new TableGrid();
+            for (int i = 0; i < columns; i++) {
+                GridColumn gridColumn1 = new GridColumn() { };
+                tableGrid1.Append(gridColumn1);
+            }
+            table.Append(tableGrid1);
 
             for (int i = 0; i < rows; i++) {
                 WordTableRow row = new WordTableRow(document, this);
@@ -399,10 +482,11 @@ namespace OfficeIMO.Word {
         /// Add row to an existing table with the specified number of columns
         /// </summary>
         /// <param name="cellsCount"></param>
-        public void AddRow(int cellsCount = 0) {
+        public WordTableRow AddRow(int cellsCount = 0) {
             WordTableRow row = new WordTableRow(_document, this);
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
+            return row;
         }
 
         /// <summary>
@@ -425,10 +509,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="rowsCount"></param>
         /// <param name="cellsCount"></param>
-        public void AddRow(int rowsCount, int cellsCount) {
+        public List<WordTableRow> AddRow(int rowsCount, int cellsCount) {
+            List<WordTableRow> rows = new List<WordTableRow>();
             for (int i = 0; i < rowsCount; i++) {
-                AddRow(cellsCount);
+                rows.Add(AddRow(cellsCount));
             }
+            return rows;
         }
 
         /// <summary>

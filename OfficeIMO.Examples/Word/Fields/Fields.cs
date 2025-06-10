@@ -10,10 +10,10 @@ namespace OfficeIMO.Examples.Word {
         internal static void Example_DocumentWithFields(string folderPath, bool openWord) {
             Console.WriteLine("[*] Opening Document with fields");
             var filePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates", "partitionedFieldInstructions.docx");
-            
+
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                foreach(var field in document.Fields) {
+                foreach (var field in document.Fields) {
                     Console.WriteLine("...Type: " + field.FieldType);
                     Console.WriteLine("...Format switch: " + field.FieldFormat);
                     Console.WriteLine("...Instruction: " + String.Join(" ", field.FieldInstructions));
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddField(WordFieldType.Ask, parameters: new List<String> { bookmark.Name.ToString(), "\"How was your day?\"", "\\d \"Thanks for asking\"" });
 
                 var fileTarget = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents", "DocumentWithFields.docx");
-                document.Save(fileTarget); 
+                document.Save(fileTarget, openWord);
             }
         }
     }

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -12,23 +11,59 @@ using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 
 namespace OfficeIMO.Word {
-    public enum WrapTextImage {
-        InLineWithText,
-        Square,
-        Tight,
-        Through,
-        TopAndBottom,
-        BehindText,
-        InFrontText
-    }
-
-    public class WordImage {
+    public class WordImage : WordElement {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
 
         internal Drawing _Image;
         private ImagePart _imagePart;
         private WordDocument _document;
+
+        /// <summary>
+        /// Get or set the Image's horizontal position.
+        /// </summary>
+        public HorizontalPosition horizontalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var hPosition = anchor.HorizontalPosition;
+                    return hPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.HorizontalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get or set the Image's vertical position.
+        /// </summary>
+        public VerticalPosition verticalPosition {
+            get {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    var vPosition = anchor.VerticalPosition;
+                    return vPosition;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+            set {
+                if (_Image.Inline == null) {
+                    var anchor = _Image.Anchor;
+                    anchor.VerticalPosition = value;
+                } else {
+                    throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
+                }
+            }
+        }
 
         public BlipCompressionValues? CompressionQuality {
             get {
@@ -134,18 +169,6 @@ namespace OfficeIMO.Word {
                 }
 
                 return null;
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        return picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description;
-                //    }
-                //}
-                //return null;
             }
             set {
                 if (_Image.Inline != null) {
@@ -154,17 +177,6 @@ namespace OfficeIMO.Word {
                     var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
                     anchoDocPropertiesr.Description = value;
                 }
-
-                //if (_Image.Inline != null) {
-                //    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //    picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //} else if (_Image.Anchor != null) {
-                //    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                //    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                //        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                //        picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description = value;
-                //    }
-                //}
             }
         }
 
@@ -462,125 +474,31 @@ namespace OfficeIMO.Word {
             }
         }
 
-
+        /// <summary>
+        /// Gets or sets the image's wrap text.
+        /// </summary>
         public WrapTextImage? WrapText {
-            get {
-                if (_Image.Inline != null) {
-                    return WrapTextImage.InLineWithText;
-                } else if (_Image.Anchor != null) {
-                    var wrapSquare = _Image.Anchor.OfType<WrapSquare>().FirstOrDefault();
-                    if (wrapSquare != null) {
-                        return WrapTextImage.Square;
-                    }
-                    var wrapTight = _Image.Anchor.OfType<WrapTight>().FirstOrDefault();
-                    if (wrapTight != null) {
-                        return WrapTextImage.Tight;
-                    }
-                    var wrapThrough = _Image.Anchor.OfType<WrapThrough>().FirstOrDefault();
-                    if (wrapThrough != null) {
-                        return WrapTextImage.Through;
-                    }
-                    var wrapTopAndBottom = _Image.Anchor.OfType<WrapTopBottom>().FirstOrDefault();
-                    if (wrapTopAndBottom != null) {
-                        return WrapTextImage.TopAndBottom;
-                    }
-                    var wrapNone = _Image.Anchor.OfType<WrapNone>().FirstOrDefault();
-                    var behindDoc = _Image.Anchor.BehindDoc;
-                    if (wrapNone != null && behindDoc != null && behindDoc.Value == true) {
-                        return WrapTextImage.BehindText;
-                    } else if (wrapNone != null && behindDoc != null && behindDoc.Value == false) {
-                        return WrapTextImage.InFrontText;
-                    }
-                }
-
-                return null;
-            }
-            set {
-                throw new NotImplementedException("This needs to be implemented properly!");
-                // TODO - Implement
-                // REQUIRES FIXING, DOESNT WORK AT ALL
-                if (value == WrapTextImage.InLineWithText) {
-                    if (_Image.Inline != null) {
-                        // we don't do anything, because it's already inline
-                    } else if (_Image.Anchor != null) {
-
-                    }
-                } else {
-
-
-                }
-
-
-                //if (_Image.Anchor == null) {
-                //    var inline = _Image.Inline.CloneNode(true);
-
-                //    IEnumerable<OpenXmlElement> clonedElements = _Image.Inline
-                //        .Elements()
-                //        .Select(e => e.CloneNode(true))
-                //        .ToList();
-
-                //    var childInline = inline.Descendants();
-                //    //Anchor anchor1 = new Anchor() { BehindDoc = true };
-                //    var graphic = clonedElements.OfType<Graphic>().FirstOrDefault();
-                //    Anchor anchor1 = GetAnchor(100, 100, graphic, _Image.Inline.DocProperties.Name, "dfdfdf", WrapImageText.BehindText);
-
-                //    //WrapNone wrapNone1 = new WrapNone();
-                //    //anchor1.Append(wrapNone1);
-                //    _Image.Append(anchor1);
-                //    //_Image.Anchor.OfType<DocProperties>().FirstOrDefault().Remove();
-                //    //_Image.Anchor.Append(clonedElements.OfType<DocProperties>().FirstOrDefault());
-
-                //    _Image.Inline.Remove();
-
-                //    //_Image.Anchor.Append(clonedElements);
-                //} else {
-                //    _Image.Anchor.AllowOverlap = true;
-                //}
-            }
+            get => WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline);
+            set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
 
-        //public WordImage(WordDocument document, string filePath, ShapeTypeValues shape = ShapeTypeValues.Rectangle, BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
-        //    double width;
-        //    double height;
-        //    using (var img = SixLabors.ImageSharp.Image.Load(filePath)) {
-        //        width = img.Width;
-        //        height = img.Height;
-        //    }
-        //}
-
-        public WordImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            string filePath,
-            double? width,
-            double? height,
-            WrapTextImage wrapImage = WrapTextImage.InLineWithText,
-            string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open);
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
+            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
+            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
-        public WordImage(
-            WordDocument document,
-            WordParagraph paragraph,
-            Stream imageStream,
-            string fileName,
-            double? width,
-            double? height,
-            WrapTextImage wrapImage = WrapTextImage.InLineWithText,
-            string description = "",
-            ShapeTypeValues shape = ShapeTypeValues.Rectangle,
-            BlipCompressionValues compressionQuality = BlipCompressionValues.Print) {
+        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = fileName;
-            AddImage(document, paragraph, imageStream, fileName, width, height, shape, compressionQuality, description, wrapImage);
+            shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
+            compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
+            AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
-
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
             var newOffset = new Offset() { X = 0L, Y = 0L };
@@ -661,7 +579,7 @@ namespace OfficeIMO.Word {
             bool behindDoc;
             if (wrapImage == WrapTextImage.BehindText) {
                 behindDoc = true;
-            } else if (wrapImage == WrapTextImage.InFrontText) {
+            } else if (wrapImage == WrapTextImage.InFrontOfText) {
                 behindDoc = false;
             } else {
                 // i think this is default for other cases, except for InlineText which is handled outside of Anchor
@@ -702,60 +620,7 @@ namespace OfficeIMO.Word {
             EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 1905L };
             anchor1.Append(effectExtent1);
 
-            if (wrapImage == WrapTextImage.Square) {
-                WrapSquare wrapSquare1 = new WrapSquare() {
-                    WrapText = WrapTextValues.BothSides
-                };
-                anchor1.Append(wrapSquare1);
-            } else if (wrapImage == WrapTextImage.Tight) {
-                WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };
-                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
-                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
-                // the values are probably wrong and content oriented
-                // would require some more research on how to calculate them
-                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
-                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
-                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
-                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
-
-                wrapPolygon1.Append(startPoint1);
-                wrapPolygon1.Append(lineTo1);
-                wrapPolygon1.Append(lineTo2);
-                wrapPolygon1.Append(lineTo3);
-                wrapPolygon1.Append(lineTo4);
-
-                wrapTight1.Append(wrapPolygon1);
-                anchor1.Append(wrapTight1);
-            } else if (wrapImage == WrapTextImage.Through) {
-                WrapThrough wrapThrough1 = new WrapThrough() { WrapText = WrapTextValues.BothSides };
-                WrapPolygon wrapPolygon1 = new WrapPolygon() { Edited = false };
-                StartPoint startPoint1 = new StartPoint() { X = 0L, Y = 0L };
-                // the values are probably wrong and content oriented
-                // would require some more research on how to calculate them
-                var lineTo1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 21384L };
-                var lineTo2 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 21384L };
-                var lineTo3 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 21384L, Y = 0L };
-                var lineTo4 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.LineTo() { X = 0L, Y = 0L };
-
-                wrapPolygon1.Append(startPoint1);
-                wrapPolygon1.Append(lineTo1);
-                wrapPolygon1.Append(lineTo2);
-                wrapPolygon1.Append(lineTo3);
-                wrapPolygon1.Append(lineTo4);
-                wrapThrough1.Append(wrapPolygon1);
-                anchor1.Append(wrapThrough1);
-            } else if (wrapImage == WrapTextImage.TopAndBottom) {
-                WrapTopBottom wrapTopBottom1 = new WrapTopBottom() {
-                    //Values don't seem to matter
-                    //DistanceFromTop = (UInt32Value)20U,
-                    //DistanceFromBottom = (UInt32Value)20U
-                };
-                anchor1.Append(wrapTopBottom1);
-            } else {
-                // behind text, in front of text have this option 
-                WrapNone wrapNone1 = new WrapNone();
-                anchor1.Append(wrapNone1);
-            }
+            WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
 
             DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
             anchor1.Append(docProperties1);
@@ -818,69 +683,79 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddImage(
+        private void AddImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+            _document = document;
+            var imageLocation = AddImageToLocation(document, paragraph, imageStream, fileName, width, height);
+
+            this._imagePart = imageLocation.ImagePart;
+
+            //calculate size in emu
+            double emuWidth = imageLocation.Width * EnglishMetricUnitsPerInch / PixelsPerInch;
+            double emuHeight = imageLocation.Height * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var drawing = new Drawing();
+
+            if (wrapImage == WrapTextImage.InLineWithText) {
+                var inline = GetInline(emuWidth, emuHeight, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                drawing.Append(inline);
+            } else {
+                var graphic = GetGraphic(emuWidth, emuHeight, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageLocation.ImageName, description, wrapImage);
+                drawing.Append(anchor);
+            }
+            this._Image = drawing;
+        }
+
+        internal static WordImageLocation AddImageToLocation(
             WordDocument document,
             WordParagraph paragraph,
             Stream imageStream,
             string fileName,
-            double? width,
-            double? height,
-            ShapeTypeValues shape,
-            BlipCompressionValues compressionQuality,
-            string description,
-            WrapTextImage wrapImage
+            double? width = null,
+            double? height = null
         ) {
-            _document = document;
+
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
-            var imageСharacteristics = Helpers.GetImageСharacteristics(imageStream);
+            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream);
             if (width == null || height == null) {
-                width = imageСharacteristics.Width;
-                height = imageСharacteristics.Height;
+                width = imageCharacteristics.Width;
+                height = imageCharacteristics.Height;
             }
 
-            //var fileName = System.IO.Path.GetFileName(filePath);
+
+            var imagePartType = imageCharacteristics.Type;
             var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
-            // decide where to put an image based on the location of paragraph
             ImagePart imagePart;
             string relationshipId;
             var location = paragraph.Location();
             if (location.GetType() == typeof(Header)) {
                 var part = ((Header)location).HeaderPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Footer)) {
                 var part = ((Footer)location).FooterPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Document)) {
                 var part = document._wordprocessingDocument.MainDocumentPart;
-                imagePart = part.AddImagePart(imageСharacteristics.Type);
+                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
                 throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
             }
 
-            this._imagePart = imagePart;
             imagePart.FeedData(imageStream);
 
-            //calculate size in emu
-            double emuWidth = width.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-            double emuHeight = height.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-
-            var drawing = new Drawing();
-
-            if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, imageName, fileName, relationshipId, shape, compressionQuality, description);
-                drawing.Append(inline);
-            } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description);
-                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageName, description, wrapImage);
-                drawing.Append(anchor);
-            }
-            this._Image = drawing;
+            return new WordImageLocation() {
+                ImagePart = imagePart,
+                RelationshipId = relationshipId,
+                Width = width.Value,
+                Height = height.Value,
+                ImageName = imageName
+            };
         }
     }
 }

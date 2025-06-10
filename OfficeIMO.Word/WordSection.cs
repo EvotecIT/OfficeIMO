@@ -1,21 +1,37 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+        /// <summary>
+        /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
+
+        /// <summary>
+        /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
+        /// </summary>
+        public List<WordElement> ElementsByType => GetWordElementsByType();
+
+        /// <summary>
+        /// Provides a list of all paragraphs within the section
+        /// </summary>
         public List<WordParagraph> Paragraphs => GetParagraphsList();
 
+        /// <summary>
+        /// Provides a list of all paragraphs with page breaks within the section
+        /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of all paragraphs with breaks within the section
+        /// </summary>
         public List<WordParagraph> ParagraphsBreaks {
             get { return Paragraphs.Where(p => p.IsBreak).ToList(); }
         }
@@ -44,12 +60,32 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain Bookmarks
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
         }
 
+        /// <summary>
+        /// Provies a list of paragraphs that contain Equations
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
+        }
+
+        /// <summary>
+        /// Provies a list of paragraphs that contain Tabs
+        /// </summary>
+        public List<WordParagraph> ParagraphsTabs {
+            get { return Paragraphs.Where(p => p.IsTab).ToList(); }
+        }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain TabStops
+        /// </summary>
+        public List<WordParagraph> ParagraphsTabStops {
+            get { return Paragraphs.Where(p => p.TabStops.Count > 0).ToList(); }
         }
 
         /// <summary>
@@ -66,12 +102,39 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsCharts {
+            get { return Paragraphs.Where(p => p.IsChart).ToList(); }
+        }
+
+        public List<WordParagraph> ParagraphsEndNotes {
+            get { return Paragraphs.Where(p => p.IsEndNote).ToList(); }
+        }
+
+        public List<WordParagraph> ParagraphsFootNotes {
+            get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
+        }
+
+        public List<WordParagraph> ParagraphsTextBoxes {
+            get { return Paragraphs.Where(p => p.IsTextBox).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.PageBreak);
+                }
+                return list;
+            }
+        }
+
+        public List<WordChart> Charts {
+            get {
+                List<WordChart> list = new List<WordChart>();
+                var paragraphs = Paragraphs.Where(p => p.IsChart).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Chart);
                 }
                 return list;
             }
@@ -123,6 +186,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordEndNote> EndNotes {
+            get {
+                List<WordEndNote> list = new List<WordEndNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsEndNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.EndNote);
+                }
+                return list;
+            }
+        }
+
+        public List<WordFootNote> FootNotes {
+            get {
+                List<WordFootNote> list = new List<WordFootNote>();
+                var paragraphs = Paragraphs.Where(p => p.IsFootNote).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.FootNote);
+                }
+                return list;
+            }
+        }
+
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -130,8 +215,40 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Hyperlink);
                 }
+
+                foreach (var table in this.Tables) {
+                    foreach (var paragraph in table.Paragraphs) {
+                        if (paragraph.IsHyperLink) {
+                            list.Add(paragraph.Hyperlink);
+                        }
+                    }
+                }
                 return list;
             }
+        }
+
+        public List<WordTabChar> Tabs {
+            get {
+                List<WordTabChar> list = new List<WordTabChar>();
+                var paragraphs = Paragraphs.Where(p => p.IsTab).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Tab);
+                }
+                return list;
+            }
+        }
+
+
+        public List<WordTextBox> TextBoxes {
+            get {
+                List<WordTextBox> list = new List<WordTextBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsTextBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.TextBox);
+                }
+                return list;
+            }
+
         }
 
         public List<WordEquation> Equations {
@@ -163,29 +280,30 @@ namespace OfficeIMO.Word {
         public WordMargins Margins;
         public WordPageSizes PageSettings;
 
-
-        public List<WordList> Lists {
-            get {
-                return GetLists();
-
-                List<WordList> returnList = new List<WordList>();
-                if (_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart != null) {
-                    var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                    var ids = new List<int>();
-                    foreach (var element in numbering.ChildElements.OfType<NumberingInstance>()) {
-                        WordList list = new WordList(_document, this, element.NumberID);
-                        returnList.Add(list);
-                    }
-                }
-
-                return returnList;
-            }
-        }
+        /// <summary>
+        /// Provides a list of all lists within the section
+        /// </summary>
+        public List<WordList> Lists => GetLists();
 
         /// <summary>
         /// Provides a list of all tables within the section, excluding nested tables
         /// </summary>
         public List<WordTable> Tables => GetTablesList();
+
+        /// <summary>
+        /// Provides a list of all embedded documents within the section
+        /// </summary>
+        public List<WordEmbeddedDocument> EmbeddedDocuments => GetEmbeddedDocumentsList();
+
+        /// <summary>
+        /// Provides a list of all watermarks within the section
+        /// </summary>
+        public List<WordWatermark> Watermarks {
+            get {
+                var sdtBlockList = GetSdtBlockList();
+                return WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList);
+            }
+        }
 
         /// <summary>
         /// Provides a list of all tables within the section, including nested tables
@@ -222,7 +340,7 @@ namespace OfficeIMO.Word {
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
             if (sectionProperties != null) {
-                this._sectionProperties = sectionProperties;
+                this._sectionProperties = sectionProperties.MakeSureSectionIsValid();
             } else {
                 sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
@@ -239,9 +357,9 @@ namespace OfficeIMO.Word {
             var listSectionEntries = this._sectionProperties.ChildElements.ToList();
             foreach (var element in listSectionEntries) {
                 if (element is HeaderReference) {
-                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element);
+                    WordHeader wordHeader = new WordHeader(wordDocument, (HeaderReference)element, this);
                 } else if (element is FooterReference) {
-                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element);
+                    WordFooter wordHeader = new WordFooter(wordDocument, (FooterReference)element, this);
                 } else if (element is PageSize) {
                 } else if (element is PageMargin) {
                 } else if (element is PageBorders) {

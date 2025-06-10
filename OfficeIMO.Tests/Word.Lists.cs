@@ -132,6 +132,7 @@ public partial class Word {
                 .SetUnderline(UnderlineValues.Double);
 
             var wordList8 = document.AddList(WordListStyle.Bulleted);
+
             wordList8.AddItem("Text 9");
             wordList8.AddItem("Text 9.1", 1);
             wordList8.AddItem("Text 9.2", 2);
@@ -193,6 +194,12 @@ public partial class Word {
 
             var section = Assert.Single(document.Sections);
             Assert.Equal(45, section.Paragraphs.Count);
+
+            // we merge the first two lists
+            document.Lists[0].Merge(document.Lists[1]);
+
+            Assert.Equal(9, document.Lists.Count);
+            Assert.Equal(45, document.Paragraphs.Count);
 
             document.Save();
 
@@ -393,6 +400,309 @@ public partial class Word {
                 var style = WordListStyles.GetStyle(wordListStyles[idx]);
                 Assert.Equal(style, abstractNums[idx]);
             }
+        }
+    }
+
+
+    [Fact]
+    public void Test_CreatingWordDocumentWithListsInTables() {
+        var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            Assert.True(document.Lists.Count == 0);
+            WordList wordList1 = document.AddList(WordListStyle.Headings111);
+            Assert.True(wordList1.ListItems.Count == 0);
+            Assert.True(document.Lists[0].ListItems.Count == 0);
+            wordList1.AddItem("Text 1 - First List");
+            Assert.True(wordList1.ListItems.Count == 1);
+            Assert.True(document.Lists[0].ListItems.Count == 1);
+            Assert.True(document.Lists.Count == 1);
+
+            wordList1.AddItem("Text 2");
+            Assert.True(wordList1.ListItems.Count == 2);
+            Assert.True(document.Lists[0].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 1);
+            wordList1.AddItem("Text 2.1", 1);
+            Assert.True(wordList1.ListItems.Count == 3);
+            Assert.True(document.Lists[0].ListItems.Count == 3);
+            Assert.True(document.Lists.Count == 1);
+
+
+            WordList wordListNested = document.AddList(WordListStyle.Bulleted);
+
+            Assert.True(wordListNested.RestartNumberingAfterBreak == false);
+            wordListNested.RestartNumberingAfterBreak = true;
+            Assert.True(wordListNested.RestartNumberingAfterBreak == true);
+            wordListNested.AddItem("Nested 1", 1);
+            wordListNested.AddItem("Nested 2", 1);
+            Assert.True(wordListNested.ListItems.Count == 2);
+            Assert.True(document.Lists[1].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 2);
+
+            WordList wordList2 = document.AddList(WordListStyle.Headings111);
+
+            wordList2.AddItem("Section 2");
+            wordList2.AddItem("Section 2.1", 1);
+
+            Assert.True(wordList2.ListItems.Count == 2);
+            Assert.True(document.Lists[2].ListItems.Count == 2);
+            Assert.True(document.Lists.Count == 3);
+
+
+            WordList wordList3 = document.AddList(WordListStyle.Headings111);
+
+            wordList3.AddItem("Section 1");
+            wordList3.AddItem("Section 1.1", 1);
+            Assert.True(wordList3.ListItems.Count == 2);
+
+            WordList wordList4 = document.AddList(WordListStyle.Headings111);
+            wordList4.AddItem("Section 2");
+            wordList4.AddItem("Section 2.1", 1);
+
+            WordList wordList5 = document.AddList(WordListStyle.Headings111);
+            wordList5.AddItem("Section 3");
+            wordList5.AddItem("Section 3.1", 1);
+
+            WordList wordList6 = document.AddList(WordListStyle.Headings111);
+            wordList1.AddItem("Text 4");
+            wordList1.AddItem("Text 4.1", 1);
+
+            Assert.True(document.Lists.Count == 7);
+
+            document.AddBreak();
+
+            // add a table
+            var table = document.AddTable(3, 3);
+
+            //// add a list to a table and attach it to a first paragraph
+            var listInsideTable = table.Rows[0].Cells[0].Paragraphs[0].AddList(WordListStyle.Bulleted);
+
+            // this will force the current Paragraph to be converted into a list item and overwrite it's text
+            Assert.True(listInsideTable.ListItems.Count == 0);
+            listInsideTable.AddItem("text", 0, table.Rows[0].Cells[0].Paragraphs[0]);
+            Assert.True(listInsideTable.ListItems.Count == 1);
+
+            // add new items to the list (as last paragraph)
+            listInsideTable.AddItem("Test 1");
+            Assert.True(listInsideTable.ListItems.Count == 2);
+
+            // add new items to the list (as last paragraph)
+            listInsideTable.AddItem("Test 2");
+            Assert.True(listInsideTable.ListItems.Count == 3);
+
+            table.Rows[0].Cells[0].AddParagraph("Test Text 1");
+            listInsideTable.AddItem("Test 3");
+            table.Rows[0].Cells[0].AddParagraph("Test Text 2");
+
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Text Row 1 - 0";
+            table.Rows[1].Cells[0].AddParagraph("Text Row 1 - 1").AddText(" More text").AddParagraph("Text Row 1 - 2");
+
+            // add a list to a table by adding it to a cell, notice that that the first paragraph is empty
+            var listInsideTableColumn2 = table.Rows[0].Cells[1].AddList(WordListStyle.Bulleted);
+            Assert.True(listInsideTableColumn2.ListItems.Count == 0);
+            listInsideTableColumn2.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn2.ListItems.Count == 1);
+            listInsideTableColumn2.AddItem("Test 2  - Column 2");
+            Assert.True(listInsideTableColumn2.ListItems.Count == 2);
+
+            // add a list to a table by adding it to a cell, notice that I'm adding text before list first
+            table.Rows[0].Cells[2].Paragraphs[0].Text = "This is list: ";
+            // add list, and add all items
+            var listInsideTableColumn3 = table.Rows[0].Cells[2].AddList(WordListStyle.Bulleted);
+            Assert.True(listInsideTableColumn3.ListItems.Count == 0);
+            listInsideTableColumn3.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn3.ListItems.Count == 1);
+            listInsideTableColumn3.AddItem("Test 2  - Column 2");
+            Assert.True(listInsideTableColumn3.ListItems.Count == 2);
+
+            // add a list to a table by adding it to a cell, notice that I'm adding text before list first
+            // but then convert that line into a list item
+            table.Rows[1].Cells[2].Paragraphs[0].Text = "This is list as list item: ";
+            // add list, and add all items
+            var listInsideTableColumn4 = table.Rows[0].Cells[2].AddList(WordListStyle.Bulleted);
+
+            listInsideTableColumn4.AddItem(table.Rows[1].Cells[2].Paragraphs[0]); // convert to list item
+
+            Assert.True(listInsideTableColumn4.ListItems.Count == 1);
+            listInsideTableColumn4.AddItem("Test 1 - Column 2");
+            Assert.True(listInsideTableColumn4.ListItems.Count == 2);
+            listInsideTableColumn4.AddItem("Test 2 - Column 2");
+            Assert.True(listInsideTableColumn4.ListItems.Count == 3);
+
+            // including in tables
+            Assert.True(document.Lists.Count == 11);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
+
+        using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx"))) {
+
+            Assert.True(document.Lists.Count == 11);
+
+            Assert.True(document.Lists[10].ListItems[1].Text == "Test 1 - Column 2");
+            Assert.True(document.Lists[10].ListItems[2].Text == "Test 2 - Column 2");
+
+            document.Lists[0].AddItem("More then enough");
+
+            document.AddHeadersAndFooters();
+
+            var listInHeader = document.Header.Default.AddList(WordListStyle.Bulleted);
+
+            Assert.True(document.Lists.Count == 12);
+
+            listInHeader.AddItem("Test Header 1");
+
+            document.Footer.Default.AddParagraph("Test Me Header");
+
+            listInHeader.AddItem("Test Header 2");
+
+            var listInFooter = document.Footer.Default.AddList(WordListStyle.Headings111);
+
+            Assert.True(document.Lists.Count == 13);
+
+            listInFooter.AddItem("Test Footer 1");
+
+            document.Footer.Default.AddParagraph("Test Me Footer");
+
+            listInFooter.AddItem("Test Footer 2");
+
+            Assert.True(document.Lists[12].ListItems[0].Text == "Test Footer 1");
+            Assert.True(document.Lists[12].ListItems[1].Text == "Test Footer 2");
+
+            Assert.True(document.Lists.Count == 13);
+
+            document.Lists[0].Remove();
+
+            Assert.True(document.Lists.Count == 12);
+            Assert.True(document.Lists[0].ListItems[0].Text == "Nested 1");
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+    }
+
+
+    [Fact]
+    public void Test_CreatingWordDocumentWithAllListTypesDefined() {
+        var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsWithAllTypes.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            Assert.True(document.Lists.Count == 0);
+
+            foreach (WordListStyle style in Enum.GetValues(typeof(WordListStyle))) {
+
+                document.AddParagraph(style.ToString()).SetColor(Color.Red).SetBold().SetItalic();
+
+                WordList wordList = document.AddList(style);
+            }
+
+            Assert.True(document.Lists.Count == Enum.GetValues(typeof(WordListStyle)).Length);
+
+            document.Save(false);
+
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+    }
+
+    [Fact]
+    public void Test_ListOrderVerification() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListOrderVerification.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var first = document.AddParagraph("First");
+            document.AddParagraph("Last");
+
+            var list = first.AddList(WordListStyle.Bulleted);
+            list.AddItem("Important", 0, first);
+            list.AddItem("List");
+
+            // Verify order
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+
+            document.Save(false);
+        }
+
+        // Verify order persists after reload
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Equal("First", document.Paragraphs[0].Text);
+            Assert.Equal("Important", document.Paragraphs[1].Text);
+            Assert.Equal("Last", document.Paragraphs[2].Text);
+            Assert.Equal("List", document.Paragraphs[3].Text);
+        }
+    }
+
+    [Fact]
+    public void Test_ListWithCustomStyling() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListWithCustomStyling.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            // Add header paragraph first
+            var paragraph = document.AddParagraph("List with LowerLetterWithBracket style");
+            paragraph.ParagraphAlignment = JustificationValues.Center;
+
+            // Create list
+            WordList wordList1 = document.AddList(WordListStyle.LowerLetterWithBracket);
+
+            // Add items and set their style individually
+            var listItem1 = wordList1.AddItem("Text 1");
+            listItem1.Bold = true;
+            listItem1.FontSize = 16;
+            listItem1.Color = Color.DarkRed;
+
+            var listItem2 = wordList1.AddItem("Text 2", 1);
+            listItem2.Bold = true;
+            listItem2.FontSize = 16;
+            listItem2.Color = Color.DarkRed;
+
+            var listItem3 = wordList1.AddItem("Text 3", 2);
+            listItem3.Bold = true;
+            listItem3.FontSize = 16;
+            listItem3.Color = Color.DarkRed;
+
+            // Verify list item count and styling
+            Assert.Equal(3, wordList1.ListItems.Count);
+            Assert.True(document.Lists[0].ListItems.All(item => item.Bold));
+            Assert.True(document.Lists[0].ListItems.All(item => item.FontSize == 16));
+            Assert.True(document.Lists[0].ListItems.All(item => item.Color == Color.DarkRed));
+
+            // Add final paragraph with different styling
+            paragraph = document.AddParagraph("Second list title");
+            paragraph.Bold = true;
+            paragraph.FontSize = 16;
+            paragraph.Color = Color.AliceBlue;
+            paragraph.ParagraphAlignment = JustificationValues.Center;
+
+            listItem3.Bold = false;
+            listItem3.FontSize = 12;
+            listItem3.Color = Color.Blue;
+
+            Assert.Equal(3, document.Lists[0].ListItems.Count);
+            Assert.True(document.Lists[0].ListItems[2].Bold == false);
+            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
+
+            document.Save(false);
+            Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+        }
+
+        // Verify the styling persists after reload
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Single(document.Lists);
+            Assert.Equal(3, document.Lists[0].ListItems.Count);
+            Assert.True(document.Lists[0].ListItems[0].Bold);
+            Assert.True(document.Lists[0].ListItems[0].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[0].Color == Color.DarkRed);
+
+            Assert.True(document.Lists[0].ListItems[1].Bold);
+            Assert.True(document.Lists[0].ListItems[1].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[1].Color == Color.DarkRed);
+
+            Assert.True(document.Lists[0].ListItems[2].Bold == false);
+            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
         }
     }
 }

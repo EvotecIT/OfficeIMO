@@ -1,8 +1,14 @@
-﻿using System.Linq;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        public WordParagraphBorders Borders {
+            get {
+                return new WordParagraphBorders(_document, this);
+            }
+        }
+
         /// <summary>
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
@@ -46,8 +52,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationBefore {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
@@ -73,9 +77,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the indentation before in points.
+        /// </summary>
+        public double? IndentationBeforePoints {
+            get {
+                if (IndentationBefore != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationBefore.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationBefore = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public int? IndentationAfter {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
@@ -102,6 +121,23 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the indentation after in points.
+        /// </summary>
+        public double? IndentationAfterPoints {
+            get {
+                if (IndentationAfter != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationAfter.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationAfter = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
+        /// <summary>
         /// The property which puts a paragraph on the beginning of a next side without add a page break to the document
         /// </summary>
         /// <value>bool</value>
@@ -120,8 +156,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? IndentationFirstLine {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (_paragraphProperties.Indentation.FirstLine != "") {
@@ -146,9 +180,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the first line indentation in points.
+        /// </summary>
+        public double? IndentationFirstLinePoints {
+            get {
+                if (IndentationFirstLine != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationFirstLine.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationFirstLine = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public int? IndentationHanging {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
@@ -174,12 +223,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the hanging indentation in points.
+        /// </summary>
+        public double? IndentationHangingPoints {
+            get {
+                if (IndentationHanging != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationHanging.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationHanging = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public TextDirectionValues? TextDirection {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
                     if (_paragraphProperties.TextDirection != null) {
                         return _paragraphProperties.TextDirection.Val;
                     } else {
@@ -215,8 +280,7 @@ namespace OfficeIMO.Word {
                 } else {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
-
-                spacing.After = value.ToString();
+                spacing.LineRule = value;
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
@@ -300,6 +364,29 @@ namespace OfficeIMO.Word {
 
                 spacing.After = value.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
+        /// </summary>
+        public VerticalPositionValues? VerticalTextAlignment {
+            get {
+                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
+                    return _runProperties.VerticalTextAlignment.Val;
+                }
+                return null;
+            }
+            set {
+                _runProperties ??= new RunProperties();
+                if (value == null) {
+                    if (_runProperties.VerticalTextAlignment == null) {
+                        return;
+                    }
+                    _runProperties.VerticalTextAlignment = null;
+                } else {
+                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                }
             }
         }
     }

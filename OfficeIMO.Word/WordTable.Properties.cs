@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Allow table to overlap or not
+        /// Allow table to overlap or not
         /// </summary>
         public bool AllowOverlap {
             get {
@@ -58,7 +58,30 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Allow text to wrap around table.
+        /// Gets or sets the effective layout mode of the table using WordTableLayoutType enum.
+        /// Setting FixedWidth via this property defaults to 100% width.
+        /// Use SetFixedWidth(percentage) for specific percentages.
+        /// </summary>
+        public WordTableLayoutType LayoutMode {
+            get => GetCurrentLayoutType();
+            set {
+                switch (value) {
+                    case WordTableLayoutType.AutoFitToContents:
+                        AutoFitToContents();
+                        break;
+                    case WordTableLayoutType.AutoFitToWindow:
+                        AutoFitToWindow();
+                        break;
+                    case WordTableLayoutType.FixedWidth:
+                        // Default to 100% when setting via this property
+                        SetFixedWidth(100);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Allow text to wrap around table.
         /// </summary>
         public bool AllowTextWrap {
             get {
@@ -112,7 +135,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<int>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex >= this.Rows[0].CellsCount; cellIndex++) {
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
                     listReturn.Add(this.Rows[0].Cells[cellIndex].Width.Value);
                 }
                 return listReturn;
@@ -126,6 +149,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the column width type for a whole table simplifying setup of column width
+        /// </summary>
+        public TableWidthUnitValues? ColumnWidthType {
+            get {
+                var listReturn = new List<TableWidthUnitValues?>();
+                // we assume the first row has the same widths as all rows, which may or may not be true
+                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
+                    listReturn.Add(this.Rows[0].Cells[cellIndex].WidthType);
+                }
+                // we assume all cells have the same width type, which may or may not be true
+                return listReturn[0];
+            }
+            set {
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        cell.WidthType = value;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Get or Set Table Row Height for 1st row
@@ -169,8 +213,7 @@ namespace OfficeIMO.Word {
         public bool HasNestedTables {
             get {
                 foreach (var cell in this.Cells) {
-                    var list = cell._tableCell.Descendants<Table>().ToList();
-                    if (list.Count > 0) {
+                    if (cell.HasNestedTables) {
                         return true;
                     }
                 }
@@ -185,10 +228,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<WordTable>();
                 foreach (var cell in this.Cells) {
-                    var list = cell._tableCell.Descendants<Table>().ToList();
-                    foreach (var table in list) {
-                        listReturn.Add(new WordTable(this._document, table));
-                    }
+                    listReturn.AddRange(cell.NestedTables);
                 }
                 return listReturn;
             }
