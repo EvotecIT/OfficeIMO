@@ -79,6 +79,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the indentation before in points.
+        /// </summary>
+        public double? IndentationBeforePoints {
+            get {
+                if (IndentationBefore != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationBefore.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationBefore = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public int? IndentationAfter {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
@@ -104,6 +121,23 @@ namespace OfficeIMO.Word {
 
                 indentation.Right = value.ToString();
                 _paragraphProperties.Indentation = indentation;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the indentation after in points.
+        /// </summary>
+        public double? IndentationAfterPoints {
+            get {
+                if (IndentationAfter != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationAfter.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationAfter = Helpers.ConvertPointsToTwips(value.Value);
+                }
             }
         }
 
@@ -152,6 +186,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the first line indentation in points.
+        /// </summary>
+        public double? IndentationFirstLinePoints {
+            get {
+                if (IndentationFirstLine != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationFirstLine.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationFirstLine = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public int? IndentationHanging {
             // TODO: probably needs calculated values instead of just values
             //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
@@ -177,6 +228,23 @@ namespace OfficeIMO.Word {
 
                 indentation.Hanging = value.ToString();
                 _paragraphProperties.Indentation = indentation;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the hanging indentation in points.
+        /// </summary>
+        public double? IndentationHangingPoints {
+            get {
+                if (IndentationHanging != null) {
+                    return Helpers.ConvertTwipsToPoints(IndentationHanging.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    IndentationHanging = Helpers.ConvertPointsToTwips(value.Value);
+                }
             }
         }
 
