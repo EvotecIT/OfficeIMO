@@ -490,6 +490,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool RtlGutter {
+            get {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties != null) {
+                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                    if (rtlGutter != null) {
+                        return rtlGutter.Val;
+                    }
+                }
+                return false;
+            }
+            set {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties == null) {
+                    return;
+                }
+                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                if (value == false) {
+                    rtlGutter?.Remove();
+                } else {
+                    if (rtlGutter == null) {
+                        rtlGutter = new GutterOnRight();
+                        sectionProperties.Append(rtlGutter);
+                    }
+                    rtlGutter.Val = value;
+                }
+            }
+        }
+
         internal static HeaderFooterValues GetType(string type) {
             if (type == "default") {
                 return HeaderFooterValues.Default;
