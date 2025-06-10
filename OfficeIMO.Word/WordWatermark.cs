@@ -329,9 +329,18 @@ namespace OfficeIMO.Word {
                     lastParagraph._paragraph.Parent.Append(_sdtBlock);
                 }
             } else {
-                // TODO: Add handling for watermark image
+                if (wordSection.Header.Default == null) {
+                    wordSection.AddHeadersAndFooters();
+                }
 
+                this._wordHeader = wordSection.Header.Default;
 
+                var fileName = System.IO.Path.GetFileName(textOrFilePath);
+                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
+
+                var wordParagraph = this._wordHeader.AddParagraph();
+                var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
+                AddWatermarkImage(wordParagraph, imageLocation);
             }
         }
 

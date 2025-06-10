@@ -193,5 +193,32 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithWatermarkImage() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkImage.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Section 0");
+
+                var imagePath = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
+
+                document.AddHeadersAndFooters();
+                document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
+
+                Assert.True(document.Header.Default.Images.Count == 1);
+
+                var section = document.AddSection();
+                section.AddWatermark(WordWatermarkStyle.Image, imagePath);
+
+                Assert.True(document.Sections[1].Header.Default.Images.Count == 1);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Header.Default.Images.Count == 1);
+                Assert.True(document.Sections[1].Header.Default.Images.Count == 1);
+            }
+        }
     }
 }
