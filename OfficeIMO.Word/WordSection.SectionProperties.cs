@@ -56,5 +56,31 @@ namespace OfficeIMO.Word {
                 if (value != null) columns.ColumnCount = (Int16Value)value.Value;
             }
         }
+
+        public FootnoteProperties FootnoteProperties {
+            get {
+                return _sectionProperties.GetFirstChild<FootnoteProperties>();
+            }
+            set {
+                var existing = _sectionProperties.GetFirstChild<FootnoteProperties>();
+                existing?.Remove();
+                if (value != null) {
+                    _sectionProperties.Append(value);
+                }
+            }
+        }
+
+        public EndnoteProperties EndnoteProperties {
+            get {
+                return _sectionProperties.GetFirstChild<EndnoteProperties>();
+            }
+            set {
+                var existing = _sectionProperties.GetFirstChild<EndnoteProperties>();
+                existing?.Remove();
+                if (value != null) {
+                    _sectionProperties.Append(value);
+                }
+            }
+        }
     }
 }

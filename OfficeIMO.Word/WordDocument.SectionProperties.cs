@@ -73,5 +73,53 @@ namespace OfficeIMO.Word {
                 this.Sections[0].PageSettings = value;
             }
         }
+
+        public FootnoteProperties FootnoteProperties {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].FootnoteProperties.");
+                }
+
+                return this.Sections[0].FootnoteProperties;
+            }
+            set {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].FootnoteProperties.");
+                }
+
+                this.Sections[0].FootnoteProperties = value;
+            }
+        }
+
+        public EndnoteProperties EndnoteProperties {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].EndnoteProperties.");
+                }
+
+                return this.Sections[0].EndnoteProperties;
+            }
+            set {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].EndnoteProperties.");
+                }
+
+                this.Sections[0].EndnoteProperties = value;
+            }
+        }
+
+        public void AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
+            FootnotePositionValues? position = null,
+            RestartNumberValues? restartNumbering = null,
+            int? startNumber = null) {
+            this.Sections[0].AddFootnoteProperties(numberingFormat, position, restartNumbering, startNumber);
+        }
+
+        public void AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
+            EndnotePositionValues? position = null,
+            RestartNumberValues? restartNumbering = null,
+            int? startNumber = null) {
+            this.Sections[0].AddEndnoteProperties(numberingFormat, position, restartNumbering, startNumber);
+        }
     }
 }

@@ -168,6 +168,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ReadBiDiProperty() {
+            string tempFile = Path.GetTempFileName();
+            using (WordDocument document = WordDocument.Create(tempFile)) {
+                document.AddParagraph("BiDi paragraph").BiDi = true;
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(tempFile)) {
+                Assert.True(document.Paragraphs[0].BiDi);
+            }
+        }
+
+        [Fact]
+        public void Test_SettingBiDiProperty() {
+            bool stateBefore;
+            string originalFile = Path.Combine(_directoryDocuments, "EmptyDocument.docx");
+            string tempFile = Path.GetTempFileName();
+
+            using (WordDocument document = WordDocument.Load(originalFile)) {
+                stateBefore = document.Paragraphs[0].BiDi;
+                document.Paragraphs[0].BiDi = !stateBefore;
+                document.Save(tempFile);
+            }
+
+            using (WordDocument document = WordDocument.Load(tempFile)) {
+                Assert.True(document.Paragraphs[0].BiDi != stateBefore);
+            }
+        }
+
+        [Fact]
         public void Test_SetStyleId() {
            
             string originalFile = Path.Combine(_directoryDocuments, "EmptyDocument.docx");
