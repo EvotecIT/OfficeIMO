@@ -261,6 +261,26 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates that paragraph text should be displayed from right to left.
+        /// </summary>
+        public bool BiDi {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.BiDi is not null;
+            }
+            set {
+                if (value) {
+                    if (_paragraphProperties.BiDi == null) {
+                        _paragraphProperties.BiDi = new BiDi();
+                    }
+                } else {
+                    if (_paragraphProperties.BiDi != null) {
+                        _paragraphProperties.BiDi.Remove();
+                    }
+                }
+            }
+        }
+
         public LineSpacingRuleValues? LineSpacingRule {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
