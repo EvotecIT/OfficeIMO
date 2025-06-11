@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using System.Linq;
+using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -391,6 +394,45 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+            return dataSections[foundCount];
+        }
+
+        private List<WordEmbeddedObject> GetEmbeddedObjectsList() {
+            Dictionary<int, List<WordEmbeddedObject>> dataSections = new Dictionary<int, List<WordEmbeddedObject>>();
+            var count = 0;
+
+            dataSections[count] = new List<WordEmbeddedObject>();
+            var foundCount = -1;
+            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
+                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
+                    foreach (var element in listElements) {
+                        if (element is Paragraph paragraph) {
+                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
+                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
+                                    foundCount = count;
+                                }
+                                count++;
+                                dataSections[count] = new List<WordEmbeddedObject>();
+                            }
+
+                            foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+                                if (run.Descendants<Ovml.OleObject>().Any()) {
+                                    dataSections[count].Add(new WordEmbeddedObject(_document, run));
+                                }
+                            }
+                        }
+                    }
+
+                    if (foundCount < 0) {
+                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
+                            foundCount = count;
+                        }
+                    }
+                }
+            }
+
             return dataSections[foundCount];
         }
 
