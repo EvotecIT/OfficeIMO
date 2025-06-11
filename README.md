@@ -1,4 +1,4 @@
-﻿# OfficeIMO - Microsoft Word .NET Library
+# OfficeIMO - Microsoft Word .NET Library
 
 OfficeIMO is available as NuGet from the gallery and its preferred way of using it.
 
