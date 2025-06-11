@@ -450,5 +450,40 @@ namespace OfficeIMO.Tests {
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
         }
+
+        [Fact]
+        public void Test_AddHyperlinkInsideTextBox() {
+            string filePath = Path.Combine(_directoryWithFiles, "TextBoxWithHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var textBox = document.AddTextBox("Hyperlink test");
+
+                textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
+
+                // Ensure adding a hyperlink inside a text box doesn't throw and document saves correctly
+                document.Save(false);
+            }
+            // reload to confirm document can be opened
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.TextBoxes.Count == 1);
+            
+            }
+        }
+
+        [Fact]
+        public void Test_AddHyperlinkInsideHeaderTextBox() {
+            string filePath = Path.Combine(_directoryWithFiles, "HeaderTextBoxWithHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var textBox = document.Sections[0].Header.Default.AddTextBox("Header hyperlink test");
+
+                textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Sections[0].Header.Default.Paragraphs.Any(p => p.IsTextBox));
+
+            }
+        }
     }
 }
