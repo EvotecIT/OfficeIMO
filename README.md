@@ -5,7 +5,6 @@ OfficeIMO is available as NuGet from the gallery and its preferred way of using 
 [![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](#)
-[![nuget downloads](https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg)](#)
 
 If you would like to contact me you can do so via Twitter or LinkedIn.
 
