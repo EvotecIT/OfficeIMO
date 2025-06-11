@@ -41,11 +41,7 @@ namespace OfficeIMO.Word {
 
             string iconPath = options.IconPath;
             if (string.IsNullOrEmpty(iconPath)) {
-                try {
-                    iconPath = ShellIconExtractor.SaveLargeIcon(fileName);
-                } catch {
-                    throw new FileNotFoundException("Icon not provided and system icon not available.");
-                }
+                throw new ArgumentException("An icon path must be provided for embedded objects on this platform.", nameof(options));
             }
 
             var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath, options.Width, options.Height);
