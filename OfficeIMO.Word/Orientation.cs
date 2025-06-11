@@ -18,13 +18,13 @@ namespace OfficeIMO.Word {
 
                     PageSize pgSz = sectPr.Descendants<PageSize>().FirstOrDefault();
                     if (pgSz != null) {
-                        // No Orient property? Create it now. Otherwise, just 
-                        // set its value. Assume that the default orientation 
+                        // No Orient property? Create it now. Otherwise, just
+                        // set its value. Assume that the default orientation
                         // is Portrait.
                         if (pgSz.Orient == null) {
-                            // Need to create the attribute. You do not need to 
-                            // create the Orient property if the property does not 
-                            // already exist, and you are setting it to Portrait. 
+                            // Need to create the attribute. You do not need to
+                            // create the Orient property if the property does not
+                            // already exist, and you are setting it to Portrait.
                             // That is the default value.
                             if (newOrientation != PageOrientationValues.Portrait) {
                                 pageOrientationChanged = true;
@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
                         }
 
                         if (pageOrientationChanged) {
-                            // Changing the orientation is not enough. You must also 
+                            // Changing the orientation is not enough. You must also
                             // change the page size.
                             var width = pgSz.Width;
                             var height = pgSz.Height;
@@ -51,10 +51,10 @@ namespace OfficeIMO.Word {
 
                             PageMargin pgMar = sectPr.Descendants<PageMargin>().FirstOrDefault();
                             if (pgMar != null) {
-                                // Rotate margins. Printer settings control how far you 
+                                // Rotate margins. Printer settings control how far you
                                 // rotate when switching to landscape mode. Not having those
                                 // settings, this code rotates 90 degrees. You could easily
-                                // modify this behavior, or make it a parameter for the 
+                                // modify this behavior, or make it a parameter for the
                                 // procedure.
                                 var top = pgMar.Top.Value;
                                 var bottom = pgMar.Bottom.Value;
