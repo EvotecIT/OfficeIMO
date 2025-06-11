@@ -323,6 +323,11 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+            var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, options);
+            return this;
+        }
+
         /// <summary>
         /// Provides ability for configuration of Tabs in a paragraph
         /// by adding one or more TabStops

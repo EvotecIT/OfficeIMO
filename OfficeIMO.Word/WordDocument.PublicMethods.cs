@@ -151,6 +151,10 @@ namespace OfficeIMO.Word {
         public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }
+
+        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+            return this.AddParagraph().AddEmbeddedObject(filePath, options);
+        }
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
             return new WordEmbeddedDocument(this, fileName, type, false);
         }

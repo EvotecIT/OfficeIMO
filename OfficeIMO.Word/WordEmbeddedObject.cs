@@ -35,6 +35,28 @@ namespace OfficeIMO.Word {
             //wordDocument._document.MainDocumentPart.Document.Body.AppendChild(p);
         }
 
+        internal WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, WordEmbeddedObjectOptions options) {
+            _document = wordDocument;
+            options ??= WordEmbeddedObjectOptions.Icon();
+
+            string iconPath = options.IconPath;
+            if (string.IsNullOrEmpty(iconPath)) {
+                try {
+                    iconPath = ShellIconExtractor.SaveLargeIcon(fileName);
+                } catch {
+                    throw new FileNotFoundException("Icon not provided and system icon not available.");
+                }
+            }
+
+            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath, options.Width, options.Height);
+
+            Run run = new Run();
+            run.Append(embeddedObject);
+            wordParagraph._paragraph.AppendChild(run);
+
+            _run = run;
+        }
+
         internal WordEmbeddedObject(WordDocument wordDocument, Run run) {
             _document = wordDocument;
             _run = run;
