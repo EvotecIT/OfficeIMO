@@ -12,10 +12,13 @@ using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
     public class WordEmbeddedObject {
-        public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description) {
+        public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, double? width = null, double? height = null) {
 
 
-            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, fileImage);
+            width ??= 64.8;
+            height ??= 40.8;
+
+            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, fileImage, width.Value, height.Value);
 
             Run run = new Run();
             run.Append(embeddedObject);
@@ -56,7 +59,7 @@ namespace OfficeIMO.Word {
             };
         }
 
-        private EmbeddedObject ConvertFileToEmbeddedObject(WordDocument wordDocument, string fileName, string fileImage) {
+        private EmbeddedObject ConvertFileToEmbeddedObject(WordDocument wordDocument, string fileName, string fileImage, double width, double height) {
             ImagePart imagePart = wordDocument._document.MainDocumentPart.AddImagePart(ImagePartType.Png);
             using (FileStream stream = new FileStream(fileImage, FileMode.Open)) {
                 imagePart.FeedData(stream);
@@ -78,7 +81,7 @@ namespace OfficeIMO.Word {
             var idImagePart = mainPart.GetIdOfPart(imagePart);
             var idEmbeddedObjectPart = mainPart.GetIdOfPart(embeddedObjectPart);
 
-            var embeddedObject = CreateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, 1000, 500);
+            var embeddedObject = CreateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, width, height);
             //var embeddedObject = GenerateEmbeddedObject(idImagePart, idEmbeddedObjectPart, programId, 49.2, 49.2);
             return embeddedObject;
         }

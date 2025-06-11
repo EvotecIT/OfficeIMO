@@ -148,8 +148,8 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath) {
-            return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath);
+        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+            return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
             return new WordEmbeddedDocument(this, fileName, type, false);

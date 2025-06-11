@@ -318,8 +318,8 @@ namespace OfficeIMO.Word {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath) {
-            var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "");
+        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+            var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "", width, height);
             return this;
         }
 
