@@ -1,3 +1,50 @@
+## 0.23.0 - 2025.06.11
+### What's Changed
+* chore(deps): bump Verify.Xunit from 28.16.0 to 29.2.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/268
+* chore(deps): bump Verify.Xunit from 29.2.0 to 29.3.1 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/269
+* chore(deps): bump xunit.runner.visualstudio from 3.0.2 to 3.1.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/271
+* chore(deps): bump Verify.Xunit from 29.3.1 to 30.0.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/272
+* Update Verify.Xunit to 30.1.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/273
+* Update Microsoft.NET.Test.Sdk to 17.14.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/274
+* Bump Verify.Xunit from 30.1.0 to 30.3.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/275
+* Bump Microsoft.NET.Test.Sdk and 2 others by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/276
+* Add revision acceptance test by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/279
+* Add unit conversion helpers by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/277
+* Implement BiDi paragraph property by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/280
+* Add footnote/endnote helper methods by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/281
+* Implement BiDi paragraph property by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/282
+* Implement gutter settings by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/284
+* Fix vertical merge when cell properties missing by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/285
+* Add image location tests by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/286
+* Replace deprecated PackageLicenseUrl tags by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/288
+* Improve line spacing properties by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/289
+* Fix trailing spaces in Orientation.cs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/290
+* Fix alt chunk id generation by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/291
+* chore: 🔧 update dependencies for test SDK and xUnit runner by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/292
+
+### New Contributors
+* @dependabot made their first contribution in https://github.com/EvotecIT/OfficeIMO/pull/268
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.22.0...v0.23.0
+
+## 0.22.0
+### What's Changed
+* Enable Dependabot to automate dependency updates by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/266
+* Bump dependencies by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/265
+* Fixes how lists behave by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/264
+* Add ability to add custom lists (simplified logic) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/208
+* chore: 🔧 update Dependabot configuration for NuGet packages by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/267
+* Added Table Margins, Borders and New methods by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/129
+* Refactor Table Layout/Width Handling and Add Row Properties by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/70
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.21.0...v0.22.0
+
+## 0.21.0
+### What's Changed
+* Bump dependencies / frameworks by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/262
+
+**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/v0.20.0...v0.21.0
+
 ## 0.20.0 - 2024.09.27
 ### What's Changed
 * Add converter from DOTX to DOCX by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/257
