@@ -20,7 +20,7 @@
         <PackageTags>
             docx;net60;word;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE</PackageLicenseUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>
         <IsPublishable>True</IsPublishable>
         <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
