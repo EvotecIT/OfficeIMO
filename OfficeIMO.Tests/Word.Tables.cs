@@ -513,12 +513,12 @@ namespace OfficeIMO.Tests {
 
                 wordTable.Rows[0].Cells[0].MergeVertically(1, true);
 
-                Assert.True(wordTable.Rows[0].Cells[0].VerticalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[1].Cells[0].VerticalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[2].Cells[0].VerticalMerge == null);
-                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Top");
-                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[1].Text == "Bottom");
-                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "");
+                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
+                Assert.Equal("Top", wordTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Bottom", wordTable.Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("", wordTable.Rows[1].Cells[0].Paragraphs[0].Text);
 
                 document.Save();
             }
