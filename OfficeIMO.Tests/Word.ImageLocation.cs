@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
 
-            Assert.Equal(1, mainPart.ImageParts.Count());
+            Assert.Single(mainPart.ImageParts);
             Assert.Empty(mainPart.HeaderParts.SelectMany(h => h.ImageParts));
             Assert.Empty(mainPart.FooterParts.SelectMany(f => f.ImageParts));
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var headerPart = mainPart.HeaderParts.First();
 
-            Assert.Equal(1, headerPart.ImageParts.Count());
+            Assert.Single(headerPart.ImageParts);
             Assert.Empty(mainPart.ImageParts);
             Assert.Empty(mainPart.FooterParts.First().ImageParts);
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var footerPart = mainPart.FooterParts.First();
 
-            Assert.Equal(1, footerPart.ImageParts.Count());
+            Assert.Single(footerPart.ImageParts);
             Assert.Empty(mainPart.ImageParts);
             Assert.Empty(mainPart.HeaderParts.First().ImageParts);
 
