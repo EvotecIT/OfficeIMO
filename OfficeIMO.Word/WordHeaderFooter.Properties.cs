@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordHeaderFooter {
@@ -160,15 +161,77 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// List of Watermarks in the Header/Footer
+        /// </summary>
         public List<WordWatermark> Watermarks {
             get {
+                List<WordWatermark> watermarks = new List<WordWatermark>();
+                OpenXmlElement container = null;
+
                 if (_header != null) {
-                    return WordSection.ConvertStdBlockToWatermark(_document, _header.ChildElements.OfType<SdtBlock>());
+                    container = _header;
                 } else if (_footer != null) {
-                    return WordSection.ConvertStdBlockToWatermark(_document, _footer.ChildElements.OfType<SdtBlock>());
+                    container = _footer;
                 }
 
-                return new List<WordWatermark>();
+                if (container != null) {
+                    // 1. Find Text Watermarks (SdtBlock based)
+                    var sdtBlocks = container.ChildElements.OfType<SdtBlock>();
+                    foreach (SdtBlock block in sdtBlocks) {
+                        var textWatermark = WordSection.ConvertStdBlockToWatermark(_document, block);
+                        if (textWatermark != null) {
+                            watermarks.Add(textWatermark);
+                        }
+                    }
+
+                    // 2. Find Image Watermarks (Direct Picture/VML based)
+                    var pictures = container.Descendants<Picture>();
+                    foreach (var picture in pictures) {
+                        var vmlShape = picture.Descendants<DocumentFormat.OpenXml.Vml.Shape>().FirstOrDefault();
+                        if (vmlShape != null && vmlShape.Id != null && vmlShape.Id.Value.StartsWith("WordPictureWatermark")) {
+                            // Safety check: Does a text watermark already contain this picture?
+                            bool alreadyAdded = watermarks.Any(wm => wm._sdtBlock != null && wm._sdtBlock.Descendants<Picture>().Contains(picture));
+                            if (!alreadyAdded) {
+                                // Use the constructor that takes Document and Picture
+                                watermarks.Add(new WordWatermark(_document, picture));
+                            }
+                        }
+                    }
+                }
+                return watermarks;
+            }
+        }
+
+        /// <summary>
+        /// Gets the type of this instance (Header or Footer).
+        /// </summary>
+        public HeaderFooterValues Type => _type;
+
+        /// <summary>
+        /// Gets whether this instance represents a Header.
+        /// </summary>
+        public bool IsHeader => _header != null;
+
+        /// <summary>
+        /// Gets whether this instance represents a Footer.
+        /// </summary>
+        public bool IsFooter => _footer != null;
+
+        /// <summary>
+        /// Gets the WordSection this Header or Footer belongs to.
+        /// </summary>
+        public WordSection Section {
+            // Find the section this header/footer belongs to
+            get {
+                return _document.Sections.FirstOrDefault(sec =>
+                       sec.Header.Default._id == this._id ||
+                       sec.Header.First._id == this._id ||
+                       sec.Header.Even._id == this._id ||
+                       sec.Footer.Default._id == this._id ||
+                       sec.Footer.First._id == this._id ||
+                       sec.Footer.Even._id == this._id
+                   );
             }
         }
     }
