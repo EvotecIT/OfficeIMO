@@ -10,6 +10,8 @@ using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
+using System.Linq;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph : WordElement {
@@ -124,6 +126,18 @@ namespace OfficeIMO.Word {
                                 return new WordImage(_document, drawing);
                             }
                         }
+                    }
+                }
+                return null;
+            }
+        }
+
+        public WordEmbeddedObject EmbeddedObject {
+            get {
+                if (_run != null) {
+                    var ole = _run.Descendants<Ovml.OleObject>().FirstOrDefault();
+                    if (ole != null) {
+                        return new WordEmbeddedObject(_document, _run);
                     }
                 }
                 return null;
@@ -502,6 +516,16 @@ namespace OfficeIMO.Word {
         public bool IsImage {
             get {
                 if (this.Image != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsEmbeddedObject {
+            get {
+                if (this.EmbeddedObject != null) {
                     return true;
                 }
 

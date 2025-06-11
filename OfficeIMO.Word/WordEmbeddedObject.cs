@@ -5,15 +5,19 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
     public class WordEmbeddedObject {
+        private readonly WordDocument _document;
+        private readonly Run _run;
+
         public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, double? width = null, double? height = null) {
 
+
+            _document = wordDocument;
 
             width ??= 64.8;
             height ??= 40.8;
@@ -24,9 +28,16 @@ namespace OfficeIMO.Word {
             run.Append(embeddedObject);
             wordParagraph._paragraph.AppendChild(run);
 
+            _run = run;
+
             //var p = GenerateParagraph(idImagePart, idEmbeddedObjectPart);
 
             //wordDocument._document.MainDocumentPart.Document.Body.AppendChild(p);
+        }
+
+        internal WordEmbeddedObject(WordDocument wordDocument, Run run) {
+            _document = wordDocument;
+            _run = run;
         }
 
         //public Paragraph GenerateParagraph(string imageId, string embedId) {
