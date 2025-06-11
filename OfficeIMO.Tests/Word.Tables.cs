@@ -497,6 +497,45 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_MergeVerticallyFirstColumnMissingProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "VerticalMergeMissingProperties.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable wordTable = document.AddTable(3, 1, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Top";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Bottom";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Another";
+
+                // simulate cell loaded without properties
+                wordTable.Rows[0].Cells[0].RemoveTableCellProperties();
+
+                wordTable.Rows[0].Cells[0].MergeVertically(1, true);
+
+                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
+                Assert.Equal("Top", wordTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Bottom", wordTable.Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("", wordTable.Rows[1].Cells[0].Paragraphs[0].Text);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "VerticalMergeMissingProperties.docx"))) {
+                var wordTable = document.Tables[0];
+
+                Assert.True(wordTable.Rows[0].Cells[0].VerticalMerge == MergedCellValues.Restart);
+                Assert.True(wordTable.Rows[1].Cells[0].VerticalMerge == MergedCellValues.Continue);
+                Assert.True(wordTable.Rows[2].Cells[0].VerticalMerge == null);
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[0].Text == "Top");
+                Assert.True(wordTable.Rows[0].Cells[0].Paragraphs[1].Text == "Bottom");
+                Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "");
+
+                document.Save();
+            }
+        }
         [Fact]
         public void Test_CreatingWordDocumentWithTablesWithSections() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndSections.docx");
