@@ -13,21 +13,6 @@ namespace OfficeIMO.Word {
 
         public string ContentType => _altContent.ContentType;
 
-        private string GetAltChunkId(WordDocument wordDocument) {
-            int id = 1;
-            string altChunkId = "AltChunkId" + id;
-
-            // TODO: find better way to handle non-existing id
-            try {
-                while (wordDocument._document.MainDocumentPart.GetPartById(altChunkId) != null) {
-                    id++;
-                    altChunkId = "AltChunkId" + id;
-                }
-            } catch {
-
-            }
-            return altChunkId;
-        }
 
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
@@ -85,10 +70,6 @@ namespace OfficeIMO.Word {
                 partType = alternativeFormatImportPartType.Value;
             }
 
-            AltChunk altChunk = new AltChunk {
-                Id = GetAltChunkId(wordDocument)
-            };
-
             MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
 
             PartTypeInfo partTypeInfo = partType switch {
@@ -98,7 +79,9 @@ namespace OfficeIMO.Word {
                 _ => throw new Exception("Unsupported format type")
             };
 
-            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo, altChunk.Id);
+            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
+            string altChunkId = mainDocPart.GetIdOfPart(chunk);
+            AltChunk altChunk = new AltChunk { Id = altChunkId };
 
             // if it's a fragment, we don't need to read the file
             var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.ASCII);
@@ -107,8 +90,9 @@ namespace OfficeIMO.Word {
                 chunk.FeedData(ms);
             }
 
-            _id = altChunk.Id;
+            _id = altChunkId;
             _altChunk = altChunk;
+            _altContent = chunk;
             _document = wordDocument;
 
             mainDocPart.Document.Body.Append(altChunk);
