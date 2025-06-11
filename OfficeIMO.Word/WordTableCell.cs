@@ -362,6 +362,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Remove TableCellProperties from current cell (used mostly for testing)
+        /// </summary>
+        internal void RemoveTableCellProperties() {
+            if (_tableCell.TableCellProperties != null) {
+                _tableCell.TableCellProperties.Remove();
+                _tableCellProperties = null;
+            }
+        }
+
+        /// <summary>
         /// Remove a cell from a table
         /// </summary>
         public void Remove() {

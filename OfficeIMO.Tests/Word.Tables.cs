@@ -509,8 +509,7 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Another";
 
                 // simulate cell loaded without properties
-                wordTable.Rows[0].Cells[0]._tableCellProperties.Remove();
-                wordTable.Rows[0].Cells[0]._tableCellProperties = null;
+                wordTable.Rows[0].Cells[0].RemoveTableCellProperties();
 
                 wordTable.Rows[0].Cells[0].MergeVertically(1, true);
 
