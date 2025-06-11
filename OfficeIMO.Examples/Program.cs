@@ -178,8 +178,8 @@ namespace OfficeIMO.Examples {
             WordTextBox.Example_AddingTextbox5(folderPath, false);
             WordTextBox.Example_AddingTextbox3(folderPath, false);
             WordTextBox.Example_AddingTextboxCentimeters(folderPath, false);
-          
-            Embed.Example_EmbedFileExcel(folderPath, templatesPath, true);
+
+            Embed.Example_EmbedFileExcel(folderPath, templatesPath, false);
         }
     }
 }
