@@ -151,7 +151,16 @@ namespace OfficeIMO.Word {
                 Overlay overlay = new Overlay() { Val = false };
                 legend.Append(postion);
                 legend.Append(overlay);
-                _chart.Append(legend);
+
+                // Insert legend in correct position according to OpenXML schema
+                // Legend should come after PlotArea but before other elements like PlotVisibleOnly
+                var plotVisibleOnly = _chart.GetFirstChild<PlotVisibleOnly>();
+                if (plotVisibleOnly != null) {
+                    _chart.InsertBefore(legend, plotVisibleOnly);
+                } else {
+                    // If no PlotVisibleOnly, just append at the end
+                    _chart.Append(legend);
+                }
             }
         }
     }
