@@ -103,22 +103,26 @@ namespace OfficeIMO.Word {
         }
 
         private ValueAxis AddValueAxis() {
+            return AddValueAxisInternal((UInt32Value)154227840U, (UInt32Value)148921728U, AxisPositionValues.Left);
+        }
+
+        private ValueAxis AddValueAxisInternal(UInt32Value axisId, UInt32Value crossingAxis, AxisPositionValues position) {
             ValueAxis valueAxis1 = new ValueAxis();
             valueAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId4 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId4 = new AxisId() { Val = axisId };
 
             Scaling scaling2 = new Scaling();
             Orientation orientation2 = new Orientation() { Val = OrientationValues.MinMax };
 
             scaling2.Append(orientation2);
             Delete delete2 = new Delete() { Val = false };
-            AxisPosition axisPosition2 = new AxisPosition() { Val = AxisPositionValues.Left };
+            AxisPosition axisPosition2 = new AxisPosition() { Val = position };
             DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat numberingFormat1 = new DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat() { FormatCode = "General", SourceLinked = false };
             MajorGridlines majorGridlines1 = new MajorGridlines();
             MajorTickMark majorTickMark2 = new MajorTickMark() { Val = TickMarkValues.Outside };
             MinorTickMark minorTickMark2 = new MinorTickMark() { Val = TickMarkValues.None };
             TickLabelPosition tickLabelPosition2 = new TickLabelPosition() { Val = TickLabelPositionValues.NextTo };
-            CrossingAxis crossingAxis2 = new CrossingAxis() { Val = (UInt32Value)148921728U };
+            CrossingAxis crossingAxis2 = new CrossingAxis() { Val = crossingAxis };
             Crosses crosses2 = new Crosses() { Val = CrossesValues.AutoZero };
             CrossBetween crossBetween1 = new CrossBetween() { Val = CrossBetweenValues.Between };
 

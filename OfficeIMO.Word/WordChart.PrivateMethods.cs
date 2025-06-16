@@ -403,8 +403,12 @@ namespace OfficeIMO.Word {
 
         private Chart GenerateScatterChart(Chart chart) {
             ScatterChart scatter = CreateScatterChart();
-            ValueAxis xAxis = AddValueAxis();
-            ValueAxis yAxis = AddValueAxis();
+
+            UInt32Value xId = 148921728U;
+            UInt32Value yId = 154227840U;
+
+            ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
+            ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
 
             chart.PlotArea.Append(xAxis);
             chart.PlotArea.Append(yAxis);
