@@ -131,6 +131,23 @@ namespace OfficeIMO.Tests {
 
                 document.Save(false);
             }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var maxId = document._wordprocessingDocument.MainDocumentPart
+                    .ChartParts.SelectMany(p => p.ChartSpace.GetFirstChild<Chart>()
+                    .Descendants<AxisId>())
+                    .Max(a => a.Val!.Value);
+
+                var chart = document.AddChart();
+                chart.AddCategories(new List<string> { "A", "B" });
+                chart.AddBar("T", new List<int> { 1, 2 }, Color.Blue);
+
+                var newIds = document._wordprocessingDocument.MainDocumentPart
+                    .ChartParts.Last().ChartSpace.GetFirstChild<Chart>()
+                    .Descendants<AxisId>().Select(a => a.Val!.Value);
+
+                Assert.True(newIds.Min() > maxId);
+            }
         }
     }
 }

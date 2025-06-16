@@ -14,6 +14,20 @@ using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 namespace OfficeIMO.Word {
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
+
+        internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
+            uint max = (uint)_axisIdSeed;
+            foreach (var part in document.MainDocumentPart.ChartParts) {
+                var chart = part.ChartSpace.GetFirstChild<Chart>();
+                if (chart == null) continue;
+                foreach (var axis in chart.Descendants<AxisId>()) {
+                    if (axis.Val != null && axis.Val.Value > max) {
+                        max = axis.Val.Value;
+                    }
+                }
+            }
+            _axisIdSeed = (int)max;
+        }
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
