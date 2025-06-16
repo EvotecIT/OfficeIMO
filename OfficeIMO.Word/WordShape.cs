@@ -27,9 +27,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(_rectangle);
 
-            _run = new Run();
+            _run = paragraph.VerifyRun();
             _run.Append(pict);
-            paragraph._paragraph.Append(_run);
         }
 
         internal WordShape(WordDocument document, Paragraph paragraph, Run run) {
