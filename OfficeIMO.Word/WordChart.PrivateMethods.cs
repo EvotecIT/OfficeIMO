@@ -126,8 +126,8 @@ namespace OfficeIMO.Word {
 
         private Chart CreatePieChart(Chart chart) {
             PieChart pieChart1 = new PieChart();
-            DataLabels dataLabels1 = AddDataLabel();
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            DataLabels dataLabels1 = AddDataLabel();
             pieChart1.Append(dataLabels1);
             chart.PlotArea.Append(pieChart1);
             return chart;
@@ -140,9 +140,9 @@ namespace OfficeIMO.Word {
             BarChart barChart1 = CreateBarChart(catId, valId);
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            chart.PlotArea.Append(barChart1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(barChart1);
 
             return chart;
         }
@@ -152,12 +152,10 @@ namespace OfficeIMO.Word {
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            DataLabels dataLabels1 = AddDataLabel();
-            barChart1.Append(dataLabels1);
-
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
             GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
+            DataLabels dataLabels1 = AddDataLabel();
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -169,9 +167,10 @@ namespace OfficeIMO.Word {
             barChart1.Append(barDirection1);
             barChart1.Append(barGrouping1);
             barChart1.Append(gapWidth1);
+            barChart1.Append(dataLabels1);
+            barChart1.Append(overlap1);
             barChart1.Append(axisId1);
             barChart1.Append(axisId2);
-            barChart1.Append(overlap1);
             return barChart1;
         }
 
@@ -283,9 +282,9 @@ namespace OfficeIMO.Word {
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             //chart.PlotArea.Append(layout1);
+            chart.PlotArea.Append(lineChart1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(lineChart1);
             return chart;
         }
 
@@ -326,10 +325,10 @@ namespace OfficeIMO.Word {
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
 
+            chart.Append(grouping1);
+
             DataLabels dataLabels1 = AddDataLabel();
             chart.Append(dataLabels1);
-
-            chart.Append(grouping1);
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -352,9 +351,9 @@ namespace OfficeIMO.Word {
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             //chart.PlotArea.Append(layout1);
+            chart.PlotArea.Append(areaChart);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(areaChart);
 
 
             return chart;
@@ -424,9 +423,9 @@ namespace OfficeIMO.Word {
             ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
             ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
 
+            chart.PlotArea.Append(scatter);
             chart.PlotArea.Append(xAxis);
             chart.PlotArea.Append(yAxis);
-            chart.PlotArea.Append(scatter);
 
             return chart;
         }
@@ -472,11 +471,11 @@ namespace OfficeIMO.Word {
             RadarChart chart = new RadarChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            DataLabels labels = AddDataLabel();
-            chart.Append(labels);
-
             RadarStyle style = new RadarStyle() { Val = RadarStyleValues.Standard };
             chart.Append(style);
+
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -497,9 +496,9 @@ namespace OfficeIMO.Word {
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
+            chart.PlotArea.Append(radarChart);
             chart.PlotArea.Append(catAxis);
             chart.PlotArea.Append(valAxis);
-            chart.PlotArea.Append(radarChart);
             return chart;
         }
 
@@ -551,9 +550,9 @@ namespace OfficeIMO.Word {
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
+            chart.PlotArea.Append(chart3d);
             chart.PlotArea.Append(catAxis);
             chart.PlotArea.Append(valAxis);
-            chart.PlotArea.Append(chart3d);
             return chart;
         }
 

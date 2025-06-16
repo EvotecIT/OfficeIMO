@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 using OfficeIMO.Word;
+using System.Linq;
 
 using Xunit;
 
@@ -147,6 +148,32 @@ namespace OfficeIMO.Tests {
                     .Descendants<AxisId>().Select(a => a.Val!.Value);
 
                 Assert.True(newIds.Min() > maxId);
+                var validation = document.ValidateDocument();
+                var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
+                Assert.Empty(chartErrors);
+            }
+        }
+
+        [Fact]
+        public void Test_ChartsValidation() {
+            var filePath = Path.Combine(_directoryWithFiles, "ChartsValidation.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var categories = new List<string> { "A", "B", "C" };
+                var bar = document.AddChart();
+                bar.AddCategories(categories);
+                bar.AddBar("Series", new List<int> { 1, 2, 3 }, Color.Blue);
+
+                var scatter = document.AddChart();
+                scatter.AddScatter("Data", new List<double> { 1, 2, 3 }, new List<double> { 3, 2, 1 }, Color.Red);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var valid = document.ValidateDocument();
+                var chartErrors = valid.Where(v => v.Description.Contains("chart")).ToList();
+                Assert.Empty(chartErrors);
             }
         }
     }

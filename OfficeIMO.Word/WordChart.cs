@@ -219,14 +219,14 @@ namespace OfficeIMO.Word {
             PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
             DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
             ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
-            chart1.Append(autoTitleDeleted1);
-            chart1.Append(plotVisibleOnly1);
-            chart1.Append(displayBlanksAs1);
-            chart1.Append(showDataLabelsOverMaximum1);
-            chart1.Append(plotArea1);
             if (!string.IsNullOrEmpty(title)) {
                 chart1.Append(AddTitle(title));
             }
+            chart1.Append(autoTitleDeleted1);
+            chart1.Append(plotArea1);
+            chart1.Append(plotVisibleOnly1);
+            chart1.Append(displayBlanksAs1);
+            chart1.Append(showDataLabelsOverMaximum1);
             return chart1;
         }
 
@@ -301,8 +301,8 @@ namespace OfficeIMO.Word {
             NumberLiteral literal = new NumberLiteral();
             FormatCode format = new FormatCode() { Text = "General" };
             PointCount count = new PointCount() { Val = (uint)dataList.Count };
-            literal.Append(count);
             literal.Append(format);
+            literal.Append(count);
             var index = 0;
             foreach (var data in dataList) {
                 var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = data.ToString() } };
