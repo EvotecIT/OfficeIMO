@@ -66,20 +66,24 @@ namespace OfficeIMO.Word {
             }
         }
         private CategoryAxis AddCategoryAxis() {
+            return AddCategoryAxisInternal((UInt32Value)148921728U, (UInt32Value)154227840U, AxisPositionValues.Bottom);
+        }
+
+        private CategoryAxis AddCategoryAxisInternal(UInt32Value axisId, UInt32Value crossingAxis, AxisPositionValues position) {
             CategoryAxis categoryAxis1 = new CategoryAxis();
             categoryAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId3 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId3 = new AxisId() { Val = axisId };
 
             Scaling scaling1 = new Scaling();
             Orientation orientation1 = new Orientation() { Val = OrientationValues.MinMax };
 
             scaling1.Append(orientation1);
             Delete delete1 = new Delete() { Val = false };
-            AxisPosition axisPosition1 = new AxisPosition() { Val = AxisPositionValues.Bottom };
+            AxisPosition axisPosition1 = new AxisPosition() { Val = position };
             MajorTickMark majorTickMark1 = new MajorTickMark() { Val = TickMarkValues.Outside };
             MinorTickMark minorTickMark1 = new MinorTickMark() { Val = TickMarkValues.None };
             TickLabelPosition tickLabelPosition1 = new TickLabelPosition() { Val = TickLabelPositionValues.NextTo };
-            CrossingAxis crossingAxis1 = new CrossingAxis() { Val = (UInt32Value)154227840U };
+            CrossingAxis crossingAxis1 = new CrossingAxis() { Val = crossingAxis };
             Crosses crosses1 = new Crosses() { Val = CrossesValues.AutoZero };
             AutoLabeled autoLabeled1 = new AutoLabeled() { Val = true };
             LabelAlignment labelAlignment1 = new LabelAlignment() { Val = LabelAlignmentValues.Center };

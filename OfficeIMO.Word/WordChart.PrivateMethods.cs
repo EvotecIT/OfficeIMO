@@ -134,9 +134,12 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateChartBar(Chart chart) {
-            BarChart barChart1 = CreateBarChart();
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            BarChart barChart1 = CreateBarChart(catId, valId);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
             chart.PlotArea.Append(barChart1);
@@ -144,7 +147,7 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
-        private BarChart CreateBarChart(BarDirectionValues? barDirection = null) {
+        private BarChart CreateBarChart(UInt32Value catAxisId, UInt32Value valAxisId, BarDirectionValues? barDirection = null) {
             barDirection ??= BarDirectionValues.Bar;
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -156,10 +159,10 @@ namespace OfficeIMO.Word {
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
             GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Overlap overlap1 = new Overlap() { Val = 0 };
 
@@ -251,7 +254,7 @@ namespace OfficeIMO.Word {
             return chartShapeProperties1;
 
         }
-        private LineChart CreateLineChart() {
+        private LineChart CreateLineChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             LineChart lineChart1 = new LineChart();
             lineChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
@@ -261,10 +264,10 @@ namespace OfficeIMO.Word {
             lineChart1.Append(grouping1);
             lineChart1.Append(dataLabels1);
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             lineChart1.Append(axisId1);
@@ -273,9 +276,12 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateLineChart(Chart chart) {
-            LineChart lineChart1 = CreateLineChart();
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            LineChart lineChart1 = CreateLineChart(catId, valId);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             //chart.PlotArea.Append(layout1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
@@ -315,7 +321,7 @@ namespace OfficeIMO.Word {
 
         }
 
-        private AreaChart CreateAreaChart() {
+        private AreaChart CreateAreaChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             AreaChart chart = new AreaChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
@@ -325,10 +331,10 @@ namespace OfficeIMO.Word {
 
             chart.Append(grouping1);
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
@@ -337,10 +343,13 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateAreaChart(Chart chart) {
-            AreaChart areaChart = CreateAreaChart();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
 
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            AreaChart areaChart = CreateAreaChart(catId, valId);
+
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             //chart.PlotArea.Append(layout1);
             chart.PlotArea.Append(categoryAxis1);
@@ -459,7 +468,7 @@ namespace OfficeIMO.Word {
             return scSeries;
         }
 
-        private RadarChart CreateRadarChart() {
+        private RadarChart CreateRadarChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             RadarChart chart = new RadarChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
@@ -469,10 +478,10 @@ namespace OfficeIMO.Word {
             RadarStyle style = new RadarStyle() { Val = RadarStyleValues.Standard };
             chart.Append(style);
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
@@ -481,9 +490,12 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateRadarChart(Chart chart) {
-            RadarChart radarChart = CreateRadarChart();
-            CategoryAxis catAxis = AddCategoryAxis();
-            ValueAxis valAxis = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            RadarChart radarChart = CreateRadarChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             chart.PlotArea.Append(catAxis);
             chart.PlotArea.Append(valAxis);
@@ -513,7 +525,7 @@ namespace OfficeIMO.Word {
             return radarSeries;
         }
 
-        private Bar3DChart CreateBar3DChart() {
+        private Bar3DChart CreateBar3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             Bar3DChart chart = new Bar3DChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             chart.Append(new BarDirection() { Val = BarDirectionValues.Column });
@@ -521,9 +533,9 @@ namespace OfficeIMO.Word {
             chart.Append(new GapWidth() { Val = (UInt16Value)150U });
             chart.Append(new Overlap() { Val = 0 });
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
@@ -532,9 +544,12 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateBar3DChart(Chart chart) {
-            Bar3DChart chart3d = CreateBar3DChart();
-            CategoryAxis catAxis = AddCategoryAxis();
-            ValueAxis valAxis = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            Bar3DChart chart3d = CreateBar3DChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             chart.PlotArea.Append(catAxis);
             chart.PlotArea.Append(valAxis);
