@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -36,10 +37,11 @@ namespace OfficeIMO.Word {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
                 if (pieChart != null) {
                     var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
+                    var dataLabels = pieChart.GetFirstChild<DataLabels>() ?? pieChart.AppendChild(AddDataLabel());
+
                     if (pieChartSeries == null) {
                         pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        pieChart.Append(pieChartSeries);
-
+                        pieChart.InsertBefore(pieChartSeries, dataLabels);
                     }
                     return pieChartSeries;
                 }
@@ -57,11 +59,9 @@ namespace OfficeIMO.Word {
             var stringReference1 = AddSeries(0, series);
             seriesText1.Append(stringReference1);
 
-            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
             pieChartSeries1.Append(index1);
             pieChartSeries1.Append(order1);
             pieChartSeries1.Append(seriesText1);
-            pieChartSeries1.Append(invertIfNegative1);
             return pieChartSeries1;
         }
 
@@ -114,7 +114,8 @@ namespace OfficeIMO.Word {
             if (pointCount != null) {
                 pointCount.Val = _currentIndexValues + 1;
             } else {
-                literal.InsertAt(new PointCount() { Val = 1 }, 0);
+                int pos = literal.Elements<FormatCode>().Any() ? 1 : 0;
+                literal.InsertAt(new PointCount() { Val = 1 }, pos);
             }
             // Increment the current index
             _currentIndexValues++;
@@ -127,8 +128,6 @@ namespace OfficeIMO.Word {
         private Chart CreatePieChart(Chart chart) {
             PieChart pieChart1 = new PieChart();
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            DataLabels dataLabels1 = AddDataLabel();
-            pieChart1.Append(dataLabels1);
             chart.PlotArea.Append(pieChart1);
             return chart;
         }
@@ -393,6 +392,21 @@ namespace OfficeIMO.Word {
         private static UInt32Value GenerateAxisId() {
             int id = System.Threading.Interlocked.Increment(ref _axisIdSeed);
             return (UInt32Value)(uint)id;
+        }
+
+        private static void InsertSeries(OpenXmlCompositeElement chartElement, OpenXmlCompositeElement series) {
+            var dataLabels = chartElement.GetFirstChild<DataLabels>();
+            if (dataLabels != null) {
+                chartElement.InsertBefore(series, dataLabels);
+                return;
+            }
+
+            var axis = chartElement.Elements<AxisId>().FirstOrDefault();
+            if (axis != null) {
+                chartElement.InsertBefore(series, axis);
+            } else {
+                chartElement.Append(series);
+            }
         }
 
         private ScatterChart CreateScatterChart(UInt32Value xAxisId, UInt32Value yAxisId) {

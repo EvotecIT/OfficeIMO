@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
                 var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
                 if (lineChart != null) {
                     LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
-                    lineChart.Append(lineChartSeries);
+                    InsertSeries(lineChart, lineChartSeries);
                 }
             }
         }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values);
-                lineChart.Append(lineChartSeries);
+                InsertSeries(lineChart, lineChartSeries);
             }
 
         }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, new List<int>() { values });
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values);
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
                 var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values);
-                    barChart.Append(areaChartSeries);
+                    InsertSeries(barChart, areaChartSeries);
                 }
             }
         }
@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
                 var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
-                    barChart.Append(areaChartSeries);
+                    InsertSeries(barChart, areaChartSeries);
                 }
             }
         }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
                 var scatterChart = _chart.PlotArea.GetFirstChild<ScatterChart>();
                 if (scatterChart != null) {
                     var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
-                    scatterChart.Append(series);
+                    InsertSeries(scatterChart, series);
                 }
             }
         }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word {
                 var radarChart = _chart.PlotArea.GetFirstChild<RadarChart>();
                 if (radarChart != null) {
                     var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
-                    radarChart.Append(series);
+                    InsertSeries(radarChart, series);
                 }
             }
         }
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
                 var chart3d = _chart.PlotArea.GetFirstChild<Bar3DChart>();
                 if (chart3d != null) {
                     var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
-                    chart3d.Append(series);
+                    InsertSeries(chart3d, series);
                 }
             }
         }

@@ -704,6 +704,7 @@ namespace OfficeIMO.Word {
             word._document = wordDocument.MainDocumentPart.Document;
             word.LoadDocument();
             WordChart.InitializeAxisIdSeed(wordDocument);
+            WordChart.InitializeDocPrIdSeed(wordDocument);
 
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -731,6 +732,7 @@ namespace OfficeIMO.Word {
             document._document = wordDocument.MainDocumentPart.Document;
             document.LoadDocument();
             WordChart.InitializeAxisIdSeed(wordDocument);
+            WordChart.InitializeDocPrIdSeed(wordDocument);
 
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
