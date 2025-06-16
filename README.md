@@ -19,6 +19,7 @@ Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but 
 It was created because working with OpenXML is way too hard for me, and time consuming.
 I created it for use within the PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
+This repository also includes an experimental **OfficeIMO.Excel** component for creating simple spreadsheets.
 
 If you want to see what it can do take a look at this [blog post](https://evotec.xyz/officeimo-free-cross-platform-microsoft-word-net-library/).
 
@@ -112,15 +113,19 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Merge cells (vertically, horizontally)
         - ◼️ Split cells (vertically)
         - ☑️ Split cells (horizontally)
-- ☑️ Images/Pictures (limited support - jpg only / inline type only)
+        - ☑️ Nested tables
+        - ☑️ Repeat header row on each page
+        - ☑️ Control row page breaks
+        - ☑️ Set row height and table width
+- ☑️ Images/Pictures (supports BMP, GIF, JPEG, PNG, TIFF with various wrapping options)
     - ☑️ Add images from file to Word
     - ☑️ Save image from Word to File
-    - ◼️ Other image types
+    - ◼️ Additional image types (e.g., EMF)
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
     - ☑️ Read HyperLink
-    - ◼️ Remove HyperLink
+    - ☑️ Remove HyperLink
     - ☑️ Change HyperLink
 - ☑️ PageBreaks
     - ☑️ Add PageBreak
@@ -153,20 +158,26 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ◼️ Shapes
 - ◼️ Charts
     - ☑️ Add charts
+        - ☑️ Pie charts
+        - ☑️ Bar charts
+        - ☑️ Line charts
+        - ☑️ Area charts
+    - ☑️ Add categories and legends
 - ◼️ Lists
     - ☑️ Add lists
-    - ◼️ Remove lists
+    - ☑️ Remove lists
 - ◼️ Table of contents
     - ☑️ Add TOC
+    - ☑️ Update TOC fields on open
 - ☑️ Borders
 - ☑️ Background
 - ◼️ Watermarks
     - ☑️ Add watermark
     - ◼️ Remove watermark
-- ☑️ PageBreaks
-    - ☑️Add pagebreak
-    - ☑️Find pagebreak
-    - ☑️Remove pagebreak
+
+- ☑️ Experimental Excel component
+    - ☑️ Create and load workbooks
+    - ☑️ Add worksheets
 
 
 ## Features (oneliners):
