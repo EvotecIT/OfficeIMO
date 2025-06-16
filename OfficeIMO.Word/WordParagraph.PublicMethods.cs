@@ -452,5 +452,16 @@ namespace OfficeIMO.Word {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
         }
+
+        /// <summary>
+        /// Add a rectangle shape to the paragraph.
+        /// </summary>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        /// <param name="fillColor">Fill color in hex format.</param>
+        public WordShape AddShape(double widthPt, double heightPt, string fillColor = "#FFFFFF") {
+            WordShape wordShape = new WordShape(this._document, this, widthPt, heightPt, fillColor);
+            return wordShape;
+        }
     }
 }
