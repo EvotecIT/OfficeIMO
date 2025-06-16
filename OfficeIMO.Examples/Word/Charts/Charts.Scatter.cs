@@ -10,7 +10,20 @@ namespace OfficeIMO.Examples.Word {
             using WordDocument document = WordDocument.Create(filePath);
             var scatterChart = document.AddChart("Scatter chart");
             scatterChart.AddScatter("Data", new List<double> { 1, 2, 3 }, new List<double> { 3, 2, 1 }, Color.Red);
-            document.Save(openWord);
+
+            document.Save(false);
+
+            var valid = document.ValidateDocument();
+            if (valid.Count > 0) {
+                Console.WriteLine("Document has validation errors:");
+                foreach (var error in valid) {
+                    Console.WriteLine(error.Id + ": " + error.Description);
+                }
+            } else {
+                Console.WriteLine("Document is valid.");
+            }
+
+            document.Open(openWord);
         }
     }
 }

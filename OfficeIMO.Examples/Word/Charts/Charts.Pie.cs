@@ -10,7 +10,19 @@ namespace OfficeIMO.Examples.Word {
             pieChart.AddPie("Poland", 15);
             pieChart.AddPie("USA", 30);
             pieChart.AddPie("Brazil", 20);
-            document.Save(openWord);
+            document.Save(false);
+
+            var valid = document.ValidateDocument();
+            if (valid.Count > 0) {
+                Console.WriteLine("Document has validation errors:");
+                foreach (var error in valid) {
+                    Console.WriteLine(error.Id + ": " + error.Description);
+                }
+            } else {
+                Console.WriteLine("Document is valid.");
+            }
+
+            document.Open(openWord);
         }
     }
 }

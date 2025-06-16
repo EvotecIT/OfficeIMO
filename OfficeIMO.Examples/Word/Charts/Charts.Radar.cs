@@ -12,7 +12,19 @@ namespace OfficeIMO.Examples.Word {
             var radarChart = document.AddChart("Radar chart");
             radarChart.AddCategories(categories);
             radarChart.AddRadar("USA", new List<int> { 1, 5, 3, 2 }, Color.Blue);
-            document.Save(openWord);
+            document.Save(false);
+
+            var valid = document.ValidateDocument();
+            if (valid.Count > 0) {
+                Console.WriteLine("Document has validation errors:");
+                foreach (var error in valid) {
+                    Console.WriteLine(error.Id + ": " + error.Description);
+                }
+            } else {
+                Console.WriteLine("Document is valid.");
+            }
+
+            document.Open(openWord);
         }
     }
 }
