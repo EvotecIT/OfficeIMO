@@ -20,9 +20,10 @@ internal static partial class Protect {
 
             Console.WriteLine("Always read only: " + document.Settings.ReadOnlyRecommended);
 
-            document.Settings.ReadOnlyRecommended = null;
+            document.Settings.ReadOnlyPassword = "Test123";
 
-            //document.Settings.ReadOnlyPassword = "Test123";
+            // remove protection for demonstration
+            document.Settings.RemoveAllProtection();
 
             document.Save(openWord);
         }

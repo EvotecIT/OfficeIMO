@@ -179,125 +179,34 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// WriteProtection password for optional ReadOnly
-        /// Doesn't seem to work...
+        /// WriteProtection password for optional read only protection
         /// </summary>
         /// <param name="wordDocument"></param>
         /// <param name="password"></param>
         internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
-            // Generate the Salt
-            byte[] arrSalt = new byte[16];
-            RandomNumberGenerator rand = new RNGCryptoServiceProvider();
-            rand.GetNonZeroBytes(arrSalt);
-
-            //Array to hold Key Values
-            byte[] generatedKey = new byte[4];
-
-            //Maximum length of the password is 15 chars.
-            int intMaxPasswordLength = 15;
-
-
-            if (!String.IsNullOrEmpty(password)) {
-                // Truncate the password to 15 characters
-                password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
-
-                // Construct a new NULL-terminated string consisting of single-byte characters:
-                //  -- > Get the single-byte values by iterating through the Unicode characters of the truncated Password.
-                //   --> For each character, if the low byte is not equal to 0, take it. Otherwise, take the high byte.
-
-                byte[] arrByteChars = new byte[password.Length];
-
-                for (int intLoop = 0; intLoop < password.Length; intLoop++) {
-                    int intTemp = Convert.ToInt32(password[intLoop]);
-                    arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
-                    if (arrByteChars[intLoop] == 0)
-                        arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
-                }
-
-                // Compute the high-order word of the new key:
-
-                // --> Initialize from the initial code array (see below), depending on the strPassword’s length. 
-                int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
-
-                // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding) 
-                //          the most significant, if the bit is set, XOR the key’s high-order word with the corresponding word from 
-                //          the Encryption Matrix
-
-                for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
-                    int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
-                    for (int intBit = 0; intBit < 7; intBit++) {
-                        if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
-                            intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
-                        }
-                    }
-                }
-
-                // Compute the low-order word of the new key:
-
-                // Initialize with 0
-                int intLowOrderWord = 0;
-
-                // For each character in the strPassword, going backwards
-                for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
-                    // low-order word = (((low-order word SHR 14) AND 0x0001) OR (low-order word SHL 1) AND 0x7FFF)) XOR character
-                    intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
-                }
-
-                // Lastly,low-order word = (((low-order word SHR 14) AND 0x0001) OR (low-order word SHL 1) AND 0x7FFF)) XOR strPassword length XOR 0xCE4B.
-                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
-
-                // Combine the Low and High Order Word
-                int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
-
-                // The byte order of the result shall be reversed [Example: 0x64CEED7E becomes 7EEDCE64. end example],
-                // and that value shall be hashed as defined by the attribute values.
-
-                for (int intTemp = 0; intTemp < 4; intTemp++) {
-                    generatedKey[intTemp] = Convert.ToByte(((uint)(intCombinedkey & (0x000000FF << (intTemp * 8)))) >> (intTemp * 8));
-                }
+            if (string.IsNullOrEmpty(password)) {
+                return;
             }
 
-            // Implementation Notes List:
-            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex 
-            // --> string representation 
-            StringBuilder sb = new StringBuilder();
-            for (int intTemp = 0; intTemp < 4; intTemp++) {
-                sb.Append(Convert.ToString(generatedKey[intTemp], 16));
-            }
+            byte[] salt = new byte[16];
+            RandomNumberGenerator.Create().GetBytes(salt);
 
-            generatedKey = Encoding.Unicode.GetBytes(sb.ToString().ToUpper());
+            // new hashing algorithm per Open XML spec
+            byte[] hash = Encoding.Unicode.GetBytes(password);
+            hash = ConcatByteArrays(salt, hash);
 
-            // Implementation Notes List:
-            //Word appends the binary form of the salt attribute and not the base64 string representation when hashing
-            // Before calculating the initial hash, you are supposed to prepend (not append) the salt to the key
-            byte[] tmpArray1 = generatedKey;
-            byte[] tmpArray2 = arrSalt;
-            byte[] tempKey = new byte[tmpArray1.Length + tmpArray2.Length];
-            Buffer.BlockCopy(tmpArray2, 0, tempKey, 0, tmpArray2.Length);
-            Buffer.BlockCopy(tmpArray1, 0, tempKey, tmpArray2.Length, tmpArray1.Length);
-            generatedKey = tempKey;
+            const int iterations = 50000;
+            HashAlgorithm sha1 = SHA1.Create();
+            hash = sha1.ComputeHash(hash);
 
-
-            // Iterations specifies the number of times the hashing function shall be iteratively run (using each
-            // iteration's result as the input for the next iteration).
-            int iterations = 50000;
-
-            // Implementation Notes List:
-            //Word requires that the initial hash of the password with the salt not be considered in the count.
-            //    The initial hash of salt + key is not included in the iteration count.
-            HashAlgorithm sha1 = new SHA1Managed();
-            generatedKey = sha1.ComputeHash(generatedKey);
             byte[] iterator = new byte[4];
-            for (int intTmp = 0; intTmp < iterations; intTmp++) {
-                //When iterating on the hash, you are supposed to append the current iteration number.
-                iterator[0] = Convert.ToByte((intTmp & 0x000000FF) >> 0);
-                iterator[1] = Convert.ToByte((intTmp & 0x0000FF00) >> 8);
-                iterator[2] = Convert.ToByte((intTmp & 0x00FF0000) >> 16);
-                iterator[3] = Convert.ToByte((intTmp & 0xFF000000) >> 24);
+            for (int i = 0; i < iterations; i++) {
+                iterator[0] = (byte)(i & 0xFF);
+                iterator[1] = (byte)((i >> 8) & 0xFF);
+                iterator[2] = (byte)((i >> 16) & 0xFF);
+                iterator[3] = (byte)((i >> 24) & 0xFF);
 
-                generatedKey = ConcatByteArrays(iterator, generatedKey);
-                generatedKey = sha1.ComputeHash(generatedKey);
+                hash = sha1.ComputeHash(ConcatByteArrays(hash, iterator));
             }
 
             // Apply the element
@@ -307,7 +216,7 @@ namespace OfficeIMO.Word {
             }
 
             OnOffValue docProtection = new OnOffValue(true);
-            //wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Recommended = docProtection;
+            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Enforcement = docProtection;
 
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
@@ -318,8 +227,8 @@ namespace OfficeIMO.Word {
                 Value = (uint)iterations
             };
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicSpinCount = uintVal;
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Hash = Convert.ToBase64String(generatedKey);
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Salt = Convert.ToBase64String(arrSalt);
+            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Hash = Convert.ToBase64String(hash);
+            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Salt = Convert.ToBase64String(salt);
 
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
         }

@@ -523,12 +523,29 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Sets password protection when recommending document to be read only
-        /// Doesn't seem to work
         /// </summary>
         public string ReadOnlyPassword {
             set {
                 Security.SetWriteProtection(this._document._wordprocessingDocument, value);
             }
+        }
+
+        /// <summary>
+        /// Removes optional write protection from the document
+        /// </summary>
+        public void RemoveReadOnlyProtection() {
+            var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+            if (settings.WriteProtection != null) {
+                settings.WriteProtection.Remove();
+            }
+        }
+
+        /// <summary>
+        /// Removes all forms of protection from the document
+        /// </summary>
+        public void RemoveAllProtection() {
+            RemoveProtection();
+            RemoveReadOnlyProtection();
         }
 
         public bool FinalDocument {
