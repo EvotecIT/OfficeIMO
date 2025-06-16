@@ -216,7 +216,7 @@ namespace OfficeIMO.Word {
             }
 
             OnOffValue docProtection = new OnOffValue(true);
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Enforcement = docProtection;
+            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Recommended = docProtection;
 
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
@@ -232,5 +232,23 @@ namespace OfficeIMO.Word {
 
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
         }
+
+#if WINDOWS
+        internal static void EncryptDocument(string filePath, string password) {
+            throw new NotImplementedException("Encryption not implemented on Windows build yet.");
+        }
+
+        internal static void DecryptDocument(string filePath, string password) {
+            throw new NotImplementedException("Decryption not implemented on Windows build yet.");
+        }
+#else
+        internal static void EncryptDocument(string filePath, string password) {
+            throw new PlatformNotSupportedException("Document encryption is only supported on Windows.");
+        }
+
+        internal static void DecryptDocument(string filePath, string password) {
+            throw new PlatformNotSupportedException("Document encryption is only supported on Windows.");
+        }
+#endif
     }
 }

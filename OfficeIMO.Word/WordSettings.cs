@@ -541,11 +541,35 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes all forms of protection from the document
+        /// Sets password required to open the document. Only works on Windows.
         /// </summary>
-        public void RemoveAllProtection() {
+        public void SetOpenPassword(string password) {
+            if (string.IsNullOrEmpty(_document.FilePath)) {
+                throw new InvalidOperationException("Document must be saved before applying encryption.");
+            }
+            Security.EncryptDocument(_document.FilePath, password);
+        }
+
+        /// <summary>
+        /// Removes password required to open the document. Only works on Windows.
+        /// </summary>
+        public void RemoveOpenPassword(string password) {
+            if (string.IsNullOrEmpty(_document.FilePath)) {
+                throw new InvalidOperationException("Document must be saved before removing encryption.");
+            }
+            Security.DecryptDocument(_document.FilePath, password);
+        }
+
+        /// <summary>
+        /// Removes all forms of protection from the document. If a password protecting
+        /// opening the document is set, provide it to remove encryption as well.
+        /// </summary>
+        public void RemoveAllProtection(string openPassword = null) {
             RemoveProtection();
             RemoveReadOnlyProtection();
+            if (!string.IsNullOrEmpty(openPassword)) {
+                RemoveOpenPassword(openPassword);
+            }
         }
 
         public bool FinalDocument {
