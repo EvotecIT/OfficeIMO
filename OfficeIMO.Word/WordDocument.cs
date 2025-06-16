@@ -591,6 +591,8 @@ namespace OfficeIMO.Word {
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
 
+            WordChart.InitializeAxisIdSeed(wordDocument);
+
             //word.Save();
             return word;
         }

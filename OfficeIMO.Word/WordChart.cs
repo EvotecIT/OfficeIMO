@@ -28,6 +28,16 @@ namespace OfficeIMO.Word {
             }
             _axisIdSeed = (int)max;
         }
+
+        private static UInt32Value GenerateDocPrId(WordDocument document) {
+            uint max = 0;
+            foreach (var docPr in document._wordprocessingDocument.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+                if (docPr.Id != null && docPr.Id.Value > max) {
+                    max = docPr.Id.Value;
+                }
+            }
+            return (UInt32Value)(max + 1);
+        }
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
@@ -353,7 +363,8 @@ namespace OfficeIMO.Word {
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = (long)width * EnglishMetricUnitsPerInch / PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = (UInt32Value)2U, Name = "chart" };
+            UInt32Value docPrId = GenerateDocPrId(_document);
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = docPrId, Name = "chart" };
 
             DocumentFormat.OpenXml.Drawing.Graphic graphic1 = new DocumentFormat.OpenXml.Drawing.Graphic();
             graphic1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
