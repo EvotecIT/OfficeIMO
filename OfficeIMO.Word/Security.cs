@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
             // --> string representation 
             StringBuilder sb = new StringBuilder();
             for (int intTemp = 0; intTemp < 4; intTemp++) {
-                sb.Append(Convert.ToString(generatedKey[intTemp], 16));
+                sb.Append(generatedKey[intTemp].ToString("X2"));
             }
 
             generatedKey = Encoding.Unicode.GetBytes(sb.ToString().ToUpper());
@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
             // --> string representation 
             StringBuilder sb = new StringBuilder();
             for (int intTemp = 0; intTemp < 4; intTemp++) {
-                sb.Append(Convert.ToString(generatedKey[intTemp], 16));
+                sb.Append(generatedKey[intTemp].ToString("X2"));
             }
 
             generatedKey = Encoding.Unicode.GetBytes(sb.ToString().ToUpper());
