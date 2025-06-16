@@ -511,6 +511,36 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Splits (unmerge) cells that were merged vertically
+        /// </summary>
+        /// <param name="cellsCount">Number of cells to split including the current one</param>
+        public void SplitVertically(int cellsCount) {
+            AddTableCellProperties();
+            if (_tableCellProperties.VerticalMerge != null) {
+                _tableCellProperties.VerticalMerge.Remove();
+            }
+
+            var tableRow = _tableCell.Parent;
+            var indexOfCell = tableRow.ChildElements.ToList().IndexOf(_tableCell);
+
+            for (int i = 0; i < cellsCount; i++) {
+                if (tableRow != null) {
+                    tableRow = tableRow.NextSibling();
+                    if (tableRow != null) {
+                        var tableCells = tableRow.ChildElements.OfType<TableCell>().ToList()[indexOfCell];
+                        if (tableCells != null) {
+                            _tableCell = tableCells;
+                            AddTableCellProperties();
+                            if (_tableCellProperties.VerticalMerge != null) {
+                                _tableCellProperties.VerticalMerge.Remove();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Add table to a table cell (nested table)
         /// </summary>
         /// <param name="rows"></param>
