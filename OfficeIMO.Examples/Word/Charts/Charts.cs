@@ -162,7 +162,20 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
 
-                document.Save(openWord);
+
+
+                document.Save(false);
+
+                var valid = document.ValidateDocument();
+                if (valid.Count > 0) {
+                    Console.WriteLine("Document has validation errors:");
+                    foreach (var error in valid) {
+                        Console.WriteLine(error.Id + ": " + error.Description);
+                    }
+                } else {
+                    Console.WriteLine("Document is valid.");
+                }
+
             }
         }
     }
