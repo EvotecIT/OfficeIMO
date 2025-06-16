@@ -40,13 +40,14 @@
         <Using Include="System.IO" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Documents\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Images\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
+  <ItemGroup>
+      <None Update="Documents\**">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Images\**">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <EmbeddedResource Include="Images\Kulek.jpg" />
+  </ItemGroup>
 
 </Project>
