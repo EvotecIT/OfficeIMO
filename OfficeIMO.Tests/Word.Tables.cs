@@ -496,6 +496,25 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
             }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
+                var wordTable = document.Tables[2];
+
+                // split vertically previously merged cells
+                wordTable.Rows[0].Cells[2].SplitVertically(2);
+
+                Assert.Null(wordTable.Rows[0].Cells[2].VerticalMerge);
+                Assert.Null(wordTable.Rows[1].Cells[2].VerticalMerge);
+                Assert.Null(wordTable.Rows[2].Cells[2].VerticalMerge);
+
+                Assert.Equal("Some test 0", wordTable.Rows[0].Cells[2].Paragraphs[0].Text);
+                Assert.Equal("Some test 1", wordTable.Rows[0].Cells[2].Paragraphs[1].Text);
+                Assert.Equal("Some test 2", wordTable.Rows[0].Cells[2].Paragraphs[2].Text);
+                Assert.Equal("", wordTable.Rows[1].Cells[2].Paragraphs[0].Text);
+                Assert.Equal("", wordTable.Rows[2].Cells[2].Paragraphs[0].Text);
+
+                document.Save();
+            }
         }
 
         [Fact]
