@@ -705,4 +705,62 @@ public partial class Word {
             Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
         }
     }
+
+    [Fact]
+    public void Test_RemovingListFromDocument() {
+        var filePath = Path.Combine(_directoryWithFiles, "RemoveList.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var list = document.AddList(WordListStyle.Bulleted);
+            list.AddItem("Item 1");
+            list.AddItem("Item 2");
+
+            Assert.Single(document.Lists);
+            Assert.Equal(2, document.Paragraphs.Count);
+
+            list.Remove();
+
+            Assert.Empty(document.Lists);
+            Assert.Empty(document.Paragraphs);
+
+            document.Save(false);
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Empty(document.Lists);
+            Assert.Empty(document.Paragraphs);
+        }
+    }
+
+    [Fact]
+    public void Test_RemovingListFromHeadersAndFooters() {
+        var filePath = Path.Combine(_directoryWithFiles, "RemoveListHeaderFooter.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            document.AddHeadersAndFooters();
+
+            var headerList = document.Header.Default.AddList(WordListStyle.Bulleted);
+            headerList.AddItem("Header 1");
+            headerList.AddItem("Header 2");
+
+            var footerList = document.Footer.Default.AddList(WordListStyle.Bulleted);
+            footerList.AddItem("Footer 1");
+            footerList.AddItem("Footer 2");
+
+            Assert.Equal(2, document.Lists.Count);
+
+            headerList.Remove();
+            footerList.Remove();
+
+            Assert.Empty(document.Lists);
+            Assert.Empty(document.Header.Default.Paragraphs);
+            Assert.Empty(document.Footer.Default.Paragraphs);
+
+            document.Save(false);
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Empty(document.Lists);
+            Assert.Empty(document.Header.Default.Paragraphs);
+            Assert.Empty(document.Footer.Default.Paragraphs);
+        }
+    }
 }
