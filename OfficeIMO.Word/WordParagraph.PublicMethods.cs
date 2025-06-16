@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -94,7 +96,7 @@ namespace OfficeIMO.Word {
                     }
 
                     if (this.IsHyperLink) {
-                        this.Hyperlink.Remove();
+                        this.RemoveHyperLink();
                     }
 
                     if (this.IsListItem) {
@@ -293,6 +295,44 @@ namespace OfficeIMO.Word {
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, anchor, addStyle, tooltip, history);
             return this;
+        }
+
+        /// <summary>
+        /// Removes hyperlink from this paragraph and detaches its relationship.
+        /// </summary>
+        /// <param name="includingParagraph">If true removes the paragraph when it becomes empty.</param>
+        public void RemoveHyperLink(bool includingParagraph = false) {
+            if (_hyperlink != null) {
+                if (!string.IsNullOrEmpty(_hyperlink.Id)) {
+                    OpenXmlElement parent = _paragraph.Parent;
+                    while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
+                        parent = parent.Parent;
+                    }
+
+                    OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                    if (parent is Header header) {
+                        part = header.HeaderPart;
+                    } else if (parent is Footer footer) {
+                        part = footer.FooterPart;
+                    }
+
+                    var rel = part.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                    if (rel != null) {
+                        part.DeleteReferenceRelationship(rel);
+                    }
+                }
+
+                _hyperlink.Remove();
+                _hyperlink = null;
+
+                if (includingParagraph) {
+                    if (this._paragraph.ChildElements.Count == 0) {
+                        this._paragraph.Remove();
+                    } else if (this._paragraph.ChildElements.Count == 1 && this._paragraph.ChildElements.OfType<ParagraphProperties>().Any()) {
+                        this._paragraph.Remove();
+                    }
+                }
+            }
         }
 
         /// <summary>
