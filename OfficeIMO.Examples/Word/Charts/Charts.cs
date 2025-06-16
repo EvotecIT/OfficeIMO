@@ -5,7 +5,7 @@ using OfficeIMO.Word;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
-    internal static class Charts {
+    internal static partial class Charts {
         public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with charts");
             string filePath = System.IO.Path.Combine(folderPath, "Charts Document2.docx");
