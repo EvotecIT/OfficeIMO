@@ -147,6 +147,17 @@ namespace OfficeIMO.Examples.Word {
                 areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
                 areaChart.AddLegend(LegendPositionValues.Top);
 
+                var scatterChart = document.AddChart("Scatter chart");
+                scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, SixLabors.ImageSharp.Color.Red);
+
+                var radarChart = document.AddChart("Radar chart");
+                radarChart.AddCategories(categories);
+                radarChart.AddRadar("USA", new List<int>() { 1, 5, 3, 2 }, SixLabors.ImageSharp.Color.Blue);
+
+                var bar3d = document.AddChart("Bar3D chart");
+                bar3d.AddCategories(categories);
+                bar3d.AddBar3D("USA", new List<int>() { 5, 2, 3, 4 }, SixLabors.ImageSharp.Color.DarkOrange);
+
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);

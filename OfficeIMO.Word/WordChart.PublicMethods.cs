@@ -97,6 +97,39 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsScatter();
+            if (_chart != null) {
+                var scatterChart = _chart.PlotArea.GetFirstChild<ScatterChart>();
+                if (scatterChart != null) {
+                    var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
+                    scatterChart.Append(series);
+                }
+            }
+        }
+
+        public void AddRadar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsRadar();
+            if (_chart != null) {
+                var radarChart = _chart.PlotArea.GetFirstChild<RadarChart>();
+                if (radarChart != null) {
+                    var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
+                    radarChart.Append(series);
+                }
+            }
+        }
+
+        public void AddBar3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsBar3D();
+            if (_chart != null) {
+                var chart3d = _chart.PlotArea.GetFirstChild<Bar3DChart>();
+                if (chart3d != null) {
+                    var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
+                    chart3d.Append(series);
+                }
+            }
+        }
+
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();

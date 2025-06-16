@@ -381,5 +381,188 @@ namespace OfficeIMO.Word {
 
             return lineChartSeries1;
         }
+
+        private ScatterChart CreateScatterChart() {
+            ScatterChart chart = new ScatterChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            chart.Append(new ScatterStyle() { Val = ScatterStyleValues.Marker });
+
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
+
+            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateScatterChart(Chart chart) {
+            ScatterChart scatter = CreateScatterChart();
+            ValueAxis xAxis = AddValueAxis();
+            ValueAxis yAxis = AddValueAxis();
+
+            chart.PlotArea.Append(xAxis);
+            chart.PlotArea.Append(yAxis);
+            chart.PlotArea.Append(scatter);
+
+            return chart;
+        }
+
+        private ScatterChartSeries AddScatterChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<double> xValues, List<double> yValues) {
+            ScatterChartSeries scSeries = new ScatterChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color);
+
+            XValues x = new XValues();
+            NumberLiteral xLit = new NumberLiteral();
+            xLit.Append(new PointCount() { Val = (uint)xValues.Count });
+            for (int i = 0; i < xValues.Count; i++) {
+                xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValues[i].ToString()) });
+            }
+            x.Append(xLit);
+
+            YValues y = new YValues();
+            NumberLiteral yLit = new NumberLiteral();
+            yLit.Append(new PointCount() { Val = (uint)yValues.Count });
+            for (int i = 0; i < yValues.Count; i++) {
+                yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValues[i].ToString()) });
+            }
+            y.Append(yLit);
+
+            scSeries.Append(idx);
+            scSeries.Append(order);
+            scSeries.Append(text);
+            scSeries.Append(shape);
+            scSeries.Append(x);
+            scSeries.Append(y);
+
+            return scSeries;
+        }
+
+        private RadarChart CreateRadarChart() {
+            RadarChart chart = new RadarChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
+
+            RadarStyle style = new RadarStyle() { Val = RadarStyleValues.Standard };
+            chart.Append(style);
+
+            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateRadarChart(Chart chart) {
+            RadarChart radarChart = CreateRadarChart();
+            CategoryAxis catAxis = AddCategoryAxis();
+            ValueAxis valAxis = AddValueAxis();
+
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+            chart.PlotArea.Append(radarChart);
+            return chart;
+        }
+
+        private RadarChartSeries AddRadarChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            RadarChartSeries radarSeries = new RadarChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color);
+            CategoryAxisData cats = AddCategoryAxisData(categories);
+            Values vals = AddValuesAxisData(values);
+
+            radarSeries.Append(idx);
+            radarSeries.Append(order);
+            radarSeries.Append(text);
+            radarSeries.Append(shape);
+            radarSeries.Append(cats);
+            radarSeries.Append(vals);
+            return radarSeries;
+        }
+
+        private Bar3DChart CreateBar3DChart() {
+            Bar3DChart chart = new Bar3DChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            chart.Append(new BarDirection() { Val = BarDirectionValues.Column });
+            chart.Append(new BarGrouping() { Val = BarGroupingValues.Clustered });
+            chart.Append(new GapWidth() { Val = (UInt16Value)150U });
+            chart.Append(new Overlap() { Val = 0 });
+
+            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateBar3DChart(Chart chart) {
+            Bar3DChart chart3d = CreateBar3DChart();
+            CategoryAxis catAxis = AddCategoryAxis();
+            ValueAxis valAxis = AddValueAxis();
+
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+            chart.PlotArea.Append(chart3d);
+            return chart;
+        }
+
+        private BarChartSeries AddBar3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            BarChartSeries series3d = AddBarChartSeries(index, series, color, categories, values);
+            return series3d;
+        }
+
+        private void EnsureChartExistsScatter() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateScatterChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsRadar() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateRadarChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsBar3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateBar3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
     }
 }

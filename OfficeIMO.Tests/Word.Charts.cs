@@ -100,14 +100,34 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Charts.Count == 5);
                 Assert.True(document.ParagraphsCharts.Count == 5);
 
+                var scatter = document.AddChart();
+                scatter.AddScatter("data", new List<double> { 1, 2 }, new List<double> { 2, 1 }, Color.Red);
+                var scatterPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
+                var scatterXml = scatterPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<ScatterChart>();
+                Assert.NotNull(scatterXml);
+
+                var radar = document.AddChart();
+                radar.AddCategories(categories);
+                radar.AddRadar("USA", new List<int> { 1, 2, 3, 4 }, Color.Green);
+                var radarPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
+                var radarXml = radarPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<RadarChart>();
+                Assert.NotNull(radarXml);
+
+                var bar3d = document.AddChart();
+                bar3d.AddCategories(categories);
+                bar3d.AddBar3D("USA", new List<int> { 1, 2, 3, 4 }, Color.Blue);
+                var bar3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
+                var bar3dXml = bar3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Bar3DChart>();
+                Assert.NotNull(bar3dXml);
+
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
-                Assert.True(document.Sections[1].Charts.Count == 2);
-                Assert.True(document.Charts.Count == 5);
+                Assert.True(document.Sections[1].Charts.Count == 5);
+                Assert.True(document.Charts.Count == 8);
 
                 document.Save(false);
             }
