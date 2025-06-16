@@ -10,6 +10,7 @@ using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph : WordElement {
@@ -572,9 +573,31 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordShape Shape {
+            get {
+                if (_run != null) {
+                    var rectangle = _run.Descendants<V.Rectangle>().FirstOrDefault();
+                    if (rectangle != null) {
+                        return new WordShape(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
         public bool IsTextBox {
             get {
                 if (this.TextBox != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsShape {
+            get {
+                if (this.Shape != null) {
                     return true;
                 }
 
