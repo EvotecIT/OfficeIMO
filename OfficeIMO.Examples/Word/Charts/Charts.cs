@@ -46,8 +46,8 @@ namespace OfficeIMO.Examples.Word {
                 pieChart2.AddPie("USA", 30);
 
                 document.AddParagraph("This is a pie chart with 3 pies");
-                document.AddChart("Test")
-                    .AddPie("Poland", 15)
+                document.AddChart("Test1")
+                    .AddPie("Poland", 16)
                     .AddPie("USA", 30)
                     .AddPie("Brazil", 20.2).SetTitle("new title");
 
@@ -162,8 +162,6 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
 
-
-
                 document.Save(false);
 
                 var valid = document.ValidateDocument();
@@ -176,6 +174,7 @@ namespace OfficeIMO.Examples.Word {
                     Console.WriteLine("Document is valid.");
                 }
 
+                document.Open(openWord);
             }
         }
     }
