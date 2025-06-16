@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -53,6 +54,31 @@ namespace OfficeIMO.Word {
             var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
             VerifyRun();
             _run.Append(wordImage._Image);
+            return this;
+        }
+
+        /// <summary>
+        /// Add image from an embedded resource.
+        /// </summary>
+        /// <param name="assembly">Assembly that contains the resource.</param>
+        /// <param name="resourceName">Full name of the embedded resource.</param>
+        /// <param name="width">Optional width of the image.</param>
+        /// <param name="height">Optional height of the image.</param>
+        /// <param name="wrapImageText">Optional text wrapping rule.</param>
+        /// <param name="description">The description for this image.</param>
+        /// <returns>The WordParagraph that AddImage was called on.</returns>
+        public WordParagraph AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            assembly ??= Assembly.GetCallingAssembly();
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) {
+                throw new ArgumentException($"Resource '{resourceName}' was not found in assembly '{assembly.FullName}'.", nameof(resourceName));
+            }
+            using (stream) {
+                var fileName = Path.GetFileName(resourceName);
+                var wordImage = new WordImage(_document, this, stream, fileName, width, height, wrapImageText, description);
+                VerifyRun();
+                _run.Append(wordImage._Image);
+            }
             return this;
         }
 
