@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
             documentProtectionValue ??= DocumentProtectionValues.ReadOnly;
             // Generate the Salt
             byte[] arrSalt = new byte[16];
-            RandomNumberGenerator rand = new RNGCryptoServiceProvider();
+            RandomNumberGenerator rand = RandomNumberGenerator.Create();
             rand.GetNonZeroBytes(arrSalt);
 
             //Array to hold Key Values
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word {
             // Implementation Notes List:
             //Word requires that the initial hash of the password with the salt not be considered in the count.
             //    The initial hash of salt + key is not included in the iteration count.
-            HashAlgorithm sha1 = new SHA1Managed();
+            HashAlgorithm sha1 = SHA1.Create();
             generatedKey = sha1.ComputeHash(generatedKey);
             byte[] iterator = new byte[4];
             for (int intTmp = 0; intTmp < iterations; intTmp++) {
@@ -187,7 +187,7 @@ namespace OfficeIMO.Word {
         internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
             // Generate the Salt
             byte[] arrSalt = new byte[16];
-            RandomNumberGenerator rand = new RNGCryptoServiceProvider();
+            RandomNumberGenerator rand = RandomNumberGenerator.Create();
             rand.GetNonZeroBytes(arrSalt);
 
             //Array to hold Key Values
@@ -286,7 +286,7 @@ namespace OfficeIMO.Word {
             // Implementation Notes List:
             //Word requires that the initial hash of the password with the salt not be considered in the count.
             //    The initial hash of salt + key is not included in the iteration count.
-            HashAlgorithm sha1 = new SHA1Managed();
+            HashAlgorithm sha1 = SHA1.Create();
             generatedKey = sha1.ComputeHash(generatedKey);
             byte[] iterator = new byte[4];
             for (int intTmp = 0; intTmp < iterations; intTmp++) {
