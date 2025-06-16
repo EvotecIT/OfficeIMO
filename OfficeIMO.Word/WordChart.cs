@@ -13,6 +13,7 @@ using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
     public partial class WordChart : WordElement {
+        private static int _axisIdSeed = 148921728;
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;

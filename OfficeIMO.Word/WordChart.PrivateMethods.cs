@@ -382,7 +382,12 @@ namespace OfficeIMO.Word {
             return lineChartSeries1;
         }
 
-        private ScatterChart CreateScatterChart() {
+        private static UInt32Value GenerateAxisId() {
+            int id = System.Threading.Interlocked.Increment(ref _axisIdSeed);
+            return (UInt32Value)(uint)id;
+        }
+
+        private ScatterChart CreateScatterChart(UInt32Value xAxisId, UInt32Value yAxisId) {
             ScatterChart chart = new ScatterChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             chart.Append(new ScatterStyle() { Val = ScatterStyleValues.Marker });
@@ -390,10 +395,10 @@ namespace OfficeIMO.Word {
             DataLabels labels = AddDataLabel();
             chart.Append(labels);
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = xAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = yAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
@@ -402,10 +407,10 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateScatterChart(Chart chart) {
-            ScatterChart scatter = CreateScatterChart();
+            UInt32Value xId = GenerateAxisId();
+            UInt32Value yId = GenerateAxisId();
 
-            UInt32Value xId = 148921728U;
-            UInt32Value yId = 154227840U;
+            ScatterChart scatter = CreateScatterChart(xId, yId);
 
             ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
             ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
