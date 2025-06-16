@@ -118,14 +118,28 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
         public void AddBar3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar3D();
             if (_chart != null) {
                 var chart3d = _chart.PlotArea.GetFirstChild<Bar3DChart>();
                 if (chart3d != null) {
                     var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
-                    InsertSeries(chart3d, series);
+
+                    // For Bar3DChart, we need special handling to maintain correct element order:
+                    // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
+                    var axis = chart3d.Elements<AxisId>().FirstOrDefault();
+                    if (axis != null) {
+                        chart3d.InsertBefore(series, axis);
+
+                        // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
+                        var gapWidth = chart3d.GetFirstChild<GapWidth>();
+                        if (gapWidth == null) {
+                            gapWidth = new GapWidth() { Val = (UInt16Value)150U };
+                            chart3d.InsertBefore(gapWidth, axis);
+                        }
+                    } else {
+                        chart3d.Append(series);
+                    }
                 }
             }
         }

@@ -141,7 +141,6 @@ namespace OfficeIMO.Word {
         private ValueAxis AddValueAxis() {
             return AddValueAxisInternal((UInt32Value)154227840U, (UInt32Value)148921728U, AxisPositionValues.Left);
         }
-
         private ValueAxis AddValueAxisInternal(UInt32Value axisId, UInt32Value crossingAxis, AxisPositionValues position) {
             ValueAxis valueAxis1 = new ValueAxis();
             valueAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -162,16 +161,17 @@ namespace OfficeIMO.Word {
             Crosses crosses2 = new Crosses() { Val = CrossesValues.AutoZero };
             CrossBetween crossBetween1 = new CrossBetween() { Val = CrossBetweenValues.Between };
 
+            // Add elements in the correct schema order
             valueAxis1.Append(axisId4);
             valueAxis1.Append(scaling2);
             valueAxis1.Append(delete2);
             valueAxis1.Append(axisPosition2);
+            valueAxis1.Append(majorGridlines1);  // MajorGridlines should come before NumberingFormat
             valueAxis1.Append(numberingFormat1);
-            valueAxis1.Append(majorGridlines1);
             valueAxis1.Append(majorTickMark2);
             valueAxis1.Append(minorTickMark2);
             valueAxis1.Append(tickLabelPosition2);
-            valueAxis1.Append(crossingAxis2);
+            valueAxis1.Append(crossingAxis2);      // CrossingAxis comes after TickLabelPosition
             valueAxis1.Append(crosses2);
             valueAxis1.Append(crossBetween1);
 
@@ -225,25 +225,35 @@ namespace OfficeIMO.Word {
             part.ChartSpace.Append(new RoundedCorners() { Val = roundedCorners });
             return part;
         }
-
         private Chart GenerateChart(string title = "") {
             Chart chart1 = new Chart();
-            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
-            PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
-            //Layout layout1 = new Layout();
-            //plotArea1.Append(layout1);
 
-            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
-            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
-            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
+            // Add elements in the correct OpenXML schema order
+            // 1. Title (optional, but must be first if present)
             if (!string.IsNullOrEmpty(title)) {
                 chart1.Append(AddTitle(title));
             }
+
+            // 2. AutoTitleDeleted (must come after Title if Title exists)
+            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
             chart1.Append(autoTitleDeleted1);
+
+            // 8. PlotArea (comes after View3D, Floor, SideWall, BackWall if they were present)
+            PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
             chart1.Append(plotArea1);
+
+            // 10. PlotVisibleOnly
+            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
             chart1.Append(plotVisibleOnly1);
+
+            // 11. DisplayBlanksAs
+            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
             chart1.Append(displayBlanksAs1);
+
+            // 12. ShowDataLabelsOverMaximum
+            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
             chart1.Append(showDataLabelsOverMaximum1);
+
             return chart1;
         }
 
@@ -256,17 +266,26 @@ namespace OfficeIMO.Word {
             PrivateTitle = title;
             UpdateTitle();
             return this;
-        }
-
-        /// <summary>
-        /// Update the title of the chart
-        /// </summary>
+        }        /// <summary>
+                 /// Update the title of the chart
+                 /// </summary>
         internal void UpdateTitle() {
             if (!string.IsNullOrEmpty(PrivateTitle)) {
                 if (_chart != null) {
                     if (_chart.Title == null) {
-                        _chart.Append(AddTitle(PrivateTitle));
+                        // Create new title element
+                        var newTitle = AddTitle(PrivateTitle);
+
+                        // Insert title at the beginning (before AutoTitleDeleted) to maintain schema order
+                        var autoTitleDeleted = _chart.GetFirstChild<AutoTitleDeleted>();
+                        if (autoTitleDeleted != null) {
+                            _chart.InsertBefore(newTitle, autoTitleDeleted);
+                        } else {
+                            // If no AutoTitleDeleted found, insert at the beginning
+                            _chart.InsertAt(newTitle, 0);
+                        }
                     } else {
+                        // Update existing title text
                         var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
                         if (text != null) {
                             text.Text = PrivateTitle;
@@ -319,10 +338,13 @@ namespace OfficeIMO.Word {
             FormatCode format = new FormatCode() { Text = "General" };
             PointCount count = new PointCount() { Val = (uint)dataList.Count };
             literal.Append(format);
-            literal.Append(count);
-            var index = 0;
+            literal.Append(count); var index = 0;
             foreach (var data in dataList) {
-                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = data.ToString() } };
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                                  data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                                  data?.ToString() ?? "0";
+                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = valueText } };
 
                 literal.Append(numericPoint);
                 index++;

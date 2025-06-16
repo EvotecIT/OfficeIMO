@@ -108,7 +108,13 @@ namespace OfficeIMO.Word {
             Values values = InitializeValues();
             // Initialize the NumberLiteral
             NumberLiteral literal = values.GetFirstChild<NumberLiteral>() ?? InitializeNumberLiteral();
-            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = data.ToString() } });
+
+            // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+            string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                              data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                              data?.ToString() ?? "0";
+
+            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
             // Update the PointCount
             PointCount pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {
@@ -145,7 +151,6 @@ namespace OfficeIMO.Word {
 
             return chart;
         }
-
         private BarChart CreateBarChart(UInt32Value catAxisId, UInt32Value valAxisId, BarDirectionValues? barDirection = null) {
             barDirection ??= BarDirectionValues.Bar;
             BarChart barChart1 = new BarChart();
@@ -153,20 +158,31 @@ namespace OfficeIMO.Word {
 
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
             DataLabels dataLabels1 = AddDataLabel();
+            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
+            Overlap overlap1 = new Overlap() { Val = 0 };
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            Overlap overlap1 = new Overlap() { Val = 0 };
 
+            // Append elements in correct OpenXML schema order:
+            // 1. barDir [1..1] - Bar Direction
+            // 2. grouping [0..1] - Bar Grouping
+            // 3. varyColors [0..1] - (not used)
+            // 4. ser [0..*] - Bar Chart Series (added later when series are created)
+            // 5. dLbls [0..1] - Data Labels
+            // 6. gapWidth [0..1] - Gap Width
+            // 7. overlap [0..1] - Overlap
+            // 8. serLines [0..*] - Series Lines (not used)
+            // 9. axId [2..2] - Axis ID
+            // 10. extLst [0..1] - Extension List (not used)
             barChart1.Append(barDirection1);
             barChart1.Append(barGrouping1);
-            barChart1.Append(gapWidth1);
             barChart1.Append(dataLabels1);
+            barChart1.Append(gapWidth1);
             barChart1.Append(overlap1);
             barChart1.Append(axisId1);
             barChart1.Append(axisId2);
@@ -286,7 +302,6 @@ namespace OfficeIMO.Word {
             chart.PlotArea.Append(valueAxis1);
             return chart;
         }
-
         private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
@@ -298,19 +313,22 @@ namespace OfficeIMO.Word {
 
             seriesText1.Append(stringReference1);
 
-            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
+            // Note: InvertIfNegative is not valid for LineChartSeries according to OpenXML schema
+            // It's only valid for BarChartSeries and other chart types, but not LineChartSeries
 
             var chartShapeProperties1 = AddShapeProperties(color);
 
             Values values1 = AddValuesAxisData(data);
             CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
 
-
+            // Append elements in correct OpenXML schema order for LineChartSeries:
+            // 1. idx, 2. order, 3. tx (seriesText), 4. spPr (chartShapeProperties),
+            // 5. marker, 6. pictureOptions, 7. dPt, 8. dLbls, 9. trendline, 10. errBars,
+            // 11. cat (categoryAxisData), 12. val (values), 13. smooth, 14. extLst
             lineChartSeries1.Append(index1);
             lineChartSeries1.Append(order1);
             lineChartSeries1.Append(seriesText1);
             lineChartSeries1.Append(chartShapeProperties1);
-            lineChartSeries1.Append(invertIfNegative1);
             lineChartSeries1.Append(categoryAxisData1);
             lineChartSeries1.Append(values1);
 
@@ -453,21 +471,21 @@ namespace OfficeIMO.Word {
             var seriesRef = AddSeries(0, series);
             text.Append(seriesRef);
 
-            var shape = AddShapeProperties(color);
-
-            XValues x = new XValues();
+            var shape = AddShapeProperties(color); XValues x = new XValues();
             NumberLiteral xLit = new NumberLiteral();
-            xLit.Append(new PointCount() { Val = (uint)xValues.Count });
-            for (int i = 0; i < xValues.Count; i++) {
-                xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValues[i].ToString()) });
+            xLit.Append(new PointCount() { Val = (uint)xValues.Count }); for (int i = 0; i < xValues.Count; i++) {
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string xValueText = xValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValueText) });
             }
             x.Append(xLit);
 
             YValues y = new YValues();
             NumberLiteral yLit = new NumberLiteral();
-            yLit.Append(new PointCount() { Val = (uint)yValues.Count });
-            for (int i = 0; i < yValues.Count; i++) {
-                yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValues[i].ToString()) });
+            yLit.Append(new PointCount() { Val = (uint)yValues.Count }); for (int i = 0; i < yValues.Count; i++) {
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string yValueText = yValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValueText) });
             }
             y.Append(yLit);
 
@@ -537,15 +555,21 @@ namespace OfficeIMO.Word {
             radarSeries.Append(vals);
             return radarSeries;
         }
-
         private Bar3DChart CreateBar3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             Bar3DChart chart = new Bar3DChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            // Append elements in correct OpenXML schema order for Bar3DChart:
+            // 1. barDir, 2. grouping, 3. varyColors, 4. ser (added later via InsertSeries),
+            // 5. dLbls, 6. gapWidth, 7. gapDepth, 8. shape, 9. axId, 10. extLst
+            // Note: ser elements must come before gapWidth, which must come before axId
             chart.Append(new BarDirection() { Val = BarDirectionValues.Column });
             chart.Append(new BarGrouping() { Val = BarGroupingValues.Clustered });
-            chart.Append(new GapWidth() { Val = (UInt16Value)150U });
-            chart.Append(new Overlap() { Val = 0 });
 
+            // Don't add gapWidth here - it should come after ser elements
+            // We'll add it in a different location or modify InsertSeries to handle this properly
+
+            // Add axId elements at the end - series will be inserted before these by InsertSeries method
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId2 = new AxisId() { Val = valAxisId };
