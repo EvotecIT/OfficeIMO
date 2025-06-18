@@ -344,13 +344,13 @@ namespace OfficeIMO.Tests {
                 paragraph.AddHyperLink("link", new Uri("https://evotec.xyz"));
                 paragraph.AddText(" after");
 
-                Assert.Equal(1, document.HyperLinks.Count);
-                Assert.Equal(1, document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships.Count());
+                Assert.Single(document.HyperLinks);
+                Assert.Single(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
 
                 paragraph.RemoveHyperLink();
 
                 Assert.Empty(document.HyperLinks);
-                Assert.Equal(0, document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships.Count());
+                Assert.Empty(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
                 Assert.Equal(2, paragraph._paragraph.ChildElements.OfType<Run>().Count());
 
                 document.Save(false);
