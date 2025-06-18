@@ -489,7 +489,6 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets property in document recommending user to open the document as read only
         /// User can choose to do so, or ignore this recommendation
-        /// This setting can in theory go with a ReadOnlyPassword but it doesn't seem to work the same way as Document Password
         /// </summary>
         public bool? ReadOnlyRecommended {
             get {
@@ -500,34 +499,32 @@ namespace OfficeIMO.Word {
                 if (settings.WriteProtection.Recommended == null) {
                     return false;
                 }
-                return settings.WriteProtection.Recommended.Value;
+                // Defensive: treat any value other than "1" as false
+                var recommended = settings.WriteProtection.Recommended;
+                if (recommended.Value == true && (recommended.InnerText == "1" || string.IsNullOrEmpty(recommended.InnerText))) {
+                    return true;
+                }
+                return false;
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                if (settings.WriteProtection == null) {
-                    if (value == null) {
-                        // user wanted to remove read only protection
-                        return;
-                    }
+                if (settings.WriteProtection == null && value != null && value != false) {
                     settings.WriteProtection = new WriteProtection();
-                } else {
-                    if (value == null) {
-                        // user wanted to remove read only protection
-                        settings.WriteProtection.Remove();
-                        return;
+                }
+                if (settings.WriteProtection != null) {
+                    if (value == null || value == false) {
+                        settings.WriteProtection.Recommended = null;
+                        // Only remove WriteProtection element if it is empty (no hash, no recommended)
+                        if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
+                            settings.WriteProtection.Remove();
+                        }
+                    } else {
+                        // Use OnOffValue to ensure w:recommended="1" in XML (workaround for OpenXML 3.3.0)
+                        var onOff = new DocumentFormat.OpenXml.OnOffValue(true);
+                        onOff.InnerText = "1";
+                        settings.WriteProtection.Recommended = onOff;
                     }
                 }
-                settings.WriteProtection.Recommended = value;
-            }
-        }
-
-        /// <summary>
-        /// Sets password protection when recommending document to be read only
-        /// Doesn't seem to work
-        /// </summary>
-        public string ReadOnlyPassword {
-            set {
-                Security.SetWriteProtection(this._document._wordprocessingDocument, value);
             }
         }
 

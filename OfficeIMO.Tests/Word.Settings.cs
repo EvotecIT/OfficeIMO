@@ -90,7 +90,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
                 document.Settings.ReadOnlyRecommended = true;
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
-
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -132,7 +131,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
                 document.Settings.ReadOnlyRecommended = false;
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
-
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -183,6 +181,46 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FinalDocument == false);
 
                 document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_Protection_ReadOnlyRecommended() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_ReadOnlyRecommended.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test ReadOnlyRecommended");
+                document.Settings.ReadOnlyRecommended = true;
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.ReadOnlyRecommended == true);
+            }
+        }
+
+        [Fact]
+        public void Test_Protection_FinalDocument() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_FinalDocument.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test FinalDocument");
+                document.Settings.FinalDocument = true;
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.FinalDocument == true);
+            }
+        }
+
+        [Fact]
+        public void Test_Protection_ReadOnlyEnforced() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_ReadOnlyEnforced.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test ReadOnlyEnforced");
+                document.Settings.ProtectionPassword = "Test123";
+                document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);
             }
         }
     }

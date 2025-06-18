@@ -176,8 +176,9 @@ namespace OfficeIMO.Examples {
 
             SaveToStream.Example_StreamDocumentProperties(folderPath, false);
 
-            Protect.Example_ProtectFinalDocument(folderPath, false);
-            Protect.Example_ProtectAlwaysReadOnly(folderPath, false);
+            Protect.Example_FinalDocument(folderPath, false);
+            Protect.Example_ReadOnlyEnforced(folderPath, false);
+            Protect.Example_ReadOnlyRecommended(folderPath, false);
 
             WordTextBox.Example_AddingTextbox(folderPath, false);
             WordTextBox.Example_AddingTextbox2(folderPath, false);
