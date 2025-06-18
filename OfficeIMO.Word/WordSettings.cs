@@ -513,19 +513,22 @@ namespace OfficeIMO.Word {
                 } else {
                     if (value == null) {
                         // user wanted to remove read only protection
-                        settings.WriteProtection.Remove();
+                        settings.WriteProtection.Recommended = null;
+                        // Only remove WriteProtection element if it is empty (no hash, no recommended)
+                        if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
+                            settings.WriteProtection.Remove();
+                        }
                         return;
                     }
                 }
-                settings.WriteProtection.Recommended = value;
-            }
-        }        /// <summary>
-        /// Sets password protection when recommending document to be read only
-        /// Fixed: Password hashing algorithm now matches Microsoft Word's implementation
-        /// </summary>
-        public string ReadOnlyPassword {
-            set {
-                Security.SetWriteProtection(this._document._wordprocessingDocument, value);
+                // Use OnOffValue to ensure w:recommended="1" in XML (workaround for OpenXML 3.3.0)
+                if (value == true) {
+                    var onOff = new DocumentFormat.OpenXml.OnOffValue(true);
+                    onOff.InnerText = "1";
+                    settings.WriteProtection.Recommended = onOff;
+                } else {
+                    settings.WriteProtection.Recommended = null;
+                }
             }
         }
 
