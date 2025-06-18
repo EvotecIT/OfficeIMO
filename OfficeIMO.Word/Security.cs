@@ -174,129 +174,59 @@ namespace OfficeIMO.Word {
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
         }
 
-        /// <summary>
-        /// WriteProtection password for read-only recommendation (legacy algorithm)
-        /// This uses the simple legacy hash algorithm without SHA1 iterations
-        /// </summary>
-        /// <param name="wordDocument"></param>
-        /// <param name="password"></param>
-        internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
-            string hashValue = "";
-
-            //Maximum length of the password is 15 chars.
+        // Helper to generate legacy write protection hash
+        private static string GenerateLegacyWriteProtectionHash(string password) {
+            if (string.IsNullOrEmpty(password)) return "";
             int intMaxPasswordLength = 15;
-
-            if (!String.IsNullOrEmpty(password)) {
-                // Truncate the password to 15 characters
-                password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
-
-                // Construct a new NULL-terminated string consisting of single-byte characters:
-                //  -- > Get the single-byte values by iterating through the Unicode characters of the truncated Password.
-                //   --> For each character, if the low byte is not equal to 0, take it. Otherwise, take the high byte.
-
-                byte[] arrByteChars = new byte[password.Length];
-
-                for (int intLoop = 0; intLoop < password.Length; intLoop++) {
-                    int intTemp = Convert.ToInt32(password[intLoop]);
-                    arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
-                    if (arrByteChars[intLoop] == 0)
-                        arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
-                }
-
-                // Compute the high-order word of the new key:
-
-                // --> Initialize from the initial code array (see below), depending on the strPassword's length.
-                int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
-
-                // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding)
-                //          the most significant, if the bit is set, XOR the key's high-order word with the corresponding word from
-                //          the Encryption Matrix
-
-                for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
-                    int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
-                    for (int intBit = 0; intBit < 7; intBit++) {
-                        if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
-                            intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
-                        }
+            password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
+            byte[] arrByteChars = new byte[password.Length];
+            for (int intLoop = 0; intLoop < password.Length; intLoop++) {
+                int intTemp = Convert.ToInt32(password[intLoop]);
+                arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
+                if (arrByteChars[intLoop] == 0)
+                    arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
+            }
+            int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
+            for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
+                int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
+                for (int intBit = 0; intBit < 7; intBit++) {
+                    if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
+                        intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
                     }
                 }
-
-                // Compute the low-order word of the new key:
-
-                // Initialize with 0
-                int intLowOrderWord = 0;
-
-                // For each character in the strPassword, going backwards
-                for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
-                    // low-order word = (((low-order word SHR 14) AND 0x0001) OR (low-order word SHL 1) AND 0x7FFF)) XOR character
-                    intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
-                }
-
-                // Lastly,low-order word = (((low-order word SHR 14) AND 0x0001) OR (low-order word SHL 1) AND 0x7FFF)) XOR strPassword length XOR 0xCE4B.
-                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
-
-                // Combine the Low and High Order Word
-                int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
-
-                // For WriteProtection, convert the legacy hash directly to hex string
-                // This is the key difference from DocumentProtection - no SHA1 iterations, no salt
-                hashValue = intCombinedkey.ToString("X8");
-            }            // Apply the element
-            if (wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection == null) {
-                WriteProtection documentProtection = new WriteProtection();
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.AppendChild(documentProtection);
             }
-
-            // Set recommended read-only flag
-            OnOffValue docProtection = new OnOffValue(true);
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Recommended = docProtection;
-
-            // For WriteProtection, use the simple legacy hash directly but still set algorithm info
-            if (!string.IsNullOrEmpty(hashValue)) {
-                // Set algorithm information for compatibility
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.CryptographicAlgorithmSid = 1; // Legacy algorithm ID
-                wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.WriteProtection.Hash = hashValue;
+            int intLowOrderWord = 0;
+            for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
+                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
             }
-
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
+            intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
+            int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
+            return intCombinedkey.ToString("X8");
         }
 
-        /// <summary>
-        /// Sets only the password hash and related attributes on WriteProtection, without touching the Recommended flag.
-        /// </summary>
-        internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
-            string hashValue = "";
-            int intMaxPasswordLength = 15;
-            if (!String.IsNullOrEmpty(password)) {
-                password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
-                byte[] arrByteChars = new byte[password.Length];
-                for (int intLoop = 0; intLoop < password.Length; intLoop++) {
-                    int intTemp = Convert.ToInt32(password[intLoop]);
-                    arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
-                    if (arrByteChars[intLoop] == 0)
-                        arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
-                }
-                int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
-                for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
-                    int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
-                    for (int intBit = 0; intBit < 7; intBit++) {
-                        if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
-                            intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
-                        }
-                    }
-                }
-                int intLowOrderWord = 0;
-                for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
-                    intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
-                }
-                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
-                int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
-                hashValue = intCombinedkey.ToString("X8");
+        internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
+            string hashValue = GenerateLegacyWriteProtectionHash(password);
+            var settings = wordDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+            if (settings.WriteProtection == null) {
+                WriteProtection documentProtection = new WriteProtection();
+                settings.AppendChild(documentProtection);
             }
+            // Set recommended read-only flag
+            OnOffValue docProtection = new OnOffValue(true);
+            settings.WriteProtection.Recommended = docProtection;
+            // For WriteProtection, use the simple legacy hash directly but still set algorithm info
+            if (!string.IsNullOrEmpty(hashValue)) {
+                settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
+                settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
+                settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
+                settings.WriteProtection.CryptographicAlgorithmSid = 1; // Legacy algorithm ID
+                settings.WriteProtection.Hash = hashValue;
+            }
+            settings.Save();
+        }
+
+        internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
+            string hashValue = GenerateLegacyWriteProtectionHash(password);
             var settings = wordDocument.MainDocumentPart.DocumentSettingsPart.Settings;
             if (settings.WriteProtection == null) {
                 settings.WriteProtection = new WriteProtection();

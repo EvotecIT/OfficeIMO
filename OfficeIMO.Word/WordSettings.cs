@@ -503,30 +503,22 @@ namespace OfficeIMO.Word {
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                if (settings.WriteProtection == null) {
-                    if (value == null) {
-                        // user wanted to remove read only protection
-                        return;
-                    }
+                if (settings.WriteProtection == null && value != null) {
                     settings.WriteProtection = new WriteProtection();
-                } else {
+                }
+                if (settings.WriteProtection != null) {
                     if (value == null) {
-                        // user wanted to remove read only protection
                         settings.WriteProtection.Recommended = null;
                         // Only remove WriteProtection element if it is empty (no hash, no recommended)
                         if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
                             settings.WriteProtection.Remove();
                         }
-                        return;
+                    } else {
+                        // Use OnOffValue to ensure w:recommended="1" in XML (workaround for OpenXML 3.3.0)
+                        var onOff = new DocumentFormat.OpenXml.OnOffValue(true);
+                        onOff.InnerText = "1";
+                        settings.WriteProtection.Recommended = onOff;
                     }
-                }
-                // Use OnOffValue to ensure w:recommended="1" in XML (workaround for OpenXML 3.3.0)
-                if (value == true) {
-                    var onOff = new DocumentFormat.OpenXml.OnOffValue(true);
-                    onOff.InnerText = "1";
-                    settings.WriteProtection.Recommended = onOff;
-                } else {
-                    settings.WriteProtection.Recommended = null;
                 }
             }
         }
