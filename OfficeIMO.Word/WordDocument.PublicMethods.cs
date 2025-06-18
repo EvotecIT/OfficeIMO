@@ -61,7 +61,10 @@ namespace OfficeIMO.Word {
         /// .AddBar() to add a bar chart
         /// .AddLine() to add a line chart
         /// .AddPie() to add a pie chart
-        /// .AddArea() to add an area chart.
+        /// .AddArea() to add an area chart
+        /// .AddScatter() to add a scatter chart
+        /// .AddRadar() to add a radar chart
+        /// .AddBar3D() to add a 3-D bar chart.
         /// You can't mix and match the types of charts.
         /// </summary>
         /// <param name="title">The title.</param>

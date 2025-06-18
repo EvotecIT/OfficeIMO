@@ -116,6 +116,13 @@ namespace OfficeIMO.Examples {
             HeadersAndFooters.Example_BasicWordWithHeaderAndFooter1(folderPath, false);
 
             Charts.Example_AddingMultipleCharts(folderPath, false);
+            Charts.Example_BarChart(folderPath, false);
+            Charts.Example_PieChart(folderPath, false);
+            Charts.Example_LineChart(folderPath, false);
+            Charts.Example_AreaChart(folderPath, false);
+            Charts.Example_ScatterChart(folderPath, false);
+            Charts.Example_RadarChart(folderPath, false);
+            Charts.Example_Bar3DChart(folderPath, false);
 
             Images.Example_AddingImages(folderPath, false);
             Images.Example_ReadWordWithImages();
@@ -179,6 +186,11 @@ namespace OfficeIMO.Examples {
             WordTextBox.Example_AddingTextbox5(folderPath, false);
             WordTextBox.Example_AddingTextbox3(folderPath, false);
             WordTextBox.Example_AddingTextboxCentimeters(folderPath, false);
+
+            Shapes.Example_AddBasicShape(folderPath, false);
+            Shapes.Example_AddMultipleShapes(folderPath, false);
+            Shapes.Example_RemoveShape(folderPath, false);
+            Shapes.Example_LoadShapes(folderPath, false);
         }
     }
 }
