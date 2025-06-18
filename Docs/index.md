@@ -83,6 +83,7 @@
 [WordImage](./officeimo.word.wordimage.md)
 
 [WordLineChart](./officeimo.word.wordlinechart.md)
+[WordLineChart3D](./officeimo.word.wordlinechart3d.md)
 
 [WordList](./officeimo.word.wordlist.md)
 
