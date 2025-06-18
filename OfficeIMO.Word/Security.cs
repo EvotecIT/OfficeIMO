@@ -73,12 +73,12 @@ namespace OfficeIMO.Word {
 
                 // Compute the high-order word of the new key:
 
-                // --> Initialize from the initial code array (see below), depending on the strPassword's length. 
+                // --> Initialize from the initial code array (see below), depending on the strPassword's length.
                 int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
 
                 // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding) 
-                //          the most significant, if the bit is set, XOR the key's high-order word with the corresponding word from 
+                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding)
+                //          the most significant, if the bit is set, XOR the key's high-order word with the corresponding word from
                 //          the Encryption Matrix
 
                 for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
@@ -114,8 +114,8 @@ namespace OfficeIMO.Word {
                     generatedKey[intTemp] = Convert.ToByte(((uint)(intCombinedkey & (0x000000FF << (intTemp * 8)))) >> (intTemp * 8));
                 }
             }            // Implementation Notes List:
-            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex 
-            // --> string representation 
+            // --> In this third stage, the reversed byte order legacy hash from the second stage shall be converted to Unicode hex
+            // --> string representation
             StringBuilder sb = new StringBuilder();
             for (int intTemp = 0; intTemp < 4; intTemp++) {
                 sb.Append(generatedKey[intTemp].ToString("X2"));
@@ -205,12 +205,12 @@ namespace OfficeIMO.Word {
 
                 // Compute the high-order word of the new key:
 
-                // --> Initialize from the initial code array (see below), depending on the strPassword's length. 
+                // --> Initialize from the initial code array (see below), depending on the strPassword's length.
                 int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
 
                 // --> For each character in the strPassword:
-                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding) 
-                //          the most significant, if the bit is set, XOR the key's high-order word with the corresponding word from 
+                //      --> For every bit in the character, starting with the least significant and progressing to (but excluding)
+                //          the most significant, if the bit is set, XOR the key's high-order word with the corresponding word from
                 //          the Encryption Matrix
 
                 for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
@@ -263,6 +263,53 @@ namespace OfficeIMO.Word {
             }
 
             wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
+        }
+
+        /// <summary>
+        /// Sets only the password hash and related attributes on WriteProtection, without touching the Recommended flag.
+        /// Used by WordSettings.ReadOnlyPassword to avoid overwriting the recommendation flag.
+        /// </summary>
+        internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
+            string hashValue = "";
+            int intMaxPasswordLength = 15;
+            if (!String.IsNullOrEmpty(password)) {
+                password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
+                byte[] arrByteChars = new byte[password.Length];
+                for (int intLoop = 0; intLoop < password.Length; intLoop++) {
+                    int intTemp = Convert.ToInt32(password[intLoop]);
+                    arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
+                    if (arrByteChars[intLoop] == 0)
+                        arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
+                }
+                int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
+                for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
+                    int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
+                    for (int intBit = 0; intBit < 7; intBit++) {
+                        if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
+                            intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
+                        }
+                    }
+                }
+                int intLowOrderWord = 0;
+                for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
+                    intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
+                }
+                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
+                int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
+                hashValue = intCombinedkey.ToString("X8");
+            }
+            var settings = wordDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+            if (settings.WriteProtection == null) {
+                settings.WriteProtection = new WriteProtection();
+            }
+            if (!string.IsNullOrEmpty(hashValue)) {
+                settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
+                settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
+                settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
+                settings.WriteProtection.CryptographicAlgorithmSid = 1; // Legacy algorithm ID
+                settings.WriteProtection.Hash = hashValue;
+            }
+            settings.Save();
         }
     }
 }
