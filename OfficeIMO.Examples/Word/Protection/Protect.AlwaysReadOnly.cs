@@ -1,7 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
 
 internal static partial class Protect {
 
@@ -22,9 +21,24 @@ internal static partial class Protect {
 
             document.Settings.ReadOnlyRecommended = null;
 
-            //document.Settings.ReadOnlyPassword = "Test123";
+            Console.WriteLine("Always read only: " + document.Settings.ReadOnlyRecommended);
 
-            document.Save(openWord);
+            document.Settings.ReadOnlyRecommended = true;
+
+            document.Settings.ReadOnlyPassword = "Test123";
+
+            document.Save(false);
+            var valid = document.ValidateDocument();
+            if (valid.Count > 0) {
+                Console.WriteLine("Document has validation errors:");
+                foreach (var error in valid) {
+                    Console.WriteLine(error.Id + ": " + error.Description);
+                }
+            } else {
+                Console.WriteLine("Document is valid.");
+            }
+
+            document.Open(openWord);
         }
     }
 }

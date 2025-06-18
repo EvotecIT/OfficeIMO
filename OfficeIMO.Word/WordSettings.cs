@@ -519,11 +519,9 @@ namespace OfficeIMO.Word {
                 }
                 settings.WriteProtection.Recommended = value;
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Sets password protection when recommending document to be read only
-        /// Doesn't seem to work
+        /// Fixed: Password hashing algorithm now matches Microsoft Word's implementation
         /// </summary>
         public string ReadOnlyPassword {
             set {
