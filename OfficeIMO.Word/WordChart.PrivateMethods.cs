@@ -613,7 +613,6 @@ namespace OfficeIMO.Word {
 
             chart.Append(grouping);
             chart.Append(labels);
-            chart.Append(new GapDepth() { Val = (UInt16Value)150U });
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");

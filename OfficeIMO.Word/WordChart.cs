@@ -64,11 +64,19 @@ namespace OfficeIMO.Word {
                 var ids = new List<UInt32Value>();
                 if (_chart != null) {
                     var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                    var line3dChart = _chart.PlotArea.GetFirstChild<Line3DChart>();
                     var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+                    var bar3dChart = _chart.PlotArea.GetFirstChild<Bar3DChart>();
                     var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+                    var pie3dChart = _chart.PlotArea.GetFirstChild<Pie3DChart>();
                     var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                     if (lineChart != null) {
                         var series = lineChart.ChildElements.OfType<LineChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (line3dChart != null) {
+                        var series = line3dChart.ChildElements.OfType<LineChartSeries>();
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
@@ -77,8 +85,18 @@ namespace OfficeIMO.Word {
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
+                    } else if (pie3dChart != null) {
+                        var series = pie3dChart.ChildElements.OfType<PieChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
                     } else if (barChart != null) {
                         var series = barChart.ChildElements.OfType<BarChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (bar3dChart != null) {
+                        var series = bar3dChart.ChildElements.OfType<BarChartSeries>();
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
