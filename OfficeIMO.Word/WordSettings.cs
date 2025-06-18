@@ -489,7 +489,6 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets property in document recommending user to open the document as read only
         /// User can choose to do so, or ignore this recommendation
-        /// This setting can in theory go with a ReadOnlyPassword but it doesn't seem to work the same way as Document Password
         /// </summary>
         public bool? ReadOnlyRecommended {
             get {
