@@ -16,6 +16,16 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        public WordChart AddPie3D<T>(string category, T value) {
+            if (!(value is int || value is double || value is float)) {
+                throw new NotSupportedException("Value must be of type int, double, or float");
+            }
+            EnsureChartExistsPie3D();
+            AddSingleCategory(category);
+            AddSingleValue(value);
+            return this;
+        }
+
         public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine();
             if (_chart != null) {
