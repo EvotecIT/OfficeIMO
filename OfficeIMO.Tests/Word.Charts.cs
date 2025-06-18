@@ -121,14 +121,21 @@ namespace OfficeIMO.Tests {
                 var bar3dXml = bar3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Bar3DChart>();
                 Assert.NotNull(bar3dXml);
 
+                var pie3d = document.AddChart();
+                pie3d.AddPie3D("Poland", 10);
+                pie3d.AddPie3D("USA", 20);
+                var pie3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
+                var pie3dXml = pie3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Pie3DChart>();
+                Assert.NotNull(pie3dXml);
+
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
-                Assert.True(document.Sections[1].Charts.Count == 5);
-                Assert.True(document.Charts.Count == 8);
+                Assert.True(document.Sections[1].Charts.Count == 6);
+                Assert.True(document.Charts.Count == 9);
 
                 document.Save(false);
             }

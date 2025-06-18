@@ -158,6 +158,11 @@ namespace OfficeIMO.Examples.Word {
                 bar3d.AddCategories(categories);
                 bar3d.AddBar3D("USA", new List<int>() { 5, 2, 3, 4 }, SixLabors.ImageSharp.Color.DarkOrange);
 
+                var pie3d = document.AddChart("Pie3D chart");
+                pie3d.AddPie3D("Poland", 15);
+                pie3d.AddPie3D("USA", 30);
+                pie3d.AddPie3D("Brazil", 20);
+
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
