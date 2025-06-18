@@ -765,6 +765,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="src"></param>
         /// <param name="dest"></param>
+        // IPackageProperties is currently marked as experimental (OOXML0001).
+        // There is no non-experimental alternative available yet.
         #pragma warning disable 0618
         private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
