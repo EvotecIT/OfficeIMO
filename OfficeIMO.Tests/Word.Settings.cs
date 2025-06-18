@@ -90,7 +90,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
                 document.Settings.ReadOnlyRecommended = true;
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
-
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
@@ -132,7 +131,6 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
                 document.Settings.ReadOnlyRecommended = false;
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
-
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {

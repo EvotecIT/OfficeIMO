@@ -499,15 +499,20 @@ namespace OfficeIMO.Word {
                 if (settings.WriteProtection.Recommended == null) {
                     return false;
                 }
-                return settings.WriteProtection.Recommended.Value;
+                // Defensive: treat any value other than "1" as false
+                var recommended = settings.WriteProtection.Recommended;
+                if (recommended.Value == true && (recommended.InnerText == "1" || string.IsNullOrEmpty(recommended.InnerText))) {
+                    return true;
+                }
+                return false;
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                if (settings.WriteProtection == null && value != null) {
+                if (settings.WriteProtection == null && value != null && value != false) {
                     settings.WriteProtection = new WriteProtection();
                 }
                 if (settings.WriteProtection != null) {
-                    if (value == null) {
+                    if (value == null || value == false) {
                         settings.WriteProtection.Recommended = null;
                         // Only remove WriteProtection element if it is empty (no hash, no recommended)
                         if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
