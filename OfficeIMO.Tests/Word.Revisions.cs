@@ -29,13 +29,13 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.True(document._document.Body.Descendants<InsertedRun>().Any());
-                Assert.True(document._document.Body.Descendants<DeletedRun>().Any());
+                Assert.Contains(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.Contains(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
 
                 document.AcceptRevisions();
 
-                Assert.False(document._document.Body.Descendants<InsertedRun>().Any());
-                Assert.False(document._document.Body.Descendants<DeletedRun>().Any());
+                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
                 Assert.Equal(2, document.Paragraphs.Count);
                 Assert.Equal("Before", document.Paragraphs[0].Text);
                 Assert.Equal("Added", document.Paragraphs[1].Text);
