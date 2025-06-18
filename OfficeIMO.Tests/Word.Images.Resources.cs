@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph();
             paragraph.AddImageFromResource(Assembly.GetExecutingAssembly(), "OfficeIMO.Tests.Images.Kulek.jpg", 50, 50);
 
-            Assert.Equal(1, document.Images.Count);
+            Assert.Single(document.Images);
             document.Save(false);
         }
     }
