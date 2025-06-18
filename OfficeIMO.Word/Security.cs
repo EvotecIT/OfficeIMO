@@ -267,7 +267,6 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Sets only the password hash and related attributes on WriteProtection, without touching the Recommended flag.
-        /// Used by WordSettings.ReadOnlyPassword to avoid overwriting the recommendation flag.
         /// </summary>
         internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
             string hashValue = "";
