@@ -5,7 +5,6 @@ OfficeIMO is available as NuGet from the gallery and its preferred way of using 
 [![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](#)
-[![nuget downloads](https://wakatime.com/badge/user/f1abc372-39bb-4b06-ad2b-3a24cf161f13/project/3cddaa3c-574a-400b-9870-d0973797eb51.svg)](#)
 
 If you would like to contact me you can do so via Twitter or LinkedIn.
 
@@ -20,6 +19,7 @@ Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but 
 It was created because working with OpenXML is way too hard for me, and time consuming.
 I created it for use within the PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
+This repository also includes an experimental **OfficeIMO.Excel** component for creating simple spreadsheets.
 
 If you want to see what it can do take a look at this [blog post](https://evotec.xyz/officeimo-free-cross-platform-microsoft-word-net-library/).
 
@@ -39,12 +39,12 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 **This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
 
-| Platform | Status                                                                                                                                                                                                 | Code Coverage                                                                                                                                                                                                                                           | .NET                                                                          |
-| -------- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Windows  | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/19/master?compact_message&label=Tests%20Windows"></a> | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=19&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/19"></a> | .NET 4.7.2, NET 4.8, .NET 6.0, .NET 7.0, .NET 8.0, .NET Standard 2.0, .NET Standard 2.1 |
-| Linux    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/22/master?compact_message&label=Tests%20Linux"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=22&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/22"></a> | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET 8.0, .NET Standard 2.1     |
-| MacOs    | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23"><img src="https://img.shields.io/azure-devops/tests/evotecpl/OfficeIMO/23/master?compact_message&label=Tests%20MacOs"></a>   | <a href="https://dev.azure.com/evotecpl/OfficeIMO/_build?definitionId=23&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics"><img src="https://img.shields.io/azure-devops/coverage/evotecpl/OfficeIMO/23"></a> | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET 8.0, .NET Standard 2.1     |
 
+| Platform | Status | Code Coverage | .NET |
+| -------- | ------ | ------------- | ---- |
+| Windows  | ![Windows](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | .NET 4.7.2, NET 4.8, .NET 6.0, .NET 7.0, .NET 8.0, .NET 9.0, .NET Standard 2.0, .NET Standard 2.1 |
+| Linux    | ![Linux](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET 8.0, .NET 9.0, .NET Standard 2.1 |
+| MacOs    | ![macOS](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | .NET 6.0, .NET 7.0, .NET Standard 2.0, .NET 8.0, .NET 9.0, .NET Standard 2.1 |
 ## Support This Project
 
 If you find this project helpful, please consider supporting its development.
@@ -113,15 +113,19 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Merge cells (vertically, horizontally)
         - ◼️ Split cells (vertically)
         - ☑️ Split cells (horizontally)
-- ☑️ Images/Pictures (limited support - jpg only / inline type only)
+        - ☑️ Nested tables
+        - ☑️ Repeat header row on each page
+        - ☑️ Control row page breaks
+        - ☑️ Set row height and table width
+- ☑️ Images/Pictures (supports BMP, GIF, JPEG, PNG, TIFF with various wrapping options)
     - ☑️ Add images from file to Word
     - ☑️ Save image from Word to File
-    - ◼️ Other image types
+    - ◼️ Additional image types (e.g., EMF)
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
     - ☑️ Read HyperLink
-    - ◼️ Remove HyperLink
+    - ☑️ Remove HyperLink
     - ☑️ Change HyperLink
 - ☑️ PageBreaks
     - ☑️ Add PageBreak
@@ -154,20 +158,26 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ◼️ Shapes
 - ◼️ Charts
     - ☑️ Add charts
+        - ☑️ Pie charts
+        - ☑️ Bar charts
+        - ☑️ Line charts
+        - ☑️ Area charts
+    - ☑️ Add categories and legends
 - ◼️ Lists
     - ☑️ Add lists
-    - ◼️ Remove lists
+    - ☑️ Remove lists
 - ◼️ Table of contents
     - ☑️ Add TOC
+    - ☑️ Update TOC fields on open
 - ☑️ Borders
 - ☑️ Background
 - ◼️ Watermarks
     - ☑️ Add watermark
     - ◼️ Remove watermark
-- ☑️ PageBreaks
-    - ☑️Add pagebreak
-    - ☑️Find pagebreak
-    - ☑️Remove pagebreak
+
+- ☑️ Experimental Excel component
+    - ☑️ Create and load workbooks
+    - ☑️ Add worksheets
 
 
 ## Features (oneliners):

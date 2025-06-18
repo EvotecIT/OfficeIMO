@@ -336,5 +336,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_RemoveHyperLinkMethod() {
+            string filePath = Path.Combine(_directoryWithFiles, "HyperlinkRemove.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Text before ");
+                paragraph.AddHyperLink("link", new Uri("https://evotec.xyz"));
+                paragraph.AddText(" after");
+
+                Assert.Single(document.HyperLinks);
+                Assert.Single(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+
+                paragraph.RemoveHyperLink();
+
+                Assert.Empty(document.HyperLinks);
+                Assert.Empty(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+                Assert.Equal(2, paragraph._paragraph.ChildElements.OfType<Run>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Empty(document.HyperLinks);
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.ChildElements.OfType<Run>().Count());
+                document.Save();
+            }
+        }
+
     }
 }

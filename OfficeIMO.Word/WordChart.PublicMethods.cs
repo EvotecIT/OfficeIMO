@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
                 var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
                 if (lineChart != null) {
                     LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
-                    lineChart.Append(lineChartSeries);
+                    InsertSeries(lineChart, lineChartSeries);
                 }
             }
         }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values);
-                lineChart.Append(lineChartSeries);
+                InsertSeries(lineChart, lineChartSeries);
             }
 
         }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, new List<int>() { values });
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values);
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
-                barChart.Append(barChartSeries);
+                InsertSeries(barChart, barChartSeries);
             }
         }
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
                 var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values);
-                    barChart.Append(areaChartSeries);
+                    InsertSeries(barChart, areaChartSeries);
                 }
             }
         }
@@ -92,7 +92,54 @@ namespace OfficeIMO.Word {
                 var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
-                    barChart.Append(areaChartSeries);
+                    InsertSeries(barChart, areaChartSeries);
+                }
+            }
+        }
+
+        public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsScatter();
+            if (_chart != null) {
+                var scatterChart = _chart.PlotArea.GetFirstChild<ScatterChart>();
+                if (scatterChart != null) {
+                    var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
+                    InsertSeries(scatterChart, series);
+                }
+            }
+        }
+
+        public void AddRadar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsRadar();
+            if (_chart != null) {
+                var radarChart = _chart.PlotArea.GetFirstChild<RadarChart>();
+                if (radarChart != null) {
+                    var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
+                    InsertSeries(radarChart, series);
+                }
+            }
+        }
+        public void AddBar3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsBar3D();
+            if (_chart != null) {
+                var chart3d = _chart.PlotArea.GetFirstChild<Bar3DChart>();
+                if (chart3d != null) {
+                    var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
+
+                    // For Bar3DChart, we need special handling to maintain correct element order:
+                    // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
+                    var axis = chart3d.Elements<AxisId>().FirstOrDefault();
+                    if (axis != null) {
+                        chart3d.InsertBefore(series, axis);
+
+                        // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
+                        var gapWidth = chart3d.GetFirstChild<GapWidth>();
+                        if (gapWidth == null) {
+                            gapWidth = new GapWidth() { Val = (UInt16Value)150U };
+                            chart3d.InsertBefore(gapWidth, axis);
+                        }
+                    } else {
+                        chart3d.Append(series);
+                    }
                 }
             }
         }
@@ -104,7 +151,16 @@ namespace OfficeIMO.Word {
                 Overlay overlay = new Overlay() { Val = false };
                 legend.Append(postion);
                 legend.Append(overlay);
-                _chart.Append(legend);
+
+                // Insert legend in correct position according to OpenXML schema
+                // Legend should come after PlotArea but before other elements like PlotVisibleOnly
+                var plotVisibleOnly = _chart.GetFirstChild<PlotVisibleOnly>();
+                if (plotVisibleOnly != null) {
+                    _chart.InsertBefore(legend, plotVisibleOnly);
+                } else {
+                    // If no PlotVisibleOnly, just append at the end
+                    _chart.Append(legend);
+                }
             }
         }
     }

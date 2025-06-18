@@ -526,23 +526,23 @@ public partial class WordList : WordElement {
     /// Removes the list and its items from the document.
     /// </summary>
     public void Remove() {
-        // Get the Numbering part from the document
-        var numbering = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
+        var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+        var numbering = numberingPart?.Numbering;
+        if (numbering != null) {
+            var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+            abstractNum?.Remove();
 
-        // Find and remove the AbstractNum associated with this list
-        var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
-        if (abstractNum != null) {
-            numbering.RemoveChild(abstractNum);
+            var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
+            numberingInstance?.Remove();
+
+            if (!numbering.ChildElements.OfType<AbstractNum>().Any() &&
+                !numbering.ChildElements.OfType<NumberingInstance>().Any() &&
+                !numbering.ChildElements.OfType<NumberingPictureBullet>().Any()) {
+                _document._wordprocessingDocument.MainDocumentPart.DeletePart(numberingPart);
+            }
         }
 
-        // Find and remove the NumberingInstance associated with this list
-        var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
-        if (numberingInstance != null) {
-            numbering.RemoveChild(numberingInstance);
-        }
-
-        // Remove the list items from the document
-        foreach (var listItem in ListItems) {
+        foreach (var listItem in ListItems.ToList()) {
             listItem.Remove();
         }
     }

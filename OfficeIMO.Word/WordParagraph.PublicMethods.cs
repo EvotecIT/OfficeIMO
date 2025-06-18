@@ -1,8 +1,11 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -55,6 +58,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add image from an embedded resource.
+        /// </summary>
+        /// <param name="assembly">Assembly that contains the resource.</param>
+        /// <param name="resourceName">Full name of the embedded resource.</param>
+        /// <param name="width">Optional width of the image.</param>
+        /// <param name="height">Optional height of the image.</param>
+        /// <param name="wrapImageText">Optional text wrapping rule.</param>
+        /// <param name="description">The description for this image.</param>
+        /// <returns>The WordParagraph that AddImage was called on.</returns>
+        public WordParagraph AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            assembly ??= Assembly.GetCallingAssembly();
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) {
+                throw new ArgumentException($"Resource '{resourceName}' was not found in assembly '{assembly.FullName}'.", nameof(resourceName));
+            }
+            using (stream) {
+                var fileName = Path.GetFileName(resourceName);
+                var wordImage = new WordImage(_document, this, stream, fileName, width, height, wrapImageText, description);
+                VerifyRun();
+                _run.Append(wordImage._Image);
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
         /// </summary>
         /// <param name="breakType">Optional argument to add a specific type of break.</param>
@@ -94,7 +122,7 @@ namespace OfficeIMO.Word {
                     }
 
                     if (this.IsHyperLink) {
-                        this.Hyperlink.Remove();
+                        this.RemoveHyperLink();
                     }
 
                     if (this.IsListItem) {
@@ -296,6 +324,44 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Removes hyperlink from this paragraph and detaches its relationship.
+        /// </summary>
+        /// <param name="includingParagraph">If true removes the paragraph when it becomes empty.</param>
+        public void RemoveHyperLink(bool includingParagraph = false) {
+            if (_hyperlink != null) {
+                if (!string.IsNullOrEmpty(_hyperlink.Id)) {
+                    OpenXmlElement parent = _paragraph.Parent;
+                    while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
+                        parent = parent.Parent;
+                    }
+
+                    OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                    if (parent is Header header) {
+                        part = header.HeaderPart;
+                    } else if (parent is Footer footer) {
+                        part = footer.FooterPart;
+                    }
+
+                    var rel = part.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                    if (rel != null) {
+                        part.DeleteReferenceRelationship(rel);
+                    }
+                }
+
+                _hyperlink.Remove();
+                _hyperlink = null;
+
+                if (includingParagraph) {
+                    if (this._paragraph.ChildElements.Count == 0) {
+                        this._paragraph.Remove();
+                    } else if (this._paragraph.ChildElements.Count == 1 && this._paragraph.ChildElements.OfType<ParagraphProperties>().Any()) {
+                        this._paragraph.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Add a table after this paragraph and return the table.
         /// </summary>
         /// <param name="rows">The number of rows in the table.</param>
@@ -361,7 +427,10 @@ namespace OfficeIMO.Word {
         /// .AddBar() to add a bar chart
         /// .AddLine() to add a line chart
         /// .AddPie() to add a pie chart
-        /// .AddArea() to add an area chart.
+        /// .AddArea() to add an area chart
+        /// .AddScatter() to add a scatter chart
+        /// .AddRadar() to add a radar chart
+        /// .AddBar3D() to add a 3-D bar chart.
         /// You can't mix and match the types of charts.
         /// </summary>
         /// <param name="title">The title.</param>
@@ -411,6 +480,17 @@ namespace OfficeIMO.Word {
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
+        }
+
+        /// <summary>
+        /// Add a rectangle shape to the paragraph.
+        /// </summary>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        /// <param name="fillColor">Fill color in hex format.</param>
+        public WordShape AddShape(double widthPt, double heightPt, string fillColor = "#FFFFFF") {
+            WordShape wordShape = new WordShape(this._document, this, widthPt, heightPt, fillColor);
+            return wordShape;
         }
     }
 }
