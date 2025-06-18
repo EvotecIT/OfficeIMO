@@ -109,6 +109,7 @@
 [WordParagraphStyles](./officeimo.word.wordparagraphstyles.md)
 
 [WordPieChart](./officeimo.word.wordpiechart.md)
+[WordPieChart3D](./officeimo.word.wordpiechart3d.md)
 
 [WordSection](./officeimo.word.wordsection.md)
 

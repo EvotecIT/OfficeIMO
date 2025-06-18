@@ -35,13 +35,18 @@ namespace OfficeIMO.Word {
         private PieChartSeries InitializePieChartSeries() {
             if (_chart != null) {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                if (pieChart != null) {
-                    var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
-                    var dataLabels = pieChart.GetFirstChild<DataLabels>() ?? pieChart.AppendChild(AddDataLabel());
+                OpenXmlCompositeElement chartElement = pieChart;
+                if (chartElement == null) {
+                    chartElement = _chart.PlotArea.GetFirstChild<Pie3DChart>();
+                }
+
+                if (chartElement != null) {
+                    var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
+                    var dataLabels = chartElement.GetFirstChild<DataLabels>() ?? chartElement.AppendChild(AddDataLabel());
 
                     if (pieChartSeries == null) {
                         pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        pieChart.InsertBefore(pieChartSeries, dataLabels);
+                        chartElement.InsertBefore(pieChartSeries, dataLabels);
                     }
                     return pieChartSeries;
                 }
@@ -599,6 +604,43 @@ namespace OfficeIMO.Word {
             return series3d;
         }
 
+        private PieChartSeries AddPie3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            PieChartSeries pieSeries = new PieChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color);
+            CategoryAxisData cats = AddCategoryAxisData(categories);
+            Values vals = AddValuesAxisData(values);
+
+            pieSeries.Append(idx);
+            pieSeries.Append(order);
+            pieSeries.Append(text);
+            pieSeries.Append(shape);
+            pieSeries.Append(cats);
+            pieSeries.Append(vals);
+            return pieSeries;
+        }
+
+        private Pie3DChart CreatePie3DChart() {
+            Pie3DChart chart3d = new Pie3DChart();
+            chart3d.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            DataLabels labels = AddDataLabel();
+            chart3d.Append(labels);
+            return chart3d;
+        }
+
+        private Chart GeneratePie3DChart(Chart chart) {
+            Pie3DChart pie3d = CreatePie3DChart();
+            chart.PlotArea.Append(pie3d);
+            return chart;
+        }
+
         private void EnsureChartExistsScatter() {
             if (_chart == null) {
                 _chart = GenerateChart();
@@ -621,6 +663,15 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateBar3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsPie3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GeneratePie3DChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
             }
