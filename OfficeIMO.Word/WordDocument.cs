@@ -765,6 +765,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="src"></param>
         /// <param name="dest"></param>
+        // IPackageProperties is currently marked as experimental (OOXML0001).
+        // There is no non-experimental alternative available yet.
+        #pragma warning disable 0618
         private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
@@ -783,6 +786,7 @@ namespace OfficeIMO.Word {
             dest.Title = src.Title;
             dest.Version = src.Version;
         }
+        #pragma warning restore 0618
 
         /// <summary>
         /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
