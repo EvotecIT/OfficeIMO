@@ -81,7 +81,8 @@ namespace OfficeIMO.Word {
                             var run = simpleField.OfType<Run>().FirstOrDefault();
                             if (run != null) {
                                 Text text = run.OfType<Text>().FirstOrDefault();
-                                if (text != null) {
+        /// Marks the table of contents so that Word refreshes its fields the next
+        /// time the document is opened.
                                     text.Text = value;
                                 }
                             }

@@ -47,7 +47,8 @@ public class ImageShapeStyle {
     public string MsoPositionVerticalRelative { get; set; }
 
     /// <summary>
-    /// Executes the FromString operation.
+    /// Parses a semicolon-separated list of property assignments and produces a
+    /// new <see cref="ImageShapeStyle"/> instance initialized with those values.
     /// </summary>
     public static ImageShapeStyle FromString(string styleString) {
         var styleParts = styleString.Split(';')
@@ -69,7 +70,8 @@ public class ImageShapeStyle {
     }
 
     /// <summary>
-    /// Executes the ToString operation.
+    /// Converts the current style settings into a semicolon-separated property
+    /// string that can be persisted or parsed back later.
     /// </summary>
     public override string ToString() {
         var properties = typeof(ImageShapeStyle).GetProperties();

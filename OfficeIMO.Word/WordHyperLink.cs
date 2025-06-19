@@ -256,7 +256,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink that jumps to an internal bookmark within the same document.
         /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             Hyperlink hyperlink = new Hyperlink() {
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink pointing to an external URI and attaches the appropriate relationship.
         /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.

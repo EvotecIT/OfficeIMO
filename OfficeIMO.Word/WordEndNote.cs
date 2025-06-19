@@ -84,7 +84,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Deletes this endnote from the document and removes its corresponding
+        /// reference.
         /// </summary>
         public void Remove() {
             long referenceId = 0;

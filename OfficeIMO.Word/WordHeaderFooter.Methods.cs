@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordHeaderFooter {
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Adds a paragraph with the specified text to the header or footer.
         /// </summary>
         public WordParagraph AddParagraph(string text) {
             var paragraph = AddParagraph();
@@ -17,7 +17,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Creates an empty paragraph in the header or footer. When
+        /// <paramref name="newRun"/> is true an empty run is added.
         /// </summary>
         public WordParagraph AddParagraph(bool newRun = false) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
@@ -30,21 +31,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink to the header or footer pointing to an external URI.
         /// </summary>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink that targets an internal bookmark within the document.
         /// </summary>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
         /// <summary>
-        /// Executes the AddHorizontalLine operation.
+        /// Inserts a horizontal line into the header or footer.
         /// </summary>
         public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
@@ -52,21 +53,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddBookmark operation.
+        /// Adds a bookmark at the current location in the header or footer.
         /// </summary>
         public WordParagraph AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
         /// <summary>
-        /// Executes the AddField operation.
+        /// Inserts a field into the header or footer using the specified type and format.
         /// </summary>
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
         }
 
         /// <summary>
-        /// Executes the AddTable operation.
+        /// Adds a table to the header or footer with the given dimensions and style.
         /// </summary>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             if (_footer != null) {
@@ -79,7 +80,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddList operation.
+        /// Creates a list in the header or footer and applies the specified style.
         /// </summary>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this);

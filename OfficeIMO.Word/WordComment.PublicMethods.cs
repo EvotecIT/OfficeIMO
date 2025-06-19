@@ -8,9 +8,9 @@ namespace OfficeIMO.Word {
     public partial class WordComment {
 
         /// <summary>
-        /// Creates a new comment in the specified document.
+        /// Creates a new comment and adds it to the document's comments part.
         /// </summary>
-        /// <param name="document">Document to which the comment will be added.</param>
+        /// Retrieves all comments present in the specified document.
         /// <param name="author">Author of the comment.</param>
         /// <param name="initials">Initials of the author.</param>
         /// <param name="comment">Comment text.</param>

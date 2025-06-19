@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Removes this structured document tag from the paragraph or run it belongs to.
         /// </summary>
         public void Remove() {
             if (this._stdRun != null) {

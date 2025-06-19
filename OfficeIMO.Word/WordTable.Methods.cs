@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetStyleId operation.
+        /// Applies the specified table style identifier to this table.
         /// </summary>
         public WordTable SetStyleId(string styleId) {
             //Todo Check the styleId exist

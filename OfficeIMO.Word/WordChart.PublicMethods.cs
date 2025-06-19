@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Word {
     public partial class WordChart {
         /// <summary>
-        /// Executes the AddCategories operation.
+        /// Defines the category labels used by subsequent series in the chart.
         /// </summary>
         public void AddCategories(List<string> categories) {
             Categories = categories;
@@ -58,14 +58,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddChartAxisX operation.
+        /// Sets the category axis labels for the chart's X axis.
         /// </summary>
         public void AddChartAxisX(List<string> categories) {
             Categories = categories;
         }
 
         /// <summary>
-        /// Executes the AddBar operation.
+        /// Adds a single-value bar series to the chart.
         /// </summary>
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddBar operation.
+        /// Adds a bar series using an array of numeric values.
         /// </summary>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddScatter operation.
+        /// Adds a scatter plot series with separate X and Y value collections.
         /// </summary>
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddLegend operation.
+        /// Adds or updates the legend and sets its position relative to the chart.
         /// </summary>
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {

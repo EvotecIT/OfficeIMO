@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
 
     public static class WordCharacterStyle {
         /// <summary>
-        /// Executes the GetStyleDefinition operation.
+        /// Returns the Open XML style definition for the specified character style.
         /// </summary>
         public static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the ToStringStyle operation.
+        /// Converts the enumeration value into the corresponding style identifier string.
         /// </summary>
         public static string ToStringStyle(this WordCharacterStyles style) {
             switch (style) {
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the GetStyle operation.
+        /// Parses a style identifier string and returns the corresponding enumeration value.
         /// </summary>
         public static WordCharacterStyles GetStyle(string style) {
             switch (style) {

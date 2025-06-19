@@ -12,7 +12,7 @@ public enum CustomImagePartType {
 
 public static class CustomImagePartTypeExtensions {
     /// <summary>
-    /// Executes the ToOpenXmlImagePartType operation.
+    /// Converts the custom image type enumeration into an Open XML content type string.
     /// </summary>
     public static string ToOpenXmlImagePartType(this CustomImagePartType customType) {
         return customType switch {

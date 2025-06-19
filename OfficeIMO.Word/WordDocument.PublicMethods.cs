@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Appends a new empty paragraph to the document body.
         /// </summary>
         public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Appends a paragraph containing the specified text to the document body.
         /// </summary>
         public WordParagraph AddParagraph(string text) {
             //return AddParagraph().SetText(text);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddPageBreak operation.
+        /// Inserts a page break at the current end of the document.
         /// </summary>
         public WordParagraph AddPageBreak() {
             WordParagraph newWordParagraph = new WordParagraph {
@@ -40,14 +40,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHeadersAndFooters operation.
+        /// Adds empty headers and footers to the document if none exist.
         /// </summary>
         public void AddHeadersAndFooters() {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>
-        /// Executes the AddBreak operation.
+        /// Inserts a break of the specified type at the end of the document.
         /// </summary>
         public WordParagraph AddBreak(BreakValues? breakType = null) {
             breakType ??= BreakValues.Page;
@@ -63,14 +63,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink to the specified URI at the end of the document.
         /// </summary>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink referencing an internal bookmark.
         /// </summary>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddList operation.
+        /// Creates a new list using the specified numbering or bullet style.
         /// </summary>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddTableOfContentList operation.
+        /// Creates a list that will serve as a table of contents placeholder.
         /// </summary>
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddTable operation.
+        /// Inserts a table with the specified dimensions and style into the document.
         /// </summary>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
@@ -128,19 +128,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a table of contents to the current document.
+        /// Adds a table of contents field using the specified style template.
         /// </summary>
-        /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
-        /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
-        public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
-            WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
-            _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
-            _tableOfContentStyle = tableOfContentStyle;
-            return wordTableContent;
+        /// Inserts a predefined cover page using the provided template.
+        /// Adds a text box with the provided text.
+        /// Inserts a horizontal line formatted with the specified border options.
+        /// Appends a new section to the document with an optional section break type.
+        /// Creates a bookmark at the end of the document.
+        /// Adds a field of the specified type to the document.
+        /// Embeds another document file into this document.
         }
 
         /// <summary>
-        /// Removes the current table of contents from the document if one exists.
+        /// Embeds an HTML fragment into this document.
         /// </summary>
         public void RemoveTableOfContent() {
             var toc = TableOfContent;
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word {
             return count;
         }
 
-
+        /// Finds all paragraphs containing the specified text.
         /// <summary>
         /// This method will combine identical runs in a paragraph.
         /// This is useful when you have a paragraph with multiple runs of the same style, that Microsoft Word creates.

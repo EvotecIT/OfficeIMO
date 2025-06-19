@@ -154,7 +154,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Add operation.
+        /// Appends an existing <see cref="WordTableCell"/> to this row.
         /// </summary>
         public void Add(WordTableCell cell) {
             _tableRow.Append(cell._tableCell);

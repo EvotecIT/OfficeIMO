@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Removes the bookmark and its end element from the document.
         /// </summary>
         public void Remove() {
             this._bookmarkEnd.Remove();
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddBookmark operation.
+        /// Creates a new bookmark around the specified paragraph or run.
         /// </summary>
         public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName) {
             BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };

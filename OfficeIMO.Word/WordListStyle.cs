@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
     }
     public static class WordListStyles {
         /// <summary>
-        /// Executes the GetStyle operation.
+        /// Returns the numbering style definition for the given list style.
         /// </summary>
         public static AbstractNum GetStyle(WordListStyle style) {
             switch (style) {

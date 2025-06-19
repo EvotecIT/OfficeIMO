@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document = null;
 
         /// <summary>
-        /// Gets or sets the Application.
+        /// Gets or sets the name of the application that created the document.
         /// </summary>
         public string Application {
             get {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the ApplicationVersion.
+        /// Gets or sets the version of the application that created the document.
         /// </summary>
         public string ApplicationVersion {
             get {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Paragraphs.
+        /// Gets or sets the total number of paragraphs recorded in the document properties.
         /// </summary>
         public string Paragraphs {
             get {
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Pages.
+        /// Gets or sets the total page count stored in the document properties.
         /// </summary>
         public string Pages {
             get {
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Characters.
+        /// Gets or sets the number of characters in the document excluding spaces.
         /// </summary>
         public string Characters {
             get {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the CharactersWithSpaces.
+        /// Gets or sets the number of characters in the document including spaces.
         /// </summary>
         public string CharactersWithSpaces {
             get {
@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Company.
+        /// Gets or sets the company name associated with the document.
         /// </summary>
         public string Company {
             get {
@@ -158,7 +158,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the DigitalSignature.
+        /// Gets or sets the digital signature information for the document.
         /// </summary>
         public DigitalSignature DigitalSignature {
             get {
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the DocumentSecurity.
+        /// Gets or sets the document security level.
         /// </summary>
         public DocumentSecurity DocumentSecurity {
             get {
@@ -200,7 +200,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the HeadingPairs.
+        /// Gets or sets the heading pair summaries used by Office.
         /// </summary>
         public HeadingPairs HeadingPairs {
             get {
@@ -221,7 +221,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the HiddenSlides.
+        /// Gets or sets the number of hidden slides in the document.
         /// </summary>
         public HiddenSlides HiddenSlides {
             get {
@@ -242,7 +242,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the HyperlinkBase.
+        /// Gets or sets the base URI for resolving relative hyperlinks.
         /// </summary>
         public HyperlinkBase HyperlinkBase {
             get {
@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the HyperlinkList.
+        /// Gets or sets the list of recent hyperlinks stored in the document properties.
         /// </summary>
         public HyperlinkList HyperlinkList {
             get {
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Lines.
+        /// Gets or sets the total line count for the document.
         /// </summary>
         public Lines Lines {
             get {
@@ -305,7 +305,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Manager.
+        /// Gets or sets the manager associated with the document.
         /// </summary>
         public Manager Manager {
             get {
@@ -326,7 +326,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the HyperlinksChanged.
+        /// Gets or sets a flag indicating that hyperlinks were modified.
         /// </summary>
         public HyperlinksChanged HyperlinksChanged {
             get {
@@ -347,7 +347,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Notes.
+        /// Gets or sets the total number of notes in the document.
         /// </summary>
         public Notes Notes {
             get {
@@ -369,7 +369,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the MultimediaClips.
+        /// Gets or sets the count of multimedia clips in the document.
         /// </summary>
         public MultimediaClips MultimediaClips {
             get {
@@ -391,7 +391,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the TotalTime.
+        /// Gets or sets the total editing time in minutes.
         /// </summary>
         public TotalTime TotalTime {
             get {
@@ -412,7 +412,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the ScaleCrop.
+        /// Gets or sets a value indicating whether to scale cropped regions of images.
         /// </summary>
         public ScaleCrop ScaleCrop {
             get {
@@ -433,7 +433,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the PresentationFormat.
+        /// Gets or sets the format of the presentation associated with this document.
         /// </summary>
         public PresentationFormat PresentationFormat {
             get {
@@ -451,7 +451,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Template.
+        /// Gets or sets the template used to create the document.
         /// </summary>
         public Template Template {
             get {
@@ -470,7 +470,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the SharedDocument.
+        /// Gets or sets a flag indicating whether the document is shared.
         /// </summary>
         public SharedDocument SharedDocument {
             get {
@@ -489,7 +489,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the Words.
+        /// Gets or sets the total word count recorded in the document properties.
         /// </summary>
         public Words Words {
             get {

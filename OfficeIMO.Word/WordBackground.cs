@@ -44,14 +44,14 @@ namespace OfficeIMO.Word {
             //DocumentBackground documentBackground2 = new DocumentBackground() { Color = "BF8F00", ThemeColor = ThemeColorValues.Accent4, ThemeShade = "BF" };
         }
         /// <summary>
-        /// Executes the SetColorHex operation.
+        /// Sets the background color using a hex string.
         /// </summary>
         public WordBackground SetColorHex(string color) {
             this.Color = color.Replace("#", ""); ;
             return this;
         }
         /// <summary>
-        /// Executes the SetColor operation.
+        /// Sets the background color using an <see cref="SixLabors.ImageSharp.Color"/> value.
         /// </summary>
         public WordBackground SetColor(SixLabors.ImageSharp.Color color) {
             this.Color = color.ToHexColor();

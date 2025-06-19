@@ -22,7 +22,8 @@ namespace OfficeIMO.Word {
     /// </example>
     public static class ImageShapeStyleHelper {
         /// <summary>
-        /// Executes the GetStyle operation.
+        /// Retrieves the style attributes from the specified shape and returns them
+        /// as key/value pairs.
         /// </summary>
         public static Dictionary<string, string> GetStyle(Shape shape) {
             return shape.Style.Value.Split(';')
@@ -31,7 +32,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetStyle operation.
+        /// Applies the provided style attributes to the shape by constructing a
+        /// semicolon-separated style string.
         /// </summary>
         public static void SetStyle(Shape shape, Dictionary<string, string> style) {
             shape.Style.Value = string.Join(";", style.Select(kvp => $"{kvp.Key}:{kvp.Value}"));

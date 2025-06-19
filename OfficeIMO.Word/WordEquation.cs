@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Removes the equation from the document while preserving surrounding text.
         /// </summary>
         public void Remove() {
             if (this._officeMath != null) {

@@ -338,23 +338,23 @@ namespace OfficeIMO.Word {
             };
 
         /// <summary>
-        /// Executes the A6 operation.
+        /// Returns a <see cref="PageSize"/> representing A6 paper dimensions.
         /// </summary>
         public static PageSize A6 => new PageSize() { Width = (UInt32Value)5953U, Height = (UInt32Value)8391U, Code = (UInt16Value)70U };
         /// <summary>
-        /// Executes the B5 operation.
+        /// Returns a <see cref="PageSize"/> representing B5 paper dimensions.
         /// </summary>
         public static PageSize B5 => new PageSize() { Width = (UInt32Value)10318U, Height = (UInt32Value)14570U, Code = (UInt16Value)13U };
         /// <summary>
-        /// Executes the Statement operation.
+        /// Returns a <see cref="PageSize"/> suitable for statement sized paper.
         /// </summary>
         public static PageSize Statement => new PageSize() { Width = (UInt32Value)7920U, Height = (UInt32Value)12240U, Code = (UInt16Value)6U };
         /// <summary>
-        /// Executes the Legal operation.
+        /// Returns a <see cref="PageSize"/> representing US legal dimensions.
         /// </summary>
         public static PageSize Legal => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)20160U, Code = (UInt16Value)5U };
         /// <summary>
-        /// Executes the Letter operation.
+        /// Returns a <see cref="PageSize"/> representing US letter dimensions.
         /// </summary>
         public static PageSize Letter => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U, Code = (UInt16Value)1U };
     }

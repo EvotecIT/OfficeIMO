@@ -87,7 +87,9 @@ namespace OfficeIMO.Word {
 
 public static class StringExtensions {
     /// <summary>
-    /// Executes the FindAndReplace operation.
+    /// Replaces all occurrences of <paramref name="oldValue"/> with
+    /// <paramref name="newValue"/> using the specified comparison type and
+    /// returns the modified string while reporting the number of replacements.
     /// </summary>
     public static string FindAndReplace(this string str, string oldValue, string newValue, StringComparison comparisonType, ref int count) {
         List<string> list = new List<string>();

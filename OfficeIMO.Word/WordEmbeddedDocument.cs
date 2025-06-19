@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Executes the Save operation.
+        /// Writes the embedded document content to the specified file.
         /// </summary>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Detaches the embedded document from the parent document.
         /// </summary>
         public void Remove() {
             _altChunk.Remove();

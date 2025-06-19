@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
 
     public static class WordParagraphStyle {
         /// <summary>
-        /// Executes the GetStyleDefinition operation.
+        /// Returns the style definition element for the specified paragraph style.
         /// </summary>
         public static Style GetStyleDefinition(WordParagraphStyles style) {
             switch (style) {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the ToStringStyle operation.
+        /// Converts the enumeration value to the corresponding style identifier string.
         /// </summary>
         public static string ToStringStyle(this WordParagraphStyles style) {
             switch (style) {
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the GetStyle operation.
+        /// Parses a style identifier string and returns the matching enumeration value.
         /// </summary>
         public static WordParagraphStyles GetStyle(string style) {
             switch (style) {

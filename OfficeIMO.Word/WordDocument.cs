@@ -12,8 +12,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
-        internal int? _tableOfContentIndex;
-        internal TableOfContentStyle? _tableOfContentStyle;
+        /// Gets the table of contents represented by a structured document tag in the body.
+        /// Gets the cover page represented by a structured document tag if present.
 
         internal int BookmarkId {
             get {
@@ -974,7 +974,7 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new Exception("Document is read only, and cannot be saved.");
             }
-            PreSaving();
+        /// Saves and closes the underlying WordprocessingDocument instance.
 
             this._wordprocessingDocument.Clone(outputStream);
 
@@ -1040,7 +1040,7 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Gets or sets the Background.
+        /// Validates the document and returns a collection of validation errors.
         /// </summary>
         public WordBackground Background { get; set; }
 

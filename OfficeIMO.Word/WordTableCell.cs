@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
         internal TableCellProperties _tableCellProperties;
 
         /// <summary>
-        /// Executes the Paragraphs operation.
+        /// Gets the paragraphs contained within this table cell.
         /// </summary>
         public List<WordParagraph> Paragraphs => WordSection.ConvertParagraphsToWordParagraphs(_document, _tableCell.ChildElements.OfType<Paragraph>());
         private readonly WordTable _wordTable;
@@ -569,7 +569,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddList operation.
+        /// Adds a list inside the cell using the specified style.
         /// </summary>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());

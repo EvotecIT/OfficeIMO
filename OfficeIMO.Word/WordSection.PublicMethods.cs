@@ -10,14 +10,15 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordSection {
         /// <summary>
-        /// Executes the SetMargins operation.
+        /// Updates the section margins using the specified <see cref="WordMargin"/>.
         /// </summary>
         public WordSection SetMargins(WordMargin pageMargins) {
             return WordMargins.SetMargins(this, pageMargins);
         }
 
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Adds a new paragraph to this section. When <paramref name="newRun"/> is
+        /// <c>true</c> the paragraph starts with an empty run.
         /// </summary>
         public WordParagraph AddParagraph(bool newRun) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
@@ -32,7 +33,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddParagraph operation.
+        /// Adds a new paragraph containing the specified text to this section.
         /// </summary>
         public WordParagraph AddParagraph(string text = "") {
             if (this.Paragraphs.Count == 0) {
@@ -56,7 +57,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddWatermark operation.
+        /// Inserts a watermark into the section using either text or an image file.
         /// </summary>
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
             // return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
@@ -64,7 +65,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetBorders operation.
+        /// Applies borders around the page using the provided border settings.
         /// </summary>
         public WordSection SetBorders(WordBorder wordBorder) {
             this.Borders.SetBorder(wordBorder);
@@ -73,7 +74,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHorizontalLine operation.
+        /// Inserts a horizontal line formatted with the specified border style.
         /// </summary>
         public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
@@ -81,35 +82,35 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink paragraph that navigates to the specified external URI.
         /// </summary>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
         /// <summary>
-        /// Executes the AddHyperLink operation.
+        /// Adds a hyperlink paragraph that points to an internal bookmark.
         /// </summary>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
         /// <summary>
-        /// Executes the AddHeadersAndFooters operation.
+        /// Creates default headers and footers for this section if they do not already exist.
         /// </summary>
         public void AddHeadersAndFooters() {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>
-        /// Executes the AddTextBox operation.
+        /// Appends a new paragraph containing a text box with the supplied text.
         /// </summary>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             return AddParagraph(newRun: true).AddTextBox(text, wrapTextImage);
         }
 
         /// <summary>
-        /// Executes the AddFootnoteProperties operation.
+        /// Sets up default footnote properties such as numbering format and position for the section.
         /// </summary>
         public WordSection AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
             FootnotePositionValues? position = null,
@@ -146,7 +147,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddEndnoteProperties operation.
+        /// Sets up default endnote properties such as numbering format and position for the section.
         /// </summary>
         public WordSection AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
             EndnotePositionValues? position = null,

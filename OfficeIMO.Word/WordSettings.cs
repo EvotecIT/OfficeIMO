@@ -478,14 +478,14 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Executes the SetBackgroundColor operation.
+        /// Sets the background color using a hex string.
         /// </summary>
         public WordSettings SetBackgroundColor(string backgroundColor) {
             this.BackgroundColor = backgroundColor;
             return this;
         }
         /// <summary>
-        /// Executes the SetBackgroundColor operation.
+        /// Sets the background color using an <see cref="SixLabors.ImageSharp.Color"/>.
         /// </summary>
         public WordSettings SetBackgroundColor(SixLabors.ImageSharp.Color backgroundColor) {
             this.BackgroundColor = backgroundColor.ToHexColor();

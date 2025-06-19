@@ -53,14 +53,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the ParagraphsHyperLinks.
+        /// Gets paragraphs that contain hyperlinks within this section.
         /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
         /// <summary>
-        /// Gets or sets the ParagraphsFields.
+        /// Gets paragraphs that include fields within this section.
         /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }

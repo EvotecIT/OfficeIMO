@@ -5,7 +5,8 @@ using System.IO;
 namespace OfficeIMO.Word {
     public static partial class Helpers {
         /// <summary>
-        /// Executes the MakeOpenOfficeCompatible operation.
+        /// Adjusts relationship paths so that the generated package is compatible
+        /// with OpenOffice applications.
         /// </summary>
         public static void MakeOpenOfficeCompatible(string filePath) {
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
@@ -20,7 +21,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the MakeOpenOfficeCompatible operation.
+        /// Performs the compatibility adjustments on a package provided as a stream.
         /// </summary>
         public static void MakeOpenOfficeCompatible(Stream fileStream) {
             using (Package package = Package.Open(fileStream, FileMode.Open, FileAccess.ReadWrite)) {

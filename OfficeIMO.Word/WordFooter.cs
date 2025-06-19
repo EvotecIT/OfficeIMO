@@ -68,7 +68,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddPageNumber operation.
+        /// Inserts a page number field into this footer using the specified style.
         /// </summary>
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
@@ -76,8 +76,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes footers from the provided <see cref="WordprocessingDocument"/>.
-        /// When no <paramref name="types"/> are specified all footers are removed.
+        /// Removes all footer parts and references from the provided document.
+        /// Removes all footers from the given <see cref="WordDocument"/> instance.
         /// </summary>
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>

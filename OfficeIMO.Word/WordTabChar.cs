@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Removes this tab character from the run and optionally its paragraph.
         /// </summary>
         public void Remove(bool includingParagraph = false) {
             if (includingParagraph) {

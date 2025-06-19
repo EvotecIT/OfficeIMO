@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
             document.BuiltinDocumentProperties = this;
         }
         /// <summary>
-        /// Gets or sets the Creator.
+        /// Gets or sets the author of the document.
         /// </summary>
         public string Creator {
             get {
@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Title.
+        /// Gets or sets the document title.
         /// </summary>
         public string Title {
             get {
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Description.
+        /// Gets or sets the description or abstract for the document.
         /// </summary>
         public string Description {
             get {
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Category.
+        /// Gets or sets the category of the document.
         /// </summary>
         public string Category {
             get {
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// A delimited set of keywords (tags) to support searching and indexing the Package and content.
+        /// Gets or sets keywords that help with searching and indexing the document.
         /// </summary>
         public string Keywords {
             get {
@@ -68,7 +68,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Subject.
+        /// Gets or sets the subject of the document.
         /// </summary>
         public string Subject {
             get {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Revision.
+        /// Gets or sets the revision number of the document.
         /// </summary>
         public string Revision {
             get {
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the LastModifiedBy.
+        /// Gets or sets the name of the person who last modified the document.
         /// </summary>
         public string LastModifiedBy {
             get {
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Version.
+        /// Gets or sets the version of the document.
         /// </summary>
         public string Version {
             get {
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Created.
+        /// Gets or sets the document creation date and time.
         /// </summary>
         public DateTime? Created {
             get {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the Modified.
+        /// Gets or sets the date and time the document was last modified.
         /// </summary>
         public DateTime? Modified {
             get {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the LastPrinted.
+        /// Gets or sets the date the document was last printed.
         /// </summary>
         public DateTime? LastPrinted {
             get {

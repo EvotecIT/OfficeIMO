@@ -686,7 +686,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Deletes the watermark by removing the underlying structured document block
+        /// from the header or section where it was inserted.
         /// </summary>
         public void Remove() {
             _sdtBlock.Remove();

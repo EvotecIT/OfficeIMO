@@ -310,7 +310,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetMargins operation.
+        /// Applies new margin settings to the specified section.
         /// </summary>
         public static WordSection SetMargins(WordSection wordSection, WordMargin pageMargins) {
             var pageMarginData = GetDefault(pageMargins);

@@ -3,77 +3,77 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>
-        /// Executes the SetBold operation.
+        /// Turns bold formatting on or off for this paragraph.
         /// </summary>
         public WordParagraph SetBold(bool isBold = true) {
             this.Bold = isBold;
             return this;
         }
         /// <summary>
-        /// Executes the SetItalic operation.
+        /// Sets italic formatting for the paragraph text.
         /// </summary>
         public WordParagraph SetItalic(bool isItalic = true) {
             this.Italic = isItalic;
             return this;
         }
         /// <summary>
-        /// Executes the SetUnderline operation.
+        /// Applies the specified underline style to the paragraph.
         /// </summary>
         public WordParagraph SetUnderline(UnderlineValues underline) {
             this.Underline = underline;
             return this;
         }
         /// <summary>
-        /// Executes the SetSpacing operation.
+        /// Sets the spacing after the paragraph in twentieths of a point.
         /// </summary>
         public WordParagraph SetSpacing(int spacing) {
             this.Spacing = spacing;
             return this;
         }
         /// <summary>
-        /// Executes the SetStrike operation.
+        /// Toggles single strike-through formatting for the paragraph.
         /// </summary>
         public WordParagraph SetStrike(bool isStrike = true) {
             this.Strike = isStrike;
             return this;
         }
         /// <summary>
-        /// Executes the SetDoubleStrike operation.
+        /// Toggles double strike-through formatting for the paragraph.
         /// </summary>
         public WordParagraph SetDoubleStrike(bool isDoubleStrike = true) {
             this.DoubleStrike = isDoubleStrike;
             return this;
         }
         /// <summary>
-        /// Executes the SetFontSize operation.
+        /// Sets the font size of the paragraph text in points.
         /// </summary>
         public WordParagraph SetFontSize(int fontSize) {
             this.FontSize = fontSize;
             return this;
         }
         /// <summary>
-        /// Executes the SetFontFamily operation.
+        /// Sets the font family for the paragraph text.
         /// </summary>
         public WordParagraph SetFontFamily(string fontFamily) {
             this.FontFamily = fontFamily;
             return this;
         }
         /// <summary>
-        /// Executes the SetColorHex operation.
+        /// Changes the text color using a hex string.
         /// </summary>
         public WordParagraph SetColorHex(string color) {
             this.ColorHex = color;
             return this;
         }
         /// <summary>
-        /// Executes the SetColor operation.
+        /// Changes the text color using an <see cref="SixLabors.ImageSharp.Color"/> value.
         /// </summary>
         public WordParagraph SetColor(SixLabors.ImageSharp.Color color) {
             this.Color = color;
             return this;
         }
         /// <summary>
-        /// Executes the SetAlignment operation.
+        /// Sets the paragraph alignment.
         /// </summary>
         public WordParagraph SetAlignment(JustificationValues alignment) {
             this.ParagraphAlignment = alignment;
@@ -81,28 +81,28 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetHighlight operation.
+        /// Applies a highlight color to the paragraph text.
         /// </summary>
         public WordParagraph SetHighlight(HighlightColorValues highlight) {
             this.Highlight = highlight;
             return this;
         }
         /// <summary>
-        /// Executes the SetCapsStyle operation.
+        /// Sets the capitalization style for the paragraph text.
         /// </summary>
         public WordParagraph SetCapsStyle(CapsStyle capsStyle) {
             this.CapsStyle = capsStyle;
             return this;
         }
         /// <summary>
-        /// Executes the SetText operation.
+        /// Replaces the paragraph text with the specified value.
         /// </summary>
         public WordParagraph SetText(string text) {
             this.Text = text;
             return this;
         }
         /// <summary>
-        /// Executes the SetStyle operation.
+        /// Applies one of the predefined paragraph styles.
         /// </summary>
         public WordParagraph SetStyle(WordParagraphStyles style) {
             this.Style = style;
@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Executes the SetStyleId operation.
+        /// Applies a paragraph style using its style identifier string.
         /// </summary>
         public WordParagraph SetStyleId(string styleId) {
             //Todo Check the styleId exist

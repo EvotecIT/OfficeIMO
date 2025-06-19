@@ -147,7 +147,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddFootnoteProperties operation.
+        /// Applies footnote options to the first section of the document.
         /// </summary>
         public void AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
             FootnotePositionValues? position = null,
@@ -157,7 +157,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddEndnoteProperties operation.
+        /// Applies endnote options to the first section of the document.
         /// </summary>
         public void AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
             EndnotePositionValues? position = null,

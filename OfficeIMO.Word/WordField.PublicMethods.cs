@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordField {
         /// <summary>
-        /// Executes the AddField operation.
+        /// Inserts a field of the specified type into the paragraph.
         /// </summary>
         public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             if (advanced) {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the Remove operation.
+        /// Removes the field markup from the paragraph.
         /// </summary>
         public void Remove() {
             if (_runs != null) {

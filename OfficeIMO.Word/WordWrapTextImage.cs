@@ -19,7 +19,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AppendWrapTextImage operation.
+        /// Appends the markup required for the specified wrapping option to the
+        /// provided anchor.
         /// </summary>
         public static Anchor AppendWrapTextImage(Anchor anchor, WrapTextImage wrapImage) {
             if (wrapImage == WrapTextImage.Square) {
@@ -51,7 +52,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the GetWrapTextImage operation.
+        /// Examines the anchor or inline element and determines which wrapping mode
+        /// is currently applied.
         /// </summary>
         public static WrapTextImage? GetWrapTextImage(Anchor anchor, Inline inline) {
             if (anchor != null) {
@@ -85,7 +87,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the SetWrapTextImage operation.
+        /// Updates the wrapping mode of a drawing by modifying its anchor or inline
+        /// markup to match the requested value.
         /// </summary>
         public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
