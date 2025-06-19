@@ -418,18 +418,45 @@ namespace OfficeIMO.Word {
         }
 
         private static void InsertSeries(OpenXmlCompositeElement chartElement, OpenXmlCompositeElement series) {
+            // For Line3DChart and other charts, series should come after grouping/varyColors but before dLbls/gapDepth/axId
+
+            // Try to insert after VaryColors first
+            var varyColors = chartElement.GetFirstChild<VaryColors>();
+            if (varyColors != null) {
+                chartElement.InsertAfter(series, varyColors);
+                return;
+            }
+
+            // If no VaryColors, try to insert after Grouping
+            var grouping = chartElement.GetFirstChild<Grouping>();
+            if (grouping != null) {
+                chartElement.InsertAfter(series, grouping);
+                return;
+            }
+
+            // If no grouping, try to insert before DataLabels
             var dataLabels = chartElement.GetFirstChild<DataLabels>();
             if (dataLabels != null) {
                 chartElement.InsertBefore(series, dataLabels);
                 return;
             }
 
+            // If no DataLabels, try to insert before GapDepth
+            var gapDepth = chartElement.GetFirstChild<GapDepth>();
+            if (gapDepth != null) {
+                chartElement.InsertBefore(series, gapDepth);
+                return;
+            }
+
+            // As a last resort, insert before the first AxisId
             var axis = chartElement.Elements<AxisId>().FirstOrDefault();
             if (axis != null) {
                 chartElement.InsertBefore(series, axis);
-            } else {
-                chartElement.Append(series);
+                return;
             }
+
+            // If none of the above, just append it
+            chartElement.Append(series);
         }
 
         private ScatterChart CreateScatterChart(UInt32Value xAxisId, UInt32Value yAxisId) {
@@ -604,39 +631,75 @@ namespace OfficeIMO.Word {
             return series3d;
         }
 
-        private Line3DChart CreateLine3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
+        private Line3DChart CreateLine3DChart(UInt32Value catAxisId, UInt32Value valAxisId, UInt32Value seriesId) {
             Line3DChart chart = new Line3DChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
-            DataLabels labels = AddDataLabel();
-            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
+            // Add elements in the correct OpenXML schema order for Line3DChart:
+            // 1. grouping, 2. varyColors, 3. ser (LineChartSeries - inserted by InsertSeries), 4. dLbls, 5. dropLines, 6. gapDepth, 7. axId (3x), 8. extLst
 
+            // Required elements that come before series
+            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
             chart.Append(grouping);
+
+            VaryColors varyColors = new VaryColors() { Val = false };
+            chart.Append(varyColors);
+
+            // Elements that come after series - InsertSeries will place series between varyColors and dLbls
+            DataLabels labels = AddDataLabel();
             chart.Append(labels);
+
+            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
             chart.Append(gapDepth);
 
+            // Line3DChart requires 3 axis IDs (CategoryAxis, ValueAxis, SeriesAxis)
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId3 = new AxisId() { Val = seriesId };
+            axisId3.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
             chart.Append(axisId2);
+            chart.Append(axisId3);
+
             return chart;
+        }
+
+        private SeriesAxis AddSeriesAxisInternal(UInt32Value axisId, UInt32Value crossAxisId, AxisPositionValues position) {
+            SeriesAxis axis = new SeriesAxis();
+
+            AxisId axId = new AxisId() { Val = axisId };
+            Scaling scaling = new Scaling();
+            scaling.Append(new Orientation() { Val = OrientationValues.MinMax });
+            AxisPosition axPos = new AxisPosition() { Val = position };
+            CrossingAxis crossAx = new CrossingAxis() { Val = crossAxisId };
+            Crosses crosses = new Crosses() { Val = CrossesValues.AutoZero };
+
+            axis.Append(axId);
+            axis.Append(scaling);
+            axis.Append(axPos);
+            axis.Append(crossAx);
+            axis.Append(crosses);
+
+            return axis;
         }
 
         private Chart GenerateLine3DChart(Chart chart) {
             UInt32Value catId = GenerateAxisId();
             UInt32Value valId = GenerateAxisId();
+            UInt32Value seriesId = GenerateAxisId(); // Add third axis for Line3D
 
-            Line3DChart chart3d = CreateLine3DChart(catId, valId);
+            Line3DChart chart3d = CreateLine3DChart(catId, valId, seriesId);
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            SeriesAxis seriesAxis = AddSeriesAxisInternal(seriesId, catId, AxisPositionValues.Right);
 
             chart.PlotArea.Append(chart3d);
             chart.PlotArea.Append(catAxis);
             chart.PlotArea.Append(valAxis);
+            chart.PlotArea.Append(seriesAxis);
             return chart;
         }
 
