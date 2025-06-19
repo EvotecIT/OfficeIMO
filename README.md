@@ -155,6 +155,11 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️Add new endnotes
     - ☑️Read endnotes
     - ☑️Remove endnotes
+- ☑️ Content Controls
+    - ☑️ Add controls
+    - ☑️ Read controls
+    - ☑️ Update control text
+    - ☑️ Remove controls
 - ◼️ Shapes
 - ◼️ Charts
     - ☑️ Add charts
@@ -266,6 +271,18 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
     Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
     Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
+    document.Save(true);
+}
+```
+
+### Adding a Content Control
+
+This example shows how to add and update a simple content control.
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    var sdt = document.AddStructuredDocumentTag("Hello", "MyAlias");
+    sdt.Text = "Changed";
     document.Save(true);
 }
 ```
