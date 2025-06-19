@@ -368,3 +368,5 @@ if you need to add or update a verified snapshot, you can use the powershell scr
 ```bash
 $ pwsh -c ./Build/ApproveVerifyTests.ps1
 ```
+To show a graphical diff instead of console output when Verify tests fail, set
+the environment variable `DiffEngine_Disabled=false` before running the tests.
