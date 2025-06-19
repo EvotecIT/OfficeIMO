@@ -34,5 +34,28 @@ namespace OfficeIMO.Word {
             }
             return comments;
         }
+
+        /// <summary>
+        /// Deletes this comment and removes all references from the document.
+        /// </summary>
+        public void Delete() {
+            var commentsPart = _document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart;
+            if (commentsPart?.Comments != null) {
+                var cmt = commentsPart.Comments.Elements<Comment>().FirstOrDefault(c => c.Id == _comment.Id);
+                cmt?.Remove();
+                commentsPart.Comments.Save();
+            }
+
+            var body = _document._document.Body;
+            foreach (var start in body.Descendants<CommentRangeStart>().Where(c => c.Id == _comment.Id).ToList()) {
+                start.Remove();
+            }
+            foreach (var end in body.Descendants<CommentRangeEnd>().Where(c => c.Id == _comment.Id).ToList()) {
+                end.Remove();
+            }
+            foreach (var reference in body.Descendants<CommentReference>().Where(c => c.Id == _comment.Id).ToList()) {
+                reference.Parent?.Remove();
+            }
+        }
     }
 }
