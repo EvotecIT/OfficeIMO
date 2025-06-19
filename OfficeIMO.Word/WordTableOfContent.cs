@@ -10,6 +10,10 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
         internal SdtBlock SdtBlock => _sdtBlock;
+
+        /// <summary>
+        /// Gets the template style used to create this table of contents.
+        /// </summary>
         public TableOfContentStyle Style { get; }
 
         public string Text {
@@ -107,10 +111,17 @@ namespace OfficeIMO.Word {
             this._document.Settings.UpdateFieldsOnOpen = true;
         }
 
+        /// <summary>
+        /// Deletes this table of contents from the parent document.
+        /// </summary>
         public void Remove() {
             _document.RemoveTableOfContent();
         }
 
+        /// <summary>
+        /// Removes this table of contents and creates a new one in the same location.
+        /// </summary>
+        /// <returns>The newly created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent Regenerate() {
             return _document.RegenerateTableOfContent();
         }
