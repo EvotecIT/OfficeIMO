@@ -32,6 +32,8 @@
 
 [WordBarChart3D](./officeimo.word.wordbarchart3d.md)
 
+[WordAreaChart3D](./officeimo.word.wordareachart3d.md)
+
 [WordBookmark](./officeimo.word.wordbookmark.md)
 
 [WordBorder](./officeimo.word.wordborder.md)
