@@ -154,6 +154,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public void AddLine3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsLine3D();
+            if (_chart != null) {
+                var line3d = _chart.PlotArea.GetFirstChild<Line3DChart>();
+                if (line3d != null) {
+                    var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
+                    InsertSeries(line3d, series);
+                }
+            }
+        }
+
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();

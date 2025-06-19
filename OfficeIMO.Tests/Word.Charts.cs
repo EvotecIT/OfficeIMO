@@ -128,14 +128,21 @@ namespace OfficeIMO.Tests {
                 var pie3dXml = pie3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Pie3DChart>();
                 Assert.NotNull(pie3dXml);
 
+                var line3d = document.AddChart();
+                line3d.AddChartAxisX(categories);
+                line3d.AddLine3D("USA", new List<int> { 1, 2, 3, 4 }, Color.Purple);
+                var line3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
+                var line3dXml = line3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Line3DChart>();
+                Assert.NotNull(line3dXml);
+
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 Assert.True(document.Sections[0].Charts.Count == 3);
-                Assert.True(document.Sections[1].Charts.Count == 6);
-                Assert.True(document.Charts.Count == 9);
+                Assert.True(document.Sections[1].Charts.Count == 7);
+                Assert.True(document.Charts.Count == 10);
 
                 document.Save(false);
             }
@@ -159,6 +166,28 @@ namespace OfficeIMO.Tests {
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
                 Assert.True(chartErrors.Count == 0,
                     Word.FormatValidationErrors(chartErrors));
+            }
+        }
+
+        [Fact]
+        public void Test_Line3DChartAxisCount() {
+            var filePath = Path.Combine(_directoryWithFiles, "Line3DChartAxisCount.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var categories = new List<string> { "A", "B", "C" };
+                var chart = document.AddChart();
+                chart.AddChartAxisX(categories);
+                chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
+                var line3d = part.ChartSpace.GetFirstChild<Chart>()
+                    .PlotArea.GetFirstChild<Line3DChart>();
+                var axisCount = line3d.Elements<AxisId>().Count();
+                Assert.Equal(2, axisCount);
             }
         }
 

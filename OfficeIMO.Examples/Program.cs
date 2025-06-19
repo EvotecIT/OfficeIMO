@@ -124,6 +124,7 @@ namespace OfficeIMO.Examples {
             Charts.Example_RadarChart(folderPath, false);
             Charts.Example_Bar3DChart(folderPath, false);
             Charts.Example_Pie3DChart(folderPath, false);
+            Charts.Example_Line3DChart(folderPath, false);
 
             Images.Example_AddingImages(folderPath, false);
             Images.Example_ReadWordWithImages();
