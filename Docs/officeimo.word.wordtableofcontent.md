@@ -63,3 +63,27 @@ public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
 ```csharp
 public void Update()
 ```
+
+### **Remove()**
+
+```csharp
+public void Remove()
+```
+
+### **Regenerate()**
+
+```csharp
+public WordTableOfContent Regenerate()
+```
+
+### Example
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.AddTableOfContent();
+    document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
+    document.TableOfContent.Remove();
+    document.RegenerateTableOfContent();
+    document.Save();
+}
+```

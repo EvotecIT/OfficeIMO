@@ -188,6 +188,9 @@ namespace OfficeIMO.Word {
                         _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
                     }
                     _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                    if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
+                        _document?.HeadingModified();
+                    }
                 }
             }
         }

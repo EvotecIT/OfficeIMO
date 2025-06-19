@@ -99,7 +99,34 @@ namespace OfficeIMO.Word {
 
         public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
+            _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
+        }
+
+        public void RemoveTableOfContent() {
+            var toc = TableOfContent;
+            if (toc != null) {
+                toc.SdtBlock.Remove();
+                _tableOfContentIndex = null;
+            }
+        }
+
+        public WordTableOfContent RegenerateTableOfContent() {
+            var toc = TableOfContent;
+            var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
+            int index = _tableOfContentIndex ?? (toc != null ? _document.Body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
+            RemoveTableOfContent();
+            var newToc = new WordTableOfContent(this, style);
+            if (index >= 0 && index < _document.Body.ChildElements.Count - 1) {
+                var block = newToc.SdtBlock;
+                block.Remove();
+                _document.Body.InsertAt(block, index);
+                _tableOfContentIndex = index;
+            } else {
+                _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            }
+            return newToc;
         }
 
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
