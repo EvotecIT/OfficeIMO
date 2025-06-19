@@ -60,6 +60,12 @@ namespace OfficeIMO.Word {
             return pageNumber;
         }
 
+        /// <summary>
+        /// Removes headers from the provided <see cref="WordprocessingDocument"/>.
+        /// When no <paramref name="types"/> are specified all headers are removed.
+        /// </summary>
+        /// <param name="wordprocessingDocument">Document to operate on.</param>
+        /// <param name="types">Header types to remove.</param>
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
@@ -89,6 +95,12 @@ namespace OfficeIMO.Word {
                 docPart.DeletePart(part);
             }
         }
+        /// <summary>
+        /// Removes headers from the specified <see cref="WordDocument"/>.
+        /// When no <paramref name="types"/> are provided all headers are removed.
+        /// </summary>
+        /// <param name="document">Document to operate on.</param>
+        /// <param name="types">Header types to remove.</param>
         public static void RemoveHeaders(WordDocument document, params HeaderFooterValues[] types) {
             RemoveHeaders(document._wordprocessingDocument, types);
         }

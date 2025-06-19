@@ -4,11 +4,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordHelpers {
         /// <summary>
-        /// Given a document name, remove specified headers and footers from the document.
-        /// When no types are provided all headers and footers are removed.
+        /// Removes headers and footers from the file at <paramref name="filename"/>.
+        /// When no <paramref name="types"/> are provided all headers and footers are removed.
         /// </summary>
-        /// <param name="filename"></param>
-        /// <param name="types">Header or footer types to remove</param>
+        /// <param name="filename">Path to the document.</param>
+        /// <param name="types">Header or footer types to remove.</param>
         public static void RemoveHeadersAndFooters(string filename, params HeaderFooterValues[] types) {
             using (WordprocessingDocument doc = WordprocessingDocument.Open(filename, true)) {
                 WordHeader.RemoveHeaders(doc, types);

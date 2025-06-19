@@ -63,6 +63,12 @@ namespace OfficeIMO.Word {
             return pageNumber;
         }
 
+        /// <summary>
+        /// Removes footers from the provided <see cref="WordprocessingDocument"/>.
+        /// When no <paramref name="types"/> are specified all footers are removed.
+        /// </summary>
+        /// <param name="wordprocessingDocument">Document to operate on.</param>
+        /// <param name="types">Footer types to remove.</param>
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
@@ -92,6 +98,12 @@ namespace OfficeIMO.Word {
                 docPart.DeletePart(part);
             }
         }
+        /// <summary>
+        /// Removes footers from the specified <see cref="WordDocument"/>.
+        /// When no <paramref name="types"/> are provided all footers are removed.
+        /// </summary>
+        /// <param name="document">Document to operate on.</param>
+        /// <param name="types">Footer types to remove.</param>
         public static void RemoveFooters(WordDocument document, params HeaderFooterValues[] types) {
             RemoveFooters(document._wordprocessingDocument, types);
         }

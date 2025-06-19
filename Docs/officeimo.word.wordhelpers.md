@@ -20,7 +20,7 @@ public WordHelpers()
 
 ### **RemoveHeadersAndFooters(String, HeaderFooterValues[])**
 
-Given a document name, remove selected headers and footers from the document. If no types are supplied all headers and footers are removed.
+Remove selected headers and footers from the document. If no types are supplied all headers and footers are removed.
 
 ```csharp
 public static void RemoveHeadersAndFooters(string filename, params HeaderFooterValues[] types)
@@ -29,4 +29,6 @@ public static void RemoveHeadersAndFooters(string filename, params HeaderFooterV
 #### Parameters
 
 `filename` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+Document to modify.
 `types` [HeaderFooterValues](https://learn.microsoft.com/dotnet/api/documentformat.openxml.wordprocessing.headerfootervalues)[]<br>
+Header or footer types to remove.
