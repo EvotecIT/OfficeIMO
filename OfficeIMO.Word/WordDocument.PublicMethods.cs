@@ -200,6 +200,16 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
+        /// <summary>
+        /// Adds a new paragraph with a content control (structured document tag).
+        /// </summary>
+        /// <param name="text">Initial text of the control.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <returns>The created <see cref="WordStructuredDocumentTag"/>.</returns>
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null) {
+            return this.AddParagraph().AddStructuredDocumentTag(alias, text);
+        }
+
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
             return new WordEmbeddedDocument(this, fileName, type, false);
         }

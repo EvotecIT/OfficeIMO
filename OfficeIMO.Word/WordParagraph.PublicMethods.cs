@@ -494,5 +494,33 @@ namespace OfficeIMO.Word {
             WordShape wordShape = new WordShape(this._document, this, widthPt, heightPt, fillColor);
             return wordShape;
         }
+
+        /// <summary>
+        /// Adds a simple content control (structured document tag) to the paragraph.
+        /// </summary>
+        /// <param name="alias">Optional alias for the content control.</param>
+        /// <param name="text">Initial text of the control.</param>
+        /// <returns>The created <see cref="WordStructuredDocumentTag"/> instance.</returns>
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "") {
+            var sdtRun = new SdtRun();
+
+            var sdtProperties = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                sdtProperties.Append(new SdtAlias() { Val = alias });
+            }
+            sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+
+            var sdtContent = new SdtContentRun();
+            var run = new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            sdtContent.Append(run);
+
+            sdtRun.Append(sdtProperties);
+            sdtRun.Append(sdtContent);
+
+            this._paragraph.Append(sdtRun);
+
+            var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
+            return paragraph.StructuredDocumentTag;
+        }
     }
 }
