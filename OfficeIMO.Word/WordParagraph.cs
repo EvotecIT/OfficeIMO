@@ -171,6 +171,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the paragraph style. Updating this to a heading style will flag the document to update the table of contents on open.
+        /// </summary>
         public WordParagraphStyles? Style {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
@@ -188,6 +191,9 @@ namespace OfficeIMO.Word {
                         _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
                     }
                     _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                    if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
+                        _document?.HeadingModified();
+                    }
                 }
             }
         }
