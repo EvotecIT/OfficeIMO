@@ -170,6 +170,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_Line3DChartAxisCount() {
+            var filePath = Path.Combine(_directoryWithFiles, "Line3DChartAxisCount.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var categories = new List<string> { "A", "B", "C" };
+                var chart = document.AddChart();
+                chart.AddChartAxisX(categories);
+                chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
+                var line3d = part.ChartSpace.GetFirstChild<Chart>()
+                    .PlotArea.GetFirstChild<Line3DChart>();
+                var axisCount = line3d.Elements<AxisId>().Count();
+                Assert.Equal(2, axisCount);
+            }
+        }
+
+        [Fact]
         public void Test_ChartsValidation() {
             var filePath = Path.Combine(_directoryWithFiles, "ChartsValidation.docx");
 
