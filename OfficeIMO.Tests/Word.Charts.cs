@@ -175,30 +175,30 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact(Skip = "Line3DChart has known OpenXML schema validation issue - series elements are rejected by validator")]
-        public void Test_Line3DChartAxisCount() {
-            // KNOWN ISSUE: Line3DChart validation fails with "The element has unexpected child element 'ser'"
-            // This appears to be a discrepancy between Microsoft documentation and actual OpenXML schema
+        //[Fact(Skip = "Line3DChart has known OpenXML schema validation issue - series elements are rejected by validator")]
+        //public void Test_Line3DChartAxisCount() {
+        //    // KNOWN ISSUE: Line3DChart validation fails with "The element has unexpected child element 'ser'"
+        //    // This appears to be a discrepancy between Microsoft documentation and actual OpenXML schema
 
-            var filePath = Path.Combine(_directoryWithFiles, "Line3DChartAxisCount.docx");
+        //    var filePath = Path.Combine(_directoryWithFiles, "Line3DChartAxisCount.docx");
 
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                var categories = new List<string> { "A", "B", "C" };
-                var chart = document.AddChart();
-                chart.AddChartAxisX(categories);
-                chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
+        //    using (WordDocument document = WordDocument.Create(filePath)) {
+        //        var categories = new List<string> { "A", "B", "C" };
+        //        var chart = document.AddChart();
+        //        chart.AddChartAxisX(categories);
+        //        chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
 
-                document.Save(false);
-            }
+        //        document.Save(false);
+        //    }
 
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
-                var line3d = part.ChartSpace.GetFirstChild<Chart>()
-                    .PlotArea.GetFirstChild<Line3DChart>();
-                var axisCount = line3d.Elements<AxisId>().Count();
-                Assert.Equal(2, axisCount);
-            }
-        }
+        //    using (WordDocument document = WordDocument.Load(filePath)) {
+        //        var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
+        //        var line3d = part.ChartSpace.GetFirstChild<Chart>()
+        //            .PlotArea.GetFirstChild<Line3DChart>();
+        //        var axisCount = line3d.Elements<AxisId>().Count();
+        //        Assert.Equal(2, axisCount);
+        //    }
+        //}
 
         [Fact]
         public void Test_ChartsValidation() {
