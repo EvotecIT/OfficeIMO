@@ -6,20 +6,28 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the collection of headers used within a section.
+    /// </summary>
     public class WordHeaders {
-        public WordHeader Default {
-            get;
-            set;
-        }
-        public WordHeader Even {
-            get;
-            set;
-        }
-        public WordHeader First {
-            get;
-            set;
-        }
+        /// <summary>
+        /// Gets or sets the default header.
+        /// </summary>
+        public WordHeader Default { get; set; }
+
+        /// <summary>
+        /// Gets or sets the header for even pages.
+        /// </summary>
+        public WordHeader Even { get; set; }
+
+        /// <summary>
+        /// Gets or sets the header for the first page.
+        /// </summary>
+        public WordHeader First { get; set; }
     }
+    /// <summary>
+    /// Represents a single header instance within a section.
+    /// </summary>
     public partial class WordHeader : WordHeaderFooter {
         private readonly WordSection _section;
 
@@ -55,6 +63,11 @@ namespace OfficeIMO.Word {
             _section = section;
         }
 
+        /// <summary>
+        /// Adds a page number field to the header.
+        /// </summary>
+        /// <param name="wordPageNumberStyle">The numbering style to apply.</param>
+        /// <returns>The created <see cref="WordPageNumber"/>.</returns>
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
             return pageNumber;
@@ -105,10 +118,22 @@ namespace OfficeIMO.Word {
             RemoveHeaders(document._wordprocessingDocument, types);
         }
 
+        /// <summary>
+        /// Adds a watermark to the header.
+        /// </summary>
+        /// <param name="watermarkStyle">Watermark style.</param>
+        /// <param name="textOrFilePath">Text or image path for the watermark.</param>
+        /// <returns>The created <see cref="WordWatermark"/>.</returns>
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
             return new WordWatermark(this._document, this._section, this, watermarkStyle, textOrFilePath);
         }
 
+        /// <summary>
+        /// Adds a text box to the header.
+        /// </summary>
+        /// <param name="text">Text contained in the text box.</param>
+        /// <param name="wrapTextImage">Wrapping style.</param>
+        /// <returns>The created <see cref="WordTextBox"/>.</returns>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;

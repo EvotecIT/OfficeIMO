@@ -566,5 +566,26 @@ namespace OfficeIMO.Word {
                 gutterAtTop.Val = value;
             }
         }
+
+        /// <summary>
+        /// Enable or disable tracking of comments in the document.
+        /// </summary>
+        public bool TrackComments {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                return settings.GetFirstChild<TrackRevisions>() != null;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var track = settings.GetFirstChild<TrackRevisions>();
+                if (value) {
+                    if (track == null) {
+                        settings.Append(new TrackRevisions());
+                    }
+                } else {
+                    track?.Remove();
+                }
+            }
+        }
     }
 }

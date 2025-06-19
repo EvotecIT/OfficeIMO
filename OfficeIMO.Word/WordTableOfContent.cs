@@ -9,6 +9,12 @@ namespace OfficeIMO.Word {
     public class WordTableOfContent : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
+        internal SdtBlock SdtBlock => _sdtBlock;
+
+        /// <summary>
+        /// Gets the template style used to create this table of contents.
+        /// </summary>
+        public TableOfContentStyle Style { get; }
 
         public string Text {
             get {
@@ -83,6 +89,7 @@ namespace OfficeIMO.Word {
 
         public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle) {
             this._document = wordDocument;
+            this.Style = tableOfContentStyle;
             this._sdtBlock = GetStyle(tableOfContentStyle);
             this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
 
@@ -97,10 +104,26 @@ namespace OfficeIMO.Word {
         public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock) {
             this._document = wordDocument;
             this._sdtBlock = sdtBlock;
+            this.Style = TableOfContentStyle.Template1;
         }
 
         public void Update() {
             this._document.Settings.UpdateFieldsOnOpen = true;
+        }
+
+        /// <summary>
+        /// Deletes this table of contents from the parent document.
+        /// </summary>
+        public void Remove() {
+            _document.RemoveTableOfContent();
+        }
+
+        /// <summary>
+        /// Removes this table of contents and creates a new one in the same location.
+        /// </summary>
+        /// <returns>The newly created <see cref="WordTableOfContent"/> instance.</returns>
+        public WordTableOfContent Regenerate() {
+            return _document.RegenerateTableOfContent();
         }
 
         private static SdtBlock GetStyle(TableOfContentStyle style) {

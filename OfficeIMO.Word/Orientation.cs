@@ -6,6 +6,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     internal class OrientationOfPage {
         // https://github.com/OfficeDev/open-xml-docs/blob/master/docs/how-to-change-the-print-orientation-of-a-word-processing-document.md
+        /// <summary>
+        /// Changes the print orientation of an existing Word document.
+        /// </summary>
+        /// <param name="fileName">Path to the document.</param>
+        /// <param name="newOrientation">Desired page orientation.</param>
         public static void SetPrintOrientation(string fileName, PageOrientationValues newOrientation) {
             using (var document = WordprocessingDocument.Open(fileName, true)) {
                 bool documentChanged = false;
