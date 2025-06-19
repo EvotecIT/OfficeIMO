@@ -11,6 +11,7 @@ using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 using V = DocumentFormat.OpenXml.Vml;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph : WordElement {
@@ -205,7 +206,7 @@ namespace OfficeIMO.Word {
         internal SimpleField _simpleField;
         internal BookmarkStart _bookmarkStart;
         internal readonly OfficeMath _officeMath;
-        internal readonly SdtRun _stdRun;
+        internal SdtRun _stdRun;
         internal readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
 
         /// <summary>
@@ -401,6 +402,19 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal WordCheckBox CheckBox {
+            get {
+                if (_stdRun != null) {
+                    var check = _stdRun.SdtProperties?.GetFirstChild<W14.SdtContentCheckBox>();
+                    if (check != null) {
+                        return new WordCheckBox(_document, _paragraph, _stdRun);
+                    }
+                }
+
+                return null;
+            }
+        }
+
         public WordChart Chart {
             get {
                 if (_run != null) {
@@ -499,6 +513,16 @@ namespace OfficeIMO.Word {
         public bool IsStructuredDocumentTag {
             get {
                 if (this.StructuredDocumentTag != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsCheckBox {
+            get {
+                if (this.CheckBox != null) {
                     return true;
                 }
 

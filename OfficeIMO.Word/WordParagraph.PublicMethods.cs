@@ -281,6 +281,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add a check box content control to this paragraph.
+        /// </summary>
+        /// <param name="isChecked">Specifies whether the check box is initially checked.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddCheckBox(bool isChecked = false, string alias = null) {
+            WordCheckBox.AddCheckBox(this, isChecked, alias);
+            return this;
+        }
+
+        /// <summary>
         /// Add fields to a word document proceeding from the paragraph this is called on.
         /// </summary>
         /// <param name="wordFieldType">The type of field to add.</param>
