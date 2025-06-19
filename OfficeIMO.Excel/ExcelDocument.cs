@@ -8,9 +8,16 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
+    /// <summary>
+    /// Represents an Excel document and provides methods for creating,
+    /// loading and saving spreadsheets.
+    /// </summary>
     public partial class ExcelDocument : IDisposable {
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
 
+        /// <summary>
+        /// Gets a list of worksheets contained in the document.
+        /// </summary>
         public List<ExcelSheet> Sheets {
             get {
                 List<ExcelSheet> listExcel = new List<ExcelSheet>();
@@ -27,10 +34,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Underlying Open XML spreadsheet document instance.
+        /// </summary>
         public SpreadsheetDocument _spreadSheetDocument;
         private WorkbookPart _workBookPart;
+
+        /// <summary>
+        /// Path to the file backing this document.
+        /// </summary>
         public string FilePath;
 
+        /// <summary>
+        /// Creates a new Excel document at the specified path.
+        /// </summary>
+        /// <param name="filePath">Path to the new file.</param>
+        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath) {
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
@@ -48,6 +67,13 @@ namespace OfficeIMO.Excel {
 
             return document;
         }
+        /// <summary>
+        /// Loads an existing Excel document.
+        /// </summary>
+        /// <param name="filePath">Path to the file.</param>
+        /// <param name="readOnly">Open the file in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
@@ -74,18 +100,34 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
+        /// <summary>
+        /// Creates a new Excel document with a single worksheet.
+        /// </summary>
+        /// <param name="filePath">Path to the new file.</param>
+        /// <param name="workSheetName">Name of the worksheet.</param>
+        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath, string workSheetName) {
             ExcelDocument excelDocument = Create(filePath);
             excelDocument.AddWorkSheet(workSheetName);
             return excelDocument;
         }
 
+        /// <summary>
+        /// Adds a worksheet to the document.
+        /// </summary>
+        /// <param name="workSheetName">Worksheet name.</param>
+        /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
             ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
 
             return excelSheet;
         }
 
+        /// <summary>
+        /// Opens the document with the associated application.
+        /// </summary>
+        /// <param name="filePath">Optional path to open.</param>
+        /// <param name="openExcel">Whether to launch Excel.</param>
         public void Open(string filePath = "", bool openExcel = true) {
             if (filePath == "") {
                 filePath = this.FilePath;
@@ -93,24 +135,42 @@ namespace OfficeIMO.Excel {
             Helpers.Open(filePath, openExcel);
         }
 
+        /// <summary>
+        /// Closes the underlying spreadsheet document.
+        /// </summary>
         public void Close() {
             this._spreadSheetDocument.Dispose();
         }
 
+        /// <summary>
+        /// Saves the document and optionally opens it.
+        /// </summary>
+        /// <param name="filePath">Path to save to.</param>
+        /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
             this._workBookPart.Workbook.Save();
 
             this.Open(filePath, openExcel);
         }
 
+        /// <summary>
+        /// Saves the document without opening it.
+        /// </summary>
         public void Save() {
             this.Save("", false);
         }
 
+        /// <summary>
+        /// Saves the document and optionally opens it.
+        /// </summary>
+        /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(bool openExcel) {
             this.Save("", openExcel);
         }
 
+        /// <summary>
+        /// Releases resources used by the document.
+        /// </summary>
         public void Dispose() {
             if (this._spreadSheetDocument != null) {
                 this._spreadSheetDocument.Dispose();

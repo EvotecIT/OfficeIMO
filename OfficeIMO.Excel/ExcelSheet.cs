@@ -7,9 +7,15 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
+    /// <summary>
+    /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
+    /// </summary>
     public class ExcelSheet {
         private readonly Sheet _sheet;
 
+        /// <summary>
+        /// Gets or sets the worksheet name.
+        /// </summary>
         public string Name {
             get {
                 return _sheet.Name;
@@ -23,6 +29,12 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
 
+        /// <summary>
+        /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
+        /// </summary>
+        /// <param name="excelDocument">Parent document.</param>
+        /// <param name="spreadSheetDocument">Open XML spreadsheet document.</param>
+        /// <param name="sheet">Underlying sheet element.</param>
         public ExcelSheet(ExcelDocument excelDocument, SpreadsheetDocument spreadSheetDocument, Sheet sheet) {
             _excelDocument = excelDocument;
             _sheet = sheet;
@@ -37,6 +49,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Creates a new worksheet and appends it to the workbook.
+        /// </summary>
+        /// <param name="excelDocument">Parent document.</param>
+        /// <param name="workbookpart">Workbook part to add the worksheet to.</param>
+        /// <param name="spreadSheetDocument">Open XML spreadsheet document.</param>
+        /// <param name="name">Worksheet name.</param>
         public ExcelSheet(ExcelDocument excelDocument, WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
