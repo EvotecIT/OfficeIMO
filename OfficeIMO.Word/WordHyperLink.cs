@@ -263,16 +263,19 @@ namespace OfficeIMO.Word {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 
             HyperlinkRelationship rel;
-            if (paragraph.TopParent == "body") {
-                rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.TopParent == "header") {
-                Header header = (Header)paragraph._paragraph.Parent;
+
+            // Determine if the paragraph belongs to a header or footer by checking the ancestors.
+            var header = paragraph._paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault();
+
+            if (header != null) {
                 rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
-            } else if (paragraph.TopParent == "footer") {
-                Footer footer = (Footer)paragraph._paragraph.Parent;
+            } else if (footer != null) {
                 rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
             } else {
-                throw new NotImplementedException("Where else should we add this?");
+                // Default to the main document part for paragraphs that are
+                // located in the body or in elements such as text boxes or tables.
+                rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
             }
 
             Hyperlink hyperlink = new Hyperlink() {
