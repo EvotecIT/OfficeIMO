@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
+        /// <summary>
+        /// Executes the AddCategories operation.
+        /// </summary>
         public void AddCategories(List<string> categories) {
             Categories = categories;
         }
@@ -54,10 +57,16 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Executes the AddChartAxisX operation.
+        /// </summary>
         public void AddChartAxisX(List<string> categories) {
             Categories = categories;
         }
 
+        /// <summary>
+        /// Executes the AddBar operation.
+        /// </summary>
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -76,6 +85,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddBar operation.
+        /// </summary>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -107,6 +119,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddScatter operation.
+        /// </summary>
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
@@ -176,6 +191,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddLegend operation.
+        /// </summary>
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();

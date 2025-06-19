@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Gets or sets the Borders.
+        /// </summary>
         public WordParagraphBorders Borders {
             get {
                 return new WordParagraphBorders(_document, this);
@@ -51,6 +54,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IndentationBefore.
+        /// </summary>
         public int? IndentationBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Left != "") {
@@ -92,6 +98,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IndentationAfter.
+        /// </summary>
         public int? IndentationAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Right != "") {
@@ -151,6 +160,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IndentationFirstLine.
+        /// </summary>
         public int? IndentationFirstLine {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
@@ -193,6 +205,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IndentationHanging.
+        /// </summary>
         public int? IndentationHanging {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Hanging != "") {
@@ -234,6 +249,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TextDirection.
+        /// </summary>
         public TextDirectionValues? TextDirection {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
@@ -277,6 +295,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LineSpacingRule.
+        /// </summary>
         public LineSpacingRuleValues? LineSpacingRule {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
@@ -301,6 +322,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LineSpacing.
+        /// </summary>
         public int? LineSpacing {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
@@ -343,6 +367,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LineSpacingBefore.
+        /// </summary>
         public int? LineSpacingBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (_paragraphProperties.SpacingBetweenLines.Before != "") {
@@ -384,6 +411,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LineSpacingAfter.
+        /// </summary>
         public int? LineSpacingAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {

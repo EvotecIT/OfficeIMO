@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordTable : WordElement {
+        /// <summary>
+        /// Gets or sets the Paragraphs.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -75,6 +78,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Style.
+        /// </summary>
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
@@ -90,6 +96,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Alignment.
+        /// </summary>
         public TableRowAlignmentValues? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
@@ -111,6 +120,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the WidthType.
+        /// </summary>
         public TableWidthUnitValues? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
@@ -297,8 +309,14 @@ namespace OfficeIMO.Word {
             set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
         }
 
+        /// <summary>
+        /// Gets or sets the RowsCount.
+        /// </summary>
         public int RowsCount => this.Rows.Count;
 
+        /// <summary>
+        /// Gets or sets the Rows.
+        /// </summary>
         public List<WordTableRow> Rows {
             get {
                 var list = new List<WordTableRow>();
@@ -312,11 +330,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FirstRow.
+        /// </summary>
         public WordTableRow FirstRow {
             get {
                 return Rows.First();
             }
         }
+        /// <summary>
+        /// Gets or sets the LastRow.
+        /// </summary>
         public WordTableRow LastRow {
             get {
                 return Rows.Last();

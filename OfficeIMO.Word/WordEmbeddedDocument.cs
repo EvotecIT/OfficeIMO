@@ -11,9 +11,15 @@ namespace OfficeIMO.Word {
         private readonly AlternativeFormatImportPart _altContent;
         private readonly WordDocument _document;
 
+        /// <summary>
+        /// Gets or sets the ContentType.
+        /// </summary>
         public string ContentType => _altContent.ContentType;
 
 
+        /// <summary>
+        /// Executes the Save operation.
+        /// </summary>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
                 var altStream = _altContent.GetStream();
@@ -22,6 +28,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             _altChunk.Remove();
 

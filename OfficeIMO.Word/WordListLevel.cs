@@ -38,6 +38,9 @@ namespace OfficeIMO.Word {
             _level = level;
         }
 
+        /// <summary>
+        /// Gets or sets the _level.
+        /// </summary>
         public Level _level { get; set; }
 
         /// <summary>

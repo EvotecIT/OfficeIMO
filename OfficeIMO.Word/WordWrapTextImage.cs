@@ -18,6 +18,9 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Executes the AppendWrapTextImage operation.
+        /// </summary>
         public static Anchor AppendWrapTextImage(Anchor anchor, WrapTextImage wrapImage) {
             if (wrapImage == WrapTextImage.Square) {
                 WrapSquare wrapSquare1 = new WrapSquare() {
@@ -47,6 +50,9 @@ namespace OfficeIMO.Word {
             return anchor;
         }
 
+        /// <summary>
+        /// Executes the GetWrapTextImage operation.
+        /// </summary>
         public static WrapTextImage? GetWrapTextImage(Anchor anchor, Inline inline) {
             if (anchor != null) {
                 var wrapSquare = anchor.OfType<WrapSquare>().FirstOrDefault();
@@ -78,6 +84,9 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        /// <summary>
+        /// Executes the SetWrapTextImage operation.
+        /// </summary>
         public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
             if (currentWrap == wrapImage) {
@@ -151,6 +160,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the WrapTopBottom.
+        /// </summary>
         public static WrapTopBottom WrapTopBottom {
             get {
                 WrapTopBottom wrapTopBottom1 = new WrapTopBottom() {
@@ -162,6 +174,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the WrapThrough.
+        /// </summary>
         public static WrapThrough WrapThrough {
             get {
                 WrapThrough wrapThrough1 = new WrapThrough() { WrapText = WrapTextValues.BothSides };
@@ -184,6 +199,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the WrapTight.
+        /// </summary>
         public static WrapTight WrapTight {
             get {
                 WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };

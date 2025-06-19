@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
     }
 
     public static class WordCharacterStyle {
+        /// <summary>
+        /// Executes the GetStyleDefinition operation.
+        /// </summary>
         public static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
@@ -33,6 +36,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Executes the ToStringStyle operation.
+        /// </summary>
         public static string ToStringStyle(this WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return "DefaultParagraphFont";
@@ -50,6 +56,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Executes the GetStyle operation.
+        /// </summary>
         public static WordCharacterStyles GetStyle(string style) {
             switch (style) {
                 case "DefaultParagraphFont": return WordCharacterStyles.DefaultParagraphFont;

@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
         public Object Value;
         public PropertyTypes PropertyType;
 
+        /// <summary>
+        /// Gets or sets the Date.
+        /// </summary>
         public DateTime? Date {
             get {
                 if ((Value) is DateTime) {
@@ -25,6 +28,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets or sets the NumberInteger.
+        /// </summary>
         public int? NumberInteger {
             get {
                 if ((Value) is int) {
@@ -35,6 +41,9 @@ namespace OfficeIMO.Word {
 
             }
         }
+        /// <summary>
+        /// Gets or sets the NumberDouble.
+        /// </summary>
         public double? NumberDouble {
             get {
                 if ((Value) is double) {
@@ -44,6 +53,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 if ((Value) is string) {
@@ -54,6 +66,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Bool.
+        /// </summary>
         public bool? Bool {
             get {
                 if ((Value) is bool) {

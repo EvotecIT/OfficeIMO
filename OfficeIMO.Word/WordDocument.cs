@@ -25,6 +25,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TableOfContent.
+        /// </summary>
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
@@ -32,6 +35,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the CoverPage.
+        /// </summary>
         public WordCoverPage CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
@@ -39,6 +45,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Paragraphs.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -50,6 +59,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsPageBreaks.
+        /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -61,6 +73,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsBreaks.
+        /// </summary>
         public List<WordParagraph> ParagraphsBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -72,6 +87,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsHyperLinks.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -83,6 +101,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsTabs.
+        /// </summary>
         public List<WordParagraph> ParagraphsTabs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -94,6 +115,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsTabStops.
+        /// </summary>
         public List<WordParagraph> ParagraphsTabStops {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -105,6 +129,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsFields.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -116,6 +143,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsBookmarks.
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -127,6 +157,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsEquations.
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -138,6 +171,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsStructuredDocumentTags.
+        /// </summary>
         public List<WordParagraph> ParagraphsStructuredDocumentTags {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -149,6 +185,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsCharts.
+        /// </summary>
         public List<WordParagraph> ParagraphsCharts {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -160,6 +199,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsEndNotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsEndNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -170,6 +212,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsTextBoxes.
+        /// </summary>
         public List<WordParagraph> ParagraphsTextBoxes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -180,6 +225,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsFootNotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsFootNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -231,6 +279,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Breaks.
+        /// </summary>
         public List<WordBreak> Breaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -242,6 +293,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndNotes.
+        /// </summary>
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
@@ -252,6 +306,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FootNotes.
+        /// </summary>
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
@@ -262,6 +319,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Comments.
+        /// </summary>
         public List<WordComment> Comments {
             get { return WordComment.GetAllComments(this); }
         }
@@ -316,6 +376,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EmbeddedDocuments.
+        /// </summary>
         public List<WordEmbeddedDocument> EmbeddedDocuments {
             get {
                 List<WordEmbeddedDocument> list = new List<WordEmbeddedDocument>();
@@ -367,6 +430,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Fields.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -378,6 +444,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Charts.
+        /// </summary>
         public List<WordChart> Charts {
             get {
                 List<WordChart> list = new List<WordChart>();
@@ -389,6 +458,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the HyperLinks.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -400,6 +472,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TextBoxes.
+        /// </summary>
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
@@ -411,6 +486,9 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Gets or sets the TabChars.
+        /// </summary>
         public List<WordTabChar> TabChars {
             get {
                 List<WordTabChar> list = new List<WordTabChar>();
@@ -422,6 +500,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the StructuredDocumentTags.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -433,6 +514,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Equations.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
@@ -446,6 +530,9 @@ namespace OfficeIMO.Word {
 
         public List<WordSection> Sections = new List<WordSection>();
 
+        /// <summary>
+        /// Gets or sets the FilePath.
+        /// </summary>
         public string FilePath { get; set; }
 
         public WordSettings Settings;
@@ -455,6 +542,9 @@ namespace OfficeIMO.Word {
 
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
 
+        /// <summary>
+        /// Gets or sets the AutoSave.
+        /// </summary>
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
 
@@ -907,6 +997,9 @@ namespace OfficeIMO.Word {
             body.Append(sectionProperties);
         }
 
+        /// <summary>
+        /// Executes the Dispose operation.
+        /// </summary>
         public void Dispose() {
             if (this._wordprocessingDocument.AutoSave) {
                 Save();
@@ -944,8 +1037,14 @@ namespace OfficeIMO.Word {
         internal WordSection _currentSection => this.Sections.Last();
 
 
+        /// <summary>
+        /// Gets or sets the Background.
+        /// </summary>
         public WordBackground Background { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DocumentIsValid.
+        /// </summary>
         public bool DocumentIsValid {
             get {
                 if (DocumentValidationErrors.Count > 0) {
@@ -956,12 +1055,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the DocumentValidationErrors.
+        /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
                 return ValidateDocument();
             }
         }
 
+        /// <summary>
+        /// Executes the ValidateDocument operation.
+        /// </summary>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
@@ -971,6 +1076,9 @@ namespace OfficeIMO.Word {
             return listErrors;
         }
 
+        /// <summary>
+        /// Gets or sets the CompatibilitySettings.
+        /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
 
         private void PreSaving() {

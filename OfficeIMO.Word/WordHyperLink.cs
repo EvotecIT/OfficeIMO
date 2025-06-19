@@ -30,6 +30,9 @@ namespace OfficeIMO.Word {
         private readonly Paragraph _paragraph;
         internal readonly Hyperlink _hyperlink;
 
+        /// <summary>
+        /// Gets or sets the Uri.
+        /// </summary>
         public System.Uri Uri {
             get {
                 var list = _document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships;
@@ -73,8 +76,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsEmail.
+        /// </summary>
         public bool IsEmail => Uri.Scheme == Uri.UriSchemeMailto;
 
+        /// <summary>
+        /// Gets or sets the EmailAddress.
+        /// </summary>
         public string EmailAddress {
             get {
                 if (IsEmail) {
@@ -85,6 +94,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the History.
+        /// </summary>
         public bool History {
             get {
                 return _hyperlink.History;
@@ -120,6 +132,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Tooltip.
+        /// </summary>
         public string Tooltip {
             get {
                 return _hyperlink.Tooltip;
@@ -129,6 +144,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TargetFrame.
+        /// </summary>
         public TargetFrame? TargetFrame {
             get {
                 if (_hyperlink != null) {
@@ -146,10 +164,19 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsHttp.
+        /// </summary>
         public bool IsHttp => Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp;
 
+        /// <summary>
+        /// Gets or sets the Scheme.
+        /// </summary>
         public string Scheme => Uri.Scheme;
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 var run = _hyperlink.ChildElements.OfType<Run>().FirstOrDefault();
@@ -228,6 +255,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink operation.
+        /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             Hyperlink hyperlink = new Hyperlink() {
                 Anchor = anchor,
@@ -259,6 +289,9 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink operation.
+        /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 

@@ -68,6 +68,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the AllowRowToBreakAcrossPages.
+        /// </summary>
         public bool AllowRowToBreakAcrossPages {
             get {
                 if (_tableRow.TableRowProperties != null) {
@@ -150,6 +153,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Add operation.
+        /// </summary>
         public void Add(WordTableCell cell) {
             _tableRow.Append(cell._tableCell);
         }

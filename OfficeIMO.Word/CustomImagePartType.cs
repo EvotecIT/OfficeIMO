@@ -11,6 +11,9 @@ public enum CustomImagePartType {
 }
 
 public static class CustomImagePartTypeExtensions {
+    /// <summary>
+    /// Executes the ToOpenXmlImagePartType operation.
+    /// </summary>
     public static string ToOpenXmlImagePartType(this CustomImagePartType customType) {
         return customType switch {
             CustomImagePartType.Bmp => "image/bmp",

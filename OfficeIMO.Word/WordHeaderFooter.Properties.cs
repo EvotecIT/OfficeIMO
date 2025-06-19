@@ -15,6 +15,9 @@ namespace OfficeIMO.Word {
         private protected string _id;
         protected WordDocument _document;
 
+        /// <summary>
+        /// Gets or sets the Paragraphs.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 if (_header != null) {
@@ -27,6 +30,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Tables.
+        /// </summary>
         public List<WordTable> Tables {
             get {
                 if (_header != null) {
@@ -39,22 +45,37 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsPageBreaks.
+        /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsHyperLinks.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsFields.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsBookmarks.
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsEquations.
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
         }
@@ -73,6 +94,9 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the PageBreaks.
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -100,6 +124,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Bookmarks.
+        /// </summary>
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -112,6 +139,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Fields.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -124,6 +154,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the HyperLinks.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -136,6 +169,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Equations.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
@@ -148,6 +184,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the StructuredDocumentTags.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -160,6 +199,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Watermarks.
+        /// </summary>
         public List<WordWatermark> Watermarks {
             get {
                 if (_header != null) {

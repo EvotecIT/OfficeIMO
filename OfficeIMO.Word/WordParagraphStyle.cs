@@ -21,6 +21,9 @@ namespace OfficeIMO.Word {
     }
 
     public static class WordParagraphStyle {
+        /// <summary>
+        /// Executes the GetStyleDefinition operation.
+        /// </summary>
         public static Style GetStyleDefinition(WordParagraphStyles style) {
             switch (style) {
                 case WordParagraphStyles.Normal: return StyleNormal;
@@ -40,6 +43,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Executes the ToStringStyle operation.
+        /// </summary>
         public static string ToStringStyle(this WordParagraphStyles style) {
             switch (style) {
                 case WordParagraphStyles.Normal: return "Normal";
@@ -59,6 +65,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Executes the GetStyle operation.
+        /// </summary>
         public static WordParagraphStyles GetStyle(string style) {
             switch (style) {
                 case "Normal": return WordParagraphStyles.Normal;

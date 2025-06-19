@@ -7,16 +7,25 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public class WordFooters {
+        /// <summary>
+        /// Gets or sets the Default.
+        /// </summary>
         public WordFooter Default {
             get;
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the Even.
+        /// </summary>
         public WordFooter Even {
             get;
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the First.
+        /// </summary>
         public WordFooter First {
             get;
             set;
@@ -58,11 +67,17 @@ namespace OfficeIMO.Word {
             _section = section;
         }
 
+        /// <summary>
+        /// Executes the AddPageNumber operation.
+        /// </summary>
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
             return pageNumber;
         }
 
+        /// <summary>
+        /// Executes the RemoveFooters operation.
+        /// </summary>
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
@@ -79,6 +94,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Executes the RemoveFooters operation.
+        /// </summary>
         public static void RemoveFooters(WordDocument document) {
             RemoveFooters(document._wordprocessingDocument);
         }

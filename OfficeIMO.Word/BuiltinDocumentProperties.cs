@@ -12,6 +12,9 @@ namespace OfficeIMO.Word {
 
             document.BuiltinDocumentProperties = this;
         }
+        /// <summary>
+        /// Gets or sets the Creator.
+        /// </summary>
         public string Creator {
             get {
                 return _wordprocessingDocument.PackageProperties.Creator;
@@ -20,6 +23,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Creator = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Title.
+        /// </summary>
         public string Title {
             get {
                 return _wordprocessingDocument.PackageProperties.Title;
@@ -28,6 +34,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Title = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Description.
+        /// </summary>
         public string Description {
             get {
                 return _wordprocessingDocument.PackageProperties.Description;
@@ -36,6 +45,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Description = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Category.
+        /// </summary>
         public string Category {
             get {
                 return _wordprocessingDocument.PackageProperties.Category;
@@ -55,6 +67,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Keywords = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Subject.
+        /// </summary>
         public string Subject {
             get {
                 return _wordprocessingDocument.PackageProperties.Subject;
@@ -63,6 +78,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Subject = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Revision.
+        /// </summary>
         public string Revision {
             get {
                 return _wordprocessingDocument.PackageProperties.Revision;
@@ -71,6 +89,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Revision = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the LastModifiedBy.
+        /// </summary>
         public string LastModifiedBy {
             get {
                 return _wordprocessingDocument.PackageProperties.LastModifiedBy;
@@ -79,6 +100,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.LastModifiedBy = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Version.
+        /// </summary>
         public string Version {
             get {
                 return _wordprocessingDocument.PackageProperties.Version;
@@ -87,6 +111,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Version = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Created.
+        /// </summary>
         public DateTime? Created {
             get {
                 return _wordprocessingDocument.PackageProperties.Created;
@@ -95,6 +122,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Created = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the Modified.
+        /// </summary>
         public DateTime? Modified {
             get {
                 return _wordprocessingDocument.PackageProperties.Modified;
@@ -103,6 +133,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.PackageProperties.Modified = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the LastPrinted.
+        /// </summary>
         public DateTime? LastPrinted {
             get {
                 return _wordprocessingDocument.PackageProperties.LastPrinted;

@@ -17,41 +17,65 @@ namespace OfficeIMO.Word {
         public List<WordParagraph> FooterFirst = new List<WordParagraph>();
 
 
+        /// <summary>
+        /// Gets or sets the Paragraphs.
+        /// </summary>
         //public List<WordParagraph> Paragraphs {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the Tables.
+        /// </summary>
         //public List<WordParagraph> Tables {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the HeaderDefault.
+        /// </summary>
         //public List<WordParagraph> HeaderDefault {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the HeaderEven.
+        /// </summary>
         //public List<WordParagraph> HeaderEven {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the HeaderFirst.
+        /// </summary>
         //public List<WordParagraph> HeaderFirst {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the FooterDefault.
+        /// </summary>
         //public List<WordParagraph> FooterDefault {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the FooterEven.
+        /// </summary>
         //public List<WordParagraph> FooterEven {
         //    get;
         //    set;
         //}
 
+        /// <summary>
+        /// Gets or sets the FooterFirst.
+        /// </summary>
         //public List<WordParagraph> FooterFirst {
         //    get;
         //    set;
@@ -62,6 +86,9 @@ namespace OfficeIMO.Word {
 
 
 public static class StringExtensions {
+    /// <summary>
+    /// Executes the FindAndReplace operation.
+    /// </summary>
     public static string FindAndReplace(this string str, string oldValue, string newValue, StringComparison comparisonType, ref int count) {
         List<string> list = new List<string>();
         // Check inputs.

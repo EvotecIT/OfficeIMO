@@ -25,11 +25,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Name.
+        /// </summary>
         public string Name {
             get => _bookmarkStart.Name;
             set => _bookmarkStart.Name = value;
         }
 
+        /// <summary>
+        /// Gets or sets the Id.
+        /// </summary>
         public int Id {
             get => int.Parse(_bookmarkStart.Id);
             set => _bookmarkStart.Id = value.ToString();
@@ -41,11 +47,17 @@ namespace OfficeIMO.Word {
             this._bookmarkStart = bookmarkStart;
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             this._bookmarkEnd.Remove();
             this._bookmarkStart.Remove();
         }
 
+        /// <summary>
+        /// Executes the AddBookmark operation.
+        /// </summary>
         public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName) {
             BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
             BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };

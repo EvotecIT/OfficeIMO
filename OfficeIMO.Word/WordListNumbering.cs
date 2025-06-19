@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public class WordListNumbering {
 
+        /// <summary>
+        /// Gets or sets the Levels.
+        /// </summary>
         public List<WordListLevel> Levels {
             get {
                 List<WordListLevel> levels = new List<WordListLevel>();

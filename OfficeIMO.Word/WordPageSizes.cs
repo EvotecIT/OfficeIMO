@@ -288,6 +288,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(pageSize));
         }
 
+        /// <summary>
+        /// Gets or sets the A3.
+        /// </summary>
         public static PageSize A3 {
             get {
                 return new PageSize() {
@@ -298,6 +301,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the A4.
+        /// </summary>
         public static PageSize A4 {
             get {
                 return new PageSize() {
@@ -308,6 +314,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the A5.
+        /// </summary>
         public static PageSize A5 {
             get {
                 return new PageSize() {
@@ -318,6 +327,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Executive.
+        /// </summary>
         public static PageSize Executive =>
             new PageSize() {
                 Width = (UInt32Value)10440U,
@@ -325,10 +337,25 @@ namespace OfficeIMO.Word {
                 Code = (UInt16Value)7U
             };
 
+        /// <summary>
+        /// Executes the A6 operation.
+        /// </summary>
         public static PageSize A6 => new PageSize() { Width = (UInt32Value)5953U, Height = (UInt32Value)8391U, Code = (UInt16Value)70U };
+        /// <summary>
+        /// Executes the B5 operation.
+        /// </summary>
         public static PageSize B5 => new PageSize() { Width = (UInt32Value)10318U, Height = (UInt32Value)14570U, Code = (UInt16Value)13U };
+        /// <summary>
+        /// Executes the Statement operation.
+        /// </summary>
         public static PageSize Statement => new PageSize() { Width = (UInt32Value)7920U, Height = (UInt32Value)12240U, Code = (UInt16Value)6U };
+        /// <summary>
+        /// Executes the Legal operation.
+        /// </summary>
         public static PageSize Legal => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)20160U, Code = (UInt16Value)5U };
+        /// <summary>
+        /// Executes the Letter operation.
+        /// </summary>
         public static PageSize Letter => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U, Code = (UInt16Value)1U };
     }
 }

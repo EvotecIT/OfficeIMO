@@ -102,6 +102,9 @@ namespace OfficeIMO.Word {
         private readonly List<Run> _runs = new List<Run>();
         private readonly SimpleField _simpleField;
 
+        /// <summary>
+        /// Gets or sets the FieldType.
+        /// </summary>
         public WordFieldType? FieldType {
             get {
                 var parser = new WordFieldParser(Field);
@@ -109,6 +112,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FieldFormat.
+        /// </summary>
         public WordFieldFormat? FieldFormat {
             get {
                 var parser = new WordFieldParser(Field);
@@ -119,6 +125,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FieldSwitches.
+        /// </summary>
         public List<String> FieldSwitches {
             get {
                 var parser = new WordFieldParser(Field);
@@ -126,6 +135,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FieldInstructions.
+        /// </summary>
         public List<String> FieldInstructions {
             get {
                 var parser = new WordFieldParser(Field);
@@ -133,6 +145,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Field.
+        /// </summary>
         public string Field {
             get {
                 if (_simpleField != null) {
@@ -150,6 +165,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the UpdateField.
+        /// </summary>
         public bool UpdateField {
             get {
                 if (_simpleField != null) {
@@ -186,6 +204,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LockField.
+        /// </summary>
         public bool LockField {
             get {
                 if (_simpleField != null) {
@@ -222,6 +243,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 foreach (var run in _runs) {

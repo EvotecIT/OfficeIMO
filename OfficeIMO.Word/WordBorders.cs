@@ -21,6 +21,9 @@ namespace OfficeIMO.Word {
             _section = wordSection;
         }
 
+        /// <summary>
+        /// Gets or sets the LeftSize.
+        /// </summary>
         public UInt32Value LeftSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -45,6 +48,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftColorHex.
+        /// </summary>
         public string LeftColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -69,11 +75,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftColor.
+        /// </summary>
         public SixLabors.ImageSharp.Color LeftColor {
             get { return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex); }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftStyle.
+        /// </summary>
         public BorderValues? LeftStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -98,6 +110,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftSpace.
+        /// </summary>
         public UInt32Value LeftSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -122,6 +137,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftShadow.
+        /// </summary>
         public bool? LeftShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -146,6 +164,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the LeftFrame.
+        /// </summary>
         public bool? LeftFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -170,6 +191,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightSize.
+        /// </summary>
         public UInt32Value RightSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -194,6 +218,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightColorHex.
+        /// </summary>
         public string RightColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -218,11 +245,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightColor.
+        /// </summary>
         public SixLabors.ImageSharp.Color RightColor {
             get { return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex); }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the RightStyle.
+        /// </summary>
         public BorderValues? RightStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -247,6 +280,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightSpace.
+        /// </summary>
         public UInt32Value RightSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -271,6 +307,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightShadow.
+        /// </summary>
         public bool? RightShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -295,6 +334,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RightFrame.
+        /// </summary>
         public bool? RightFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -319,6 +361,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopSize.
+        /// </summary>
         public UInt32Value TopSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -343,6 +388,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopColorHex.
+        /// </summary>
         public string TopColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -367,11 +415,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopColor.
+        /// </summary>
         public SixLabors.ImageSharp.Color TopColor {
             get { return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex); }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the TopStyle.
+        /// </summary>
         public BorderValues? TopStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -396,6 +450,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopSpace.
+        /// </summary>
         public UInt32Value TopSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -420,6 +477,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopShadow.
+        /// </summary>
         public bool? TopShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -444,6 +504,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TopFrame.
+        /// </summary>
         public bool? TopFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -469,6 +532,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the BottomSize.
+        /// </summary>
         public UInt32Value BottomSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -493,6 +559,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomColorHex.
+        /// </summary>
         public string BottomColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -517,11 +586,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomColor.
+        /// </summary>
         public SixLabors.ImageSharp.Color BottomColor {
             get { return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex); }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomStyle.
+        /// </summary>
         public BorderValues? BottomStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -546,6 +621,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomSpace.
+        /// </summary>
         public UInt32Value BottomSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -570,6 +648,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomShadow.
+        /// </summary>
         public bool? BottomShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -594,6 +675,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the BottomFrame.
+        /// </summary>
         public bool? BottomFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -637,6 +721,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Type.
+        /// </summary>
         public WordBorder Type {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();

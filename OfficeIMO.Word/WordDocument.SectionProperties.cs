@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        /// <summary>
+        /// Gets or sets the PageOrientation.
+        /// </summary>
         public PageOrientationValues PageOrientation {
             get {
                 if (this.Sections.Count > 1) {
@@ -23,6 +26,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Borders.
+        /// </summary>
         public WordBorders Borders {
             get {
                 if (this.Sections.Count > 1) {
@@ -40,6 +46,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Margins.
+        /// </summary>
         public WordMargins Margins {
             get {
                 if (this.Sections.Count > 1) {
@@ -57,6 +66,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the PageSettings.
+        /// </summary>
         public WordPageSizes PageSettings {
             get {
                 if (this.Sections.Count > 1) {
@@ -74,6 +86,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FootnoteProperties.
+        /// </summary>
         public FootnoteProperties FootnoteProperties {
             get {
                 if (this.Sections.Count > 1) {
@@ -91,6 +106,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndnoteProperties.
+        /// </summary>
         public EndnoteProperties EndnoteProperties {
             get {
                 if (this.Sections.Count > 1) {
@@ -108,6 +126,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RtlGutter.
+        /// </summary>
         public bool RtlGutter {
             get {
                 if (this.Sections.Count > 1) {
@@ -125,6 +146,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddFootnoteProperties operation.
+        /// </summary>
         public void AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
             FootnotePositionValues? position = null,
             RestartNumberValues? restartNumbering = null,
@@ -132,6 +156,9 @@ namespace OfficeIMO.Word {
             this.Sections[0].AddFootnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
 
+        /// <summary>
+        /// Executes the AddEndnoteProperties operation.
+        /// </summary>
         public void AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
             EndnotePositionValues? position = null,
             RestartNumberValues? restartNumbering = null,

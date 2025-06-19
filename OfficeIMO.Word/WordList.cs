@@ -70,6 +70,9 @@ public partial class WordList : WordElement {
     //        return null;
     //    }
     //}
+    /// <summary>
+    /// Gets or sets the ListItems.
+    /// </summary>
     public List<WordParagraph> ListItems {
         get {
             List<WordParagraph> list = new List<WordParagraph>();

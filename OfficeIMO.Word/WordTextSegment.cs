@@ -24,6 +24,9 @@ namespace OfficeIMO.Word {
             this.endPos = endPos;
         }
 
+        /// <summary>
+        /// Gets or sets the BeginPos.
+        /// </summary>
         public WordPositionInParagraph BeginPos {
             get {
                 return beginPos;
@@ -33,6 +36,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndPos.
+        /// </summary>
         public WordPositionInParagraph EndPos {
             get {
                 return endPos;

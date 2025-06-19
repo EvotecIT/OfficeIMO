@@ -4,6 +4,9 @@ using System.IO;
 
 namespace OfficeIMO.Word {
     public static partial class Helpers {
+        /// <summary>
+        /// Executes the MakeOpenOfficeCompatible operation.
+        /// </summary>
         public static void MakeOpenOfficeCompatible(string filePath) {
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
                 // Fix relationships in /_rels/.rels
@@ -16,6 +19,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the MakeOpenOfficeCompatible operation.
+        /// </summary>
         public static void MakeOpenOfficeCompatible(Stream fileStream) {
             using (Package package = Package.Open(fileStream, FileMode.Open, FileAccess.ReadWrite)) {
                 // Fix relationships in /_rels/.rels

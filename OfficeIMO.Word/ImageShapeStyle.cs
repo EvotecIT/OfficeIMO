@@ -5,17 +5,50 @@ using System.Linq;
 namespace OfficeIMO.Word;
 
 public class ImageShapeStyle {
+    /// <summary>
+    /// Gets or sets the Position.
+    /// </summary>
     public string Position { get; set; }
+    /// <summary>
+    /// Gets or sets the MarginLeft.
+    /// </summary>
     public string MarginLeft { get; set; }
+    /// <summary>
+    /// Gets or sets the MarginTop.
+    /// </summary>
     public string MarginTop { get; set; }
+    /// <summary>
+    /// Gets or sets the Width.
+    /// </summary>
     public string Width { get; set; }
+    /// <summary>
+    /// Gets or sets the Height.
+    /// </summary>
     public string Height { get; set; }
+    /// <summary>
+    /// Gets or sets the ZIndex.
+    /// </summary>
     public string ZIndex { get; set; }
+    /// <summary>
+    /// Gets or sets the MsoPositionHorizontal.
+    /// </summary>
     public string MsoPositionHorizontal { get; set; }
+    /// <summary>
+    /// Gets or sets the MsoPositionHorizontalRelative.
+    /// </summary>
     public string MsoPositionHorizontalRelative { get; set; }
+    /// <summary>
+    /// Gets or sets the MsoPositionVertical.
+    /// </summary>
     public string MsoPositionVertical { get; set; }
+    /// <summary>
+    /// Gets or sets the MsoPositionVerticalRelative.
+    /// </summary>
     public string MsoPositionVerticalRelative { get; set; }
 
+    /// <summary>
+    /// Executes the FromString operation.
+    /// </summary>
     public static ImageShapeStyle FromString(string styleString) {
         var styleParts = styleString.Split(';')
             .Select(part => part.Split(':'))
@@ -35,6 +68,9 @@ public class ImageShapeStyle {
         return shapeStyle;
     }
 
+    /// <summary>
+    /// Executes the ToString operation.
+    /// </summary>
     public override string ToString() {
         var properties = typeof(ImageShapeStyle).GetProperties();
         var styleParts = new List<string>();

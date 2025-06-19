@@ -8,6 +8,9 @@ namespace OfficeIMO.Word {
 
         internal WordDocument _document;
 
+        /// <summary>
+        /// Gets or sets the Color.
+        /// </summary>
         public string Color {
             get {
                 if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground != null) {
@@ -40,10 +43,16 @@ namespace OfficeIMO.Word {
 
             //DocumentBackground documentBackground2 = new DocumentBackground() { Color = "BF8F00", ThemeColor = ThemeColorValues.Accent4, ThemeShade = "BF" };
         }
+        /// <summary>
+        /// Executes the SetColorHex operation.
+        /// </summary>
         public WordBackground SetColorHex(string color) {
             this.Color = color.Replace("#", ""); ;
             return this;
         }
+        /// <summary>
+        /// Executes the SetColor operation.
+        /// </summary>
         public WordBackground SetColor(SixLabors.ImageSharp.Color color) {
             this.Color = color.ToHexColor();
             return this;

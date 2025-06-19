@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the GetColorName operation.
+        /// </summary>
         public static string GetColorName(Color color) {
             if (colorNameMap.TryGetValue(color, out string colorName)) {
                 return colorName;

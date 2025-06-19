@@ -65,6 +65,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the CompressionQuality.
+        /// </summary>
         public BlipCompressionValues? CompressionQuality {
             get {
                 if (_Image.Inline != null) {
@@ -105,6 +108,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RelationshipId.
+        /// </summary>
         public string RelationshipId {
             get {
                 if (_Image.Inline != null) {
@@ -121,6 +127,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FilePath.
+        /// </summary>
         public string FilePath { get; set; }
 
         /// <summary>
@@ -251,6 +260,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EmuWidth.
+        /// </summary>
         public double? EmuWidth {
             get {
                 if (_Image.Inline != null) {
@@ -263,6 +275,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets or sets the EmuHeight.
+        /// </summary>
         public double? EmuHeight {
             get {
                 if (_Image.Inline != null) {
@@ -276,6 +291,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Shape.
+        /// </summary>
         public ShapeTypeValues? Shape {
             get {
                 if (_Image.Inline != null) {
@@ -359,6 +377,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the VerticalFlip.
+        /// </summary>
         public bool? VerticalFlip {
             get {
                 if (_Image.Inline != null) {
@@ -395,6 +416,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the HorizontalFlip.
+        /// </summary>
         public bool? HorizontalFlip {
             get {
                 if (_Image.Inline != null) {
@@ -433,6 +457,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the Rotation.
+        /// </summary>
         public int? Rotation {
             get {
                 if (_Image.Inline != null) {

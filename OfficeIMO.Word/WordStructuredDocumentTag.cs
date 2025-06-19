@@ -10,6 +10,9 @@ namespace OfficeIMO.Word {
         private Paragraph _paragraph;
         private SdtRun _stdRun;
 
+        /// <summary>
+        /// Gets or sets the Alias.
+        /// </summary>
         public string Alias {
             get {
                 var sdtAlias = _stdRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
@@ -21,6 +24,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 var run = _stdRun.SdtContentRun.ChildElements.OfType<Run>().FirstOrDefault();
@@ -49,6 +55,9 @@ namespace OfficeIMO.Word {
             this._stdRun = stdRun;
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             if (this._stdRun != null) {
                 this._stdRun.Remove();

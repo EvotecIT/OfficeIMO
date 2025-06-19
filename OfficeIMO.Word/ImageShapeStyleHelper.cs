@@ -21,12 +21,18 @@ namespace OfficeIMO.Word {
     /// </code>
     /// </example>
     public static class ImageShapeStyleHelper {
+        /// <summary>
+        /// Executes the GetStyle operation.
+        /// </summary>
         public static Dictionary<string, string> GetStyle(Shape shape) {
             return shape.Style.Value.Split(';')
                 .Select(part => part.Split(':'))
                 .ToDictionary(split => split[0], split => split[1]);
         }
 
+        /// <summary>
+        /// Executes the SetStyle operation.
+        /// </summary>
         public static void SetStyle(Shape shape, Dictionary<string, string> style) {
             shape.Style.Value = string.Join(";", style.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
         }

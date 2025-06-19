@@ -62,6 +62,9 @@ namespace OfficeIMO.Word {
         private WordParagraph _wordParagraph;
         private readonly List<WordParagraph> _listParagraphs;
 
+        /// <summary>
+        /// Gets or sets the ParagraphAlignment.
+        /// </summary>
         public JustificationValues? ParagraphAlignment {
             get {
                 return this._wordParagraph.ParagraphAlignment;

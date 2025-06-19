@@ -55,6 +55,9 @@ namespace OfficeIMO.Word {
         /// This provides ability to find proper Run that has EndNote
         /// </summary>
 
+        /// <summary>
+        /// Gets or sets the ParentParagraph.
+        /// </summary>
         public WordParagraph ParentParagraph {
             get {
                 var previousRun = _run.PreviousSibling<Run>();
@@ -65,6 +68,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ReferenceId.
+        /// </summary>
         public long? ReferenceId {
             get {
                 if (_paragraph != null && _run != null) {
@@ -77,6 +83,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             long referenceId = 0;
             var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();

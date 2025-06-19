@@ -8,21 +8,33 @@ using System.Collections.Generic;
 namespace OfficeIMO.Word {
     internal class WordFieldParser {
         private WordFieldType _wordFieldType;
+        /// <summary>
+        /// Gets or sets the WordFieldType.
+        /// </summary>
         public WordFieldType WordFieldType {
             get { return _wordFieldType; }
         }
 
         private readonly List<WordFieldFormat> _formatSwitches = new();
+        /// <summary>
+        /// Gets or sets the FormatSwitches.
+        /// </summary>
         public List<WordFieldFormat> FormatSwitches {
             get { return _formatSwitches; }
         }
 
         private readonly List<String> _switches = new();
+        /// <summary>
+        /// Gets or sets the Switches.
+        /// </summary>
         public List<String> Switches {
             get { return _switches; }
         }
 
         private readonly List<String> _instructions = new();
+        /// <summary>
+        /// Gets or sets the Instructions.
+        /// </summary>
         public List<String> Instructions {
             get { return _instructions; }
         }

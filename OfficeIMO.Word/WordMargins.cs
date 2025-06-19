@@ -213,6 +213,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Gutter.
+        /// </summary>
         public UInt32Value Gutter {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -233,6 +236,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Type.
+        /// </summary>
         public WordMargin? Type {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -303,6 +309,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the SetMargins operation.
+        /// </summary>
         public static WordSection SetMargins(WordSection wordSection, WordMargin pageMargins) {
             var pageMarginData = GetDefault(pageMargins);
 

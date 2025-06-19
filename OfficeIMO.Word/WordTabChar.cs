@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
             this._run = run;
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove(bool includingParagraph = false) {
             if (includingParagraph) {
                 this._paragraph.Remove();

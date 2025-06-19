@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordField {
+        /// <summary>
+        /// Executes the AddField operation.
+        /// </summary>
         public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             if (advanced) {
                 var runStart = AddFieldStart();
@@ -29,6 +32,9 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             if (_runs != null) {
                 foreach (var run in _runs) {

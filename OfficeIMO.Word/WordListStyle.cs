@@ -25,6 +25,9 @@ namespace OfficeIMO.Word {
         Custom
     }
     public static class WordListStyles {
+        /// <summary>
+        /// Executes the GetStyle operation.
+        /// </summary>
         public static AbstractNum GetStyle(WordListStyle style) {
             switch (style) {
                 case WordListStyle.Bulleted: return Bulleted;

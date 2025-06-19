@@ -49,6 +49,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsLastRun.
+        /// </summary>
         public bool IsLastRun {
             get {
                 if (_run != null) {
@@ -59,6 +62,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsFirstRun.
+        /// </summary>
         public bool IsFirstRun {
             get {
                 if (_run != null) {
@@ -105,6 +111,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Image.
+        /// </summary>
         public WordImage Image {
             get {
                 if (_run != null) {
@@ -131,6 +140,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsListItem.
+        /// </summary>
         public bool IsListItem {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -141,6 +153,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ListItemLevel.
+        /// </summary>
         public int? ListItemLevel {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -171,6 +186,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the Style.
+        /// </summary>
         public WordParagraphStyles? Style {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
@@ -251,6 +269,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Tab.
+        /// </summary>
         public WordTabChar Tab {
             get {
                 if (_run != null) {
@@ -365,6 +386,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Bookmark.
+        /// </summary>
         public WordBookmark Bookmark {
             get {
                 if (_bookmarkStart != null) {
@@ -375,6 +399,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Equation.
+        /// </summary>
         public WordEquation Equation {
             get {
                 if (_officeMath != null || _mathParagraph != null) {
@@ -385,6 +412,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Field.
+        /// </summary>
         public WordField Field {
             get {
                 if (_simpleField != null || _runs != null) {
@@ -395,6 +425,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Chart.
+        /// </summary>
         public WordChart Chart {
             get {
                 if (_run != null) {
@@ -416,6 +449,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Hyperlink.
+        /// </summary>
         public WordHyperLink Hyperlink {
             get {
                 if (_hyperlink != null) {
@@ -426,6 +462,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FootNote.
+        /// </summary>
         public WordFootNote FootNote {
             get {
                 if (_run != null && _runProperties != null) {
@@ -438,6 +477,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndNote.
+        /// </summary>
         public WordEndNote EndNote {
             get {
                 if (_run != null && _runProperties != null) {
@@ -450,6 +492,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsHyperLink.
+        /// </summary>
         public bool IsHyperLink {
             get {
                 if (this.Hyperlink != null) {
@@ -460,6 +505,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsField.
+        /// </summary>
         public bool IsField {
             get {
                 if (this.Field != null && this.Field.Field != null) {
@@ -470,6 +518,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsBookmark.
+        /// </summary>
         public bool IsBookmark {
             get {
                 if (this.Bookmark != null && this.Bookmark.Name != null) {
@@ -480,6 +531,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsEquation.
+        /// </summary>
         public bool IsEquation {
             get {
                 if (this.Equation != null) {
@@ -490,6 +544,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsStructuredDocumentTag.
+        /// </summary>
         public bool IsStructuredDocumentTag {
             get {
                 if (this.StructuredDocumentTag != null) {
@@ -500,6 +557,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsImage.
+        /// </summary>
         public bool IsImage {
             get {
                 if (this.Image != null) {
@@ -510,6 +570,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsTab.
+        /// </summary>
         public bool IsTab {
             get {
                 if (this.Tab != null) {
@@ -520,6 +583,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsChart.
+        /// </summary>
         public bool IsChart {
             get {
                 if (this.Chart != null) {
@@ -529,6 +595,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsEndNote.
+        /// </summary>
         public bool IsEndNote {
             get {
                 if (this.EndNote != null) {
@@ -538,6 +607,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsFootNote.
+        /// </summary>
         public bool IsFootNote {
             get {
                 if (this.FootNote != null) {
@@ -547,6 +619,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TabStops.
+        /// </summary>
         public List<WordTabStop> TabStops {
             get {
                 List<WordTabStop> list = new List<WordTabStop>();
@@ -561,6 +636,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TextBox.
+        /// </summary>
         public WordTextBox TextBox {
             get {
                 if (_run != null && _runProperties != null) {
@@ -573,6 +651,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Shape.
+        /// </summary>
         public WordShape Shape {
             get {
                 if (_run != null) {
@@ -585,6 +666,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsTextBox.
+        /// </summary>
         public bool IsTextBox {
             get {
                 if (this.TextBox != null) {
@@ -595,6 +679,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsShape.
+        /// </summary>
         public bool IsShape {
             get {
                 if (this.Shape != null) {

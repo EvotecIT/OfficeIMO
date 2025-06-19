@@ -111,6 +111,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the SetStyleId operation.
+        /// </summary>
         public WordTable SetStyleId(string styleId) {
             //Todo Check the styleId exist
             if (!string.IsNullOrEmpty(styleId)) {

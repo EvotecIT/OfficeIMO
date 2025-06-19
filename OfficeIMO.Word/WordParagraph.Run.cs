@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Gets or sets the IsEmpty.
+        /// </summary>
         public bool IsEmpty {
             get {
                 if (_run == null) {
@@ -15,6 +18,9 @@ namespace OfficeIMO.Word {
                 return false;
             }
         }
+        /// <summary>
+        /// Gets or sets the IsPageBreak.
+        /// </summary>
         public bool IsPageBreak {
             get {
                 if (this.PageBreak != null) {
@@ -25,6 +31,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the IsBreak.
+        /// </summary>
         public bool IsBreak {
             get {
                 if (this.Break != null) {

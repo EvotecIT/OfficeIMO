@@ -29,6 +29,9 @@ namespace OfficeIMO.Word {
         private WordSection _section;
         //private WordParagraph _wordParagraph;
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 var paragraph = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>().FirstOrDefault();
@@ -111,6 +114,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Width.
+        /// </summary>
         public double? Width {
             get {
                 var shape = _shape;
@@ -146,6 +152,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Height.
+        /// </summary>
         public double? Height {
             get {
                 var shape = _shape;
@@ -676,6 +685,9 @@ namespace OfficeIMO.Word {
             wordParagraph._paragraph.Append(run1);
         }
 
+        /// <summary>
+        /// Executes the Remove operation.
+        /// </summary>
         public void Remove() {
             _sdtBlock.Remove();
         }

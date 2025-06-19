@@ -17,6 +17,9 @@ namespace OfficeIMO.Word {
 
         private TabStop _tabStop { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Alignment.
+        /// </summary>
         public TabStopValues Alignment {
             get {
                 return _tabStop.Val;
@@ -26,6 +29,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Leader.
+        /// </summary>
         public TabStopLeaderCharValues Leader {
             get {
                 return _tabStop.Leader;
@@ -35,6 +41,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Position.
+        /// </summary>
         public int Position {
             get {
                 return (int)_tabStop.Position;

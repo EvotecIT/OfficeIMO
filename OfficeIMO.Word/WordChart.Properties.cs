@@ -30,6 +30,9 @@ namespace OfficeIMO.Word {
         private UInt32Value _currentIndexCategory = 0;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
+        /// <summary>
+        /// Gets or sets the BarGrouping.
+        /// </summary>
         public BarGroupingValues? BarGrouping {
             get {
                 if (_chartPart != null) {
@@ -58,6 +61,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the BarDirection.
+        /// </summary>
         public BarDirectionValues? BarDirection {
             get {
                 if (_chartPart != null) {
@@ -88,6 +94,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the RoundedCorners.
+        /// </summary>
         public bool RoundedCorners {
             get {
                 var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();

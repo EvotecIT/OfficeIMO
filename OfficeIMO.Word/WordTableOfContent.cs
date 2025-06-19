@@ -10,6 +10,9 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public string Text {
             get {
                 if (_sdtBlock != null) {
@@ -41,6 +44,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the TextNoContent.
+        /// </summary>
         public string TextNoContent {
             get {
                 if (_sdtBlock != null) {
@@ -99,6 +105,9 @@ namespace OfficeIMO.Word {
             this._sdtBlock = sdtBlock;
         }
 
+        /// <summary>
+        /// Executes the Update operation.
+        /// </summary>
         public void Update() {
             this._document.Settings.UpdateFieldsOnOpen = true;
         }

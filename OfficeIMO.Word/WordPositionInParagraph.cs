@@ -22,6 +22,9 @@ namespace OfficeIMO.Word {
             this.posText = posText;
         }
 
+        /// <summary>
+        /// Gets or sets the Paragraph.
+        /// </summary>
         public int Paragraph {
             get {
                 return posParagraph;
@@ -31,6 +34,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Text.
+        /// </summary>
         public int Text {
             get {
                 return posText;
@@ -41,6 +47,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the Char.
+        /// </summary>
         public int Char {
             get {
                 return posChar;

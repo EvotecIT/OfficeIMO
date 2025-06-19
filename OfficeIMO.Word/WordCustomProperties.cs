@@ -53,6 +53,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Add operation.
+        /// </summary>
         public CustomDocumentProperty Add(string name, object value, PropertyTypes propertyType) {
             var newProp = new CustomDocumentProperty();
             bool propSet = false;

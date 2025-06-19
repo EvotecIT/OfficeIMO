@@ -52,10 +52,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsHyperLinks.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsFields.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
@@ -102,22 +108,37 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsCharts.
+        /// </summary>
         public List<WordParagraph> ParagraphsCharts {
             get { return Paragraphs.Where(p => p.IsChart).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsEndNotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsEndNotes {
             get { return Paragraphs.Where(p => p.IsEndNote).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsFootNotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsFootNotes {
             get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the ParagraphsTextBoxes.
+        /// </summary>
         public List<WordParagraph> ParagraphsTextBoxes {
             get { return Paragraphs.Where(p => p.IsTextBox).ToList(); }
         }
 
+        /// <summary>
+        /// Gets or sets the PageBreaks.
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -129,6 +150,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Charts.
+        /// </summary>
         public List<WordChart> Charts {
             get {
                 List<WordChart> list = new List<WordChart>();
@@ -140,6 +164,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Breaks.
+        /// </summary>
         public List<WordBreak> Breaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -164,6 +191,9 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+        /// <summary>
+        /// Gets or sets the Bookmarks.
+        /// </summary>
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -175,6 +205,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Fields.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -186,6 +219,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndNotes.
+        /// </summary>
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
@@ -197,6 +233,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FootNotes.
+        /// </summary>
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
@@ -208,6 +247,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the HyperLinks.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -227,6 +269,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Tabs.
+        /// </summary>
         public List<WordTabChar> Tabs {
             get {
                 List<WordTabChar> list = new List<WordTabChar>();
@@ -239,6 +284,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the TextBoxes.
+        /// </summary>
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
@@ -251,6 +299,9 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Gets or sets the Equations.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
@@ -262,6 +313,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the StructuredDocumentTags.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -424,6 +478,9 @@ namespace OfficeIMO.Word {
             wordDocument.Sections.Add(this);
         }
 
+        /// <summary>
+        /// Gets or sets the DifferentFirstPage.
+        /// </summary>
         public bool DifferentFirstPage {
             get {
                 var sectionProperties = _sectionProperties;
@@ -463,6 +520,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the DifferentOddAndEvenPages.
+        /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
                 var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
@@ -490,6 +550,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the RtlGutter.
+        /// </summary>
         public bool RtlGutter {
             get {
                 var sectionProperties = _sectionProperties;

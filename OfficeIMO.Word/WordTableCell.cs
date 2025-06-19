@@ -14,6 +14,9 @@ namespace OfficeIMO.Word {
         internal TableCell _tableCell;
         internal TableCellProperties _tableCellProperties;
 
+        /// <summary>
+        /// Executes the Paragraphs operation.
+        /// </summary>
         public List<WordParagraph> Paragraphs => WordSection.ConvertParagraphsToWordParagraphs(_document, _tableCell.ChildElements.OfType<Paragraph>());
         private readonly WordTable _wordTable;
         private readonly WordTableRow _wordTableRow;
@@ -204,6 +207,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the WidthPercentage.
+        /// </summary>
         //public int? WidthPercentage {
         //    get {
         //        if (_tableCellProperties.TableCellWidth != null) {
@@ -562,6 +568,9 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
+        /// <summary>
+        /// Executes the AddList operation.
+        /// </summary>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());
             wordList.AddList(style);

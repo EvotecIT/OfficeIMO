@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordComment {
 
+        /// <summary>
+        /// Executes the Create operation.
+        /// </summary>
         public static WordComment Create(WordDocument document, string author, string initials, string comment) {
             var comments = GetCommentsPart(document);
             // Compose a new Comment and add it to the Comments part.
@@ -25,6 +28,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Executes the GetAllComments operation.
+        /// </summary>
         public static List<WordComment> GetAllComments(WordDocument document) {
             List<WordComment> comments = new List<WordComment>();
             if (document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart != null && document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments != null) {

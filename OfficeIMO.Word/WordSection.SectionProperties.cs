@@ -7,10 +7,16 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+        /// <summary>
+        /// Gets or sets the PageOrientation.
+        /// </summary>
         public PageOrientationValues PageOrientation {
             get => WordPageSizes.GetOrientation(_sectionProperties);
             set => WordPageSizes.SetOrientation(_sectionProperties, value);
         }
+        /// <summary>
+        /// Gets or sets the ColumnsSpace.
+        /// </summary>
         public int? ColumnsSpace {
             get {
                 Columns columns = _sectionProperties.GetFirstChild<Columns>();
@@ -34,6 +40,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ColumnCount.
+        /// </summary>
         public int? ColumnCount {
             get {
                 Columns columns = _sectionProperties.GetFirstChild<Columns>();
@@ -57,6 +66,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FootnoteProperties.
+        /// </summary>
         public FootnoteProperties FootnoteProperties {
             get {
                 return _sectionProperties.GetFirstChild<FootnoteProperties>();
@@ -70,6 +82,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the EndnoteProperties.
+        /// </summary>
         public EndnoteProperties EndnoteProperties {
             get {
                 return _sectionProperties.GetFirstChild<EndnoteProperties>();

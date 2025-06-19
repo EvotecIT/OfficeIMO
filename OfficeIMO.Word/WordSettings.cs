@@ -477,10 +477,16 @@ namespace OfficeIMO.Word {
                 _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color = value;
             }
         }
+        /// <summary>
+        /// Executes the SetBackgroundColor operation.
+        /// </summary>
         public WordSettings SetBackgroundColor(string backgroundColor) {
             this.BackgroundColor = backgroundColor;
             return this;
         }
+        /// <summary>
+        /// Executes the SetBackgroundColor operation.
+        /// </summary>
         public WordSettings SetBackgroundColor(SixLabors.ImageSharp.Color backgroundColor) {
             this.BackgroundColor = backgroundColor.ToHexColor();
             return this;
@@ -528,6 +534,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FinalDocument.
+        /// </summary>
         public bool FinalDocument {
             get {
                 if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
@@ -547,6 +556,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the GutterAtTop.
+        /// </summary>
         public bool GutterAtTop {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;

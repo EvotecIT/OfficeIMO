@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
 
+        /// <summary>
+        /// Gets or sets the Bold.
+        /// </summary>
         public bool Bold {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -38,6 +41,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Italic.
+        /// </summary>
         public bool Italic {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -64,6 +70,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Underline.
+        /// </summary>
         public UnderlineValues? Underline {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -94,6 +103,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the DoNotCheckSpellingOrGrammar.
+        /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -120,6 +132,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Spacing.
+        /// </summary>
         public int? Spacing {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -148,6 +163,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Strike.
+        /// </summary>
         public bool Strike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -174,6 +192,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the DoubleStrike.
+        /// </summary>
         public bool DoubleStrike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -199,6 +220,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the FontSize.
+        /// </summary>
         public int? FontSize {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -228,6 +252,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? Color {
             get {
                 if (ColorHex == "") {
@@ -243,6 +270,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ColorHex.
+        /// </summary>
         public string ColorHex {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -271,6 +301,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the ThemeColor.
+        /// </summary>
         public ThemeColorValues? ThemeColor {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -302,6 +335,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the Highlight.
+        /// </summary>
         public HighlightColorValues? Highlight {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -327,6 +363,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the CapsStyle.
+        /// </summary>
         public CapsStyle CapsStyle {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -404,6 +443,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FontFamilyHighAnsi.
+        /// </summary>
         public string FontFamilyHighAnsi {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -434,6 +476,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FontFamilyEastAsia.
+        /// </summary>
         public string FontFamilyEastAsia {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -464,6 +509,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the FontFamilyComplexScript.
+        /// </summary>
         public string FontFamilyComplexScript {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
