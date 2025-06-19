@@ -26,7 +26,6 @@ namespace OfficeIMO.Examples.Word {
                 list.AddItem("Task 2").AddCheckBox(true);
 
                 document.AddHeadersAndFooters();
-                document.Footer.Default.AddPageNumber();
 
                 document.Save(openWord);
             }
