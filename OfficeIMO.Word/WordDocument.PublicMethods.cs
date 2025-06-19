@@ -180,6 +180,18 @@ namespace OfficeIMO.Word {
             return wordSection;
         }
 
+        /// <summary>
+        /// Removes the section at the specified index.
+        /// </summary>
+        /// <param name="index">Zero based index of the section to remove.</param>
+        public void RemoveSection(int index) {
+            if (index < 0 || index >= this.Sections.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            this.Sections[index].RemoveSection();
+        }
+
         public WordParagraph AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
