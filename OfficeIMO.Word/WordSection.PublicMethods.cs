@@ -145,5 +145,42 @@ namespace OfficeIMO.Word {
 
             return this;
         }
+
+        /// <summary>
+        /// Removes this section and all of its content from the document.
+        /// </summary>
+        public void RemoveSection() {
+            foreach (var list in this.Lists.ToList()) {
+                list.Remove();
+            }
+
+            foreach (var element in this.ElementsByType.ToList()) {
+                switch (element) {
+                    case WordParagraph paragraph:
+                        paragraph.Remove();
+                        break;
+                    case WordTable table:
+                        table.Remove();
+                        break;
+                    case WordTextBox textBox:
+                        textBox.Remove();
+                        break;
+                    case WordImage image:
+                        image.Remove();
+                        break;
+                    case WordEmbeddedDocument embedded:
+                        embedded.Remove();
+                        break;
+                }
+            }
+
+            if (_sectionProperties.Parent is Paragraph p) {
+                p.Remove();
+            } else if (_sectionProperties.Parent != null) {
+                _sectionProperties.Remove();
+            }
+
+            _document.Sections.Remove(this);
+        }
     }
 }

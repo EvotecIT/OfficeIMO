@@ -410,6 +410,14 @@ public WordParagraph AddParagraph(string text)
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
+### **RemoveSection()**
+
+Removes the section and its content from the document.
+
+```csharp
+public void RemoveSection()
+```
+
 ### **AddWatermark(WordWatermarkStyle, String)**
 
 ```csharp
