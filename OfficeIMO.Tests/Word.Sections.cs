@@ -507,20 +507,20 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default.AddParagraph().SetText("Header 0");
-                document.AddParagraph("Section0");
-                document.AddList(WordListStyle.Bulleted).AddItem("0");
+                var p0 = document.AddParagraph("Section0");
+                p0.AddList(WordListStyle.Bulleted).AddItem("0");
 
                 var section1 = document.AddSection();
                 section1.AddHeadersAndFooters();
                 section1.Header.Default.AddParagraph().SetText("Header 1");
-                section1.AddParagraph("Section1");
-                section1.AddList(WordListStyle.Bulleted).AddItem("1");
+                var p1 = section1.AddParagraph("Section1");
+                p1.AddList(WordListStyle.Bulleted).AddItem("1");
 
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
                 section2.Header.Default.AddParagraph().SetText("Header 2");
-                section2.AddParagraph("Section2");
-                section2.AddList(WordListStyle.Bulleted).AddItem("2");
+                var p2 = section2.AddParagraph("Section2");
+                p2.AddList(WordListStyle.Bulleted).AddItem("2");
 
                 document.Save(false);
             }
