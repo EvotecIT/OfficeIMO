@@ -11423,21 +11423,21 @@
       <c:lineChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:grouping val="standard" />
         <c:ser>
-          <c:idx val="0" />
-          <c:order val="0" />
+          <c:idx val="2" />
+          <c:order val="2" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>USA</c:v>
+                  <c:v>Poland</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11462,16 +11462,16 @@
               <c:formatCode>General</c:formatCode>
               <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>10</c:v>
+                <c:v>13</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>35</c:v>
+                <c:v>20</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>18</c:v>
+                <c:v>230</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>23</c:v>
+                <c:v>150</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11531,21 +11531,21 @@
           </c:val>
         </c:ser>
         <c:ser>
-          <c:idx val="2" />
-          <c:order val="2" />
+          <c:idx val="0" />
+          <c:order val="0" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>Poland</c:v>
+                  <c:v>USA</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="008000" />
+              <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11570,16 +11570,16 @@
               <c:formatCode>General</c:formatCode>
               <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>13</c:v>
+                <c:v>10</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>20</c:v>
+                <c:v>35</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>230</c:v>
+                <c:v>18</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>150</c:v>
+                <c:v>23</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11647,21 +11647,21 @@
       <c:lineChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:grouping val="standard" />
         <c:ser>
-          <c:idx val="0" />
-          <c:order val="0" />
+          <c:idx val="2" />
+          <c:order val="2" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>USA</c:v>
+                  <c:v>Poland</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11686,16 +11686,16 @@
               <c:formatCode>General</c:formatCode>
               <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>10</c:v>
+                <c:v>13</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>35</c:v>
+                <c:v>20</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>18</c:v>
+                <c:v>230</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>23</c:v>
+                <c:v>150</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11755,21 +11755,21 @@
           </c:val>
         </c:ser>
         <c:ser>
-          <c:idx val="2" />
-          <c:order val="2" />
+          <c:idx val="0" />
+          <c:order val="0" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>Poland</c:v>
+                  <c:v>USA</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="008000" />
+              <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11794,16 +11794,16 @@
               <c:formatCode>General</c:formatCode>
               <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>13</c:v>
+                <c:v>10</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>20</c:v>
+                <c:v>35</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>230</c:v>
+                <c:v>18</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>150</c:v>
+                <c:v>23</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11870,6 +11870,7 @@
       <c:layout />
       <c:line3DChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:grouping val="standard" />
+        <c:varyColors val="0" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11936,6 +11937,7 @@
         <c:gapDepth val="150" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921737" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921738" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921739" />
       </c:line3DChart>
       <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:axId val="148921737" />
@@ -11970,6 +11972,15 @@
         <c:crosses val="autoZero" />
         <c:crossBetween val="between" />
       </c:valAx>
+      <c:serAx>
+        <c:axId val="148921739" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:axPos val="r" />
+        <c:crossAx val="148921737" />
+        <c:crosses val="autoZero" />
+      </c:serAx>
     </c:plotArea>
     <c:plotVisOnly val="1" />
     <c:dispBlanksAs val="gap" />
@@ -12044,11 +12055,11 @@
           <c:showLeaderLines val="1" />
         </c:dLbls>
         <c:gapDepth val="150" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921739" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921740" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921741" />
       </c:area3DChart>
       <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921739" />
+        <c:axId val="148921740" />
         <c:scaling>
           <c:orientation val="minMax" />
         </c:scaling>
@@ -12057,7 +12068,7 @@
         <c:majorTickMark val="out" />
         <c:minorTickMark val="none" />
         <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921740" />
+        <c:crossAx val="148921741" />
         <c:crosses val="autoZero" />
         <c:auto val="1" />
         <c:lblAlgn val="ctr" />
@@ -12065,7 +12076,7 @@
         <c:noMultiLvlLbl val="0" />
       </c:catAx>
       <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921740" />
+        <c:axId val="148921741" />
         <c:scaling>
           <c:orientation val="minMax" />
         </c:scaling>
@@ -12076,7 +12087,7 @@
         <c:majorTickMark val="out" />
         <c:minorTickMark val="none" />
         <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921739" />
+        <c:crossAx val="148921740" />
         <c:crosses val="autoZero" />
         <c:crossBetween val="between" />
       </c:valAx>
