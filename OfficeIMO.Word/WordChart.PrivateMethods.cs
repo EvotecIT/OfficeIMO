@@ -682,6 +682,49 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
+        private Area3DChart CreateArea3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
+            Area3DChart chart = new Area3DChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
+            chart.Append(grouping);
+
+            DataLabels labels = AddDataLabel();
+            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
+
+            chart.Append(labels);
+            chart.Append(gapDepth);
+
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+
+            return chart;
+        }
+
+        private Chart GenerateArea3DChart(Chart chart) {
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            Area3DChart area3d = CreateArea3DChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+
+            chart.PlotArea.Append(area3d);
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+
+            return chart;
+        }
+
+        private AreaChartSeries AddArea3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            return AddAreaChartSeries(index, series, color, categories, values);
+        }
+
         private void EnsureChartExistsScatter() {
             if (_chart == null) {
                 _chart = GenerateChart();
@@ -695,6 +738,15 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateRadarChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsArea3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateArea3DChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
             }

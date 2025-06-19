@@ -71,6 +71,11 @@ public class ChartTests : VerifyTestBase {
         line3d.AddChartAxisX(categories);
         line3d.AddLine3D("USA", new List<int> { 5, 2, 3, 4 }, Color.Purple);
 
+        document.AddParagraph("Adding a 3-D area chart");
+        var area3d = document.AddChart();
+        area3d.AddCategories(categories);
+        area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
+
         document.Save();
 
         await DoTest(document._wordprocessingDocument);
