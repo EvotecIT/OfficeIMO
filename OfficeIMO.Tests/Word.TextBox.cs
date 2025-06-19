@@ -464,8 +464,8 @@ namespace OfficeIMO.Tests {
             }
             // reload to confirm document can be opened
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.True(document.TextBoxes.Count == 1);
-            
+                Assert.Single(document.TextBoxes);
+
             }
         }
 
@@ -481,7 +481,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.True(document.Sections[0].Header.Default.Paragraphs.Any(p => p.IsTextBox));
+                Assert.Contains(document.Sections[0].Header.Default.Paragraphs, p => p.IsTextBox);
 
             }
         }
