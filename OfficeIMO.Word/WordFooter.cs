@@ -63,24 +63,37 @@ namespace OfficeIMO.Word {
             return pageNumber;
         }
 
-        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument) {
+        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
-            if (docPart.FooterParts.Any()) {
-                // Remove the header
-                docPart.DeleteParts(docPart.FooterParts);
 
-                // First, create a list of all descendants of type
-                // HeaderReference. Then, navigate the list and call
-                // Remove on each item to delete the reference.
-                var footers = document.Descendants<FooterReference>().ToList();
-                foreach (var footer in footers) {
-                    footer.Remove();
+            if (types == null || types.Length == 0) {
+                if (docPart.FooterParts.Any()) {
+                    docPart.DeleteParts(docPart.FooterParts);
+                    var footers = document.Descendants<FooterReference>().ToList();
+                    foreach (var footer in footers) {
+                        footer.Remove();
+                    }
                 }
+                return;
+            }
+
+            var partsToDelete = new HashSet<FooterPart>();
+            var footersToRemove = document.Descendants<FooterReference>()
+                .Where(f => types.Contains(f.Type)).ToList();
+            foreach (var footer in footersToRemove) {
+                var part = docPart.GetPartById(footer.Id) as FooterPart;
+                if (part != null) {
+                    partsToDelete.Add(part);
+                }
+                footer.Remove();
+            }
+            foreach (var part in partsToDelete) {
+                docPart.DeletePart(part);
             }
         }
-        public static void RemoveFooters(WordDocument document) {
-            RemoveFooters(document._wordprocessingDocument);
+        public static void RemoveFooters(WordDocument document, params HeaderFooterValues[] types) {
+            RemoveFooters(document._wordprocessingDocument, types);
         }
     }
 }

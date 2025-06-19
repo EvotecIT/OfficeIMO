@@ -60,24 +60,37 @@ namespace OfficeIMO.Word {
             return pageNumber;
         }
 
-        public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument) {
+        public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
-            if (docPart.HeaderParts.Any()) {
-                // Remove the header
-                docPart.DeleteParts(docPart.HeaderParts);
 
-                // First, create a list of all descendants of type
-                // HeaderReference. Then, navigate the list and call
-                // Remove on each item to delete the reference.
-                var headers = document.Descendants<HeaderReference>().ToList();
-                foreach (var header in headers) {
-                    header.Remove();
+            if (types == null || types.Length == 0) {
+                if (docPart.HeaderParts.Any()) {
+                    docPart.DeleteParts(docPart.HeaderParts);
+                    var headers = document.Descendants<HeaderReference>().ToList();
+                    foreach (var header in headers) {
+                        header.Remove();
+                    }
                 }
+                return;
+            }
+
+            var partsToDelete = new HashSet<HeaderPart>();
+            var headersToRemove = document.Descendants<HeaderReference>()
+                .Where(h => types.Contains(h.Type)).ToList();
+            foreach (var header in headersToRemove) {
+                var part = docPart.GetPartById(header.Id) as HeaderPart;
+                if (part != null) {
+                    partsToDelete.Add(part);
+                }
+                header.Remove();
+            }
+            foreach (var part in partsToDelete) {
+                docPart.DeletePart(part);
             }
         }
-        public static void RemoveHeaders(WordDocument document) {
-            RemoveHeaders(document._wordprocessingDocument);
+        public static void RemoveHeaders(WordDocument document, params HeaderFooterValues[] types) {
+            RemoveHeaders(document._wordprocessingDocument, types);
         }
 
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
