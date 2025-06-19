@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Office.CustomUI;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -46,6 +47,16 @@ namespace OfficeIMO.Tests {
                 }
             }
             return found;
+        }
+
+        internal static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
+            return string.Join(Environment.NewLine + Environment.NewLine,
+                errors.Select(error =>
+                    $"Description: {error.Description}\n" +
+                    $"Id: {error.Id}\n" +
+                    $"ErrorType: {error.ErrorType}\n" +
+                    $"Part: {error.Part?.Uri}\n" +
+                    $"Path: {error.Path?.XPath}"));
         }
     }
 }

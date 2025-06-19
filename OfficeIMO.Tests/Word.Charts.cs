@@ -157,7 +157,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(newIds.Min() > maxId);
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
-                Assert.Empty(chartErrors);
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
             }
         }
 
@@ -180,7 +181,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var valid = document.ValidateDocument();
                 var chartErrors = valid.Where(v => v.Description.Contains("chart")).ToList();
-                Assert.Empty(chartErrors);
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
             }
         }
 
@@ -220,7 +222,8 @@ namespace OfficeIMO.Tests {
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
-                Assert.Empty(chartErrors);
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
 
                 // Verify the document can be saved again (full round-trip test)
                 document.Save(false);
@@ -250,7 +253,8 @@ namespace OfficeIMO.Tests {
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart") || v.Description.Contains("legend")).ToList();
-                Assert.Empty(chartErrors);
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
             }
         }
 
@@ -284,7 +288,8 @@ namespace OfficeIMO.Tests {
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart") || v.Description.Contains("legend")).ToList();
-                Assert.Empty(chartErrors);
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
             }
         }
     }
