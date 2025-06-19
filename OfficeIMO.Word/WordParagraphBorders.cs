@@ -6,20 +6,37 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Defines predefined paragraph border styles.
+    /// </summary>
     public enum WordParagraphBorder {
+        /// <summary>No borders are applied.</summary>
         None,
+        /// <summary>Custom border configuration.</summary>
         Custom,
+        /// <summary>Box border surrounding the paragraph.</summary>
         Box,
+        /// <summary>Shadowed box border.</summary>
         Shadow
     }
 
+    /// <summary>
+    /// Specifies which side of the paragraph border is affected.
+    /// </summary>
     public enum WordParagraphBorderType {
+        /// <summary>Left border.</summary>
         Left,
+        /// <summary>Right border.</summary>
         Right,
+        /// <summary>Top border.</summary>
         Top,
+        /// <summary>Bottom border.</summary>
         Bottom
     }
 
+    /// <summary>
+    /// Provides access to paragraph border properties.
+    /// </summary>
     public class WordParagraphBorders {
         private readonly WordDocument _document;
         private readonly WordParagraph _wordParagraph;
@@ -29,6 +46,9 @@ namespace OfficeIMO.Word {
             _wordParagraph = wordParagraph;
         }
 
+        /// <summary>
+        /// Gets or sets the left border width in points.
+        /// </summary>
         public UInt32Value LeftSize {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -53,6 +73,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border color as a hex value.
+        /// </summary>
         public string LeftColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -77,6 +100,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? LeftColor {
             get {
                 if (LeftColorHex == null || LeftColorHex == "auto") {
@@ -87,6 +113,9 @@ namespace OfficeIMO.Word {
             set => LeftColorHex = value.Value.ToHexColor();
         }
 
+        /// <summary>
+        /// Gets or sets the left border theme color.
+        /// </summary>
         public ThemeColorValues? LeftThemeColor {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -110,6 +139,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border style.
+        /// </summary>
         public BorderValues? LeftStyle {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -134,6 +166,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border spacing.
+        /// </summary>
         public UInt32Value LeftSpace {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -158,6 +193,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the left border has a shadow.
+        /// </summary>
         public bool? LeftShadow {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -182,6 +220,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the left border is part of a frame.
+        /// </summary>
         public bool? LeftFrame {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -206,6 +247,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border width in points.
+        /// </summary>
         public UInt32Value RightSize {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -230,6 +274,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border color as a hex value.
+        /// </summary>
         public string RightColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -254,6 +301,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? RightColor {
             get {
                 if (RightColorHex == null || RightColorHex == "auto") {
@@ -264,6 +314,9 @@ namespace OfficeIMO.Word {
             set => RightColorHex = value.Value.ToHexColor();
         }
 
+        /// <summary>
+        /// Gets or sets the right border theme color.
+        /// </summary>
         public ThemeColorValues? RightThemeColor {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -287,6 +340,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border style.
+        /// </summary>
         public BorderValues? RightStyle {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -311,6 +367,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border spacing.
+        /// </summary>
         public UInt32Value RightSpace {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -335,6 +394,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the right border has a shadow.
+        /// </summary>
         public bool? RightShadow {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -359,6 +421,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the right border is part of a frame.
+        /// </summary>
         public bool? RightFrame {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -383,6 +448,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border width in points.
+        /// </summary>
         public UInt32Value TopSize {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -407,6 +475,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border color as a hex value.
+        /// </summary>
         public string TopColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -431,6 +502,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? TopColor {
             get {
                 if (TopColorHex == null || TopColorHex == "auto"
@@ -442,6 +516,9 @@ namespace OfficeIMO.Word {
             set { this.TopColorHex = value.Value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the top border theme color.
+        /// </summary>
         public ThemeColorValues? TopThemeColor {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -465,6 +542,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border style.
+        /// </summary>
         public BorderValues? TopStyle {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -489,6 +569,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border spacing.
+        /// </summary>
         public UInt32Value TopSpace {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -513,6 +596,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the top border has a shadow.
+        /// </summary>
         public bool? TopShadow {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -537,6 +623,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the top border is part of a frame.
+        /// </summary>
         public bool? TopFrame {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -562,6 +651,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the bottom border width in points.
+        /// </summary>
         public UInt32Value BottomSize {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -586,6 +678,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border color as a hex value.
+        /// </summary>
         public string BottomColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -610,6 +705,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? BottomColor {
             get {
                 if (BottomColorHex == null || BottomColorHex == "auto") {
@@ -626,6 +724,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border theme color.
+        /// </summary>
         public ThemeColorValues? BottomThemeColor {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -649,6 +750,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border style.
+        /// </summary>
         public BorderValues? BottomStyle {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -673,6 +777,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border spacing.
+        /// </summary>
         public UInt32Value BottomSpace {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -697,6 +804,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the bottom border has a shadow.
+        /// </summary>
         public bool? BottomShadow {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -721,6 +831,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the bottom border is part of a frame.
+        /// </summary>
         public bool? BottomFrame {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -764,6 +877,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the current border preset type.
+        /// </summary>
         public WordBorder Type {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
@@ -859,6 +975,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Applies border settings to a specific side of the paragraph.
+        /// </summary>
+        /// <param name="type">Side of the paragraph.</param>
+        /// <param name="style">Border style.</param>
+        /// <param name="color">Border color.</param>
+        /// <param name="size">Border width.</param>
+        /// <param name="shadow">Whether the border has a shadow.</param>
         public void SetBorder(WordParagraphBorderType type, BorderValues style, Color color, UInt32Value size, bool shadow) {
             if (type == WordParagraphBorderType.Left) {
                 LeftStyle = style;
