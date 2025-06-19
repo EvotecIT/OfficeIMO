@@ -609,14 +609,10 @@ namespace OfficeIMO.Word {
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
-            VaryColors varyColors = new VaryColors() { Val = false };
             DataLabels labels = AddDataLabel();
-            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
 
             chart.Append(grouping);
-            chart.Append(varyColors);
             chart.Append(labels);
-            chart.Append(gapDepth);
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
