@@ -165,6 +165,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public void AddArea3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
+            EnsureChartExistsArea3D();
+            if (_chart != null) {
+                var area3d = _chart.PlotArea.GetFirstChild<Area3DChart>();
+                if (area3d != null) {
+                    var series = AddArea3DChartSeries(this._index, name, color, this.Categories, values);
+                    InsertSeries(area3d, series);
+                }
+            }
+        }
+
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();
