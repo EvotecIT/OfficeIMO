@@ -147,7 +147,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes this section and all of its content from the document.
+        /// Removes this section and all of its content from the document,
+        /// cleaning up numbering and any unreferenced header and footer parts.
         /// </summary>
         public void RemoveSection() {
             foreach (var list in this.Lists.ToList()) {
@@ -172,6 +173,30 @@ namespace OfficeIMO.Word {
                         embedded.Remove();
                         break;
                 }
+            }
+
+            foreach (var headerRef in _sectionProperties.Elements<HeaderReference>().ToList()) {
+                string id = headerRef.Id;
+                bool usedElsewhere = _document.Sections
+                    .Where(s => s != this)
+                    .Any(s => s._sectionProperties.Elements<HeaderReference>().Any(hr => hr.Id == id));
+                if (!usedElsewhere) {
+                    var part = (HeaderPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
+                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                }
+                headerRef.Remove();
+            }
+
+            foreach (var footerRef in _sectionProperties.Elements<FooterReference>().ToList()) {
+                string id = footerRef.Id;
+                bool usedElsewhere = _document.Sections
+                    .Where(s => s != this)
+                    .Any(s => s._sectionProperties.Elements<FooterReference>().Any(fr => fr.Id == id));
+                if (!usedElsewhere) {
+                    var part = (FooterPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
+                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                }
+                footerRef.Remove();
             }
 
             if (_sectionProperties.Parent is Paragraph p) {

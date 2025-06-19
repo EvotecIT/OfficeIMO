@@ -412,7 +412,8 @@ public WordParagraph AddParagraph(string text)
 
 ### **RemoveSection()**
 
-Removes the section and its content from the document.
+Removes the section and its content from the document. Any numbering and unused
+header or footer parts are removed as well.
 
 ```csharp
 public void RemoveSection()
