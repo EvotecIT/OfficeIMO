@@ -154,12 +154,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a 3D line chart series to the chart.
+        /// </summary>
+        /// <param name="name">The name of the series</param>
+        /// <param name="values">The data values for the series</param>
+        /// <param name="color">The color of the series</param>
+        /// <typeparam name="T">The type of data values</typeparam>
+        /// <remarks>
+        /// KNOWN ISSUE: Line3DChart currently fails OpenXML schema validation with the error:
+        /// "The element has unexpected child element 'ser'". This appears to be a discrepancy
+        /// between Microsoft's documentation (which shows Line3DChart supports LineChartSeries)
+        /// and the actual OpenXML schema validator implementation. This issue persists regardless
+        /// of element ordering and may indicate that Line3DChart does not actually support data
+        /// series in the current OpenXML specification.
+        /// </remarks>
         public void AddLine3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine3D();
             if (_chart != null) {
                 var line3d = _chart.PlotArea.GetFirstChild<Line3DChart>();
                 if (line3d != null) {
                     var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
+                    // Insert series in the correct schema position (after varyColors, before dLbls)
                     InsertSeries(line3d, series);
                 }
             }
