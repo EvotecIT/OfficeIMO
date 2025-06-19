@@ -26,7 +26,10 @@ public abstract class VerifyTestBase {
 
     static VerifyTestBase() {
         // To disable Visual Studio popping up on every test execution.
-        Environment.SetEnvironmentVariable("DiffEngine_Disabled", "true");
+        var diffDisabled = Environment.GetEnvironmentVariable("DiffEngine_Disabled");
+        if (string.IsNullOrEmpty(diffDisabled))
+            Environment.SetEnvironmentVariable("DiffEngine_Disabled", "true");
+
         Environment.SetEnvironmentVariable("Verify_DisableClipboard", "true");
     }
 
