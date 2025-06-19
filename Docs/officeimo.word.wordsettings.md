@@ -34,6 +34,18 @@ public string ProtectionPassword { set; }
 
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
+### **TrackComments**
+
+Enable or disable tracking of comments in the document.
+
+```csharp
+public bool TrackComments { get; set; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **ZoomPreset**
 
 Get or set Zoom Preset for the document

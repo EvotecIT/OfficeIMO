@@ -8,8 +8,13 @@ namespace OfficeIMO.Word {
     public partial class WordComment {
 
         /// <summary>
-        /// Executes the Create operation.
+        /// Creates a new comment in the specified document.
         /// </summary>
+        /// <param name="document">Document to which the comment will be added.</param>
+        /// <param name="author">Author of the comment.</param>
+        /// <param name="initials">Initials of the author.</param>
+        /// <param name="comment">Comment text.</param>
+        /// <returns>The newly created <see cref="WordComment"/>.</returns>
         public static WordComment Create(WordDocument document, string author, string initials, string comment) {
             var comments = GetCommentsPart(document);
             // Compose a new Comment and add it to the Comments part.
@@ -29,8 +34,10 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Executes the GetAllComments operation.
+        /// Retrieves all comments from the provided document.
         /// </summary>
+        /// <param name="document">Word document containing comments.</param>
+        /// <returns>List of <see cref="WordComment"/> objects.</returns>
         public static List<WordComment> GetAllComments(WordDocument document) {
             List<WordComment> comments = new List<WordComment>();
             if (document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart != null && document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments != null) {
@@ -39,6 +46,29 @@ namespace OfficeIMO.Word {
                 }
             }
             return comments;
+        }
+
+        /// <summary>
+        /// Deletes this comment and removes all references from the document.
+        /// </summary>
+        public void Delete() {
+            var commentsPart = _document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart;
+            if (commentsPart?.Comments != null) {
+                var cmt = commentsPart.Comments.Elements<Comment>().FirstOrDefault(c => c.Id == _comment.Id);
+                cmt?.Remove();
+                commentsPart.Comments.Save();
+            }
+
+            var body = _document._document.Body;
+            foreach (var start in body.Descendants<CommentRangeStart>().Where(c => c.Id == _comment.Id).ToList()) {
+                start.Remove();
+            }
+            foreach (var end in body.Descendants<CommentRangeEnd>().Where(c => c.Id == _comment.Id).ToList()) {
+                end.Remove();
+            }
+            foreach (var reference in body.Descendants<CommentReference>().Where(c => c.Id == _comment.Id).ToList()) {
+                reference.Parent?.Remove();
+            }
         }
     }
 }

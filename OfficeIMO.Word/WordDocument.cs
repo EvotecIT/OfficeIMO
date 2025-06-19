@@ -12,6 +12,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
+        internal int? _tableOfContentIndex;
+        internal TableOfContentStyle? _tableOfContentStyle;
 
         internal int BookmarkId {
             get {
@@ -1080,6 +1082,12 @@ namespace OfficeIMO.Word {
         /// Gets or sets the CompatibilitySettings.
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
+
+        internal void HeadingModified() {
+            if (TableOfContent != null) {
+                Settings.UpdateFieldsOnOpen = true;
+            }
+        }
 
         private void PreSaving() {
             MoveSectionProperties();

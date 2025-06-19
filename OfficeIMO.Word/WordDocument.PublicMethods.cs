@@ -128,16 +128,49 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddTableOfContent operation.
+        /// Adds a table of contents to the current document.
         /// </summary>
+        /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
+        /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
+            _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
 
         /// <summary>
-        /// Executes the AddCoverPage operation.
+        /// Removes the current table of contents from the document if one exists.
         /// </summary>
+        public void RemoveTableOfContent() {
+            var toc = TableOfContent;
+            if (toc != null) {
+                toc.SdtBlock.Remove();
+                _tableOfContentIndex = null;
+            }
+        }
+
+        /// <summary>
+        /// Removes the existing table of contents and creates a new one at the same location.
+        /// </summary>
+        /// <returns>The newly created <see cref="WordTableOfContent"/>.</returns>
+        public WordTableOfContent RegenerateTableOfContent() {
+            var toc = TableOfContent;
+            var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
+            int index = _tableOfContentIndex ?? (toc != null ? _document.Body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
+            RemoveTableOfContent();
+            var newToc = new WordTableOfContent(this, style);
+            if (index >= 0 && index < _document.Body.ChildElements.Count - 1) {
+                var block = newToc.SdtBlock;
+                block.Remove();
+                _document.Body.InsertAt(block, index);
+                _tableOfContentIndex = index;
+            } else {
+                _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            }
+            return newToc;
+        }
+
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
             WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
             return wordCoverPage;
@@ -187,8 +220,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Executes the AddBookmark operation.
+        /// Removes the section at the specified index.
         /// </summary>
+        /// <param name="index">Zero based index of the section to remove.</param>
+        public void RemoveSection(int index) {
+            if (index < 0 || index >= this.Sections.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            this.Sections[index].RemoveSection();
+        }
+
         public WordParagraph AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
