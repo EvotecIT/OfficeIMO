@@ -371,6 +371,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordCheckBox CheckBox {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true) {
+                    return new WordCheckBox(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
+
         public WordBookmark Bookmark {
             get {
                 if (_bookmarkStart != null) {
@@ -499,6 +509,16 @@ namespace OfficeIMO.Word {
         public bool IsStructuredDocumentTag {
             get {
                 if (this.StructuredDocumentTag != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsCheckBox {
+            get {
+                if (this.CheckBox != null) {
                     return true;
                 }
 
