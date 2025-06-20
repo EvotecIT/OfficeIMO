@@ -35,6 +35,22 @@ namespace OfficeIMO.Word {
             return segments.Count;
         }
 
+        /// <summary>
+        /// Inserts an HTML fragment after the specified paragraph.
+        /// </summary>
+        /// <param name="paragraph">Paragraph after which the fragment should be inserted.</param>
+        /// <param name="htmlContent">HTML content to insert.</param>
+        /// <param name="type">Optional format type of the fragment.</param>
+        /// <returns>The created <see cref="WordEmbeddedDocument"/>.</returns>
+        public WordEmbeddedDocument AddEmbeddedFragmentAfter(WordParagraph paragraph,
+            string htmlContent, WordAlternativeFormatImportPartType type = WordAlternativeFormatImportPartType.Html) {
+            if (paragraph == null) {
+                throw new ArgumentNullException(nameof(paragraph));
+            }
+
+            return InsertHtmlFragmentAfter(paragraph, htmlContent, type);
+        }
+
         private WordEmbeddedDocument InsertHtmlFragmentAfter(WordParagraph paragraph,
             string htmlContent, WordAlternativeFormatImportPartType type) {
             MainDocumentPart mainDocPart = _document.MainDocumentPart;
