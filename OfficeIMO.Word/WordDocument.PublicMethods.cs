@@ -218,6 +218,18 @@ namespace OfficeIMO.Word {
             return new WordEmbeddedDocument(this, htmlContent, type, true);
         }
 
+        /// <summary>
+        /// Removes an embedded document from the document.
+        /// </summary>
+        /// <param name="embeddedDocument">Embedded document to remove.</param>
+        public void RemoveEmbeddedDocument(WordEmbeddedDocument embeddedDocument) {
+            if (embeddedDocument == null) {
+                throw new ArgumentNullException(nameof(embeddedDocument));
+            }
+
+            embeddedDocument.Remove();
+        }
+
 
         private int CombineRuns(WordHeaderFooter wordHeaderFooter) {
             int count = 0;
