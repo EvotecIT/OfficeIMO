@@ -22,20 +22,24 @@ namespace OfficeIMO.Tests {
                 var list = document.AddList(WordListStyle.Bulleted);
                 list.AddItem("Task 1").AddCheckBox();
 
-                Assert.True(document.Paragraphs[0].IsCheckBox);
-                Assert.True(document.Paragraphs[0].CheckBox.Checked);
-                Assert.False(document.Paragraphs[1].CheckBox.Checked);
+                var checkBoxes = document.Paragraphs.Where(p => p.IsCheckBox).ToList();
+                Assert.Equal(3, checkBoxes.Count);
+                Assert.True(checkBoxes[0].CheckBox.Checked);
+                Assert.False(checkBoxes[1].CheckBox.Checked);
 
-                document.Paragraphs[1].CheckBox.Checked = true;
-                Assert.True(document.Paragraphs[1].CheckBox.Checked);
+                checkBoxes[1].CheckBox.Checked = true;
+                Assert.True(checkBoxes[1].CheckBox.Checked);
 
                 document.Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(5, document.Paragraphs.Count);
+                Assert.Equal(6, document.Paragraphs.Count);
                 Assert.All(document.Paragraphs, p => Assert.True(p.IsCheckBox || p.Text != null));
-                Assert.True(document.Paragraphs[1].CheckBox.Checked);
+
+                var reloadedCheckBoxes = document.Paragraphs.Where(p => p.IsCheckBox).ToList();
+                Assert.Equal(3, reloadedCheckBoxes.Count);
+                Assert.True(reloadedCheckBoxes[1].CheckBox.Checked);
             }
         }
     }
