@@ -763,4 +763,29 @@ public partial class Word {
             Assert.Empty(document.Footer.Default.Paragraphs);
         }
     }
+
+    [Fact]
+    public void Test_CloningList() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListClone.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var list = document.AddList(WordListStyle.Bulleted);
+            list.Bold = true;
+            list.AddItem("Item 1");
+            list.AddItem("Item 2");
+
+            var cloned = list.Clone();
+
+            Assert.Equal(2, document.Lists.Count);
+            Assert.Equal("Item 1", cloned.ListItems[0].Text);
+            Assert.True(cloned.Bold);
+
+            document.Save(false);
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.Equal(2, document.Lists.Count);
+            Assert.Equal(document.Lists[0].ListItems[0].Text, document.Lists[1].ListItems[0].Text);
+            Assert.True(document.Lists[1].Bold);
+        }
+    }
 }
