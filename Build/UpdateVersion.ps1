@@ -1,4 +1,4 @@
-﻿Import-Module PSPublishModule -Force
+﻿Import-Module PSPublishModule -Force -ErrorAction Stop
 
 $Path = "$PSScriptRoot\.."
 
