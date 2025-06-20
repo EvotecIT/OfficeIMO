@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -545,6 +546,85 @@ public partial class WordList : WordElement {
         foreach (var listItem in ListItems.ToList()) {
             listItem.Remove();
         }
+    }
+
+    /// <summary>
+    /// Creates a deep copy of this list and inserts it after the last item of the list.
+    /// </summary>
+    /// <returns>The cloned <see cref="WordList"/>.</returns>
+    public WordList Clone() {
+        var reference = ListItems.LastOrDefault()?._paragraph;
+        if (reference == null) {
+            throw new InvalidOperationException("Cannot clone an empty list.");
+        }
+        return Clone(reference, true);
+    }
+
+    /// <summary>
+    /// Clones the list and inserts it relative to the specified paragraph.
+    /// </summary>
+    /// <param name="paragraph">Reference paragraph for insertion.</param>
+    /// <param name="after">If true inserts after the paragraph, otherwise before.</param>
+    /// <returns>The cloned <see cref="WordList"/>.</returns>
+    public WordList Clone(WordParagraph paragraph, bool after = true) {
+        return Clone(paragraph._paragraph, after);
+    }
+
+    private WordList Clone(OpenXmlElement referenceParagraph, bool after) {
+        var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+        if (numberingPart == null) {
+            numberingPart = _document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+            numberingPart.Numbering = new Numbering();
+        }
+        var numbering = numberingPart.Numbering;
+
+        var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId.Value == _abstractId);
+        var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID.Value == _numberId);
+
+        int newAbstractId = GetNextAbstractNum(numbering);
+        int newNumberId = GetNextNumberingInstance(numbering);
+
+        var newAbstract = (AbstractNum)originalAbstract.CloneNode(true);
+        newAbstract.AbstractNumberId = newAbstractId;
+        numbering.Append(newAbstract);
+
+        var newInstance = (NumberingInstance)originalInstance.CloneNode(true);
+        newInstance.NumberID = newNumberId;
+        var absId = newInstance.GetFirstChild<AbstractNumId>();
+        if (absId != null) absId.Val = newAbstractId;
+        numbering.Append(newInstance);
+
+        WordList clonedList;
+        if (_headerFooter != null) {
+            clonedList = new WordList(_document, _headerFooter);
+        } else if (_wordParagraph != null) {
+            clonedList = new WordList(_document, _wordParagraph, _isToc);
+        } else {
+            clonedList = new WordList(_document, _isToc);
+        }
+
+        clonedList._abstractId = newAbstractId;
+        clonedList._numberId = newNumberId;
+
+        OpenXmlElement currentRef = referenceParagraph;
+        WordParagraph firstInserted = null;
+        foreach (var item in ListItems) {
+            var clonedParagraph = (Paragraph)item._paragraph.CloneNode(true);
+            var numberingProps = clonedParagraph.GetFirstChild<ParagraphProperties>()?.NumberingProperties;
+            if (numberingProps != null) {
+                numberingProps.NumberingId.Val = newNumberId;
+            }
+            currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
+            if (firstInserted == null) {
+                firstInserted = new WordParagraph(_document, (Paragraph)currentRef);
+            }
+        }
+
+        if (firstInserted != null) {
+            clonedList._wordParagraph = firstInserted;
+        }
+
+        return clonedList;
     }
 
     /// <summary>
