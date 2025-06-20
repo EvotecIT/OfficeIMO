@@ -14,13 +14,12 @@ namespace OfficeIMO.Tests {
 
             Assert.False(path); // MUST BE FALSE
 
-            ExcelDocument document = ExcelDocument.Create(filePath);
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.Save();
 
-            document.Save();
-
-            path = File.Exists(filePath);
-            Assert.True(path);
-            document.Dispose();
+                path = File.Exists(filePath);
+                Assert.True(path);
+            }
 
             File.Delete(filePath);
         }
