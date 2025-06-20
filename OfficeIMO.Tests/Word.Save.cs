@@ -1,4 +1,5 @@
 using System.IO;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -181,6 +182,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
                 Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
             }
+        }
+
+        [Fact]
+        public void Test_SaveToStreamValidity() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Test");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            Assert.Equal(0, outputStream.Position);
+
+            using var openXmlDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(outputStream, false);
+            Assert.NotNull(openXmlDoc.MainDocumentPart);
         }
 
     }

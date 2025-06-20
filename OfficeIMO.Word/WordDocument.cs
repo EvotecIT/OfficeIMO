@@ -908,8 +908,6 @@ namespace OfficeIMO.Word {
             }
             PreSaving();
 
-            this._wordprocessingDocument.Clone(outputStream);
-
             // Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
             using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
