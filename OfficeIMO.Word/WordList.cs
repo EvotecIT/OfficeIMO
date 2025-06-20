@@ -552,6 +552,13 @@ public partial class WordList : WordElement {
     /// Creates a deep copy of this list and inserts it after the last item of the list.
     /// </summary>
     /// <returns>The cloned <see cref="WordList"/>.</returns>
+    /// <example>
+    /// <code>
+    /// var list = document.AddList(WordListStyle.Bulleted);
+    /// list.AddItem("First");
+    /// var duplicate = list.Clone();
+    /// </code>
+    /// </example>
     public WordList Clone() {
         var reference = ListItems.LastOrDefault()?._paragraph;
         if (reference == null) {
@@ -566,6 +573,11 @@ public partial class WordList : WordElement {
     /// <param name="paragraph">Reference paragraph for insertion.</param>
     /// <param name="after">If true inserts after the paragraph, otherwise before.</param>
     /// <returns>The cloned <see cref="WordList"/>.</returns>
+    /// <example>
+    /// <code>
+    /// var duplicate = list.Clone(paragraph, after: false);
+    /// </code>
+    /// </example>
     public WordList Clone(WordParagraph paragraph, bool after = true) {
         return Clone(paragraph._paragraph, after);
     }
