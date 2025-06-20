@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var checkBox = document.AddParagraph("Agree:").AddCheckBox(true);
 
-                Assert.Equal(1, document.CheckBoxes.Count);
+                Assert.Single(document.CheckBoxes);
                 Assert.True(checkBox.IsChecked);
 
                 document.Save(false);
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.CheckBoxes.Count);
+                Assert.Single(document.CheckBoxes);
                 Assert.True(document.CheckBoxes[0].IsChecked);
 
                 document.CheckBoxes[0].IsChecked = false;
