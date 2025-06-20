@@ -216,3 +216,21 @@ public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, U
 #### Returns
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
+
+### **CreateFormattedHyperlink(WordHyperLink, String, Uri)**
+
+```csharp
+public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri)
+```
+
+#### Parameters
+
+`reference` [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>

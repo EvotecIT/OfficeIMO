@@ -362,5 +362,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_CreateFormattedHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Link to ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+
+                var reference = paragraph.Hyperlink;
+                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
+
+                Assert.Equal("Bing", created.Text);
+                Assert.Equal(new Uri("https://bing.com"), created.Uri);
+                Assert.NotNull(created._runProperties);
+                Assert.NotNull(created._runProperties.Color);
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                var secondLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().ElementAt(1);
+                Assert.Equal("Bing", secondLink.InnerText);
+                document.Save();
+            }
+        }
+
     }
 }

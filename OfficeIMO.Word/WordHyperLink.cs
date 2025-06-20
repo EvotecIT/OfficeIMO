@@ -307,5 +307,41 @@ namespace OfficeIMO.Word {
             paragraph._hyperlink = hyperlink;
             return paragraph;
         }
+
+        public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri) {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
+
+            // Determine correct part for hyperlink relationship
+            HyperlinkRelationship rel;
+            var header = reference._paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = reference._paragraph.Ancestors<Footer>().FirstOrDefault();
+
+            if (header != null) {
+                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footer != null) {
+                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            } else {
+                rel = reference._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+            }
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                History = reference._hyperlink.History
+            };
+
+            Run run = new Run(new Text(newText) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            if (reference._runProperties != null) {
+                run.RunProperties = (RunProperties)reference._runProperties.CloneNode(true);
+            }
+
+            hyperlink.Append(run);
+
+            reference._hyperlink.InsertAfterSelf(hyperlink);
+
+            return new WordHyperLink(reference._document, reference._paragraph, hyperlink);
+        }
     }
 }
