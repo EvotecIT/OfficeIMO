@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 var reference = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 reference.Bold = true;
 
-                WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
+                reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 
                 document.Save(openWord);
             }

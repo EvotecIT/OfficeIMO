@@ -234,6 +234,39 @@ public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, st
 #### Returns
 
 [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+This helper inserts a new hyperlink *after* the referenced hyperlink while copying its styling.
+
+### **InsertFormattedHyperlinkAfter(String, Uri)**
+
+```csharp
+public WordHyperLink InsertFormattedHyperlinkAfter(string newText, Uri newUri)
+```
+
+#### Parameters
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+### **InsertFormattedHyperlinkBefore(String, Uri)**
+
+```csharp
+public WordHyperLink InsertFormattedHyperlinkBefore(string newText, Uri newUri)
+```
+
+#### Parameters
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
 
 ### **DuplicateHyperlink(WordHyperLink)**
 

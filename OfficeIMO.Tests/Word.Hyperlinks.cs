@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
 
                 var reference = paragraph.Hyperlink;
-                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
+                var created = reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 
                 Assert.Equal("Bing", created.Text);
                 Assert.Equal(new Uri("https://bing.com"), created.Uri);
@@ -410,6 +410,59 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_InsertFormattedHyperlinkBefore() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedBefore.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Link to ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+
+                var reference = paragraph.Hyperlink;
+                var created = reference.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
+
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+                Assert.Equal("Bing", paragraph._paragraph.Elements<Hyperlink>().First().InnerText);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var firstLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().First();
+                Assert.Equal("Bing", firstLink.InnerText);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_InsertFormattedHyperlinkInHeaderAndFooter() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedHeaderFooter.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var header = document.Header.Default;
+                var paraHeader = header.AddParagraph("Search using ");
+                paraHeader.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var refHeader = paraHeader.Hyperlink;
+                refHeader.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
+
+                var footer = document.Footer.Default;
+                var paraFooter = footer.AddParagraph("Find us on ");
+                paraFooter.AddHyperLink("Yahoo", new Uri("https://yahoo.com"), addStyle: true);
+                var refFooter = paraFooter.Hyperlink;
+                refFooter.InsertFormattedHyperlinkAfter("DuckDuckGo", new Uri("https://duckduckgo.com"));
+
+                Assert.Equal(2, paraHeader._paragraph.Elements<Hyperlink>().Count());
+                Assert.Equal(2, paraFooter._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var headerPara = document.Header.Default.Paragraphs[0];
+                Assert.Equal(2, headerPara._paragraph.Elements<Hyperlink>().Count());
+                var footerPara = document.Footer.Default.Paragraphs[0];
+                Assert.Equal(2, footerPara._paragraph.Elements<Hyperlink>().Count());
                 document.Save();
             }
         }

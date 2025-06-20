@@ -311,37 +311,79 @@ namespace OfficeIMO.Word {
         public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri) {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
 
-            // Determine correct part for hyperlink relationship
+            return reference.InsertFormattedHyperlinkAfter(newText, newUri);
+        }
+
+        public WordHyperLink InsertFormattedHyperlinkAfter(string newText, Uri newUri) {
+            if (newText == null) throw new ArgumentNullException(nameof(newText));
+            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+
             HyperlinkRelationship rel;
-            var header = reference._paragraph.Ancestors<Header>().FirstOrDefault();
-            var footer = reference._paragraph.Ancestors<Footer>().FirstOrDefault();
+            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
 
             if (header != null) {
                 rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
             } else if (footer != null) {
                 rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
             } else {
-                rel = reference._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
             }
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,
-                History = reference._hyperlink.History
+                History = _hyperlink.History
             };
 
             Run run = new Run(new Text(newText) {
                 Space = SpaceProcessingModeValues.Preserve
             });
 
-            if (reference._runProperties != null) {
-                run.RunProperties = (RunProperties)reference._runProperties.CloneNode(true);
+            if (_runProperties != null) {
+                run.RunProperties = (RunProperties)_runProperties.CloneNode(true);
             }
 
             hyperlink.Append(run);
 
-            reference._hyperlink.InsertAfterSelf(hyperlink);
+            _hyperlink.InsertAfterSelf(hyperlink);
 
-            return new WordHyperLink(reference._document, reference._paragraph, hyperlink);
+            return new WordHyperLink(_document, _paragraph, hyperlink);
+        }
+
+        public WordHyperLink InsertFormattedHyperlinkBefore(string newText, Uri newUri) {
+            if (newText == null) throw new ArgumentNullException(nameof(newText));
+            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+
+            HyperlinkRelationship rel;
+            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
+
+            if (header != null) {
+                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footer != null) {
+                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            } else {
+                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+            }
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                History = _hyperlink.History
+            };
+
+            Run run = new Run(new Text(newText) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            if (_runProperties != null) {
+                run.RunProperties = (RunProperties)_runProperties.CloneNode(true);
+            }
+
+            hyperlink.Append(run);
+
+            _hyperlink.InsertBeforeSelf(hyperlink);
+
+            return new WordHyperLink(_document, _paragraph, hyperlink);
         }
 
         public static WordHyperLink DuplicateHyperlink(WordHyperLink reference) {
