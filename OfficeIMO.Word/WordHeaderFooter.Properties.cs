@@ -66,6 +66,10 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsCheckBoxes {
+            get { return Paragraphs.Where(p => p.IsCheckBox).ToList(); }
+        }
+
         /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
@@ -154,6 +158,18 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.StructuredDocumentTag);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordCheckBox> CheckBoxes {
+            get {
+                List<WordCheckBox> list = new List<WordCheckBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.CheckBox);
                 }
 
                 return list;

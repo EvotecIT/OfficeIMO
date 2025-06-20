@@ -1167,5 +1167,33 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_CloningTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableClone.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(2, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "A1";
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "A2";
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "B1";
+                table.Rows[1].Cells[1].Paragraphs[0].Text = "B2";
+
+                WordTable cloned = table.Clone();
+
+                Assert.Equal(2, document.Tables.Count);
+                Assert.Equal("A1", cloned.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("B2", cloned.Rows[1].Cells[1].Paragraphs[0].Text);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Tables.Count);
+                Assert.Equal(document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text,
+                             document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(document.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text,
+                             document.Tables[1].Rows[1].Cells[1].Paragraphs[0].Text);
+            }
+        }
+
     }
 }

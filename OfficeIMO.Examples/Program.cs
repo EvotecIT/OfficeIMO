@@ -36,6 +36,7 @@ namespace OfficeIMO.Examples {
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
             ContentControls.Example_AddContentControl(folderPath, false);
+            CheckBoxes.Example_BasicCheckBox(folderPath, false);
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
@@ -62,6 +63,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_BasicLists12(folderPath, false);
             Lists.Example_CustomList1(folderPath, false);
             Lists.Example_BasicListsWithChangedStyling(folderPath, false);
+            Lists.Example_CloneList(folderPath, false);
 
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
@@ -79,6 +81,7 @@ namespace OfficeIMO.Examples {
             Tables.Example_UnifiedTableBorders(folderPath, false);
             Tables.Example_BasicTables10_StylesModificationWithCentimeters(folderPath, false);
             Tables.Example_DifferentTableSizes(folderPath, false);
+            Tables.Example_CloneTable(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 

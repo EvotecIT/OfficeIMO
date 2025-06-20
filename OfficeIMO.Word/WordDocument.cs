@@ -151,6 +151,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsCheckBoxes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsCheckBoxes);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsCharts {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -429,6 +440,17 @@ namespace OfficeIMO.Word {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.StructuredDocumentTags);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordCheckBox> CheckBoxes {
+            get {
+                List<WordCheckBox> list = new List<WordCheckBox>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.CheckBoxes);
                 }
 
                 return list;
