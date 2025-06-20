@@ -368,3 +368,5 @@ FodyWeavers.xsd
 Ignore/*
 
 *.received.*
+dotnet-install.sh
+packages-microsoft-prod.deb

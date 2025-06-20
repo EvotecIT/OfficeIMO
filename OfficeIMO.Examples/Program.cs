@@ -175,6 +175,7 @@ namespace OfficeIMO.Examples {
 
             FindAndReplace.Example_FindAndReplace01(folderPath, false);
             FindAndReplace.Example_FindAndReplace02(folderPath, false);
+            FindAndReplace.Example_ReplaceTextWithHtmlFragment(folderPath, false);
 
             FootNotes.Example_DocumentWithFootNotes(templatesPath, false);
             FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
