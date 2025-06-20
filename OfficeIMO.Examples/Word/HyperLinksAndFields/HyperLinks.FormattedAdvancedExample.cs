@@ -12,7 +12,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
 
                 var paragraph = document.AddParagraph("Visit ");
-                var baseLink = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var baseLink = paragraph.Hyperlink;
                 baseLink.Bold = true;
 
                 baseLink.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
@@ -24,11 +25,11 @@ namespace OfficeIMO.Examples.Word {
 
                 var headerPara = document.Header.Default.AddParagraph("Search with ");
                 var duck = headerPara.AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"), addStyle: true);
-                duck.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
+                duck.Hyperlink.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
 
                 var footerPara = document.Footer.Default.AddParagraph("Code on ");
                 var gitHub = footerPara.AddHyperLink("GitHub", new Uri("https://github.com"), addStyle: true);
-                gitHub.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));
+                gitHub.Hyperlink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));
 
                 document.Save(openWord);
             }

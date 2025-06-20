@@ -10,7 +10,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "FormattedHyperLinks.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Search using ");
-                var reference = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var reference = paragraph.Hyperlink;
                 reference.Bold = true;
 
                 reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
