@@ -343,5 +343,14 @@ namespace OfficeIMO.Word {
 
             return new WordHyperLink(reference._document, reference._paragraph, hyperlink);
         }
+
+        public static WordHyperLink DuplicateHyperlink(WordHyperLink reference) {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
+
+            Hyperlink duplicate = (Hyperlink)reference._hyperlink.CloneNode(true);
+            reference._hyperlink.InsertAfterSelf(duplicate);
+
+            return new WordHyperLink(reference._document, reference._paragraph, duplicate);
+        }
     }
 }

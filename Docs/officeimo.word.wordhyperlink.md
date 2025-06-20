@@ -234,3 +234,17 @@ public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, st
 #### Returns
 
 [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+### **DuplicateHyperlink(WordHyperLink)**
+
+```csharp
+public static WordHyperLink DuplicateHyperlink(WordHyperLink reference)
+```
+
+#### Parameters
+
+`reference` [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>

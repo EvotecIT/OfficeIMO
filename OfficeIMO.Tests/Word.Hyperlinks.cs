@@ -376,6 +376,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new Uri("https://bing.com"), created.Uri);
                 Assert.NotNull(created._runProperties);
                 Assert.NotNull(created._runProperties.Color);
+                Assert.Equal(reference._runProperties.Color.Val, created._runProperties.Color.Val);
+                Assert.Equal(reference._runProperties.Color.ThemeColor, created._runProperties.Color.ThemeColor);
+                Assert.Equal(reference._runProperties.Underline.Val, created._runProperties.Underline.Val);
+                Assert.Equal(reference._runProperties.RunStyle.Val, created._runProperties.RunStyle.Val);
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
 
                 document.Save(false);
@@ -384,6 +388,28 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
                 var secondLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().ElementAt(1);
                 Assert.Equal("Bing", secondLink.InnerText);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_DuplicateHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "DuplicateHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Search using ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var reference = paragraph.Hyperlink;
+
+                var duplicate = WordHyperLink.DuplicateHyperlink(reference);
+
+                Assert.Equal(reference.Text, duplicate.Text);
+                Assert.Equal(reference.Uri, duplicate.Uri);
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
                 document.Save();
             }
         }
