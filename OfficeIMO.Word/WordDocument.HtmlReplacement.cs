@@ -8,6 +8,15 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        /// <summary>
+        /// Searches for text in the document and replaces each occurrence with an
+        /// embedded HTML fragment using AltChunk.
+        /// </summary>
+        /// <param name="textToFind">Text to search for.</param>
+        /// <param name="htmlContent">HTML fragment to insert.</param>
+        /// <param name="type">Optional format type of the fragment.</param>
+        /// <param name="stringComparison">String comparison option for the search.</param>
+        /// <returns>The number of replacements performed.</returns>
         public int ReplaceTextWithHtmlFragment(string textToFind, string htmlContent,
             WordAlternativeFormatImportPartType type = WordAlternativeFormatImportPartType.Html,
             StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
@@ -51,6 +60,13 @@ namespace OfficeIMO.Word {
             return InsertHtmlFragmentAfter(paragraph, htmlContent, type);
         }
 
+        /// <summary>
+        /// Inserts an AltChunk containing HTML after the provided paragraph.
+        /// </summary>
+        /// <param name="paragraph">Paragraph to insert after.</param>
+        /// <param name="htmlContent">HTML fragment to embed.</param>
+        /// <param name="type">Format type of the fragment.</param>
+        /// <returns>The created <see cref="WordEmbeddedDocument"/>.</returns>
         private WordEmbeddedDocument InsertHtmlFragmentAfter(WordParagraph paragraph,
             string htmlContent, WordAlternativeFormatImportPartType type) {
             MainDocumentPart mainDocPart = _document.MainDocumentPart;
@@ -75,6 +91,11 @@ namespace OfficeIMO.Word {
             return new WordEmbeddedDocument(this, altChunk);
         }
 
+        /// <summary>
+        /// Removes text from the paragraphs as specified by the text segment.
+        /// </summary>
+        /// <param name="paragraphs">Paragraph list to operate on.</param>
+        /// <param name="ts">Segment describing the text range to remove.</param>
         private static void RemoveTextSegment(List<WordParagraph> paragraphs, WordTextSegment ts) {
             if (ts.BeginIndex == ts.EndIndex) {
                 var p = paragraphs[ts.BeginIndex];
