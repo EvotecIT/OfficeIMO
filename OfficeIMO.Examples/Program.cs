@@ -110,6 +110,7 @@ namespace OfficeIMO.Examples {
             HyperLinks.EasyExample(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinks(folderPath, false);
             HyperLinks.Example_FormattedHyperLinks(folderPath, false);
+            HyperLinks.Example_FormattedHyperLinksAdvanced(folderPath, false);
             HyperLinks.Example_AddingFields(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinksInTables(folderPath, false);
 

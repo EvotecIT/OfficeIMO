@@ -467,5 +467,30 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_CopyFormattingFromHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "CopyFormatting.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Go to ");
+                var refPara = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                refPara.Bold = true;
+                var reference = refPara.Hyperlink;
+
+                paragraph.AddHyperLink("Bing", new Uri("https://bing.com"));
+                var target = paragraph.Hyperlink;
+                target.CopyFormattingFrom(reference);
+
+                Assert.NotNull(target._runProperties);
+                Assert.Equal(reference._runProperties.Color.Val, target._runProperties.Color.Val);
+                Assert.Equal(reference._runProperties.Underline.Val, target._runProperties.Underline.Val);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
     }
 }
