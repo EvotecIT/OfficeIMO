@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
@@ -521,6 +522,53 @@ namespace OfficeIMO.Word {
 
             var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
             return paragraph.StructuredDocumentTag;
+        }
+
+        /// <summary>
+        /// Adds a checkbox content control to the paragraph.
+        /// </summary>
+        /// <param name="isChecked">Initial checked state.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <returns>The created <see cref="WordCheckBox"/> instance.</returns>
+        public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null) {
+            var sdtRun = new SdtRun();
+
+            var props = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                props.Append(new SdtAlias() { Val = alias });
+            }
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+
+            var checkBox = new W14.SdtContentCheckBox();
+            checkBox.Append(new W14.Checked() { Val = isChecked ? W14.OnOffValues.One : W14.OnOffValues.Zero });
+            props.Append(checkBox);
+
+            var content = new SdtContentRun(new Run());
+
+            sdtRun.Append(props);
+            sdtRun.Append(content);
+
+            this._paragraph.Append(sdtRun);
+
+            var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
+            return paragraph.CheckBox;
+        }
+
+        /// <summary>
+        /// Removes the checkbox from the paragraph.
+        /// </summary>
+        public void RemoveCheckBox() {
+            this.CheckBox?.Remove();
+        }
+
+        /// <summary>
+        /// Sets the checked state of the paragraph's checkbox.
+        /// </summary>
+        /// <param name="value">New checked state.</param>
+        public void SetCheckBoxValue(bool value) {
+            if (this.CheckBox != null) {
+                this.CheckBox.IsChecked = value;
+            }
         }
     }
 }

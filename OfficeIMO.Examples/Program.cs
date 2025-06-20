@@ -36,6 +36,7 @@ namespace OfficeIMO.Examples {
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
 
             ContentControls.Example_AddContentControl(folderPath, false);
+            CheckBoxes.Example_BasicCheckBox(folderPath, false);
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);

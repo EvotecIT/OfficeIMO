@@ -119,6 +119,7 @@
 [WordSettings](./officeimo.word.wordsettings.md)
 
 [WordStructuredDocumentTag](./officeimo.word.wordstructureddocumenttag.md)
+[WordCheckBox](./officeimo.word.wordcheckbox.md)
 
 [WordTable](./officeimo.word.wordtable.md)
 
