@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
 
                 var reference = paragraph.Hyperlink;
-                var created = reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
+                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
 
                 Assert.Equal("Bing", created.Text);
                 Assert.Equal(new Uri("https://bing.com"), created.Uri);
@@ -488,6 +488,38 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ListHyperlinkFormattingReuse() {
+            string filePath = Path.Combine(_directoryWithFiles, "ListFormatting.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var first = document.AddList(WordListStyle.Bulleted);
+                var google = first.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                google.Bold = true;
+                var googleRef = google.Hyperlink;
+
+                var bing = first.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true);
+                bing.Italic = true;
+                var bingRef = bing.Hyperlink;
+
+                document.AddParagraph("separator");
+
+                var second = document.AddList(WordListStyle.Bulleted);
+                var duck = second.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"));
+                duck.Hyperlink.CopyFormattingFrom(googleRef);
+                var start = second.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com"));
+                start.Hyperlink.CopyFormattingFrom(bingRef);
+
+                Assert.True(duck.Bold);
+                Assert.True(start.Italic);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Lists.Count);
                 document.Save();
             }
         }
