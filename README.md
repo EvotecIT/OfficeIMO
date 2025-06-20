@@ -180,6 +180,16 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add watermark
     - ◼️ Remove watermark
 
+- ☑️ Cover pages
+    - ☑️ Add built-in cover pages
+
+- ☑️ Embedded content
+    - ☑️ Add embedded documents (RTF, HTML, TXT)
+    - ☑️ Add HTML fragments
+    - ☑️ Insert HTML fragment after a paragraph
+    - ☑️ Replace text with an HTML fragment
+    - ☑️ Remove embedded documents
+
 - ☑️ Experimental Excel component
     - ☑️ Create and load workbooks
     - ☑️ Add worksheets
@@ -191,6 +201,7 @@ This list of features is for times when you want to quickly fix something rather
 This features are available as part of `WordHelpers` class.
 
 - ☑️ Remove Headers and Footers from a file
+- ☑️ Convert DOTX template to DOCX
 
 ## Examples
 
