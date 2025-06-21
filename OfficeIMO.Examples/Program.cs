@@ -205,6 +205,7 @@ namespace OfficeIMO.Examples {
 
             Shapes.Example_AddBasicShape(folderPath, false);
             Shapes.Example_AddLine(folderPath, false);
+            Shapes.Example_AddEllipseAndPolygon(folderPath, false);
             Shapes.Example_AddMultipleShapes(folderPath, false);
             Shapes.Example_RemoveShape(folderPath, false);
             Shapes.Example_LoadShapes(folderPath, false);

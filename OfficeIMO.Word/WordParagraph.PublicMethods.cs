@@ -497,6 +497,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add a rectangle shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordShape AddShape(double widthPt, double heightPt, SixLabors.ImageSharp.Color fillColor) {
+            return AddShape(widthPt, heightPt, fillColor.ToHexColor());
+        }
+
+        /// <summary>
         /// Add a line shape to the paragraph.
         /// </summary>
         /// <param name="startXPt">Start X position in points.</param>
