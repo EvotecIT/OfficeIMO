@@ -111,8 +111,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Remove cells
     - ☑️ Others
         - ☑️ Merge cells (vertically, horizontally)
-        - ◼️ Split cells (vertically)
+        - ☑️ Split cells (vertically)
         - ☑️ Split cells (horizontally)
+        - ☑️ Detect merged cells (vertically, horizontally)
         - ☑️ Nested tables
         - ☑️ Repeat header row on each page
         - ☑️ Control row page breaks
