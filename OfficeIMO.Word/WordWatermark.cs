@@ -278,7 +278,7 @@ namespace OfficeIMO.Word {
                     var textPath = shape.GetFirstChild<V.TextPath>();
                     if (textPath != null) {
                         var style = textPath.Style?.Value ?? string.Empty;
-                        var dict = style.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        var dict = style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(p => p.Split(':'))
                             .ToDictionary(p => p[0], p => p.Length > 1 ? p[1] : string.Empty);
                         dict["font-family"] = "\"" + value + "\"";
@@ -316,7 +316,7 @@ namespace OfficeIMO.Word {
                     var textPath = shape.GetFirstChild<V.TextPath>();
                     if (textPath != null) {
                         var style = textPath.Style?.Value ?? string.Empty;
-                        var dict = style.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        var dict = style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(p => p.Split(':'))
                             .ToDictionary(p => p[0], p => p.Length > 1 ? p[1] : string.Empty);
                         dict["font-size"] = value + "pt";
