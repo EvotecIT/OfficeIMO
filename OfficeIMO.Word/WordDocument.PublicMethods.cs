@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
@@ -216,9 +217,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text">Initial text of the control.</param>
         /// <param name="alias">Optional alias for the control.</param>
+        /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/>.</returns>
-        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null) {
-            return this.AddParagraph().AddStructuredDocumentTag(alias, text);
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null, string tag = null) {
+            return this.AddParagraph().AddStructuredDocumentTag(alias, text, tag);
         }
 
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
@@ -227,6 +229,14 @@ namespace OfficeIMO.Word {
 
         public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, WordAlternativeFormatImportPartType type) {
             return new WordEmbeddedDocument(this, htmlContent, type, true);
+        }
+
+        public WordStructuredDocumentTag GetStructuredDocumentTagByTag(string tag) {
+            return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Tag == tag);
+        }
+
+        public WordStructuredDocumentTag GetStructuredDocumentTagByAlias(string alias) {
+            return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Alias == alias);
         }
 
         /// <summary>

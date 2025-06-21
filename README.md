@@ -304,13 +304,52 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
 ### Adding a Content Control
 
-This example shows how to add and update a simple content control.
+This example shows how to add and update a simple content control and then retrieve it by tag.
 
 ```csharp
 using (WordDocument document = WordDocument.Create(filePath)) {
-    var sdt = document.AddStructuredDocumentTag("Hello", "MyAlias");
+    var sdt = document.AddStructuredDocumentTag("Hello", "MyAlias", "MyTag");
     sdt.Text = "Changed";
     document.Save(true);
+}
+
+using (WordDocument document = WordDocument.Load(filePath)) {
+    var tag = document.GetStructuredDocumentTagByTag("MyTag");
+Console.WriteLine(tag.Text);
+}
+```
+
+### Multiple Content Controls
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.AddStructuredDocumentTag("First", "Alias1", "Tag1");
+    document.AddStructuredDocumentTag("Second", "Alias2", "Tag2");
+    document.AddStructuredDocumentTag("Third", "Alias3", "Tag3");
+    document.Save(true);
+}
+
+using (WordDocument document = WordDocument.Load(filePath)) {
+    foreach (var control in document.StructuredDocumentTags) {
+        Console.WriteLine(control.Tag + ": " + control.Text);
+    }
+}
+```
+
+### Advanced Content Control Usage
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.AddStructuredDocumentTag("First", "Alias1", "Tag1");
+    document.AddStructuredDocumentTag("Second", "Alias2", "Tag2");
+    document.Save(true);
+}
+
+using (WordDocument document = WordDocument.Load(filePath)) {
+    var alias = document.GetStructuredDocumentTagByAlias("Alias2");
+    alias.Text = "Updated";
+    var tag = document.GetStructuredDocumentTagByTag("Tag1");
+    Console.WriteLine(tag.Text);
 }
 ```
 
