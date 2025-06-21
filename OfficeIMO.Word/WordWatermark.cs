@@ -485,6 +485,11 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Inserts an image watermark and tracks the created <see cref="WordImage"/>
+        /// so it can be removed later. Throws <see cref="FileNotFoundException"/>
+        /// when <paramref name="filePath"/> does not exist.
+        /// </summary>
         private void AddWatermarkImage(WordParagraph wordParagraph, string filePath) {
             if (!System.IO.File.Exists(filePath)) {
                 throw new System.IO.FileNotFoundException($"Image '{filePath}' not found.", filePath);
