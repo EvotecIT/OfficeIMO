@@ -314,12 +314,20 @@ namespace OfficeIMO.Word {
         public List<WordEmbeddedDocument> EmbeddedDocuments => GetEmbeddedDocumentsList();
 
         /// <summary>
-        /// Provides a list of all watermarks within the section
+        /// Provides a list of all watermarks within the section, including
+        /// any watermarks found in the section headers.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
+                List<WordWatermark> list = new List<WordWatermark>();
                 var sdtBlockList = GetSdtBlockList();
-                return WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList);
+                list.AddRange(WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList));
+
+                if (Header.Default != null) list.AddRange(Header.Default.Watermarks);
+                if (Header.Even != null) list.AddRange(Header.Even.Watermarks);
+                if (Header.First != null) list.AddRange(Header.First.Watermarks);
+
+                return list;
             }
         }
 

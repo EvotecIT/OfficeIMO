@@ -171,6 +171,7 @@ namespace OfficeIMO.Examples {
             Watermark.Watermark_Sample1(folderPath, false);
             Watermark.Watermark_Sample3(folderPath, false);
             Watermark.Watermark_SampleImage1(folderPath, false);
+            Watermark.Watermark_Remove(folderPath, false);
 
             Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
             Embed.Example_EmbedFileRTF(folderPath, templatesPath, false);
@@ -205,11 +206,14 @@ namespace OfficeIMO.Examples {
 
             Shapes.Example_AddBasicShape(folderPath, false);
             Shapes.Example_AddLine(folderPath, false);
+            Shapes.Example_AddEllipseAndPolygon(folderPath, false);
             Shapes.Example_AddMultipleShapes(folderPath, false);
             Shapes.Example_RemoveShape(folderPath, false);
             Shapes.Example_LoadShapes(folderPath, false);
 
             Revisions.Example_TrackedChanges(folderPath, false);
+            MailMerge.Example_MailMergeSimple(folderPath, false);
+            MailMerge.Example_MailMergeAdvanced(folderPath, false);
         }
     }
 }

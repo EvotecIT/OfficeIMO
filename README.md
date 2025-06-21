@@ -118,10 +118,10 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Repeat header row on each page
         - ☑️ Control row page breaks
         - ☑️ Set row height and table width
-- ☑️ Images/Pictures (supports BMP, GIF, JPEG, PNG, TIFF with various wrapping options)
+- ☑️ Images/Pictures (supports BMP, GIF, JPEG, PNG, TIFF, EMF with various wrapping options)
     - ☑️ Add images from file to Word
+    - ☑️ Add images from Base64 strings
     - ☑️ Save image from Word to File
-    - ◼️ Additional image types (e.g., EMF)
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
