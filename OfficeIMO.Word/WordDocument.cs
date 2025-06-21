@@ -306,6 +306,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets the value of a document variable or <c>null</c> if the variable does not exist.
+        /// </summary>
+        /// <param name="name">Variable name.</param>
+        public string GetDocumentVariable(string name) {
+            return DocumentVariables.ContainsKey(name) ? DocumentVariables[name] : null;
+        }
+
+        /// <summary>
+        /// Sets the value of a document variable. Creates it if it does not exist.
+        /// </summary>
+        /// <param name="name">Variable name.</param>
+        /// <param name="value">Variable value.</param>
+        public void SetDocumentVariable(string name, string value) {
+            DocumentVariables[name] = value;
+        }
+
+        /// <summary>
+        /// Removes the document variable with the specified name if present.
+        /// </summary>
+        /// <param name="name">Variable name.</param>
+        public void RemoveDocumentVariable(string name) {
+            DocumentVariables.Remove(name);
+        }
+
+        /// <summary>
         /// Enable or disable tracking of comment changes.
         /// </summary>
         public bool TrackComments {
@@ -512,6 +537,10 @@ namespace OfficeIMO.Word {
         public BuiltinDocumentProperties BuiltinDocumentProperties;
 
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
+        /// <summary>
+        /// Collection of document variables accessible via <see cref="DocVariable"/> fields.
+        /// </summary>
+        public readonly Dictionary<string, string> DocumentVariables = new Dictionary<string, string>();
 
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
@@ -663,6 +692,7 @@ namespace OfficeIMO.Word {
             var applicationProperties = new ApplicationProperties(this);
             var builtinDocumentProperties = new BuiltinDocumentProperties(this);
             var wordCustomProperties = new WordCustomProperties(this);
+            var wordDocumentVariables = new WordDocumentVariables(this);
             var wordBackground = new WordBackground(this);
             var compatibilitySettings = new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
@@ -1040,6 +1070,7 @@ namespace OfficeIMO.Word {
             MoveSectionProperties();
             SaveNumbering();
             _ = new WordCustomProperties(this, true);
+            _ = new WordDocumentVariables(this, true);
         }
     }
 }
