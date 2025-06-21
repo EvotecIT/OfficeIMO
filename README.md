@@ -93,12 +93,12 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Sections
     - ☑️ Add Paragraphs
     - ☑️ Add Headers and Footers (Odd/Even/First)
-    - ◼️ Remove Headers and Footers (Odd/Even/First)
+    - ☑️ Remove Headers and Footers (Odd/Even/First)
     - ☑️ Remove Paragraphs
-    - ◼️ Remove Sections
+    - ☑️ Remove Sections
 - ☑️ Headers and Footers in the document (not including sections)
     - ☑️ Add Default, Odd, Even, First
-    - ◼️ Remove Default, Odd, Even, First
+    - ☑️ Remove Default, Odd, Even, First
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
 - ☑️ Paragraphs and change alignment
 - ☑️ Tables
@@ -138,7 +138,8 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read Bookmark
     - ☑️ Remove Bookmark
     - ☑️ Change Bookmark
-  - ◼️ Comments
+- ☑️ Find and replace text
+  - ☑️ Comments
       - ☑️ Add comments
       - ☑️ Read comments
       - ☑️ Remove comments (single or all)
@@ -161,25 +162,39 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read controls
     - ☑️ Update control text
     - ☑️ Remove controls
-- ◼️ Shapes
-- ◼️ Charts
+- ☑️ Shapes
+    - ☑️ Add rectangles
+    - ☑️ Add ellipses
+    - ☑️ Add lines
+    - ☑️ Add polygons
+    - ☑️ Set fill and stroke color
+    - ☑️ Remove shapes
+- ☑️ Charts
     - ☑️ Add charts
-        - ☑️ Pie charts
-        - ☑️ Bar charts
-        - ☑️ Line charts
-        - ☑️ Area charts
+        - ☑️ Pie and Pie 3D
+        - ☑️ Bar and Bar 3D
+        - ☑️ Line and Line 3D
+        - ☑️ Area and Area 3D
+        - ☑️ Scatter
+        - ☑️ Radar
     - ☑️ Add categories and legends
-- ◼️ Lists
+    - ☑️ Configure axes
+    - ☑️ Add multiple series
+- ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
-- ◼️ Table of contents
+- ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open
 - ☑️ Borders
+    - ☑️ Built-in styles or custom settings
+    - ☑️ Change size, color, style and spacing
 - ☑️ Background
-- ◼️ Watermarks
-    - ☑️ Add watermark
-    - ◼️ Remove watermark
+    - ☑️ Set background color
+- ☑️ Watermarks
+    - ☑️ Add text or image watermark
+    - ☑️ Set rotation, width and height
+    - ☑️ Remove watermark
 
 - ☑️ Cover pages
     - ☑️ Add built-in cover pages
