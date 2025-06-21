@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
 
         internal Drawing _Image;
         private ImagePart _imagePart;
+        private OpenXmlPartContainer _partContainer;
         private WordDocument _document;
 
         /// <summary>
@@ -651,21 +652,31 @@ namespace OfficeIMO.Word {
             PercentageHeight percentageHeight1 = new PercentageHeight { Text = "0" };
             relativeHeight1.Append(percentageHeight1);
                 try {
-                    this._imagePart.OpenXmlPackage.DeletePart(_imagePart);
+                    if (_partContainer != null) {
+                        _partContainer.DeletePart(_imagePart);
+                    } else {
+                        this._imagePart.OpenXmlPackage.DeletePart(_imagePart);
+                    }
                 } catch (InvalidOperationException) {
                     // part might not be attached yet
                 }
 
-            return anchor1;
-        }
+            this._partContainer = imageLocation.PartContainer;
+            WordImageLocation BuildLocation(ImagePart ip, OpenXmlPartContainer pc, string rid, double w, double h, string iname) {
+                ip.FeedData(imageStream);
+                return new WordImageLocation() {
+                    ImagePart = ip,
+                    PartContainer = pc,
+                    RelationshipId = rid,
+                    Width = w,
+                    Height = h,
+                    ImageName = iname
+                };
+            }
 
-        public WordImage(WordDocument document, Drawing drawing) {
-            _document = document;
-            _Image = drawing;
-            var imageParts = document._document.MainDocumentPart.ImageParts;
-            foreach (var imagePart in imageParts) {
-                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
-                if (this.RelationshipId == relationshipId) {
+                return BuildLocation(imagePart, part, relationshipId, width.Value, height.Value, imageName);
+                return BuildLocation(imagePart, part, relationshipId, width.Value, height.Value, imageName);
+                return BuildLocation(imagePart, part, relationshipId, width.Value, height.Value, imageName);
                     this._imagePart = imagePart;
                 }
             }

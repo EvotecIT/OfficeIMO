@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+        public OpenXmlPartContainer PartContainer { get; set; }
     /// <summary>
     /// Represents the location and metadata of an image within a document.
     /// </summary>
