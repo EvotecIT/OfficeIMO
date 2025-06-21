@@ -66,6 +66,14 @@ Indicates if the document contains any document variables.
 public bool HasDocumentVariables { get; }
 ```
 
+### **DocumentVariables**
+
+Collection of document variables.
+
+```csharp
+public Dictionary<string, string> DocumentVariables { get; }
+```
+
 ### **GetDocumentVariable(String)**
 
 Return the value of a document variable or <code>null</code> if the variable does not exist.

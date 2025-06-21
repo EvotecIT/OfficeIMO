@@ -565,7 +565,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Collection of document variables accessible via <see cref="DocVariable"/> fields.
         /// </summary>
-        public readonly Dictionary<string, string> DocumentVariables = new Dictionary<string, string>();
+        public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
