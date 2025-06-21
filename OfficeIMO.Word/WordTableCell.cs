@@ -67,6 +67,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets information whether the cell is part of a horizontal merge
+        /// </summary>
+        public bool HasHorizontalMerge {
+            get {
+                return _tableCellProperties?.HorizontalMerge != null;
+            }
+        }
+
+        /// <summary>
+        /// Gets information whether the cell is part of a vertical merge
+        /// </summary>
+        public bool HasVerticalMerge {
+            get {
+                return _tableCellProperties?.VerticalMerge != null;
+            }
+        }
+
+        /// <summary>
         /// Get or set the background color of the cell using hexadecimal color code.
         /// </summary>
         public string ShadingFillColorHex {
@@ -352,6 +370,26 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Ensure that TableCellProperties exist for current cell
+        /// </summary>
+        internal void AddTableCellProperties() {
+            if (_tableCell.TableCellProperties == null) {
+                _tableCell.InsertAt(new TableCellProperties(), 0);
+            }
+            _tableCellProperties = _tableCell.TableCellProperties;
+        }
+
+        /// <summary>
+        /// Remove TableCellProperties from current cell (used mostly for testing)
+        /// </summary>
+        internal void RemoveTableCellProperties() {
+            if (_tableCell.TableCellProperties != null) {
+                _tableCell.TableCellProperties.Remove();
+                _tableCellProperties = null;
+            }
+        }
+
+        /// <summary>
         /// Remove a cell from a table
         /// </summary>
         public void Remove() {
@@ -366,7 +404,8 @@ namespace OfficeIMO.Word {
         /// <param name="copyParagraphs"></param>
         public void MergeHorizontally(int cellsCount, bool copyParagraphs = false) {
             var temporaryCell = _tableCell;
-            _tableCell.TableCellProperties.HorizontalMerge = new HorizontalMerge {
+            AddTableCellProperties();
+            _tableCellProperties.HorizontalMerge = new HorizontalMerge {
                 Val = MergedCellValues.Restart
             };
 
@@ -374,6 +413,7 @@ namespace OfficeIMO.Word {
                 if (_tableCell != null) {
                     _tableCell = (TableCell)_tableCell.NextSibling();
                     if (_tableCell != null) {
+                        AddTableCellProperties();
                         if (copyParagraphs) {
                             // lets find all paragraphs and move them to first table cell
                             var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
@@ -411,15 +451,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="cellsCount"></param>
         public void SplitHorizontally(int cellsCount) {
-            if (_tableCell.TableCellProperties.HorizontalMerge != null) {
-                _tableCell.TableCellProperties.HorizontalMerge.Remove();
+            AddTableCellProperties();
+            if (_tableCellProperties.HorizontalMerge != null) {
+                _tableCellProperties.HorizontalMerge.Remove();
             }
             for (int i = 0; i < cellsCount; i++) {
                 if (_tableCell != null) {
                     _tableCell = (TableCell)_tableCell.NextSibling();
                     if (_tableCell != null) {
-                        if (_tableCell.TableCellProperties.HorizontalMerge != null) {
-                            _tableCell.TableCellProperties.HorizontalMerge.Remove();
+                        AddTableCellProperties();
+                        if (_tableCellProperties.HorizontalMerge != null) {
+                            _tableCellProperties.HorizontalMerge.Remove();
                         }
                     }
                 }
@@ -433,7 +475,8 @@ namespace OfficeIMO.Word {
         /// <param name="copyParagraphs"></param>
         public void MergeVertically(int cellsCount, bool copyParagraphs = false) {
             var temporaryCell = _tableCell;
-            _tableCell.TableCellProperties.VerticalMerge = new VerticalMerge {
+            AddTableCellProperties();
+            _tableCellProperties.VerticalMerge = new VerticalMerge {
                 Val = MergedCellValues.Restart
             };
             var tableRow = _tableCell.Parent;
@@ -449,6 +492,7 @@ namespace OfficeIMO.Word {
                             if (tableCells != null) {
                                 _tableCell = tableCells;
                                 if (_tableCell != null) {
+                                    AddTableCellProperties();
                                     if (copyParagraphs) {
                                         // lets find all paragraphs and move them to first table cell
                                         var paragraphs = _tableCell.ChildElements.OfType<Paragraph>();
@@ -472,7 +516,7 @@ namespace OfficeIMO.Word {
                                     }
 
                                     // then for every table cell we need to continue merging until cellsCount
-                                    _tableCell.TableCellProperties.VerticalMerge = new VerticalMerge {
+                                    _tableCellProperties.VerticalMerge = new VerticalMerge {
                                         Val = MergedCellValues.Continue
                                     };
                                 }
@@ -482,6 +526,36 @@ namespace OfficeIMO.Word {
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Splits (unmerge) cells that were merged vertically
+        /// </summary>
+        /// <param name="cellsCount">Number of cells to split including the current one</param>
+        public void SplitVertically(int cellsCount) {
+            AddTableCellProperties();
+            if (_tableCellProperties.VerticalMerge != null) {
+                _tableCellProperties.VerticalMerge.Remove();
+            }
+
+            var tableRow = _tableCell.Parent;
+            var indexOfCell = tableRow.ChildElements.ToList().IndexOf(_tableCell);
+
+            for (int i = 0; i < cellsCount; i++) {
+                if (tableRow != null) {
+                    tableRow = tableRow.NextSibling();
+                    if (tableRow != null) {
+                        var tableCells = tableRow.ChildElements.OfType<TableCell>().ToList()[indexOfCell];
+                        if (tableCells != null) {
+                            _tableCell = tableCells;
+                            AddTableCellProperties();
+                            if (_tableCellProperties.VerticalMerge != null) {
+                                _tableCellProperties.VerticalMerge.Remove();
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

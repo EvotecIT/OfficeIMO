@@ -410,6 +410,15 @@ public WordParagraph AddParagraph(string text)
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
+### **RemoveSection()**
+
+Removes the section and its content from the document. Any numbering and unused
+header or footer parts are removed as well.
+
+```csharp
+public void RemoveSection()
+```
+
 ### **AddWatermark(WordWatermarkStyle, String)**
 
 ```csharp
@@ -425,6 +434,15 @@ public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text
 #### Returns
 
 [WordWatermark](./officeimo.word.wordwatermark.md)<br>
+
+### **RemoveWatermark()**
+
+Removes all watermarks from the section including headers.
+Individual watermarks can be removed from the `Watermarks` collection.
+
+```csharp
+public void RemoveWatermark()
+```
 
 ### **SetBorders(WordBorder)**
 

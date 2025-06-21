@@ -63,24 +63,49 @@ namespace OfficeIMO.Word {
             return pageNumber;
         }
 
-        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument) {
+        /// <summary>
+        /// Removes footers from the provided <see cref="WordprocessingDocument"/>.
+        /// When no <paramref name="types"/> are specified all footers are removed.
+        /// </summary>
+        /// <param name="wordprocessingDocument">Document to operate on.</param>
+        /// <param name="types">Footer types to remove.</param>
+        public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
-            if (docPart.FooterParts.Any()) {
-                // Remove the header
-                docPart.DeleteParts(docPart.FooterParts);
 
-                // First, create a list of all descendants of type
-                // HeaderReference. Then, navigate the list and call
-                // Remove on each item to delete the reference.
-                var footers = document.Descendants<FooterReference>().ToList();
-                foreach (var footer in footers) {
-                    footer.Remove();
+            if (types == null || types.Length == 0) {
+                if (docPart.FooterParts.Any()) {
+                    docPart.DeleteParts(docPart.FooterParts);
+                    var footers = document.Descendants<FooterReference>().ToList();
+                    foreach (var footer in footers) {
+                        footer.Remove();
+                    }
                 }
+                return;
+            }
+
+            var partsToDelete = new HashSet<FooterPart>();
+            var footersToRemove = document.Descendants<FooterReference>()
+                .Where(f => types.Contains(f.Type)).ToList();
+            foreach (var footer in footersToRemove) {
+                var part = docPart.GetPartById(footer.Id) as FooterPart;
+                if (part != null) {
+                    partsToDelete.Add(part);
+                }
+                footer.Remove();
+            }
+            foreach (var part in partsToDelete) {
+                docPart.DeletePart(part);
             }
         }
-        public static void RemoveFooters(WordDocument document) {
-            RemoveFooters(document._wordprocessingDocument);
+        /// <summary>
+        /// Removes footers from the specified <see cref="WordDocument"/>.
+        /// When no <paramref name="types"/> are provided all footers are removed.
+        /// </summary>
+        /// <param name="document">Document to operate on.</param>
+        /// <param name="types">Footer types to remove.</param>
+        public static void RemoveFooters(WordDocument document, params HeaderFooterValues[] types) {
+            RemoveFooters(document._wordprocessingDocument, types);
         }
     }
 }

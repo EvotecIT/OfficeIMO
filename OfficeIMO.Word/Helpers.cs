@@ -66,11 +66,19 @@ namespace OfficeIMO.Word {
             return IsFileLocked(new FileInfo(fileName));
         }
 
-        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream) {
-            using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
-            imageStream.Position = 0;
-            var type = ConvertToImagePartType(imageFormat);
-            return new ImageCharacteristics(img.Width, img.Height, type);
+        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream, string fileName = null) {
+            try {
+                using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
+                imageStream.Position = 0;
+                var type = ConvertToImagePartType(imageFormat);
+                return new ImageCharacteristics(img.Width, img.Height, type);
+            } catch (SixLabors.ImageSharp.UnknownImageFormatException) {
+                imageStream.Position = 0;
+                if (!string.IsNullOrEmpty(fileName) && Path.GetExtension(fileName).Equals(".emf", StringComparison.OrdinalIgnoreCase)) {
+                    return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
+                }
+                throw;
+            }
         }
 
         private static CustomImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
@@ -80,6 +88,7 @@ namespace OfficeIMO.Word {
                 "JPEG" => CustomImagePartType.Jpeg,
                 "PNG" => CustomImagePartType.Png,
                 "TIFF" => CustomImagePartType.Tiff,
+                "EMF" => CustomImagePartType.Emf,
                 _ => throw new ImageFormatNotSupportedException($"Image format not supported: {imageFormat.Name}.")
             };
 

@@ -7,7 +7,8 @@ public enum CustomImagePartType {
     Gif,
     Jpeg,
     Png,
-    Tiff
+    Tiff,
+    Emf
 }
 
 public static class CustomImagePartTypeExtensions {
@@ -18,6 +19,7 @@ public static class CustomImagePartTypeExtensions {
             CustomImagePartType.Jpeg => "image/jpeg",
             CustomImagePartType.Png => "image/png",
             CustomImagePartType.Tiff => "image/tiff",
+            CustomImagePartType.Emf => "image/x-emf",
             _ => throw new ArgumentOutOfRangeException(nameof(customType), customType, null)
         };
     }

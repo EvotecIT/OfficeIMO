@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -34,12 +35,18 @@ namespace OfficeIMO.Word {
         private PieChartSeries InitializePieChartSeries() {
             if (_chart != null) {
                 var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                if (pieChart != null) {
-                    var pieChartSeries = pieChart.GetFirstChild<PieChartSeries>();
+                OpenXmlCompositeElement chartElement = pieChart;
+                if (chartElement == null) {
+                    chartElement = _chart.PlotArea.GetFirstChild<Pie3DChart>();
+                }
+
+                if (chartElement != null) {
+                    var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
+                    var dataLabels = chartElement.GetFirstChild<DataLabels>() ?? chartElement.AppendChild(AddDataLabel());
+
                     if (pieChartSeries == null) {
                         pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        pieChart.Append(pieChartSeries);
-
+                        chartElement.InsertBefore(pieChartSeries, dataLabels);
                     }
                     return pieChartSeries;
                 }
@@ -57,11 +64,9 @@ namespace OfficeIMO.Word {
             var stringReference1 = AddSeries(0, series);
             seriesText1.Append(stringReference1);
 
-            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
             pieChartSeries1.Append(index1);
             pieChartSeries1.Append(order1);
             pieChartSeries1.Append(seriesText1);
-            pieChartSeries1.Append(invertIfNegative1);
             return pieChartSeries1;
         }
 
@@ -108,13 +113,20 @@ namespace OfficeIMO.Word {
             Values values = InitializeValues();
             // Initialize the NumberLiteral
             NumberLiteral literal = values.GetFirstChild<NumberLiteral>() ?? InitializeNumberLiteral();
-            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = data.ToString() } });
+
+            // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+            string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                              data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                              data?.ToString() ?? "0";
+
+            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
             // Update the PointCount
             PointCount pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {
                 pointCount.Val = _currentIndexValues + 1;
             } else {
-                literal.InsertAt(new PointCount() { Val = 1 }, 0);
+                int pos = literal.Elements<FormatCode>().Any() ? 1 : 0;
+                literal.InsertAt(new PointCount() { Val = 1 }, pos);
             }
             // Increment the current index
             _currentIndexValues++;
@@ -126,49 +138,59 @@ namespace OfficeIMO.Word {
 
         private Chart CreatePieChart(Chart chart) {
             PieChart pieChart1 = new PieChart();
-            DataLabels dataLabels1 = AddDataLabel();
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            pieChart1.Append(dataLabels1);
             chart.PlotArea.Append(pieChart1);
             return chart;
         }
 
         private Chart GenerateChartBar(Chart chart) {
-            BarChart barChart1 = CreateBarChart();
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            BarChart barChart1 = CreateBarChart(catId, valId);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            chart.PlotArea.Append(barChart1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(barChart1);
 
             return chart;
         }
-
-        private BarChart CreateBarChart(BarDirectionValues? barDirection = null) {
+        private BarChart CreateBarChart(UInt32Value catAxisId, UInt32Value valAxisId, BarDirectionValues? barDirection = null) {
             barDirection ??= BarDirectionValues.Bar;
             BarChart barChart1 = new BarChart();
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            DataLabels dataLabels1 = AddDataLabel();
-            barChart1.Append(dataLabels1);
-
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
             BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
+            DataLabels dataLabels1 = AddDataLabel();
             GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
-
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
-            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
-            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Overlap overlap1 = new Overlap() { Val = 0 };
 
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            // Append elements in correct OpenXML schema order:
+            // 1. barDir [1..1] - Bar Direction
+            // 2. grouping [0..1] - Bar Grouping
+            // 3. varyColors [0..1] - (not used)
+            // 4. ser [0..*] - Bar Chart Series (added later when series are created)
+            // 5. dLbls [0..1] - Data Labels
+            // 6. gapWidth [0..1] - Gap Width
+            // 7. overlap [0..1] - Overlap
+            // 8. serLines [0..*] - Series Lines (not used)
+            // 9. axId [2..2] - Axis ID
+            // 10. extLst [0..1] - Extension List (not used)
             barChart1.Append(barDirection1);
             barChart1.Append(barGrouping1);
+            barChart1.Append(dataLabels1);
             barChart1.Append(gapWidth1);
+            barChart1.Append(overlap1);
             barChart1.Append(axisId1);
             barChart1.Append(axisId2);
-            barChart1.Append(overlap1);
             return barChart1;
         }
 
@@ -251,7 +273,7 @@ namespace OfficeIMO.Word {
             return chartShapeProperties1;
 
         }
-        private LineChart CreateLineChart() {
+        private LineChart CreateLineChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             LineChart lineChart1 = new LineChart();
             lineChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
@@ -261,10 +283,10 @@ namespace OfficeIMO.Word {
             lineChart1.Append(grouping1);
             lineChart1.Append(dataLabels1);
 
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             lineChart1.Append(axisId1);
@@ -273,16 +295,18 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateLineChart(Chart chart) {
-            LineChart lineChart1 = CreateLineChart();
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            LineChart lineChart1 = CreateLineChart(catId, valId);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             //chart.PlotArea.Append(layout1);
+            chart.PlotArea.Append(lineChart1);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(lineChart1);
             return chart;
         }
-
         private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
             LineChartSeries lineChartSeries1 = new LineChartSeries();
             DocumentFormat.OpenXml.Drawing.Charts.Index index1 = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
@@ -294,19 +318,22 @@ namespace OfficeIMO.Word {
 
             seriesText1.Append(stringReference1);
 
-            InvertIfNegative invertIfNegative1 = new InvertIfNegative();
+            // Note: InvertIfNegative is not valid for LineChartSeries according to OpenXML schema
+            // It's only valid for BarChartSeries and other chart types, but not LineChartSeries
 
             var chartShapeProperties1 = AddShapeProperties(color);
 
             Values values1 = AddValuesAxisData(data);
             CategoryAxisData categoryAxisData1 = AddCategoryAxisData(categories);
 
-
+            // Append elements in correct OpenXML schema order for LineChartSeries:
+            // 1. idx, 2. order, 3. tx (seriesText), 4. spPr (chartShapeProperties),
+            // 5. marker, 6. pictureOptions, 7. dPt, 8. dLbls, 9. trendline, 10. errBars,
+            // 11. cat (categoryAxisData), 12. val (values), 13. smooth, 14. extLst
             lineChartSeries1.Append(index1);
             lineChartSeries1.Append(order1);
             lineChartSeries1.Append(seriesText1);
             lineChartSeries1.Append(chartShapeProperties1);
-            lineChartSeries1.Append(invertIfNegative1);
             lineChartSeries1.Append(categoryAxisData1);
             lineChartSeries1.Append(values1);
 
@@ -315,20 +342,20 @@ namespace OfficeIMO.Word {
 
         }
 
-        private AreaChart CreateAreaChart() {
+        private AreaChart CreateAreaChart(UInt32Value catAxisId, UInt32Value valAxisId) {
             AreaChart chart = new AreaChart();
             chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             Grouping grouping1 = new Grouping() { Val = GroupingValues.Standard };
 
+            chart.Append(grouping1);
+
             DataLabels dataLabels1 = AddDataLabel();
             chart.Append(dataLabels1);
 
-            chart.Append(grouping1);
-
-            AxisId axisId1 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
             axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
-            AxisId axisId2 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
             axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             chart.Append(axisId1);
@@ -337,15 +364,18 @@ namespace OfficeIMO.Word {
         }
 
         private Chart GenerateAreaChart(Chart chart) {
-            AreaChart areaChart = CreateAreaChart();
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
 
-            CategoryAxis categoryAxis1 = AddCategoryAxis();
-            ValueAxis valueAxis1 = AddValueAxis();
+            AreaChart areaChart = CreateAreaChart(catId, valId);
+
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             //chart.PlotArea.Append(layout1);
+            chart.PlotArea.Append(areaChart);
             chart.PlotArea.Append(categoryAxis1);
             chart.PlotArea.Append(valueAxis1);
-            chart.PlotArea.Append(areaChart);
 
 
             return chart;
@@ -380,6 +410,436 @@ namespace OfficeIMO.Word {
             lineChartSeries1.Append(values1);
 
             return lineChartSeries1;
+        }
+
+        private static UInt32Value GenerateAxisId() {
+            int id = System.Threading.Interlocked.Increment(ref _axisIdSeed);
+            return (UInt32Value)(uint)id;
+        }
+
+        private static void InsertSeries(OpenXmlCompositeElement chartElement, OpenXmlCompositeElement series) {
+            // For Line3DChart and other charts, series should come after grouping/varyColors but before dLbls/gapDepth/axId
+
+            // Try to insert after VaryColors first
+            var varyColors = chartElement.GetFirstChild<VaryColors>();
+            if (varyColors != null) {
+                chartElement.InsertAfter(series, varyColors);
+                return;
+            }
+
+            // If no VaryColors, try to insert after Grouping
+            var grouping = chartElement.GetFirstChild<Grouping>();
+            if (grouping != null) {
+                chartElement.InsertAfter(series, grouping);
+                return;
+            }
+
+            // If no grouping, try to insert before DataLabels
+            var dataLabels = chartElement.GetFirstChild<DataLabels>();
+            if (dataLabels != null) {
+                chartElement.InsertBefore(series, dataLabels);
+                return;
+            }
+
+            // If no DataLabels, try to insert before GapDepth
+            var gapDepth = chartElement.GetFirstChild<GapDepth>();
+            if (gapDepth != null) {
+                chartElement.InsertBefore(series, gapDepth);
+                return;
+            }
+
+            // As a last resort, insert before the first AxisId
+            var axis = chartElement.Elements<AxisId>().FirstOrDefault();
+            if (axis != null) {
+                chartElement.InsertBefore(series, axis);
+                return;
+            }
+
+            // If none of the above, just append it
+            chartElement.Append(series);
+        }
+
+        private ScatterChart CreateScatterChart(UInt32Value xAxisId, UInt32Value yAxisId) {
+            ScatterChart chart = new ScatterChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            chart.Append(new ScatterStyle() { Val = ScatterStyleValues.Marker });
+
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
+
+            AxisId axisId1 = new AxisId() { Val = xAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            AxisId axisId2 = new AxisId() { Val = yAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateScatterChart(Chart chart) {
+            UInt32Value xId = GenerateAxisId();
+            UInt32Value yId = GenerateAxisId();
+
+            ScatterChart scatter = CreateScatterChart(xId, yId);
+
+            ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
+            ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
+
+            chart.PlotArea.Append(scatter);
+            chart.PlotArea.Append(xAxis);
+            chart.PlotArea.Append(yAxis);
+
+            return chart;
+        }
+
+        private ScatterChartSeries AddScatterChartSeries(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<double> xValues, List<double> yValues) {
+            ScatterChartSeries scSeries = new ScatterChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color); XValues x = new XValues();
+            NumberLiteral xLit = new NumberLiteral();
+            xLit.Append(new PointCount() { Val = (uint)xValues.Count }); for (int i = 0; i < xValues.Count; i++) {
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string xValueText = xValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValueText) });
+            }
+            x.Append(xLit);
+
+            YValues y = new YValues();
+            NumberLiteral yLit = new NumberLiteral();
+            yLit.Append(new PointCount() { Val = (uint)yValues.Count }); for (int i = 0; i < yValues.Count; i++) {
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string yValueText = yValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValueText) });
+            }
+            y.Append(yLit);
+
+            scSeries.Append(idx);
+            scSeries.Append(order);
+            scSeries.Append(text);
+            scSeries.Append(shape);
+            scSeries.Append(x);
+            scSeries.Append(y);
+
+            return scSeries;
+        }
+
+        private RadarChart CreateRadarChart(UInt32Value catAxisId, UInt32Value valAxisId) {
+            RadarChart chart = new RadarChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            RadarStyle style = new RadarStyle() { Val = RadarStyleValues.Standard };
+            chart.Append(style);
+
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
+
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateRadarChart(Chart chart) {
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            RadarChart radarChart = CreateRadarChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+
+            chart.PlotArea.Append(radarChart);
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+            return chart;
+        }
+
+        private RadarChartSeries AddRadarChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            RadarChartSeries radarSeries = new RadarChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color);
+            CategoryAxisData cats = AddCategoryAxisData(categories);
+            Values vals = AddValuesAxisData(values);
+
+            radarSeries.Append(idx);
+            radarSeries.Append(order);
+            radarSeries.Append(text);
+            radarSeries.Append(shape);
+            radarSeries.Append(cats);
+            radarSeries.Append(vals);
+            return radarSeries;
+        }
+        private Bar3DChart CreateBar3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
+            Bar3DChart chart = new Bar3DChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            // Append elements in correct OpenXML schema order for Bar3DChart:
+            // 1. barDir, 2. grouping, 3. varyColors, 4. ser (added later via InsertSeries),
+            // 5. dLbls, 6. gapWidth, 7. gapDepth, 8. shape, 9. axId, 10. extLst
+            // Note: ser elements must come before gapWidth, which must come before axId
+            chart.Append(new BarDirection() { Val = BarDirectionValues.Column });
+            chart.Append(new BarGrouping() { Val = BarGroupingValues.Clustered });
+
+            // Don't add gapWidth here - it should come after ser elements
+            // We'll add it in a different location or modify InsertSeries to handle this properly
+
+            // Add axId elements at the end - series will be inserted before these by InsertSeries method
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            return chart;
+        }
+
+        private Chart GenerateBar3DChart(Chart chart) {
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            Bar3DChart chart3d = CreateBar3DChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+
+            chart.PlotArea.Append(chart3d);
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+            return chart;
+        }
+
+        private BarChartSeries AddBar3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            BarChartSeries series3d = AddBarChartSeries(index, series, color, categories, values);
+            return series3d;
+        }
+
+        private Line3DChart CreateLine3DChart(UInt32Value catAxisId, UInt32Value valAxisId, UInt32Value seriesId) {
+            Line3DChart chart = new Line3DChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            // Add elements in the correct OpenXML schema order for Line3DChart:
+            // 1. grouping, 2. varyColors, 3. ser (LineChartSeries - inserted by InsertSeries), 4. dLbls, 5. dropLines, 6. gapDepth, 7. axId (3x), 8. extLst
+
+            // Required elements that come before series
+            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
+            chart.Append(grouping);
+
+            VaryColors varyColors = new VaryColors() { Val = false };
+            chart.Append(varyColors);
+
+            // Elements that come after series - InsertSeries will place series between varyColors and dLbls
+            DataLabels labels = AddDataLabel();
+            chart.Append(labels);
+
+            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
+            chart.Append(gapDepth);
+
+            // Line3DChart requires 3 axis IDs (CategoryAxis, ValueAxis, SeriesAxis)
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId3 = new AxisId() { Val = seriesId };
+            axisId3.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+            chart.Append(axisId3);
+
+            return chart;
+        }
+
+        private SeriesAxis AddSeriesAxisInternal(UInt32Value axisId, UInt32Value crossAxisId, AxisPositionValues position) {
+            SeriesAxis axis = new SeriesAxis();
+
+            AxisId axId = new AxisId() { Val = axisId };
+            Scaling scaling = new Scaling();
+            scaling.Append(new Orientation() { Val = OrientationValues.MinMax });
+            AxisPosition axPos = new AxisPosition() { Val = position };
+            CrossingAxis crossAx = new CrossingAxis() { Val = crossAxisId };
+            Crosses crosses = new Crosses() { Val = CrossesValues.AutoZero };
+
+            axis.Append(axId);
+            axis.Append(scaling);
+            axis.Append(axPos);
+            axis.Append(crossAx);
+            axis.Append(crosses);
+
+            return axis;
+        }
+
+        private Chart GenerateLine3DChart(Chart chart) {
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+            UInt32Value seriesId = GenerateAxisId(); // Add third axis for Line3D
+
+            Line3DChart chart3d = CreateLine3DChart(catId, valId, seriesId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            SeriesAxis seriesAxis = AddSeriesAxisInternal(seriesId, catId, AxisPositionValues.Right);
+
+            chart.PlotArea.Append(chart3d);
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+            chart.PlotArea.Append(seriesAxis);
+            return chart;
+        }
+
+        private LineChartSeries AddLine3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            LineChartSeries series3d = AddLineChartSeries(index, series, color, categories, values);
+            return series3d;
+        }
+
+        private PieChartSeries AddPie3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            PieChartSeries pieSeries = new PieChartSeries();
+            DocumentFormat.OpenXml.Drawing.Charts.Index idx = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+            Order order = new Order() { Val = index };
+
+            SeriesText text = new SeriesText();
+            var seriesRef = AddSeries(0, series);
+            text.Append(seriesRef);
+
+            var shape = AddShapeProperties(color);
+            CategoryAxisData cats = AddCategoryAxisData(categories);
+            Values vals = AddValuesAxisData(values);
+
+            pieSeries.Append(idx);
+            pieSeries.Append(order);
+            pieSeries.Append(text);
+            pieSeries.Append(shape);
+            pieSeries.Append(cats);
+            pieSeries.Append(vals);
+            return pieSeries;
+        }
+
+        private Pie3DChart CreatePie3DChart() {
+            Pie3DChart chart3d = new Pie3DChart();
+            chart3d.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            DataLabels labels = AddDataLabel();
+            chart3d.Append(labels);
+            return chart3d;
+        }
+
+        private Chart GeneratePie3DChart(Chart chart) {
+            Pie3DChart pie3d = CreatePie3DChart();
+            chart.PlotArea.Append(pie3d);
+            return chart;
+        }
+
+        private Area3DChart CreateArea3DChart(UInt32Value catAxisId, UInt32Value valAxisId) {
+            Area3DChart chart = new Area3DChart();
+            chart.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            Grouping grouping = new Grouping() { Val = GroupingValues.Standard };
+            chart.Append(grouping);
+
+            DataLabels labels = AddDataLabel();
+            GapDepth gapDepth = new GapDepth() { Val = (UInt16Value)150U };
+
+            chart.Append(labels);
+            chart.Append(gapDepth);
+
+            AxisId axisId1 = new AxisId() { Val = catAxisId };
+            axisId1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            AxisId axisId2 = new AxisId() { Val = valAxisId };
+            axisId2.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+
+            chart.Append(axisId1);
+            chart.Append(axisId2);
+
+            return chart;
+        }
+
+        private Chart GenerateArea3DChart(Chart chart) {
+            UInt32Value catId = GenerateAxisId();
+            UInt32Value valId = GenerateAxisId();
+
+            Area3DChart area3d = CreateArea3DChart(catId, valId);
+            CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
+            ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+
+            chart.PlotArea.Append(area3d);
+            chart.PlotArea.Append(catAxis);
+            chart.PlotArea.Append(valAxis);
+
+            return chart;
+        }
+
+        private AreaChartSeries AddArea3DChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> values) {
+            return AddAreaChartSeries(index, series, color, categories, values);
+        }
+
+        private void EnsureChartExistsScatter() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateScatterChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsRadar() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateRadarChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsArea3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateArea3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsBar3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateBar3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsPie3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GeneratePie3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
+        }
+
+        private void EnsureChartExistsLine3D() {
+            if (_chart == null) {
+                _chart = GenerateChart();
+                _chart = GenerateLine3DChart(_chart);
+                _chartPart.ChartSpace.Append(_chart);
+                UpdateTitle();
+            }
         }
     }
 }

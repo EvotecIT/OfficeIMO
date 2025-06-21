@@ -5,7 +5,7 @@ using OfficeIMO.Word;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
-    internal static class Charts {
+    internal static partial class Charts {
         public static void Example_AddingMultipleCharts(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with charts");
             string filePath = System.IO.Path.Combine(folderPath, "Charts Document2.docx");
@@ -46,8 +46,8 @@ namespace OfficeIMO.Examples.Word {
                 pieChart2.AddPie("USA", 30);
 
                 document.AddParagraph("This is a pie chart with 3 pies");
-                document.AddChart("Test")
-                    .AddPie("Poland", 15)
+                document.AddChart("Test1")
+                    .AddPie("Poland", 16)
                     .AddPie("USA", 30)
                     .AddPie("Brazil", 20.2).SetTitle("new title");
 
@@ -147,11 +147,39 @@ namespace OfficeIMO.Examples.Word {
                 areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
                 areaChart.AddLegend(LegendPositionValues.Top);
 
+                var scatterChart = document.AddChart("Scatter chart");
+                scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, SixLabors.ImageSharp.Color.Red);
+
+                var radarChart = document.AddChart("Radar chart");
+                radarChart.AddCategories(categories);
+                radarChart.AddRadar("USA", new List<int>() { 1, 5, 3, 2 }, SixLabors.ImageSharp.Color.Blue);
+
+                var bar3d = document.AddChart("Bar3D chart");
+                bar3d.AddCategories(categories);
+                bar3d.AddBar3D("USA", new List<int>() { 5, 2, 3, 4 }, SixLabors.ImageSharp.Color.DarkOrange);
+
+                var pie3d = document.AddChart("Pie3D chart");
+                pie3d.AddPie3D("Poland", 15);
+                pie3d.AddPie3D("USA", 30);
+                pie3d.AddPie3D("Brazil", 20);
+
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
 
-                document.Save(openWord);
+                document.Save(false);
+
+                var valid = document.ValidateDocument();
+                if (valid.Count > 0) {
+                    Console.WriteLine("Document has validation errors:");
+                    foreach (var error in valid) {
+                        Console.WriteLine(error.Id + ": " + error.Description);
+                    }
+                } else {
+                    Console.WriteLine("Document is valid.");
+                }
+
+                document.Open(openWord);
             }
         }
     }

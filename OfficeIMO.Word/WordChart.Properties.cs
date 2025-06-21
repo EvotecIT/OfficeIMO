@@ -28,6 +28,14 @@ namespace OfficeIMO.Word {
         /// The current index for categories
         /// </summary>
         private UInt32Value _currentIndexCategory = 0;
+        /// <summary>
+        /// Category axis ID for Line3D charts
+        /// </summary>
+        private UInt32Value _catAxisId;
+        /// <summary>
+        /// Value axis ID for Line3D charts
+        /// </summary>
+        private UInt32Value _valAxisId;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
         public BarGroupingValues? BarGrouping {

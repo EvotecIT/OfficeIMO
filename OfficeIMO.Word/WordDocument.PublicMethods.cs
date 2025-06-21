@@ -65,7 +65,12 @@ namespace OfficeIMO.Word {
         /// .AddBar() to add a bar chart
         /// .AddLine() to add a line chart
         /// .AddPie() to add a pie chart
-        /// .AddArea() to add an area chart.
+        /// .AddArea() to add an area chart
+        /// .AddScatter() to add a scatter chart
+        /// .AddRadar() to add a radar chart
+        /// .AddBar3D() to add a 3-D bar chart.
+        /// .AddPie3D() to add a 3-D pie chart.
+        /// .AddLine3D() to add a 3-D line chart.
         /// You can't mix and match the types of charts.
         /// </summary>
         /// <param name="title">The title.</param>
@@ -96,9 +101,48 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
+        /// <summary>
+        /// Adds a table of contents to the current document.
+        /// </summary>
+        /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
+        /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
+            _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
+        }
+
+        /// <summary>
+        /// Removes the current table of contents from the document if one exists.
+        /// </summary>
+        public void RemoveTableOfContent() {
+            var toc = TableOfContent;
+            if (toc != null) {
+                toc.SdtBlock.Remove();
+                _tableOfContentIndex = null;
+            }
+        }
+
+        /// <summary>
+        /// Removes the existing table of contents and creates a new one at the same location.
+        /// </summary>
+        /// <returns>The newly created <see cref="WordTableOfContent"/>.</returns>
+        public WordTableOfContent RegenerateTableOfContent() {
+            var toc = TableOfContent;
+            var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
+            int index = _tableOfContentIndex ?? (toc != null ? _document.Body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
+            RemoveTableOfContent();
+            var newToc = new WordTableOfContent(this, style);
+            if (index >= 0 && index < _document.Body.ChildElements.Count - 1) {
+                var block = newToc.SdtBlock;
+                block.Remove();
+                _document.Body.InsertAt(block, index);
+                _tableOfContentIndex = index;
+            } else {
+                _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            }
+            return newToc;
         }
 
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
@@ -140,6 +184,18 @@ namespace OfficeIMO.Word {
             return wordSection;
         }
 
+        /// <summary>
+        /// Removes the section at the specified index.
+        /// </summary>
+        /// <param name="index">Zero based index of the section to remove.</param>
+        public void RemoveSection(int index) {
+            if (index < 0 || index >= this.Sections.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            this.Sections[index].RemoveSection();
+        }
+
         public WordParagraph AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
@@ -155,12 +211,43 @@ namespace OfficeIMO.Word {
         public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             return this.AddParagraph().AddEmbeddedObject(filePath, options);
         }
+        /// <summary>
+        /// Adds a new paragraph with a content control (structured document tag).
+        /// </summary>
+        /// <param name="text">Initial text of the control.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <returns>The created <see cref="WordStructuredDocumentTag"/>.</returns>
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null) {
+            return this.AddParagraph().AddStructuredDocumentTag(alias, text);
+        }
+
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
             return new WordEmbeddedDocument(this, fileName, type, false);
         }
 
         public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, WordAlternativeFormatImportPartType type) {
             return new WordEmbeddedDocument(this, htmlContent, type, true);
+        }
+
+        /// <summary>
+        /// Removes an embedded document from the document.
+        /// </summary>
+        /// <param name="embeddedDocument">Embedded document to remove.</param>
+        public void RemoveEmbeddedDocument(WordEmbeddedDocument embeddedDocument) {
+            if (embeddedDocument == null) {
+                throw new ArgumentNullException(nameof(embeddedDocument));
+            }
+
+            embeddedDocument.Remove();
+        }
+
+        /// <summary>
+        /// Removes all watermarks from the document including headers.
+        /// </summary>
+        public void RemoveWatermark() {
+            foreach (var section in this.Sections) {
+                section.RemoveWatermark();
+            }
         }
 
 

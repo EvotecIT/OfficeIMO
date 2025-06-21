@@ -14,13 +14,12 @@ namespace OfficeIMO.Tests {
 
             Assert.False(path); // MUST BE FALSE
 
-            ExcelDocument document = ExcelDocument.Create(filePath);
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.Save();
 
-            document.Save();
-
-            path = File.Exists(filePath);
-            Assert.True(path);
-            document.Dispose();
+                path = File.Exists(filePath);
+                Assert.True(path);
+            }
 
             File.Delete(filePath);
         }
@@ -28,7 +27,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingExcel1() {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary1.xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath)) {
                 Assert.True(document.Sheets.Count == 0);
                 var sheet1 = document.AddWorkSheet("Test1");
                 var sheet2 = document.AddWorkSheet("Test2");
@@ -46,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingExcel2() {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary2.xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath, "WorkSheet5")) {
+            using (var document = ExcelDocument.Create(filePath, "WorkSheet5")) {
                 Assert.True(document.Sheets.Count == 1);
                 ExcelSheet sheet = document.AddWorkSheet("Test");
                 Assert.True(document.Sheets.Count == 2);
@@ -58,8 +57,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OpeningExcel() {
-            using (ExcelDocument document = ExcelDocument.Load(Path.Combine(_directoryDocuments, "BasicExcel.xlsx"))) {
-
+            using (var document = ExcelDocument.Load(Path.Combine(_directoryDocuments, "BasicExcel.xlsx"))) {
                 Assert.True(document.FilePath != null);
                 Assert.True(document.Sheets.Count == 4);
 

@@ -12,6 +12,7 @@ using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 using System.Linq;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph : WordElement {
@@ -184,6 +185,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the paragraph style. Updating this to a heading style will flag the document to update the table of contents on open.
+        /// </summary>
         public WordParagraphStyles? Style {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
@@ -201,6 +205,9 @@ namespace OfficeIMO.Word {
                         _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
                     }
                     _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                    if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
+                        _document?.HeadingModified();
+                    }
                 }
             }
         }
@@ -378,6 +385,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordCheckBox CheckBox {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true) {
+                    return new WordCheckBox(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
+
         public WordBookmark Bookmark {
             get {
                 if (_bookmarkStart != null) {
@@ -513,6 +530,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool IsCheckBox {
+            get {
+                if (this.CheckBox != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
         public bool IsImage {
             get {
                 if (this.Image != null) {
@@ -596,9 +623,61 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns a <see cref="WordShape"/> instance when the paragraph contains VML shapes.
+        /// </summary>
+        public WordShape Shape {
+            get {
+                if (_run != null) {
+                    if (_run.Descendants<V.Rectangle>().Any() ||
+                        _run.Descendants<V.Oval>().Any() ||
+                        _run.Descendants<V.Line>().Any() ||
+                        _run.Descendants<V.PolyLine>().Any()) {
+                        return new WordShape(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
+        public WordLine Line {
+            get {
+                if (_run != null) {
+                    var line = _run.Descendants<V.Line>().FirstOrDefault();
+                    if (line != null) {
+                        return new WordLine(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
         public bool IsTextBox {
             get {
                 if (this.TextBox != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether the paragraph contains a VML shape.
+        /// </summary>
+        public bool IsShape {
+            get {
+                if (this.Shape != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsLine {
+            get {
+                if (this.Line != null) {
                     return true;
                 }
 

@@ -336,5 +336,193 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_RemoveHyperLinkMethod() {
+            string filePath = Path.Combine(_directoryWithFiles, "HyperlinkRemove.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Text before ");
+                paragraph.AddHyperLink("link", new Uri("https://evotec.xyz"));
+                paragraph.AddText(" after");
+
+                Assert.Single(document.HyperLinks);
+                Assert.Single(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+
+                paragraph.RemoveHyperLink();
+
+                Assert.Empty(document.HyperLinks);
+                Assert.Empty(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+                Assert.Equal(2, paragraph._paragraph.ChildElements.OfType<Run>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Empty(document.HyperLinks);
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.ChildElements.OfType<Run>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_CreateFormattedHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Link to ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+
+                var reference = paragraph.Hyperlink;
+                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
+
+                Assert.Equal("Bing", created.Text);
+                Assert.Equal(new Uri("https://bing.com"), created.Uri);
+                Assert.NotNull(created._runProperties);
+                Assert.NotNull(created._runProperties.Color);
+                Assert.Equal(reference._runProperties.Color.Val, created._runProperties.Color.Val);
+                Assert.Equal(reference._runProperties.Color.ThemeColor, created._runProperties.Color.ThemeColor);
+                Assert.Equal(reference._runProperties.Underline.Val, created._runProperties.Underline.Val);
+                Assert.Equal(reference._runProperties.RunStyle.Val, created._runProperties.RunStyle.Val);
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                var secondLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().ElementAt(1);
+                Assert.Equal("Bing", secondLink.InnerText);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_DuplicateHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "DuplicateHyperlink.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Search using ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var reference = paragraph.Hyperlink;
+
+                var duplicate = WordHyperLink.DuplicateHyperlink(reference);
+
+                Assert.Equal(reference.Text, duplicate.Text);
+                Assert.Equal(reference.Uri, duplicate.Uri);
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_InsertFormattedHyperlinkBefore() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedBefore.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Link to ");
+                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+
+                var reference = paragraph.Hyperlink;
+                var created = reference.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
+
+                Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
+                Assert.Equal("Bing", paragraph._paragraph.Elements<Hyperlink>().First().InnerText);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var firstLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().First();
+                Assert.Equal("Bing", firstLink.InnerText);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_InsertFormattedHyperlinkInHeaderAndFooter() {
+            string filePath = Path.Combine(_directoryWithFiles, "FormattedHeaderFooter.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var header = document.Header.Default;
+                var paraHeader = header.AddParagraph("Search using ");
+                paraHeader.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var refHeader = paraHeader.Hyperlink;
+                refHeader.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
+
+                var footer = document.Footer.Default;
+                var paraFooter = footer.AddParagraph("Find us on ");
+                paraFooter.AddHyperLink("Yahoo", new Uri("https://yahoo.com"), addStyle: true);
+                var refFooter = paraFooter.Hyperlink;
+                refFooter.InsertFormattedHyperlinkAfter("DuckDuckGo", new Uri("https://duckduckgo.com"));
+
+                Assert.Equal(2, paraHeader._paragraph.Elements<Hyperlink>().Count());
+                Assert.Equal(2, paraFooter._paragraph.Elements<Hyperlink>().Count());
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var headerPara = document.Header.Default.Paragraphs[0];
+                Assert.Equal(2, headerPara._paragraph.Elements<Hyperlink>().Count());
+                var footerPara = document.Footer.Default.Paragraphs[0];
+                Assert.Equal(2, footerPara._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_CopyFormattingFromHyperlink() {
+            string filePath = Path.Combine(_directoryWithFiles, "CopyFormatting.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Go to ");
+                var refPara = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                refPara.Bold = true;
+                var reference = refPara.Hyperlink;
+
+                paragraph.AddHyperLink("Bing", new Uri("https://bing.com"));
+                var target = paragraph.Hyperlink;
+                target.CopyFormattingFrom(reference);
+
+                Assert.NotNull(target._runProperties);
+                Assert.Equal(reference._runProperties.Color.Val, target._runProperties.Color.Val);
+                Assert.Equal(reference._runProperties.Underline.Val, target._runProperties.Underline.Val);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ListHyperlinkFormattingReuse() {
+            string filePath = Path.Combine(_directoryWithFiles, "ListFormatting.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var first = document.AddList(WordListStyle.Bulleted);
+                var google = first.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                google.Bold = true;
+                var googleRef = google.Hyperlink;
+
+                var bing = first.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true);
+                bing.Italic = true;
+                var bingRef = bing.Hyperlink;
+
+                document.AddParagraph("separator");
+
+                var second = document.AddList(WordListStyle.Bulleted);
+                var duck = second.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"));
+                duck.Hyperlink.CopyFormattingFrom(googleRef);
+                var start = second.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com"));
+                start.Hyperlink.CopyFormattingFrom(bingRef);
+
+                Assert.True(duck.Bold);
+                Assert.True(start.Italic);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Lists.Count);
+                document.Save();
+            }
+        }
+
     }
 }

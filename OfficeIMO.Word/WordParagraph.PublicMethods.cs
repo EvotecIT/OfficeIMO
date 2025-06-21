@@ -1,8 +1,12 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
+using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -55,6 +59,41 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add image from a Base64 encoded string.
+        /// </summary>
+        public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
+            VerifyRun();
+            _run.Append(wordImage._Image);
+            return this;
+        }
+
+        /// <summary>
+        /// Add image from an embedded resource.
+        /// </summary>
+        /// <param name="assembly">Assembly that contains the resource.</param>
+        /// <param name="resourceName">Full name of the embedded resource.</param>
+        /// <param name="width">Optional width of the image.</param>
+        /// <param name="height">Optional height of the image.</param>
+        /// <param name="wrapImageText">Optional text wrapping rule.</param>
+        /// <param name="description">The description for this image.</param>
+        /// <returns>The WordParagraph that AddImage was called on.</returns>
+        public WordParagraph AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            assembly ??= Assembly.GetCallingAssembly();
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) {
+                throw new ArgumentException($"Resource '{resourceName}' was not found in assembly '{assembly.FullName}'.", nameof(resourceName));
+            }
+            using (stream) {
+                var fileName = Path.GetFileName(resourceName);
+                var wordImage = new WordImage(_document, this, stream, fileName, width, height, wrapImageText, description);
+                VerifyRun();
+                _run.Append(wordImage._Image);
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Add Break to the paragraph. By default it adds soft break (SHIFT+ENTER)
         /// </summary>
         /// <param name="breakType">Optional argument to add a specific type of break.</param>
@@ -94,7 +133,7 @@ namespace OfficeIMO.Word {
                     }
 
                     if (this.IsHyperLink) {
-                        this.Hyperlink.Remove();
+                        this.RemoveHyperLink();
                     }
 
                     if (this.IsListItem) {
@@ -296,6 +335,44 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Removes hyperlink from this paragraph and detaches its relationship.
+        /// </summary>
+        /// <param name="includingParagraph">If true removes the paragraph when it becomes empty.</param>
+        public void RemoveHyperLink(bool includingParagraph = false) {
+            if (_hyperlink != null) {
+                if (!string.IsNullOrEmpty(_hyperlink.Id)) {
+                    OpenXmlElement parent = _paragraph.Parent;
+                    while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
+                        parent = parent.Parent;
+                    }
+
+                    OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                    if (parent is Header header) {
+                        part = header.HeaderPart;
+                    } else if (parent is Footer footer) {
+                        part = footer.FooterPart;
+                    }
+
+                    var rel = part.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                    if (rel != null) {
+                        part.DeleteReferenceRelationship(rel);
+                    }
+                }
+
+                _hyperlink.Remove();
+                _hyperlink = null;
+
+                if (includingParagraph) {
+                    if (this._paragraph.ChildElements.Count == 0) {
+                        this._paragraph.Remove();
+                    } else if (this._paragraph.ChildElements.Count == 1 && this._paragraph.ChildElements.OfType<ParagraphProperties>().Any()) {
+                        this._paragraph.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Add a table after this paragraph and return the table.
         /// </summary>
         /// <param name="rows">The number of rows in the table.</param>
@@ -370,7 +447,12 @@ namespace OfficeIMO.Word {
         /// .AddBar() to add a bar chart
         /// .AddLine() to add a line chart
         /// .AddPie() to add a pie chart
-        /// .AddArea() to add an area chart.
+        /// .AddArea() to add an area chart
+        /// .AddScatter() to add a scatter chart
+        /// .AddRadar() to add a radar chart
+        /// .AddBar3D() to add a 3-D bar chart.
+        /// .AddPie3D() to add a 3-D pie chart.
+        /// .AddLine3D() to add a 3-D line chart.
         /// You can't mix and match the types of charts.
         /// </summary>
         /// <param name="title">The title.</param>
@@ -420,6 +502,120 @@ namespace OfficeIMO.Word {
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage) {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
+        }
+
+        /// <summary>
+        /// Add a rectangle shape to the paragraph.
+        /// </summary>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        /// <param name="fillColor">Fill color in hex format.</param>
+        public WordShape AddShape(double widthPt, double heightPt, string fillColor = "#FFFFFF") {
+            WordShape wordShape = new WordShape(this._document, this, widthPt, heightPt, fillColor);
+            return wordShape;
+        }
+
+        /// <summary>
+        /// Add a rectangle shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordShape AddShape(double widthPt, double heightPt, SixLabors.ImageSharp.Color fillColor) {
+            return AddShape(widthPt, heightPt, fillColor.ToHexColor());
+        }
+
+        /// <summary>
+        /// Add a line shape to the paragraph.
+        /// </summary>
+        /// <param name="startXPt">Start X position in points.</param>
+        /// <param name="startYPt">Start Y position in points.</param>
+        /// <param name="endXPt">End X position in points.</param>
+        /// <param name="endYPt">End Y position in points.</param>
+        /// <param name="color">Stroke color in hex format.</param>
+        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
+            WordLine wordLine = new WordLine(this._document, this, startXPt, startYPt, endXPt, endYPt, color, strokeWeightPt);
+            return wordLine;
+        }
+
+        /// <summary>
+        /// Add a line shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, SixLabors.ImageSharp.Color color, double strokeWeightPt = 1) {
+            return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
+        }
+
+        /// <summary>
+        /// Adds a simple content control (structured document tag) to the paragraph.
+        /// </summary>
+        /// <param name="alias">Optional alias for the content control.</param>
+        /// <param name="text">Initial text of the control.</param>
+        /// <returns>The created <see cref="WordStructuredDocumentTag"/> instance.</returns>
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "") {
+            var sdtRun = new SdtRun();
+
+            var sdtProperties = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                sdtProperties.Append(new SdtAlias() { Val = alias });
+            }
+            sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+
+            var sdtContent = new SdtContentRun();
+            var run = new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            sdtContent.Append(run);
+
+            sdtRun.Append(sdtProperties);
+            sdtRun.Append(sdtContent);
+
+            this._paragraph.Append(sdtRun);
+
+            var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
+            return paragraph.StructuredDocumentTag;
+        }
+
+        /// <summary>
+        /// Adds a checkbox content control to the paragraph.
+        /// </summary>
+        /// <param name="isChecked">Initial checked state.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <returns>The created <see cref="WordCheckBox"/> instance.</returns>
+        public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null) {
+            var sdtRun = new SdtRun();
+
+            var props = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                props.Append(new SdtAlias() { Val = alias });
+            }
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+
+            var checkBox = new W14.SdtContentCheckBox();
+            checkBox.Append(new W14.Checked() { Val = isChecked ? W14.OnOffValues.One : W14.OnOffValues.Zero });
+            props.Append(checkBox);
+
+            var content = new SdtContentRun(new Run());
+
+            sdtRun.Append(props);
+            sdtRun.Append(content);
+
+            this._paragraph.Append(sdtRun);
+
+            var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
+            return paragraph.CheckBox;
+        }
+
+        /// <summary>
+        /// Removes the checkbox from the paragraph.
+        /// </summary>
+        public void RemoveCheckBox() {
+            this.CheckBox?.Remove();
+        }
+
+        /// <summary>
+        /// Sets the checked state of the paragraph's checkbox.
+        /// </summary>
+        /// <param name="value">New checked state.</param>
+        public void SetCheckBoxValue(bool value) {
+            if (this.CheckBox != null) {
+                this.CheckBox.IsChecked = value;
+            }
         }
     }
 }

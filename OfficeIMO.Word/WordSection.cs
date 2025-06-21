@@ -96,6 +96,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Provides a list of paragraphs that contain checkbox controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsCheckBoxes {
+            get { return Paragraphs.Where(p => p.IsCheckBox).ToList(); }
+        }
+
+        /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
         public List<WordParagraph> ParagraphsImages {
@@ -288,6 +295,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordCheckBox> CheckBoxes {
+            get {
+                List<WordCheckBox> list = new List<WordCheckBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.CheckBox);
+                }
+                return list;
+            }
+        }
+
         public WordFooters Footer = new WordFooters();
         public WordHeaders Header = new WordHeaders();
 
@@ -311,12 +329,20 @@ namespace OfficeIMO.Word {
         public List<WordEmbeddedDocument> EmbeddedDocuments => GetEmbeddedDocumentsList();
 
         /// <summary>
-        /// Provides a list of all watermarks within the section
+        /// Provides a list of all watermarks within the section, including
+        /// any watermarks found in the section headers.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
+                List<WordWatermark> list = new List<WordWatermark>();
                 var sdtBlockList = GetSdtBlockList();
-                return WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList);
+                list.AddRange(WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList));
+
+                if (Header.Default != null) list.AddRange(Header.Default.Watermarks);
+                if (Header.Even != null) list.AddRange(Header.Even.Watermarks);
+                if (Header.First != null) list.AddRange(Header.First.Watermarks);
+
+                return list;
             }
         }
 
@@ -501,6 +527,35 @@ namespace OfficeIMO.Word {
                     if (settings == null) {
                         _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
                     }
+                }
+            }
+        }
+
+        public bool RtlGutter {
+            get {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties != null) {
+                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                    if (rtlGutter != null) {
+                        return rtlGutter.Val;
+                    }
+                }
+                return false;
+            }
+            set {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties == null) {
+                    return;
+                }
+                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                if (value == false) {
+                    rtlGutter?.Remove();
+                } else {
+                    if (rtlGutter == null) {
+                        rtlGutter = new GutterOnRight();
+                        sectionProperties.Append(rtlGutter);
+                    }
+                    rtlGutter.Val = value;
                 }
             }
         }

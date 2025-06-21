@@ -51,6 +51,15 @@ namespace OfficeIMO.Word {
             return new WordWatermark(this._document, this, watermarkStyle, textOrFilePath);
         }
 
+        /// <summary>
+        /// Removes all watermarks from this section including headers.
+        /// </summary>
+        public void RemoveWatermark() {
+            foreach (var watermark in Watermarks.ToList()) {
+                watermark.Remove();
+            }
+        }
+
         public WordSection SetBorders(WordBorder wordBorder) {
             this.Borders.SetBorder(wordBorder);
 
@@ -144,6 +153,68 @@ namespace OfficeIMO.Word {
             }
 
             return this;
+        }
+
+        /// <summary>
+        /// Removes this section and all of its content from the document,
+        /// cleaning up numbering and any unreferenced header and footer parts.
+        /// </summary>
+        public void RemoveSection() {
+            foreach (var list in this.Lists.ToList()) {
+                list.Remove();
+            }
+
+            foreach (var element in this.ElementsByType.ToList()) {
+                switch (element) {
+                    case WordParagraph paragraph:
+                        paragraph.Remove();
+                        break;
+                    case WordTable table:
+                        table.Remove();
+                        break;
+                    case WordTextBox textBox:
+                        textBox.Remove();
+                        break;
+                    case WordImage image:
+                        image.Remove();
+                        break;
+                    case WordEmbeddedDocument embedded:
+                        embedded.Remove();
+                        break;
+                }
+            }
+
+            foreach (var headerRef in _sectionProperties.Elements<HeaderReference>().ToList()) {
+                string id = headerRef.Id;
+                bool usedElsewhere = _document.Sections
+                    .Where(s => s != this)
+                    .Any(s => s._sectionProperties.Elements<HeaderReference>().Any(hr => hr.Id == id));
+                if (!usedElsewhere) {
+                    var part = (HeaderPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
+                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                }
+                headerRef.Remove();
+            }
+
+            foreach (var footerRef in _sectionProperties.Elements<FooterReference>().ToList()) {
+                string id = footerRef.Id;
+                bool usedElsewhere = _document.Sections
+                    .Where(s => s != this)
+                    .Any(s => s._sectionProperties.Elements<FooterReference>().Any(fr => fr.Id == id));
+                if (!usedElsewhere) {
+                    var part = (FooterPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
+                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                }
+                footerRef.Remove();
+            }
+
+            if (_sectionProperties.Parent is Paragraph p) {
+                p.Remove();
+            } else if (_sectionProperties.Parent != null) {
+                _sectionProperties.Remove();
+            }
+
+            _document.Sections.Remove(this);
         }
     }
 }

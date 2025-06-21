@@ -59,7 +59,7 @@
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
             <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
-            <wp:docPr id="2" name="chart" />
+            <wp:docPr id="3" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
               <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
                 <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000002" />
@@ -82,7 +82,7 @@
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
             <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
-            <wp:docPr id="2" name="chart" />
+            <wp:docPr id="4" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
               <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
                 <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000003" />
@@ -105,7 +105,7 @@
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
             <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
-            <wp:docPr id="2" name="chart" />
+            <wp:docPr id="5" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
               <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
                 <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000004" />
@@ -128,10 +128,56 @@
           <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
             <wp:extent cx="5715000" cy="5715000" />
             <wp:effectExtent l="0" t="0" r="19050" b="19050" />
-            <wp:docPr id="2" name="chart" />
+            <wp:docPr id="6" name="chart" />
             <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
               <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
                 <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000005" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Adding a 3-D line chart</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="5715000" cy="5715000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="7" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000006" />
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:t xml:space="preserve">Adding a 3-D area chart</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr />
+      <w:r>
+        <w:drawing>
+          <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+            <wp:extent cx="5715000" cy="5715000" />
+            <wp:effectExtent l="0" t="0" r="19050" b="19050" />
+            <wp:docPr id="8" name="chart" />
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
+                <c:chart xmlns:p6="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" p6:id="R00000007" />
               </a:graphicData>
             </a:graphic>
           </wp:inline>
@@ -10962,60 +11008,11 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:plotVisOnly val="1" />
-    <c:dispBlanksAs val="gap" />
-    <c:showDLblsOverMax val="0" />
     <c:plotArea>
       <c:layout />
-      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921728" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="b" />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="154227840" />
-        <c:crosses val="autoZero" />
-        <c:auto val="1" />
-        <c:lblAlgn val="ctr" />
-        <c:lblOffset val="100" />
-        <c:noMultiLvlLbl val="0" />
-      </c:catAx>
-      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="154227840" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="l" />
-        <c:numFmt formatCode="General" sourceLinked="0" />
-        <c:majorGridlines />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921728" />
-        <c:crosses val="autoZero" />
-        <c:crossBetween val="between" />
-      </c:valAx>
       <c:barChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-          <c:showLegendKey val="0" />
-          <c:showVal val="0" />
-          <c:showCatName val="0" />
-          <c:showSerName val="0" />
-          <c:showPercent val="0" />
-          <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
-        </c:dLbls>
         <c:barDir val="col" />
         <c:grouping val="clustered" />
-        <c:gapWidth val="200" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921728" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="154227840" />
-        <c:overlap val="0" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11054,8 +11051,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
                 <c:v>10</c:v>
               </c:pt>
@@ -11109,8 +11106,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
                 <c:v>13</c:v>
               </c:pt>
@@ -11164,8 +11161,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
                 <c:v>10</c:v>
               </c:pt>
@@ -11181,56 +11178,6 @@
             </c:numLit>
           </c:val>
         </c:ser>
-      </c:barChart>
-    </c:plotArea>
-  </c:chart>
-</c:chartSpace>
-<!--------------------------------------------------------------------------------------------------------------------->
-/word/charts/chart2.xml
-<!--------------------------------------------------------------------------------------------------------------------->
-<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <c:roundedCorners val="1" />
-  <c:chart>
-    <c:autoTitleDeleted val="0" />
-    <c:plotVisOnly val="1" />
-    <c:dispBlanksAs val="gap" />
-    <c:showDLblsOverMax val="0" />
-    <c:plotArea>
-      <c:layout />
-      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921728" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="b" />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="154227840" />
-        <c:crosses val="autoZero" />
-        <c:auto val="1" />
-        <c:lblAlgn val="ctr" />
-        <c:lblOffset val="100" />
-        <c:noMultiLvlLbl val="0" />
-      </c:catAx>
-      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="154227840" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="l" />
-        <c:numFmt formatCode="General" sourceLinked="0" />
-        <c:majorGridlines />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921728" />
-        <c:crosses val="autoZero" />
-        <c:crossBetween val="between" />
-      </c:valAx>
-      <c:barChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
           <c:showLegendKey val="0" />
           <c:showVal val="0" />
@@ -11240,12 +11187,62 @@
           <c:showBubbleSize val="0" />
           <c:showLeaderLines val="1" />
         </c:dLbls>
+        <c:gapWidth val="200" />
+        <c:overlap val="0" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921729" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921730" />
+      </c:barChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921729" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921730" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921730" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921729" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
+    </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
+  </c:chart>
+</c:chartSpace>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/charts/chart2.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:roundedCorners val="1" />
+  <c:chart>
+    <c:autoTitleDeleted val="0" />
+    <c:plotArea>
+      <c:layout />
+      <c:barChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:barDir val="bar" />
         <c:grouping val="standard" />
-        <c:gapWidth val="200" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921728" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="154227840" />
-        <c:overlap val="0" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11284,31 +11281,14 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="1" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="1" />
               <c:pt idx="0">
                 <c:v>15</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
         </c:ser>
-      </c:barChart>
-    </c:plotArea>
-  </c:chart>
-</c:chartSpace>
-<!--------------------------------------------------------------------------------------------------------------------->
-/word/charts/chart3.xml
-<!--------------------------------------------------------------------------------------------------------------------->
-<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <c:roundedCorners val="0" />
-  <c:chart>
-    <c:autoTitleDeleted val="0" />
-    <c:plotVisOnly val="1" />
-    <c:dispBlanksAs val="gap" />
-    <c:showDLblsOverMax val="0" />
-    <c:plotArea>
-      <c:layout />
-      <c:pieChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
           <c:showLegendKey val="0" />
           <c:showVal val="0" />
@@ -11318,6 +11298,60 @@
           <c:showBubbleSize val="0" />
           <c:showLeaderLines val="1" />
         </c:dLbls>
+        <c:gapWidth val="200" />
+        <c:overlap val="0" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921731" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921732" />
+      </c:barChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921731" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921732" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921732" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921731" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
+    </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
+  </c:chart>
+</c:chartSpace>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/charts/chart3.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:roundedCorners val="0" />
+  <c:chart>
+    <c:autoTitleDeleted val="0" />
+    <c:plotArea>
+      <c:layout />
+      <c:pieChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11331,7 +11365,6 @@
               </c:strCache>
             </c:strRef>
           </c:tx>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="3" />
@@ -11348,8 +11381,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="3" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="3" />
               <c:pt idx="0">
                 <c:v>15</c:v>
               </c:pt>
@@ -11362,8 +11395,20 @@
             </c:numLit>
           </c:val>
         </c:ser>
+        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:showLegendKey val="0" />
+          <c:showVal val="0" />
+          <c:showCatName val="0" />
+          <c:showSerName val="0" />
+          <c:showPercent val="0" />
+          <c:showBubbleSize val="0" />
+          <c:showLeaderLines val="1" />
+        </c:dLbls>
       </c:pieChart>
     </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
   </c:chart>
 </c:chartSpace>
 <!--------------------------------------------------------------------------------------------------------------------->
@@ -11373,76 +11418,28 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:plotVisOnly val="1" />
-    <c:dispBlanksAs val="gap" />
-    <c:showDLblsOverMax val="0" />
     <c:plotArea>
       <c:layout />
-      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921728" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="b" />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="154227840" />
-        <c:crosses val="autoZero" />
-        <c:auto val="1" />
-        <c:lblAlgn val="ctr" />
-        <c:lblOffset val="100" />
-        <c:noMultiLvlLbl val="0" />
-      </c:catAx>
-      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="154227840" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="l" />
-        <c:numFmt formatCode="General" sourceLinked="0" />
-        <c:majorGridlines />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921728" />
-        <c:crosses val="autoZero" />
-        <c:crossBetween val="between" />
-      </c:valAx>
       <c:lineChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:grouping val="standard" />
-        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-          <c:showLegendKey val="0" />
-          <c:showVal val="0" />
-          <c:showCatName val="0" />
-          <c:showSerName val="0" />
-          <c:showPercent val="0" />
-          <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
-        </c:dLbls>
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921728" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="154227840" />
         <c:ser>
-          <c:idx val="0" />
-          <c:order val="0" />
+          <c:idx val="2" />
+          <c:order val="2" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>USA</c:v>
+                  <c:v>Poland</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11462,19 +11459,19 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>10</c:v>
+                <c:v>13</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>35</c:v>
+                <c:v>20</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>18</c:v>
+                <c:v>230</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>23</c:v>
+                <c:v>150</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11497,7 +11494,6 @@
               <a:srgbClr val="A52A2A" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11517,8 +11513,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
                 <c:v>10</c:v>
               </c:pt>
@@ -11535,24 +11531,23 @@
           </c:val>
         </c:ser>
         <c:ser>
-          <c:idx val="2" />
-          <c:order val="2" />
+          <c:idx val="0" />
+          <c:order val="0" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>Poland</c:v>
+                  <c:v>USA</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="008000" />
+              <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11572,25 +11567,72 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>13</c:v>
+                <c:v>10</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>20</c:v>
+                <c:v>35</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>230</c:v>
+                <c:v>18</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>150</c:v>
+                <c:v>23</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
         </c:ser>
+        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:showLegendKey val="0" />
+          <c:showVal val="0" />
+          <c:showCatName val="0" />
+          <c:showSerName val="0" />
+          <c:showPercent val="0" />
+          <c:showBubbleSize val="0" />
+          <c:showLeaderLines val="1" />
+        </c:dLbls>
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921733" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921734" />
       </c:lineChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921733" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921734" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921734" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921733" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
     </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
   </c:chart>
 </c:chartSpace>
 <!--------------------------------------------------------------------------------------------------------------------->
@@ -11600,76 +11642,28 @@
   <c:roundedCorners val="0" />
   <c:chart>
     <c:autoTitleDeleted val="0" />
-    <c:plotVisOnly val="1" />
-    <c:dispBlanksAs val="gap" />
-    <c:showDLblsOverMax val="0" />
     <c:plotArea>
       <c:layout />
-      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="148921728" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="b" />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="154227840" />
-        <c:crosses val="autoZero" />
-        <c:auto val="1" />
-        <c:lblAlgn val="ctr" />
-        <c:lblOffset val="100" />
-        <c:noMultiLvlLbl val="0" />
-      </c:catAx>
-      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-        <c:axId val="154227840" />
-        <c:scaling>
-          <c:orientation val="minMax" />
-        </c:scaling>
-        <c:delete val="0" />
-        <c:axPos val="l" />
-        <c:numFmt formatCode="General" sourceLinked="0" />
-        <c:majorGridlines />
-        <c:majorTickMark val="out" />
-        <c:minorTickMark val="none" />
-        <c:tickLblPos val="nextTo" />
-        <c:crossAx val="148921728" />
-        <c:crosses val="autoZero" />
-        <c:crossBetween val="between" />
-      </c:valAx>
       <c:lineChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:grouping val="standard" />
-        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
-          <c:showLegendKey val="0" />
-          <c:showVal val="0" />
-          <c:showCatName val="0" />
-          <c:showSerName val="0" />
-          <c:showPercent val="0" />
-          <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
-        </c:dLbls>
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921728" />
-        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="154227840" />
         <c:ser>
-          <c:idx val="0" />
-          <c:order val="0" />
+          <c:idx val="2" />
+          <c:order val="2" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>USA</c:v>
+                  <c:v>Poland</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11689,19 +11683,19 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>10</c:v>
+                <c:v>13</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>35</c:v>
+                <c:v>20</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>18</c:v>
+                <c:v>230</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>23</c:v>
+                <c:v>150</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
@@ -11724,7 +11718,6 @@
               <a:srgbClr val="A52A2A" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11744,8 +11737,8 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
                 <c:v>10</c:v>
               </c:pt>
@@ -11762,24 +11755,23 @@
           </c:val>
         </c:ser>
         <c:ser>
-          <c:idx val="2" />
-          <c:order val="2" />
+          <c:idx val="0" />
+          <c:order val="0" />
           <c:tx>
             <c:strRef>
               <c:f />
               <c:strCache>
                 <c:pt idx="0">
-                  <c:v>Poland</c:v>
+                  <c:v>USA</c:v>
                 </c:pt>
               </c:strCache>
             </c:strRef>
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="008000" />
+              <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
-          <c:invertIfNegative />
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11799,25 +11791,310 @@
           </c:cat>
           <c:val>
             <c:numLit>
-              <c:ptCount val="4" />
               <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
               <c:pt idx="0">
-                <c:v>13</c:v>
+                <c:v>10</c:v>
               </c:pt>
               <c:pt idx="1">
-                <c:v>20</c:v>
+                <c:v>35</c:v>
               </c:pt>
               <c:pt idx="2">
-                <c:v>230</c:v>
+                <c:v>18</c:v>
               </c:pt>
               <c:pt idx="3">
-                <c:v>150</c:v>
+                <c:v>23</c:v>
               </c:pt>
             </c:numLit>
           </c:val>
         </c:ser>
+        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:showLegendKey val="0" />
+          <c:showVal val="0" />
+          <c:showCatName val="0" />
+          <c:showSerName val="0" />
+          <c:showPercent val="0" />
+          <c:showBubbleSize val="0" />
+          <c:showLeaderLines val="1" />
+        </c:dLbls>
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921735" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921736" />
       </c:lineChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921735" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921736" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921736" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921735" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
     </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
+  </c:chart>
+</c:chartSpace>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/charts/chart6.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:roundedCorners val="0" />
+  <c:chart>
+    <c:autoTitleDeleted val="0" />
+    <c:plotArea>
+      <c:layout />
+      <c:line3DChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:grouping val="standard" />
+        <c:varyColors val="0" />
+        <c:ser>
+          <c:idx val="0" />
+          <c:order val="0" />
+          <c:tx>
+            <c:strRef>
+              <c:f />
+              <c:strCache>
+                <c:pt idx="0">
+                  <c:v>USA</c:v>
+                </c:pt>
+              </c:strCache>
+            </c:strRef>
+          </c:tx>
+          <c:spPr>
+            <a:solidFill>
+              <a:srgbClr val="800080" />
+            </a:solidFill>
+          </c:spPr>
+          <c:cat>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
+          </c:cat>
+          <c:val>
+            <c:numLit>
+              <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>5</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>2</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>3</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>4</c:v>
+              </c:pt>
+            </c:numLit>
+          </c:val>
+        </c:ser>
+        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:showLegendKey val="0" />
+          <c:showVal val="0" />
+          <c:showCatName val="0" />
+          <c:showSerName val="0" />
+          <c:showPercent val="0" />
+          <c:showBubbleSize val="0" />
+          <c:showLeaderLines val="1" />
+        </c:dLbls>
+        <c:gapDepth val="150" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921737" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921738" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921739" />
+      </c:line3DChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921737" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921738" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921738" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921737" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
+      <c:serAx>
+        <c:axId val="148921739" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:axPos val="r" />
+        <c:crossAx val="148921737" />
+        <c:crosses val="autoZero" />
+      </c:serAx>
+    </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
+  </c:chart>
+</c:chartSpace>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/charts/chart7.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:roundedCorners val="0" />
+  <c:chart>
+    <c:autoTitleDeleted val="0" />
+    <c:plotArea>
+      <c:layout />
+      <c:area3DChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:grouping val="standard" />
+        <c:ser>
+          <c:idx val="0" />
+          <c:order val="0" />
+          <c:tx>
+            <c:v>USA</c:v>
+          </c:tx>
+          <c:spPr>
+            <a:solidFill>
+              <a:srgbClr val="00008B" />
+            </a:solidFill>
+          </c:spPr>
+          <c:cat>
+            <c:strLit>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>Food</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>Housing</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>Mix</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>Data</c:v>
+              </c:pt>
+            </c:strLit>
+          </c:cat>
+          <c:val>
+            <c:numLit>
+              <c:formatCode>General</c:formatCode>
+              <c:ptCount val="4" />
+              <c:pt idx="0">
+                <c:v>5</c:v>
+              </c:pt>
+              <c:pt idx="1">
+                <c:v>2</c:v>
+              </c:pt>
+              <c:pt idx="2">
+                <c:v>3</c:v>
+              </c:pt>
+              <c:pt idx="3">
+                <c:v>4</c:v>
+              </c:pt>
+            </c:numLit>
+          </c:val>
+        </c:ser>
+        <c:dLbls xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+          <c:showLegendKey val="0" />
+          <c:showVal val="0" />
+          <c:showCatName val="0" />
+          <c:showSerName val="0" />
+          <c:showPercent val="0" />
+          <c:showBubbleSize val="0" />
+          <c:showLeaderLines val="1" />
+        </c:dLbls>
+        <c:gapDepth val="150" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921740" />
+        <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921741" />
+      </c:area3DChart>
+      <c:catAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921740" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="b" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921741" />
+        <c:crosses val="autoZero" />
+        <c:auto val="1" />
+        <c:lblAlgn val="ctr" />
+        <c:lblOffset val="100" />
+        <c:noMultiLvlLbl val="0" />
+      </c:catAx>
+      <c:valAx xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:axId val="148921741" />
+        <c:scaling>
+          <c:orientation val="minMax" />
+        </c:scaling>
+        <c:delete val="0" />
+        <c:axPos val="l" />
+        <c:majorGridlines />
+        <c:numFmt formatCode="General" sourceLinked="0" />
+        <c:majorTickMark val="out" />
+        <c:minorTickMark val="none" />
+        <c:tickLblPos val="nextTo" />
+        <c:crossAx val="148921740" />
+        <c:crosses val="autoZero" />
+        <c:crossBetween val="between" />
+      </c:valAx>
+    </c:plotArea>
+    <c:plotVisOnly val="1" />
+    <c:dispBlanksAs val="gap" />
+    <c:showDLblsOverMax val="0" />
   </c:chart>
 </c:chartSpace>
 <!--------------------------------------------------------------------------------------------------------------------->

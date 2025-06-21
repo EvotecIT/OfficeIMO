@@ -108,6 +108,23 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public bool RtlGutter {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].RtlGutter.");
+                }
+
+                return this.Sections[0].RtlGutter;
+            }
+            set {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].RtlGutter.");
+                }
+
+                this.Sections[0].RtlGutter = value;
+            }
+        }
+
         public void AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
             FootnotePositionValues? position = null,
             RestartNumberValues? restartNumbering = null,

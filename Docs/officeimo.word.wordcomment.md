@@ -149,3 +149,19 @@ public static List<WordComment> GetAllComments(WordDocument document)
 #### Returns
 
 [List&lt;WordComment&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
+
+### **Delete()**
+
+```csharp
+public void Delete()
+```
+
+Deletes the comment and removes its references from the document.
+
+### **Remove()**
+
+```csharp
+public void Remove()
+```
+
+Removes this comment from the document. Alias for `Delete()`.

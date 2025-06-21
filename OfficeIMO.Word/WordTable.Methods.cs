@@ -496,5 +496,90 @@ namespace OfficeIMO.Word {
             this.WidthType = TableWidthUnitValues.Pct;
             this.Width = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current table and inserts it after the table.
+        /// </summary>
+        /// <returns>The newly cloned <see cref="WordTable"/>.</returns>
+        /// <example>
+        /// <code>
+        /// WordTable clone = table.Clone();
+        /// </code>
+        /// </example>
+        public WordTable Clone() {
+            return CloneAfterSelf();
+        }
+
+        /// <summary>
+        /// Clones the table and inserts the clone after the current table.
+        /// </summary>
+        /// <returns>The cloned <see cref="WordTable"/>.</returns>
+        /// <example>
+        /// <code>
+        /// WordTable copy = table.CloneAfterSelf();
+        /// </code>
+        /// </example>
+        public WordTable CloneAfterSelf() {
+            var clonedTable = (Table)_table.CloneNode(true);
+            _table.InsertAfterSelf(clonedTable);
+            return new WordTable(_document, clonedTable);
+        }
+
+        /// <summary>
+        /// Clones the table and inserts the clone before the current table.
+        /// </summary>
+        /// <returns>The cloned <see cref="WordTable"/>.</returns>
+        /// <example>
+        /// <code>
+        /// WordTable copy = table.CloneBeforeSelf();
+        /// </code>
+        /// </example>
+        public WordTable CloneBeforeSelf() {
+            var clonedTable = (Table)_table.CloneNode(true);
+            _table.InsertBeforeSelf(clonedTable);
+            return new WordTable(_document, clonedTable);
+        }
+
+        /// <summary>
+        /// Clones the table and inserts it relative to the specified paragraph.
+        /// </summary>
+        /// <param name="paragraph">Reference paragraph for insertion.</param>
+        /// <param name="after">If true inserts after the paragraph, otherwise before.</param>
+        /// <returns>The cloned <see cref="WordTable"/>.</returns>
+        /// <example>
+        /// <code>
+        /// WordTable copy = table.Clone(paragraph, after: false);
+        /// </code>
+        /// </example>
+        public WordTable Clone(WordParagraph paragraph, bool after = true) {
+            var clonedTable = (Table)_table.CloneNode(true);
+            if (after) {
+                paragraph._paragraph.InsertAfterSelf(clonedTable);
+            } else {
+                paragraph._paragraph.InsertBeforeSelf(clonedTable);
+            }
+            return new WordTable(_document, clonedTable);
+        }
+
+        /// <summary>
+        /// Clones the table and inserts it relative to another table.
+        /// </summary>
+        /// <param name="table">Reference table for insertion.</param>
+        /// <param name="after">If true inserts after the table, otherwise before.</param>
+        /// <returns>The cloned <see cref="WordTable"/>.</returns>
+        /// <example>
+        /// <code>
+        /// WordTable copy = table1.Clone(table2, after: true);
+        /// </code>
+        /// </example>
+        public WordTable Clone(WordTable table, bool after = true) {
+            var clonedTable = (Table)_table.CloneNode(true);
+            if (after) {
+                table._table.InsertAfterSelf(clonedTable);
+            } else {
+                table._table.InsertBeforeSelf(clonedTable);
+            }
+            return new WordTable(_document, clonedTable);
+        }
     }
 }

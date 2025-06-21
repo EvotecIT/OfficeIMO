@@ -10,9 +10,41 @@ using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     public partial class WordChart : WordElement {
+        private static int _axisIdSeed = 148921728;
+        private static int _docPrIdSeed = 1;
+
+        internal static void InitializeDocPrIdSeed(WordprocessingDocument document) {
+            uint max = (uint)_docPrIdSeed;
+            foreach (var prop in document.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+                if (prop.Id != null && prop.Id > max) {
+                    max = prop.Id;
+                }
+            }
+            _docPrIdSeed = (int)max;
+        }
+
+        private static UInt32Value GenerateDocPrId() {
+            int id = System.Threading.Interlocked.Increment(ref _docPrIdSeed);
+            return (UInt32Value)(uint)id;
+        }
+
+        internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
+            uint max = (uint)_axisIdSeed;
+            foreach (var part in document.MainDocumentPart.ChartParts) {
+                var chart = part.ChartSpace.GetFirstChild<Chart>();
+                if (chart == null) continue;
+                foreach (var axis in chart.Descendants<AxisId>()) {
+                    if (axis.Val != null && axis.Val.Value > max) {
+                        max = axis.Val.Value;
+                    }
+                }
+            }
+            _axisIdSeed = (int)max;
+        }
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
@@ -32,11 +64,19 @@ namespace OfficeIMO.Word {
                 var ids = new List<UInt32Value>();
                 if (_chart != null) {
                     var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                    var line3dChart = _chart.PlotArea.GetFirstChild<Line3DChart>();
                     var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+                    var bar3dChart = _chart.PlotArea.GetFirstChild<Bar3DChart>();
                     var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
+                    var pie3dChart = _chart.PlotArea.GetFirstChild<Pie3DChart>();
                     var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
                     if (lineChart != null) {
                         var series = lineChart.ChildElements.OfType<LineChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (line3dChart != null) {
+                        var series = line3dChart.ChildElements.OfType<LineChartSeries>();
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
@@ -45,8 +85,18 @@ namespace OfficeIMO.Word {
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
+                    } else if (pie3dChart != null) {
+                        var series = pie3dChart.ChildElements.OfType<PieChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
                     } else if (barChart != null) {
                         var series = barChart.ChildElements.OfType<BarChartSeries>();
+                        foreach (var index in series) {
+                            ids.Add(index.Index.Val);
+                        }
+                    } else if (bar3dChart != null) {
+                        var series = bar3dChart.ChildElements.OfType<BarChartSeries>();
                         foreach (var index in series) {
                             ids.Add(index.Index.Val);
                         }
@@ -65,20 +115,24 @@ namespace OfficeIMO.Word {
             }
         }
         private CategoryAxis AddCategoryAxis() {
+            return AddCategoryAxisInternal((UInt32Value)148921728U, (UInt32Value)154227840U, AxisPositionValues.Bottom);
+        }
+
+        private CategoryAxis AddCategoryAxisInternal(UInt32Value axisId, UInt32Value crossingAxis, AxisPositionValues position) {
             CategoryAxis categoryAxis1 = new CategoryAxis();
             categoryAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId3 = new AxisId() { Val = (UInt32Value)148921728U };
+            AxisId axisId3 = new AxisId() { Val = axisId };
 
             Scaling scaling1 = new Scaling();
             Orientation orientation1 = new Orientation() { Val = OrientationValues.MinMax };
 
             scaling1.Append(orientation1);
             Delete delete1 = new Delete() { Val = false };
-            AxisPosition axisPosition1 = new AxisPosition() { Val = AxisPositionValues.Bottom };
+            AxisPosition axisPosition1 = new AxisPosition() { Val = position };
             MajorTickMark majorTickMark1 = new MajorTickMark() { Val = TickMarkValues.Outside };
             MinorTickMark minorTickMark1 = new MinorTickMark() { Val = TickMarkValues.None };
             TickLabelPosition tickLabelPosition1 = new TickLabelPosition() { Val = TickLabelPositionValues.NextTo };
-            CrossingAxis crossingAxis1 = new CrossingAxis() { Val = (UInt32Value)154227840U };
+            CrossingAxis crossingAxis1 = new CrossingAxis() { Val = crossingAxis };
             Crosses crosses1 = new Crosses() { Val = CrossesValues.AutoZero };
             AutoLabeled autoLabeled1 = new AutoLabeled() { Val = true };
             LabelAlignment labelAlignment1 = new LabelAlignment() { Val = LabelAlignmentValues.Center };
@@ -103,35 +157,39 @@ namespace OfficeIMO.Word {
         }
 
         private ValueAxis AddValueAxis() {
+            return AddValueAxisInternal((UInt32Value)154227840U, (UInt32Value)148921728U, AxisPositionValues.Left);
+        }
+        private ValueAxis AddValueAxisInternal(UInt32Value axisId, UInt32Value crossingAxis, AxisPositionValues position) {
             ValueAxis valueAxis1 = new ValueAxis();
             valueAxis1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            AxisId axisId4 = new AxisId() { Val = (UInt32Value)154227840U };
+            AxisId axisId4 = new AxisId() { Val = axisId };
 
             Scaling scaling2 = new Scaling();
             Orientation orientation2 = new Orientation() { Val = OrientationValues.MinMax };
 
             scaling2.Append(orientation2);
             Delete delete2 = new Delete() { Val = false };
-            AxisPosition axisPosition2 = new AxisPosition() { Val = AxisPositionValues.Left };
+            AxisPosition axisPosition2 = new AxisPosition() { Val = position };
             DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat numberingFormat1 = new DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat() { FormatCode = "General", SourceLinked = false };
             MajorGridlines majorGridlines1 = new MajorGridlines();
             MajorTickMark majorTickMark2 = new MajorTickMark() { Val = TickMarkValues.Outside };
             MinorTickMark minorTickMark2 = new MinorTickMark() { Val = TickMarkValues.None };
             TickLabelPosition tickLabelPosition2 = new TickLabelPosition() { Val = TickLabelPositionValues.NextTo };
-            CrossingAxis crossingAxis2 = new CrossingAxis() { Val = (UInt32Value)148921728U };
+            CrossingAxis crossingAxis2 = new CrossingAxis() { Val = crossingAxis };
             Crosses crosses2 = new Crosses() { Val = CrossesValues.AutoZero };
             CrossBetween crossBetween1 = new CrossBetween() { Val = CrossBetweenValues.Between };
 
+            // Add elements in the correct schema order
             valueAxis1.Append(axisId4);
             valueAxis1.Append(scaling2);
             valueAxis1.Append(delete2);
             valueAxis1.Append(axisPosition2);
+            valueAxis1.Append(majorGridlines1);  // MajorGridlines should come before NumberingFormat
             valueAxis1.Append(numberingFormat1);
-            valueAxis1.Append(majorGridlines1);
             valueAxis1.Append(majorTickMark2);
             valueAxis1.Append(minorTickMark2);
             valueAxis1.Append(tickLabelPosition2);
-            valueAxis1.Append(crossingAxis2);
+            valueAxis1.Append(crossingAxis2);      // CrossingAxis comes after TickLabelPosition
             valueAxis1.Append(crosses2);
             valueAxis1.Append(crossBetween1);
 
@@ -185,25 +243,35 @@ namespace OfficeIMO.Word {
             part.ChartSpace.Append(new RoundedCorners() { Val = roundedCorners });
             return part;
         }
-
         private Chart GenerateChart(string title = "") {
             Chart chart1 = new Chart();
-            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
-            PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
-            //Layout layout1 = new Layout();
-            //plotArea1.Append(layout1);
 
-            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
-            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
-            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
-            chart1.Append(autoTitleDeleted1);
-            chart1.Append(plotVisibleOnly1);
-            chart1.Append(displayBlanksAs1);
-            chart1.Append(showDataLabelsOverMaximum1);
-            chart1.Append(plotArea1);
+            // Add elements in the correct OpenXML schema order
+            // 1. Title (optional, but must be first if present)
             if (!string.IsNullOrEmpty(title)) {
                 chart1.Append(AddTitle(title));
             }
+
+            // 2. AutoTitleDeleted (must come after Title if Title exists)
+            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
+            chart1.Append(autoTitleDeleted1);
+
+            // 8. PlotArea (comes after View3D, Floor, SideWall, BackWall if they were present)
+            PlotArea plotArea1 = new PlotArea() { Layout = new Layout() };
+            chart1.Append(plotArea1);
+
+            // 10. PlotVisibleOnly
+            PlotVisibleOnly plotVisibleOnly1 = new PlotVisibleOnly() { Val = true };
+            chart1.Append(plotVisibleOnly1);
+
+            // 11. DisplayBlanksAs
+            DisplayBlanksAs displayBlanksAs1 = new DisplayBlanksAs() { Val = DisplayBlanksAsValues.Gap };
+            chart1.Append(displayBlanksAs1);
+
+            // 12. ShowDataLabelsOverMaximum
+            ShowDataLabelsOverMaximum showDataLabelsOverMaximum1 = new ShowDataLabelsOverMaximum() { Val = false };
+            chart1.Append(showDataLabelsOverMaximum1);
+
             return chart1;
         }
 
@@ -216,17 +284,26 @@ namespace OfficeIMO.Word {
             PrivateTitle = title;
             UpdateTitle();
             return this;
-        }
-
-        /// <summary>
-        /// Update the title of the chart
-        /// </summary>
+        }        /// <summary>
+                 /// Update the title of the chart
+                 /// </summary>
         internal void UpdateTitle() {
             if (!string.IsNullOrEmpty(PrivateTitle)) {
                 if (_chart != null) {
                     if (_chart.Title == null) {
-                        _chart.Append(AddTitle(PrivateTitle));
+                        // Create new title element
+                        var newTitle = AddTitle(PrivateTitle);
+
+                        // Insert title at the beginning (before AutoTitleDeleted) to maintain schema order
+                        var autoTitleDeleted = _chart.GetFirstChild<AutoTitleDeleted>();
+                        if (autoTitleDeleted != null) {
+                            _chart.InsertBefore(newTitle, autoTitleDeleted);
+                        } else {
+                            // If no AutoTitleDeleted found, insert at the beginning
+                            _chart.InsertAt(newTitle, 0);
+                        }
                     } else {
+                        // Update existing title text
                         var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
                         if (text != null) {
                             text.Text = PrivateTitle;
@@ -278,11 +355,14 @@ namespace OfficeIMO.Word {
             NumberLiteral literal = new NumberLiteral();
             FormatCode format = new FormatCode() { Text = "General" };
             PointCount count = new PointCount() { Val = (uint)dataList.Count };
-            literal.Append(count);
             literal.Append(format);
-            var index = 0;
+            literal.Append(count); var index = 0;
             foreach (var data in dataList) {
-                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = data.ToString() } };
+                // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
+                string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                                  data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+                                  data?.ToString() ?? "0";
+                var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = valueText } };
 
                 literal.Append(numericPoint);
                 index++;
@@ -330,7 +410,7 @@ namespace OfficeIMO.Word {
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = (long)width * EnglishMetricUnitsPerInch / PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = (UInt32Value)2U, Name = "chart" };
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = GenerateDocPrId(), Name = "chart" };
 
             DocumentFormat.OpenXml.Drawing.Graphic graphic1 = new DocumentFormat.OpenXml.Drawing.Graphic();
             graphic1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");

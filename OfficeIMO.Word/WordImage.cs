@@ -498,6 +498,15 @@ namespace OfficeIMO.Word {
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
+        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+            FilePath = fileName;
+            shape ??= ShapeTypeValues.Rectangle;
+            compressionQuality ??= BlipCompressionValues.Print;
+            var bytes = Convert.FromBase64String(base64String);
+            using var ms = new MemoryStream(bytes);
+            AddImage(document, paragraph, ms, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+        }
+
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
@@ -718,8 +727,11 @@ namespace OfficeIMO.Word {
             // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
             // if widht/height are not set we check ourselves
             // but probably will need better way
-            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream);
+            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, fileName);
             if (width == null || height == null) {
+                if (imageCharacteristics.Width == 0 || imageCharacteristics.Height == 0) {
+                    throw new ArgumentException("Width and height must be provided for this image type.");
+                }
                 width = imageCharacteristics.Width;
                 height = imageCharacteristics.Height;
             }
@@ -744,7 +756,7 @@ namespace OfficeIMO.Word {
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
-                throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+                throw new InvalidOperationException("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
             }
 
             imagePart.FeedData(imageStream);

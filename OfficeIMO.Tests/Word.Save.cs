@@ -1,4 +1,5 @@
 using System.IO;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -104,7 +105,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(File.Exists(filePath1));
 
-            var document = WordDocument.Create(filePath1);
+            using var document = WordDocument.Create(filePath1);
             document.BuiltinDocumentProperties.Title = "This is my title";
             document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
             document.BuiltinDocumentProperties.Keywords = "word, docx, test";
@@ -116,16 +117,12 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             Assert.False(filePath1.IsFileLocked());
-
-            document.Dispose();
-
-            Assert.False(filePath1.IsFileLocked());
             Assert.True(File.Exists(filePath1));
         }
 
         [Fact]
         public void Test_SaveToStream() {
-            var document = WordDocument.Create();
+            using var document = WordDocument.Create();
             document.BuiltinDocumentProperties.Title = "This is my title";
             document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
             document.BuiltinDocumentProperties.Keywords = "word, docx, test";
@@ -134,7 +131,7 @@ namespace OfficeIMO.Tests {
             using var outputStream = new MemoryStream();
             document.Save(outputStream);
 
-            var resultDoc = WordDocument.Load(outputStream);
+            using var resultDoc = WordDocument.Load(outputStream);
 
             Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
             Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
@@ -152,7 +149,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(File.Exists(filePath));
 
-            var document = WordDocument.Create();
+            using var document = WordDocument.Create();
             document.BuiltinDocumentProperties.Title = "This is my title";
             document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
             document.BuiltinDocumentProperties.Keywords = "word, docx, test";
@@ -181,6 +178,34 @@ namespace OfficeIMO.Tests {
                 Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
                 Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
             }
+        }
+
+        [Fact]
+        public void Test_SaveToStreamValidity() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Test");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            Assert.Equal(0, outputStream.Position);
+
+            using var openXmlDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(outputStream, false);
+            Assert.NotNull(openXmlDoc.MainDocumentPart);
+        }
+       
+        [Fact]
+        public void Test_SaveReadOnlyDocument_ThrowsInvalidOperationException() {
+            var filePath = Path.Combine(_directoryWithFiles, "ReadOnlyDocument.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test");
+                document.Save();
+            }
+
+            using var readOnlyDocument = WordDocument.Load(filePath, readOnly: true);
+            Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save());
+            using var outputStream = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save(outputStream));
         }
 
     }

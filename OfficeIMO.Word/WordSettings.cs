@@ -258,7 +258,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.FontSize.Val = (value * 2).ToString();
                 } else {
-                    throw new Exception("Could not set font size. Styles not found.");
+                    throw new InvalidOperationException("Could not set font size. Styles not found.");
                 }
             }
         }
@@ -285,7 +285,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.FontSizeComplexScript.Val = (value * 2).ToString();
                 } else {
-                    throw new Exception("Could not set font size complex script. Styles not found.");
+                    throw new InvalidOperationException("Could not set font size complex script. Styles not found.");
                 }
             }
         }
@@ -325,7 +325,7 @@ namespace OfficeIMO.Word {
                     runPropertiesBaseStyle.RunFonts.ComplexScript = value;
                     runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -360,7 +360,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -393,7 +393,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -453,7 +453,7 @@ namespace OfficeIMO.Word {
                     runPropertiesBaseStyle.Languages.Val = value;
                     //runPropertiesBaseStyle.Languages.EastAsia = value;
                 } else {
-                    throw new Exception("Could not set language. Styles not found.");
+                    throw new InvalidOperationException("Could not set language. Styles not found.");
                 }
             }
         }
@@ -489,7 +489,6 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets property in document recommending user to open the document as read only
         /// User can choose to do so, or ignore this recommendation
-        /// This setting can in theory go with a ReadOnlyPassword but it doesn't seem to work the same way as Document Password
         /// </summary>
         public bool? ReadOnlyRecommended {
             get {
@@ -500,34 +499,32 @@ namespace OfficeIMO.Word {
                 if (settings.WriteProtection.Recommended == null) {
                     return false;
                 }
-                return settings.WriteProtection.Recommended.Value;
+                // Defensive: treat any value other than "1" as false
+                var recommended = settings.WriteProtection.Recommended;
+                if (recommended.Value == true && (recommended.InnerText == "1" || string.IsNullOrEmpty(recommended.InnerText))) {
+                    return true;
+                }
+                return false;
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                if (settings.WriteProtection == null) {
-                    if (value == null) {
-                        // user wanted to remove read only protection
-                        return;
-                    }
+                if (settings.WriteProtection == null && value != null && value != false) {
                     settings.WriteProtection = new WriteProtection();
-                } else {
-                    if (value == null) {
-                        // user wanted to remove read only protection
-                        settings.WriteProtection.Remove();
-                        return;
+                }
+                if (settings.WriteProtection != null) {
+                    if (value == null || value == false) {
+                        settings.WriteProtection.Recommended = null;
+                        // Only remove WriteProtection element if it is empty (no hash, no recommended)
+                        if (string.IsNullOrEmpty(settings.WriteProtection.Hash) && settings.WriteProtection.Recommended == null) {
+                            settings.WriteProtection.Remove();
+                        }
+                    } else {
+                        // Use OnOffValue to ensure w:recommended="1" in XML (workaround for OpenXML 3.3.0)
+                        var onOff = new DocumentFormat.OpenXml.OnOffValue(true);
+                        onOff.InnerText = "1";
+                        settings.WriteProtection.Recommended = onOff;
                     }
                 }
-                settings.WriteProtection.Recommended = value;
-            }
-        }
-
-        /// <summary>
-        /// Sets password protection when recommending document to be read only
-        /// Doesn't seem to work
-        /// </summary>
-        public string ReadOnlyPassword {
-            set {
-                Security.SetWriteProtection(this._document._wordprocessingDocument, value);
             }
         }
 
@@ -546,6 +543,47 @@ namespace OfficeIMO.Word {
                     _document.CustomDocumentProperties["_MarkAsFinal"].Value = value;
                 } else {
                     _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                }
+            }
+        }
+
+        public bool GutterAtTop {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
+                if (gutterAtTop == null) {
+                    return false;
+                }
+                return gutterAtTop.Val;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
+                if (gutterAtTop == null) {
+                    gutterAtTop = new GutterAtTop();
+                    settings.Append(gutterAtTop);
+                }
+                gutterAtTop.Val = value;
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of comments in the document.
+        /// </summary>
+        public bool TrackComments {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                return settings.GetFirstChild<TrackRevisions>() != null;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var track = settings.GetFirstChild<TrackRevisions>();
+                if (value) {
+                    if (track == null) {
+                        settings.Append(new TrackRevisions());
+                    }
+                } else {
+                    track?.Remove();
                 }
             }
         }

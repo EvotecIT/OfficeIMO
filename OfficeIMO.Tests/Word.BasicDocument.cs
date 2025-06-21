@@ -11,20 +11,18 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
             Assert.False(path); // MUST BE FALSE
 
-            WordDocument document = WordDocument.Create(filePath);
+            using (var document = WordDocument.Create(filePath)) {
+                document.Save();
 
-            document.Save();
-
-            path = File.Exists(filePath);
-            Assert.True(path);
-
-            document.Dispose();
+                path = File.Exists(filePath);
+                Assert.True(path);
+            }
             File.Delete(filePath);
         }
 
         [Fact]
         public void Test_OpeningWordAndParagraphCountMatches() {
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocument.docx"))) {
+            using (var document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocument.docx"))) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 12);
 
@@ -44,7 +42,7 @@ namespace OfficeIMO.Tests {
             foreach (var doc in docs) {
                 Console.WriteLine($"Processing document: {doc}");
 
-                using (WordDocument document = WordDocument.Load(doc)) {
+                using (var document = WordDocument.Load(doc)) {
                     var allElements = document.Elements;
                     Assert.True(allElements.Count > 0, $"Document '{doc}' has no elements.");
 

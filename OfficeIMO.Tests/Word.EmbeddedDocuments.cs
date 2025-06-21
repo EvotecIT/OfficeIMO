@@ -206,4 +206,32 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments[4].ContentType == "application/rtf");
         }
     }
+
+    [Fact]
+    public void Test_EmbeddedDocumentIdsAreUnique() {
+        string filePath = Path.Combine(_directoryWithFiles, "EmbeddedUniqueIds.docx");
+        string rtfFilePath = Path.Combine(_directoryDocuments, "SampleFileRTF.rtf");
+
+        using (var document = WordDocument.Create(filePath)) {
+            document.AddEmbeddedDocument(rtfFilePath);
+            document.AddEmbeddedDocument(rtfFilePath);
+            document.AddEmbeddedDocument(rtfFilePath);
+
+            var ids = document._wordprocessingDocument.MainDocumentPart.AlternativeFormatImportParts
+                .Select(p => document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(p))
+                .ToList();
+
+            Assert.Equal(ids.Count, ids.Distinct().Count());
+
+            document.Save();
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            var ids = document._wordprocessingDocument.MainDocumentPart.AlternativeFormatImportParts
+                .Select(p => document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(p))
+                .ToList();
+
+            Assert.Equal(ids.Count, ids.Distinct().Count());
+        }
+    }
 }

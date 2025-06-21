@@ -32,6 +32,8 @@
 
 [WordBarChart3D](./officeimo.word.wordbarchart3d.md)
 
+[WordAreaChart3D](./officeimo.word.wordareachart3d.md)
+
 [WordBookmark](./officeimo.word.wordbookmark.md)
 
 [WordBorder](./officeimo.word.wordborder.md)
@@ -83,6 +85,7 @@
 [WordImage](./officeimo.word.wordimage.md)
 
 [WordLineChart](./officeimo.word.wordlinechart.md)
+[WordLineChart3D](./officeimo.word.wordlinechart3d.md)
 
 [WordList](./officeimo.word.wordlist.md)
 
@@ -109,12 +112,14 @@
 [WordParagraphStyles](./officeimo.word.wordparagraphstyles.md)
 
 [WordPieChart](./officeimo.word.wordpiechart.md)
+[WordPieChart3D](./officeimo.word.wordpiechart3d.md)
 
 [WordSection](./officeimo.word.wordsection.md)
 
 [WordSettings](./officeimo.word.wordsettings.md)
 
 [WordStructuredDocumentTag](./officeimo.word.wordstructureddocumenttag.md)
+[WordCheckBox](./officeimo.word.wordcheckbox.md)
 
 [WordTable](./officeimo.word.wordtable.md)
 
