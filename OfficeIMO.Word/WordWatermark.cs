@@ -491,6 +491,7 @@ namespace OfficeIMO.Word {
             }
 
             var wordImage = new WordImage(_document, wordParagraph, filePath, null, null, WrapTextImage.BehindText);
+            _imageParagraph = wordParagraph;
             _image = wordImage;
             wordParagraph.VerifyRun();
             wordParagraph._run.Append(wordImage._Image);
@@ -502,6 +503,8 @@ namespace OfficeIMO.Word {
             } else {
                 _image?.Remove();
                 _imageParagraph?.Remove();
+                _image = null;
+                _imageParagraph = null;
             }
         }
     }
