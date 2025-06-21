@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Xml.Linq;
+using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
+using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
@@ -304,6 +307,32 @@ namespace OfficeIMO.Word {
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced, parameters);
             return this;
+        }
+
+        /// <summary>
+        /// Adds a mathematical equation represented as OMML XML.
+        /// </summary>
+        /// <param name="omml">Office Math Markup Language (OMML) fragment.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddEquation(string omml) {
+            if (string.IsNullOrWhiteSpace(omml)) {
+                throw new ArgumentNullException(nameof(omml));
+            }
+
+            XElement x = XElement.Parse(omml);
+            WordParagraph paragraphWithEquation;
+
+            if (x.Name.LocalName == "oMath") {
+                var officeMath = new OfficeMath(omml);
+                _paragraph.Append(officeMath);
+                paragraphWithEquation = new WordParagraph(this._document, this._paragraph, officeMath);
+            } else {
+                var mathPara = new MathParagraph(omml);
+                _paragraph.Append(mathPara);
+                paragraphWithEquation = new WordParagraph(this._document, this._paragraph, mathPara);
+            }
+
+            return paragraphWithEquation;
         }
 
         /// <summary>
