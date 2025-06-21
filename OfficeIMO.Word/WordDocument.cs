@@ -193,6 +193,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsEmbeddedObjects {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsEmbeddedObjects);
+                }
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsFootNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -461,6 +471,16 @@ namespace OfficeIMO.Word {
                     list.AddRange(section.Images);
                 }
 
+                return list;
+            }
+        }
+
+        public List<WordEmbeddedObject> EmbeddedObjects {
+            get {
+                List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.EmbeddedObjects);
+                }
                 return list;
             }
         }

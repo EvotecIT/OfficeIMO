@@ -109,6 +109,10 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        public List<WordParagraph> ParagraphsEmbeddedObjects {
+            get { return Paragraphs.Where(p => p.IsEmbeddedObject).ToList(); }
+        }
+
         public List<WordParagraph> ParagraphsCharts {
             get { return Paragraphs.Where(p => p.IsChart).ToList(); }
         }
@@ -167,6 +171,17 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsImage).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Image);
+                }
+                return list;
+            }
+        }
+
+        public List<WordEmbeddedObject> EmbeddedObjects {
+            get {
+                List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
+                var paragraphs = Paragraphs.Where(p => p.IsEmbeddedObject).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.EmbeddedObject);
                 }
                 return list;
             }
