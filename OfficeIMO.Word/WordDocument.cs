@@ -1070,7 +1070,11 @@ namespace OfficeIMO.Word {
             MoveSectionProperties();
             SaveNumbering();
             _ = new WordCustomProperties(this, true);
-            _ = new WordDocumentVariables(this, true);
+            var settingsPart = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
+            bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
+            if (hasVariables || DocumentVariables.Count > 0) {
+                _ = new WordDocumentVariables(this, true);
+            }
         }
     }
 }

@@ -54,13 +54,28 @@ namespace OfficeIMO.Word {
 
             var settings = settingsPart.Settings;
             _variables = settings.GetFirstChild<DocumentVariables>();
+
+            if (_document.DocumentVariables.Count == 0) {
+                _variables?.Remove();
+                return;
+            }
+
             if (_variables == null) {
                 _variables = new DocumentVariables();
                 settings.Append(_variables);
             }
 
+            // remove variables not present in the dictionary
+            var toRemove = _variables.Elements<DocumentVariable>()
+                .Where(v => !_document.DocumentVariables.ContainsKey(v.Name))
+                .ToList();
+            foreach (var variable in toRemove) {
+                variable.Remove();
+            }
+
             foreach (var pair in _document.DocumentVariables) {
-                var existing = _variables.Elements<DocumentVariable>().FirstOrDefault(v => v.Name == pair.Key);
+                var existing = _variables.Elements<DocumentVariable>()
+                    .FirstOrDefault(v => v.Name == pair.Key);
                 if (existing != null) {
                     existing.Val = pair.Value;
                 } else {
