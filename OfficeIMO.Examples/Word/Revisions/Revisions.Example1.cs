@@ -1,9 +1,22 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Revisions {
+        private static string FormatErrors(IEnumerable<ValidationErrorInfo> errors) {
+            return string.Join(Environment.NewLine + Environment.NewLine,
+                errors.Select(error =>
+                    $"Description: {error.Description}\n" +
+                    $"Id: {error.Id}\n" +
+                    $"ErrorType: {error.ErrorType}\n" +
+                    $"Part: {error.Part?.Uri}\n" +
+                    $"Path: {error.Path?.XPath}"));
+        }
+
         internal static void Example_TrackedChanges(string folderPath, bool openWord) {
             Console.WriteLine("[*] Demonstrating tracked changes");
             string filePath = Path.Combine(folderPath, "TrackedChangesExample.docx");
@@ -17,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 var valid = document.ValidateDocument();
                 if (valid.Count > 0) {
                     Console.WriteLine("Document has validation errors:");
-                    Console.WriteLine(Word.FormatValidationErrors(valid));
+                    Console.WriteLine(FormatErrors(valid));
                 }
             }
 
