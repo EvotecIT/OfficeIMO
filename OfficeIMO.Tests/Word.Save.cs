@@ -1,4 +1,5 @@
 using System.IO;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -179,6 +180,20 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_SaveToStreamValidity() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Test");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            Assert.Equal(0, outputStream.Position);
+
+            using var openXmlDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(outputStream, false);
+            Assert.NotNull(openXmlDoc.MainDocumentPart);
+        }
+       
         [Fact]
         public void Test_SaveReadOnlyDocument_ThrowsInvalidOperationException() {
             var filePath = Path.Combine(_directoryWithFiles, "ReadOnlyDocument.docx");
