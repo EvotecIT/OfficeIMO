@@ -12,9 +12,9 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
 
                 var paragraph = document.AddParagraph("Visit ");
-                paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
-                var baseLink = paragraph.Hyperlink;
-                baseLink.Bold = true;
+                var google = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                google.Bold = true;
+                var baseLink = google.Hyperlink;
 
                 baseLink.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
                 var duplicate = WordHyperLink.DuplicateHyperlink(baseLink);
