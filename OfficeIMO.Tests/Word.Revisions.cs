@@ -54,5 +54,21 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(document.Paragraphs, p => p.Text == "Removed");
             }
         }
+
+        [Fact]
+        public void Test_TrackedChanges_Validation() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesValidation.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddInsertedText("Added", "Codex");
+                paragraph.AddDeletedText("Removed", "Codex");
+                document.Save(false);
+
+                var errors = document.ValidateDocument();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            }
+        }
     }
 }

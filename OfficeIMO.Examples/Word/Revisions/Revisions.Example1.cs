@@ -13,6 +13,12 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.AddInsertedText("Inserted text", "Codex");
                 paragraph.AddDeletedText("Deleted text", "Codex");
                 document.Save(false);
+
+                var valid = document.ValidateDocument();
+                if (valid.Count > 0) {
+                    Console.WriteLine("Document has validation errors:");
+                    Console.WriteLine(Word.FormatValidationErrors(valid));
+                }
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
             var run = new Run();
             run.RsidRunAddition = WordHeadersAndFooters.GenerateRsid();
             run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-            var ins = new InsertedRun() { Author = author, Date = date.Value, Id = WordHeadersAndFooters.GenerateRsid() };
+            var ins = new InsertedRun() { Author = author, Date = date.Value, Id = WordHeadersAndFooters.GenerateRevisionId() };
             ins.Append(run);
             _paragraph.Append(ins);
             return this;
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
             var run = new Run();
             run.RsidRunDeletion = WordHeadersAndFooters.GenerateRsid();
             run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-            var del = new DeletedRun() { Author = author, Date = date.Value, Id = WordHeadersAndFooters.GenerateRsid() };
+            var del = new DeletedRun() { Author = author, Date = date.Value, Id = WordHeadersAndFooters.GenerateRevisionId() };
             del.Append(run);
             _paragraph.Append(del);
             return this;
