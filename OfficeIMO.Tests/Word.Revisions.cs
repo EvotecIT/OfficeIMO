@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -16,14 +15,8 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Before");
 
                 var paragraph = document.AddParagraph();
-
-                var ins = new InsertedRun() { Author = "Codex", Date = DateTime.Now };
-                ins.AppendChild(new Run(new Text("Added")));
-                paragraph._paragraph.Append(ins);
-
-                var del = new DeletedRun() { Author = "Codex", Date = DateTime.Now };
-                del.AppendChild(new Run(new Text("Removed")));
-                paragraph._paragraph.Append(del);
+                paragraph.AddInsertedText("Added", "Codex");
+                paragraph.AddDeletedText("Removed", "Codex");
 
                 document.Save(false);
             }
@@ -39,6 +32,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Paragraphs.Count);
                 Assert.Equal("Before", document.Paragraphs[0].Text);
                 Assert.Equal("Added", document.Paragraphs[1].Text);
+            }
+        }
+
+        [Fact]
+        public void Test_RejectRevisions_RemovesInsertions() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesReject.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddInsertedText("Added", "Codex");
+                paragraph.AddDeletedText("Removed", "Codex");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.RejectRevisions();
+                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.Single(document.Paragraphs);
+                Assert.Equal("Removed", document.Paragraphs[0].Text);
             }
         }
     }
