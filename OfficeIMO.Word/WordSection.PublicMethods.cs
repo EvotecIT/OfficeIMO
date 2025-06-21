@@ -51,6 +51,15 @@ namespace OfficeIMO.Word {
             return new WordWatermark(this._document, this, watermarkStyle, textOrFilePath);
         }
 
+        /// <summary>
+        /// Removes all watermarks from this section including headers.
+        /// </summary>
+        public void RemoveWatermark() {
+            foreach (var watermark in Watermarks.ToList()) {
+                watermark.Remove();
+            }
+        }
+
         public WordSection SetBorders(WordBorder wordBorder) {
             this.Borders.SetBorder(wordBorder);
 

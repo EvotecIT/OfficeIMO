@@ -39,3 +39,11 @@ public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHea
 `style` [WordWatermarkStyle](./officeimo.word.wordwatermarkstyle.md)<br>
 
 `text` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+### **Remove()**
+
+Remove this watermark from the document.
+
+```csharp
+public void Remove()
+```

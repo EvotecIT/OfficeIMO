@@ -48,6 +48,15 @@ Remove all comments from the document.
 public void RemoveAllComments()
 ```
 
+### **RemoveWatermark()**
+
+Removes all watermarks from the document including those in headers.
+Alternatively remove individual watermarks via the `Watermarks` collection.
+
+```csharp
+public void RemoveWatermark()
+```
+
 ## Properties
 
 ### **TrackComments**
