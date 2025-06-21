@@ -15,6 +15,11 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath, false)) {
                 Console.WriteLine($"Author: {document.GetDocumentVariable("Author")}");
                 Console.WriteLine($"Year: {document.GetDocumentVariable("Year")}");
+                if (document.HasDocumentVariables) {
+                    foreach (var variable in document.GetDocumentVariables()) {
+                        Console.WriteLine($"{variable.Key} -> {variable.Value}");
+                    }
+                }
             }
         }
     }

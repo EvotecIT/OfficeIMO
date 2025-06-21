@@ -331,6 +331,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Removes the document variable at the specified index.
+        /// </summary>
+        /// <param name="index">Zero-based index of the variable to remove.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when index is out of range.</exception>
+        public void RemoveDocumentVariableAt(int index) {
+            if (index < 0 || index >= DocumentVariables.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            string key = DocumentVariables.Keys.ElementAt(index);
+            DocumentVariables.Remove(key);
+        }
+
+        /// <summary>
+        /// Determines whether the document contains any document variables.
+        /// </summary>
+        public bool HasDocumentVariables => DocumentVariables.Count > 0;
+
+        /// <summary>
+        /// Returns a read-only view of all document variables.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> GetDocumentVariables() {
+            return new Dictionary<string, string>(DocumentVariables);
+        }
+
+        /// <summary>
         /// Enable or disable tracking of comment changes.
         /// </summary>
         public bool TrackComments {

@@ -18,11 +18,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.GetDocumentVariable("AnotherVar") == "123");
                 document.SetDocumentVariable("TestVar", "Updated");
                 document.RemoveDocumentVariable("AnotherVar");
+                Assert.True(document.HasDocumentVariables);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.GetDocumentVariable("TestVar") == "Updated");
                 Assert.False(document.DocumentVariables.ContainsKey("AnotherVar"));
+                document.RemoveDocumentVariableAt(0);
+                Assert.False(document.HasDocumentVariables);
+                document.Save();
             }
         }
     }

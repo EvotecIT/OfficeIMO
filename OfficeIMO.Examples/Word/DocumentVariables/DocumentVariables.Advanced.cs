@@ -16,7 +16,9 @@ namespace OfficeIMO.Examples.Word {
             }
             using (WordDocument document = WordDocument.Load(filePath, false)) {
                 document.SetDocumentVariable("Version", "2.0");
-                document.RemoveDocumentVariable("Date");
+                if (document.HasDocumentVariables) {
+                    document.RemoveDocumentVariableAt(0);
+                }
                 document.Save(openWord);
             }
         }

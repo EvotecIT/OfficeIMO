@@ -389,6 +389,12 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.SetDocumentVariable("Project", "OfficeIMO");
     document.SetDocumentVariable("Year", DateTime.Now.Year.ToString());
 
+    if (document.HasDocumentVariables) {
+        foreach (var variable in document.GetDocumentVariables()) {
+            Console.WriteLine($"{variable.Key}: {variable.Value}");
+        }
+    }
+
     document.Save(openWord);
 }
 ```
