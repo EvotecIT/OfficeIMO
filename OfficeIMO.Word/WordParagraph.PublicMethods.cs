@@ -497,6 +497,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add a line shape to the paragraph.
+        /// </summary>
+        /// <param name="startXPt">Start X position in points.</param>
+        /// <param name="startYPt">Start Y position in points.</param>
+        /// <param name="endXPt">End X position in points.</param>
+        /// <param name="endYPt">End Y position in points.</param>
+        /// <param name="color">Stroke color in hex format.</param>
+        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
+            WordLine wordLine = new WordLine(this._document, this, startXPt, startYPt, endXPt, endYPt, color, strokeWeightPt);
+            return wordLine;
+        }
+
+        /// <summary>
         /// Adds a simple content control (structured document tag) to the paragraph.
         /// </summary>
         /// <param name="alias">Optional alias for the content control.</param>

@@ -611,6 +611,18 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public WordLine Line {
+            get {
+                if (_run != null) {
+                    var line = _run.Descendants<V.Line>().FirstOrDefault();
+                    if (line != null) {
+                        return new WordLine(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
         public bool IsTextBox {
             get {
                 if (this.TextBox != null) {
@@ -624,6 +636,16 @@ namespace OfficeIMO.Word {
         public bool IsShape {
             get {
                 if (this.Shape != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsLine {
+            get {
+                if (this.Line != null) {
                     return true;
                 }
 
