@@ -157,3 +157,11 @@ public void Delete()
 ```
 
 Deletes the comment and removes its references from the document.
+
+### **Remove()**
+
+```csharp
+public void Remove()
+```
+
+Removes this comment from the document. Alias for `Delete()`.

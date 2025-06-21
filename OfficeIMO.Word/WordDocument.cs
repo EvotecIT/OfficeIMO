@@ -280,6 +280,40 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Removes comment with the specified id.
+        /// </summary>
+        /// <param name="commentId">Id of the comment to remove.</param>
+        public void RemoveComment(string commentId) {
+            var comment = this.Comments.FirstOrDefault(c => c.Id == commentId);
+            comment?.Delete();
+        }
+
+        /// <summary>
+        /// Removes the specified comment from the document.
+        /// </summary>
+        /// <param name="comment">Comment instance to remove.</param>
+        public void RemoveComment(WordComment comment) {
+            comment?.Delete();
+        }
+
+        /// <summary>
+        /// Removes all comments from the document.
+        /// </summary>
+        public void RemoveAllComments() {
+            foreach (var comment in this.Comments.ToList()) {
+                comment.Delete();
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of comment changes.
+        /// </summary>
+        public bool TrackComments {
+            get => this.Settings.TrackComments;
+            set => this.Settings.TrackComments = value;
+        }
+
+        /// <summary>
         /// Gets the lists in the document
         /// </summary>
         /// <value>

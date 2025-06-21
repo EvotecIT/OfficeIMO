@@ -111,8 +111,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Remove cells
     - ☑️ Others
         - ☑️ Merge cells (vertically, horizontally)
-        - ◼️ Split cells (vertically)
+        - ☑️ Split cells (vertically)
         - ☑️ Split cells (horizontally)
+        - ☑️ Detect merged cells (vertically, horizontally)
         - ☑️ Nested tables
         - ☑️ Repeat header row on each page
         - ☑️ Control row page breaks
@@ -137,11 +138,11 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read Bookmark
     - ☑️ Remove Bookmark
     - ☑️ Change Bookmark
-- ◼️ Comments
-    - ☑️ Add comments
-    - ☑️ Read comments
-    - ◼️ Remove comments
-    - ◼️ Track comments
+  - ◼️ Comments
+      - ☑️ Add comments
+      - ☑️ Read comments
+      - ☑️ Remove comments (single or all)
+      - ☑️ Track comments
 - ☑️ Fields
     - ☑️ Add Field
     - ☑️ Read Field

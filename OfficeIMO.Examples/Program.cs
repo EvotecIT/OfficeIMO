@@ -82,6 +82,8 @@ namespace OfficeIMO.Examples {
             Tables.Example_BasicTables10_StylesModificationWithCentimeters(folderPath, false);
             Tables.Example_DifferentTableSizes(folderPath, false);
             Tables.Example_CloneTable(folderPath, false);
+            Tables.Example_SplitVertically(folderPath, false);
+            Tables.Example_SplitHorizontally(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 
@@ -112,6 +114,9 @@ namespace OfficeIMO.Examples {
 
             HyperLinks.EasyExample(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinks(folderPath, false);
+            HyperLinks.Example_FormattedHyperLinks(folderPath, false);
+            HyperLinks.Example_FormattedHyperLinksAdvanced(folderPath, false);
+            HyperLinks.Example_FormattedHyperLinksListReuse(folderPath, false);
             HyperLinks.Example_AddingFields(folderPath, false);
             HyperLinks.Example_BasicWordWithHyperLinksInTables(folderPath, false);
 
@@ -148,6 +153,7 @@ namespace OfficeIMO.Examples {
             TOC.Example_BasicTOC2(folderPath, false);
 
             Comments.Example_PlayingWithComments(folderPath, false);
+            Comments.Example_RemoveCommentsAndTrack(folderPath, false);
 
             BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
             BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);

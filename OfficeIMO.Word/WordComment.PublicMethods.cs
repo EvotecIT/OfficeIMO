@@ -70,5 +70,12 @@ namespace OfficeIMO.Word {
                 reference.Parent?.Remove();
             }
         }
+
+        /// <summary>
+        /// Removes this comment from the document. Alias for <see cref="Delete"/>.
+        /// </summary>
+        public void Remove() {
+            Delete();
+        }
     }
 }
