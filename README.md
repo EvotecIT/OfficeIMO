@@ -137,11 +137,11 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read Bookmark
     - ☑️ Remove Bookmark
     - ☑️ Change Bookmark
-- ◼️ Comments
-    - ☑️ Add comments
-    - ☑️ Read comments
-    - ◼️ Remove comments
-    - ◼️ Track comments
+  - ◼️ Comments
+      - ☑️ Add comments
+      - ☑️ Read comments
+      - ☑️ Remove comments (single or all)
+      - ☑️ Track comments
 - ☑️ Fields
     - ☑️ Add Field
     - ☑️ Read Field
