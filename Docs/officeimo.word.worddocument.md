@@ -123,3 +123,9 @@ Returns a read-only collection of all document variables.
 public IReadOnlyDictionary<string, string> GetDocumentVariables()
 ```
 
+### **AddEquation(String)**
+
+```csharp
+public WordParagraph AddEquation(string omml)
+```
+

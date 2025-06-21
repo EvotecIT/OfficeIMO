@@ -205,6 +205,10 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
+        public WordParagraph AddEquation(string omml) {
+            return this.AddParagraph().AddEquation(omml);
+        }
+
         public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }

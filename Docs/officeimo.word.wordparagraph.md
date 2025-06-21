@@ -934,6 +934,20 @@ public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFor
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
+### **AddEquation(String)**
+
+```csharp
+public WordParagraph AddEquation(string omml)
+```
+
+#### Parameters
+
+`omml` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+#### Returns
+
+[WordParagraph](./officeimo.word.wordparagraph.md)<br>
+
 ### **AddHyperLink(String, Uri, Boolean, String, Boolean)**
 
 ```csharp
