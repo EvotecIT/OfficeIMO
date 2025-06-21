@@ -45,8 +45,8 @@ public partial class Word {
 
         using (var document = WordDocument.Load(filePath)) {
             Assert.Equal(1, document.EmbeddedObjects.Count);
+        }
     }
-}
 
     [Fact]
     public void Test_EmbeddedObjectCustomSize() {

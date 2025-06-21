@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
 
             width ??= 64.8;
-            height ??= 40.8;
+            height ??= 64.8;
 
             var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, fileImage, width.Value, height.Value);
 
@@ -249,7 +249,7 @@ namespace OfficeIMO.Word {
             shapetype1.Append(path1);
             shapetype1.Append(lock1);
 
-            V.Shape shape1 = new V.Shape() { Id = "_x0000_i1025", Style = "width:64.8pt;height:40.8pt", Ole = false, Type = "#_x0000_t75" };
+            V.Shape shape1 = new V.Shape() { Id = "_x0000_i1025", Style = "width:64.8pt;height:64.8pt", Ole = false, Type = "#_x0000_t75" };
             V.ImageData imageData1 = new V.ImageData() { Title = "", RelationshipId = imageId };
 
             shape1.Append(imageData1);
