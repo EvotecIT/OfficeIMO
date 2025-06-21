@@ -138,7 +138,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read Bookmark
     - ☑️ Remove Bookmark
     - ☑️ Add watermark (text or image)
-  - ◼️ Comments
+    - ☑️ Remove watermark
       - ☑️ Add comments
       - ☑️ Read comments
       - ☑️ Remove comments (single or all)
