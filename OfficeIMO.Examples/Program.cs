@@ -82,6 +82,8 @@ namespace OfficeIMO.Examples {
             Tables.Example_BasicTables10_StylesModificationWithCentimeters(folderPath, false);
             Tables.Example_DifferentTableSizes(folderPath, false);
             Tables.Example_CloneTable(folderPath, false);
+            Tables.Example_SplitVertically(folderPath, false);
+            Tables.Example_SplitHorizontally(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 

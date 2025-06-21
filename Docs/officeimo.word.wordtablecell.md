@@ -52,6 +52,30 @@ public Nullable<MergedCellValues> VerticalMerge { get; set; }
 
 [Nullable&lt;MergedCellValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### **HasHorizontalMerge**
+
+Gets information whether the Table Cell participates in a horizontal merge
+
+```csharp
+public bool HasHorizontalMerge { get; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
+### **HasVerticalMerge**
+
+Gets information whether the Table Cell participates in a vertical merge
+
+```csharp
+public bool HasVerticalMerge { get; }
+```
+
+#### Property Value
+
+[Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
 ### **ShadingFillColorHex**
 
 Get or set the background color of the cell using hexadecimal color code.
@@ -157,7 +181,7 @@ public void MergeHorizontally(int cellsCount, bool copyParagraphs)
 
 ### **SplitHorizontally(Int32)**
 
-Splits (unmerge) cells that were merged
+Splits (unmerge) cells that were merged horizontally
 
 ```csharp
 public void SplitHorizontally(int cellsCount)
@@ -180,6 +204,18 @@ public void MergeVertically(int cellsCount, bool copyParagraphs)
 `cellsCount` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 `copyParagraphs` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+
+### **SplitVertically(Int32)**
+
+Splits (unmerge) cells that were merged vertically
+
+```csharp
+public void SplitVertically(int cellsCount)
+```
+
+#### Parameters
+
+`cellsCount` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 ### **AddTable(Int32, Int32, WordTableStyle, Boolean)**
 

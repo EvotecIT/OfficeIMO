@@ -67,6 +67,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets information whether the cell is part of a horizontal merge
+        /// </summary>
+        public bool HasHorizontalMerge {
+            get {
+                return _tableCellProperties?.HorizontalMerge != null;
+            }
+        }
+
+        /// <summary>
+        /// Gets information whether the cell is part of a vertical merge
+        /// </summary>
+        public bool HasVerticalMerge {
+            get {
+                return _tableCellProperties?.VerticalMerge != null;
+            }
+        }
+
+        /// <summary>
         /// Get or set the background color of the cell using hexadecimal color code.
         /// </summary>
         public string ShadingFillColorHex {
