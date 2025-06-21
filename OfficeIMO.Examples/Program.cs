@@ -204,6 +204,7 @@ namespace OfficeIMO.Examples {
             WordTextBox.Example_AddingTextbox3(folderPath, false);
             WordTextBox.Example_AddingTextboxCentimeters(folderPath, false);
 
+            Embed.Example_EmbedFileExcel(folderPath, templatesPath, false);
             Shapes.Example_AddBasicShape(folderPath, false);
             Shapes.Example_AddLine(folderPath, false);
             Shapes.Example_AddEllipseAndPolygon(folderPath, false);
@@ -211,6 +212,7 @@ namespace OfficeIMO.Examples {
             Shapes.Example_RemoveShape(folderPath, false);
             Shapes.Example_LoadShapes(folderPath, false);
 
+            Revisions.Example_TrackedChanges(folderPath, false);
             MailMerge.Example_MailMergeSimple(folderPath, false);
             MailMerge.Example_MailMergeAdvanced(folderPath, false);
         }

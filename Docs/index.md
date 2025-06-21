@@ -58,6 +58,8 @@
 
 [WordDocument](./officeimo.word.worddocument.md)
 
+[WordDocumentVariables](./officeimo.word.worddocumentvariables.md)
+
 [WordEquation](./officeimo.word.wordequation.md)
 
 [WordField](./officeimo.word.wordfield.md)

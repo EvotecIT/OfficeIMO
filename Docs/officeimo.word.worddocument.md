@@ -67,3 +67,59 @@ Enable or disable tracking of comment changes.
 public bool TrackComments { get; set; }
 ```
 
+### **HasDocumentVariables**
+
+Indicates if the document contains any document variables.
+
+```csharp
+public bool HasDocumentVariables { get; }
+```
+
+### **DocumentVariables**
+
+Collection of document variables.
+
+```csharp
+public Dictionary<string, string> DocumentVariables { get; }
+```
+
+### **GetDocumentVariable(String)**
+
+Return the value of a document variable or <code>null</code> if the variable does not exist.
+
+```csharp
+public string GetDocumentVariable(string name)
+```
+
+### **SetDocumentVariable(String, String)**
+
+Sets the value of a document variable. Creates it if it does not exist.
+
+```csharp
+public void SetDocumentVariable(string name, string value)
+```
+
+### **RemoveDocumentVariable(String)**
+
+Remove the document variable with the specified name if present.
+
+```csharp
+public void RemoveDocumentVariable(string name)
+```
+
+### **RemoveDocumentVariableAt(Int32)**
+
+Remove the document variable at the given index.
+
+```csharp
+public void RemoveDocumentVariableAt(int index)
+```
+
+### **GetDocumentVariables()**
+
+Returns a read-only collection of all document variables.
+
+```csharp
+public IReadOnlyDictionary<string, string> GetDocumentVariables()
+```
+

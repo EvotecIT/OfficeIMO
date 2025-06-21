@@ -190,6 +190,17 @@ namespace OfficeIMO.Word {
             return Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
         }
 
+        private static uint _revisionIdCounter = 1;
+
+        /// <summary>
+        /// Generate a unique revision id used by <see cref="InsertedRun"/> and
+        /// <see cref="DeletedRun"/> elements.
+        /// </summary>
+        /// <returns>Revision identifier as decimal string.</returns>
+        internal static string GenerateRevisionId() {
+            return (_revisionIdCounter++).ToString();
+        }
+
         /// <summary>
         /// Create a new section properties
         /// </summary>

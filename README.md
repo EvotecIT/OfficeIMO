@@ -385,6 +385,16 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
     document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
+    // document variables available via DocVariable fields
+    document.SetDocumentVariable("Project", "OfficeIMO");
+    document.SetDocumentVariable("Year", DateTime.Now.Year.ToString());
+
+    if (document.HasDocumentVariables) {
+        foreach (var pair in document.DocumentVariables) {
+            Console.WriteLine($"{pair.Key}: {pair.Value}");
+        }
+    }
+
     document.Save(openWord);
 }
 ```
