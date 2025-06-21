@@ -27,6 +27,7 @@ namespace OfficeIMO.Word {
         private SdtBlock _sdtBlock;
         private WordHeader _wordHeader;
         private WordSection _section;
+        private WordParagraph _imageParagraph;
         //private WordParagraph _wordParagraph;
 
         public string Text {
@@ -321,7 +322,6 @@ namespace OfficeIMO.Word {
 
                 this.Text = textOrFilePath;
 
-                //this._document._document.Body.Append(_sdtBlock);
                 if (this._section.Paragraphs.Count == 0) {
                     this._document._document.Body.Append(_sdtBlock);
                 } else {
@@ -335,12 +335,9 @@ namespace OfficeIMO.Word {
 
                 this._wordHeader = wordSection.Header.Default;
 
-                var fileName = System.IO.Path.GetFileName(textOrFilePath);
-                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
-
                 var wordParagraph = this._wordHeader.AddParagraph();
-                var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
-                AddWatermarkImage(wordParagraph, imageLocation);
+                _imageParagraph = wordParagraph;
+                AddWatermarkImage(wordParagraph, textOrFilePath);
             }
         }
 
@@ -358,18 +355,13 @@ namespace OfficeIMO.Word {
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
 
-
                 this.Text = textOrFilePath;
 
                 wordHeader._header.Append(_sdtBlock);
             } else {
-                var fileName = System.IO.Path.GetFileName(textOrFilePath);
-                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
-
                 var wordParagraph = this._wordHeader.AddParagraph();
-
-                var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
-                AddWatermarkImage(wordParagraph, imageLocation);
+                _imageParagraph = wordParagraph;
+                AddWatermarkImage(wordParagraph, textOrFilePath);
             }
         }
 
@@ -600,93 +592,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void AddWatermarkImage(WordParagraph wordParagraph, WordImageLocation imageLocation) {
-            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
-            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "Header" };
-
-            paragraphProperties1.Append(paragraphStyleId1);
-
-            Run run1 = new Run();
-
-            RunProperties runProperties1 = new RunProperties();
-            NoProof noProof1 = new NoProof();
-
-            runProperties1.Append(noProof1);
-
-            Picture picture1 = new Picture() { AnchorId = "6CD641E4" };
-
-            V.Shapetype shapetype1 = new V.Shapetype() { Id = "_x0000_t75", CoordinateSize = "21600,21600", Filled = false, Stroked = false, OptionalNumber = 75, PreferRelative = true, EdgePath = "m@4@5l@4@11@9@11@9@5xe" };
-            V.Stroke stroke1 = new V.Stroke() { JoinStyle = V.StrokeJoinStyleValues.Miter };
-
-            V.Formulas formulas1 = new V.Formulas();
-            V.Formula formula1 = new V.Formula() { Equation = "if lineDrawn pixelLineWidth 0" };
-            V.Formula formula2 = new V.Formula() { Equation = "sum @0 1 0" };
-            V.Formula formula3 = new V.Formula() { Equation = "sum 0 0 @1" };
-            V.Formula formula4 = new V.Formula() { Equation = "prod @2 1 2" };
-            V.Formula formula5 = new V.Formula() { Equation = "prod @3 21600 pixelWidth" };
-            V.Formula formula6 = new V.Formula() { Equation = "prod @3 21600 pixelHeight" };
-            V.Formula formula7 = new V.Formula() { Equation = "sum @0 0 1" };
-            V.Formula formula8 = new V.Formula() { Equation = "prod @6 1 2" };
-            V.Formula formula9 = new V.Formula() { Equation = "prod @7 21600 pixelWidth" };
-            V.Formula formula10 = new V.Formula() { Equation = "sum @8 21600 0" };
-            V.Formula formula11 = new V.Formula() { Equation = "prod @7 21600 pixelHeight" };
-            V.Formula formula12 = new V.Formula() { Equation = "sum @10 21600 0" };
-
-            formulas1.Append(formula1);
-            formulas1.Append(formula2);
-            formulas1.Append(formula3);
-            formulas1.Append(formula4);
-            formulas1.Append(formula5);
-            formulas1.Append(formula6);
-            formulas1.Append(formula7);
-            formulas1.Append(formula8);
-            formulas1.Append(formula9);
-            formulas1.Append(formula10);
-            formulas1.Append(formula11);
-            formulas1.Append(formula12);
-            V.Path path1 = new V.Path() { AllowGradientShape = true, ConnectionPointType = Ovml.ConnectValues.Rectangle, AllowExtrusion = false };
-            Ovml.Lock lock1 = new Ovml.Lock() { Extension = V.ExtensionHandlingBehaviorValues.Edit, AspectRatio = true };
-
-            shapetype1.Append(stroke1);
-            shapetype1.Append(formulas1);
-            shapetype1.Append(path1);
-            shapetype1.Append(lock1);
-
-            V.Shape shape1 = new V.Shape() {
-                Id = "WordPictureWatermark" + Guid.NewGuid().ToString("N"),
-                Style = "position:absolute;margin-left:0;margin-top:0;width:467.3pt;height:148.7pt;z-index:-251658240;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin",
-                OptionalString = "_x0000_s1025",
-                AllowInCell = false,
-                Type = "#_x0000_t75"
-            };
-
-            V.ImageData imageData1 = new V.ImageData() {
-                Gain = "19661f",
-                BlackLevel = "22938f",
-                Title = imageLocation.ImageName,
-                RelationshipId = imageLocation.RelationshipId
-            };
-
-            var style = ImageShapeStyleHelper.GetStyle(shape1);
-            style["width"] = imageLocation.Width + "pt";
-            style["height"] = imageLocation.Height + "pt";
-            ImageShapeStyleHelper.SetStyle(shape1, style);
-
-            shape1.Append(imageData1);
-
-            picture1.Append(shapetype1);
-            picture1.Append(shape1);
-
-            run1.Append(runProperties1);
-            run1.Append(picture1);
-
-            wordParagraph._paragraphProperties.Remove();
-            wordParagraph._paragraph.Append(paragraphProperties1);
-            wordParagraph._paragraph.Append(run1);
+        private void AddWatermarkImage(WordParagraph wordParagraph, string filePath) {
+            wordParagraph.AddImage(filePath, null, null, WrapTextImage.BehindText);
         }
 
         public void Remove() {
-            _sdtBlock.Remove();
+            if (_sdtBlock != null) {
+                _sdtBlock.Remove();
+            } else {
+                _imageParagraph?.Remove();
+            }
         }
     }
 }
