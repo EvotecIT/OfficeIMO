@@ -148,6 +148,7 @@ namespace OfficeIMO.Examples {
             TOC.Example_BasicTOC2(folderPath, false);
 
             Comments.Example_PlayingWithComments(folderPath, false);
+            Comments.Example_RemoveCommentsAndTrack(folderPath, false);
 
             BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
             BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);

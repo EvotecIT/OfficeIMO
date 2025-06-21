@@ -24,3 +24,37 @@ public void RemoveSection(int index)
 `index` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
 
+### **RemoveComment(String)**
+
+Remove comment with the specified id. Alternatively you can call `Remove()` on a `WordComment` instance.
+
+```csharp
+public void RemoveComment(string commentId)
+```
+
+### **RemoveComment(WordComment)**
+
+Remove the specified comment object.
+
+```csharp
+public void RemoveComment(WordComment comment)
+```
+
+### **RemoveAllComments()**
+
+Remove all comments from the document.
+
+```csharp
+public void RemoveAllComments()
+```
+
+## Properties
+
+### **TrackComments**
+
+Enable or disable tracking of comment changes.
+
+```csharp
+public bool TrackComments { get; set; }
+```
+
