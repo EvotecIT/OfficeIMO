@@ -435,6 +435,15 @@ public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string text
 
 [WordWatermark](./officeimo.word.wordwatermark.md)<br>
 
+### **RemoveWatermark()**
+
+Removes all watermarks from the section including headers.
+Individual watermarks can be removed from the `Watermarks` collection.
+
+```csharp
+public void RemoveWatermark()
+```
+
 ### **SetBorders(WordBorder)**
 
 ```csharp

@@ -599,12 +599,29 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns a <see cref="WordShape"/> instance when the paragraph contains VML shapes.
+        /// </summary>
         public WordShape Shape {
             get {
                 if (_run != null) {
-                    var rectangle = _run.Descendants<V.Rectangle>().FirstOrDefault();
-                    if (rectangle != null) {
+                    if (_run.Descendants<V.Rectangle>().Any() ||
+                        _run.Descendants<V.Oval>().Any() ||
+                        _run.Descendants<V.Line>().Any() ||
+                        _run.Descendants<V.PolyLine>().Any()) {
                         return new WordShape(_document, _paragraph, _run);
+                    }
+                }
+                return null;
+            }
+        }
+
+        public WordLine Line {
+            get {
+                if (_run != null) {
+                    var line = _run.Descendants<V.Line>().FirstOrDefault();
+                    if (line != null) {
+                        return new WordLine(_document, _paragraph, _run);
                     }
                 }
                 return null;
@@ -621,9 +638,22 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates whether the paragraph contains a VML shape.
+        /// </summary>
         public bool IsShape {
             get {
                 if (this.Shape != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool IsLine {
+            get {
+                if (this.Line != null) {
                     return true;
                 }
 

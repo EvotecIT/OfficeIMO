@@ -59,6 +59,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add image from a Base64 encoded string.
+        /// </summary>
+        public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
+            VerifyRun();
+            _run.Append(wordImage._Image);
+            return this;
+        }
+
+        /// <summary>
         /// Add image from an embedded resource.
         /// </summary>
         /// <param name="assembly">Assembly that contains the resource.</param>
@@ -494,6 +504,34 @@ namespace OfficeIMO.Word {
         public WordShape AddShape(double widthPt, double heightPt, string fillColor = "#FFFFFF") {
             WordShape wordShape = new WordShape(this._document, this, widthPt, heightPt, fillColor);
             return wordShape;
+        }
+
+        /// <summary>
+        /// Add a rectangle shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordShape AddShape(double widthPt, double heightPt, SixLabors.ImageSharp.Color fillColor) {
+            return AddShape(widthPt, heightPt, fillColor.ToHexColor());
+        }
+
+        /// <summary>
+        /// Add a line shape to the paragraph.
+        /// </summary>
+        /// <param name="startXPt">Start X position in points.</param>
+        /// <param name="startYPt">Start Y position in points.</param>
+        /// <param name="endXPt">End X position in points.</param>
+        /// <param name="endYPt">End Y position in points.</param>
+        /// <param name="color">Stroke color in hex format.</param>
+        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
+            WordLine wordLine = new WordLine(this._document, this, startXPt, startYPt, endXPt, endYPt, color, strokeWeightPt);
+            return wordLine;
+        }
+
+        /// <summary>
+        /// Add a line shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, SixLabors.ImageSharp.Color color, double strokeWeightPt = 1) {
+            return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using OfficeIMO.Word;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {
@@ -9,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with red rectangle");
-                paragraph.AddShape(100, 50, "#FF0000");
+                paragraph.AddShape(100, 50, Color.Red);
                 document.Save(openWord);
             }
         }

@@ -350,7 +350,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Provides a list of all watermarks within the document from all the sections
+        /// Provides a list of all watermarks within the document from all the
+        /// sections, including watermarks defined in headers.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
@@ -851,11 +852,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="openWord"></param>
-        /// <exception cref="Exception"></exception>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(string filePath, bool openWord) {
             if (FileOpenAccess == FileAccess.Read) {
-                throw new Exception("Document is read only, and cannot be saved.");
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             PreSaving();
 
@@ -935,10 +935,10 @@ namespace OfficeIMO.Word {
         /// Save the WordDocument to Stream
         /// </summary>
         /// <param name="outputStream"></param>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream) {
             if (FileOpenAccess == FileAccess.Read) {
-                throw new Exception("Document is read only, and cannot be saved.");
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             PreSaving();
 

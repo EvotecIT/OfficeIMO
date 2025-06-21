@@ -193,6 +193,20 @@ namespace OfficeIMO.Tests {
             using var openXmlDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(outputStream, false);
             Assert.NotNull(openXmlDoc.MainDocumentPart);
         }
+       
+        [Fact]
+        public void Test_SaveReadOnlyDocument_ThrowsInvalidOperationException() {
+            var filePath = Path.Combine(_directoryWithFiles, "ReadOnlyDocument.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test");
+                document.Save();
+            }
+
+            using var readOnlyDocument = WordDocument.Load(filePath, readOnly: true);
+            Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save());
+            using var outputStream = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save(outputStream));
+        }
 
     }
 
