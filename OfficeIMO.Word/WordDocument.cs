@@ -350,7 +350,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Provides a list of all watermarks within the document from all the sections
+        /// Provides a list of all watermarks within the document from all the
+        /// sections, including watermarks defined in headers.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
@@ -940,8 +941,6 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             PreSaving();
-
-            this._wordprocessingDocument.Clone(outputStream);
 
             // Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
             using (var clone = this._wordprocessingDocument.Clone(outputStream)) {

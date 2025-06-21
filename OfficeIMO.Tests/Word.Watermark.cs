@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Header.Default.Watermarks[0].Stroked == true);
                 Assert.True(document.Sections[0].Header.Default.Watermarks[0].AllowInCell == false);
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 3);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
                 document.Settings.SetBackgroundColor(Color.Azure);
                 document.AddSection();
 
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark2.docx"))) {
-                Assert.True(document.Watermarks.Count == 0);
+                Assert.True(document.Watermarks.Count == 2);
                 Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
@@ -218,6 +218,33 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Header.Default.Images.Count == 1);
                 Assert.True(document.Sections[1].Header.Default.Images.Count == 1);
+            }
+        }
+      
+        [Fact]
+        public void Test_RemoveWatermarkFromAllHeaders() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_RemoveWatermarkFromHeaders.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test");
+                document.AddHeadersAndFooters();
+                document.DifferentFirstPage = true;
+                document.DifferentOddAndEvenPages = true;
+
+                document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Default");
+                document.Sections[0].Header.First.AddWatermark(WordWatermarkStyle.Text, "First");
+                document.Sections[0].Header.Even.AddWatermark(WordWatermarkStyle.Text, "Even");
+
+                Assert.True(document.Sections[0].Watermarks.Count == 3);
+
+                foreach (var watermark in document.Sections[0].Watermarks.ToList()) {
+                    watermark.Remove();
+                }
+
+                Assert.True(document.Sections[0].Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header.First.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header.Even.Watermarks.Count == 0);
             }
         }
     }

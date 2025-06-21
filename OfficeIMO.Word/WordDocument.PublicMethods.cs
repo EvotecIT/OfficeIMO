@@ -230,6 +230,15 @@ namespace OfficeIMO.Word {
             embeddedDocument.Remove();
         }
 
+        /// <summary>
+        /// Removes all watermarks from the document including headers.
+        /// </summary>
+        public void RemoveWatermark() {
+            foreach (var section in this.Sections) {
+                section.RemoveWatermark();
+            }
+        }
+
 
         private int CombineRuns(WordHeaderFooter wordHeaderFooter) {
             int count = 0;
