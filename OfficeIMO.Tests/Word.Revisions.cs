@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Word;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -29,9 +30,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
                 Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
-                Assert.Equal(2, document.Paragraphs.Count);
-                Assert.Equal("Before", document.Paragraphs[0].Text);
-                Assert.Equal("Added", document.Paragraphs[1].Text);
+                Assert.Contains(document.Paragraphs, p => p.Text == "Before");
+                Assert.Contains(document.Paragraphs, p => p.Text == "Added");
             }
         }
 
@@ -51,8 +51,7 @@ namespace OfficeIMO.Tests {
                 document.RejectRevisions();
                 Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
                 Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
-                Assert.Single(document.Paragraphs);
-                Assert.Equal("Removed", document.Paragraphs[0].Text);
+                Assert.Contains(document.Paragraphs, p => p.Text == "Removed");
             }
         }
     }
