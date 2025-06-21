@@ -90,6 +90,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable = document.AddTable(7, 4, WordTableStyle.PlainTable1);
 
                 wordTable.Rows[0].Cells[2].Paragraphs[0].Text = "Some test 0";
+                wordTable.Rows[0].Cells[0].MergeVertically(1);
                 wordTable.Rows[1].Cells[2].Paragraphs[0].Text = "Some test 1";
                 wordTable.Rows[2].Cells[2].Paragraphs[0].Text = "Some test 2";
                 wordTable.Rows[3].Cells[2].Paragraphs[0].Text = "Some test 3";

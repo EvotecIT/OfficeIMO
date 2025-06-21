@@ -96,6 +96,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Provides a list of paragraphs that contain checkbox controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsCheckBoxes {
+            get { return Paragraphs.Where(p => p.IsCheckBox).ToList(); }
+        }
+
+        /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
         public List<WordParagraph> ParagraphsImages {
@@ -268,6 +275,17 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.StructuredDocumentTag);
+                }
+                return list;
+            }
+        }
+
+        public List<WordCheckBox> CheckBoxes {
+            get {
+                List<WordCheckBox> list = new List<WordCheckBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.CheckBox);
                 }
                 return list;
             }
@@ -486,6 +504,35 @@ namespace OfficeIMO.Word {
                     if (settings == null) {
                         _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
                     }
+                }
+            }
+        }
+
+        public bool RtlGutter {
+            get {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties != null) {
+                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                    if (rtlGutter != null) {
+                        return rtlGutter.Val;
+                    }
+                }
+                return false;
+            }
+            set {
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties == null) {
+                    return;
+                }
+                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                if (value == false) {
+                    rtlGutter?.Remove();
+                } else {
+                    if (rtlGutter == null) {
+                        rtlGutter = new GutterOnRight();
+                        sectionProperties.Append(rtlGutter);
+                    }
+                    rtlGutter.Val = value;
                 }
             }
         }

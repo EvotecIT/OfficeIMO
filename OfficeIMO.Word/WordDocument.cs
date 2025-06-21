@@ -12,6 +12,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
+        internal int? _tableOfContentIndex;
+        internal TableOfContentStyle? _tableOfContentStyle;
 
         internal int BookmarkId {
             get {
@@ -149,6 +151,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public List<WordParagraph> ParagraphsCheckBoxes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsCheckBoxes);
+                }
+
+                return list;
+            }
+        }
+
         public List<WordParagraph> ParagraphsCharts {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -264,6 +277,40 @@ namespace OfficeIMO.Word {
 
         public List<WordComment> Comments {
             get { return WordComment.GetAllComments(this); }
+        }
+
+        /// <summary>
+        /// Removes comment with the specified id.
+        /// </summary>
+        /// <param name="commentId">Id of the comment to remove.</param>
+        public void RemoveComment(string commentId) {
+            var comment = this.Comments.FirstOrDefault(c => c.Id == commentId);
+            comment?.Delete();
+        }
+
+        /// <summary>
+        /// Removes the specified comment from the document.
+        /// </summary>
+        /// <param name="comment">Comment instance to remove.</param>
+        public void RemoveComment(WordComment comment) {
+            comment?.Delete();
+        }
+
+        /// <summary>
+        /// Removes all comments from the document.
+        /// </summary>
+        public void RemoveAllComments() {
+            foreach (var comment in this.Comments.ToList()) {
+                comment.Delete();
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of comment changes.
+        /// </summary>
+        public bool TrackComments {
+            get => this.Settings.TrackComments;
+            set => this.Settings.TrackComments = value;
         }
 
         /// <summary>
@@ -427,6 +474,17 @@ namespace OfficeIMO.Word {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.StructuredDocumentTags);
+                }
+
+                return list;
+            }
+        }
+
+        public List<WordCheckBox> CheckBoxes {
+            get {
+                List<WordCheckBox> list = new List<WordCheckBox>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.CheckBoxes);
                 }
 
                 return list;
@@ -703,6 +761,8 @@ namespace OfficeIMO.Word {
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
             word.LoadDocument();
+            WordChart.InitializeAxisIdSeed(wordDocument);
+            WordChart.InitializeDocPrIdSeed(wordDocument);
 
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -729,6 +789,8 @@ namespace OfficeIMO.Word {
             document._wordprocessingDocument = wordDocument;
             document._document = wordDocument.MainDocumentPart.Document;
             document.LoadDocument();
+            WordChart.InitializeAxisIdSeed(wordDocument);
+            WordChart.InitializeDocPrIdSeed(wordDocument);
 
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
@@ -761,6 +823,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="src"></param>
         /// <param name="dest"></param>
+        // IPackageProperties is currently marked as experimental (OOXML0001).
+        // There is no non-experimental alternative available yet.
+        #pragma warning disable 0618
         private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
@@ -779,17 +844,17 @@ namespace OfficeIMO.Word {
             dest.Title = src.Title;
             dest.Version = src.Version;
         }
+        #pragma warning restore 0618
 
         /// <summary>
         /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
         /// </summary>
         /// <param name="filePath"></param>
         /// <param name="openWord"></param>
-        /// <exception cref="Exception"></exception>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(string filePath, bool openWord) {
             if (FileOpenAccess == FileAccess.Read) {
-                throw new Exception("Document is read only, and cannot be saved.");
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             PreSaving();
 
@@ -869,10 +934,10 @@ namespace OfficeIMO.Word {
         /// Save the WordDocument to Stream
         /// </summary>
         /// <param name="outputStream"></param>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream) {
             if (FileOpenAccess == FileAccess.Read) {
-                throw new Exception("Document is read only, and cannot be saved.");
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             PreSaving();
 
@@ -964,6 +1029,12 @@ namespace OfficeIMO.Word {
         }
 
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
+
+        internal void HeadingModified() {
+            if (TableOfContent != null) {
+                Settings.UpdateFieldsOnOpen = true;
+            }
+        }
 
         private void PreSaving() {
             MoveSectionProperties();

@@ -53,9 +53,7 @@ namespace OfficeIMO.Word {
 
         public int? IndentationBefore {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
-                    if (_paragraphProperties.Indentation.Left != "") {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Left != "") {
                         return int.Parse(_paragraphProperties.Indentation.Left);
                     } else {
                         return null;
@@ -96,9 +94,7 @@ namespace OfficeIMO.Word {
 
         public int? IndentationAfter {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
-                    if (_paragraphProperties.Indentation.Right != "") {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Right != "") {
                         return int.Parse(_paragraphProperties.Indentation.Right);
                     } else {
                         return null;
@@ -199,9 +195,7 @@ namespace OfficeIMO.Word {
 
         public int? IndentationHanging {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
-                    if (_paragraphProperties.Indentation.Hanging != "") {
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Hanging != "") {
                         return int.Parse(_paragraphProperties.Indentation.Hanging);
                     } else {
                         return null;
@@ -241,8 +235,6 @@ namespace OfficeIMO.Word {
         }
 
         public TextDirectionValues? TextDirection {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
                     if (_paragraphProperties.TextDirection != null) {
@@ -310,8 +302,6 @@ namespace OfficeIMO.Word {
         }
 
         public int? LineSpacing {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.Line != "") {
@@ -336,13 +326,26 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public int? LineSpacingBefore {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
+        /// <summary>
+        /// Gets or sets the line spacing in points.
+        /// </summary>
+        public double? LineSpacingPoints {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    //new Indentation() { Left = "720", Right = "0", FirstLine = "0" };
-                    if (_paragraphProperties.SpacingBetweenLines.Before != "") {
+                if (LineSpacing != null) {
+                    return Helpers.ConvertTwipsToPoints(LineSpacing.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    LineSpacing = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
+        public int? LineSpacingBefore {
+            get {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (_paragraphProperties.SpacingBetweenLines.Before != "") {
                         return int.Parse(_paragraphProperties.SpacingBetweenLines.Before);
                     } else {
                         return null;
@@ -364,9 +367,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the line spacing before in points.
+        /// </summary>
+        public double? LineSpacingBeforePoints {
+            get {
+                if (LineSpacingBefore != null) {
+                    return Helpers.ConvertTwipsToPoints(LineSpacingBefore.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    LineSpacingBefore = Helpers.ConvertPointsToTwips(value.Value);
+                }
+            }
+        }
+
         public int? LineSpacingAfter {
-            // TODO: probably needs calculated values instead of just values
-            //https://startbigthinksmall.wordpress.com/2010/01/04/points-inches-and-emus-measuring-units-in-office-open-xml/
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.After != "") {
@@ -388,6 +406,23 @@ namespace OfficeIMO.Word {
 
                 spacing.After = value.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the line spacing after in points.
+        /// </summary>
+        public double? LineSpacingAfterPoints {
+            get {
+                if (LineSpacingAfter != null) {
+                    return Helpers.ConvertTwipsToPoints(LineSpacingAfter.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    LineSpacingAfter = Helpers.ConvertPointsToTwips(value.Value);
+                }
             }
         }
 

@@ -11,14 +11,12 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
             Assert.False(path); // MUST BE FALSE
 
-            WordDocument document = WordDocument.Create(filePath);
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Save();
 
-            document.Save();
-
-            path = File.Exists(filePath);
-            Assert.True(path);
-
-            document.Dispose();
+                path = File.Exists(filePath);
+                Assert.True(path);
+            }
             File.Delete(filePath);
         }
 

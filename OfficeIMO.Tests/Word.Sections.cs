@@ -501,5 +501,51 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_RemovingSection() {
+            string filePath = Path.Combine(_directoryWithFiles, "RemoveSection.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default.AddParagraph().SetText("Header 0");
+                var p0 = document.AddParagraph("Section0");
+                p0.AddList(WordListStyle.Bulleted).AddItem("0");
+
+                var section1 = document.AddSection();
+                section1.AddHeadersAndFooters();
+                section1.Header.Default.AddParagraph().SetText("Header 1");
+                var p1 = section1.AddParagraph("Section1");
+                p1.AddList(WordListStyle.Bulleted).AddItem("1");
+
+                var section2 = document.AddSection();
+                section2.AddHeadersAndFooters();
+                section2.Header.Default.AddParagraph().SetText("Header 2");
+                var p2 = section2.AddParagraph("Section2");
+                p2.AddList(WordListStyle.Bulleted).AddItem("2");
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Sections.Count);
+                Assert.Equal(3, document.Lists.Count);
+
+                document.RemoveSection(1);
+
+                Assert.Equal(2, document.Sections.Count);
+                Assert.Equal(2, document.Lists.Count);
+                Assert.Equal("Header 0", document.Sections[0].Header.Default.Paragraphs[0].Text);
+                Assert.Equal("Header 2", document.Sections[1].Header.Default.Paragraphs[0].Text);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Sections.Count);
+                Assert.Equal(2, document.Lists.Count);
+                Assert.Equal("Header 0", document.Sections[0].Header.Default.Paragraphs[0].Text);
+                Assert.Equal("Header 2", document.Sections[1].Header.Default.Paragraphs[0].Text);
+            }
+        }
+
     }
 }

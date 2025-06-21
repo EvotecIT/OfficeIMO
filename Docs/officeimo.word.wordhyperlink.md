@@ -216,3 +216,82 @@ public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, U
 #### Returns
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
+
+### **CreateFormattedHyperlink(WordHyperLink, String, Uri)**
+
+```csharp
+public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri)
+```
+
+#### Parameters
+
+`reference` [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+Creates a hyperlink after the referenced hyperlink while copying its formatting.
+
+### **InsertFormattedHyperlinkAfter(String, Uri)**
+
+```csharp
+public WordHyperLink InsertFormattedHyperlinkAfter(string newText, Uri newUri)
+```
+
+#### Parameters
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+Inserts a hyperlink after the current one while preserving formatting.
+
+### **InsertFormattedHyperlinkBefore(String, Uri)**
+
+```csharp
+public WordHyperLink InsertFormattedHyperlinkBefore(string newText, Uri newUri)
+```
+
+#### Parameters
+
+`newText` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+`newUri` Uri<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+### **DuplicateHyperlink(WordHyperLink)**
+
+```csharp
+public static WordHyperLink DuplicateHyperlink(WordHyperLink reference)
+```
+
+#### Parameters
+
+`reference` [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+#### Returns
+
+[WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+Creates a copy of the provided hyperlink and inserts it after the original.
+
+### **CopyFormattingFrom(WordHyperLink)**
+
+```csharp
+public void CopyFormattingFrom(WordHyperLink reference)
+```
+
+#### Parameters
+
+`reference` [WordHyperLink](./officeimo.word.wordhyperlink.md)<br>
+
+Copies run formatting from the reference hyperlink to the current hyperlink.

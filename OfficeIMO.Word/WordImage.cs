@@ -744,7 +744,7 @@ namespace OfficeIMO.Word {
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
-                throw new Exception("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+                throw new InvalidOperationException("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
             }
 
             imagePart.FeedData(imageStream);

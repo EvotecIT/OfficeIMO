@@ -66,6 +66,16 @@ public class ChartTests : VerifyTestBase {
         lineChart2.AddLine("Brazil", new List<int> { 10, 35, 300, 18 }, Color.Brown);
         lineChart2.AddLine("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
 
+        document.AddParagraph("Adding a 3-D line chart");
+        var line3d = document.AddChart();
+        line3d.AddChartAxisX(categories);
+        line3d.AddLine3D("USA", new List<int> { 5, 2, 3, 4 }, Color.Purple);
+
+        document.AddParagraph("Adding a 3-D area chart");
+        var area3d = document.AddChart();
+        area3d.AddCategories(categories);
+        area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
+
         document.Save();
 
         await DoTest(document._wordprocessingDocument);
