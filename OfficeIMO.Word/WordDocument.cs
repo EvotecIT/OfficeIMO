@@ -350,7 +350,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Provides a list of all watermarks within the document from all the sections
+        /// Provides a list of all watermarks within the document from all the
+        /// sections, including watermarks defined in headers.
         /// </summary>
         public List<WordWatermark> Watermarks {
             get {
