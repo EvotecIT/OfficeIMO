@@ -208,6 +208,9 @@ namespace OfficeIMO.Examples {
             Shapes.Example_AddMultipleShapes(folderPath, false);
             Shapes.Example_RemoveShape(folderPath, false);
             Shapes.Example_LoadShapes(folderPath, false);
+
+            MailMerge.Example_MailMergeSimple(folderPath, false);
+            MailMerge.Example_MailMergeAdvanced(folderPath, false);
         }
     }
 }
