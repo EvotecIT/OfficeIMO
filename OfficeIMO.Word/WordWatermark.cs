@@ -321,7 +321,6 @@ namespace OfficeIMO.Word {
 
                 this.Text = textOrFilePath;
 
-                //this._document._document.Body.Append(_sdtBlock);
                 if (this._section.Paragraphs.Count == 0) {
                     this._document._document.Body.Append(_sdtBlock);
                 } else {
@@ -329,9 +328,22 @@ namespace OfficeIMO.Word {
                     lastParagraph._paragraph.Parent.Append(_sdtBlock);
                 }
             } else {
-                // TODO: Add handling for watermark image
+                this._sdtBlock = GetStyle(style);
 
+                var fileName = System.IO.Path.GetFileName(textOrFilePath);
+                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
 
+                if (this._section.Paragraphs.Count == 0) {
+                    this._document._document.Body.Append(_sdtBlock);
+                } else {
+                    var lastParagraph = this._section.Paragraphs.Last();
+                    lastParagraph._paragraph.Parent.Append(_sdtBlock);
+                }
+
+                var paragraph = this._sdtBlock.SdtContentBlock.GetFirstChild<Paragraph>();
+                var wordParagraph = new WordParagraph(wordDocument, paragraph);
+                var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
+                SetWatermarkImageData(imageLocation);
             }
         }
 
@@ -349,18 +361,21 @@ namespace OfficeIMO.Word {
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
 
-
                 this.Text = textOrFilePath;
 
                 wordHeader._header.Append(_sdtBlock);
             } else {
+                this._sdtBlock = GetStyle(style);
+
                 var fileName = System.IO.Path.GetFileName(textOrFilePath);
                 using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
 
-                var wordParagraph = this._wordHeader.AddParagraph();
+                wordHeader._header.Append(_sdtBlock);
 
+                var paragraph = this._sdtBlock.SdtContentBlock.GetFirstChild<Paragraph>();
+                var wordParagraph = new WordParagraph(wordDocument, paragraph);
                 var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
-                AddWatermarkImage(wordParagraph, imageLocation);
+                SetWatermarkImageData(imageLocation);
             }
         }
 
@@ -674,6 +689,27 @@ namespace OfficeIMO.Word {
             wordParagraph._paragraphProperties.Remove();
             wordParagraph._paragraph.Append(paragraphProperties1);
             wordParagraph._paragraph.Append(run1);
+        }
+
+        private void SetWatermarkImageData(WordImageLocation imageLocation) {
+            var shape = _sdtBlock.Descendants<V.Shape>().FirstOrDefault();
+            if (shape == null) return;
+
+            shape.RemoveAllChildren<V.TextPath>();
+
+            V.ImageData imageData1 = new V.ImageData() {
+                Gain = "19661f",
+                BlackLevel = "22938f",
+                Title = imageLocation.ImageName,
+                RelationshipId = imageLocation.RelationshipId
+            };
+
+            var style = ImageShapeStyleHelper.GetStyle(shape);
+            style["width"] = imageLocation.Width + "pt";
+            style["height"] = imageLocation.Height + "pt";
+            ImageShapeStyleHelper.SetStyle(shape, style);
+
+            shape.Append(imageData1);
         }
 
         public void Remove() {
