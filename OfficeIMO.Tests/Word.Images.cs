@@ -371,6 +371,21 @@ namespace OfficeIMO.Tests {
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
+        [Fact]
+        public void Test_AddImageFromBase64() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentBase64Image.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+            var base64 = Convert.ToBase64String(bytes);
+
+            var paragraph = document.AddParagraph();
+            paragraph.AddImageFromBase64(base64, "Kulek.jpg", 50, 50);
+
+            Assert.Single(document.Images);
+            document.Save(false);
+        }
+
     }
 
 }
