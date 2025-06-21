@@ -650,7 +650,11 @@ namespace OfficeIMO.Word {
             RelativeHeight relativeHeight1 = new RelativeHeight() { RelativeFrom = SizeRelativeVerticallyValues.Page };
             PercentageHeight percentageHeight1 = new PercentageHeight { Text = "0" };
             relativeHeight1.Append(percentageHeight1);
-            anchor1.Append(relativeHeight1);
+                try {
+                    this._imagePart.OpenXmlPackage.DeletePart(_imagePart);
+                } catch (InvalidOperationException) {
+                    // part might not be attached yet
+                }
 
             return anchor1;
         }
