@@ -12,10 +12,11 @@ public partial class Word {
     [InlineData("Kulek.jpg", CustomImagePartType.Jpeg)]
     [InlineData("BackgroundImage.png", CustomImagePartType.Png)]
     [InlineData("saturn.tif", CustomImagePartType.Tiff)]
+    [InlineData("sample.emf", CustomImagePartType.Emf)]
     public void Test_GetImageСharacteristics(string filename, CustomImagePartType expectedType) {
         var filePath = Path.Combine(_directoryWithImages, filename);
         using var imageStream = new FileStream(filePath, FileMode.Open);
-        var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream);
+        var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream, filename);
         Assert.Equal(expectedType, imageСharacteristics.Type);
     }
 }
