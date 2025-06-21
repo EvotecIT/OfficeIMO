@@ -548,13 +548,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alias">Optional alias for the content control.</param>
         /// <param name="text">Initial text of the control.</param>
+        /// <param name="tag">Optional tag for the content control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/> instance.</returns>
-        public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "") {
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "", string tag = null) {
             var sdtRun = new SdtRun();
 
             var sdtProperties = new SdtProperties();
             if (!string.IsNullOrEmpty(alias)) {
                 sdtProperties.Append(new SdtAlias() { Val = alias });
+            }
+            if (!string.IsNullOrEmpty(tag)) {
+                sdtProperties.Append(new Tag() { Val = tag });
             }
             sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
 

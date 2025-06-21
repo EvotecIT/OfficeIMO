@@ -21,6 +21,21 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public string Tag {
+            get {
+                var tag = _stdRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                return tag?.Val;
+            }
+            set {
+                var tag = _stdRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                if (tag == null) {
+                    tag = new Tag();
+                    _stdRun.SdtProperties.Append(tag);
+                }
+                tag.Val = value;
+            }
+        }
+
         public string Text {
             get {
                 var run = _stdRun.SdtContentRun.ChildElements.OfType<Run>().FirstOrDefault();

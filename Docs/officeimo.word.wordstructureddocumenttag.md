@@ -20,6 +20,16 @@ public string Alias { get; }
 
 [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
+### **Tag**
+
+```csharp
+public string Tag { get; set; }
+```
+
+#### Property Value
+
+[String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
 ### **Text**
 
 ```csharp

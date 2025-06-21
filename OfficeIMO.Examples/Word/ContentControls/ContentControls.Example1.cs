@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with a content control");
             string filePath = Path.Combine(folderPath, "DocumentWithContentControl.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var control = document.AddStructuredDocumentTag("Sample text", "ExampleAlias");
+                var control = document.AddStructuredDocumentTag("Sample text", "ExampleAlias", "ExampleTag");
 
                 Console.WriteLine($"Alias: {control.Alias}");
                 Console.WriteLine($"Text: {control.Text}");
@@ -18,7 +18,8 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine($"Loaded text: {document.StructuredDocumentTags[0].Text}");
+                var loaded = document.GetStructuredDocumentTagByTag("ExampleTag");
+                Console.WriteLine($"Loaded text: {loaded.Text}");
                 document.Save(openWord);
             }
         }

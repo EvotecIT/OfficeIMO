@@ -978,12 +978,12 @@ public WordParagraph AddHyperLink(string text, string anchor, bool addStyle, str
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
-### **AddStructuredDocumentTag(String, String)**
+### **AddStructuredDocumentTag(String, String, String)**
 
 Adds a simple content control (structured document tag) to the paragraph.
 
 ```csharp
-public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "")
+public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "", string tag = null)
 ```
 
 #### Parameters
@@ -991,6 +991,7 @@ public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, s
 `alias` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 `text` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`tag` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 #### Returns
 

@@ -304,13 +304,18 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
 ### Adding a Content Control
 
-This example shows how to add and update a simple content control.
+This example shows how to add and update a simple content control and then retrieve it by tag.
 
 ```csharp
 using (WordDocument document = WordDocument.Create(filePath)) {
-    var sdt = document.AddStructuredDocumentTag("Hello", "MyAlias");
+    var sdt = document.AddStructuredDocumentTag("Hello", "MyAlias", "MyTag");
     sdt.Text = "Changed";
     document.Save(true);
+}
+
+using (WordDocument document = WordDocument.Load(filePath)) {
+    var tag = document.GetStructuredDocumentTagByTag("MyTag");
+    Console.WriteLine(tag.Text);
 }
 ```
 
