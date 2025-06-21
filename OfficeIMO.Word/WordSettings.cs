@@ -258,7 +258,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.FontSize.Val = (value * 2).ToString();
                 } else {
-                    throw new Exception("Could not set font size. Styles not found.");
+                    throw new InvalidOperationException("Could not set font size. Styles not found.");
                 }
             }
         }
@@ -285,7 +285,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.FontSizeComplexScript.Val = (value * 2).ToString();
                 } else {
-                    throw new Exception("Could not set font size complex script. Styles not found.");
+                    throw new InvalidOperationException("Could not set font size complex script. Styles not found.");
                 }
             }
         }
@@ -325,7 +325,7 @@ namespace OfficeIMO.Word {
                     runPropertiesBaseStyle.RunFonts.ComplexScript = value;
                     runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -360,7 +360,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.HighAnsiTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -393,7 +393,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.EastAsiaTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -426,7 +426,7 @@ namespace OfficeIMO.Word {
                     }
                     runPropertiesBaseStyle.RunFonts.ComplexScriptTheme = null;
                 } else {
-                    throw new Exception("Could not set font family. Styles not found.");
+                    throw new InvalidOperationException("Could not set font family. Styles not found.");
                 }
             }
         }
@@ -453,7 +453,7 @@ namespace OfficeIMO.Word {
                     runPropertiesBaseStyle.Languages.Val = value;
                     //runPropertiesBaseStyle.Languages.EastAsia = value;
                 } else {
-                    throw new Exception("Could not set language. Styles not found.");
+                    throw new InvalidOperationException("Could not set language. Styles not found.");
                 }
             }
         }

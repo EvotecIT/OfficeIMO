@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
                 } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
                     partType = WordAlternativeFormatImportPartType.TextPlain;
                 } else {
-                    throw new Exception("Only RTF and HTML files are supported for now :-)");
+                    throw new InvalidOperationException("Only RTF and HTML files are supported for now :-)");
                 }
             } else {
                 partType = alternativeFormatImportPartType.Value;
@@ -76,7 +76,7 @@ namespace OfficeIMO.Word {
                 WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
                 WordAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
                 WordAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
-                _ => throw new Exception("Unsupported format type")
+                _ => throw new InvalidOperationException("Unsupported format type")
             };
 
             AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
