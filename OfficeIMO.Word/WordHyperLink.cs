@@ -307,5 +307,138 @@ namespace OfficeIMO.Word {
             paragraph._hyperlink = hyperlink;
             return paragraph;
         }
+
+        /// <summary>
+        /// Creates a hyperlink inserted after the reference link while copying
+        /// the reference formatting.
+        /// </summary>
+        /// <param name="reference">Existing hyperlink used for formatting.</param>
+        /// <param name="newText">Text for the new hyperlink.</param>
+        /// <param name="newUri">Destination of the new hyperlink.</param>
+        /// <returns>Newly created hyperlink.</returns>
+        public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri) {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
+
+            return reference.InsertFormattedHyperlinkAfter(newText, newUri);
+        }
+
+        /// <summary>
+        /// Inserts a hyperlink after this hyperlink and copies this link's formatting.
+        /// </summary>
+        /// <param name="newText">Text for the new hyperlink.</param>
+        /// <param name="newUri">Destination of the new hyperlink.</param>
+        /// <returns>The inserted hyperlink.</returns>
+        public WordHyperLink InsertFormattedHyperlinkAfter(string newText, Uri newUri) {
+            if (newText == null) throw new ArgumentNullException(nameof(newText));
+            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+
+            HyperlinkRelationship rel;
+            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
+
+            if (header != null) {
+                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footer != null) {
+                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            } else {
+                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+            }
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                History = _hyperlink.History
+            };
+
+            Run run = new Run(new Text(newText) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            if (_runProperties != null) {
+                run.RunProperties = (RunProperties)_runProperties.CloneNode(true);
+            }
+
+            hyperlink.Append(run);
+
+            _hyperlink.InsertAfterSelf(hyperlink);
+
+            return new WordHyperLink(_document, _paragraph, hyperlink);
+        }
+
+        /// <summary>
+        /// Inserts a hyperlink before this hyperlink and copies this link's formatting.
+        /// </summary>
+        /// <param name="newText">Text for the new hyperlink.</param>
+        /// <param name="newUri">Destination of the new hyperlink.</param>
+        /// <returns>The inserted hyperlink.</returns>
+        public WordHyperLink InsertFormattedHyperlinkBefore(string newText, Uri newUri) {
+            if (newText == null) throw new ArgumentNullException(nameof(newText));
+            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+
+            HyperlinkRelationship rel;
+            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
+            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
+
+            if (header != null) {
+                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footer != null) {
+                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            } else {
+                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+            }
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                History = _hyperlink.History
+            };
+
+            Run run = new Run(new Text(newText) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            if (_runProperties != null) {
+                run.RunProperties = (RunProperties)_runProperties.CloneNode(true);
+            }
+
+            hyperlink.Append(run);
+
+            _hyperlink.InsertBeforeSelf(hyperlink);
+
+            return new WordHyperLink(_document, _paragraph, hyperlink);
+        }
+
+        /// <summary>
+        /// Creates a copy of the given hyperlink and inserts it after the source link.
+        /// </summary>
+        /// <param name="reference">Hyperlink to duplicate.</param>
+        /// <returns>The duplicated hyperlink.</returns>
+        public static WordHyperLink DuplicateHyperlink(WordHyperLink reference) {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
+
+            Hyperlink duplicate = (Hyperlink)reference._hyperlink.CloneNode(true);
+            reference._hyperlink.InsertAfterSelf(duplicate);
+
+            return new WordHyperLink(reference._document, reference._paragraph, duplicate);
+        }
+
+        /// <summary>
+        /// Copies run formatting from another hyperlink to this hyperlink.
+        /// </summary>
+        /// <param name="reference">Hyperlink to copy formatting from.</param>
+        public void CopyFormattingFrom(WordHyperLink reference) {
+            if (reference == null) throw new ArgumentNullException(nameof(reference));
+
+            Run run = _run;
+            if (run == null) {
+                run = new Run();
+                _hyperlink.Append(run);
+            }
+
+            _runProperties?.Remove();
+
+            if (reference._runProperties != null) {
+                RunProperties clone = (RunProperties)reference._runProperties.CloneNode(true);
+                run.PrependChild(clone);
+            }
+        }
     }
 }
