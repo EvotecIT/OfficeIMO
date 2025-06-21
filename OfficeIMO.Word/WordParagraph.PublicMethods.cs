@@ -511,6 +511,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add a line shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, SixLabors.ImageSharp.Color color, double strokeWeightPt = 1) {
+            return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
+        }
+
+        /// <summary>
         /// Adds a simple content control (structured document tag) to the paragraph.
         /// </summary>
         /// <param name="alias">Optional alias for the content control.</param>

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -37,6 +38,39 @@ namespace OfficeIMO.Word {
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
             _line = run.Descendants<V.Line>().FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Gets or sets the stroke color as hexadecimal string.
+        /// </summary>
+        public string ColorHex {
+            get => _line.StrokeColor?.Value ?? string.Empty;
+            set => _line.StrokeColor = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the stroke color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
+        public Color Color {
+            get {
+                var color = _line.StrokeColor?.Value ?? "";
+                if (!color.StartsWith("#")) color = "#" + color;
+                return Color.Parse(color);
+            }
+            set => _line.StrokeColor = value.ToHexColor();
+        }
+
+        /// <summary>
+        /// Gets or sets the stroke weight in points.
+        /// </summary>
+        public double StrokeWeightPt {
+            get {
+                if (double.TryParse(_line.StrokeWeight?.Value?.Replace("pt", ""), out double value)) {
+                    return value;
+                }
+                return 0;
+            }
+            set => _line.StrokeWeight = $"{value}pt";
         }
 
         /// <summary>
