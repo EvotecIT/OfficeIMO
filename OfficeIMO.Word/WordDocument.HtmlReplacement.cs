@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
                 WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
                 WordAlternativeFormatImportPartType.Html => AlternativeFormatImportPartType.Html,
                 WordAlternativeFormatImportPartType.TextPlain => AlternativeFormatImportPartType.TextPlain,
-                _ => throw new Exception("Unsupported format type")
+                _ => throw new InvalidOperationException("Unsupported format type")
             };
 
             AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
