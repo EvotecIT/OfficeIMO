@@ -18,6 +18,10 @@ namespace OfficeIMO.Word {
         internal Drawing _Image;
         private ImagePart _imagePart;
         private WordDocument _document;
+        private int? _cropTop;
+        private int? _cropBottom;
+        private int? _cropLeft;
+        private int? _cropRight;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -474,6 +478,213 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private DocumentFormat.OpenXml.Drawing.Pictures.Picture? GetPicture() {
+            if (_Image.Inline != null) {
+                return _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+            }
+
+            if (_Image.Anchor != null) {
+                var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                    return anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the top of the image.
+        /// </summary>
+        public int? CropTop {
+            get {
+                var picture = GetPicture();
+                return picture?.BlipFill?.SourceRectangle?.Top;
+            }
+            set {
+                _cropTop = value;
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                if (picture.BlipFill.SourceRectangle == null && value != null) {
+                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                }
+
+                if (picture.BlipFill.SourceRectangle != null) {
+                    picture.BlipFill.SourceRectangle.Top = value;
+                    if (value == null &&
+                        picture.BlipFill.SourceRectangle.Left == null &&
+                        picture.BlipFill.SourceRectangle.Right == null &&
+                        picture.BlipFill.SourceRectangle.Bottom == null) {
+                        picture.BlipFill.SourceRectangle.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the bottom of the image.
+        /// </summary>
+        public int? CropBottom {
+            get {
+                var picture = GetPicture();
+                return picture?.BlipFill?.SourceRectangle?.Bottom;
+            }
+            set {
+                _cropBottom = value;
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                if (picture.BlipFill.SourceRectangle == null && value != null) {
+                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                }
+
+                if (picture.BlipFill.SourceRectangle != null) {
+                    picture.BlipFill.SourceRectangle.Bottom = value;
+                    if (value == null &&
+                        picture.BlipFill.SourceRectangle.Left == null &&
+                        picture.BlipFill.SourceRectangle.Right == null &&
+                        picture.BlipFill.SourceRectangle.Top == null) {
+                        picture.BlipFill.SourceRectangle.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the left side of the image.
+        /// </summary>
+        public int? CropLeft {
+            get {
+                var picture = GetPicture();
+                return picture?.BlipFill?.SourceRectangle?.Left;
+            }
+            set {
+                _cropLeft = value;
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                if (picture.BlipFill.SourceRectangle == null && value != null) {
+                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                }
+
+                if (picture.BlipFill.SourceRectangle != null) {
+                    picture.BlipFill.SourceRectangle.Left = value;
+                    if (value == null &&
+                        picture.BlipFill.SourceRectangle.Top == null &&
+                        picture.BlipFill.SourceRectangle.Right == null &&
+                        picture.BlipFill.SourceRectangle.Bottom == null) {
+                        picture.BlipFill.SourceRectangle.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the right side of the image.
+        /// </summary>
+        public int? CropRight {
+            get {
+                var picture = GetPicture();
+                return picture?.BlipFill?.SourceRectangle?.Right;
+            }
+            set {
+                _cropRight = value;
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                if (picture.BlipFill.SourceRectangle == null && value != null) {
+                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                }
+
+                if (picture.BlipFill.SourceRectangle != null) {
+                    picture.BlipFill.SourceRectangle.Right = value;
+                    if (value == null &&
+                        picture.BlipFill.SourceRectangle.Top == null &&
+                        picture.BlipFill.SourceRectangle.Left == null &&
+                        picture.BlipFill.SourceRectangle.Bottom == null) {
+                        picture.BlipFill.SourceRectangle.Remove();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the top of the image.
+        /// </summary>
+        public double? CropTopCentimeters {
+            get {
+                if (CropTop != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropTop.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropTop = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropTop = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the bottom of the image.
+        /// </summary>
+        public double? CropBottomCentimeters {
+            get {
+                if (CropBottom != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropBottom.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropBottom = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropBottom = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the left side of the image.
+        /// </summary>
+        public double? CropLeftCentimeters {
+            get {
+                if (CropLeft != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropLeft.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropLeft = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropLeft = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the right side of the image.
+        /// </summary>
+        public double? CropRightCentimeters {
+            get {
+                if (CropRight != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropRight.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropRight = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropRight = null;
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the image transparency percentage (0-100).
         /// </summary>
@@ -584,6 +795,14 @@ namespace OfficeIMO.Word {
             var stretch = new Stretch(new FillRectangle());
 
             blipFlip.Append(blip);
+            if (_cropTop != null || _cropBottom != null || _cropLeft != null || _cropRight != null) {
+                var srcRect = new SourceRectangle();
+                if (_cropTop != null) srcRect.Top = _cropTop;
+                if (_cropBottom != null) srcRect.Bottom = _cropBottom;
+                if (_cropLeft != null) srcRect.Left = _cropLeft;
+                if (_cropRight != null) srcRect.Right = _cropRight;
+                blipFlip.Append(srcRect);
+            }
             blipFlip.Append(stretch);
 
             var picture = new DocumentFormat.OpenXml.Drawing.Pictures.Picture();
