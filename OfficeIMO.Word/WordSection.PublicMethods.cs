@@ -155,6 +155,30 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        public WordSection AddPageNumbering(int? startNumber = null, NumberFormatValues? format = null) {
+            var existing = _sectionProperties.GetFirstChild<PageNumberType>();
+            existing?.Remove();
+
+            if (startNumber != null || format != null) {
+                var pageNumberType = new PageNumberType();
+                if (format != null) {
+                    pageNumberType.Format = format;
+                }
+                if (startNumber != null) {
+                    pageNumberType.Start = startNumber.Value;
+                }
+                var refNode = _sectionProperties.Elements<FooterReference>().Cast<OpenXmlElement>()
+                    .Concat(_sectionProperties.Elements<HeaderReference>()).LastOrDefault();
+                if (refNode != null) {
+                    _sectionProperties.InsertAfter(pageNumberType, refNode);
+                } else {
+                    _sectionProperties.InsertAt(pageNumberType, 0);
+                }
+            }
+
+            return this;
+        }
+
         /// <summary>
         /// Removes this section and all of its content from the document,
         /// cleaning up numbering and any unreferenced header and footer parts.

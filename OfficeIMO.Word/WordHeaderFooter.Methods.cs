@@ -44,6 +44,10 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
         }
 
+        public WordParagraph AddPageNumber(bool includeTotalPages = false, WordFieldFormat? format = null, string separator = " of ") {
+            return this.AddParagraph().AddPageNumber(includeTotalPages, format, separator);
+        }
+
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             if (_footer != null) {
                 return new WordTable(_document, _footer, rows, columns, tableStyle);

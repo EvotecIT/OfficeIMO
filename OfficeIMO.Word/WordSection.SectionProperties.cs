@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
                 var existing = _sectionProperties.GetFirstChild<FootnoteProperties>();
                 existing?.Remove();
                 if (value != null) {
-                    _sectionProperties.Append(value);
+                    _sectionProperties.InsertAt(value, 0);
                 }
             }
         }
@@ -78,7 +78,32 @@ namespace OfficeIMO.Word {
                 var existing = _sectionProperties.GetFirstChild<EndnoteProperties>();
                 existing?.Remove();
                 if (value != null) {
-                    _sectionProperties.Append(value);
+                    var refNode = _sectionProperties.Elements<FooterReference>().Cast<OpenXmlElement>()
+                        .Concat(_sectionProperties.Elements<HeaderReference>()).LastOrDefault();
+                    if (refNode != null) {
+                        _sectionProperties.InsertAfter(value, refNode);
+                    } else {
+                        _sectionProperties.InsertAt(value, 0);
+                    }
+                }
+            }
+        }
+
+        public PageNumberType PageNumberType {
+            get {
+                return _sectionProperties.GetFirstChild<PageNumberType>();
+            }
+            set {
+                var existing = _sectionProperties.GetFirstChild<PageNumberType>();
+                existing?.Remove();
+                if (value != null) {
+                    var refNode = _sectionProperties.Elements<FooterReference>().Cast<OpenXmlElement>()
+                        .Concat(_sectionProperties.Elements<HeaderReference>()).LastOrDefault();
+                    if (refNode != null) {
+                        _sectionProperties.InsertAfter(value, refNode);
+                    } else {
+                        _sectionProperties.InsertAt(value, 0);
+                    }
                 }
             }
         }
