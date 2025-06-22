@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
                 var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
-                pageNumber.Paragraphs.Last().AddText(" custom");
+                pageNumber.AppendText(" custom");
                 document.Save(false);
             }
 
@@ -91,6 +91,27 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("custom", text);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
+            }
+        }
+
+        [Fact]
+        public void Test_PageNumberWithTotalPages() {
+            string filePath = Path.Combine(_directoryWithFiles, "PageNumberTotalPages.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                pageNumber.AppendText(" of ");
+                pageNumber.Paragraph.AddField(WordFieldType.NumPages);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                string text = footerPart.Footer.InnerText;
+                Assert.Contains(" of ", text);
+                var errors = document.ValidateDocument();
+                errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
             }
         }
       

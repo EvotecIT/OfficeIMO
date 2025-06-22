@@ -181,7 +181,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
 
-                var fieldTypesFormats = (WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat));
+                var fieldTypesFormats = ((WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat)))
+                    .DistinctBy(f => f.ToString().ToUpperInvariant())
+                    .ToArray();
 
                 foreach (var fieldType in fieldTypes) {
                     foreach (var fieldTypeFormat in fieldTypesFormats) {

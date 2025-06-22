@@ -84,6 +84,19 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordParagraph> Paragraphs {
             get { return _listParagraphs; }
         }
+
+        /// <summary>
+        /// Appends text to the last paragraph of the page number.
+        /// </summary>
+        /// <param name="text">Text to append.</param>
+        /// <returns>The paragraph that received the text.</returns>
+        public WordParagraph AppendText(string text) {
+            if (string.IsNullOrEmpty(text)) {
+                throw new ArgumentNullException(nameof(text));
+            }
+            var paragraph = _listParagraphs.Last();
+            return paragraph.AddText(text);
+        }
         public WordPageNumber(WordDocument wordDocument, WordHeader wordHeader, WordPageNumberStyle wordPageNumberStyle) {
             this._document = wordDocument;
             this._wordHeader = wordHeader;

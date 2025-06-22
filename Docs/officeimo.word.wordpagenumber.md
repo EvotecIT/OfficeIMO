@@ -20,6 +20,26 @@ public Nullable<JustificationValues> ParagraphAlignment { get; set; }
 
 [Nullable&lt;JustificationValues&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### **Paragraph**
+
+```csharp
+public WordParagraph Paragraph { get; }
+```
+
+#### Property Value
+
+[WordParagraph](./officeimo.word.wordparagraph.md)<br>
+
+### **Paragraphs**
+
+```csharp
+public IReadOnlyList<WordParagraph> Paragraphs { get; }
+```
+
+#### Property Value
+
+[IReadOnlyList<WordParagraph>](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlylist-1)<br>
+
 ## Constructors
 
 ### **WordPageNumber(WordDocument, WordHeader, WordPageNumberStyle)**
@@ -49,3 +69,19 @@ public WordPageNumber(WordDocument wordDocument, WordFooter wordFooter, WordPage
 `wordFooter` [WordFooter](./officeimo.word.wordfooter.md)<br>
 
 `wordPageNumberStyle` [WordPageNumberStyle](./officeimo.word.wordpagenumberstyle.md)<br>
+
+## Methods
+
+### **AppendText(String)**
+
+```csharp
+public WordParagraph AppendText(string text)
+```
+
+#### Parameters
+
+`text` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+#### Returns
+
+[WordParagraph](./officeimo.word.wordparagraph.md)<br>
