@@ -14,6 +14,7 @@ namespace OfficeIMO.Tests
             [InlineData("ASK bookmark question", 0)]
             [InlineData(@"BIBLIOGRAPHY \* roman", 1)]
             [InlineData(@"BIBLIOGRAPHY \*arabic", 1)]
+            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", 1)]
             [InlineData(@"Page \* FIRSTCAP \* MERGEFORMAT", 2)]
             public void Test_IdentifyFormatSwitches(String FieldCodeString, int expected_amount_of_format_switches)
             {
@@ -26,6 +27,7 @@ namespace OfficeIMO.Tests
             [InlineData(@"BIBLIOGRAPHY \* roman", WordFieldFormat.Roman)]
             [InlineData(@"BIBLIOGRAPHY \*arabic", WordFieldFormat.Arabic)]
             [InlineData(@"Page \* FIRSTCAP \* MERGEFORMAT", WordFieldFormat.FirstCap)]
+            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", WordFieldFormat.ALPHABETICAL)]
             public void Test_CastFormatSwitches(String FieldCodeString, WordFieldFormat expected_field_format)
             {
                 var parser = new WordFieldParser(FieldCodeString);

@@ -245,6 +245,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FieldWithNewFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldWithFormats.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
+                var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
+                var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Fields.Count);
+                Assert.Equal(WordFieldFormat.CardText, document.Fields[0].FieldFormat);
+                Assert.Equal(WordFieldFormat.Ordinal, document.Fields[1].FieldFormat);
+                Assert.Equal(WordFieldFormat.Hex, document.Fields[2].FieldFormat);
+            }
+        }
+
+        [Fact]
         public void Test_ReadingOfFragmentedInstructions() {
             using WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "partitionedFieldInstructions.docx"));
 

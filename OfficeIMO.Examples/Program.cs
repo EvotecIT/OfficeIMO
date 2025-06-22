@@ -178,6 +178,8 @@ namespace OfficeIMO.Examples {
             Fields.Example_CustomFormattedDateField(folderPath, false);
             Fields.Example_CustomFormattedTimeField(folderPath, false);
             Fields.Example_CustomFormattedHeaderDate(folderPath, false);
+            Fields.Example_FieldFormatRoman(folderPath, false);
+            Fields.Example_FieldFormatAdvanced(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
