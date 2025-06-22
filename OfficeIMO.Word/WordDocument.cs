@@ -586,7 +586,7 @@ namespace OfficeIMO.Word {
 
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         /// <summary>
-        /// Collection of document variables accessible via <see cref="DocVariable"/> fields.
+        /// Collection of document variables accessible via <see cref="WordField.DocVariable"/> fields.
         /// </summary>
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
@@ -862,7 +862,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            await using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, true);
+            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -1065,7 +1065,7 @@ namespace OfficeIMO.Word {
                     this._wordprocessingDocument.Save();
 
                     if (filePath != "") {
-                        await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, true);
+                        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }

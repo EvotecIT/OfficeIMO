@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
                     throw new FileNotFoundException("File doesn't exists", filePath);
                 }
             }
-            await using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, true);
+            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
             _workBookPart.Workbook.Save();
 
             if (!string.IsNullOrEmpty(filePath)) {
-                await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, true);
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
                 using (var clone = _spreadSheetDocument.Clone(fs)) {
                 }
                 await fs.FlushAsync(cancellationToken);
