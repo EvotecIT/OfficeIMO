@@ -150,6 +150,17 @@ public Nullable<int> Transparency { get; set; }
 
 [Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+The value should be between `0` (fully opaque) and `100` (fully transparent).
+When set, the underlying XML contains an `a:alphaModFix` element that reflects
+the transparency percentage.
+
+#### Example
+
+```csharp
+var image = paragraph.AddImage("image.png", 100, 100);
+image.Transparency = 50; // half transparent
+```
+
 ### **Wrap**
 
 ```csharp
