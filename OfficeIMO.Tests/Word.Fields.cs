@@ -181,8 +181,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
 
-                var fieldTypesFormats = ((WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat)))
-                    .DistinctBy(f => f.ToString().ToUpperInvariant())
+                var fieldTypesFormats = Enum.GetValues(typeof(WordFieldFormat))
+                    .Cast<WordFieldFormat>()
+                    .GroupBy(f => f.ToString().ToUpperInvariant())
+                    .Select(g => g.First())
                     .ToArray();
 
                 foreach (var fieldType in fieldTypes) {
@@ -239,11 +241,11 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Fields.Count);
-                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
-                Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
-            }
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    Assert.Single(document.Fields);
+                    Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
+                    Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
+                }
         }
 
         [Fact]

@@ -91,6 +91,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("custom", text);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
             }
         }
 
