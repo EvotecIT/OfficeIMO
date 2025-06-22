@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -100,6 +102,32 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
+        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
+            if (filePath != null) {
+                if (!File.Exists(filePath)) {
+                    throw new FileNotFoundException("File doesn't exists", filePath);
+                }
+            }
+            await using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, true);
+            var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+
+            var openSettings = new OpenSettings {
+                AutoSave = autoSave
+            };
+
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(memoryStream, !readOnly, openSettings);
+
+            ExcelDocument document = new ExcelDocument {
+                FilePath = filePath,
+                _spreadSheetDocument = spreadSheetDocument,
+                _workBookPart = spreadSheetDocument.WorkbookPart
+            };
+
+            return document;
+        }
+
         /// <summary>
         /// Creates a new Excel document with a single worksheet.
         /// </summary>
@@ -166,6 +194,18 @@ namespace OfficeIMO.Excel {
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(bool openExcel) {
             this.Save("", openExcel);
+        }
+
+        public Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            return Task.Run(() => Save(filePath, openExcel), cancellationToken);
+        }
+
+        public Task SaveAsync(CancellationToken cancellationToken = default) {
+            return SaveAsync("", false, cancellationToken);
+        }
+
+        public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
+            return SaveAsync("", openExcel, cancellationToken);
         }
 
         /// <summary>
