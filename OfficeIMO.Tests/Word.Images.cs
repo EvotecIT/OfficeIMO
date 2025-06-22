@@ -386,6 +386,29 @@ namespace OfficeIMO.Tests {
             document.Save(false);
         }
 
+        [Fact]
+        public void Test_ImageCropping() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageCrop.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+
+                paragraph.Image.CropTopCentimeters = 1;
+                paragraph.Image.CropBottomCentimeters = 2;
+                paragraph.Image.CropLeftCentimeters = 3;
+                paragraph.Image.CropRightCentimeters = 4;
+
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(1, document.Images[0].CropTopCentimeters);
+                Assert.Equal(2, document.Images[0].CropBottomCentimeters);
+                Assert.Equal(3, document.Images[0].CropLeftCentimeters);
+                Assert.Equal(4, document.Images[0].CropRightCentimeters);
+            }
+        }
+
     }
 
 }
