@@ -6,6 +6,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         // Regression test for https://github.com/EvotecIT/OfficeIMO/issues/85
+        // Uses DocumentValidationErrors to confirm no duplicate table styles
         [Fact]
         public void Test_TableStyles_NoDuplicateValidationErrors() {
             string filePath = Path.Combine(_directoryWithFiles, "TableStylesValidation.docx");
