@@ -310,6 +310,22 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a page number field to the paragraph.
+        /// </summary>
+        /// <param name="includeTotalPages">If true adds a NUMPAGES field preceded by text " of ".</param>
+        /// <param name="format">Optional field format to apply.</param>
+        /// <param name="separator">Text inserted between the current page and total pages fields.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddPageNumber(bool includeTotalPages = false, WordFieldFormat? format = null, string separator = " of ") {
+            this.AddField(WordFieldType.Page, format);
+            if (includeTotalPages) {
+                this.AddText(separator);
+                this.AddField(WordFieldType.NumPages, format);
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Adds a mathematical equation represented as OMML XML.
         /// </summary>
         /// <param name="omml">Office Math Markup Language (OMML) fragment.</param>

@@ -138,5 +138,26 @@ namespace OfficeIMO.Word {
             int? startNumber = null) {
             this.Sections[0].AddEndnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
+
+        public PageNumberType PageNumberType {
+            get {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageNumberType.");
+                }
+
+                return this.Sections[0].PageNumberType;
+            }
+            set {
+                if (this.Sections.Count > 1) {
+                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageNumberType.");
+                }
+
+                this.Sections[0].PageNumberType = value;
+            }
+        }
+
+        public void AddPageNumbering(int? startNumber = null, NumberFormatValues? format = null) {
+            this.Sections[0].AddPageNumbering(startNumber, format);
+        }
     }
 }
