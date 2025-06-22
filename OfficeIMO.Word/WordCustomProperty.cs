@@ -11,6 +11,9 @@ using DocumentFormat.OpenXml.VariantTypes;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a custom property value stored in a Word document.
+    /// </summary>
     public class WordCustomProperty {
         //public string Name;
         public Object Value;
@@ -64,30 +67,64 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Creates a custom property with the specified value and type.
+        /// </summary>
+        /// <param name="value">Property value.</param>
+        /// <param name="propertyType">Type of the property.</param>
         public WordCustomProperty(Object value, PropertyTypes propertyType) {
             this.PropertyType = propertyType;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates a boolean custom property.
+        /// </summary>
+        /// <param name="value">Boolean value.</param>
         public WordCustomProperty(bool value) {
             this.PropertyType = PropertyTypes.YesNo;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates a date/time custom property.
+        /// </summary>
+        /// <param name="value">Date/time value.</param>
         public WordCustomProperty(DateTime value) {
             this.PropertyType = PropertyTypes.DateTime;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates a string custom property.
+        /// </summary>
+        /// <param name="value">Text value.</param>
         public WordCustomProperty(string value) {
             this.PropertyType = PropertyTypes.Text;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates a double custom property.
+        /// </summary>
+        /// <param name="value">Numeric value.</param>
         public WordCustomProperty(double value) {
             this.PropertyType = PropertyTypes.NumberDouble;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates an integer custom property.
+        /// </summary>
+        /// <param name="value">Integer value.</param>
         public WordCustomProperty(int value) {
             this.PropertyType = PropertyTypes.NumberInteger;
             this.Value = value;
         }
+
+        /// <summary>
+        /// Creates an empty custom property.
+        /// </summary>
         public WordCustomProperty() { }
 
         internal WordCustomProperty(CustomDocumentProperty customDocumentProperty) {
