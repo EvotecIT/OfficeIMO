@@ -686,6 +686,38 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the image transparency percentage (0-100).
+        /// </summary>
+        public int? Transparency {
+            get {
+                var blip = GetBlip();
+                if (blip != null) {
+                    var alpha = blip.GetFirstChild<AlphaModulationFixed>();
+                    if (alpha != null) {
+                        return (int)((100000 - alpha.Amount.Value) / 1000);
+                    }
+                }
+                return null;
+            }
+            set {
+                var blip = GetBlip();
+                if (blip == null) return;
+
+                var alpha = blip.GetFirstChild<AlphaModulationFixed>();
+                if (value == null) {
+                    alpha?.Remove();
+                    return;
+                }
+
+                if (alpha == null) {
+                    alpha = new AlphaModulationFixed();
+                    blip.Append(alpha);
+                }
+                alpha.Amount = 100000 - value.Value * 1000;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the image's wrap text.
         /// </summary>
         public WrapTextImage? WrapText {
@@ -872,6 +904,20 @@ namespace OfficeIMO.Word {
             anchor1.Append(relativeHeight1);
 
             return anchor1;
+        }
+
+        private Blip? GetBlip() {
+            if (_Image.Inline != null) {
+                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return picture?.BlipFill?.Blip;
+            } else if (_Image.Anchor != null) {
+                var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                    var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    return picture?.BlipFill?.Blip;
+                }
+            }
+            return null;
         }
 
         public WordImage(WordDocument document, Drawing drawing) {

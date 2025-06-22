@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -386,6 +387,28 @@ namespace OfficeIMO.Tests {
             document.Save(false);
         }
 
+        [Fact]
+        public void Test_ImageTransparency() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageTransparency.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var paragraph = document.AddParagraph();
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.Image.Transparency = 25;
+
+            document.Save(false);
+
+            using (var reloaded = WordDocument.Load(filePath)) {
+                Assert.Equal(25, reloaded.Images[0].Transparency);
+            }
+
+            using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
+                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
+                Assert.Equal(75000, alpha.Amount.Value);
+            }
+        }
+      
         [Fact]
         public void Test_ImageCropping() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageCrop.docx");
