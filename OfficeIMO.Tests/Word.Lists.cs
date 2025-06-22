@@ -106,6 +106,7 @@ public partial class Word {
             Assert.Equal(28, section.Paragraphs.Count);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -338,6 +339,7 @@ public partial class Word {
             Assert.Single(document.Sections[1].Lists);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -532,6 +534,7 @@ public partial class Word {
             Assert.True(document.Lists.Count == 11);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -579,6 +582,7 @@ public partial class Word {
             Assert.True(document.Lists[0].ListItems[0].Text == "Nested 1");
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -624,6 +628,7 @@ public partial class Word {
             Assert.Equal("List", document.Paragraphs[3].Text);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
         }
 
         // Verify order persists after reload
@@ -685,6 +690,7 @@ public partial class Word {
             Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
@@ -723,6 +729,7 @@ public partial class Word {
             Assert.Empty(document.Paragraphs);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -755,6 +762,7 @@ public partial class Word {
             Assert.Empty(document.Footer.Default.Paragraphs);
 
             document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -786,6 +794,18 @@ public partial class Word {
             Assert.Equal(2, document.Lists.Count);
             Assert.Equal(document.Lists[0].ListItems[0].Text, document.Lists[1].ListItems[0].Text);
             Assert.True(document.Lists[1].Bold);
+        }
+    }
+
+    [Fact]
+    public void Test_ListRestartNumberingValidation() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListRestartNumbering.docx");
+        using (var document = WordDocument.Create(filePath)) {
+            var list = document.AddList(WordListStyle.Bulleted);
+            list.AddItem("Item 1");
+            list.RestartNumberingAfterBreak = true;
+            document.Save(false);
+            Assert.Empty(document.DocumentValidationErrors);
         }
     }
 }
