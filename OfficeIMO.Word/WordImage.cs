@@ -610,6 +610,82 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the number of centimeters to crop from the top of the image.
+        /// </summary>
+        public double? CropTopCentimeters {
+            get {
+                if (CropTop != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropTop.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropTop = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropTop = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the bottom of the image.
+        /// </summary>
+        public double? CropBottomCentimeters {
+            get {
+                if (CropBottom != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropBottom.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropBottom = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropBottom = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the left side of the image.
+        /// </summary>
+        public double? CropLeftCentimeters {
+            get {
+                if (CropLeft != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropLeft.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropLeft = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropLeft = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of centimeters to crop from the right side of the image.
+        /// </summary>
+        public double? CropRightCentimeters {
+            get {
+                if (CropRight != null) {
+                    return Helpers.ConvertEmusToCentimeters(CropRight.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    CropRight = Helpers.ConvertCentimetersToEmus(value.Value);
+                } else {
+                    CropRight = null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the image's wrap text.
         /// </summary>
         public WrapTextImage? WrapText {

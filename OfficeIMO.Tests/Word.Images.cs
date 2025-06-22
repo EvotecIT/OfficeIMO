@@ -393,19 +393,19 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
 
-                paragraph.Image.CropTop = 1000;
-                paragraph.Image.CropBottom = 2000;
-                paragraph.Image.CropLeft = 3000;
-                paragraph.Image.CropRight = 4000;
+                paragraph.Image.CropTopCentimeters = 1;
+                paragraph.Image.CropBottomCentimeters = 2;
+                paragraph.Image.CropLeftCentimeters = 3;
+                paragraph.Image.CropRightCentimeters = 4;
 
                 document.Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1000, document.Images[0].CropTop);
-                Assert.Equal(2000, document.Images[0].CropBottom);
-                Assert.Equal(3000, document.Images[0].CropLeft);
-                Assert.Equal(4000, document.Images[0].CropRight);
+                Assert.Equal(1, document.Images[0].CropTopCentimeters);
+                Assert.Equal(2, document.Images[0].CropBottomCentimeters);
+                Assert.Equal(3, document.Images[0].CropLeftCentimeters);
+                Assert.Equal(4, document.Images[0].CropRightCentimeters);
             }
         }
 

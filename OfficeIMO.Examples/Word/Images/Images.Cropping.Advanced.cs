@@ -14,10 +14,10 @@ namespace OfficeIMO.Examples.Word {
             paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 300, 300, WrapTextImage.Square);
 
             paragraph.Image.Shape = ShapeTypeValues.Cube;
-            paragraph.Image.CropTop = 2000;
-            paragraph.Image.CropBottom = 1500;
-            paragraph.Image.CropLeft = 500;
-            paragraph.Image.CropRight = 500;
+            paragraph.Image.CropTopCentimeters = 2;
+            paragraph.Image.CropBottomCentimeters = 1.5;
+            paragraph.Image.CropLeftCentimeters = 0.5;
+            paragraph.Image.CropRightCentimeters = 0.5;
 
             document.Save(openWord);
         }

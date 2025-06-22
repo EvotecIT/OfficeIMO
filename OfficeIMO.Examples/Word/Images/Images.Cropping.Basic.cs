@@ -12,10 +12,10 @@ namespace OfficeIMO.Examples.Word {
             var paragraph = document.AddParagraph("Cropped picture below:");
             paragraph.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 200, 200);
 
-            paragraph.Image.CropTop = 1000;
-            paragraph.Image.CropBottom = 1000;
-            paragraph.Image.CropLeft = 1000;
-            paragraph.Image.CropRight = 1000;
+            paragraph.Image.CropTopCentimeters = 1;
+            paragraph.Image.CropBottomCentimeters = 1;
+            paragraph.Image.CropLeftCentimeters = 1;
+            paragraph.Image.CropRightCentimeters = 1;
 
             document.Save(openWord);
         }

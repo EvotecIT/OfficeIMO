@@ -180,15 +180,55 @@ public Nullable<int> CropRight { get; set; }
 
 [Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### **CropTopCentimeters**
+
+```csharp
+public Nullable<double> CropTopCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropBottomCentimeters**
+
+```csharp
+public Nullable<double> CropBottomCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropLeftCentimeters**
+
+```csharp
+public Nullable<double> CropLeftCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropRightCentimeters**
+
+```csharp
+public Nullable<double> CropRightCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
 ### Example
 
 ```csharp
 var paragraph = document.AddParagraph();
 paragraph.AddImage("myImage.jpg", 200, 200);
-paragraph.Image.CropTop = 1000;
-paragraph.Image.CropBottom = 1000;
-paragraph.Image.CropLeft = 1000;
-paragraph.Image.CropRight = 1000;
+paragraph.Image.CropTopCentimeters = 1;
+paragraph.Image.CropBottomCentimeters = 1;
+paragraph.Image.CropLeftCentimeters = 1;
+paragraph.Image.CropRightCentimeters = 1;
 ```
 
 ### **Wrap**
