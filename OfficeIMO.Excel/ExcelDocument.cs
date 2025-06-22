@@ -102,6 +102,14 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
+        /// <summary>
+        /// Asynchronously loads an Excel document from the specified path.
+        /// </summary>
+        /// <param name="filePath">Path to the Excel file.</param>
+        /// <param name="readOnly">Open the file in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
@@ -196,8 +204,27 @@ namespace OfficeIMO.Excel {
             this.Save("", openExcel);
         }
 
-        public Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
-            return Task.Run(() => Save(filePath, openExcel), cancellationToken);
+        /// <summary>
+        /// Asynchronously saves the document.
+        /// </summary>
+        /// <param name="filePath">Optional path to save to.</param>
+        /// <param name="openExcel">Whether to open Excel after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            _workBookPart.Workbook.Save();
+
+            if (!string.IsNullOrEmpty(filePath)) {
+                await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, true);
+                using (var clone = _spreadSheetDocument.Clone(fs)) {
+                }
+                await fs.FlushAsync(cancellationToken);
+                FilePath = filePath;
+            }
+
+            if (openExcel) {
+                Open(filePath, true);
+            }
         }
 
         public Task SaveAsync(CancellationToken cancellationToken = default) {

@@ -847,6 +847,14 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>
+        /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
+        /// </summary>
+        /// <param name="filePath">Path to the file.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
+        /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
@@ -1040,6 +1048,12 @@ namespace OfficeIMO.Word {
             this.Save("", openWord);
         }
 
+        /// <summary>
+        /// Asynchronously saves the document.
+        /// </summary>
+        /// <param name="filePath">Optional path to save to.</param>
+        /// <param name="openWord">Whether to open Word after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public async Task SaveAsync(string filePath, bool openWord, CancellationToken cancellationToken = default) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
