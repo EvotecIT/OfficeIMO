@@ -103,6 +103,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Updates page and total page number fields.
+        /// When a table of contents is present the document is flagged to refresh
+        /// fields on open so Word can update the TOC.
+        /// </summary>
+        public void UpdateFields() {
+            int page = 1;
+            foreach (var paragraph in Paragraphs) {
+                var field = paragraph.Field;
+                if (field != null && field.FieldType == WordFieldType.Page) {
+                    field.Text = page.ToString();
+                }
+
+                if (paragraph.IsPageBreak) {
+                    page++;
+                }
+            }
+
+            foreach (var field in Fields.Where(f => f.FieldType == WordFieldType.NumPages)) {
+                field.Text = page.ToString();
+            }
+
+            TableOfContent?.Update();
+        }
+
+        /// <summary>
         /// Adds a table of contents to the current document.
         /// </summary>
         /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
