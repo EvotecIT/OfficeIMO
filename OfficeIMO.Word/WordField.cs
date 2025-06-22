@@ -93,7 +93,16 @@ namespace OfficeIMO.Word {
         Caps,
         Mergeformat,
         Roman,
+        roman,
         Arabic,
+        Alphabetical,
+        ALPHABETICAL,
+        Ordinal,
+        OrdText,
+        CardText,
+        DollarText,
+        Hex,
+        CharFormat,
     }
 
     public partial class WordField : WordElement {

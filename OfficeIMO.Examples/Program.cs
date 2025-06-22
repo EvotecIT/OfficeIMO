@@ -96,6 +96,7 @@ namespace OfficeIMO.Examples {
             PageNumbers.Example_PageNumbers4(folderPath, false);
             PageNumbers.Example_PageNumbers5(folderPath, false);
             PageNumbers.Example_PageNumbers6(folderPath, false);
+            PageNumbers.Example_PageNumbers7(folderPath, false);
 
             Sections.Example_BasicSections(folderPath, false);
             Sections.Example_BasicSections2(folderPath, false);
@@ -178,6 +179,8 @@ namespace OfficeIMO.Examples {
             Fields.Example_CustomFormattedDateField(folderPath, false);
             Fields.Example_CustomFormattedTimeField(folderPath, false);
             Fields.Example_CustomFormattedHeaderDate(folderPath, false);
+            Fields.Example_FieldFormatRoman(folderPath, false);
+            Fields.Example_FieldFormatAdvanced(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);

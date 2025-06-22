@@ -181,7 +181,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
 
-                var fieldTypesFormats = (WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat));
+                var fieldTypesFormats = Enum.GetValues(typeof(WordFieldFormat))
+                    .Cast<WordFieldFormat>()
+                    .GroupBy(f => f.ToString().ToUpperInvariant())
+                    .Select(g => g.First())
+                    .ToArray();
 
                 foreach (var fieldType in fieldTypes) {
                     foreach (var fieldTypeFormat in fieldTypesFormats) {
@@ -237,10 +241,28 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    Assert.Single(document.Fields);
+                    Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
+                    Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
+                }
+        }
+
+        [Fact]
+        public void Test_FieldWithNewFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldWithFormats.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
+                var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
+                var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
+                document.Save(false);
+            }
+
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Fields.Count);
-                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
-                Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
+                Assert.Equal(3, document.Fields.Count);
+                Assert.Equal(WordFieldFormat.CardText, document.Fields[0].FieldFormat);
+                Assert.Equal(WordFieldFormat.Ordinal, document.Fields[1].FieldFormat);
+                Assert.Equal(WordFieldFormat.Hex, document.Fields[2].FieldFormat);
             }
         }
 
