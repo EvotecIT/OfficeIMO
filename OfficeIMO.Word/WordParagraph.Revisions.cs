@@ -3,6 +3,13 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Inserts revision text marked as added.
+        /// </summary>
+        /// <param name="text">Text to insert.</param>
+        /// <param name="author">Revision author.</param>
+        /// <param name="date">Revision date. Uses current date when null.</param>
+        /// <returns>The current <see cref="WordParagraph"/> instance.</returns>
         public WordParagraph AddInsertedText(string text, string author, DateTime? date = null) {
             VerifyRun();
             date ??= DateTime.Now;
@@ -15,6 +22,13 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Inserts revision text marked as deleted.
+        /// </summary>
+        /// <param name="text">Text to delete.</param>
+        /// <param name="author">Revision author.</param>
+        /// <param name="date">Revision date. Uses current date when null.</param>
+        /// <returns>The current <see cref="WordParagraph"/> instance.</returns>
         public WordParagraph AddDeletedText(string text, string author, DateTime? date = null) {
             VerifyRun();
             date ??= DateTime.Now;

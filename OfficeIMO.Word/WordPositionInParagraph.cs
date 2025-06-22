@@ -3,19 +3,24 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace OfficeIMO.Word {
-
-    /**
-    * postion of a character in a paragrapho
-   * 1st ParagraphPositon
-   * 2nd TextPosition
-   * 3rd CharacterPosition 
-   */
+    /// <summary>
+    /// Represents a character position inside a paragraph.
+    /// </summary>
     internal class WordPositionInParagraph {
         private int posParagraph = 0, posText = 0, posChar = 0;
 
+        /// <summary>
+        /// Initializes a new instance with all positions set to zero.
+        /// </summary>
         public WordPositionInParagraph() {
         }
 
+        /// <summary>
+        /// Initializes a new instance with the specified positions.
+        /// </summary>
+        /// <param name="posRun">Paragraph index.</param>
+        /// <param name="posText">Text index.</param>
+        /// <param name="posChar">Character index.</param>
         public WordPositionInParagraph(int posRun, int posText, int posChar) {
             this.posParagraph = posRun;
             this.posChar = posChar;
