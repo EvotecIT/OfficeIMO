@@ -10,6 +10,9 @@ using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides functionality for creating, loading and manipulating Word documents.
+    /// </summary>
     public partial class WordDocument : IDisposable {
         internal List<int> _listNumbersUsed = new List<int>();
         internal int? _tableOfContentIndex;
@@ -573,26 +576,55 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of sections contained in the document.
+        /// </summary>
         public List<WordSection> Sections = new List<WordSection>();
 
+        /// <summary>
+        /// Path to the file backing this document.
+        /// </summary>
         public string FilePath { get; set; }
 
+        /// <summary>
+        /// Provides access to document settings.
+        /// </summary>
         public WordSettings Settings;
 
+        /// <summary>
+        /// Manages application related properties.
+        /// </summary>
         public ApplicationProperties ApplicationProperties;
+
+        /// <summary>
+        /// Provides access to built-in document properties.
+        /// </summary>
         public BuiltinDocumentProperties BuiltinDocumentProperties;
 
+        /// <summary>
+        /// Collection of custom document properties.
+        /// </summary>
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         /// <summary>
         /// Collection of document variables accessible via <see cref="DocVariable"/> fields.
         /// </summary>
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
+        /// <summary>
+        /// Indicates whether the document is saved automatically.
+        /// </summary>
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
 
         // we expose them to help with integration
+        /// <summary>
+        /// Underlying Open XML word processing document.
+        /// </summary>
         public WordprocessingDocument _wordprocessingDocument;
+
+        /// <summary>
+        /// Root document element.
+        /// </summary>
         public Document _document;
         //public WordCustomProperties _customDocumentProperties;
 
@@ -1075,8 +1107,14 @@ namespace OfficeIMO.Word {
         internal WordSection _currentSection => this.Sections.Last();
 
 
+        /// <summary>
+        /// Provides access to the document background settings.
+        /// </summary>
         public WordBackground Background { get; set; }
 
+        /// <summary>
+        /// Indicates whether the document passes Open XML validation.
+        /// </summary>
         public bool DocumentIsValid {
             get {
                 if (DocumentValidationErrors.Count > 0) {
@@ -1087,12 +1125,20 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the list of validation errors for the document.
+        /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
                 return ValidateDocument();
             }
         }
 
+        /// <summary>
+        /// Validates the document using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
@@ -1102,6 +1148,9 @@ namespace OfficeIMO.Word {
             return listErrors;
         }
 
+        /// <summary>
+        /// Gets or sets compatibility settings for the document.
+        /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; }
 
         internal void HeadingModified() {

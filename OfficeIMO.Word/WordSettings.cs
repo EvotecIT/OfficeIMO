@@ -184,6 +184,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordSettings"/> class for the specified document.
+        /// </summary>
+        /// <param name="document">Document whose settings are managed.</param>
         public WordSettings(WordDocument document) {
             if (document.FileOpenAccess != FileAccess.Read) {
                 var documentSettingsPart = document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
@@ -477,10 +481,21 @@ namespace OfficeIMO.Word {
                 _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color = value;
             }
         }
+        /// <summary>
+        /// Sets the background color using a hex value.
+        /// </summary>
+        /// <param name="backgroundColor">Hexadecimal color value.</param>
+        /// <returns>The current <see cref="WordSettings"/> instance.</returns>
         public WordSettings SetBackgroundColor(string backgroundColor) {
             this.BackgroundColor = backgroundColor;
             return this;
         }
+
+        /// <summary>
+        /// Sets the background color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// </summary>
+        /// <param name="backgroundColor">Color value.</param>
+        /// <returns>The current <see cref="WordSettings"/> instance.</returns>
         public WordSettings SetBackgroundColor(SixLabors.ImageSharp.Color backgroundColor) {
             this.BackgroundColor = backgroundColor.ToHexColor();
             return this;
