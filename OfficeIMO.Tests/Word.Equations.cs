@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Equations.Count);
+                Assert.Single(document.Equations);
             }
         }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Equations.Count);
+                Assert.Single(document.Equations);
             }
         }
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Equations.Count);
+                Assert.Single(document.Equations);
             }
         }
     }
