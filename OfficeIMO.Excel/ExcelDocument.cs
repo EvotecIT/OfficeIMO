@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -101,6 +103,40 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Asynchronously loads an Excel document from the specified path.
+        /// </summary>
+        /// <param name="filePath">Path to the Excel file.</param>
+        /// <param name="readOnly">Open the file in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
+        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
+            if (filePath != null) {
+                if (!File.Exists(filePath)) {
+                    throw new FileNotFoundException("File doesn't exists", filePath);
+                }
+            }
+            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
+            var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+
+            var openSettings = new OpenSettings {
+                AutoSave = autoSave
+            };
+
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(memoryStream, !readOnly, openSettings);
+
+            ExcelDocument document = new ExcelDocument {
+                FilePath = filePath,
+                _spreadSheetDocument = spreadSheetDocument,
+                _workBookPart = spreadSheetDocument.WorkbookPart
+            };
+
+            return document;
+        }
+
+        /// <summary>
         /// Creates a new Excel document with a single worksheet.
         /// </summary>
         /// <param name="filePath">Path to the new file.</param>
@@ -166,6 +202,37 @@ namespace OfficeIMO.Excel {
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(bool openExcel) {
             this.Save("", openExcel);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document.
+        /// </summary>
+        /// <param name="filePath">Optional path to save to.</param>
+        /// <param name="openExcel">Whether to open Excel after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            _workBookPart.Workbook.Save();
+
+            if (!string.IsNullOrEmpty(filePath)) {
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                using (var clone = _spreadSheetDocument.Clone(fs)) {
+                }
+                await fs.FlushAsync(cancellationToken);
+                FilePath = filePath;
+            }
+
+            if (openExcel) {
+                Open(filePath, true);
+            }
+        }
+
+        public Task SaveAsync(CancellationToken cancellationToken = default) {
+            return SaveAsync("", false, cancellationToken);
+        }
+
+        public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
+            return SaveAsync("", openExcel, cancellationToken);
         }
 
         /// <summary>

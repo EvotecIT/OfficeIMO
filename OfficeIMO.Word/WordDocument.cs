@@ -4,6 +4,8 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -606,7 +608,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         /// <summary>
-        /// Collection of document variables accessible via <see cref="DocVariable"/> fields.
+        /// Collection of document variables accessible via <see cref="WordField.DocVariable"/> fields.
         /// </summary>
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
@@ -878,6 +880,46 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
+        /// </summary>
+        /// <param name="filePath">Path to the file.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
+        /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
+        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
+            if (filePath != null) {
+                if (!File.Exists(filePath)) {
+                    throw new FileNotFoundException("File doesn't exists", filePath);
+                }
+            }
+
+            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
+            var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+
+            var openSettings = new OpenSettings {
+                AutoSave = autoSave
+            };
+
+            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+
+            var word = new WordDocument {
+                FilePath = filePath,
+                _wordprocessingDocument = wordDocument,
+                _document = wordDocument.MainDocumentPart.Document
+            };
+
+            InitialiseStyleDefinitions(wordDocument, readOnly);
+            word.LoadDocument();
+            WordChart.InitializeAxisIdSeed(wordDocument);
+            WordChart.InitializeDocPrIdSeed(wordDocument);
+            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
+            return word;
+        }
+
+        /// <summary>
         /// Load WordDocument from stream
         /// </summary>
         /// <param name="stream"></param>
@@ -1036,6 +1078,66 @@ namespace OfficeIMO.Word {
         /// <param name="openWord"></param>
         public void Save(bool openWord) {
             this.Save("", openWord);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document.
+        /// </summary>
+        /// <param name="filePath">Optional path to save to.</param>
+        /// <param name="openWord">Whether to open Word after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public async Task SaveAsync(string filePath, bool openWord, CancellationToken cancellationToken = default) {
+            if (FileOpenAccess == FileAccess.Read) {
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            }
+            PreSaving();
+
+            if (this._wordprocessingDocument != null) {
+                try {
+                    this._wordprocessingDocument.Save();
+
+                    if (filePath != "") {
+                        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                        }
+                        Helpers.MakeOpenOfficeCompatible(fs);
+                        await fs.FlushAsync(cancellationToken);
+                        FilePath = filePath;
+                    } else if (_fileStream != null) {
+                        _fileStream.Seek(0, SeekOrigin.Begin);
+                        _fileStream.SetLength(0);
+                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
+                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                        }
+                        Helpers.MakeOpenOfficeCompatible(_fileStream);
+                        await _fileStream.FlushAsync(cancellationToken);
+                    }
+                } finally {
+                    if (_fileStream != null) {
+                        _fileStream.Dispose();
+                        _fileStream = null;
+                    }
+                }
+            } else {
+                throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
+            }
+
+            if (openWord) {
+                this.Open(filePath, true);
+            }
+        }
+
+        public Task SaveAsync(CancellationToken cancellationToken = default) {
+            return SaveAsync("", false, cancellationToken);
+        }
+
+        public Task SaveAsync(string filePath, CancellationToken cancellationToken = default) {
+            return SaveAsync(filePath, false, cancellationToken);
+        }
+
+        public Task SaveAsync(bool openWord, CancellationToken cancellationToken = default) {
+            return SaveAsync("", openWord, cancellationToken);
         }
 
         /// <summary>

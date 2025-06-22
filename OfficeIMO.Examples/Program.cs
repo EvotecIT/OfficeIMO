@@ -31,6 +31,7 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithMarginsAndImage(folderPath, false);
             BasicDocument.Example_BasicWordWithLineSpacing(folderPath, false);
             BasicDocument.Example_BasicWordWithSomeParagraphs(folderPath, false);
+            BasicDocument.Example_BasicWordAsync(folderPath).GetAwaiter().GetResult();
 
             AdvancedDocument.Example_AdvancedWord(folderPath, false);
             AdvancedDocument.Example_AdvancedWord2(folderPath, false);
@@ -163,6 +164,7 @@ namespace OfficeIMO.Examples {
             BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
             BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
             BasicExcelFunctionality.BasicExcel_Example3(false);
+            BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
 
             BordersAndMargins.Example_BasicWordMarginsSizes(folderPath, false);
             BordersAndMargins.Example_BasicPageBorders1(folderPath, false);
