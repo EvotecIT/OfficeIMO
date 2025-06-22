@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Enumeration of additional image types supported by the library.
+/// </summary>
 public enum CustomImagePartType {
     Bmp,
     Gif,
@@ -11,7 +14,15 @@ public enum CustomImagePartType {
     Emf
 }
 
+/// <summary>
+/// Extension helpers for <see cref="CustomImagePartType"/> values.
+/// </summary>
 public static class CustomImagePartTypeExtensions {
+    /// <summary>
+    /// Converts the custom image part type to the Open XML content type string.
+    /// </summary>
+    /// <param name="customType">The custom image part type.</param>
+    /// <returns>The corresponding content type value.</returns>
     public static string ToOpenXmlImagePartType(this CustomImagePartType customType) {
         return customType switch {
             CustomImagePartType.Bmp => "image/bmp",

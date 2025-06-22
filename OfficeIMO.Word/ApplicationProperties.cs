@@ -5,10 +5,17 @@ using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides strongly typed access to the extended application properties
+    /// stored in the underlying <see cref="WordprocessingDocument"/>.
+    /// </summary>
     public class ApplicationProperties {
         private readonly WordprocessingDocument _wordprocessingDocument = null;
         private readonly WordDocument _document = null;
 
+        /// <summary>
+        /// Gets or sets the application name that created the document.
+        /// </summary>
         public string Application {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -28,6 +35,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the version of the application that created the document.
+        /// </summary>
         public string ApplicationVersion {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -46,6 +56,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the total number of paragraphs in the document.
+        /// </summary>
         public string Paragraphs {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -64,6 +77,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the total number of pages in the document.
+        /// </summary>
         public string Pages {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -82,6 +98,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the character count of the document.
+        /// </summary>
         public string Characters {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -100,6 +119,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the character count including spaces.
+        /// </summary>
         public string CharactersWithSpaces {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -118,6 +140,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the company associated with the document.
+        /// </summary>
         public string Company {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -136,6 +161,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company.Text = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the digital signature information for the document.
+        /// </summary>
         public DigitalSignature DigitalSignature {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -154,6 +182,9 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = value;
             }
         }
+        /// <summary>
+        /// Gets or sets the document security information.
+        /// </summary>
         public DocumentSecurity DocumentSecurity {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
@@ -435,6 +466,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance bound to the specified document.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
         public ApplicationProperties(WordDocument document) {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
