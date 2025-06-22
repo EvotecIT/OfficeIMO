@@ -12,6 +12,11 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - '*.md'
+      - 'Docs/**'
+      - 'Examples/**'
+      - '.gitignore'
 
 env:
   DOTNET_VERSION: |
