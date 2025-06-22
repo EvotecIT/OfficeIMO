@@ -493,6 +493,9 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the top of the image.
+        /// </summary>
         public int? CropTop {
             get {
                 var picture = GetPicture();
@@ -519,6 +522,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the bottom of the image.
+        /// </summary>
         public int? CropBottom {
             get {
                 var picture = GetPicture();
@@ -545,6 +551,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the left side of the image.
+        /// </summary>
         public int? CropLeft {
             get {
                 var picture = GetPicture();
@@ -571,6 +580,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the number of EMUs to crop from the right side of the image.
+        /// </summary>
         public int? CropRight {
             get {
                 var picture = GetPicture();

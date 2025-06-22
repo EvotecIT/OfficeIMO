@@ -180,6 +180,17 @@ public Nullable<int> CropRight { get; set; }
 
 [Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### Example
+
+```csharp
+var paragraph = document.AddParagraph();
+paragraph.AddImage("myImage.jpg", 200, 200);
+paragraph.Image.CropTop = 1000;
+paragraph.Image.CropBottom = 1000;
+paragraph.Image.CropLeft = 1000;
+paragraph.Image.CropRight = 1000;
+```
+
 ### **Wrap**
 
 ```csharp
@@ -271,3 +282,4 @@ public void SaveToFile(string fileToSave)
 ```csharp
 public void Remove()
 ```
+
