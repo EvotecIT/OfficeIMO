@@ -103,8 +103,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Iterates through document fields and updates values such as page numbers.
-        /// Also refreshes the table of contents if present.
+        /// Updates page and total page number fields.
+        /// When a table of contents is present the document is flagged to refresh
+        /// fields on open so Word can update the TOC.
         /// </summary>
         public void UpdateFields() {
             int page = 1;
