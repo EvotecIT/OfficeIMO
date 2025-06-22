@@ -12103,8 +12103,8 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/footer1.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:sdt>
+<w:ftr xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:sdt xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
     <w:sdtPr>
       <w:id w:val="-94168831" />
       <w:docPartObj>
@@ -12118,7 +12118,7 @@
       </w:rPr>
     </w:sdtEndPr>
     <w:sdtContent>
-      <w:p w:rsidR="000003E1" w:rsidRDefault="000003E1" w14:paraId="2D5F018E" w14:textId="0961F169" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+      <w:p w:rsidR="000003E1" w:rsidRDefault="000003E1" w14:paraId="2D5F018E" w14:textId="0961F169">
         <w:pPr>
           <w:pStyle w:val="Header" />
         </w:pPr>
