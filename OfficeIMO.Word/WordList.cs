@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Represents a numbered or bulleted list within a document.
+/// </summary>
 public partial class WordList : WordElement {
     private readonly WordprocessingDocument _wordprocessingDocument;
     private readonly WordDocument _document;

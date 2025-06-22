@@ -5,7 +5,13 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a table element within a Word document.
+    /// </summary>
     public partial class WordTable : WordElement {
+        /// <summary>
+        /// Gets all paragraphs contained in the table.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -75,6 +81,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the table style.
+        /// </summary>
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
@@ -90,6 +99,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the table.
+        /// </summary>
         public TableRowAlignmentValues? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
@@ -111,6 +123,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the unit used to specify the table width.
+        /// </summary>
         public TableWidthUnitValues? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {

@@ -15,6 +15,9 @@ using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a paragraph element within a Word document.
+    /// </summary>
     public partial class WordParagraph : WordElement {
         internal WordDocument _document;
         internal Paragraph _paragraph;
