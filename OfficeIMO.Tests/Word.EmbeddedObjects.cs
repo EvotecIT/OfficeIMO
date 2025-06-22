@@ -17,14 +17,14 @@ public partial class Word {
             document.AddParagraph("Add excel object");
             document.AddEmbeddedObject(excelFilePath, imageFilePath);
 
-            Assert.Equal(1, document.EmbeddedObjects.Count);
-            Assert.Equal(1, document.Sections[0].EmbeddedObjects.Count);
+            Assert.Single(document.EmbeddedObjects);
+            Assert.Single(document.Sections[0].EmbeddedObjects);
             document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
-            Assert.Equal(1, document.EmbeddedObjects.Count);
-            Assert.Equal(1, document.Sections[0].EmbeddedObjects.Count);
+            Assert.Single(document.EmbeddedObjects);
+            Assert.Single(document.Sections[0].EmbeddedObjects);
         }
     }
 
@@ -39,12 +39,12 @@ public partial class Word {
             var options = WordEmbeddedObjectOptions.Icon(iconPath, width: 32, height: 32);
             document.AddEmbeddedObject(excelFilePath, options);
 
-            Assert.Equal(1, document.EmbeddedObjects.Count);
+            Assert.Single(document.EmbeddedObjects);
             document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
-            Assert.Equal(1, document.EmbeddedObjects.Count);
+            Assert.Single(document.EmbeddedObjects);
         }
     }
 
