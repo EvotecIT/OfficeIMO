@@ -140,6 +140,46 @@ public int Rotation { get; set; }
 
 [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
+### **CropTop**
+
+```csharp
+public Nullable<int> CropTop { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropBottom**
+
+```csharp
+public Nullable<int> CropBottom { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropLeft**
+
+```csharp
+public Nullable<int> CropLeft { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropRight**
+
+```csharp
+public Nullable<int> CropRight { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
 ### **Wrap**
 
 ```csharp
