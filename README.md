@@ -226,7 +226,13 @@ This features are available as part of `WordHelpers` class.
 This short example show how to create Word Document with just one paragraph with Text and few document properties.
 
 ```csharp
-string filePath = @"C:\Support\GitHub\PSWriteOffice\Examples\Documents\BasicDocument.docx";
+string filePath = System.IO.Path.Combine(
+    "Support",
+    "GitHub",
+    "PSWriteOffice",
+    "Examples",
+    "Documents",
+    "BasicDocument.docx");
 
 using (WordDocument document = WordDocument.Create(filePath)) {
     document.Title = "This is my title";
