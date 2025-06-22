@@ -45,6 +45,15 @@ jobs:
         with:
           dotnet-version: '9.0.x' # Change to '8.0.x' if targeting .NET 8
 
+      - name: Cache NuGet packages
+        if: matrix.build-mode == 'manual'
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
