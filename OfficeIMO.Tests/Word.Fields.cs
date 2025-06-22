@@ -233,13 +233,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CustomFormattedField.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
-                Assert.Equal(" TIME \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field.Field);
+                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field.Field);
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(1, document.Fields.Count);
-                Assert.Equal(" TIME \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
+                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
                 Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
             }
         }
