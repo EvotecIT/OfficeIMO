@@ -76,6 +76,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_PageNumberWithCustomText() {
+            string filePath = Path.Combine(_directoryWithFiles, "PageNumberCustomText.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                pageNumber.Paragraphs.Last().AddText(" custom");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var headerPart = document._wordprocessingDocument.MainDocumentPart.HeaderParts.First();
+                string text = headerPart.Header.InnerText;
+                Assert.Contains("custom", text);
+                var errors = document.ValidateDocument();
+                errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
+            }
+        }
+      
+        [Fact]
         public void Test_PageNumberRestartInNewSection() {
             string filePath = Path.Combine(_directoryWithFiles, "SectionPageNumberReset.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

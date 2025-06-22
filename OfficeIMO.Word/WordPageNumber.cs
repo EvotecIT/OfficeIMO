@@ -70,6 +70,20 @@ namespace OfficeIMO.Word {
                 this._wordParagraph.ParagraphAlignment = value;
             }
         }
+
+        /// <summary>
+        /// Gets the primary paragraph containing the page number field.
+        /// </summary>
+        public WordParagraph Paragraph {
+            get { return _wordParagraph; }
+        }
+
+        /// <summary>
+        /// Gets all paragraphs that make up the page number content.
+        /// </summary>
+        public IReadOnlyList<WordParagraph> Paragraphs {
+            get { return _listParagraphs; }
+        }
         public WordPageNumber(WordDocument wordDocument, WordHeader wordHeader, WordPageNumberStyle wordPageNumberStyle) {
             this._document = wordDocument;
             this._wordHeader = wordHeader;
