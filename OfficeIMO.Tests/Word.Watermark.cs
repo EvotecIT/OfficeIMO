@@ -237,5 +237,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
             }
         }
+
+        [Fact]
+        public void Test_WatermarkImageDimensions() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkImageDimensions.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test");
+                document.AddHeadersAndFooters();
+                var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
+                Assert.True(watermark.Width > 0);
+                Assert.True(watermark.Height > 0);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                Assert.True(watermark.Width > 0);
+                Assert.True(watermark.Height > 0);
+            }
+        }
     }
 }
