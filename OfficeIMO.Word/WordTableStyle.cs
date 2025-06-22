@@ -2,3 +2,4 @@
                 if (currentStyle.StyleId == styleId) {
 }
 
+            // Compare against style ID from the style definition to avoid duplicate styles (#85)
