@@ -94,6 +94,8 @@ namespace OfficeIMO.Examples {
             PageNumbers.Example_PageNumbers2(folderPath, false);
             PageNumbers.Example_PageNumbers3(folderPath, false);
             PageNumbers.Example_PageNumbers4(folderPath, false);
+            PageNumbers.Example_PageNumbers5(folderPath, false);
+            PageNumbers.Example_PageNumbers6(folderPath, false);
 
             Sections.Example_BasicSections(folderPath, false);
             Sections.Example_BasicSections2(folderPath, false);

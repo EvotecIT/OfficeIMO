@@ -51,6 +51,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this run is the last run within its parent container.
+        /// </summary>
         public bool IsLastRun {
             get {
                 if (_run != null) {
@@ -61,6 +64,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this run is the first run within its parent container.
+        /// </summary>
         public bool IsFirstRun {
             get {
                 if (_run != null) {
@@ -107,6 +113,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the first image associated with this run, if any.
+        /// </summary>
         public WordImage Image {
             get {
                 if (_run != null) {
@@ -133,6 +142,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the embedded object associated with this run, if any.
+        /// </summary>
         public WordEmbeddedObject EmbeddedObject {
             get {
                 if (_run != null) {
