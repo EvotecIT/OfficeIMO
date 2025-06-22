@@ -12,7 +12,8 @@ namespace OfficeIMO.Examples.Word {
 
                 var table = document.Footer.Default.AddTable(1, 2, WordTableStyle.TableGrid);
                 table.WidthType = TableWidthUnitValues.Pct;
-                table.Width = WordTableGenerator.OneHundredPercentWidth;
+                // 5000 represents 100% when using Pct width
+                table.Width = 5000;
 
                 table.Rows[0].Cells[0].AddParagraph("Confidential");
                 var para = table.Rows[0].Cells[1].AddParagraph();
