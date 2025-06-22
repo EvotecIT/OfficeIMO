@@ -74,5 +74,49 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void Test_PageNumberRestartInNewSection() {
+            string filePath = Path.Combine(_directoryWithFiles, "SectionPageNumberReset.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                document.Footer.Default.AddParagraph().AddPageNumber();
+
+                document.AddParagraph("Section 1");
+                var section = document.AddSection();
+                section.AddPageNumbering(1);
+                section.AddParagraph("Section 2");
+                document.Footer.Default.AddParagraph().AddPageNumber();
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Sections.Count);
+                Assert.NotNull(document.Sections[1].PageNumberType);
+                Assert.Equal(1, document.Sections[1].PageNumberType.Start.Value);
+                var errors = document.ValidateDocument();
+                errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            }
+        }
+
+        [Fact]
+        public void Test_PageNumberRomanFormat() {
+            string filePath = Path.Combine(_directoryWithFiles, "PageNumberRoman.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
+                document.AddHeadersAndFooters();
+                var para = document.Footer.Default.AddParagraph();
+                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman);
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(NumberFormatValues.UpperRoman, document.Sections[0].PageNumberType.Format.Value);
+                Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat == WordFieldFormat.Roman);
+                var errors = document.ValidateDocument();
+                errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            }
+        }
     }
 }
