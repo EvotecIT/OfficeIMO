@@ -173,6 +173,9 @@ namespace OfficeIMO.Examples {
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
             Fields.Example_DocumentWithFields(folderPath, false);
             Fields.Example_DocumentWithFields02(folderPath, false);
+            Fields.Example_CustomFormattedDateField(folderPath, false);
+            Fields.Example_CustomFormattedTimeField(folderPath, false);
+            Fields.Example_CustomFormattedHeaderDate(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);

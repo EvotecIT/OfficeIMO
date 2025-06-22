@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 2);
 
                 foreach (var fieldType in fieldTypes) {
-                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, true);
+                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, advanced: true);
                     Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
                 }
 
@@ -225,6 +225,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordFieldFormat.FirstCap, document.Fields[0].FieldFormat);
                 Assert.Equal(instructions, document.Fields[0].FieldInstructions);
                 Assert.Equal(switches, document.Fields[0].FieldSwitches);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldWithCustomFormat() {
+            string filePath = Path.Combine(_directoryWithFiles, "CustomFormattedField.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
+                Assert.Equal(" TIME \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field.Field);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(1, document.Fields.Count);
+                Assert.Equal(" TIME \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
+                Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
             }
         }
 

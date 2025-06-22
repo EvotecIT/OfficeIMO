@@ -288,10 +288,10 @@ public WordParagraph AddBookmark(string bookmarkName)
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
 
-### **AddField(WordFieldType, Nullable&lt;WordFieldFormat&gt;, Boolean)**
+### **AddField(WordFieldType, Nullable&lt;WordFieldFormat&gt;, String, Boolean)**
 
 ```csharp
-public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, bool advanced)
+public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, string customFormat, bool advanced)
 ```
 
 #### Parameters
@@ -299,6 +299,7 @@ public WordParagraph AddField(WordFieldType wordFieldType, Nullable<WordFieldFor
 `wordFieldType` [WordFieldType](./officeimo.word.wordfieldtype.md)<br>
 
 `wordFieldFormat` [Nullable&lt;WordFieldFormat&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+`customFormat` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 `advanced` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 

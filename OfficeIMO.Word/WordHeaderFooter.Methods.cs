@@ -86,10 +86,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordFieldType">Type of field to insert.</param>
         /// <param name="wordFieldFormat">Optional field format.</param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <returns>The created <see cref="WordParagraph"/> instance.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat, advanced);
         }
 
         /// <summary>
