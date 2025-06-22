@@ -6,11 +6,20 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to section property settings.
+    /// </summary>
     public partial class WordSection {
+        /// <summary>
+        /// Gets or sets the page orientation of the section.
+        /// </summary>
         public PageOrientationValues PageOrientation {
             get => WordPageSizes.GetOrientation(_sectionProperties);
             set => WordPageSizes.SetOrientation(_sectionProperties, value);
         }
+        /// <summary>
+        /// Gets or sets spacing between section columns.
+        /// </summary>
         public int? ColumnsSpace {
             get {
                 Columns columns = _sectionProperties.GetFirstChild<Columns>();

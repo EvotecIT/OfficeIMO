@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Border presets that can be applied to a document section.
+    /// </summary>
     public enum WordBorder {
         None,
         Custom,
@@ -12,6 +15,9 @@ namespace OfficeIMO.Word {
         Shadow
     }
 
+    /// <summary>
+    /// Provides access to page border settings for a section.
+    /// </summary>
     public class WordBorders {
         private readonly WordDocument _document;
         private readonly WordSection _section;

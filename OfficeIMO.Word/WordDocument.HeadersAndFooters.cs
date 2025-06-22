@@ -18,6 +18,9 @@ namespace OfficeIMO.Word {
         //public readonly WordFooters Footer = new WordFooters();
         //public readonly WordHeaders Header = new WordHeaders();
 
+        /// <summary>
+        /// Gets the headers of the first section.
+        /// </summary>
         public WordHeaders Header {
             get {
                 if (this.Sections.Count > 1) {
@@ -26,6 +29,9 @@ namespace OfficeIMO.Word {
                 return this.Sections[0].Header;
             }
         }
+        /// <summary>
+        /// Gets the footers of the first section.
+        /// </summary>
         public WordFooters Footer {
             get {
                 if (this.Sections.Count > 1) {
@@ -35,6 +41,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the first page has different headers and footers.
+        /// </summary>
         public bool DifferentFirstPage {
             get {
                 if (this.Sections.Count > 1) {
@@ -84,6 +93,9 @@ namespace OfficeIMO.Word {
             //}
 
         }
+        /// <summary>
+        /// Gets or sets a value indicating whether odd and even pages use different headers and footers.
+        /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
                 if (this.Sections.Count > 1) {
