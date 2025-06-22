@@ -2,6 +2,9 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Predefined character styles available in Word documents.
+    /// </summary>
     public enum WordCharacterStyles {
         DefaultParagraphFont,
         Heading1Char,
@@ -15,7 +18,15 @@ namespace OfficeIMO.Word {
         Heading9Char,
     }
 
+    /// <summary>
+    /// Helper methods for working with <see cref="WordCharacterStyles"/> values.
+    /// </summary>
     public static class WordCharacterStyle {
+        /// <summary>
+        /// Gets the <see cref="Style"/> definition for the specified character style.
+        /// </summary>
+        /// <param name="style">Character style to retrieve.</param>
+        /// <returns>The Open XML <see cref="Style"/> definition.</returns>
         public static Style GetStyleDefinition(WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return DefaultParagraphFont;
@@ -33,6 +44,11 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Converts the style enumeration to its XML string representation.
+        /// </summary>
+        /// <param name="style">Style to convert.</param>
+        /// <returns>String identifier used in the document.</returns>
         public static string ToStringStyle(this WordCharacterStyles style) {
             switch (style) {
                 case WordCharacterStyles.DefaultParagraphFont: return "DefaultParagraphFont";
@@ -50,6 +66,11 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Converts the XML string identifier to its corresponding <see cref="WordCharacterStyles"/> value.
+        /// </summary>
+        /// <param name="style">String identifier.</param>
+        /// <returns>The matching enumeration value.</returns>
         public static WordCharacterStyles GetStyle(string style) {
             switch (style) {
                 case "DefaultParagraphFont": return WordCharacterStyles.DefaultParagraphFont;

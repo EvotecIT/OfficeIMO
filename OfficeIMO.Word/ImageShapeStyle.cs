@@ -4,18 +4,36 @@ using System.Linq;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Represents style information for positioned images.
+/// </summary>
 public class ImageShapeStyle {
+    /// <summary>Gets or sets the CSS position property.</summary>
     public string Position { get; set; }
+    /// <summary>Gets or sets the left margin.</summary>
     public string MarginLeft { get; set; }
+    /// <summary>Gets or sets the top margin.</summary>
     public string MarginTop { get; set; }
+    /// <summary>Gets or sets the width.</summary>
     public string Width { get; set; }
+    /// <summary>Gets or sets the height.</summary>
     public string Height { get; set; }
+    /// <summary>Gets or sets the Z-index value.</summary>
     public string ZIndex { get; set; }
+    /// <summary>Gets or sets the horizontal position mode.</summary>
     public string MsoPositionHorizontal { get; set; }
+    /// <summary>Gets or sets the horizontal position relative to.</summary>
     public string MsoPositionHorizontalRelative { get; set; }
+    /// <summary>Gets or sets the vertical position mode.</summary>
     public string MsoPositionVertical { get; set; }
+    /// <summary>Gets or sets the vertical position relative to.</summary>
     public string MsoPositionVerticalRelative { get; set; }
 
+    /// <summary>
+    /// Parses a semicolon delimited style string into an <see cref="ImageShapeStyle"/> instance.
+    /// </summary>
+    /// <param name="styleString">The style string.</param>
+    /// <returns>A populated <see cref="ImageShapeStyle"/>.</returns>
     public static ImageShapeStyle FromString(string styleString) {
         var styleParts = styleString.Split(';')
             .Select(part => part.Split(':'))
@@ -35,6 +53,10 @@ public class ImageShapeStyle {
         return shapeStyle;
     }
 
+    /// <summary>
+    /// Serializes the instance to a style string.
+    /// </summary>
+    /// <returns>A semicolon delimited style string.</returns>
     public override string ToString() {
         var properties = typeof(ImageShapeStyle).GetProperties();
         var styleParts = new List<string>();
@@ -49,3 +71,4 @@ public class ImageShapeStyle {
         return string.Join(";", styleParts);
     }
 }
+

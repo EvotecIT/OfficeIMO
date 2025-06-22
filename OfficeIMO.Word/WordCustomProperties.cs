@@ -9,11 +9,19 @@ using DocumentFormat.OpenXml.VariantTypes;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to custom document properties stored within a Word document.
+    /// </summary>
     public class WordCustomProperties {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;
         private Properties _customProperties;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordCustomProperties"/> class.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <param name="create">When set to <c>true</c>, the custom properties part will be created if missing.</param>
         public WordCustomProperties(WordDocument document, bool? create = null) {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
@@ -53,6 +61,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a custom property to the document.
+        /// </summary>
+        /// <param name="name">Name of the property.</param>
+        /// <param name="value">Value to assign.</param>
+        /// <param name="propertyType">Type of the value.</param>
+        /// <returns>The created <see cref="CustomDocumentProperty"/>.</returns>
         public CustomDocumentProperty Add(string name, object value, PropertyTypes propertyType) {
             var newProp = new CustomDocumentProperty();
             bool propSet = false;
