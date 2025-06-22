@@ -201,8 +201,17 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
+        /// <summary>
+        /// Adds a field to the document in a new paragraph.
+        /// </summary>
+        /// <param name="wordFieldType">Type of field to insert.</param>
+        /// <param name="wordFieldFormat">Optional field format.</param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
+        /// <param name="advanced">Whether to use advanced formatting.</param>
+        /// <param name="parameters">Additional switch parameters.</param>
+        /// <returns>The created <see cref="WordParagraph"/>.</returns>
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat, advanced, parameters);
         }
 
         public WordParagraph AddEquation(string omml) {
