@@ -6,6 +6,15 @@ using SixLabors.ImageSharp.Formats;
 
 namespace OfficeIMO.Word {
     public static partial class Helpers {
+        private const double PixelsPerInch = 96.0;
+
+        internal static double ConvertPixelsToPoints(double pixels) {
+            return pixels * 72 / PixelsPerInch;
+        }
+
+        internal static double ConvertPointsToPixels(double points) {
+            return points * PixelsPerInch / 72;
+        }
         /// <summary>
         /// Converts Color to Hex Color
         /// </summary>
