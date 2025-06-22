@@ -140,6 +140,16 @@ public int Rotation { get; set; }
 
 [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
+### **Transparency**
+
+```csharp
+public Nullable<int> Transparency { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
 ### **Wrap**
 
 ```csharp
