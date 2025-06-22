@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordEmbeddedDocument.
+    /// </summary>
     public class WordEmbeddedDocument : WordElement {
         private string _id;
         private AltChunk _altChunk;
@@ -14,6 +17,10 @@ namespace OfficeIMO.Word {
         public string ContentType => _altContent.ContentType;
 
 
+        /// <summary>
+        /// Executes the Save method.
+        /// </summary>
+        /// <param name="fileName">fileName.</param>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
                 var altStream = _altContent.GetStream();
@@ -22,6 +29,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Remove method.
+        /// </summary>
         public void Remove() {
             _altChunk.Remove();
 

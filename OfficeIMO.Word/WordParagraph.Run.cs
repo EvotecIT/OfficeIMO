@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordParagraph.
+    /// </summary>
     public partial class WordParagraph {
         public bool IsEmpty {
             get {

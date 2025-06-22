@@ -11,6 +11,9 @@ using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordImage.
+    /// </summary>
     public class WordImage : WordElement {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;

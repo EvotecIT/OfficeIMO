@@ -1070,6 +1070,9 @@ namespace OfficeIMO.Word {
             body.Append(sectionProperties);
         }
 
+        /// <summary>
+        /// Executes the Dispose method.
+        /// </summary>
         public void Dispose() {
             if (this._wordprocessingDocument.AutoSave) {
                 Save();

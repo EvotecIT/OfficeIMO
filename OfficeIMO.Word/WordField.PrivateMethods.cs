@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordField.
+    /// </summary>
     public partial class WordField {
         private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, List<String> parameters = null) {
             SimpleField simpleField1 = new SimpleField() { Instruction = GenerateField(wordFieldType, wordFieldFormat, parameters) };

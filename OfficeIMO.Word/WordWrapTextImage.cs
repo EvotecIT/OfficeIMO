@@ -3,6 +3,9 @@ using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WrapTextImage.
+    /// </summary>
     public enum WrapTextImage {
         InLineWithText,
         Square,
@@ -13,11 +16,20 @@ namespace OfficeIMO.Word {
         InFrontOfText,
     }
 
+    /// <summary>
+    /// Represents the WordWrapTextImage.
+    /// </summary>
     public class WordWrapTextImage {
         private WordWrapTextImage(WrapTextImage wrapTextImage) {
 
         }
 
+        /// <summary>
+        /// Executes the AppendWrapTextImage method.
+        /// </summary>
+        /// <param name="anchor">anchor.</param>
+        /// <param name="wrapImage">wrapImage.</param>
+        /// <returns>The result.</returns>
         public static Anchor AppendWrapTextImage(Anchor anchor, WrapTextImage wrapImage) {
             if (wrapImage == WrapTextImage.Square) {
                 WrapSquare wrapSquare1 = new WrapSquare() {
@@ -47,6 +59,12 @@ namespace OfficeIMO.Word {
             return anchor;
         }
 
+        /// <summary>
+        /// Executes the GetWrapTextImage method.
+        /// </summary>
+        /// <param name="anchor">anchor.</param>
+        /// <param name="inline">inline.</param>
+        /// <returns>The result.</returns>
         public static WrapTextImage? GetWrapTextImage(Anchor anchor, Inline inline) {
             if (anchor != null) {
                 var wrapSquare = anchor.OfType<WrapSquare>().FirstOrDefault();
@@ -78,6 +96,14 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        /// <summary>
+        /// Executes the SetWrapTextImage method.
+        /// </summary>
+        /// <param name="drawing">drawing.</param>
+        /// <param name="anchor">anchor.</param>
+        /// <param name="inline">inline.</param>
+        /// <param name="wrapImage">wrapImage.</param>
+        /// <returns>The result.</returns>
         public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
             if (currentWrap == wrapImage) {

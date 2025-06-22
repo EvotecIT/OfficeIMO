@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordComment.
+    /// </summary>
     public partial class WordComment {
 
         /// <summary>

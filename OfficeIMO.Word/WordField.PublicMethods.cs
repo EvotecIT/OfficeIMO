@@ -4,7 +4,19 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordField.
+    /// </summary>
     public partial class WordField {
+        /// <summary>
+        /// Executes the AddField method.
+        /// </summary>
+        /// <param name="paragraph">paragraph.</param>
+        /// <param name="wordFieldType">wordFieldType.</param>
+        /// <param name="wordFieldFormat">wordFieldFormat.</param>
+        /// <param name="advanced">advanced.</param>
+        /// <param name="parameters">parameters.</param>
+        /// <returns>The result.</returns>
         public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             if (advanced) {
                 var runStart = AddFieldStart();
@@ -29,6 +41,9 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Executes the Remove method.
+        /// </summary>
         public void Remove() {
             if (_runs != null) {
                 foreach (var run in _runs) {

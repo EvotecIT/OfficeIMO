@@ -13,6 +13,9 @@ using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 using System.Threading;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordChart.
+    /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
         private static int _docPrIdSeed = 1;

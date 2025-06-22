@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordDocument.
+    /// </summary>
     public partial class WordDocument {
         // internal header properties for easy usage
         internal Header _headerFirst;

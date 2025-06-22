@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordHelpers.
+    /// </summary>
     public partial class WordHelpers {
         /// <summary>
         /// Removes headers and footers from the file at <paramref name="filename"/>.

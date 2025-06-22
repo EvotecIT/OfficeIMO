@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Represents the WordEquation.
+    /// </summary>
     public class WordEquation : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
@@ -33,6 +36,9 @@ namespace OfficeIMO.Word {
             this._mathParagraph = mathParagraph;
         }
 
+        /// <summary>
+        /// Executes the Remove method.
+        /// </summary>
         public void Remove() {
             if (this._officeMath != null) {
                 this._officeMath.Remove();

@@ -8,6 +8,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Represents the WordEndNote.
+    /// </summary>
     public partial class WordEndNote : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
@@ -77,6 +80,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the Remove method.
+        /// </summary>
         public void Remove() {
             long referenceId = 0;
             var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();

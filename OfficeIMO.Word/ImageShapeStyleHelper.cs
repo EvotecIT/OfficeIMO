@@ -27,6 +27,11 @@ namespace OfficeIMO.Word {
                 .ToDictionary(split => split[0], split => split[1]);
         }
 
+        /// <summary>
+        /// Applies style attributes to a VML shape.
+        /// </summary>
+        /// <param name="shape">Shape to apply styles to.</param>
+        /// <param name="style">Style attributes as key-value pairs.</param>
         public static void SetStyle(Shape shape, Dictionary<string, string> style) {
             shape.Style.Value = string.Join(";", style.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
         }

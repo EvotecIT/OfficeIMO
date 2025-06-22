@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordDocument.
+    /// </summary>
     public partial class WordDocument {
         public PageOrientationValues PageOrientation {
             get {
@@ -156,6 +159,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddPageNumbering method.
+        /// </summary>
+        /// <param name="startNumber">startNumber.</param>
+        /// <param name="format">format.</param>
         public void AddPageNumbering(int? startNumber = null, NumberFormatValues? format = null) {
             this.Sections[0].AddPageNumbering(startNumber, format);
         }

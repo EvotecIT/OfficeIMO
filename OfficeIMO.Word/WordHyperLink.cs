@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Represents the TargetFrame.
+    /// </summary>
     public enum TargetFrame {
         /// <summary>
         /// opens in the current window
@@ -25,6 +28,9 @@ namespace OfficeIMO.Word {
         _blank
     }
 
+    /// <summary>
+    /// Represents the WordHyperLink.
+    /// </summary>
     public class WordHyperLink : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
@@ -228,6 +234,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink method.
+        /// </summary>
+        /// <param name="paragraph">paragraph.</param>
+        /// <param name="text">text.</param>
+        /// <param name="anchor">anchor.</param>
+        /// <param name="addStyle">addStyle.</param>
+        /// <param name="tooltip">tooltip.</param>
+        /// <param name="history">history.</param>
+        /// <returns>The result.</returns>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             Hyperlink hyperlink = new Hyperlink() {
                 Anchor = anchor,
@@ -259,6 +275,16 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink method.
+        /// </summary>
+        /// <param name="paragraph">paragraph.</param>
+        /// <param name="text">text.</param>
+        /// <param name="uri">uri.</param>
+        /// <param name="addStyle">addStyle.</param>
+        /// <param name="tooltip">tooltip.</param>
+        /// <param name="history">history.</param>
+        /// <returns>The result.</returns>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 

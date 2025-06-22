@@ -1,7 +1,14 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordChart.
+    /// </summary>
     public partial class WordChart {
+        /// <summary>
+        /// Executes the AddCategories method.
+        /// </summary>
+        /// <param name="categories">categories.</param>
         public void AddCategories(List<string> categories) {
             Categories = categories;
         }
@@ -54,10 +61,20 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Executes the AddChartAxisX method.
+        /// </summary>
+        /// <param name="categories">categories.</param>
         public void AddChartAxisX(List<string> categories) {
             Categories = categories;
         }
 
+        /// <summary>
+        /// Executes the AddBar method.
+        /// </summary>
+        /// <param name="name">name.</param>
+        /// <param name="values">values.</param>
+        /// <param name="color">color.</param>
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -76,6 +93,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddBar method.
+        /// </summary>
+        /// <param name="name">name.</param>
+        /// <param name="values">values.</param>
+        /// <param name="color">color.</param>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -107,6 +130,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddScatter method.
+        /// </summary>
+        /// <param name="name">name.</param>
+        /// <param name="xValues">xValues.</param>
+        /// <param name="yValues">yValues.</param>
+        /// <param name="color">color.</param>
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
@@ -192,6 +222,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Executes the AddLegend method.
+        /// </summary>
+        /// <param name="legendPosition">legendPosition.</param>
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();

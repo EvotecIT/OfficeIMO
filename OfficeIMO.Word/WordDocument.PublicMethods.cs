@@ -8,7 +8,15 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordDocument.
+    /// </summary>
     public partial class WordDocument {
+        /// <summary>
+        /// Executes the AddParagraph method.
+        /// </summary>
+        /// <param name="wordParagraph">wordParagraph.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
             if (wordParagraph == null) {
                 // we create paragraph (and within that add it to document)
@@ -19,11 +27,20 @@ namespace OfficeIMO.Word {
             return wordParagraph;
         }
 
+        /// <summary>
+        /// Executes the AddParagraph method.
+        /// </summary>
+        /// <param name="text">text.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddParagraph(string text) {
             //return AddParagraph().SetText(text);
             return AddParagraph().AddText(text);
         }
 
+        /// <summary>
+        /// Executes the AddPageBreak method.
+        /// </summary>
+        /// <returns>The result.</returns>
         public WordParagraph AddPageBreak() {
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = BreakValues.Page }),
@@ -35,10 +52,18 @@ namespace OfficeIMO.Word {
             return newWordParagraph;
         }
 
+        /// <summary>
+        /// Executes the AddHeadersAndFooters method.
+        /// </summary>
         public void AddHeadersAndFooters() {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
+        /// <summary>
+        /// Executes the AddBreak method.
+        /// </summary>
+        /// <param name="breakType">breakType.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddBreak(BreakValues? breakType = null) {
             breakType ??= BreakValues.Page;
             WordParagraph newWordParagraph = new WordParagraph {
@@ -52,10 +77,28 @@ namespace OfficeIMO.Word {
             return newWordParagraph;
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink method.
+        /// </summary>
+        /// <param name="text">text.</param>
+        /// <param name="uri">uri.</param>
+        /// <param name="addStyle">addStyle.</param>
+        /// <param name="tooltip">tooltip.</param>
+        /// <param name="history">history.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
+        /// <summary>
+        /// Executes the AddHyperLink method.
+        /// </summary>
+        /// <param name="text">text.</param>
+        /// <param name="anchor">anchor.</param>
+        /// <param name="addStyle">addStyle.</param>
+        /// <param name="tooltip">tooltip.</param>
+        /// <param name="history">history.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
@@ -85,18 +128,35 @@ namespace OfficeIMO.Word {
             return chartInstance;
         }
 
+        /// <summary>
+        /// Executes the AddList method.
+        /// </summary>
+        /// <param name="style">style.</param>
+        /// <returns>The result.</returns>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this);
             wordList.AddList(style);
             return wordList;
         }
 
+        /// <summary>
+        /// Executes the AddTableOfContentList method.
+        /// </summary>
+        /// <param name="style">style.</param>
+        /// <returns>The result.</returns>
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
             wordList.AddList(style);
             return wordList;
         }
 
+        /// <summary>
+        /// Executes the AddTable method.
+        /// </summary>
+        /// <param name="rows">rows.</param>
+        /// <param name="columns">columns.</param>
+        /// <param name="tableStyle">tableStyle.</param>
+        /// <returns>The result.</returns>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
@@ -146,21 +206,45 @@ namespace OfficeIMO.Word {
             return newToc;
         }
 
+        /// <summary>
+        /// Executes the AddCoverPage method.
+        /// </summary>
+        /// <param name="coverPageTemplate">coverPageTemplate.</param>
+        /// <returns>The result.</returns>
         public WordCoverPage AddCoverPage(CoverPageTemplate coverPageTemplate) {
             WordCoverPage wordCoverPage = new WordCoverPage(this, coverPageTemplate);
             return wordCoverPage;
         }
 
+        /// <summary>
+        /// Executes the AddTextBox method.
+        /// </summary>
+        /// <param name="text">text.</param>
+        /// <param name="wrapTextImage">wrapTextImage.</param>
+        /// <returns>The result.</returns>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             WordTextBox wordTextBox = new WordTextBox(this, text, wrapTextImage);
             return wordTextBox;
         }
 
+        /// <summary>
+        /// Executes the AddHorizontalLine method.
+        /// </summary>
+        /// <param name="lineType">lineType.</param>
+        /// <param name="color">color.</param>
+        /// <param name="size">size.</param>
+        /// <param name="space">space.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
             return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
 
+        /// <summary>
+        /// Executes the AddSection method.
+        /// </summary>
+        /// <param name="sectionMark">sectionMark.</param>
+        /// <returns>The result.</returns>
         public WordSection AddSection(SectionMarkValues? sectionMark = null) {
             Paragraph paragraph = new Paragraph();
 
@@ -197,22 +281,54 @@ namespace OfficeIMO.Word {
             this.Sections[index].RemoveSection();
         }
 
+        /// <summary>
+        /// Executes the AddBookmark method.
+        /// </summary>
+        /// <param name="bookmarkName">bookmarkName.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
+        /// <summary>
+        /// Executes the AddField method.
+        /// </summary>
+        /// <param name="wordFieldType">wordFieldType.</param>
+        /// <param name="wordFieldFormat">wordFieldFormat.</param>
+        /// <param name="advanced">advanced.</param>
+        /// <param name="parameters">parameters.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
         }
 
+        /// <summary>
+        /// Executes the AddEquation method.
+        /// </summary>
+        /// <param name="omml">omml.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddEquation(string omml) {
             return this.AddParagraph().AddEquation(omml);
         }
 
+        /// <summary>
+        /// Executes the AddEmbeddedObject method.
+        /// </summary>
+        /// <param name="filePath">filePath.</param>
+        /// <param name="imageFilePath">imageFilePath.</param>
+        /// <param name="width">width.</param>
+        /// <param name="height">height.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }
 
+        /// <summary>
+        /// Executes the AddEmbeddedObject method.
+        /// </summary>
+        /// <param name="filePath">filePath.</param>
+        /// <param name="options">options.</param>
+        /// <returns>The result.</returns>
         public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             return this.AddParagraph().AddEmbeddedObject(filePath, options);
         }
@@ -227,18 +343,40 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddStructuredDocumentTag(alias, text, tag);
         }
 
+        /// <summary>
+        /// Executes the AddEmbeddedDocument method.
+        /// </summary>
+        /// <param name="fileName">fileName.</param>
+        /// <param name="type">type.</param>
+        /// <returns>The result.</returns>
         public WordEmbeddedDocument AddEmbeddedDocument(string fileName, WordAlternativeFormatImportPartType? type = null) {
             return new WordEmbeddedDocument(this, fileName, type, false);
         }
 
+        /// <summary>
+        /// Executes the AddEmbeddedFragment method.
+        /// </summary>
+        /// <param name="htmlContent">htmlContent.</param>
+        /// <param name="type">type.</param>
+        /// <returns>The result.</returns>
         public WordEmbeddedDocument AddEmbeddedFragment(string htmlContent, WordAlternativeFormatImportPartType type) {
             return new WordEmbeddedDocument(this, htmlContent, type, true);
         }
 
+        /// <summary>
+        /// Executes the GetStructuredDocumentTagByTag method.
+        /// </summary>
+        /// <param name="tag">tag.</param>
+        /// <returns>The result.</returns>
         public WordStructuredDocumentTag GetStructuredDocumentTagByTag(string tag) {
             return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Tag == tag);
         }
 
+        /// <summary>
+        /// Executes the GetStructuredDocumentTagByAlias method.
+        /// </summary>
+        /// <param name="alias">alias.</param>
+        /// <returns>The result.</returns>
         public WordStructuredDocumentTag GetStructuredDocumentTagByAlias(string alias) {
             return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Alias == alias);
         }
@@ -339,6 +477,12 @@ namespace OfficeIMO.Word {
             return count;
         }
 
+        /// <summary>
+        /// Executes the Find method.
+        /// </summary>
+        /// <param name="text">text.</param>
+        /// <param name="stringComparison">stringComparison.</param>
+        /// <returns>The result.</returns>
         public List<WordParagraph> Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             int count = 0;
             List<WordParagraph> list = FindAndReplaceInternal(text, "", ref count, false, stringComparison);

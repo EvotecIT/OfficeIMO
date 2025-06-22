@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordTabChar.
+    /// </summary>
     public class WordTabChar : WordElement {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
@@ -16,6 +19,10 @@ namespace OfficeIMO.Word {
             this._run = run;
         }
 
+        /// <summary>
+        /// Executes the Remove method.
+        /// </summary>
+        /// <param name="includingParagraph">includingParagraph.</param>
         public void Remove(bool includingParagraph = false) {
             if (includingParagraph) {
                 this._paragraph.Remove();

@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordFooters.
+    /// </summary>
     public class WordFooters {
         public WordFooter Default {
             get;
@@ -22,6 +25,9 @@ namespace OfficeIMO.Word {
             set;
         }
     }
+    /// <summary>
+    /// Represents the WordFooter.
+    /// </summary>
     public partial class WordFooter : WordHeaderFooter {
         private readonly WordSection _section;
 
@@ -58,6 +64,11 @@ namespace OfficeIMO.Word {
             _section = section;
         }
 
+        /// <summary>
+        /// Executes the AddPageNumber method.
+        /// </summary>
+        /// <param name="wordPageNumberStyle">wordPageNumberStyle.</param>
+        /// <returns>The result.</returns>
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
             return pageNumber;

@@ -2,6 +2,9 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordField.
+    /// </summary>
     public partial class WordField {
         /// <summary>
         /// Replaces the current field with plain text.

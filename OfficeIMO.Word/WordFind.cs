@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordFind.
+    /// </summary>
     public class WordFind {
         public int Found = 0;
         public int Replacements = 0;
@@ -62,6 +65,15 @@ namespace OfficeIMO.Word {
 
 
 public static class StringExtensions {
+    /// <summary>
+    /// Executes the FindAndReplace method.
+    /// </summary>
+    /// <param name="str">str.</param>
+    /// <param name="oldValue">oldValue.</param>
+    /// <param name="newValue">newValue.</param>
+    /// <param name="comparisonType">comparisonType.</param>
+    /// <param name="count">count.</param>
+    /// <returns>The result.</returns>
     public static string FindAndReplace(this string str, string oldValue, string newValue, StringComparison comparisonType, ref int count) {
         List<string> list = new List<string>();
         // Check inputs.

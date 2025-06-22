@@ -2,6 +2,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Tabs = DocumentFormat.OpenXml.Wordprocessing.Tabs;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordTabStop.
+    /// </summary>
     public class WordTabStop {
 
         private WordParagraph _paragraph { get; set; }

@@ -10,6 +10,9 @@ using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the WordEmbeddedObject.
+    /// </summary>
     public class WordEmbeddedObject {
         private readonly WordDocument _document;
         private readonly Run _run;
@@ -60,9 +63,6 @@ namespace OfficeIMO.Word {
 
         //public Paragraph GenerateParagraph(string imageId, string embedId) {
         //    Paragraph paragraph1 = new Paragraph() { RsidParagraphAddition = "008F6FFA", RsidRunAdditionDefault = "008F6FFA", ParagraphId = "324F144F", TextId = "77777777" };
-
-        //    Run run1 = new Run();
-
 
 
         //    run1.Append(embeddedObject1);
@@ -209,6 +209,15 @@ namespace OfficeIMO.Word {
             return embeddedObject1;
         }
 
+        /// <summary>
+        /// Executes the GenerateEmbeddedObject method.
+        /// </summary>
+        /// <param name="imageId">imageId.</param>
+        /// <param name="packageEmbedId">packageEmbedId.</param>
+        /// <param name="programId">programId.</param>
+        /// <param name="width">width.</param>
+        /// <param name="height">height.</param>
+        /// <returns>The result.</returns>
         public EmbeddedObject GenerateEmbeddedObject(string imageId, string packageEmbedId, string programId, double width, double height) {
             EmbeddedObject embeddedObject1 = new EmbeddedObject() { DxaOriginal = "1297", DyaOriginal = "816", AnchorId = "595268A8" };
 
