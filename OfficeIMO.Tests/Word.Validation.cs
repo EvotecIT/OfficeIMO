@@ -3,6 +3,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.IO.Packaging;
+using System.Xml.Linq;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -52,23 +54,38 @@ namespace OfficeIMO.Tests {
         public void Test_ListRestartNumberingAddsNamespace() {
             string filePath = Path.Combine(_directoryWithFiles, "RestartNumberingNamespace.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var list = document.AddList(WordListStyle.Bulleted);
-                var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-                numbering.RemoveAttribute("w15", "http://www.w3.org/2000/xmlns/");
-                if (numbering.MCAttributes != null) {
-                    var parts = numbering.MCAttributes.Ignorable?.Value?.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Where(p => p != "w15");
-                    numbering.MCAttributes.Ignorable = parts != null ? string.Join(" ", parts) : null;
-                }
+                document.AddList(WordListStyle.Bulleted);
+                document.Save(false);
+            }
 
+            // remove w15 namespace manually
+            using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
+                var part = package.GetPart(new Uri("/word/numbering.xml", UriKind.Relative));
+                XDocument xml;
+                using (var stream = part.GetStream()) {
+                    xml = XDocument.Load(stream);
+                }
+                XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+                xml.Root!.Attribute(XNamespace.Xmlns + "w15")?.Remove();
+                var ignorable = xml.Root.Attribute(mc + "Ignorable");
+                if (ignorable != null) {
+                    ignorable.Value = string.Join(" ", ignorable.Value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Where(p => p != "w15"));
+                }
+                using (var stream = part.GetStream(FileMode.Create, FileAccess.Write)) {
+                    xml.Save(stream);
+                }
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var list = document.Lists[0];
                 list.RestartNumberingAfterBreak = true;
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
-                bool hasNs = numbering.GetAttributes().Any(a => a.Prefix == "xmlns" && a.LocalName == "w15");
-                Assert.True(hasNs);
+                Assert.NotNull(numbering.LookupNamespace("w15"));
+                Assert.Contains("w15", numbering.MCAttributes!.Ignorable!.Value.Split(' '));
             }
         }
     }

@@ -661,10 +661,8 @@ public partial class WordList : WordElement {
     private static void EnsureW15Namespace(Numbering numbering) {
         const string prefix = "w15";
         const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
-        try {
+        if (numbering.LookupNamespace(prefix) == null) {
             numbering.AddNamespaceDeclaration(prefix, ns);
-        } catch (InvalidOperationException) {
-            // namespace already defined
         }
         if (numbering.MCAttributes == null) {
                 numbering.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = prefix };
