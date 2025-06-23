@@ -1,5 +1,6 @@
 using System;
 using OfficeIMO.Word;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Images {
@@ -18,15 +19,15 @@ namespace OfficeIMO.Examples.Word {
             paragraph1.Image.PreferRelativeResize = true;
             paragraph1.Image.NoChangeAspect = true;
             paragraph1.Image.FixedOpacity = 80;
-            paragraph1.Image.AlphaInversionColor = "FF0000";
+            paragraph1.Image.AlphaInversionColor = Color.Red;
             paragraph1.Image.BlackWhiteThreshold = 60;
             paragraph1.Image.BlurRadius = 5000;
             paragraph1.Image.BlurGrow = true;
-            paragraph1.Image.ColorChangeFrom = "97E4FE";
-            paragraph1.Image.ColorChangeTo = "FF3399";
-            paragraph1.Image.ColorReplacement = "00FF00";
-            paragraph1.Image.DuotoneColor1 = "000000";
-            paragraph1.Image.DuotoneColor2 = "FFFFFF";
+            paragraph1.Image.ColorChangeFrom = Color.Parse("#97E4FE");
+            paragraph1.Image.ColorChangeTo = Color.Parse("#FF3399");
+            paragraph1.Image.ColorReplacement = Color.Lime;
+            paragraph1.Image.DuotoneColor1 = Color.Black;
+            paragraph1.Image.DuotoneColor2 = Color.White;
             paragraph1.Image.GrayScale = true;
             paragraph1.Image.LuminanceBrightness = 65;
             paragraph1.Image.LuminanceContrast = 30;

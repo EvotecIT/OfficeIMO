@@ -552,15 +552,15 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
                 var img = paragraph.Image;
-                img.AlphaInversionColor = "FF0000";
+                img.AlphaInversionColor = SixLabors.ImageSharp.Color.Red;
                 img.BlackWhiteThreshold = 60;
                 img.BlurRadius = 2000;
                 img.BlurGrow = true;
-                img.ColorChangeFrom = "97E4FE";
-                img.ColorChangeTo = "FF3399";
-                img.ColorReplacement = "00FF00";
-                img.DuotoneColor1 = "000000";
-                img.DuotoneColor2 = "FFFFFF";
+                img.ColorChangeFrom = SixLabors.ImageSharp.Color.Parse("#97E4FE");
+                img.ColorChangeTo = SixLabors.ImageSharp.Color.Parse("#FF3399");
+                img.ColorReplacement = SixLabors.ImageSharp.Color.Lime;
+                img.DuotoneColor1 = SixLabors.ImageSharp.Color.Black;
+                img.DuotoneColor2 = SixLabors.ImageSharp.Color.White;
                 img.GrayScale = true;
                 img.LuminanceBrightness = 65;
                 img.LuminanceContrast = 30;
@@ -571,15 +571,15 @@ namespace OfficeIMO.Tests {
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 var img = reloaded.Images[0];
-                Assert.Equal("FF0000", img.AlphaInversionColor);
+                Assert.Equal("FF0000", img.AlphaInversionColorHex);
                 Assert.Equal(60, img.BlackWhiteThreshold);
                 Assert.Equal(2000, img.BlurRadius);
                 Assert.True(img.BlurGrow);
-                Assert.Equal("97E4FE", img.ColorChangeFrom);
-                Assert.Equal("FF3399", img.ColorChangeTo);
-                Assert.Equal("00FF00", img.ColorReplacement);
-                Assert.Equal("000000", img.DuotoneColor1);
-                Assert.Equal("FFFFFF", img.DuotoneColor2);
+                Assert.Equal("97E4FE", img.ColorChangeFromHex);
+                Assert.Equal("FF3399", img.ColorChangeToHex);
+                Assert.Equal("00FF00", img.ColorReplacementHex);
+                Assert.Equal("000000", img.DuotoneColor1Hex);
+                Assert.Equal("FFFFFF", img.DuotoneColor2Hex);
                 Assert.True(img.GrayScale);
                 Assert.Equal(65, img.LuminanceBrightness);
                 Assert.Equal(30, img.LuminanceContrast);
