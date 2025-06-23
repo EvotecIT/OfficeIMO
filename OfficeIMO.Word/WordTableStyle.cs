@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -411,8 +411,10 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static bool IsAvailableStyle(Styles styles, WordTableStyle style) {
             var listCurrentStyles = styles.OfType<Style>().ToList();
+            // Compare against style ID from the style definition to avoid duplicate styles (#85)
+            string styleId = GetStyleDefinition(style).StyleId.Value;
             foreach (var currentStyle in listCurrentStyles) {
-                if (currentStyle.StyleId == style.ToString()) {
+                if (currentStyle.StyleId == styleId) {
                     return true;
                 }
             }
