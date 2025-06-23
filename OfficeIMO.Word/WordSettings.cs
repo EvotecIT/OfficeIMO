@@ -468,7 +468,7 @@ namespace OfficeIMO.Word {
         public string BackgroundColor {
             get {
                 if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground != null) {
-                    return _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color;
+                    return _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color.Value.ToLowerInvariant();
                 }
 
                 return null;

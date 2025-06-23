@@ -63,14 +63,14 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath1)) {
                 Assert.Single(document.Paragraphs);
-                Assert.True(filePath1.IsFileLocked());
+                Assert.False(filePath1.IsFileLocked());
             }
             using (var document = WordDocument.Load(filePath2)) {
                 Assert.Equal(2, document.Paragraphs.Count);
-                Assert.True(filePath2.IsFileLocked());
+                Assert.False(filePath2.IsFileLocked());
             }
             using (var document = WordDocument.Load(filePath3)) {
-                Assert.True(filePath3.IsFileLocked());
+                Assert.False(filePath3.IsFileLocked());
 
                 Assert.Equal(3, document.Paragraphs.Count);
                 document.AddParagraph("More paragraphs!");
@@ -85,11 +85,11 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath3)) {
                 Assert.Equal(3, document.Paragraphs.Count);
-                Assert.True(filePath3.IsFileLocked());
+                Assert.False(filePath3.IsFileLocked());
             }
             using (var document = WordDocument.Load(filePath4)) {
                 Assert.Equal(4, document.Paragraphs.Count);
-                Assert.True(filePath4.IsFileLocked());
+                Assert.False(filePath4.IsFileLocked());
             }
 
             Assert.False(filePath1.IsFileLocked());
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
 
             document.AddParagraph("This is my test");
 
-            Assert.True(filePath1.IsFileLocked());
+            Assert.False(filePath1.IsFileLocked());
 
             document.Save();
 

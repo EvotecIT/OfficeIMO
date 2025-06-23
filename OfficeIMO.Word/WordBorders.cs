@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
-                    return (pageBorder.LeftBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.LeftBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -71,12 +71,12 @@ namespace OfficeIMO.Word {
                     pageBorder.LeftBorder = new LeftBorder();
                 }
 
-                pageBorder.LeftBorder.Color = value.Replace("#", "");
+                pageBorder.LeftBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
         public SixLabors.ImageSharp.Color LeftColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex); }
+            get { return Helpers.ParseColor(LeftColorHex); }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
-                    return (pageBorder.RightBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.RightBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -220,12 +220,12 @@ namespace OfficeIMO.Word {
                     pageBorder.RightBorder = new RightBorder();
                 }
 
-                pageBorder.RightBorder.Color = value.Replace("#", "");
+                pageBorder.RightBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
         public SixLabors.ImageSharp.Color RightColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex); }
+            get { return Helpers.ParseColor(RightColorHex); }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
@@ -353,7 +353,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
-                    return (pageBorder.TopBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.TopBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -369,12 +369,12 @@ namespace OfficeIMO.Word {
                     pageBorder.TopBorder = new TopBorder();
                 }
 
-                pageBorder.TopBorder.Color = value.Replace("#", "");
+                pageBorder.TopBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
         public SixLabors.ImageSharp.Color TopColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex); }
+            get { return Helpers.ParseColor(TopColorHex); }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
@@ -503,7 +503,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder != null) {
-                    return (pageBorder.BottomBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.BottomBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -519,12 +519,12 @@ namespace OfficeIMO.Word {
                     pageBorder.BottomBorder = new BottomBorder();
                 }
 
-                pageBorder.BottomBorder.Color = value.Replace("#", "");
+                pageBorder.BottomBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
         public SixLabors.ImageSharp.Color BottomColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex); }
+            get { return Helpers.ParseColor(BottomColorHex); }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 

@@ -11028,7 +11028,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="A52A2A" />
+              <a:srgbClr val="a52a2a" />
             </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
@@ -11138,7 +11138,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="f0f8ff" />
             </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
@@ -11258,7 +11258,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="00FFFF" />
+              <a:srgbClr val="00ffff" />
             </a:solidFill>
           </c:spPr>
           <c:invertIfNegative />
@@ -11491,7 +11491,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="A52A2A" />
+              <a:srgbClr val="a52a2a" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11545,7 +11545,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="f0f8ff" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11715,7 +11715,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="A52A2A" />
+              <a:srgbClr val="a52a2a" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -11769,7 +11769,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="F0F8FF" />
+              <a:srgbClr val="f0f8ff" />
             </a:solidFill>
           </c:spPr>
           <c:cat>
@@ -12006,7 +12006,7 @@
           </c:tx>
           <c:spPr>
             <a:solidFill>
-              <a:srgbClr val="00008B" />
+              <a:srgbClr val="00008b" />
             </a:solidFill>
           </c:spPr>
           <c:cat>

@@ -568,7 +568,7 @@
             <w:pPr />
             <w:r>
               <w:rPr>
-                <w:color w:val="0000FF" />
+                <w:color w:val="0000ff" />
               </w:rPr>
               <w:t xml:space="preserve">Adding text to cell</w:t>
             </w:r>
@@ -637,7 +637,7 @@
       </w:r>
       <w:r>
         <w:rPr>
-          <w:color w:val="FF4500" />
+          <w:color w:val="ff4500" />
         </w:rPr>
         <w:t xml:space="preserve">is not really complicated</w:t>
       </w:r>
@@ -659,7 +659,7 @@
       <w:pPr />
       <w:r>
         <w:rPr>
-          <w:color w:val="0000FF" />
+          <w:color w:val="0000ff" />
         </w:rPr>
         <w:t xml:space="preserve">For example TOC List is just another list, but defining a specific style.</w:t>
       </w:r>

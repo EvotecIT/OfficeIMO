@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder != null && pageBorder.LeftBorder != null && pageBorder.LeftBorder.Color != null) {
-                    return (pageBorder.LeftBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.LeftBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
                     pageBorder.LeftBorder = new LeftBorder();
                 }
 
-                pageBorder.LeftBorder.Color = value.Replace("#", "");
+                pageBorder.LeftBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
                 if (LeftColorHex == null || LeftColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex);
+                return Helpers.ParseColor(LeftColorHex);
             }
             set => LeftColorHex = value.Value.ToHexColor();
         }
@@ -281,7 +281,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder != null && pageBorder.RightBorder != null && pageBorder.RightBorder.Color != null) {
-                    return (pageBorder.RightBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.RightBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -297,7 +297,7 @@ namespace OfficeIMO.Word {
                     pageBorder.RightBorder = new RightBorder();
                 }
 
-                pageBorder.RightBorder.Color = value.Replace("#", "");
+                pageBorder.RightBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -309,7 +309,7 @@ namespace OfficeIMO.Word {
                 if (RightColorHex == null || RightColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex);
+                return Helpers.ParseColor(RightColorHex);
             }
             set => RightColorHex = value.Value.ToHexColor();
         }
@@ -482,7 +482,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder != null && pageBorder.TopBorder != null && pageBorder.TopBorder.Color != null) {
-                    return (pageBorder.TopBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.TopBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -498,7 +498,7 @@ namespace OfficeIMO.Word {
                     pageBorder.TopBorder = new TopBorder();
                 }
 
-                pageBorder.TopBorder.Color = value.Replace("#", "");
+                pageBorder.TopBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -511,7 +511,7 @@ namespace OfficeIMO.Word {
                     ) {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex);
+                return Helpers.ParseColor(TopColorHex);
             }
             set { this.TopColorHex = value.Value.ToHexColor(); }
         }
@@ -685,7 +685,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder != null && pageBorder.BottomBorder != null && pageBorder.BottomBorder.Color != null) {
-                    return (pageBorder.BottomBorder.Color).Value.Replace("#", "");
+                    return (pageBorder.BottomBorder.Color).Value.Replace("#", "").ToLowerInvariant();
                 }
 
                 return null;
@@ -701,7 +701,7 @@ namespace OfficeIMO.Word {
                     pageBorder.BottomBorder = new BottomBorder();
                 }
 
-                pageBorder.BottomBorder.Color = value.Replace("#", "");
+                pageBorder.BottomBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -713,7 +713,7 @@ namespace OfficeIMO.Word {
                 if (BottomColorHex == null || BottomColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex);
+                return Helpers.ParseColor(BottomColorHex);
             }
             set {
                 if (value == null) {
