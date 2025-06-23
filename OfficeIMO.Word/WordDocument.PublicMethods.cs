@@ -430,7 +430,7 @@ namespace OfficeIMO.Word {
             }
             List<WordParagraph> foundParagraphs = new List<WordParagraph>();
             var removeParas = new List<int>();
-            var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 });
+            var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 }, stringComparison);
 
             if (foundList?.Count > 0) {
                 count += foundList.Count;
@@ -441,7 +441,8 @@ namespace OfficeIMO.Word {
                         var p = paragraphs[ts.BeginIndex];
                         if (p != null) {
                             if (replace) {
-                                p.Text = p.Text.Replace(oldText, newText);
+                                int replaceCount = 0;
+                                p.Text = p.Text.FindAndReplace(oldText, newText, stringComparison, ref replaceCount);
                             }
                             if (foundParagraphs.IndexOf(p) == -1) {
                                 foundParagraphs.Add(p);
