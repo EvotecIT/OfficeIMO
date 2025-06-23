@@ -32,6 +32,11 @@ namespace OfficeIMO.Word {
             WordMacro.RemoveMacro(_document, Name);
         }
 
+        /// <summary>
+        /// Enumerates all macro modules in the specified document.
+        /// </summary>
+        /// <param name="document">Document to inspect.</param>
+        /// <returns>List of <see cref="WordMacro"/> instances.</returns>
         internal static IReadOnlyList<WordMacro> GetMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (!document.HasMacros) return new List<WordMacro>();
@@ -46,6 +51,11 @@ namespace OfficeIMO.Word {
             return modules;
         }
 
+        /// <summary>
+        /// Adds a VBA project from a file to the specified document.
+        /// </summary>
+        /// <param name="document">Target document.</param>
+        /// <param name="filePath">Path to a <c>vbaProject.bin</c> file.</param>
         internal static void AddMacro(WordDocument document, string filePath) {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath)) throw new FileNotFoundException("File doesn't exist", filePath);
@@ -53,6 +63,11 @@ namespace OfficeIMO.Word {
             AddMacro(document, File.ReadAllBytes(filePath));
         }
 
+        /// <summary>
+        /// Adds a VBA project from a byte array to the specified document.
+        /// </summary>
+        /// <param name="document">Target document.</param>
+        /// <param name="data">VBA project data.</param>
         internal static void AddMacro(WordDocument document, byte[] data) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (data == null || data.Length == 0) throw new ArgumentNullException(nameof(data));
@@ -66,6 +81,11 @@ namespace OfficeIMO.Word {
             vbaPart.FeedData(stream);
         }
 
+        /// <summary>
+        /// Returns the raw VBA project from the given document.
+        /// </summary>
+        /// <param name="document">Document containing macros.</param>
+        /// <returns>Byte array with the macros or <c>null</c> when absent.</returns>
         internal static byte[] ExtractMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var vbaPart = document._wordprocessingDocument.MainDocumentPart.VbaProjectPart;
@@ -76,6 +96,11 @@ namespace OfficeIMO.Word {
             return ms.ToArray();
         }
 
+        /// <summary>
+        /// Saves the VBA project from a document to the specified file.
+        /// </summary>
+        /// <param name="document">Source document.</param>
+        /// <param name="filePath">Destination path.</param>
         internal static void SaveMacros(WordDocument document, string filePath) {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
             var data = ExtractMacros(document);
@@ -83,12 +108,21 @@ namespace OfficeIMO.Word {
             File.WriteAllBytes(filePath, data);
         }
 
+        /// <summary>
+        /// Removes a single macro module from a document.
+        /// </summary>
+        /// <param name="document">Document to modify.</param>
+        /// <param name="name">Module name to remove.</param>
         internal static void RemoveMacro(WordDocument document, string name) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (!document.HasMacros) return;
             RemoveMacros(document);
         }
 
+        /// <summary>
+        /// Removes the entire VBA project from the document.
+        /// </summary>
+        /// <param name="document">Document to modify.</param>
         internal static void RemoveMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var main = document._wordprocessingDocument.MainDocumentPart;
@@ -97,9 +131,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Minimal parser for extracting module names from a VBA project.
+        /// </summary>
         private static class Parser {
             private const int EndOfChain = unchecked((int)0xFFFFFFFE);
 
+            /// <summary>Represents a directory entry inside the compound file.</summary>
             private class DirEntry {
                 public string Name = string.Empty;
                 public byte Type;
@@ -111,6 +149,11 @@ namespace OfficeIMO.Word {
                 public int Parent = -1;
             }
 
+            /// <summary>
+            /// Reads module names from the provided VBA project stream.
+            /// </summary>
+            /// <param name="stream">Stream containing <c>vbaProject.bin</c>.</param>
+            /// <returns>List of module names.</returns>
             internal static IReadOnlyList<string> GetModuleNames(Stream stream) {
                 var modules = new List<string>();
                 if (stream == null || !stream.CanRead) return modules;
@@ -160,6 +203,9 @@ namespace OfficeIMO.Word {
                 return modules;
             }
 
+            /// <summary>
+            /// Reads the File Allocation Table sectors.
+            /// </summary>
             private static List<int> ReadFat(Stream stream, BinaryReader reader, List<int> fatSectors, int sectorSize) {
                 var fat = new List<int>();
                 int perSector = sectorSize / 4;
@@ -171,6 +217,9 @@ namespace OfficeIMO.Word {
                 return fat;
             }
 
+            /// <summary>
+            /// Reads a chain of sectors from the compound file.
+            /// </summary>
             private static byte[] ReadChain(Stream stream, BinaryReader reader, int start, int sectorSize, List<int> fat) {
                 if (start < 0) return Array.Empty<byte>();
                 using var ms = new MemoryStream();
@@ -183,6 +232,9 @@ namespace OfficeIMO.Word {
                 return ms.ToArray();
             }
 
+            /// <summary>
+            /// Parses directory entries from a byte buffer.
+            /// </summary>
             private static List<DirEntry> ParseDirectory(byte[] data) {
                 var list = new List<DirEntry>(data.Length / 128);
                 for (int offset = 0; offset + 128 <= data.Length; offset += 128) {
