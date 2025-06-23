@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -387,6 +388,11 @@ public partial class Word {
 
             using var outputStream = new MemoryStream();
             document.Save(outputStream);
+
+            using (var openXmlDoc = WordprocessingDocument.Open(outputStream, false)) {
+                Assert.NotNull(openXmlDoc.MainDocumentPart);
+            }
+            outputStream.Seek(0, SeekOrigin.Begin);
             File.WriteAllBytes(filePath, outputStream.ToArray());
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
