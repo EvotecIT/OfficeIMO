@@ -94,5 +94,18 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
             File.Delete(vbaPath);
         }
+
+        [Fact]
+        public void Test_EnumeratingMacroNames() {
+            string vbaPath = Path.Combine(_directoryDocuments, "dummyVba.bin");
+            CreateDummyVba(vbaPath);
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "MacroNames.docm"))) {
+                document.AddMacro(vbaPath);
+                Assert.Single(document.Macros);
+                Assert.Equal("Module1", document.Macros[0].Name);
+            }
+            File.Delete(vbaPath);
+            File.Delete(Path.Combine(_directoryWithFiles, "MacroNames.docm"));
+        }
     }
 }
