@@ -211,5 +211,25 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public WordChart SetXAxisTitle(string title) {
+            _xAxisTitle = title;
+            UpdateAxisTitles();
+            return this;
+        }
+
+        public WordChart SetYAxisTitle(string title) {
+            _yAxisTitle = title;
+            UpdateAxisTitles();
+            return this;
+        }
+
+        public WordChart SetAxisTitleFormat(string fontName, int fontSize, SixLabors.ImageSharp.Color color) {
+            _axisTitleFontName = fontName;
+            _axisTitleFontSize = fontSize;
+            _axisTitleColor = color;
+            UpdateAxisTitles();
+            return this;
+        }
     }
 }
