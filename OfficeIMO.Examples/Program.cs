@@ -237,6 +237,7 @@ namespace OfficeIMO.Examples {
 
             Macros.Example_CreateDocmWithMacro(templatesPath, folderPath, false);
             Macros.Example_AddMacroToExistingDocx(templatesPath, folderPath, false);
+            Macros.Example_ListMacros(templatesPath, folderPath, false);
             Macros.Example_ExtractAndRemoveMacro(templatesPath, folderPath, false);
             Macros.Example_ListAndRemoveMacro(templatesPath, folderPath, false);
         }
