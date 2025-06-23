@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Tabs = DocumentFormat.OpenXml.Wordprocessing.Tabs;
 
 namespace OfficeIMO.Word {
-    public class WordTabStop {
+    public class WordTabStop : System.IEquatable<WordTabStop> {
 
         private WordParagraph _paragraph { get; set; }
 
@@ -61,6 +61,19 @@ namespace OfficeIMO.Word {
             _tabs.Append(tabStop1);
             _tabStop = tabStop1;
             return this;
+        }
+
+        public bool Equals(WordTabStop other) {
+            if (other is null) return false;
+            return Alignment == other.Alignment && Leader == other.Leader && Position == other.Position;
+        }
+
+        public override bool Equals(object obj) {
+            return obj is WordTabStop other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return System.HashCode.Combine(Alignment, Leader, Position);
         }
     }
 }
