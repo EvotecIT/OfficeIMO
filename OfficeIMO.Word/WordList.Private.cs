@@ -120,6 +120,9 @@ public partial class WordList : WordElement {
 
             numberingDefinitionsPart.Numbering = numbering1;
             numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
+        } else if (numberingDefinitionsPart.Numbering.GetNamespaceOfPrefix("w15") == null) {
+            numberingDefinitionsPart.Numbering.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
         }
     }
 

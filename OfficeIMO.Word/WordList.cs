@@ -221,6 +221,9 @@ public partial class WordList : WordElement {
         }
         set {
             var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            if (numbering.GetNamespaceOfPrefix("w15") == null) {
+                numbering.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            }
             var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
             foreach (var abstractInstance in listAbstracts) {
                 if (abstractInstance.AbstractNumberId == _abstractId) {
