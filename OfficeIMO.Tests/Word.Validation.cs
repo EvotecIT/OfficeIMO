@@ -47,5 +47,29 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_ListRestartNumberingAddsNamespace() {
+            string filePath = Path.Combine(_directoryWithFiles, "RestartNumberingNamespace.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var list = document.AddList(WordListStyle.Bulleted);
+                var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+                numbering.RemoveAttribute("w15", "http://www.w3.org/2000/xmlns/");
+                if (numbering.MCAttributes != null) {
+                    var parts = numbering.MCAttributes.Ignorable?.Value?.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(p => p != "w15");
+                    numbering.MCAttributes.Ignorable = parts != null ? string.Join(" ", parts) : null;
+                }
+
+                list.RestartNumberingAfterBreak = true;
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+                bool hasNs = numbering.GetAttributes().Any(a => a.Prefix == "xmlns" && a.LocalName == "w15");
+                Assert.True(hasNs);
+            }
+        }
     }
 }
