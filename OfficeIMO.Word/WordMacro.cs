@@ -226,7 +226,8 @@ namespace OfficeIMO.Word {
                 int sector = start;
                 while (sector != EndOfChain && sector >= 0 && sector < fat.Count) {
                     stream.Position = (long)(sector + 1) * sectorSize;
-                    ms.Write(reader.ReadBytes(sectorSize));
+                    byte[] buffer = reader.ReadBytes(sectorSize);
+                    ms.Write(buffer, 0, buffer.Length);
                     sector = fat[sector];
                 }
                 return ms.ToArray();
