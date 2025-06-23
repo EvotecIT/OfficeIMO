@@ -321,6 +321,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add a field represented by a <see cref="WordFieldCode"/>.
+        /// </summary>
+        /// <param name="fieldCode">Field code instance describing instructions and switches.</param>
+        /// <param name="wordFieldFormat">Optional field format.</param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
+        /// <param name="advanced">Use advanced field representation.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat, advanced);
+            return this;
+        }
+
+        /// <summary>
         /// Adds a page number field to the paragraph.
         /// </summary>
         /// <param name="includeTotalPages">If true adds a NUMPAGES field preceded by text " of ".</param>

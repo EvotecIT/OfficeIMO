@@ -39,6 +39,22 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Inserts a field represented by a <see cref="WordFieldCode"/> into the specified paragraph.
+        /// </summary>
+        /// <param name="paragraph">Paragraph to add the field to.</param>
+        /// <param name="fieldCode">Field code instance describing instructions and switches.</param>
+        /// <param name="wordFieldFormat">Optional field format.</param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
+        /// <param name="advanced">Whether to use advanced field representation.</param>
+        /// <returns>The <see cref="WordParagraph"/> containing the field.</returns>
+        public static WordParagraph AddField(WordParagraph paragraph, WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+            if (fieldCode == null) throw new ArgumentNullException(nameof(fieldCode));
+
+            var parameters = fieldCode.GetParameters();
+            return AddField(paragraph, fieldCode.FieldType, wordFieldFormat, customFormat, advanced, parameters);
+        }
+
         public void Remove() {
             if (_runs != null) {
                 foreach (var run in _runs) {
