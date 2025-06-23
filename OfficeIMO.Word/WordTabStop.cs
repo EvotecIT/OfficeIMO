@@ -73,7 +73,13 @@ namespace OfficeIMO.Word {
         }
 
         public override int GetHashCode() {
-            return System.HashCode.Combine(Alignment, Leader, Position);
+            unchecked {
+                int hash = 17;
+                hash = hash * 31 + Alignment.GetHashCode();
+                hash = hash * 31 + Leader.GetHashCode();
+                hash = hash * 31 + Position.GetHashCode();
+                return hash;
+            }
         }
     }
 }

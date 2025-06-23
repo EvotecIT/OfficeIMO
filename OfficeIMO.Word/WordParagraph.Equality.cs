@@ -20,12 +20,14 @@ namespace OfficeIMO.Word {
 
         public override int GetHashCode() {
             if (_paragraph != null) return _paragraph.GetHashCode();
-            var hash = new System.HashCode();
-            hash.Add(Text);
-            foreach (var tab in TabStops) {
-                hash.Add(tab);
+            unchecked {
+                int hash = 17;
+                hash = hash * 31 + (Text != null ? Text.GetHashCode() : 0);
+                foreach (var tab in TabStops) {
+                    hash = hash * 31 + tab.GetHashCode();
+                }
+                return hash;
             }
-            return hash.ToHashCode();
         }
 
         public static bool operator ==(WordParagraph left, WordParagraph right) {
