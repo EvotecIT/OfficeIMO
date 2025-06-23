@@ -154,6 +154,7 @@ namespace OfficeIMO.Examples {
             Images.Example_AddingImagesSampleToTable(folderPath, false);
             Images.Example_ImageTransparencySimple(folderPath, false);
             Images.Example_ImageTransparencyAdvanced(folderPath, false);
+            Images.Example_ImageNewFeatures(folderPath, false);
 
             PageBreaks.Example_PageBreaks(folderPath, false);
             PageBreaks.Example_PageBreaks1(folderPath, false);

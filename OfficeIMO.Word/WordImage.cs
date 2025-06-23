@@ -9,6 +9,8 @@ using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
+using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
     public class WordImage : WordElement {
@@ -17,11 +19,38 @@ namespace OfficeIMO.Word {
 
         internal Drawing _Image;
         private ImagePart _imagePart;
+        private string _externalRelationshipId;
         private WordDocument _document;
         private int? _cropTop;
         private int? _cropBottom;
         private int? _cropLeft;
         private int? _cropRight;
+        private ImageFillMode _fillMode = ImageFillMode.Stretch;
+        private bool? _useLocalDpi;
+        private string _title;
+        private bool? _hidden;
+        private bool? _preferRelativeResize;
+        private bool? _noChangeAspect;
+        private bool? _noCrop;
+        private bool? _noMove;
+        private bool? _noResize;
+        private bool? _noRotation;
+        private bool? _noSelection;
+        private int? _fixedOpacity;
+        private string _alphaInversionColorHex;
+        private int? _blackWhiteThreshold;
+        private int? _blurRadius;
+        private bool? _blurGrow;
+        private string _colorChangeFromHex;
+        private string _colorChangeToHex;
+        private string _colorReplacementHex;
+        private string _duotoneColor1Hex;
+        private string _duotoneColor2Hex;
+        private bool? _grayScale;
+        private int? _luminanceBrightness;
+        private int? _luminanceContrast;
+        private int? _tintAmount;
+        private int? _tintHue;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -125,6 +154,28 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the relationship id of an externally linked image, if any.
+        /// </summary>
+        public string ExternalRelationshipId => _externalRelationshipId;
+
+        /// <summary>
+        /// Indicates whether the image is stored outside the package.
+        /// </summary>
+        public bool IsExternal => _externalRelationshipId != null;
+
+        /// <summary>
+        /// Gets the URI of the externally linked image.
+        /// </summary>
+        public Uri ExternalUri {
+            get {
+                if (_externalRelationshipId == null) return null;
+                var part = GetContainingPart();
+                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                return rel?.Uri;
+            }
+        }
+
         public string FilePath { get; set; }
 
         /// <summary>
@@ -180,6 +231,68 @@ namespace OfficeIMO.Word {
                 } else if (_Image.Anchor != null) {
                     var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
                     anchoDocPropertiesr.Description = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the image's title.
+        /// </summary>
+        public string Title {
+            get {
+                if (_Image.Inline != null) {
+                    _title = _Image.Inline.DocProperties.Title;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    _title = docProp?.Title;
+                }
+                return _title;
+            }
+            set {
+                _title = value;
+                if (_Image.Inline != null) {
+                    _Image.Inline.DocProperties.Title = value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    if (docProp != null) docProp.Title = value;
+                }
+                var pic = GetPicture();
+                if (pic != null) {
+                    var nv = pic.NonVisualPictureProperties;
+                    if (nv != null) {
+                        nv.NonVisualDrawingProperties.Title = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Specifies whether the picture is hidden.
+        /// </summary>
+        public bool? Hidden {
+            get {
+                if (_Image.Inline != null) {
+                    _hidden = _Image.Inline.DocProperties.Hidden?.Value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    _hidden = docProp?.Hidden?.Value;
+                }
+                return _hidden;
+            }
+            set {
+                _hidden = value;
+                if (_Image.Inline != null) {
+                    _Image.Inline.DocProperties.Hidden = value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    if (docProp != null) docProp.Hidden = value;
+                }
+                var pic = GetPicture();
+                if (pic != null) {
+                    var nv = pic.NonVisualPictureProperties;
+                    if (nv != null) {
+                        nv.NonVisualDrawingProperties.Hidden = value;
+                    }
                 }
             }
         }
@@ -728,6 +841,623 @@ namespace OfficeIMO.Word {
             set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
 
+        /// <summary>
+        /// Gets or sets how the image should fill its bounding box. Default is Stretch.
+        /// </summary>
+        public ImageFillMode FillMode {
+            get {
+                var picture = GetPicture();
+                var blipFill = picture?.BlipFill;
+                if (blipFill != null && blipFill.GetFirstChild<Tile>() != null) {
+                    _fillMode = ImageFillMode.Tile;
+                } else {
+                    _fillMode = ImageFillMode.Stretch;
+                }
+                return _fillMode;
+            }
+            set {
+                _fillMode = value;
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                var blipFill = picture.BlipFill;
+                var tile = blipFill.GetFirstChild<Tile>();
+                var stretch = blipFill.GetFirstChild<Stretch>();
+
+                if (value == ImageFillMode.Stretch) {
+                    tile?.Remove();
+                    if (stretch == null) {
+                        blipFill.AppendChild(new Stretch(new FillRectangle()));
+                    }
+                } else {
+                    stretch?.Remove();
+                    if (tile == null) {
+                        blipFill.AppendChild(new Tile());
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Specifies whether to use the image's local DPI setting when rendering.
+        /// </summary>
+        public bool? UseLocalDpi {
+            get {
+                var blip = GetBlip();
+                var extList = blip?.GetFirstChild<BlipExtensionList>();
+                var useLocalDpi = extList?
+                    .OfType<BlipExtension>()
+                    .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}")?
+                    .GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
+                _useLocalDpi = useLocalDpi?.Val;
+                return _useLocalDpi;
+            }
+            set {
+                _useLocalDpi = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+
+                var extList = blip.GetFirstChild<BlipExtensionList>();
+                if (extList == null && value != null) {
+                    extList = new BlipExtensionList();
+                    blip.Append(extList);
+                }
+
+                if (extList != null) {
+                    var extension = extList
+                        .OfType<BlipExtension>()
+                        .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                    if (extension == null && value != null) {
+                        extension = new BlipExtension { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" };
+                        extList.Append(extension);
+                    }
+                    if (extension != null) {
+                        var useLocalDpiElement = extension.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
+                        if (value == null) {
+                            useLocalDpiElement?.Remove();
+                        } else {
+                            if (useLocalDpiElement == null) {
+                                useLocalDpiElement = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi();
+                                useLocalDpiElement.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
+                                extension.Append(useLocalDpiElement);
+                            }
+                            useLocalDpiElement.Val = value.Value;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether resizing should be relative to the original size.
+        /// </summary>
+        public bool? PreferRelativeResize {
+            get {
+                var pic = GetPicture();
+                var nv = pic?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties;
+                _preferRelativeResize = nv?.PreferRelativeResize;
+                return _preferRelativeResize;
+            }
+            set {
+                _preferRelativeResize = value;
+                var pic = GetPicture();
+                if (pic == null) return;
+                var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+                if (nv == null && value != null) {
+                    nv = new Pic.NonVisualPictureDrawingProperties();
+                    pic.NonVisualPictureProperties.Append(nv);
+                }
+                if (nv != null) {
+                    nv.PreferRelativeResize = value;
+                }
+            }
+        }
+
+        public bool? NoChangeAspect {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noChangeAspect = locks?.NoChangeAspect;
+                return _noChangeAspect;
+            }
+            set {
+                _noChangeAspect = value;
+                SetPictureLock(l => l.NoChangeAspect = value);
+            }
+        }
+
+        public bool? NoCrop {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noCrop = locks?.NoCrop;
+                return _noCrop;
+            }
+            set {
+                _noCrop = value;
+                SetPictureLock(l => l.NoCrop = value);
+            }
+        }
+
+        public bool? NoMove {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noMove = locks?.NoMove;
+                return _noMove;
+            }
+            set {
+                _noMove = value;
+                SetPictureLock(l => l.NoMove = value);
+            }
+        }
+
+        public bool? NoResize {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noResize = locks?.NoResize;
+                return _noResize;
+            }
+            set {
+                _noResize = value;
+                SetPictureLock(l => l.NoResize = value);
+            }
+        }
+
+        public bool? NoRot {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noRotation = locks?.NoRotation;
+                return _noRotation;
+            }
+            set {
+                _noRotation = value;
+                SetPictureLock(l => l.NoRotation = value);
+            }
+        }
+
+        public bool? NoSelect {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noSelection = locks?.NoSelection;
+                return _noSelection;
+            }
+            set {
+                _noSelection = value;
+                SetPictureLock(l => l.NoSelection = value);
+            }
+        }
+
+        /// <summary>
+        /// Sets picture lock property using provided action.
+        /// </summary>
+        private void SetPictureLock(Action<A.PictureLocks> setter) {
+            var pic = GetPicture();
+            if (pic == null) return;
+            var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+            if (nv == null) {
+                nv = new Pic.NonVisualPictureDrawingProperties();
+                pic.NonVisualPictureProperties.Append(nv);
+            }
+            var locks = nv.PictureLocks;
+            if (locks == null) {
+                locks = new A.PictureLocks();
+                nv.Append(locks);
+            }
+            setter(locks);
+        }
+
+        /// <summary>
+        /// Sets a fixed opacity value for the image.
+        /// </summary>
+        public int? FixedOpacity {
+            get {
+                var blip = GetBlip();
+                var ar = blip?.GetFirstChild<AlphaReplace>();
+                _fixedOpacity = ar != null ? (int?)(ar.Alpha.Value / 1000) : null;
+                return _fixedOpacity;
+            }
+            set {
+                if (value is < 0 or > 100)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Opacity must be between 0 and 100.");
+
+                _fixedOpacity = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var ar = blip.GetFirstChild<AlphaReplace>();
+                if (value == null) {
+                    ar?.Remove();
+                    return;
+                }
+                if (ar == null) {
+                    ar = new AlphaReplace();
+                    blip.Append(ar);
+                }
+                ar.Alpha = value.Value * 1000;
+            }
+        }
+
+        public string AlphaInversionColorHex {
+            get {
+                var blip = GetBlip();
+                var ai = blip?.GetFirstChild<AlphaInverse>();
+                _alphaInversionColorHex = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _alphaInversionColorHex;
+            }
+            set {
+                _alphaInversionColorHex = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var ai = blip.GetFirstChild<AlphaInverse>();
+                if (value == null) {
+                    ai?.Remove();
+                    return;
+                }
+                if (ai == null) {
+                    ai = new AlphaInverse();
+                    blip.Append(ai);
+                }
+                var clr = ai.GetFirstChild<RgbColorModelHex>();
+                if (clr == null) {
+                    ai.RemoveAllChildren();
+                    clr = new RgbColorModelHex();
+                    ai.Append(clr);
+                }
+                clr.Val = value;
+            }
+        }
+
+        public SixLabors.ImageSharp.Color? AlphaInversionColor {
+            get {
+                if (AlphaInversionColorHex == null) return (SixLabors.ImageSharp.Color?)null;
+                return SixLabors.ImageSharp.Color.Parse("#" + AlphaInversionColorHex);
+            }
+            set { AlphaInversionColorHex = value?.ToHexColor(); }
+        }
+
+        public int? BlackWhiteThreshold {
+            get {
+                var blip = GetBlip();
+                var bi = blip?.GetFirstChild<BiLevel>();
+                _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                return _blackWhiteThreshold;
+            }
+            set {
+                if (value is < 0 or > 100)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Threshold must be between 0 and 100.");
+                _blackWhiteThreshold = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var bi = blip.GetFirstChild<BiLevel>();
+                if (value == null) {
+                    bi?.Remove();
+                    return;
+                }
+                if (bi == null) {
+                    bi = new BiLevel();
+                    blip.Append(bi);
+                }
+                bi.Threshold = value.Value * 1000;
+            }
+        }
+
+        public int? BlurRadius {
+            get {
+                var blip = GetBlip();
+                var blur = blip?.GetFirstChild<Blur>();
+                _blurRadius = blur?.Radius != null ? (int?)blur.Radius.Value : null;
+                return _blurRadius;
+            }
+            set {
+                _blurRadius = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var blur = blip.GetFirstChild<Blur>();
+                if (value == null && _blurGrow == null) {
+                    blur?.Remove();
+                    return;
+                }
+                if (blur == null) {
+                    blur = new Blur();
+                    blip.Append(blur);
+                }
+                blur.Radius = value != null ? new Int64Value((long)value.Value) : null;
+                blur.Grow = _blurGrow ?? false;
+            }
+        }
+
+        public bool? BlurGrow {
+            get {
+                var blip = GetBlip();
+                var blur = blip?.GetFirstChild<Blur>();
+                _blurGrow = blur?.Grow;
+                return _blurGrow;
+            }
+            set {
+                _blurGrow = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var blur = blip.GetFirstChild<Blur>();
+                if (value == null && _blurRadius == null) {
+                    blur?.Remove();
+                    return;
+                }
+                if (blur == null) {
+                    blur = new Blur();
+                    blip.Append(blur);
+                }
+                blur.Radius = _blurRadius != null ? new Int64Value((long)_blurRadius.Value) : null;
+                blur.Grow = value ?? false;
+            }
+        }
+
+        public string ColorChangeFromHex {
+            get {
+                var blip = GetBlip();
+                var cc = blip?.GetFirstChild<ColorChange>();
+                _colorChangeFromHex = cc?.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeFromHex;
+            }
+            set {
+                _colorChangeFromHex = value;
+                UpdateColorChange();
+            }
+        }
+
+        public string ColorChangeToHex {
+            get {
+                var blip = GetBlip();
+                var cc = blip?.GetFirstChild<ColorChange>();
+                _colorChangeToHex = cc?.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeToHex;
+            }
+            set {
+                _colorChangeToHex = value;
+                UpdateColorChange();
+            }
+        }
+
+        public SixLabors.ImageSharp.Color? ColorChangeFrom {
+            get {
+                return ColorChangeFromHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorChangeFromHex);
+            }
+            set { ColorChangeFromHex = value?.ToHexColor(); }
+        }
+
+        public SixLabors.ImageSharp.Color? ColorChangeTo {
+            get {
+                return ColorChangeToHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorChangeToHex);
+            }
+            set { ColorChangeToHex = value?.ToHexColor(); }
+        }
+
+        private void UpdateColorChange() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var cc = blip.GetFirstChild<ColorChange>();
+            if (_colorChangeFromHex == null && _colorChangeToHex == null) {
+                cc?.Remove();
+                return;
+            }
+            if (cc == null) {
+                cc = new ColorChange();
+                blip.Append(cc);
+            }
+            if (_colorChangeFromHex != null) {
+                var from = cc.ColorFrom ?? new ColorFrom();
+                var clr = from.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
+                clr.Val = _colorChangeFromHex;
+                if (from.FirstChild == null) from.Append(clr);
+                cc.ColorFrom = from;
+            }
+            if (_colorChangeToHex != null) {
+                var to = cc.ColorTo ?? new ColorTo();
+                var clr = to.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
+                clr.Val = _colorChangeToHex;
+                if (to.FirstChild == null) to.Append(clr);
+                cc.ColorTo = to;
+            }
+        }
+
+        public string ColorReplacementHex {
+            get {
+                var blip = GetBlip();
+                var cr = blip?.GetFirstChild<ColorReplacement>();
+                _colorReplacementHex = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorReplacementHex;
+            }
+            set {
+                _colorReplacementHex = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var cr = blip.GetFirstChild<ColorReplacement>();
+                if (value == null) {
+                    cr?.Remove();
+                    return;
+                }
+                if (cr == null) {
+                    cr = new ColorReplacement();
+                    blip.Append(cr);
+                }
+                var clr = cr.GetFirstChild<RgbColorModelHex>();
+                if (clr == null) {
+                    cr.RemoveAllChildren();
+                    clr = new RgbColorModelHex();
+                    cr.Append(clr);
+                }
+                clr.Val = value;
+            }
+        }
+
+        public SixLabors.ImageSharp.Color? ColorReplacement {
+            get {
+                return ColorReplacementHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorReplacementHex);
+            }
+            set { ColorReplacementHex = value?.ToHexColor(); }
+        }
+
+        public string DuotoneColor1Hex {
+            get {
+                var blip = GetBlip();
+                var duo = blip?.GetFirstChild<Duotone>();
+                _duotoneColor1Hex = duo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _duotoneColor1Hex;
+            }
+            set {
+                _duotoneColor1Hex = value;
+                UpdateDuotone();
+            }
+        }
+
+        public string DuotoneColor2Hex {
+            get {
+                var blip = GetBlip();
+                var duo = blip?.GetFirstChild<Duotone>();
+                _duotoneColor2Hex = duo?.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                return _duotoneColor2Hex;
+            }
+            set {
+                _duotoneColor2Hex = value;
+                UpdateDuotone();
+            }
+        }
+
+        public SixLabors.ImageSharp.Color? DuotoneColor1 {
+            get {
+                return DuotoneColor1Hex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + DuotoneColor1Hex);
+            }
+            set { DuotoneColor1Hex = value?.ToHexColor(); }
+        }
+
+        public SixLabors.ImageSharp.Color? DuotoneColor2 {
+            get {
+                return DuotoneColor2Hex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + DuotoneColor2Hex);
+            }
+            set { DuotoneColor2Hex = value?.ToHexColor(); }
+        }
+
+        private void UpdateDuotone() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var duo = blip.GetFirstChild<Duotone>();
+            if (_duotoneColor1Hex == null && _duotoneColor2Hex == null) {
+                duo?.Remove();
+                return;
+            }
+            if (duo == null) {
+                duo = new Duotone();
+                blip.Append(duo);
+            }
+            duo.RemoveAllChildren();
+            if (_duotoneColor1Hex != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor1Hex });
+            if (_duotoneColor2Hex != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor2Hex });
+        }
+
+        public bool? GrayScale {
+            get {
+                var blip = GetBlip();
+                var gs = blip?.GetFirstChild<Grayscale>();
+                _grayScale = gs != null;
+                return _grayScale;
+            }
+            set {
+                _grayScale = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var gs = blip.GetFirstChild<Grayscale>();
+                if (value == true && gs == null) {
+                    blip.Append(new Grayscale());
+                } else if (value != true) {
+                    gs?.Remove();
+                }
+            }
+        }
+
+        public int? LuminanceBrightness {
+            get {
+                var blip = GetBlip();
+                var lum = blip?.GetFirstChild<LuminanceEffect>();
+                _luminanceBrightness = lum != null ? lum.Brightness : null;
+                if (_luminanceBrightness != null) _luminanceBrightness /= 1000;
+                return _luminanceBrightness;
+            }
+            set {
+                _luminanceBrightness = value;
+                UpdateLuminance();
+            }
+        }
+
+        public int? LuminanceContrast {
+            get {
+                var blip = GetBlip();
+                var lum = blip?.GetFirstChild<LuminanceEffect>();
+                _luminanceContrast = lum != null ? lum.Contrast : null;
+                if (_luminanceContrast != null) _luminanceContrast /= 1000;
+                return _luminanceContrast;
+            }
+            set {
+                _luminanceContrast = value;
+                UpdateLuminance();
+            }
+        }
+
+        private void UpdateLuminance() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var lum = blip.GetFirstChild<LuminanceEffect>();
+            if (_luminanceBrightness == null && _luminanceContrast == null) {
+                lum?.Remove();
+                return;
+            }
+            if (lum == null) {
+                lum = new LuminanceEffect();
+                blip.Append(lum);
+            }
+            lum.Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null;
+            lum.Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null;
+        }
+
+        public int? TintAmount {
+            get {
+                var blip = GetBlip();
+                var tint = blip?.GetFirstChild<TintEffect>();
+                _tintAmount = tint?.Amount != null ? tint.Amount / 1000 : null;
+                return _tintAmount;
+            }
+            set {
+                _tintAmount = value;
+                UpdateTint();
+            }
+        }
+
+        public int? TintHue {
+            get {
+                var blip = GetBlip();
+                var tint = blip?.GetFirstChild<TintEffect>();
+                _tintHue = tint?.Hue != null ? tint.Hue / 60000 : null;
+                return _tintHue;
+            }
+            set {
+                _tintHue = value;
+                UpdateTint();
+            }
+        }
+
+        private void UpdateTint() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var tint = blip.GetFirstChild<TintEffect>();
+            if (_tintAmount == null && _tintHue == null) {
+                tint?.Remove();
+                return;
+            }
+            if (tint == null) {
+                tint = new TintEffect();
+                blip.Append(tint);
+            }
+            tint.Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null;
+            tint.Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null;
+        }
+
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
@@ -753,7 +1483,14 @@ namespace OfficeIMO.Word {
             AddImage(document, paragraph, ms, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
-        private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
+        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+            FilePath = externalUri.ToString();
+            shape ??= ShapeTypeValues.Rectangle;
+            compressionQuality ??= BlipCompressionValues.Print;
+            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+        }
+
+        private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
             var shapeProperties = new ShapeProperties();
             var transform2D = new Transform2D();
             var newOffset = new Offset() { X = 0L, Y = 0L };
@@ -767,19 +1504,80 @@ namespace OfficeIMO.Word {
             var graphic = new Graphic();
             var graphicData = new GraphicData() { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" };
 
-            var nonVisualPictureProperties = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
-                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties() {
-                    Id = (UInt32Value)0U,
-                    Name = fileName,
-                    // this description doesn't seem to matter, but leaving it here for now
-                    Description = description
-                },
-                //new Pic.NonVisualPictureProperties(),
-                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties() { });
+            var nvDrawingProps = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties()
+            {
+                Id = (UInt32Value)0U,
+                Name = fileName,
+                Description = description
+            };
+            if (_title != null) nvDrawingProps.Title = _title;
+            if (_hidden != null) nvDrawingProps.Hidden = _hidden;
+
+            var nvPicProps = new Pic.NonVisualPictureDrawingProperties();
+            if (_preferRelativeResize != null) nvPicProps.PreferRelativeResize = _preferRelativeResize;
+            if (_noChangeAspect != null || _noCrop != null || _noMove != null || _noResize != null || _noRotation != null || _noSelection != null) {
+                var locks = new A.PictureLocks();
+                if (_noChangeAspect != null) locks.NoChangeAspect = _noChangeAspect;
+                if (_noCrop != null) locks.NoCrop = _noCrop;
+                if (_noMove != null) locks.NoMove = _noMove;
+                if (_noResize != null) locks.NoResize = _noResize;
+                if (_noRotation != null) locks.NoRotation = _noRotation;
+                if (_noSelection != null) locks.NoSelection = _noSelection;
+                nvPicProps.Append(locks);
+            }
+
+            var nonVisualPictureProperties = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(nvDrawingProps, nvPicProps);
 
             var blipFlip = new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill();
 
-            var blip = new Blip() { Embed = relationshipId, CompressionState = compressionQuality };
+            var blip = new Blip() { CompressionState = compressionQuality };
+            if (external) {
+                blip.Link = relationshipId;
+            } else {
+                blip.Embed = relationshipId;
+            }
+            if (_fixedOpacity != null) {
+                blip.Append(new AlphaReplace() { Alpha = _fixedOpacity.Value * 1000 });
+            }
+            if (_alphaInversionColorHex != null) {
+                blip.Append(new AlphaInverse(new RgbColorModelHex { Val = _alphaInversionColorHex }));
+            }
+            if (_blackWhiteThreshold != null) {
+                blip.Append(new BiLevel { Threshold = _blackWhiteThreshold.Value * 1000 });
+            }
+            if (_blurRadius != null || _blurGrow != null) {
+                blip.Append(new Blur { Radius = _blurRadius ?? 0, Grow = _blurGrow ?? false });
+            }
+            if (_colorChangeFromHex != null || _colorChangeToHex != null) {
+                var cc = new ColorChange();
+                if (_colorChangeFromHex != null) cc.ColorFrom = new ColorFrom(new RgbColorModelHex { Val = _colorChangeFromHex });
+                if (_colorChangeToHex != null) cc.ColorTo = new ColorTo(new RgbColorModelHex { Val = _colorChangeToHex });
+                blip.Append(cc);
+            }
+            if (_colorReplacementHex != null) {
+                blip.Append(new ColorReplacement(new RgbColorModelHex { Val = _colorReplacementHex }));
+            }
+            if (_duotoneColor1Hex != null || _duotoneColor2Hex != null) {
+                var duo = new Duotone();
+                if (_duotoneColor1Hex != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor1Hex });
+                if (_duotoneColor2Hex != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor2Hex });
+                blip.Append(duo);
+            }
+            if (_grayScale == true) {
+                blip.Append(new Grayscale());
+            }
+            if (_luminanceBrightness != null || _luminanceContrast != null) {
+                blip.Append(new LuminanceEffect {
+                    Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null,
+                    Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null
+                });
+            }
+            if (_tintAmount != null || _tintHue != null) {
+                blip.Append(new TintEffect {
+                    Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null,
+                    Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null
+                });
+            }
 
             // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
             var blipExtensionList = new BlipExtensionList();
@@ -789,13 +1587,11 @@ namespace OfficeIMO.Word {
                 Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
             };
 
-            DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi useLocalDpi1 = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi() { Val = false };
+            DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi useLocalDpi1 = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi() { Val = _useLocalDpi ?? false };
             useLocalDpi1.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
             blipExtension1.Append(useLocalDpi1);
 
             blipExtensionList.Append(blipExtension1);
-
-            var stretch = new Stretch(new FillRectangle());
 
             blipFlip.Append(blip);
             if (_cropTop != null || _cropBottom != null || _cropLeft != null || _cropRight != null) {
@@ -806,7 +1602,14 @@ namespace OfficeIMO.Word {
                 if (_cropRight != null) srcRect.Right = _cropRight;
                 blipFlip.Append(srcRect);
             }
-            blipFlip.Append(stretch);
+
+            if (_fillMode == ImageFillMode.Stretch) {
+                blipFlip.Append(new Stretch(new FillRectangle()));
+            } else {
+                if (blipFlip.GetFirstChild<Tile>() == null) {
+                    blipFlip.AppendChild(new Tile());
+                }
+            }
 
             var picture = new DocumentFormat.OpenXml.Drawing.Pictures.Picture();
 
@@ -820,7 +1623,7 @@ namespace OfficeIMO.Word {
             return graphic;
         }
 
-        private Inline GetInline(double emuWidth, double emuHeight, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
+        private Inline GetInline(double emuWidth, double emuHeight, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
             var inline = new Inline() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -830,10 +1633,16 @@ namespace OfficeIMO.Word {
             };
             inline.Append(new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight });
             inline.Append(new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            inline.Append(new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description });
+            inline.Append(new DocProperties() {
+                Id = (UInt32Value)1U,
+                Name = imageName,
+                Description = description,
+                Title = _title,
+                Hidden = _hidden
+            });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
-            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality));
+            inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality, description, external));
 
             return inline;
         }
@@ -885,7 +1694,13 @@ namespace OfficeIMO.Word {
 
             WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
 
-            DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
+            DocProperties docProperties1 = new DocProperties() {
+                Id = (UInt32Value)1U,
+                Name = imageName,
+                Description = description,
+                Title = _title,
+                Hidden = _hidden
+            };
             anchor1.Append(docProperties1);
 
             var nonVisualGraphicFrameDrawingProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties();
@@ -926,11 +1741,74 @@ namespace OfficeIMO.Word {
         public WordImage(WordDocument document, Drawing drawing) {
             _document = document;
             _Image = drawing;
-            var imageParts = document._document.MainDocumentPart.ImageParts;
-            foreach (var imagePart in imageParts) {
-                var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
-                if (this.RelationshipId == relationshipId) {
-                    this._imagePart = imagePart;
+
+            var initialBlip = GetBlip();
+            if (initialBlip != null) {
+                if (initialBlip.Link != null) {
+                    _externalRelationshipId = initialBlip.Link;
+                } else if (initialBlip.Embed != null) {
+                    var part = GetContainingPart();
+                    _imagePart = part.GetPartById(initialBlip.Embed) as ImagePart;
+                }
+            }
+
+            var picture = GetPicture();
+            if (picture != null) {
+                var nv = picture.NonVisualPictureProperties;
+                if (nv != null) {
+                    _title = nv.NonVisualDrawingProperties.Title;
+                    _hidden = nv.NonVisualDrawingProperties.Hidden?.Value;
+                    var nvPic = nv.NonVisualPictureDrawingProperties;
+                    if (nvPic != null) {
+                        _preferRelativeResize = nvPic.PreferRelativeResize?.Value;
+                        var locks = nvPic.PictureLocks;
+                        if (locks != null) {
+                            _noChangeAspect = locks.NoChangeAspect?.Value;
+                            _noCrop = locks.NoCrop?.Value;
+                            _noMove = locks.NoMove?.Value;
+                            _noResize = locks.NoResize?.Value;
+                            _noRotation = locks.NoRotation?.Value;
+                            _noSelection = locks.NoSelection?.Value;
+                        }
+                    }
+                }
+
+                var pictureBlip = picture.BlipFill?.Blip;
+                if (pictureBlip != null) {
+                    var ar = pictureBlip.GetFirstChild<AlphaReplace>();
+                    if (ar != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
+                    var ai = pictureBlip.GetFirstChild<AlphaInverse>();
+                    _alphaInversionColorHex = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    var bi = pictureBlip.GetFirstChild<BiLevel>();
+                    _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                    var blur = pictureBlip.GetFirstChild<Blur>();
+                    if (blur != null) { _blurRadius = blur.Radius != null ? (int?)blur.Radius.Value : null; _blurGrow = blur.Grow; }
+                    var cc = pictureBlip.GetFirstChild<ColorChange>();
+                    if (cc != null) {
+                        _colorChangeFromHex = cc.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _colorChangeToHex = cc.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    }
+                    var cr = pictureBlip.GetFirstChild<ColorReplacement>();
+                    _colorReplacementHex = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    var duo = pictureBlip.GetFirstChild<Duotone>();
+                    if (duo != null) {
+                        _duotoneColor1Hex = duo.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _duotoneColor2Hex = duo.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                    }
+                    _grayScale = pictureBlip.GetFirstChild<Grayscale>() != null;
+                    var lum = pictureBlip.GetFirstChild<LuminanceEffect>();
+                    if (lum != null) {
+                        _luminanceBrightness = lum.Brightness != null ? (int?)(lum.Brightness.Value / 1000) : null;
+                        _luminanceContrast = lum.Contrast != null ? (int?)(lum.Contrast.Value / 1000) : null;
+                    }
+                    var tint = pictureBlip.GetFirstChild<TintEffect>();
+                    if (tint != null) {
+                        _tintAmount = tint.Amount != null ? (int?)(tint.Amount.Value / 1000) : null;
+                        _tintHue = tint.Hue != null ? (int?)(tint.Hue.Value / 60000) : null;
+                    }
+                    var ext = pictureBlip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>()
+                        .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                    _useLocalDpi = ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>()?.Val?.Value;
                 }
             }
         }
@@ -940,8 +1818,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fileToSave"></param>
         public void SaveToFile(string fileToSave) {
+            if (_imagePart == null) {
+                throw new InvalidOperationException("Image is linked externally and cannot be saved.");
+            }
             using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
-                var stream = this._imagePart.GetStream();
+                var stream = _imagePart.GetStream();
                 stream.CopyTo(outputFileStream);
                 stream.Close();
             }
@@ -951,8 +1832,27 @@ namespace OfficeIMO.Word {
         /// Remove image from a Word Document
         /// </summary>
         public void Remove() {
-            if (this._imagePart != null) {
+            if (_imagePart != null) {
                 _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+                _imagePart = null;
+            } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
+                OpenXmlElement parent = _Image.Parent;
+                while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+                    parent = parent.Parent;
+                }
+
+                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                if (parent is Header header) {
+                    part = header.HeaderPart;
+                } else if (parent is Footer footer) {
+                    part = footer.FooterPart;
+                }
+
+                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                if (rel != null) {
+                    part.DeleteExternalRelationship(rel);
+                }
+                _externalRelationshipId = null;
             }
 
             if (this._Image != null) {
@@ -1036,6 +1936,53 @@ namespace OfficeIMO.Word {
                 Height = height.Value,
                 ImageName = imageName
             };
+        }
+
+        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+            _document = document;
+
+            var location = paragraph.Location();
+            ExternalRelationship rel;
+            if (location is Header header) {
+                rel = header.HeaderPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else if (location is Footer footer) {
+                rel = footer.FooterPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else {
+                rel = document._wordprocessingDocument.MainDocumentPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            }
+
+            _externalRelationshipId = rel.Id;
+
+            double emuWidth = width * EnglishMetricUnitsPerInch / PixelsPerInch;
+            double emuHeight = height * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var drawing = new Drawing();
+            if (wrapImage == WrapTextImage.InLineWithText) {
+                var inline = GetInline(emuWidth, emuHeight, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
+                drawing.Append(inline);
+            } else {
+                var graphic = GetGraphic(emuWidth, emuHeight, System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
+                drawing.Append(anchor);
+            }
+            _Image = drawing;
+        }
+
+        private OpenXmlPart GetContainingPart() {
+            OpenXmlElement parent = _Image.Parent;
+            while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+                parent = parent.Parent;
+            }
+
+            if (parent is Header header) {
+                return header.HeaderPart;
+            }
+
+            if (parent is Footer footer) {
+                return footer.FooterPart;
+            }
+
+            return _document._wordprocessingDocument.MainDocumentPart;
         }
     }
 }
