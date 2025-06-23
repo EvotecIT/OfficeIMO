@@ -700,6 +700,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (value is < 0 or > 100)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
+
                 var blip = GetBlip();
                 if (blip == null) return;
 
