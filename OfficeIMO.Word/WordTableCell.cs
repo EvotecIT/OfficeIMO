@@ -91,14 +91,14 @@ namespace OfficeIMO.Word {
             get {
                 if (_tableCellProperties.Shading != null) {
                     if (_tableCellProperties.Shading.Fill != null) {
-                        return _tableCellProperties.Shading.Fill.Value;
+                        return _tableCellProperties.Shading.Fill.Value.ToLowerInvariant();
                     }
                 }
                 return "";
             }
             set {
                 if (value != "") {
-                    var color = value.Replace("#", "");
+                    var color = value.Replace("#", "").ToLowerInvariant();
                     if (_tableCellProperties.Shading == null) {
                         _tableCellProperties.Shading = new Shading();
                     }

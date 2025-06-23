@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
                 }
                 if (value != "") {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                    color.Val = value.Replace("#", "");
+                    color.Val = value.Replace("#", "").ToLowerInvariant();
                     runProperties.Color = color;
                 } else {
                     if (runProperties.Color != null) runProperties.Color.Remove();

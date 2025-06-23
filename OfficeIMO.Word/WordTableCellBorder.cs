@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.LeftBorder != null
                     && _tableCellProperties.TableCellBorders.LeftBorder.Color != null
                     && _tableCellProperties.TableCellBorders.LeftBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.LeftBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
                     _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
                 }
-                _tableCellProperties.TableCellBorders.LeftBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.LeftBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.RightBorder != null
                     && _tableCellProperties.TableCellBorders.RightBorder.Color != null
                     && _tableCellProperties.TableCellBorders.RightBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.RightBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.RightBorder == null) {
                     _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
                 }
-                _tableCellProperties.TableCellBorders.RightBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.RightBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -267,7 +267,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.TopBorder != null
                     && _tableCellProperties.TableCellBorders.TopBorder.Color != null
                     && _tableCellProperties.TableCellBorders.TopBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.TopBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -279,7 +279,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopBorder == null) {
                     _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.TopBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -379,7 +379,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.BottomBorder != null
                     && _tableCellProperties.TableCellBorders.BottomBorder.Color != null
                     && _tableCellProperties.TableCellBorders.BottomBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.BottomBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -391,7 +391,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
                     _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
                 }
-                _tableCellProperties.TableCellBorders.BottomBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.BottomBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -493,7 +493,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
                     && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color != null
                     && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -505,7 +505,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -607,7 +607,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
                     && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color != null
                     && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -619,7 +619,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -718,7 +718,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.StartBorder != null
                     && _tableCellProperties.TableCellBorders.StartBorder.Color != null
                     && _tableCellProperties.TableCellBorders.StartBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.StartBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -730,7 +730,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.StartBorder == null) {
                     _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
                 }
-                _tableCellProperties.TableCellBorders.StartBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.StartBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -829,7 +829,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.EndBorder != null
                     && _tableCellProperties.TableCellBorders.EndBorder.Color != null
                     && _tableCellProperties.TableCellBorders.EndBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.EndBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -841,7 +841,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.EndBorder == null) {
                     _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
                 }
-                _tableCellProperties.TableCellBorders.EndBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.EndBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -947,7 +947,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
                     && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color != null
                     && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -959,7 +959,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -1056,7 +1056,7 @@ namespace OfficeIMO.Word {
                     && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
                     && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color != null
                     && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color.Value.Replace("#", "");
+                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color.Value.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -1068,7 +1068,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color = value.Replace("#", "");
+                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
