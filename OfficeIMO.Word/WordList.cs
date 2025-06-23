@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using System.Linq;
 
 namespace OfficeIMO.Word;
 
@@ -221,6 +222,7 @@ public partial class WordList : WordElement {
         }
         set {
             var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            EnsureW15Namespace(numbering);
             var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
             foreach (var abstractInstance in listAbstracts) {
                 if (abstractInstance.AbstractNumberId == _abstractId) {
@@ -654,5 +656,23 @@ public partial class WordList : WordElement {
         }
         // Remove the other list
         documentList.Remove();
+    }
+
+    private static void EnsureW15Namespace(Numbering numbering) {
+        const string prefix = "w15";
+        const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
+        if (numbering.LookupNamespace(prefix) == null) {
+            numbering.AddNamespaceDeclaration(prefix, ns);
+        }
+        if (numbering.MCAttributes == null) {
+                numbering.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = prefix };
+        } else {
+            var ignorable = numbering.MCAttributes.Ignorable?.Value;
+            if (string.IsNullOrEmpty(ignorable)) {
+                numbering.MCAttributes.Ignorable = prefix;
+            } else if (!ignorable.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Contains(prefix)) {
+                numbering.MCAttributes.Ignorable = ignorable + " " + prefix;
+            }
+        }
     }
 }
