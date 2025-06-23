@@ -117,3 +117,17 @@ Remove a row
 ```csharp
 public void Remove()
 ```
+
+### **MergeVertically(Int32, Int32, Boolean)**
+
+Merges cells starting from the provided column across subsequent rows.
+
+```csharp
+public void MergeVertically(int cellIndex, int rowsCount, bool copyParagraphs)
+```
+
+#### Parameters
+
+`cellIndex` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
+`rowsCount` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
+`copyParagraphs` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
