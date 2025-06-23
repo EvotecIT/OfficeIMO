@@ -630,7 +630,6 @@ namespace OfficeIMO.Word {
         public Document _document;
         //public WordCustomProperties _customDocumentProperties;
 
-        private FileStream _fileStream;
 
         /// <summary>
         /// FileOpenAccess of the document
@@ -677,8 +676,8 @@ namespace OfficeIMO.Word {
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
-                //Open the file for writing so as to get lock
-                word._fileStream = new FileStream(filePath, FileMode.Create);
+                // Ensure the file exists
+                using var fs = new FileStream(filePath, FileMode.Create);
             }
 
             //Always create package in memory.
@@ -861,25 +860,26 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-            word._fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite);
-            var memoryStream = new MemoryStream();
-            word._fileStream.CopyTo(memoryStream);
-            memoryStream.Seek(0, SeekOrigin.Begin);
+            using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
+                var memoryStream = new MemoryStream();
+                fileStream.CopyTo(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
-            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+                var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-            InitialiseStyleDefinitions(wordDocument, readOnly);
+                InitialiseStyleDefinitions(wordDocument, readOnly);
 
-            word.FilePath = filePath;
-            word._wordprocessingDocument = wordDocument;
-            word._document = wordDocument.MainDocumentPart.Document;
-            word.LoadDocument();
-            WordChart.InitializeAxisIdSeed(wordDocument);
-            WordChart.InitializeDocPrIdSeed(wordDocument);
+                word.FilePath = filePath;
+                word._wordprocessingDocument = wordDocument;
+                word._document = wordDocument.MainDocumentPart.Document;
+                word.LoadDocument();
+                WordChart.InitializeAxisIdSeed(wordDocument);
+                WordChart.InitializeDocPrIdSeed(wordDocument);
 
-            // initialize abstract number id for lists to make sure those are unique
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-            return word;
+                // initialize abstract number id for lists to make sure those are unique
+                WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
+                return word;
+            }
         }
 
         /// <summary>
@@ -1013,60 +1013,39 @@ namespace OfficeIMO.Word {
 
             if (this._wordprocessingDocument != null) {
                 try {
-                    //Save to the memory stream
+                    // Save current state to the memory stream
                     this._wordprocessingDocument.Save();
 
-                    //Open the specified file and copy the bytes
-                    if (filePath != "") {
-                        //Close existing fileStream
-                        if (_fileStream != null) {
-                            _fileStream.Dispose();
-                        }
+                    if (string.IsNullOrEmpty(filePath)) {
+                        filePath = this.FilePath;
+                    }
 
-                        if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                            throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                        }
+                    if (string.IsNullOrEmpty(filePath)) {
+                        // No destination specified, nothing to save
+                        return;
+                    }
 
-                        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                        if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                            var dirInfo = new DirectoryInfo(directory);
-                            if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                                throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                            }
-                        }
+                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+                    }
 
-                        try {
-                            _fileStream = new FileStream(filePath, FileMode.Create);
-                        } catch (UnauthorizedAccessException ex) {
-                            throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
-                        }
-
-                        //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
-                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
-                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                        }
-                        Helpers.MakeOpenOfficeCompatible(_fileStream);
-                        _fileStream.Flush();
-                        FilePath = filePath;
-                    } else {
-                        if (_fileStream != null) {
-                            _fileStream.Seek(0, SeekOrigin.Begin);
-                            _fileStream.SetLength(0);
-                            //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
-                            using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
-                                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                            }
-                            Helpers.MakeOpenOfficeCompatible(_fileStream);
-                            _fileStream.Flush();
+                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                        var dirInfo = new DirectoryInfo(directory);
+                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
                         }
                     }
+
+                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                    using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                        CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                    }
+                    Helpers.MakeOpenOfficeCompatible(fs);
+                    fs.Flush();
+                    FilePath = filePath;
                 } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                     throw;
-                } finally {
-                    if (_fileStream != null) {
-                        _fileStream.Dispose();
-                        _fileStream = null;
-                    }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
@@ -1116,50 +1095,36 @@ namespace OfficeIMO.Word {
                 try {
                     this._wordprocessingDocument.Save();
 
-                    if (filePath != "") {
-                        if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                            throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                        }
+                    if (string.IsNullOrEmpty(filePath)) {
+                        filePath = this.FilePath;
+                    }
 
-                        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                        if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                            var dirInfo = new DirectoryInfo(directory);
-                            if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                                throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                            }
-                        }
+                    if (string.IsNullOrEmpty(filePath)) {
+                        return;
+                    }
 
-                        FileStream fs;
-                        try {
-                            fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                        } catch (UnauthorizedAccessException ex) {
-                            throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
-                        }
+                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+                    }
 
-                        using (fs) {
-                            using (var clone = this._wordprocessingDocument.Clone(fs)) {
-                                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                            }
-                            Helpers.MakeOpenOfficeCompatible(fs);
-                            await fs.FlushAsync(cancellationToken);
+                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                        var dirInfo = new DirectoryInfo(directory);
+                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
                         }
-                        FilePath = filePath;
-                    } else if (_fileStream != null) {
-                        _fileStream.Seek(0, SeekOrigin.Begin);
-                        _fileStream.SetLength(0);
-                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
+                    }
+
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous)) {
+                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
-                        Helpers.MakeOpenOfficeCompatible(_fileStream);
-                        await _fileStream.FlushAsync(cancellationToken);
+                        Helpers.MakeOpenOfficeCompatible(fs);
+                        await fs.FlushAsync(cancellationToken);
                     }
+                    FilePath = filePath;
                 } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                     throw;
-                } finally {
-                    if (_fileStream != null) {
-                        _fileStream.Dispose();
-                        _fileStream = null;
-                    }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
@@ -1227,9 +1192,6 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (_fileStream != null) {
-                _fileStream.Dispose();
-            }
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly) {
