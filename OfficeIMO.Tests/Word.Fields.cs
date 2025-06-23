@@ -233,6 +233,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CreatingWordFieldsTyped() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithFieldSwitchesTyped.docx"))) {
+                var ask = new AskField {
+                    Bookmark = "ANSWER",
+                    Prompt = "What is the answer of life and everything?",
+                    DefaultResponse = "42"
+                };
+
+                document.AddField(ask, wordFieldFormat: WordFieldFormat.FirstCap);
+
+                document.Save();
+
+                Assert.Single(document.Fields);
+                Assert.Equal(WordFieldType.Ask, document.Fields[0].FieldType);
+                Assert.Equal(new[] { WordFieldFormat.FirstCap, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
+                Assert.Equal(new[] { "ANSWER", "\"What is the answer of life and everything?\"" }, document.Fields[0].FieldInstructions);
+                Assert.Equal(new[] { "\\d \"42\"" }, document.Fields[0].FieldSwitches);
+            }
+        }
+
+        [Fact]
         public void Test_FieldWithMultipleSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldMultipleSwitches.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
