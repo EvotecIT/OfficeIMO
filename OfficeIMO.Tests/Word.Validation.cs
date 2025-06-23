@@ -77,6 +77,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.False(document.DocumentIsValid);
+                Assert.NotEmpty(document.DocumentValidationErrors);
+
                 var list = document.Lists[0];
                 list.RestartNumberingAfterBreak = true;
                 document.Save(false);
@@ -86,6 +89,9 @@ namespace OfficeIMO.Tests {
                 var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
                 Assert.NotNull(numbering.LookupNamespace("w15"));
                 Assert.Contains("w15", numbering.MCAttributes!.Ignorable!.Value.Split(' '));
+                Assert.DoesNotContain(
+                    document.DocumentValidationErrors.Select(e => e.Description),
+                    d => d.Contains("restartNumberingAfterBreak"));
             }
         }
     }
