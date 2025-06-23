@@ -9,9 +9,9 @@ namespace OfficeIMO.Examples.Word {
             string macroDocPath = Path.Combine(folderPath, "DocumentWithMacro.docm");
 
             using (WordDocument document = WordDocument.Load(macroDocPath)) {
-                foreach (var name in document.Macros) {
-                    Console.WriteLine($"Found macro: {name}");
-                    document.RemoveMacro(name);
+                foreach (var macro in document.Macros) {
+                    Console.WriteLine($"Found macro: {macro.Name}");
+                    macro.Remove();
                 }
                 document.Save(openWord);
             }

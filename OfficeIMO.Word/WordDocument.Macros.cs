@@ -11,14 +11,14 @@ namespace OfficeIMO.Word {
         public bool HasMacros => _wordprocessingDocument.MainDocumentPart.VbaProjectPart != null;
 
         /// <summary>
-        /// Gets the names of all macros (module streams) in the document.
+        /// Gets all macros (module streams) in the document.
         /// </summary>
-        public IReadOnlyList<string> Macros {
+        public IReadOnlyList<WordMacro> Macros {
             get {
-                if (!HasMacros) return new List<string>();
+                if (!HasMacros) return new List<WordMacro>();
                 // Without external dependencies we cannot parse the VBA project.
-                // Expose a placeholder module when macros are present.
-                return new List<string> { "Module1" };
+                // Expose a single placeholder module when macros are present.
+                return new List<WordMacro> { new WordMacro(this, "Module1") };
             }
         }
 

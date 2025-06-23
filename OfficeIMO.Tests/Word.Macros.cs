@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Single(document.Macros);
-                document.RemoveMacro(document.Macros[0]);
+                document.Macros[0].Remove();
                 Assert.False(document.HasMacros);
                 document.Save();
             }

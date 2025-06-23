@@ -18,11 +18,15 @@ public bool HasMacros { get; }
 
 ### **Macros**
 
-List of macro module names contained in the document.
+Collection of macro modules contained in the document.
 
 ```csharp
-public IReadOnlyList<string> Macros { get; }
+public IReadOnlyList<WordMacro> Macros { get; }
 ```
+
+### **WordMacro**
+
+Represents a single macro module. Use `foreach` over `Macros` and call `macro.Remove()` to delete modules.
 
 ## Methods
 
