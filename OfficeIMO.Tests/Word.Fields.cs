@@ -254,6 +254,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AdditionalTypedFields() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithAdditionalTypedFields.docx"))) {
+                document.AddField(new AuthorField { Author = "John Doe" });
+                document.AddField(new FileNameField { IncludePath = true });
+                document.AddField(new SetField { Bookmark = "ANSWER", Value = "42" });
+                document.AddField(new RefField { Bookmark = "ANSWER", InsertHyperlink = true });
+
+                document.Save();
+
+                Assert.Equal(4, document.Fields.Count);
+                Assert.Equal(WordFieldType.Author, document.Fields[0].FieldType);
+                Assert.Equal(new[] { "\"John Doe\"" }, document.Fields[0].FieldInstructions);
+
+                Assert.Equal(WordFieldType.FileName, document.Fields[1].FieldType);
+                Assert.Equal(new[] { "\\p" }, document.Fields[1].FieldSwitches);
+
+                Assert.Equal(WordFieldType.Set, document.Fields[2].FieldType);
+                Assert.Equal(new[] { "ANSWER", "\"42\"" }, document.Fields[2].FieldInstructions);
+
+                Assert.Equal(WordFieldType.Ref, document.Fields[3].FieldType);
+                Assert.Equal(new[] { "ANSWER" }, document.Fields[3].FieldInstructions);
+                Assert.Equal(new[] { "\\h" }, document.Fields[3].FieldSwitches);
+            }
+        }
+
+        [Fact]
         public void Test_FieldWithMultipleSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldMultipleSwitches.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
