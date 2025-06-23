@@ -671,6 +671,9 @@ namespace OfficeIMO.Word {
             WordDocument word = new WordDocument();
 
             WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
+            if (!string.IsNullOrEmpty(filePath) && Path.GetExtension(filePath).Equals(".docm", StringComparison.OrdinalIgnoreCase)) {
+                documentType = WordprocessingDocumentType.MacroEnabledDocument;
+            }
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
