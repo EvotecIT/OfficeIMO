@@ -50,14 +50,11 @@ namespace OfficeIMO.Word {
         private static int nextAbstractNumberId;
 
         /// <summary>
-        /// Generates a random NSID value
+        /// Generates a unique NSID value using a GUID
         /// </summary>
         /// <returns></returns>
         private static string GenerateNsidValue() {
-            Random random = new Random();
-            int randomNumber = random.Next();
-            string nsidValue = randomNumber.ToString("X8");
-            return nsidValue;
+            return Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
         }
 
         /// <summary>

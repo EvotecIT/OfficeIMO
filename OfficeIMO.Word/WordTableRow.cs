@@ -169,5 +169,50 @@ namespace OfficeIMO.Word {
                 _tableRow.InsertAt(new TableRowProperties(), 0);
             }
         }
+
+        /// <summary>
+        /// Merges cells starting from the specified column across subsequent rows.
+        /// </summary>
+        /// <param name="cellIndex">Column index of the first cell to merge.</param>
+        /// <param name="rowsCount">Number of rows below this one to merge.</param>
+        /// <param name="copyParagraphs">True to move paragraphs from merged cells to the first cell; false to discard them.</param>
+        public void MergeVertically(int cellIndex, int rowsCount, bool copyParagraphs = false) {
+            var rows = _wordTable.Rows;
+            int startIndex = rows.FindIndex(r => r._tableRow == _tableRow);
+            if (startIndex < 0 || cellIndex >= CellsCount) {
+                return;
+            }
+
+            var firstCell = rows[startIndex].Cells[cellIndex];
+            firstCell.AddTableCellProperties();
+            firstCell.VerticalMerge = MergedCellValues.Restart;
+            var targetCell = firstCell._tableCell;
+
+            for (int i = 0; i < rowsCount; i++) {
+                int idx = startIndex + i + 1;
+                if (idx >= rows.Count) break;
+
+                var row = rows[idx];
+                var cell = row.Cells[cellIndex];
+                cell.AddTableCellProperties();
+
+                if (copyParagraphs) {
+                    var paragraphs = cell._tableCell.ChildElements.OfType<Paragraph>().ToList();
+                    foreach (var paragraph in paragraphs) {
+                        paragraph.Remove();
+                        targetCell.Append(paragraph);
+                    }
+                    cell._tableCell.Append(new Paragraph());
+                } else {
+                    var paragraphs = cell._tableCell.ChildElements.OfType<Paragraph>().ToList();
+                    foreach (var paragraph in paragraphs) {
+                        paragraph.Remove();
+                    }
+                    cell._tableCell.Append(new Paragraph());
+                }
+
+                cell.VerticalMerge = MergedCellValues.Continue;
+            }
+        }
     }
 }
