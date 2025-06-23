@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(NumberFormatValues.UpperRoman, document.Sections[0].PageNumberType.Format.Value);
-                Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat == WordFieldFormat.Roman);
+                Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));

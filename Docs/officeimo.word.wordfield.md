@@ -23,12 +23,12 @@ public Nullable<WordFieldType> FieldType { get; }
 ### **FieldFormat**
 
 ```csharp
-public Nullable<WordFieldFormat> FieldFormat { get; }
+public IReadOnlyList<WordFieldFormat> FieldFormat { get; }
 ```
 
 #### Property Value
 
-[Nullable&lt;WordFieldFormat&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+IReadOnlyList<WordFieldFormat><br>
 
 ### **Field**
 

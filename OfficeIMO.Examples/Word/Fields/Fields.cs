@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 foreach (var field in document.Fields) {
                     Console.WriteLine("...Type: " + field.FieldType);
-                    Console.WriteLine("...Format switch: " + field.FieldFormat);
+                    Console.WriteLine("...Format switch: " + String.Join(", ", field.FieldFormat));
                     Console.WriteLine("...Instruction: " + String.Join(" ", field.FieldInstructions));
                     Console.WriteLine("...Switches: " + String.Join(" ", field.FieldSwitches));
                 }
