@@ -233,6 +233,11 @@ namespace OfficeIMO.Examples {
             Revisions.Example_TrackedChanges(folderPath, false);
             MailMerge.Example_MailMergeSimple(folderPath, false);
             MailMerge.Example_MailMergeAdvanced(folderPath, false);
+
+            Macros.Example_CreateDocmWithMacro(templatesPath, folderPath, false);
+            Macros.Example_AddMacroToExistingDocx(templatesPath, folderPath, false);
+            Macros.Example_ExtractAndRemoveMacro(templatesPath, folderPath, false);
+            Macros.Example_ListAndRemoveMacro(templatesPath, folderPath, false);
         }
     }
 }

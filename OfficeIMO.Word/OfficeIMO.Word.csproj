@@ -9,8 +9,7 @@
         <VersionPrefix>0.0.24</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
-        <TargetFrameworks
-            Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
             net8.0</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -40,13 +39,11 @@
         <LangVersion>Latest</LangVersion>
     </PropertyGroup>
 
-    <PropertyGroup
-        Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
-    <PropertyGroup
-        Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
