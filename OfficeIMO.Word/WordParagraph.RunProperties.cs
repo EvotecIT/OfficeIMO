@@ -233,7 +233,7 @@ namespace OfficeIMO.Word {
                 if (ColorHex == "") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+                return Helpers.ParseColor(ColorHex);
 
             }
             set {

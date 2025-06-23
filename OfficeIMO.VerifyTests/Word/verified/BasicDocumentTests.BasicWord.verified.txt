@@ -29,7 +29,7 @@
       </w:pPr>
       <w:r>
         <w:rPr>
-          <w:color w:val="FF0000" />
+          <w:color w:val="ff0000" />
         </w:rPr>
         <w:t xml:space="preserve">Adding paragraph with some text</w:t>
       </w:r>
@@ -51,7 +51,7 @@
       </w:r>
       <w:r>
         <w:rPr>
-          <w:color w:val="6495ED" />
+          <w:color w:val="6495ed" />
         </w:rPr>
         <w:t xml:space="preserve"> , and we still continue adding more text to existing paragraph.</w:t>
       </w:r>

@@ -293,7 +293,7 @@ public partial class WordList : WordElement {
             if (ColorHex == "") {
                 return null;
             }
-            return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+            return Helpers.ParseColor(ColorHex);
         }
         set {
             if (value != null) {

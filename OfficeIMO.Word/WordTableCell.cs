@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
         public Color? ShadingFillColor {
             get {
                 if (ShadingFillColorHex != "") {
-                    return SixLabors.ImageSharp.Color.Parse("#" + ShadingFillColorHex);
+                    return Helpers.ParseColor(ShadingFillColorHex);
                 }
 
                 return null;

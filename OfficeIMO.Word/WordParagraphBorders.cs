@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
                 if (LeftColorHex == null || LeftColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex);
+                return Helpers.ParseColor(LeftColorHex);
             }
             set => LeftColorHex = value.Value.ToHexColor();
         }
@@ -309,7 +309,7 @@ namespace OfficeIMO.Word {
                 if (RightColorHex == null || RightColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex);
+                return Helpers.ParseColor(RightColorHex);
             }
             set => RightColorHex = value.Value.ToHexColor();
         }
@@ -511,7 +511,7 @@ namespace OfficeIMO.Word {
                     ) {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex);
+                return Helpers.ParseColor(TopColorHex);
             }
             set { this.TopColorHex = value.Value.ToHexColor(); }
         }
@@ -713,7 +713,7 @@ namespace OfficeIMO.Word {
                 if (BottomColorHex == null || BottomColorHex == "auto") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex);
+                return Helpers.ParseColor(BottomColorHex);
             }
             set {
                 if (value == null) {

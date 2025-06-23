@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
         /// Get or set left table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color LeftColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + LeftColorHex); }
+            get { return Helpers.ParseColor(LeftColorHex); }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
         /// Get or set right table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color RightColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + RightColorHex); }
+            get { return Helpers.ParseColor(RightColorHex); }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
@@ -287,7 +287,7 @@ namespace OfficeIMO.Word {
         /// Get or set top table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + TopColorHex); }
+            get { return Helpers.ParseColor(TopColorHex); }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
@@ -399,7 +399,7 @@ namespace OfficeIMO.Word {
         /// Get or set bottom table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color BottomColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + BottomColorHex); }
+            get { return Helpers.ParseColor(BottomColorHex); }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 
@@ -513,7 +513,7 @@ namespace OfficeIMO.Word {
         /// Get or set inside horizontal table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color InsideHorizontalColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + InsideHorizontalColorHex); }
+            get { return Helpers.ParseColor(InsideHorizontalColorHex); }
             set { this.InsideHorizontalColorHex = value.ToHexColor(); }
         }
 
@@ -627,7 +627,7 @@ namespace OfficeIMO.Word {
         /// Get or set inside vertical table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color InsideVerticalColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + InsideVerticalColorHex); }
+            get { return Helpers.ParseColor(InsideVerticalColorHex); }
             set { this.InsideVerticalColorHex = value.ToHexColor(); }
         }
 
@@ -738,7 +738,7 @@ namespace OfficeIMO.Word {
         /// Get or set start table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color StartColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + StartColorHex); }
+            get { return Helpers.ParseColor(StartColorHex); }
             set { this.StartColorHex = value.ToHexColor(); }
         }
 
@@ -849,7 +849,7 @@ namespace OfficeIMO.Word {
         /// Get or set end table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color EndColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + EndColorHex); }
+            get { return Helpers.ParseColor(EndColorHex); }
             set { this.EndColorHex = value.ToHexColor(); }
         }
 
@@ -967,7 +967,7 @@ namespace OfficeIMO.Word {
         /// Get or set top left to bottom right table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopLeftToBottomRightColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + TopLeftToBottomRightColorHex); }
+            get { return Helpers.ParseColor(TopLeftToBottomRightColorHex); }
             set { this.TopLeftToBottomRightColorHex = value.ToHexColor(); }
         }
 
@@ -1076,7 +1076,7 @@ namespace OfficeIMO.Word {
         /// Get or set top right to bottom left table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopRightToBottomLeftColor {
-            get { return SixLabors.ImageSharp.Color.Parse("#" + TopRightToBottomLeftColorHex); }
+            get { return Helpers.ParseColor(TopRightToBottomLeftColorHex); }
             set { this.TopRightToBottomLeftColorHex = value.ToHexColor(); }
         }
 
