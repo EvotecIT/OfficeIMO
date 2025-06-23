@@ -74,6 +74,7 @@ public Nullable<int> ZoomPercentage { get; set; }
 
 Tell Word to update fields when opening word.
  Without this option the document fields won't be refreshed until manual intervention.
+ For manual updates before opening the document see `WordDocument.UpdateFields`.
 
 ```csharp
 public bool UpdateFieldsOnOpen { get; set; }

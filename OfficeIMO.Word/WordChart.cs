@@ -143,6 +143,9 @@ namespace OfficeIMO.Word {
             categoryAxis1.Append(scaling1);
             categoryAxis1.Append(delete1);
             categoryAxis1.Append(axisPosition1);
+            if (!string.IsNullOrEmpty(_xAxisTitle)) {
+                categoryAxis1.Append(AddAxisTitle(_xAxisTitle));
+            }
             categoryAxis1.Append(majorTickMark1);
             categoryAxis1.Append(minorTickMark1);
             categoryAxis1.Append(tickLabelPosition1);
@@ -185,6 +188,9 @@ namespace OfficeIMO.Word {
             valueAxis1.Append(delete2);
             valueAxis1.Append(axisPosition2);
             valueAxis1.Append(majorGridlines1);  // MajorGridlines should come before NumberingFormat
+            if (!string.IsNullOrEmpty(_yAxisTitle)) {
+                valueAxis1.Append(AddAxisTitle(_yAxisTitle));
+            }
             valueAxis1.Append(numberingFormat1);
             valueAxis1.Append(majorTickMark2);
             valueAxis1.Append(minorTickMark2);
@@ -348,6 +354,81 @@ namespace OfficeIMO.Word {
             title1.Append(overlay1);
             return title1;
 
+        }
+
+        private Title AddAxisTitle(string titleText) {
+            Title title = new Title();
+            ChartText chartText = new ChartText();
+
+            RichText richText = new RichText();
+            DocumentFormat.OpenXml.Drawing.BodyProperties bodyProperties = new DocumentFormat.OpenXml.Drawing.BodyProperties();
+            DocumentFormat.OpenXml.Drawing.ListStyle listStyle = new DocumentFormat.OpenXml.Drawing.ListStyle();
+
+            DocumentFormat.OpenXml.Drawing.Paragraph paragraph = new DocumentFormat.OpenXml.Drawing.Paragraph();
+            DocumentFormat.OpenXml.Drawing.ParagraphProperties paragraphProperties = new DocumentFormat.OpenXml.Drawing.ParagraphProperties();
+            DocumentFormat.OpenXml.Drawing.DefaultRunProperties runProperties = new DocumentFormat.OpenXml.Drawing.DefaultRunProperties() {
+                FontSize = _axisTitleFontSize * 100
+            };
+            DocumentFormat.OpenXml.Drawing.SolidFill solidFill = new DocumentFormat.OpenXml.Drawing.SolidFill(
+                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToHexColor() });
+            runProperties.Append(solidFill);
+            runProperties.Append(new DocumentFormat.OpenXml.Drawing.LatinFont() { Typeface = _axisTitleFontName });
+            paragraphProperties.Append(runProperties);
+
+            DocumentFormat.OpenXml.Drawing.Run run = new DocumentFormat.OpenXml.Drawing.Run();
+            DocumentFormat.OpenXml.Drawing.Text text = new DocumentFormat.OpenXml.Drawing.Text { Text = titleText };
+            run.Append(text);
+            paragraph.Append(paragraphProperties);
+            paragraph.Append(run);
+
+            richText.Append(bodyProperties);
+            richText.Append(listStyle);
+            richText.Append(paragraph);
+
+            chartText.Append(richText);
+            Overlay overlay = new Overlay() { Val = false };
+
+            title.Append(chartText);
+            title.Append(overlay);
+            return title;
+        }
+
+        internal void UpdateAxisTitles() {
+            if (_chart != null) {
+                var plot = _chart.PlotArea;
+                if (plot != null) {
+                    var catAxis = plot.GetFirstChild<CategoryAxis>();
+                    if (catAxis != null) {
+                        var existing = catAxis.GetFirstChild<Title>();
+                        existing?.Remove();
+                        if (!string.IsNullOrEmpty(_xAxisTitle)) {
+                            var pos = catAxis.GetFirstChild<AxisPosition>();
+                            var title = AddAxisTitle(_xAxisTitle);
+                            if (pos != null) {
+                                catAxis.InsertAfter(title, pos);
+                            } else {
+                                catAxis.InsertAt(title, 0);
+                            }
+                        }
+                    }
+
+                    var valAxis = plot.GetFirstChild<ValueAxis>();
+                    if (valAxis != null) {
+                        var existing = valAxis.GetFirstChild<Title>();
+                        existing?.Remove();
+                        if (!string.IsNullOrEmpty(_yAxisTitle)) {
+                            OpenXmlElement refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
+                                ?? valAxis.GetFirstChild<AxisPosition>();
+                            var title = AddAxisTitle(_yAxisTitle);
+                            if (refNode != null) {
+                                valAxis.InsertAfter(title, refNode);
+                            } else {
+                                valAxis.InsertAt(title, 0);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         internal Values AddValuesAxisData<T>(List<T> dataList) {

@@ -671,6 +671,9 @@ namespace OfficeIMO.Word {
             WordDocument word = new WordDocument();
 
             WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
+            if (!string.IsNullOrEmpty(filePath) && Path.GetExtension(filePath).Equals(".docm", StringComparison.OrdinalIgnoreCase)) {
+                documentType = WordprocessingDocumentType.MacroEnabledDocument;
+            }
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
@@ -1020,7 +1023,24 @@ namespace OfficeIMO.Word {
                             _fileStream.Dispose();
                         }
 
-                        _fileStream = new FileStream(filePath, FileMode.Create);
+                        if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                            throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+                        }
+
+                        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                        if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                            var dirInfo = new DirectoryInfo(directory);
+                            if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                                throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
+                            }
+                        }
+
+                        try {
+                            _fileStream = new FileStream(filePath, FileMode.Create);
+                        } catch (UnauthorizedAccessException ex) {
+                            throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
+                        }
+
                         //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
                         using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
@@ -1040,7 +1060,7 @@ namespace OfficeIMO.Word {
                             _fileStream.Flush();
                         }
                     }
-                } catch {
+                } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                     throw;
                 } finally {
                     if (_fileStream != null) {
@@ -1097,12 +1117,32 @@ namespace OfficeIMO.Word {
                     this._wordprocessingDocument.Save();
 
                     if (filePath != "") {
-                        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
-                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                        if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                            throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                         }
-                        Helpers.MakeOpenOfficeCompatible(fs);
-                        await fs.FlushAsync(cancellationToken);
+
+                        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                        if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                            var dirInfo = new DirectoryInfo(directory);
+                            if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                                throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
+                            }
+                        }
+
+                        FileStream fs;
+                        try {
+                            fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                        } catch (UnauthorizedAccessException ex) {
+                            throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
+                        }
+
+                        using (fs) {
+                            using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                            }
+                            Helpers.MakeOpenOfficeCompatible(fs);
+                            await fs.FlushAsync(cancellationToken);
+                        }
                         FilePath = filePath;
                     } else if (_fileStream != null) {
                         _fileStream.Seek(0, SeekOrigin.Begin);
@@ -1113,6 +1153,8 @@ namespace OfficeIMO.Word {
                         Helpers.MakeOpenOfficeCompatible(_fileStream);
                         await _fileStream.FlushAsync(cancellationToken);
                     }
+                } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
+                    throw;
                 } finally {
                     if (_fileStream != null) {
                         _fileStream.Dispose();
@@ -1151,7 +1193,7 @@ namespace OfficeIMO.Word {
             }
             PreSaving();
 
-            // Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
+            // Clone document once and copy package properties in the same operation
             using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
             }

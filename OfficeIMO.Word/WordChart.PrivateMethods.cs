@@ -203,6 +203,7 @@ namespace OfficeIMO.Word {
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -214,6 +215,7 @@ namespace OfficeIMO.Word {
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -225,6 +227,7 @@ namespace OfficeIMO.Word {
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -236,6 +239,7 @@ namespace OfficeIMO.Word {
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -794,6 +798,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateScatterChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -803,6 +808,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateRadarChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -812,6 +818,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateArea3DChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 
@@ -821,6 +828,7 @@ namespace OfficeIMO.Word {
                 _chart = GenerateBar3DChart(_chart);
                 _chartPart.ChartSpace.Append(_chart);
                 UpdateTitle();
+                UpdateAxisTitles();
             }
         }
 

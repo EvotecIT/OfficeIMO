@@ -557,6 +557,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RowMergeVerticallyAddsProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "RowVerticalMerge.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable wordTable = document.AddTable(3, 3, WordTableStyle.PlainTable1);
+
+                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Top";
+                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Bottom";
+                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Another";
+                wordTable.Rows[0].Cells[1].Paragraphs[0].Text = "A";
+                wordTable.Rows[1].Cells[1].Paragraphs[0].Text = "B";
+                wordTable.Rows[2].Cells[1].Paragraphs[0].Text = "C";
+
+                // simulate cells loaded without properties
+                wordTable.Rows[0].Cells[0].RemoveTableCellProperties();
+                wordTable.Rows[1].Cells[0].RemoveTableCellProperties();
+
+                wordTable.Rows[0].MergeVertically(0, 1, true);
+
+                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
+                Assert.Equal("Top", wordTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Bottom", wordTable.Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("", wordTable.Rows[1].Cells[0].Paragraphs[0].Text);
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "RowVerticalMerge.docx"))) {
+                var wordTable = document.Tables[0];
+
+                Assert.Equal(MergedCellValues.Restart, wordTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, wordTable.Rows[1].Cells[0].VerticalMerge);
+                Assert.Null(wordTable.Rows[2].Cells[0].VerticalMerge);
+
+                document.Save();
+            }
+        }
+
+        [Fact]
         public void Test_SplitVerticallyKeepsIndices() {
             string filePath = Path.Combine(_directoryWithFiles, "SplitVerticallyIndices.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

@@ -62,6 +62,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add an image that is stored outside the package.
+        /// </summary>
+        public WordParagraph AddImage(Uri imageUri, double width, double height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
+            VerifyRun();
+            _run.Append(wordImage._Image);
+            return this;
+        }
+
+        /// <summary>
         /// Add image from a Base64 encoded string.
         /// </summary>
         public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
@@ -299,13 +309,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordFieldType">The type of field to add.</param>
         /// <param name="wordFieldFormat">The format of the field to add.</param>
-        /// <param name="advanced"></param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
+        /// <param name="advanced">Use advanced field representation.</param>
         /// <param name="parameters">Usages like <code>parameters = new List&lt; String&gt;{ @"\d 'Default'", @"\c" };</code><br/>
         /// Also see available List of switches per field code:
         /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
-            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, advanced, parameters);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
+            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat, advanced, parameters);
             return this;
         }
 

@@ -57,6 +57,7 @@
 [WordCustomProperty](./officeimo.word.wordcustomproperty.md)
 
 [WordDocument](./officeimo.word.worddocument.md)
+[WordMacros](./officeimo.word.wordmacros.md)
 
 [WordDocumentVariables](./officeimo.word.worddocumentvariables.md)
 

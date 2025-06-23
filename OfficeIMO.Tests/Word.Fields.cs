@@ -38,12 +38,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
 
 
-                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Caps);
+                Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Author);
-                Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[1].FieldFormat);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.FileName);
 
-                //Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Arabic);
+                //Assert.Equal(new[] { WordFieldFormat.Arabic, WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Page);
 
             }
@@ -145,11 +145,11 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Our title is ").AddField(WordFieldType.Title, WordFieldFormat.Caps);
                 document.AddParagraph("Our author is ").AddField(WordFieldType.Author);
 
-                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
-                Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
+                Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[1].FieldFormat);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 Assert.True(document.Paragraphs.Count == 6);
@@ -159,11 +159,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithFields.docx"))) {
                 Assert.True(document.Paragraphs.Count == 6);
-                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
-                Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
+                Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[1].FieldFormat);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 var fieldTypes = (WordFieldType[])Enum.GetValues(typeof(WordFieldType));
@@ -175,30 +175,34 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 2);
 
                 foreach (var fieldType in fieldTypes) {
-                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, true);
+                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, advanced: true);
                     Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
                 }
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
 
-                var fieldTypesFormats = (WordFieldFormat[])Enum.GetValues(typeof(WordFieldFormat));
+                var fieldTypesFormats = Enum.GetValues(typeof(WordFieldFormat))
+                    .Cast<WordFieldFormat>()
+                    .GroupBy(f => f.ToString().ToUpperInvariant())
+                    .Select(g => g.First())
+                    .ToArray();
 
                 foreach (var fieldType in fieldTypes) {
                     foreach (var fieldTypeFormat in fieldTypesFormats) {
                         var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, fieldTypeFormat);
                         Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
-                        Assert.True(paragraph.Field.FieldFormat == fieldTypeFormat, "FieldTypeFormat matches");
+                        Assert.Contains(fieldTypeFormat, paragraph.Field.FieldFormat);
                     }
                 }
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithFields.docx"))) {
-                Assert.True(document.Fields[0].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
                 Assert.True(document.Fields[0].FieldType == WordFieldType.Page);
-                Assert.True(document.Fields[1].FieldFormat == WordFieldFormat.Caps);
+                Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[1].FieldFormat);
                 Assert.True(document.Fields[1].FieldType == WordFieldType.Title);
-                Assert.True(document.Fields[2].FieldFormat == WordFieldFormat.Mergeformat);
+                Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
                 Assert.True(document.Fields[2].FieldType == WordFieldType.Author);
 
                 document.Save();
@@ -222,9 +226,56 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, document.Fields.Count);
                 Assert.Equal(WordFieldType.Ask, document.Fields[0].FieldType);
-                Assert.Equal(WordFieldFormat.FirstCap, document.Fields[0].FieldFormat);
+                Assert.Equal(new[] { WordFieldFormat.FirstCap, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
                 Assert.Equal(instructions, document.Fields[0].FieldInstructions);
                 Assert.Equal(switches, document.Fields[0].FieldSwitches);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldWithMultipleSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldMultipleSwitches.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddField(WordFieldType.Page, WordFieldFormat.Caps);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldWithCustomFormat() {
+            string filePath = Path.Combine(_directoryWithFiles, "CustomFormattedField.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
+                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field.Field);
+                document.Save(false);
+            }
+
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    Assert.Single(document.Fields);
+                    Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
+                    Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
+                }
+        }
+
+        [Fact]
+        public void Test_FieldWithNewFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldWithFormats.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
+                var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
+                var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Fields.Count);
+                Assert.Equal(new[] { WordFieldFormat.CardText, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
+                Assert.Equal(new[] { WordFieldFormat.Ordinal, WordFieldFormat.Mergeformat }, document.Fields[1].FieldFormat);
+                Assert.Equal(new[] { WordFieldFormat.Hex, WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
             }
         }
 
@@ -233,15 +284,15 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "partitionedFieldInstructions.docx"));
 
             Assert.Equal(WordFieldType.XE, document.Fields[0].FieldType);
-            Assert.Equal(WordFieldFormat.Lower, document.Fields[0].FieldFormat);
+            Assert.Empty(document.Fields[0].FieldFormat);
             Assert.Equal("\"Introduction\"", document.Fields[0].FieldInstructions.First());
 
             Assert.Equal(WordFieldType.XE, document.Fields[1].FieldType);
-            Assert.Equal(WordFieldFormat.Lower, document.Fields[1].FieldFormat);
+            Assert.Empty(document.Fields[1].FieldFormat);
             Assert.Equal("\"Header 1\"", document.Fields[1].FieldInstructions.First());
 
             Assert.Equal(WordFieldType.Ask, document.Fields[2].FieldType);
-            Assert.Equal(WordFieldFormat.Mergeformat, document.Fields[2].FieldFormat);
+            Assert.Equal(new[] { WordFieldFormat.Mergeformat }, document.Fields[2].FieldFormat);
             Assert.Equal("\"What is the weather today?\"", document.Fields[2].FieldInstructions.First());
             Assert.Equal("\\d \"fine\"", document.Fields[2].FieldSwitches.First());
         }
