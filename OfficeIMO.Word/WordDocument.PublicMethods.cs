@@ -430,7 +430,7 @@ namespace OfficeIMO.Word {
             }
             List<WordParagraph> foundParagraphs = new List<WordParagraph>();
             var removeParas = new List<int>();
-            var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 });
+            var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 }, stringComparison);
 
             if (foundList?.Count > 0) {
                 count += foundList.Count;
