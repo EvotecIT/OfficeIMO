@@ -23,7 +23,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="OpenMcdf" Version="2.2.1" />
+        <PackageReference Include="OpenMcdf" Version="2.4.1" />
 
     </ItemGroup>
 
