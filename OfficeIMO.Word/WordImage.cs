@@ -1833,7 +1833,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             if (_imagePart != null) {
-                _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+                OpenXmlElement parent = _Image.Parent;
+                while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+                    parent = parent.Parent;
+                }
+
+                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                if (parent is Header header) {
+                    part = header.HeaderPart;
+                } else if (parent is Footer footer) {
+                    part = footer.FooterPart;
+                }
+
+                part.DeletePart(_imagePart);
                 _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
                 OpenXmlElement parent = _Image.Parent;
