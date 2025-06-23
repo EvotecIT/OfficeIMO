@@ -231,21 +231,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Whether the shape is hidden.
+        /// Whether the shape is hidden. Stored as "visibility:hidden" in the style string.
         /// </summary>
         public bool? Hidden {
             get {
-                if (_rectangle?.Hidden != null) return _rectangle.Hidden.Value;
-                if (_ellipse?.Hidden != null) return _ellipse.Hidden.Value;
-                if (_polygon?.Hidden != null) return _polygon.Hidden.Value;
-                if (_line?.Hidden != null) return _line.Hidden.Value;
-                return null;
+                var v = GetStyleValue("visibility");
+                if (string.IsNullOrEmpty(v)) return null;
+                return v == "hidden";
             }
             set {
-                if (_rectangle != null) _rectangle.Hidden = value;
-                if (_ellipse != null) _ellipse.Hidden = value;
-                if (_polygon != null) _polygon.Hidden = value;
-                if (_line != null) _line.Hidden = value;
+                if (value == null) {
+                    RemoveStyleValue("visibility");
+                } else {
+                    SetStyleValue("visibility", value.Value ? "hidden" : "visible");
+                }
             }
         }
 
@@ -344,7 +343,7 @@ namespace OfficeIMO.Word {
 
         private void SetStyleValue(string name, string value) {
             var style = GetStyle() ?? string.Empty;
-            var parts = style.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var parts = style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             bool updated = false;
             for (int i = 0; i < parts.Count; i++) {
                 var kv = parts[i].Split(':');
@@ -361,7 +360,7 @@ namespace OfficeIMO.Word {
         private void RemoveStyleValue(string name) {
             var style = GetStyle();
             if (string.IsNullOrEmpty(style)) return;
-            var parts = style.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var parts = style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             parts.RemoveAll(p => p.Split(':').FirstOrDefault() == name);
             SetStyle(string.Join(";", parts));
         }
