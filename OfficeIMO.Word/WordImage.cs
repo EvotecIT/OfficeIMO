@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
 
         internal Drawing _Image;
         private ImagePart _imagePart;
+        private string _externalRelationshipId;
         private WordDocument _document;
         private int? _cropTop;
         private int? _cropBottom;
@@ -728,6 +729,83 @@ namespace OfficeIMO.Word {
             set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
         }
 
+        /// <summary>
+        /// Gets or sets how the image should fill its bounding box. Default is Stretch.
+        /// </summary>
+        public ImageFillMode FillMode {
+            get {
+                var picture = GetPicture();
+                if (picture?.BlipFill?.Tile != null) {
+                    return ImageFillMode.Tile;
+                }
+                return ImageFillMode.Stretch;
+            }
+            set {
+                var picture = GetPicture();
+                if (picture == null) return;
+
+                var blipFill = picture.BlipFill;
+                if (value == ImageFillMode.Stretch) {
+                    blipFill.Tile?.Remove();
+                    if (blipFill.Stretch == null) {
+                        blipFill.Stretch = new Stretch(new FillRectangle());
+                    }
+                } else {
+                    blipFill.Stretch?.Remove();
+                    if (blipFill.Tile == null) {
+                        blipFill.Tile = new Tile();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Specifies whether to use the image's local DPI setting when rendering.
+        /// </summary>
+        public bool? UseLocalDpi {
+            get {
+                var blip = GetBlip();
+                var useLocalDpi = blip?.BlipExtensionList?
+                    .OfType<BlipExtension>()
+                    .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}")?
+                    .GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
+                return useLocalDpi?.Val;
+            }
+            set {
+                var blip = GetBlip();
+                if (blip == null) return;
+
+                var extList = blip.BlipExtensionList;
+                if (extList == null && value != null) {
+                    extList = new BlipExtensionList();
+                    blip.Append(extList);
+                }
+
+                if (extList != null) {
+                    var extension = extList
+                        .OfType<BlipExtension>()
+                        .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                    if (extension == null && value != null) {
+                        extension = new BlipExtension { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" };
+                        extList.Append(extension);
+                    }
+                    if (extension != null) {
+                        var useLocalDpiElement = extension.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
+                        if (value == null) {
+                            useLocalDpiElement?.Remove();
+                        } else {
+                            if (useLocalDpiElement == null) {
+                                useLocalDpiElement = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi();
+                                useLocalDpiElement.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
+                                extension.Append(useLocalDpiElement);
+                            }
+                            useLocalDpiElement.Val = value.Value;
+                        }
+                    }
+                }
+            }
+        }
+
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
@@ -751,6 +829,13 @@ namespace OfficeIMO.Word {
             var bytes = Convert.FromBase64String(base64String);
             using var ms = new MemoryStream(bytes);
             AddImage(document, paragraph, ms, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+        }
+
+        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+            FilePath = externalUri.ToString();
+            shape ??= ShapeTypeValues.Rectangle;
+            compressionQuality ??= BlipCompressionValues.Print;
+            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "") {
@@ -795,8 +880,6 @@ namespace OfficeIMO.Word {
 
             blipExtensionList.Append(blipExtension1);
 
-            var stretch = new Stretch(new FillRectangle());
-
             blipFlip.Append(blip);
             if (_cropTop != null || _cropBottom != null || _cropLeft != null || _cropRight != null) {
                 var srcRect = new SourceRectangle();
@@ -806,7 +889,13 @@ namespace OfficeIMO.Word {
                 if (_cropRight != null) srcRect.Right = _cropRight;
                 blipFlip.Append(srcRect);
             }
-            blipFlip.Append(stretch);
+            if (FillMode == ImageFillMode.Stretch) {
+                blipFlip.Append(new Stretch(new FillRectangle()));
+            } else {
+                if (blipFlip.Tile == null) {
+                    blipFlip.Tile = new Tile();
+                }
+            }
 
             var picture = new DocumentFormat.OpenXml.Drawing.Pictures.Picture();
 
@@ -940,8 +1029,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fileToSave"></param>
         public void SaveToFile(string fileToSave) {
+            if (_imagePart == null) {
+                throw new InvalidOperationException("Image is linked externally and cannot be saved.");
+            }
             using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
-                var stream = this._imagePart.GetStream();
+                var stream = _imagePart.GetStream();
                 stream.CopyTo(outputFileStream);
                 stream.Close();
             }
@@ -951,8 +1043,25 @@ namespace OfficeIMO.Word {
         /// Remove image from a Word Document
         /// </summary>
         public void Remove() {
-            if (this._imagePart != null) {
+            if (_imagePart != null) {
                 _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+            } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
+                OpenXmlElement parent = _Image.Parent;
+                while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+                    parent = parent.Parent;
+                }
+
+                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                if (parent is Header header) {
+                    part = header.HeaderPart;
+                } else if (parent is Footer footer) {
+                    part = footer.FooterPart;
+                }
+
+                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                if (rel != null) {
+                    part.DeleteReferenceRelationship(rel);
+                }
             }
 
             if (this._Image != null) {
@@ -1036,6 +1145,36 @@ namespace OfficeIMO.Word {
                 Height = height.Value,
                 ImageName = imageName
             };
+        }
+
+        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+            _document = document;
+
+            var location = paragraph.Location();
+            ExternalRelationship rel;
+            if (location is Header header) {
+                rel = header.HeaderPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else if (location is Footer footer) {
+                rel = footer.FooterPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else {
+                rel = document._wordprocessingDocument.MainDocumentPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            }
+
+            _externalRelationshipId = rel.Id;
+
+            double emuWidth = width * EnglishMetricUnitsPerInch / PixelsPerInch;
+            double emuHeight = height * EnglishMetricUnitsPerInch / PixelsPerInch;
+
+            var drawing = new Drawing();
+            if (wrapImage == WrapTextImage.InLineWithText) {
+                var inline = GetInline(emuWidth, emuHeight, Path.GetFileNameWithoutExtension(uri.ToString()), Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
+                drawing.Append(inline);
+            } else {
+                var graphic = GetGraphic(emuWidth, emuHeight, Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
+                drawing.Append(anchor);
+            }
+            _Image = drawing;
         }
     }
 }

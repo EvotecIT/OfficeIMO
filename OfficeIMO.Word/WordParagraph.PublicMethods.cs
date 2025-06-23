@@ -62,6 +62,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Add an image that is stored outside the package.
+        /// </summary>
+        public WordParagraph AddImage(Uri imageUri, double width, double height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
+            VerifyRun();
+            _run.Append(wordImage._Image);
+            return this;
+        }
+
+        /// <summary>
         /// Add image from a Base64 encoded string.
         /// </summary>
         public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
