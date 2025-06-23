@@ -443,7 +443,7 @@ namespace OfficeIMO.Word {
                             if (replace) {
                                 p.Text = p.Text.Replace(oldText, newText);
                             }
-                            if (foundParagraphs.IndexOf(p) == -1) {
+                            if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, p._paragraph))) {
                                 foundParagraphs.Add(p);
                             }
                         }
@@ -454,7 +454,7 @@ namespace OfficeIMO.Word {
                             if (beginPara != null && endPara != null) {
                                 beginPara.Text = beginPara.Text.Replace(beginPara.Text.Substring(ts.BeginChar), newText);
                                 endPara.Text = endPara.Text.Replace(endPara.Text.Substring(0, ts.EndChar + 1), "");
-                                if (foundParagraphs.IndexOf(beginPara) == -1) {
+                                if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, beginPara._paragraph))) {
                                     foundParagraphs.Add(beginPara);
                                 }
                             }
