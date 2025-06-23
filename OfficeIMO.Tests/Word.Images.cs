@@ -519,6 +519,32 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ImageNonVisualProperties() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageNvProps.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.Image.Title = "MyTitle";
+                paragraph.Image.Hidden = true;
+                paragraph.Image.PreferRelativeResize = true;
+                paragraph.Image.NoChangeAspect = true;
+                paragraph.Image.FixedOpacity = 80;
+                document.Save(false);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var pic = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                var nv = pic.NonVisualPictureProperties;
+                Assert.Equal("MyTitle", nv.NonVisualDrawingProperties.Title);
+                Assert.True(nv.NonVisualDrawingProperties.Hidden);
+                Assert.True(nv.NonVisualPictureDrawingProperties.PreferRelativeResize);
+                Assert.True(nv.NonVisualPictureDrawingProperties.PictureLocks.NoChangeAspect);
+                var ar = pic.BlipFill.Blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
+                Assert.Equal(80000, ar.Alpha.Value);
+            }
+        }
+
     }
 
 }

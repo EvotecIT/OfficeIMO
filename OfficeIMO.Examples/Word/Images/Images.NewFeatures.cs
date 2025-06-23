@@ -13,6 +13,11 @@ namespace OfficeIMO.Examples.Word {
             paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
             paragraph1.Image.FillMode = ImageFillMode.Tile;
             paragraph1.Image.UseLocalDpi = true;
+            paragraph1.Image.Title = "Sample image";
+            paragraph1.Image.Hidden = false;
+            paragraph1.Image.PreferRelativeResize = true;
+            paragraph1.Image.NoChangeAspect = true;
+            paragraph1.Image.FixedOpacity = 80;
 
             var paragraph2 = document.AddParagraph("Linked image from web");
             paragraph2.AddImage(new Uri("http://example.com/logo.png"), 100, 100);

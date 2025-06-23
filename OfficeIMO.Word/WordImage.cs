@@ -9,6 +9,8 @@ using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
+using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
     public class WordImage : WordElement {
@@ -25,6 +27,16 @@ namespace OfficeIMO.Word {
         private int? _cropRight;
         private ImageFillMode _fillMode = ImageFillMode.Stretch;
         private bool? _useLocalDpi;
+        private string _title;
+        private bool? _hidden;
+        private bool? _preferRelativeResize;
+        private bool? _noChangeAspect;
+        private bool? _noCrop;
+        private bool? _noMove;
+        private bool? _noResize;
+        private bool? _noRotation;
+        private bool? _noSelection;
+        private int? _fixedOpacity;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -183,6 +195,68 @@ namespace OfficeIMO.Word {
                 } else if (_Image.Anchor != null) {
                     var anchoDocPropertiesr = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
                     anchoDocPropertiesr.Description = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the image's title.
+        /// </summary>
+        public string Title {
+            get {
+                if (_Image.Inline != null) {
+                    _title = _Image.Inline.DocProperties.Title;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    _title = docProp?.Title;
+                }
+                return _title;
+            }
+            set {
+                _title = value;
+                if (_Image.Inline != null) {
+                    _Image.Inline.DocProperties.Title = value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    if (docProp != null) docProp.Title = value;
+                }
+                var pic = GetPicture();
+                if (pic != null) {
+                    var nv = pic.NonVisualPictureProperties;
+                    if (nv != null) {
+                        nv.NonVisualDrawingProperties.Title = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Specifies whether the picture is hidden.
+        /// </summary>
+        public bool? Hidden {
+            get {
+                if (_Image.Inline != null) {
+                    _hidden = _Image.Inline.DocProperties.Hidden?.Value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    _hidden = docProp?.Hidden?.Value;
+                }
+                return _hidden;
+            }
+            set {
+                _hidden = value;
+                if (_Image.Inline != null) {
+                    _Image.Inline.DocProperties.Hidden = value;
+                } else if (_Image.Anchor != null) {
+                    var docProp = _Image.Anchor.OfType<DocProperties>().FirstOrDefault();
+                    if (docProp != null) docProp.Hidden = value;
+                }
+                var pic = GetPicture();
+                if (pic != null) {
+                    var nv = pic.NonVisualPictureProperties;
+                    if (nv != null) {
+                        nv.NonVisualDrawingProperties.Hidden = value;
+                    }
                 }
             }
         }
@@ -818,6 +892,152 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates whether resizing should be relative to the original size.
+        /// </summary>
+        public bool? PreferRelativeResize {
+            get {
+                var pic = GetPicture();
+                var nv = pic?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties;
+                _preferRelativeResize = nv?.PreferRelativeResize;
+                return _preferRelativeResize;
+            }
+            set {
+                _preferRelativeResize = value;
+                var pic = GetPicture();
+                if (pic == null) return;
+                var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+                if (nv == null && value != null) {
+                    nv = new Pic.NonVisualPictureDrawingProperties();
+                    pic.NonVisualPictureProperties.Append(nv);
+                }
+                if (nv != null) {
+                    nv.PreferRelativeResize = value;
+                }
+            }
+        }
+
+        public bool? NoChangeAspect {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noChangeAspect = locks?.NoChangeAspect;
+                return _noChangeAspect;
+            }
+            set {
+                _noChangeAspect = value;
+                SetPictureLock(l => l.NoChangeAspect = value);
+            }
+        }
+
+        public bool? NoCrop {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noCrop = locks?.NoCrop;
+                return _noCrop;
+            }
+            set {
+                _noCrop = value;
+                SetPictureLock(l => l.NoCrop = value);
+            }
+        }
+
+        public bool? NoMove {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noMove = locks?.NoMove;
+                return _noMove;
+            }
+            set {
+                _noMove = value;
+                SetPictureLock(l => l.NoMove = value);
+            }
+        }
+
+        public bool? NoResize {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noResize = locks?.NoResize;
+                return _noResize;
+            }
+            set {
+                _noResize = value;
+                SetPictureLock(l => l.NoResize = value);
+            }
+        }
+
+        public bool? NoRot {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noRotation = locks?.NoRotation;
+                return _noRotation;
+            }
+            set {
+                _noRotation = value;
+                SetPictureLock(l => l.NoRotation = value);
+            }
+        }
+
+        public bool? NoSelect {
+            get {
+                var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
+                _noSelection = locks?.NoSelection;
+                return _noSelection;
+            }
+            set {
+                _noSelection = value;
+                SetPictureLock(l => l.NoSelection = value);
+            }
+        }
+
+        /// <summary>
+        /// Sets picture lock property using provided action.
+        /// </summary>
+        private void SetPictureLock(Action<A.PictureLocks> setter) {
+            var pic = GetPicture();
+            if (pic == null) return;
+            var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+            if (nv == null) {
+                nv = new Pic.NonVisualPictureDrawingProperties();
+                pic.NonVisualPictureProperties.Append(nv);
+            }
+            var locks = nv.PictureLocks;
+            if (locks == null) {
+                locks = new A.PictureLocks();
+                nv.Append(locks);
+            }
+            setter(locks);
+        }
+
+        /// <summary>
+        /// Sets a fixed opacity value for the image.
+        /// </summary>
+        public int? FixedOpacity {
+            get {
+                var blip = GetBlip();
+                var ar = blip?.GetFirstChild<AlphaReplace>();
+                _fixedOpacity = ar != null ? (int?)(ar.Alpha.Value / 1000) : null;
+                return _fixedOpacity;
+            }
+            set {
+                if (value is < 0 or > 100)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Opacity must be between 0 and 100.");
+
+                _fixedOpacity = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var ar = blip.GetFirstChild<AlphaReplace>();
+                if (value == null) {
+                    ar?.Remove();
+                    return;
+                }
+                if (ar == null) {
+                    ar = new AlphaReplace();
+                    blip.Append(ar);
+                }
+                ar.Alpha = value.Value * 1000;
+            }
+        }
+
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
@@ -864,19 +1084,36 @@ namespace OfficeIMO.Word {
             var graphic = new Graphic();
             var graphicData = new GraphicData() { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" };
 
-            var nonVisualPictureProperties = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(
-                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties() {
-                    Id = (UInt32Value)0U,
-                    Name = fileName,
-                    // this description doesn't seem to matter, but leaving it here for now
-                    Description = description
-                },
-                //new Pic.NonVisualPictureProperties(),
-                new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureDrawingProperties() { });
+            var nvDrawingProps = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties()
+            {
+                Id = (UInt32Value)0U,
+                Name = fileName,
+                Description = description
+            };
+            if (_title != null) nvDrawingProps.Title = _title;
+            if (_hidden != null) nvDrawingProps.Hidden = _hidden;
+
+            var nvPicProps = new Pic.NonVisualPictureDrawingProperties();
+            if (_preferRelativeResize != null) nvPicProps.PreferRelativeResize = _preferRelativeResize;
+            if (_noChangeAspect != null || _noCrop != null || _noMove != null || _noResize != null || _noRotation != null || _noSelection != null) {
+                var locks = new A.PictureLocks();
+                if (_noChangeAspect != null) locks.NoChangeAspect = _noChangeAspect;
+                if (_noCrop != null) locks.NoCrop = _noCrop;
+                if (_noMove != null) locks.NoMove = _noMove;
+                if (_noResize != null) locks.NoResize = _noResize;
+                if (_noRotation != null) locks.NoRotation = _noRotation;
+                if (_noSelection != null) locks.NoSelection = _noSelection;
+                nvPicProps.Append(locks);
+            }
+
+            var nonVisualPictureProperties = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualPictureProperties(nvDrawingProps, nvPicProps);
 
             var blipFlip = new DocumentFormat.OpenXml.Drawing.Pictures.BlipFill();
 
             var blip = new Blip() { Embed = relationshipId, CompressionState = compressionQuality };
+            if (_fixedOpacity != null) {
+                blip.Append(new AlphaReplace() { Alpha = _fixedOpacity.Value * 1000 });
+            }
 
             // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
             var blipExtensionList = new BlipExtensionList();
@@ -932,7 +1169,13 @@ namespace OfficeIMO.Word {
             };
             inline.Append(new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight });
             inline.Append(new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            inline.Append(new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description });
+            inline.Append(new DocProperties() {
+                Id = (UInt32Value)1U,
+                Name = imageName,
+                Description = description,
+                Title = _title,
+                Hidden = _hidden
+            });
             inline.Append(new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks() { NoChangeAspect = true }));
             inline.Append(GetGraphic(emuWidth, emuHeight, fileName, relationshipId, shape, compressionQuality));
@@ -987,7 +1230,13 @@ namespace OfficeIMO.Word {
 
             WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
 
-            DocProperties docProperties1 = new DocProperties() { Id = (UInt32Value)1U, Name = imageName, Description = description };
+            DocProperties docProperties1 = new DocProperties() {
+                Id = (UInt32Value)1U,
+                Name = imageName,
+                Description = description,
+                Title = _title,
+                Hidden = _hidden
+            };
             anchor1.Append(docProperties1);
 
             var nonVisualGraphicFrameDrawingProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties();
@@ -1033,6 +1282,37 @@ namespace OfficeIMO.Word {
                 var relationshipId = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart);
                 if (this.RelationshipId == relationshipId) {
                     this._imagePart = imagePart;
+                }
+            }
+
+            var picture = GetPicture();
+            if (picture != null) {
+                var nv = picture.NonVisualPictureProperties;
+                if (nv != null) {
+                    _title = nv.NonVisualDrawingProperties.Title;
+                    _hidden = nv.NonVisualDrawingProperties.Hidden?.Value;
+                    var nvPic = nv.NonVisualPictureDrawingProperties;
+                    if (nvPic != null) {
+                        _preferRelativeResize = nvPic.PreferRelativeResize?.Value;
+                        var locks = nvPic.PictureLocks;
+                        if (locks != null) {
+                            _noChangeAspect = locks.NoChangeAspect?.Value;
+                            _noCrop = locks.NoCrop?.Value;
+                            _noMove = locks.NoMove?.Value;
+                            _noResize = locks.NoResize?.Value;
+                            _noRotation = locks.NoRotation?.Value;
+                            _noSelection = locks.NoSelection?.Value;
+                        }
+                    }
+                }
+
+                var blip = picture.BlipFill?.Blip;
+                if (blip != null) {
+                    var ar = blip.GetFirstChild<AlphaReplace>();
+                    if (ar != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
+                    var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>()
+                        .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                    _useLocalDpi = ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>()?.Val?.Value;
                 }
             }
         }
