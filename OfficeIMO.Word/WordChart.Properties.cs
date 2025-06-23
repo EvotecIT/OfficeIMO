@@ -36,6 +36,11 @@ namespace OfficeIMO.Word {
         /// Value axis ID for Line3D charts
         /// </summary>
         private UInt32Value _valAxisId;
+        private string _xAxisTitle;
+        private string _yAxisTitle;
+        private string _axisTitleFontName = "Calibri";
+        private int _axisTitleFontSize = 11;
+        private SixLabors.ImageSharp.Color _axisTitleColor = SixLabors.ImageSharp.Color.Black;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
         public BarGroupingValues? BarGrouping {
