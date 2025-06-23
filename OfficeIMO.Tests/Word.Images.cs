@@ -507,6 +507,8 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(new Uri("http://example.com/image.png"), 50, 50);
                 Assert.Single(document.Images);
+                Assert.True(document.Images[0].IsExternal);
+                Assert.Equal(new Uri("http://example.com/image.png"), document.Images[0].ExternalUri);
                 Assert.Throws<InvalidOperationException>(() => document.Images[0].SaveToFile("tmp.png"));
                 document.Images[0].Remove();
                 Assert.Empty(document.Images);
