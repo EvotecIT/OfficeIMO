@@ -630,7 +630,6 @@ namespace OfficeIMO.Word {
         public Document _document;
         //public WordCustomProperties _customDocumentProperties;
 
-        private FileStream _fileStream;
 
         /// <summary>
         /// FileOpenAccess of the document
@@ -677,8 +676,9 @@ namespace OfficeIMO.Word {
             WordprocessingDocument wordDocument;
 
             if (filePath != "") {
-                //Open the file for writing so as to get lock
-                word._fileStream = new FileStream(filePath, FileMode.Create);
+                //Ensure the target file exists
+                using (File.Create(filePath)) {
+                }
             }
 
             //Always create package in memory.
@@ -861,9 +861,10 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-            word._fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite);
             var memoryStream = new MemoryStream();
-            word._fileStream.CopyTo(memoryStream);
+            using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
+                fileStream.CopyTo(memoryStream);
+            }
             memoryStream.Seek(0, SeekOrigin.Begin);
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
@@ -1011,52 +1012,29 @@ namespace OfficeIMO.Word {
             }
             PreSaving();
 
+            string pathToUse = string.IsNullOrEmpty(filePath) ? this.FilePath : filePath;
+
             if (this._wordprocessingDocument != null) {
-                try {
-                    //Save to the memory stream
-                    this._wordprocessingDocument.Save();
+                //Save to the memory stream
+                this._wordprocessingDocument.Save();
 
-                    //Open the specified file and copy the bytes
-                    if (filePath != "") {
-                        //Close existing fileStream
-                        if (_fileStream != null) {
-                            _fileStream.Dispose();
-                        }
-
-                        _fileStream = new FileStream(filePath, FileMode.Create);
-                        //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
-                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
+                if (!string.IsNullOrEmpty(pathToUse)) {
+                    using (var fs = new FileStream(pathToUse, FileMode.Create)) {
+                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
-                        Helpers.MakeOpenOfficeCompatible(_fileStream);
-                        _fileStream.Flush();
-                        FilePath = filePath;
-                    } else {
-                        if (_fileStream != null) {
-                            _fileStream.Seek(0, SeekOrigin.Begin);
-                            _fileStream.SetLength(0);
-                            //Clone and SaveAs don't actually clone document properties for some reason, so they must be copied manually
-                            using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
-                                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                            }
-                            Helpers.MakeOpenOfficeCompatible(_fileStream);
-                            _fileStream.Flush();
-                        }
+                        Helpers.MakeOpenOfficeCompatible(fs);
+                        fs.Flush();
                     }
-                } catch {
-                    throw;
-                } finally {
-                    if (_fileStream != null) {
-                        _fileStream.Dispose();
-                        _fileStream = null;
+
+                    FilePath = pathToUse;
+
+                    if (openWord) {
+                        this.Open(pathToUse, true);
                     }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
-            }
-
-            if (openWord) {
-                this.Open(filePath, true);
             }
         }
 
@@ -1096,38 +1074,25 @@ namespace OfficeIMO.Word {
             PreSaving();
 
             if (this._wordprocessingDocument != null) {
-                try {
-                    this._wordprocessingDocument.Save();
+                this._wordprocessingDocument.Save();
 
-                    if (filePath != "") {
-                        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
-                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                        }
-                        Helpers.MakeOpenOfficeCompatible(fs);
-                        await fs.FlushAsync(cancellationToken);
-                        FilePath = filePath;
-                    } else if (_fileStream != null) {
-                        _fileStream.Seek(0, SeekOrigin.Begin);
-                        _fileStream.SetLength(0);
-                        using (var clone = this._wordprocessingDocument.Clone(_fileStream)) {
-                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                        }
-                        Helpers.MakeOpenOfficeCompatible(_fileStream);
-                        await _fileStream.FlushAsync(cancellationToken);
+                string pathToUse = string.IsNullOrEmpty(filePath) ? this.FilePath : filePath;
+
+                if (!string.IsNullOrEmpty(pathToUse)) {
+                    using var fs = new FileStream(pathToUse, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                    using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                        CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                     }
-                } finally {
-                    if (_fileStream != null) {
-                        _fileStream.Dispose();
-                        _fileStream = null;
+                    Helpers.MakeOpenOfficeCompatible(fs);
+                    await fs.FlushAsync(cancellationToken);
+                    FilePath = pathToUse;
+
+                    if (openWord) {
+                        this.Open(pathToUse, true);
                     }
                 }
             } else {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
-            }
-
-            if (openWord) {
-                this.Open(filePath, true);
             }
         }
 
@@ -1188,9 +1153,6 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (_fileStream != null) {
-                _fileStream.Dispose();
-            }
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly) {
