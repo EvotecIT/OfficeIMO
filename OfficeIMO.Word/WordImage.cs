@@ -23,6 +23,8 @@ namespace OfficeIMO.Word {
         private int? _cropBottom;
         private int? _cropLeft;
         private int? _cropRight;
+        private ImageFillMode _fillMode = ImageFillMode.Stretch;
+        private bool? _useLocalDpi;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -735,25 +737,32 @@ namespace OfficeIMO.Word {
         public ImageFillMode FillMode {
             get {
                 var picture = GetPicture();
-                if (picture?.BlipFill?.Tile != null) {
-                    return ImageFillMode.Tile;
+                var blipFill = picture?.BlipFill;
+                if (blipFill != null && blipFill.GetFirstChild<Tile>() != null) {
+                    _fillMode = ImageFillMode.Tile;
+                } else {
+                    _fillMode = ImageFillMode.Stretch;
                 }
-                return ImageFillMode.Stretch;
+                return _fillMode;
             }
             set {
+                _fillMode = value;
                 var picture = GetPicture();
                 if (picture == null) return;
 
                 var blipFill = picture.BlipFill;
+                var tile = blipFill.GetFirstChild<Tile>();
+                var stretch = blipFill.GetFirstChild<Stretch>();
+
                 if (value == ImageFillMode.Stretch) {
-                    blipFill.Tile?.Remove();
-                    if (blipFill.Stretch == null) {
-                        blipFill.Stretch = new Stretch(new FillRectangle());
+                    tile?.Remove();
+                    if (stretch == null) {
+                        blipFill.AppendChild(new Stretch(new FillRectangle()));
                     }
                 } else {
-                    blipFill.Stretch?.Remove();
-                    if (blipFill.Tile == null) {
-                        blipFill.Tile = new Tile();
+                    stretch?.Remove();
+                    if (tile == null) {
+                        blipFill.AppendChild(new Tile());
                     }
                 }
             }
@@ -765,17 +774,20 @@ namespace OfficeIMO.Word {
         public bool? UseLocalDpi {
             get {
                 var blip = GetBlip();
-                var useLocalDpi = blip?.BlipExtensionList?
+                var extList = blip?.GetFirstChild<BlipExtensionList>();
+                var useLocalDpi = extList?
                     .OfType<BlipExtension>()
                     .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}")?
                     .GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
-                return useLocalDpi?.Val;
+                _useLocalDpi = useLocalDpi?.Val;
+                return _useLocalDpi;
             }
             set {
+                _useLocalDpi = value;
                 var blip = GetBlip();
                 if (blip == null) return;
 
-                var extList = blip.BlipExtensionList;
+                var extList = blip.GetFirstChild<BlipExtensionList>();
                 if (extList == null && value != null) {
                     extList = new BlipExtensionList();
                     blip.Append(extList);
@@ -874,7 +886,7 @@ namespace OfficeIMO.Word {
                 Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}"
             };
 
-            DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi useLocalDpi1 = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi() { Val = false };
+            DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi useLocalDpi1 = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi() { Val = _useLocalDpi ?? false };
             useLocalDpi1.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
             blipExtension1.Append(useLocalDpi1);
 
@@ -889,11 +901,12 @@ namespace OfficeIMO.Word {
                 if (_cropRight != null) srcRect.Right = _cropRight;
                 blipFlip.Append(srcRect);
             }
-            if (FillMode == ImageFillMode.Stretch) {
+
+            if (_fillMode == ImageFillMode.Stretch) {
                 blipFlip.Append(new Stretch(new FillRectangle()));
             } else {
-                if (blipFlip.Tile == null) {
-                    blipFlip.Tile = new Tile();
+                if (blipFlip.GetFirstChild<Tile>() == null) {
+                    blipFlip.AppendChild(new Tile());
                 }
             }
 
@@ -1045,6 +1058,7 @@ namespace OfficeIMO.Word {
         public void Remove() {
             if (_imagePart != null) {
                 _document._wordprocessingDocument.MainDocumentPart.DeletePart(_imagePart);
+                _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
                 OpenXmlElement parent = _Image.Parent;
                 while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
@@ -1060,8 +1074,9 @@ namespace OfficeIMO.Word {
 
                 var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
                 if (rel != null) {
-                    part.DeleteReferenceRelationship(rel);
+                    part.DeleteExternalRelationship(rel);
                 }
+                _externalRelationshipId = null;
             }
 
             if (this._Image != null) {
@@ -1167,11 +1182,11 @@ namespace OfficeIMO.Word {
 
             var drawing = new Drawing();
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, Path.GetFileNameWithoutExtension(uri.ToString()), Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
+                var inline = GetInline(emuWidth, emuHeight, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
                 drawing.Append(inline);
             } else {
-                var graphic = GetGraphic(emuWidth, emuHeight, Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
-                var anchor = GetAnchor(emuWidth, emuHeight, graphic, Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
+                var graphic = GetGraphic(emuWidth, emuHeight, System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description);
+                var anchor = GetAnchor(emuWidth, emuHeight, graphic, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
                 drawing.Append(anchor);
             }
             _Image = drawing;

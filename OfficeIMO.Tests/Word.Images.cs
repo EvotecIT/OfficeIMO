@@ -475,6 +475,50 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ImageFillModeAndLocalDpi() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillMode.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.Image.FillMode = ImageFillMode.Tile;
+                paragraph.Image.UseLocalDpi = true;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Tile, document.Images[0].FillMode);
+                Assert.True(document.Images[0].UseLocalDpi);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                Assert.NotNull(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
+                var blip = blipFill.Blip;
+                var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                Assert.NotNull(ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>());
+            }
+        }
+
+        [Fact]
+        public void Test_AddExternalImage() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentExternalImage.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(new Uri("http://example.com/image.png"), 50, 50);
+                Assert.Single(document.Images);
+                Assert.Throws<InvalidOperationException>(() => document.Images[0].SaveToFile("tmp.png"));
+                document.Images[0].Remove();
+                Assert.Empty(document.Images);
+                document.Save(false);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                // ensure document opens correctly after removing the external image
+                Assert.NotNull(pkg.MainDocumentPart.Document);
+            }
+        }
+
     }
 
 }
