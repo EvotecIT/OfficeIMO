@@ -18,6 +18,20 @@ namespace OfficeIMO.Examples.Word {
             paragraph1.Image.PreferRelativeResize = true;
             paragraph1.Image.NoChangeAspect = true;
             paragraph1.Image.FixedOpacity = 80;
+            paragraph1.Image.AlphaInversionColor = "FF0000";
+            paragraph1.Image.BlackWhiteThreshold = 60;
+            paragraph1.Image.BlurRadius = 5000;
+            paragraph1.Image.BlurGrow = true;
+            paragraph1.Image.ColorChangeFrom = "97E4FE";
+            paragraph1.Image.ColorChangeTo = "FF3399";
+            paragraph1.Image.ColorReplacement = "00FF00";
+            paragraph1.Image.DuotoneColor1 = "000000";
+            paragraph1.Image.DuotoneColor2 = "FFFFFF";
+            paragraph1.Image.GrayScale = true;
+            paragraph1.Image.LuminanceBrightness = 65;
+            paragraph1.Image.LuminanceContrast = 30;
+            paragraph1.Image.TintAmount = 50;
+            paragraph1.Image.TintHue = 300;
 
             var paragraph2 = document.AddParagraph("Linked image from web");
             paragraph2.AddImage(new Uri("http://example.com/logo.png"), 100, 100);

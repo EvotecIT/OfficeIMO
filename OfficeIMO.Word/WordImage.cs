@@ -37,6 +37,20 @@ namespace OfficeIMO.Word {
         private bool? _noRotation;
         private bool? _noSelection;
         private int? _fixedOpacity;
+        private string _alphaInversionColor;
+        private int? _blackWhiteThreshold;
+        private int? _blurRadius;
+        private bool? _blurGrow;
+        private string _colorChangeFrom;
+        private string _colorChangeTo;
+        private string _colorReplacement;
+        private string _duotoneColor1;
+        private string _duotoneColor2;
+        private bool? _grayScale;
+        private int? _luminanceBrightness;
+        private int? _luminanceContrast;
+        private int? _tintAmount;
+        private int? _tintHue;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -1038,6 +1052,347 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public string AlphaInversionColor {
+            get {
+                var blip = GetBlip();
+                var ai = blip?.GetFirstChild<AlphaInverse>();
+                _alphaInversionColor = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _alphaInversionColor;
+            }
+            set {
+                _alphaInversionColor = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var ai = blip.GetFirstChild<AlphaInverse>();
+                if (value == null) {
+                    ai?.Remove();
+                    return;
+                }
+                if (ai == null) {
+                    ai = new AlphaInverse();
+                    blip.Append(ai);
+                }
+                var clr = ai.GetFirstChild<RgbColorModelHex>();
+                if (clr == null) {
+                    ai.RemoveAllChildren();
+                    clr = new RgbColorModelHex();
+                    ai.Append(clr);
+                }
+                clr.Val = value;
+            }
+        }
+
+        public int? BlackWhiteThreshold {
+            get {
+                var blip = GetBlip();
+                var bi = blip?.GetFirstChild<BiLevel>();
+                _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                return _blackWhiteThreshold;
+            }
+            set {
+                if (value is < 0 or > 100)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Threshold must be between 0 and 100.");
+                _blackWhiteThreshold = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var bi = blip.GetFirstChild<BiLevel>();
+                if (value == null) {
+                    bi?.Remove();
+                    return;
+                }
+                if (bi == null) {
+                    bi = new BiLevel();
+                    blip.Append(bi);
+                }
+                bi.Threshold = value.Value * 1000;
+            }
+        }
+
+        public int? BlurRadius {
+            get {
+                var blip = GetBlip();
+                var blur = blip?.GetFirstChild<Blur>();
+                _blurRadius = blur?.Radius != null ? (int?)blur.Radius.Value : null;
+                return _blurRadius;
+            }
+            set {
+                _blurRadius = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var blur = blip.GetFirstChild<Blur>();
+                if (value == null && _blurGrow == null) {
+                    blur?.Remove();
+                    return;
+                }
+                if (blur == null) {
+                    blur = new Blur();
+                    blip.Append(blur);
+                }
+                blur.Radius = value != null ? new Int64Value((long)value.Value) : null;
+                blur.Grow = _blurGrow ?? false;
+            }
+        }
+
+        public bool? BlurGrow {
+            get {
+                var blip = GetBlip();
+                var blur = blip?.GetFirstChild<Blur>();
+                _blurGrow = blur?.Grow;
+                return _blurGrow;
+            }
+            set {
+                _blurGrow = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var blur = blip.GetFirstChild<Blur>();
+                if (value == null && _blurRadius == null) {
+                    blur?.Remove();
+                    return;
+                }
+                if (blur == null) {
+                    blur = new Blur();
+                    blip.Append(blur);
+                }
+                blur.Radius = _blurRadius != null ? new Int64Value((long)_blurRadius.Value) : null;
+                blur.Grow = value ?? false;
+            }
+        }
+
+        public string ColorChangeFrom {
+            get {
+                var blip = GetBlip();
+                var cc = blip?.GetFirstChild<ColorChange>();
+                _colorChangeFrom = cc?.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeFrom;
+            }
+            set {
+                _colorChangeFrom = value;
+                UpdateColorChange();
+            }
+        }
+
+        public string ColorChangeTo {
+            get {
+                var blip = GetBlip();
+                var cc = blip?.GetFirstChild<ColorChange>();
+                _colorChangeTo = cc?.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeTo;
+            }
+            set {
+                _colorChangeTo = value;
+                UpdateColorChange();
+            }
+        }
+
+        private void UpdateColorChange() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var cc = blip.GetFirstChild<ColorChange>();
+            if (_colorChangeFrom == null && _colorChangeTo == null) {
+                cc?.Remove();
+                return;
+            }
+            if (cc == null) {
+                cc = new ColorChange();
+                blip.Append(cc);
+            }
+            if (_colorChangeFrom != null) {
+                var from = cc.ColorFrom ?? new ColorFrom();
+                var clr = from.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
+                clr.Val = _colorChangeFrom;
+                if (from.FirstChild == null) from.Append(clr);
+                cc.ColorFrom = from;
+            }
+            if (_colorChangeTo != null) {
+                var to = cc.ColorTo ?? new ColorTo();
+                var clr = to.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
+                clr.Val = _colorChangeTo;
+                if (to.FirstChild == null) to.Append(clr);
+                cc.ColorTo = to;
+            }
+        }
+
+        public string ColorReplacement {
+            get {
+                var blip = GetBlip();
+                var cr = blip?.GetFirstChild<ColorReplacement>();
+                _colorReplacement = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorReplacement;
+            }
+            set {
+                _colorReplacement = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var cr = blip.GetFirstChild<ColorReplacement>();
+                if (value == null) {
+                    cr?.Remove();
+                    return;
+                }
+                if (cr == null) {
+                    cr = new ColorReplacement();
+                    blip.Append(cr);
+                }
+                var clr = cr.GetFirstChild<RgbColorModelHex>();
+                if (clr == null) {
+                    cr.RemoveAllChildren();
+                    clr = new RgbColorModelHex();
+                    cr.Append(clr);
+                }
+                clr.Val = value;
+            }
+        }
+
+        public string DuotoneColor1 {
+            get {
+                var blip = GetBlip();
+                var duo = blip?.GetFirstChild<Duotone>();
+                _duotoneColor1 = duo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _duotoneColor1;
+            }
+            set {
+                _duotoneColor1 = value;
+                UpdateDuotone();
+            }
+        }
+
+        public string DuotoneColor2 {
+            get {
+                var blip = GetBlip();
+                var duo = blip?.GetFirstChild<Duotone>();
+                _duotoneColor2 = duo?.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                return _duotoneColor2;
+            }
+            set {
+                _duotoneColor2 = value;
+                UpdateDuotone();
+            }
+        }
+
+        private void UpdateDuotone() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var duo = blip.GetFirstChild<Duotone>();
+            if (_duotoneColor1 == null && _duotoneColor2 == null) {
+                duo?.Remove();
+                return;
+            }
+            if (duo == null) {
+                duo = new Duotone();
+                blip.Append(duo);
+            }
+            duo.RemoveAllChildren();
+            if (_duotoneColor1 != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor1 });
+            if (_duotoneColor2 != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor2 });
+        }
+
+        public bool? GrayScale {
+            get {
+                var blip = GetBlip();
+                var gs = blip?.GetFirstChild<Grayscale>();
+                _grayScale = gs != null;
+                return _grayScale;
+            }
+            set {
+                _grayScale = value;
+                var blip = GetBlip();
+                if (blip == null) return;
+                var gs = blip.GetFirstChild<Grayscale>();
+                if (value == true && gs == null) {
+                    blip.Append(new Grayscale());
+                } else if (value != true) {
+                    gs?.Remove();
+                }
+            }
+        }
+
+        public int? LuminanceBrightness {
+            get {
+                var blip = GetBlip();
+                var lum = blip?.GetFirstChild<LuminanceEffect>();
+                _luminanceBrightness = lum != null ? lum.Brightness : null;
+                if (_luminanceBrightness != null) _luminanceBrightness /= 1000;
+                return _luminanceBrightness;
+            }
+            set {
+                _luminanceBrightness = value;
+                UpdateLuminance();
+            }
+        }
+
+        public int? LuminanceContrast {
+            get {
+                var blip = GetBlip();
+                var lum = blip?.GetFirstChild<LuminanceEffect>();
+                _luminanceContrast = lum != null ? lum.Contrast : null;
+                if (_luminanceContrast != null) _luminanceContrast /= 1000;
+                return _luminanceContrast;
+            }
+            set {
+                _luminanceContrast = value;
+                UpdateLuminance();
+            }
+        }
+
+        private void UpdateLuminance() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var lum = blip.GetFirstChild<LuminanceEffect>();
+            if (_luminanceBrightness == null && _luminanceContrast == null) {
+                lum?.Remove();
+                return;
+            }
+            if (lum == null) {
+                lum = new LuminanceEffect();
+                blip.Append(lum);
+            }
+            lum.Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null;
+            lum.Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null;
+        }
+
+        public int? TintAmount {
+            get {
+                var blip = GetBlip();
+                var tint = blip?.GetFirstChild<TintEffect>();
+                _tintAmount = tint?.Amount != null ? tint.Amount / 1000 : null;
+                return _tintAmount;
+            }
+            set {
+                _tintAmount = value;
+                UpdateTint();
+            }
+        }
+
+        public int? TintHue {
+            get {
+                var blip = GetBlip();
+                var tint = blip?.GetFirstChild<TintEffect>();
+                _tintHue = tint?.Hue != null ? tint.Hue / 60000 : null;
+                return _tintHue;
+            }
+            set {
+                _tintHue = value;
+                UpdateTint();
+            }
+        }
+
+        private void UpdateTint() {
+            var blip = GetBlip();
+            if (blip == null) return;
+            var tint = blip.GetFirstChild<TintEffect>();
+            if (_tintAmount == null && _tintHue == null) {
+                tint?.Remove();
+                return;
+            }
+            if (tint == null) {
+                tint = new TintEffect();
+                blip.Append(tint);
+            }
+            tint.Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null;
+            tint.Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null;
+        }
+
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
@@ -1113,6 +1468,45 @@ namespace OfficeIMO.Word {
             var blip = new Blip() { Embed = relationshipId, CompressionState = compressionQuality };
             if (_fixedOpacity != null) {
                 blip.Append(new AlphaReplace() { Alpha = _fixedOpacity.Value * 1000 });
+            }
+            if (_alphaInversionColor != null) {
+                blip.Append(new AlphaInverse(new RgbColorModelHex { Val = _alphaInversionColor }));
+            }
+            if (_blackWhiteThreshold != null) {
+                blip.Append(new BiLevel { Threshold = _blackWhiteThreshold.Value * 1000 });
+            }
+            if (_blurRadius != null || _blurGrow != null) {
+                blip.Append(new Blur { Radius = _blurRadius ?? 0, Grow = _blurGrow ?? false });
+            }
+            if (_colorChangeFrom != null || _colorChangeTo != null) {
+                var cc = new ColorChange();
+                if (_colorChangeFrom != null) cc.ColorFrom = new ColorFrom(new RgbColorModelHex { Val = _colorChangeFrom });
+                if (_colorChangeTo != null) cc.ColorTo = new ColorTo(new RgbColorModelHex { Val = _colorChangeTo });
+                blip.Append(cc);
+            }
+            if (_colorReplacement != null) {
+                blip.Append(new ColorReplacement(new RgbColorModelHex { Val = _colorReplacement }));
+            }
+            if (_duotoneColor1 != null || _duotoneColor2 != null) {
+                var duo = new Duotone();
+                if (_duotoneColor1 != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor1 });
+                if (_duotoneColor2 != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor2 });
+                blip.Append(duo);
+            }
+            if (_grayScale == true) {
+                blip.Append(new Grayscale());
+            }
+            if (_luminanceBrightness != null || _luminanceContrast != null) {
+                blip.Append(new LuminanceEffect {
+                    Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null,
+                    Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null
+                });
+            }
+            if (_tintAmount != null || _tintHue != null) {
+                blip.Append(new TintEffect {
+                    Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null,
+                    Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null
+                });
             }
 
             // https://stackoverflow.com/questions/33521914/value-of-blipextension-schema-uri-28a0092b-c50c-407e-a947-70e740481c1c
@@ -1310,6 +1704,35 @@ namespace OfficeIMO.Word {
                 if (blip != null) {
                     var ar = blip.GetFirstChild<AlphaReplace>();
                     if (ar != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
+                    var ai = blip.GetFirstChild<AlphaInverse>();
+                    _alphaInversionColor = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    var bi = blip.GetFirstChild<BiLevel>();
+                    _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                    var blur = blip.GetFirstChild<Blur>();
+                    if (blur != null) { _blurRadius = blur.Radius != null ? (int?)blur.Radius.Value : null; _blurGrow = blur.Grow; }
+                    var cc = blip.GetFirstChild<ColorChange>();
+                    if (cc != null) {
+                        _colorChangeFrom = cc.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _colorChangeTo = cc.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    }
+                    var cr = blip.GetFirstChild<ColorReplacement>();
+                    _colorReplacement = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    var duo = blip.GetFirstChild<Duotone>();
+                    if (duo != null) {
+                        _duotoneColor1 = duo.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _duotoneColor2 = duo.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                    }
+                    _grayScale = blip.GetFirstChild<Grayscale>() != null;
+                    var lum = blip.GetFirstChild<LuminanceEffect>();
+                    if (lum != null) {
+                        _luminanceBrightness = lum.Brightness != null ? (int?)(lum.Brightness.Value / 1000) : null;
+                        _luminanceContrast = lum.Contrast != null ? (int?)(lum.Contrast.Value / 1000) : null;
+                    }
+                    var tint = blip.GetFirstChild<TintEffect>();
+                    if (tint != null) {
+                        _tintAmount = tint.Amount != null ? (int?)(tint.Amount.Value / 1000) : null;
+                        _tintHue = tint.Hue != null ? (int?)(tint.Hue.Value / 60000) : null;
+                    }
                     var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>()
                         .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
                     _useLocalDpi = ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>()?.Val?.Value;
