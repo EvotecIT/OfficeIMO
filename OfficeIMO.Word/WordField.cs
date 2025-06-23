@@ -93,7 +93,16 @@ namespace OfficeIMO.Word {
         Caps,
         Mergeformat,
         Roman,
+        roman,
         Arabic,
+        Alphabetical,
+        ALPHABETICAL,
+        Ordinal,
+        OrdText,
+        CardText,
+        DollarText,
+        Hex,
+        CharFormat,
     }
 
     public partial class WordField : WordElement {
@@ -109,13 +118,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-        public WordFieldFormat? FieldFormat {
+        public IReadOnlyList<WordFieldFormat> FieldFormat {
             get {
                 var parser = new WordFieldParser(Field);
-                // TODO: How do handle several format switches - if they are even combinable? 
-                //       Since we expect mergeformat to appear, we ignore it by return the first format switch, 
-                //       because its manually added by the GenerateField method anyway, at the moment. 
-                return parser.FormatSwitches.FirstOrDefault();
+                return parser.FormatSwitches;
             }
         }
 

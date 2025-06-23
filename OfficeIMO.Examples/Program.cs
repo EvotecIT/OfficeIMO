@@ -94,6 +94,9 @@ namespace OfficeIMO.Examples {
             PageNumbers.Example_PageNumbers2(folderPath, false);
             PageNumbers.Example_PageNumbers3(folderPath, false);
             PageNumbers.Example_PageNumbers4(folderPath, false);
+            PageNumbers.Example_PageNumbers5(folderPath, false);
+            PageNumbers.Example_PageNumbers6(folderPath, false);
+            PageNumbers.Example_PageNumbers7(folderPath, false);
 
             Sections.Example_BasicSections(folderPath, false);
             Sections.Example_BasicSections2(folderPath, false);
@@ -149,6 +152,9 @@ namespace OfficeIMO.Examples {
             Images.Example_ReadWordWithImagesAndDiffWraps();
             Images.Example_AddingFixedImages(folderPath, false);
             Images.Example_AddingImagesSampleToTable(folderPath, false);
+            Images.Example_ImageTransparencySimple(folderPath, false);
+            Images.Example_ImageTransparencyAdvanced(folderPath, false);
+            Images.Example_ImageNewFeatures(folderPath, false);
 
             PageBreaks.Example_PageBreaks(folderPath, false);
             PageBreaks.Example_PageBreaks1(folderPath, false);
@@ -173,6 +179,12 @@ namespace OfficeIMO.Examples {
             Bookmarks.Example_BasicWordWithBookmarks(folderPath, false);
             Fields.Example_DocumentWithFields(folderPath, false);
             Fields.Example_DocumentWithFields02(folderPath, false);
+            Fields.Example_CustomFormattedDateField(folderPath, false);
+            Fields.Example_CustomFormattedTimeField(folderPath, false);
+            Fields.Example_CustomFormattedHeaderDate(folderPath, false);
+            Fields.Example_FieldFormatRoman(folderPath, false);
+            Fields.Example_FieldFormatAdvanced(folderPath, false);
+            Fields.Example_FieldWithMultipleSwitches(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
@@ -222,6 +234,11 @@ namespace OfficeIMO.Examples {
             Revisions.Example_TrackedChanges(folderPath, false);
             MailMerge.Example_MailMergeSimple(folderPath, false);
             MailMerge.Example_MailMergeAdvanced(folderPath, false);
+
+            Macros.Example_CreateDocmWithMacro(templatesPath, folderPath, false);
+            Macros.Example_AddMacroToExistingDocx(templatesPath, folderPath, false);
+            Macros.Example_ExtractAndRemoveMacro(templatesPath, folderPath, false);
+            Macros.Example_ListAndRemoveMacro(templatesPath, folderPath, false);
         }
     }
 }

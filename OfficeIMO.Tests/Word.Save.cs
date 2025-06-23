@@ -131,6 +131,11 @@ namespace OfficeIMO.Tests {
             using var outputStream = new MemoryStream();
             document.Save(outputStream);
 
+            using (var openXmlDoc = WordprocessingDocument.Open(outputStream, false)) {
+                Assert.NotNull(openXmlDoc.MainDocumentPart);
+            }
+            outputStream.Seek(0, SeekOrigin.Begin);
+
             using var resultDoc = WordDocument.Load(outputStream);
 
             Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
@@ -157,6 +162,11 @@ namespace OfficeIMO.Tests {
 
             using var outputStream = new MemoryStream();
             document.Save(outputStream);
+
+            using (var openXmlDoc = WordprocessingDocument.Open(outputStream, false)) {
+                Assert.NotNull(openXmlDoc.MainDocumentPart);
+            }
+            outputStream.Seek(0, SeekOrigin.Begin);
 
             using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
                 outputStream.CopyTo(fileStream);

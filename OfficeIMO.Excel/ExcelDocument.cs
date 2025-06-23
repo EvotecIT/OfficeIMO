@@ -214,12 +214,36 @@ namespace OfficeIMO.Excel {
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
             _workBookPart.Workbook.Save();
 
-            if (!string.IsNullOrEmpty(filePath)) {
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                using (var clone = _spreadSheetDocument.Clone(fs)) {
+            try {
+                if (!string.IsNullOrEmpty(filePath)) {
+                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+                    }
+
+                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                        var dirInfo = new DirectoryInfo(directory);
+                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
+                        }
+                    }
+
+                    FileStream fs;
+                    try {
+                        fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                    } catch (UnauthorizedAccessException ex) {
+                        throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
+                    }
+
+                    using (fs) {
+                        using (var clone = _spreadSheetDocument.Clone(fs)) {
+                        }
+                        await fs.FlushAsync(cancellationToken);
+                    }
+                    FilePath = filePath;
                 }
-                await fs.FlushAsync(cancellationToken);
-                FilePath = filePath;
+            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
+                throw;
             }
 
             if (openExcel) {

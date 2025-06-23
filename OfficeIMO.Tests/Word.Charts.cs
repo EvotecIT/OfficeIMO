@@ -330,5 +330,52 @@ namespace OfficeIMO.Tests {
                     Word.FormatValidationErrors(chartErrors));
             }
         }
+
+        [Fact]
+        public void Test_AxisTitleFormatting() {
+            var filePath = Path.Combine(_directoryWithFiles, "AxisTitleFormatting.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var categories = new List<string> { "A", "B" };
+                var chart = document.AddChart();
+                chart.AddCategories(categories);
+                chart.AddBar("Data", new List<int> { 1, 2 }, Color.Blue);
+                chart.SetXAxisTitle("X Axis");
+                chart.SetYAxisTitle("Y Axis");
+                chart.SetAxisTitleFormat("Arial", 14, Color.Red);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
+                var chart = part.ChartSpace.GetFirstChild<Chart>();
+                var catAxis = chart.PlotArea.GetFirstChild<CategoryAxis>();
+                var valAxis = chart.PlotArea.GetFirstChild<ValueAxis>();
+
+                var catTitle = catAxis.GetFirstChild<Title>();
+                var valTitle = valAxis.GetFirstChild<Title>();
+
+                var catProps = catTitle.Descendants<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>().First();
+                var valProps = valTitle.Descendants<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>().First();
+
+                Assert.Equal(1400, (int)catProps.FontSize.Value);
+                Assert.Equal("Arial", catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>().Typeface);
+                var catColor = catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>().Val;
+                Assert.Equal(Color.Red.ToHexColor(), catColor);
+
+                Assert.Equal(1400, (int)valProps.FontSize.Value);
+                Assert.Equal("Arial", valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>().Typeface);
+                var valColor = valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>().Val;
+                Assert.Equal(Color.Red.ToHexColor(), valColor);
+
+                var validation = document.ValidateDocument();
+                var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
+            }
+        }
     }
 }

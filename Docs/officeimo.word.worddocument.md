@@ -129,3 +129,13 @@ public IReadOnlyDictionary<string, string> GetDocumentVariables()
 public WordParagraph AddEquation(string omml)
 ```
 
+
+### **UpdateFields()**
+
+Updates page numbers and the total page count. If a table of contents exists it marks the document so Word refreshes fields when opened.
+
+```csharp
+public void UpdateFields()
+```
+
+Use this when you want fields refreshed before opening the file. Alternatively set `Settings.UpdateFieldsOnOpen` to rely on Word to update them.

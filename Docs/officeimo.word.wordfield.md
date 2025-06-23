@@ -23,12 +23,12 @@ public Nullable<WordFieldType> FieldType { get; }
 ### **FieldFormat**
 
 ```csharp
-public Nullable<WordFieldFormat> FieldFormat { get; }
+public IReadOnlyList<WordFieldFormat> FieldFormat { get; }
 ```
 
 #### Property Value
 
-[Nullable&lt;WordFieldFormat&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+IReadOnlyList<WordFieldFormat><br>
 
 ### **Field**
 
@@ -72,10 +72,10 @@ public string Text { get; set; }
 
 ## Methods
 
-### **AddField(WordParagraph, WordFieldType, Nullable&lt;WordFieldFormat&gt;, Boolean)**
+### **AddField(WordParagraph, WordFieldType, Nullable&lt;WordFieldFormat&gt;, String, Boolean)**
 
 ```csharp
-public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, bool advanced)
+public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, Nullable<WordFieldFormat> wordFieldFormat, string customFormat, bool advanced)
 ```
 
 #### Parameters
@@ -85,6 +85,8 @@ public static WordParagraph AddField(WordParagraph paragraph, WordFieldType word
 `wordFieldType` [WordFieldType](./officeimo.word.wordfieldtype.md)<br>
 
 `wordFieldFormat` [Nullable&lt;WordFieldFormat&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+`customFormat` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 `advanced` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 

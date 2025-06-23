@@ -844,8 +844,10 @@ namespace OfficeIMO.Word {
             };
 
             var style = ImageShapeStyleHelper.GetStyle(shape1);
-            style["width"] = imageLocation.Width + "pt";
-            style["height"] = imageLocation.Height + "pt";
+            double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
+            double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
+            style["width"] = widthPt + "pt";
+            style["height"] = heightPt + "pt";
             ImageShapeStyleHelper.SetStyle(shape1, style);
 
             shape1.Append(imageData1);
@@ -875,8 +877,10 @@ namespace OfficeIMO.Word {
             };
 
             var style = ImageShapeStyleHelper.GetStyle(shape);
-            style["width"] = imageLocation.Width + "pt";
-            style["height"] = imageLocation.Height + "pt";
+            double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
+            double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
+            style["width"] = widthPt + "pt";
+            style["height"] = heightPt + "pt";
             ImageShapeStyleHelper.SetStyle(shape, style);
 
             shape.Append(imageData1);

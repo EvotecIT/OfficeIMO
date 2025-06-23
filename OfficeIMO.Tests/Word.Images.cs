@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -384,6 +385,209 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(document.Images);
             document.Save(false);
+        }
+
+        [Fact]
+        public void Test_ImageTransparency() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageTransparency.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var paragraph = document.AddParagraph();
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.Image.Transparency = 25;
+
+            document.Save(false);
+
+            using (var reloaded = WordDocument.Load(filePath)) {
+                Assert.Equal(25, reloaded.Images[0].Transparency);
+            }
+
+            using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
+                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
+                Assert.Equal(75000, alpha.Amount.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ImageTransparency50() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageTransparency50.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var paragraph = document.AddParagraph();
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.Image.Transparency = 50;
+
+            document.Save(false);
+
+            using (var reloaded = WordDocument.Load(filePath)) {
+                Assert.Equal(50, reloaded.Images[0].Transparency);
+            }
+
+            using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
+                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
+                Assert.Equal(50000, alpha.Amount.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ImageTransparencyNotSet() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageTransparencyNone.docx");
+            using var document = WordDocument.Create(filePath);
+
+            var paragraph = document.AddParagraph();
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+
+            document.Save(false);
+
+            using (var reloaded = WordDocument.Load(filePath)) {
+                Assert.Null(reloaded.Images[0].Transparency);
+            }
+
+            using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
+                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
+                Assert.Null(alpha);
+            }
+        }
+      
+        [Fact]
+        public void Test_ImageCropping() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageCrop.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+
+                paragraph.Image.CropTopCentimeters = 1;
+                paragraph.Image.CropBottomCentimeters = 2;
+                paragraph.Image.CropLeftCentimeters = 3;
+                paragraph.Image.CropRightCentimeters = 4;
+
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(1, document.Images[0].CropTopCentimeters);
+                Assert.Equal(2, document.Images[0].CropBottomCentimeters);
+                Assert.Equal(3, document.Images[0].CropLeftCentimeters);
+                Assert.Equal(4, document.Images[0].CropRightCentimeters);
+            }
+        }
+
+        [Fact]
+        public void Test_ImageFillModeAndLocalDpi() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillMode.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.Image.FillMode = ImageFillMode.Tile;
+                paragraph.Image.UseLocalDpi = true;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Tile, document.Images[0].FillMode);
+                Assert.True(document.Images[0].UseLocalDpi);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                Assert.NotNull(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
+                var blip = blipFill.Blip;
+                var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                Assert.NotNull(ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>());
+            }
+        }
+
+        [Fact]
+        public void Test_AddExternalImage() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentExternalImage.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(new Uri("http://example.com/image.png"), 50, 50);
+                Assert.Single(document.Images);
+                Assert.True(document.Images[0].IsExternal);
+                Assert.Equal(new Uri("http://example.com/image.png"), document.Images[0].ExternalUri);
+                Assert.Throws<InvalidOperationException>(() => document.Images[0].SaveToFile("tmp.png"));
+                document.Images[0].Remove();
+                Assert.Empty(document.Images);
+                document.Save(false);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                // ensure document opens correctly after removing the external image
+                Assert.NotNull(pkg.MainDocumentPart.Document);
+            }
+        }
+
+        [Fact]
+        public void Test_ImageNonVisualProperties() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageNvProps.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                paragraph.Image.Title = "MyTitle";
+                paragraph.Image.Hidden = true;
+                paragraph.Image.PreferRelativeResize = true;
+                paragraph.Image.NoChangeAspect = true;
+                paragraph.Image.FixedOpacity = 80;
+                document.Save(false);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var pic = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                var nv = pic.NonVisualPictureProperties;
+                Assert.Equal("MyTitle", nv.NonVisualDrawingProperties.Title);
+                Assert.True(nv.NonVisualDrawingProperties.Hidden);
+                Assert.True(nv.NonVisualPictureDrawingProperties.PreferRelativeResize);
+                Assert.True(nv.NonVisualPictureDrawingProperties.PictureLocks.NoChangeAspect);
+                var ar = pic.BlipFill.Blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
+                Assert.Equal(80000, ar.Alpha.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ImageEffects() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageEffects.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                var img = paragraph.Image;
+                img.AlphaInversionColor = SixLabors.ImageSharp.Color.Red;
+                img.BlackWhiteThreshold = 60;
+                img.BlurRadius = 2000;
+                img.BlurGrow = true;
+                img.ColorChangeFrom = SixLabors.ImageSharp.Color.Parse("#97E4FE");
+                img.ColorChangeTo = SixLabors.ImageSharp.Color.Parse("#FF3399");
+                img.ColorReplacement = SixLabors.ImageSharp.Color.Lime;
+                img.DuotoneColor1 = SixLabors.ImageSharp.Color.Black;
+                img.DuotoneColor2 = SixLabors.ImageSharp.Color.White;
+                img.GrayScale = true;
+                img.LuminanceBrightness = 65;
+                img.LuminanceContrast = 30;
+                img.TintAmount = 50;
+                img.TintHue = 300;
+                document.Save(false);
+            }
+
+            using (var reloaded = WordDocument.Load(filePath)) {
+                var img = reloaded.Images[0];
+                Assert.Equal("FF0000", img.AlphaInversionColorHex);
+                Assert.Equal(60, img.BlackWhiteThreshold);
+                Assert.Equal(2000, img.BlurRadius);
+                Assert.True(img.BlurGrow);
+                Assert.Equal("97E4FE", img.ColorChangeFromHex);
+                Assert.Equal("FF3399", img.ColorChangeToHex);
+                Assert.Equal("00FF00", img.ColorReplacementHex);
+                Assert.Equal("000000", img.DuotoneColor1Hex);
+                Assert.Equal("FFFFFF", img.DuotoneColor2Hex);
+                Assert.True(img.GrayScale);
+                Assert.Equal(65, img.LuminanceBrightness);
+                Assert.Equal(30, img.LuminanceContrast);
+                Assert.Equal(50, img.TintAmount);
+                Assert.Equal(300, img.TintHue);
+            }
         }
 
     }

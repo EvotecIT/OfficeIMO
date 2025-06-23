@@ -192,6 +192,7 @@ namespace OfficeIMO.Word {
                                 runList.Add(run);
                                 wordParagraph = new WordParagraph(document, paragraph, runList);
                                 list.Add(wordParagraph);
+                                runList = new List<Run>();
                             } else {
                                 runList.Add(run);
                             }

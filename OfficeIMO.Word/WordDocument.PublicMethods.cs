@@ -103,6 +103,31 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Updates page and total page number fields.
+        /// When a table of contents is present the document is flagged to refresh
+        /// fields on open so Word can update the TOC.
+        /// </summary>
+        public void UpdateFields() {
+            int page = 1;
+            foreach (var paragraph in Paragraphs) {
+                var field = paragraph.Field;
+                if (field != null && field.FieldType == WordFieldType.Page) {
+                    field.Text = page.ToString();
+                }
+
+                if (paragraph.IsPageBreak) {
+                    page++;
+                }
+            }
+
+            foreach (var field in Fields.Where(f => f.FieldType == WordFieldType.NumPages)) {
+                field.Text = page.ToString();
+            }
+
+            TableOfContent?.Update();
+        }
+
+        /// <summary>
         /// Adds a table of contents to the current document.
         /// </summary>
         /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
@@ -201,8 +226,17 @@ namespace OfficeIMO.Word {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, bool advanced = false, List<String> parameters = null) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, advanced, parameters);
+        /// <summary>
+        /// Adds a field to the document in a new paragraph.
+        /// </summary>
+        /// <param name="wordFieldType">Type of field to insert.</param>
+        /// <param name="wordFieldFormat">Optional field format.</param>
+        /// <param name="customFormat">Custom format string for date or time fields.</param>
+        /// <param name="advanced">Whether to use advanced formatting.</param>
+        /// <param name="parameters">Additional switch parameters.</param>
+        /// <returns>The created <see cref="WordParagraph"/>.</returns>
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat, advanced, parameters);
         }
 
         public WordParagraph AddEquation(string omml) {

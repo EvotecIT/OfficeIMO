@@ -140,6 +140,110 @@ public int Rotation { get; set; }
 
 [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
+### **Transparency**
+
+```csharp
+public Nullable<int> Transparency { get; set; }
+### **CropTop**
+
+```csharp
+public Nullable<int> CropTop { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+The value should be between `0` (fully opaque) and `100` (fully transparent).
+When set, the underlying XML contains an `a:alphaModFix` element that reflects
+the transparency percentage.
+
+#### Example
+
+```csharp
+var image = paragraph.AddImage("image.png", 100, 100);
+image.Transparency = 50; // half transparent
+### **CropBottom**
+
+```csharp
+public Nullable<int> CropBottom { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropLeft**
+
+```csharp
+public Nullable<int> CropLeft { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropRight**
+
+```csharp
+public Nullable<int> CropRight { get; set; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropTopCentimeters**
+
+```csharp
+public Nullable<double> CropTopCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropBottomCentimeters**
+
+```csharp
+public Nullable<double> CropBottomCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropLeftCentimeters**
+
+```csharp
+public Nullable<double> CropLeftCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### **CropRightCentimeters**
+
+```csharp
+public Nullable<double> CropRightCentimeters { get; set; }
+```
+
+#### Property Value
+
+[Nullable<double>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
+### Example
+
+```csharp
+var paragraph = document.AddParagraph();
+paragraph.AddImage("myImage.jpg", 200, 200);
+paragraph.Image.CropTopCentimeters = 1;
+paragraph.Image.CropBottomCentimeters = 1;
+paragraph.Image.CropLeftCentimeters = 1;
+paragraph.Image.CropRightCentimeters = 1;
+```
+
 ### **Wrap**
 
 ```csharp
@@ -231,3 +335,4 @@ public void SaveToFile(string fileToSave)
 ```csharp
 public void Remove()
 ```
+

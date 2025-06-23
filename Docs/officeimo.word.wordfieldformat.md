@@ -13,7 +13,19 @@ Implements [IComparable](https://docs.microsoft.com/en-us/dotnet/api/system.icom
 
 | Name | Value | Description |
 | --- | --: | --- |
-| Lower | 0 |  |
-| Upper | 1 |  |
-| FirstCap | 2 |  |
-| Caps | 3 |  |
+| Lower | 0 | |
+| Upper | 1 | |
+| FirstCap | 2 | |
+| Caps | 3 | |
+| Mergeformat | 4 | |
+| Roman | 5 | |
+| roman | 6 | |
+| Arabic | 7 | |
+| Alphabetical | 8 | |
+| ALPHABETICAL | 9 | |
+| Ordinal | 10 | |
+| OrdText | 11 | |
+| CardText | 12 | |
+| DollarText | 13 | |
+| Hex | 14 | |
+| CharFormat | 15 | |
