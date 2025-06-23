@@ -1821,10 +1821,27 @@ namespace OfficeIMO.Word {
             if (_imagePart == null) {
                 throw new InvalidOperationException("Image is linked externally and cannot be saved.");
             }
-            using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
-                var stream = _imagePart.GetStream();
-                stream.CopyTo(outputFileStream);
-                stream.Close();
+
+            if (File.Exists(fileToSave) && new FileInfo(fileToSave).IsReadOnly) {
+                throw new IOException($"Failed to save to '{fileToSave}'. The file is read-only.");
+            }
+
+            var directory = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(fileToSave));
+            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                var dirInfo = new DirectoryInfo(directory);
+                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                    throw new IOException($"Failed to save to '{fileToSave}'. The directory is read-only.");
+                }
+            }
+
+            try {
+                using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
+                    var stream = _imagePart.GetStream();
+                    stream.CopyTo(outputFileStream);
+                    stream.Close();
+                }
+            } catch (UnauthorizedAccessException ex) {
+                throw new IOException($"Failed to save to '{fileToSave}'. Access denied or path is read-only.", ex);
             }
         }
 
