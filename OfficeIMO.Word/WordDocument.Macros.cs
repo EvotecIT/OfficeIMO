@@ -6,6 +6,17 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         /// <summary>
+        /// Provides basic support for VBA macro projects.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="AddMacro(string)"/> or <see cref="AddMacro(byte[])"/>
+        /// to attach a <c>vbaProject.bin</c> file extracted from a macro-enabled
+        /// document. Macros can be enumerated through <see cref="Macros"/> and
+        /// removed via <see cref="RemoveMacro"/> or <see cref="RemoveMacros"/>.
+        /// To obtain the binary save a document as <c>.docm</c>, rename it to
+        /// <c>.zip</c> and copy the file from the <c>word</c> folder.
+        /// </remarks>
+        /// <summary>
         /// Indicates whether the document contains a VBA project.
         /// </summary>
         public bool HasMacros => _wordprocessingDocument.MainDocumentPart.VbaProjectPart != null;
