@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
                 textBox3.Paragraphs[0].Borders.LeftStyle = BorderValues.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.RightStyle = BorderValues.BasicWideOutline;
 
-                Assert.True(textBox3.Paragraphs[0].Borders.BottomColorHex == "FF0000");
+                Assert.True(textBox3.Paragraphs[0].Borders.BottomColorHex == "ff0000");
                 Assert.True(textBox3.Paragraphs[0].Borders.LeftColorHex == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.RightColorHex == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.TopColorHex == null);

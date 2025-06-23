@@ -1107,7 +1107,7 @@ namespace OfficeIMO.Word {
         public SixLabors.ImageSharp.Color? AlphaInversionColor {
             get {
                 if (AlphaInversionColorHex == null) return (SixLabors.ImageSharp.Color?)null;
-                return SixLabors.ImageSharp.Color.Parse("#" + AlphaInversionColorHex);
+                return Helpers.ParseColor(AlphaInversionColorHex);
             }
             set { AlphaInversionColorHex = value?.ToHexColor(); }
         }
@@ -1216,14 +1216,14 @@ namespace OfficeIMO.Word {
 
         public SixLabors.ImageSharp.Color? ColorChangeFrom {
             get {
-                return ColorChangeFromHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorChangeFromHex);
+                return ColorChangeFromHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeFromHex);
             }
             set { ColorChangeFromHex = value?.ToHexColor(); }
         }
 
         public SixLabors.ImageSharp.Color? ColorChangeTo {
             get {
-                return ColorChangeToHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorChangeToHex);
+                return ColorChangeToHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeToHex);
             }
             set { ColorChangeToHex = value?.ToHexColor(); }
         }
@@ -1288,7 +1288,7 @@ namespace OfficeIMO.Word {
 
         public SixLabors.ImageSharp.Color? ColorReplacement {
             get {
-                return ColorReplacementHex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + ColorReplacementHex);
+                return ColorReplacementHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorReplacementHex);
             }
             set { ColorReplacementHex = value?.ToHexColor(); }
         }
@@ -1321,14 +1321,14 @@ namespace OfficeIMO.Word {
 
         public SixLabors.ImageSharp.Color? DuotoneColor1 {
             get {
-                return DuotoneColor1Hex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + DuotoneColor1Hex);
+                return DuotoneColor1Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor1Hex);
             }
             set { DuotoneColor1Hex = value?.ToHexColor(); }
         }
 
         public SixLabors.ImageSharp.Color? DuotoneColor2 {
             get {
-                return DuotoneColor2Hex == null ? (SixLabors.ImageSharp.Color?)null : SixLabors.ImageSharp.Color.Parse("#" + DuotoneColor2Hex);
+                return DuotoneColor2Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor2Hex);
             }
             set { DuotoneColor2Hex = value?.ToHexColor(); }
         }

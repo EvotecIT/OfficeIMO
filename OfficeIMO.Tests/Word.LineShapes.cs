@@ -30,7 +30,9 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Paragraph with line");
                 var line = paragraph.AddLine(0, 0, 100, 0, Color.Blue, 2);
 
-                Assert.Equal(Color.Blue.ToHexColor(), line.ColorHex.Replace("#", "").ToUpperInvariant());
+                Assert.Equal(Color.Blue.ToHexColor(), line.ColorHex.Replace("#", ""));
+
+                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToLowerInvariant());
 
                 document.Save(false);
             }

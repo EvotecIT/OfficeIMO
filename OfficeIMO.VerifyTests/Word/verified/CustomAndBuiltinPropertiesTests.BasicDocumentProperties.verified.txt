@@ -29,7 +29,7 @@
       </w:pPr>
       <w:r>
         <w:rPr>
-          <w:color w:val="FF0000" />
+          <w:color w:val="ff0000" />
         </w:rPr>
         <w:t xml:space="preserve">Basic paragraph</w:t>
       </w:r>

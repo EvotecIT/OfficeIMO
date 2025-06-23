@@ -21,7 +21,21 @@ namespace OfficeIMO.Word {
         /// <param name="c"></param>
         /// <returns></returns>
         public static string ToHexColor(this SixLabors.ImageSharp.Color c) {
-            return c.ToHex().Remove(6);
+            return c.ToHex().Remove(6).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Parses a color string that may or may not start with '#'.
+        /// </summary>
+        /// <param name="hex">Color value in hex without alpha or with '#'.</param>
+        internal static SixLabors.ImageSharp.Color ParseColor(string hex) {
+            if (string.IsNullOrEmpty(hex)) {
+                throw new ArgumentException("Value cannot be null or empty.", nameof(hex));
+            }
+            if (!hex.StartsWith("#")) {
+                hex = "#" + hex;
+            }
+            return SixLabors.ImageSharp.Color.Parse(hex);
         }
 
         /// <summary>

@@ -233,7 +233,7 @@ namespace OfficeIMO.Word {
                 if (ColorHex == "") {
                     return null;
                 }
-                return SixLabors.ImageSharp.Color.Parse("#" + ColorHex);
+                return Helpers.ParseColor(ColorHex);
 
             }
             set {
@@ -263,7 +263,7 @@ namespace OfficeIMO.Word {
                 }
                 if (value != "") {
                     var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                    color.Val = value.Replace("#", "");
+                    color.Val = value.Replace("#", "").ToLowerInvariant();
                     runProperties.Color = color;
                 } else {
                     if (runProperties.Color != null) runProperties.Color.Remove();
