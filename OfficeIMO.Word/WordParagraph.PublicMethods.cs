@@ -134,6 +134,11 @@ namespace OfficeIMO.Word {
 
                     if (this.IsBreak) {
                         this.Break.Remove();
+                        // Removing a break can also remove the entire paragraph.
+                        // When that happens there's nothing else to clean up.
+                        if (this._paragraph.Parent == null) {
+                            return;
+                        }
                     }
 
                     // break should cover this

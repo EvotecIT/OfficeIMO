@@ -135,5 +135,34 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_RemoveMultipleBreaks() {
+            var filePath = Path.Combine(_directoryWithFiles, "RemoveMultipleBreaks.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph1 = document.AddParagraph("Paragraph 1");
+                var paragraph2 = document.AddParagraph("Paragraph 2");
+                paragraph2.AddBreak();
+                paragraph2.AddText("After Break 1");
+                paragraph2.AddBreak();
+                paragraph2.AddText("After Break 2");
+
+                Assert.Equal(6, document.Paragraphs.Count);
+                Assert.Equal(2, document.Breaks.Count);
+
+                document.Breaks[0].Remove();
+
+                Assert.Equal(5, document.Paragraphs.Count);
+                Assert.Equal("After Break 1", document.Paragraphs[2].Text);
+
+                document.Breaks[0].Remove();
+
+                Assert.Equal(4, document.Paragraphs.Count);
+                Assert.Equal("After Break 2", document.Paragraphs[3].Text);
+
+                document.Save(false);
+            }
+        }
     }
 }
