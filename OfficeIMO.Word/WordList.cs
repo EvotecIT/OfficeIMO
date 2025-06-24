@@ -663,6 +663,150 @@ public partial class WordList : WordElement {
         documentList.Remove();
     }
 
+    /// <summary>
+    /// Adds a custom bullet list with a single level using provided formatting.
+    /// </summary>
+    /// <param name="document">Target document.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name for the symbol.</param>
+    /// <param name="colorHex">Hex color of the symbol.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The created <see cref="WordList"/>.</returns>
+    public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontName, string colorHex, int? fontSize = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+
+        var list = document.AddList(WordListStyle.Custom);
+
+        var level = new Level();
+        level.Append(new StartNumberingValue() { Val = 1 });
+        level.Append(new NumberingFormat() { Val = NumberFormatValues.Bullet });
+        level.Append(new LevelText() { Val = symbol.ToString() });
+        level.Append(new LevelJustification() { Val = LevelJustificationValues.Left });
+
+        var prevProps = new PreviousParagraphProperties();
+        prevProps.Append(new Indentation() { Left = "720", Hanging = "360" });
+        level.Append(prevProps);
+
+        var symbolProps = new NumberingSymbolRunProperties();
+        if (!string.IsNullOrEmpty(fontName)) {
+            symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
+        }
+        if (!string.IsNullOrEmpty(colorHex)) {
+            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+        }
+        if (fontSize.HasValue) {
+            var size = (fontSize.Value * 2).ToString();
+            symbolProps.Append(new FontSize { Val = size });
+            symbolProps.Append(new FontSizeComplexScript { Val = size });
+        }
+        level.Append(symbolProps);
+
+        list.Numbering.AddLevel(level);
+
+        return list;
+    }
+
+    /// <summary>
+    /// Adds a custom bullet list with a single level using provided formatting.
+    /// </summary>
+    /// <param name="document">Target document.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name for the symbol.</param>
+    /// <param name="color">Color of the symbol.</param>
+    /// <param name="colorHex">Hex color fallback.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The created <see cref="WordList"/>.</returns>
+    public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        string finalColor = color?.ToHexColor() ?? colorHex;
+        return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
+    }
+
+    /// <summary>
+    /// Adds a custom list with no predefined levels so that levels can be configured manually.
+    /// </summary>
+    /// <param name="document">Target document.</param>
+    /// <returns>The created <see cref="WordList"/>.</returns>
+    public static WordList AddCustomList(WordDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+
+        var list = document.AddList(WordListStyle.Custom);
+        list.Numbering.RemoveAllLevels();
+        return list;
+    }
+
+    /// <summary>
+    /// Adds a list level using the provided formatting. If there are gaps in the level index,
+    /// missing levels are created using the formatting of the previously added level.
+    /// </summary>
+    /// <param name="levelIndex">1-based level index.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name.</param>
+    /// <param name="colorHex">Hex color.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The <see cref="WordList"/> for chaining.</returns>
+    public WordList AddListLevel(int levelIndex, char symbol, string fontName, string colorHex, int? fontSize = null) {
+        if (levelIndex < 1) throw new ArgumentOutOfRangeException(nameof(levelIndex));
+
+        var currentCount = this.Numbering.Levels.Count;
+        if (currentCount > 0 && levelIndex > currentCount + 1) {
+            var last = this.Numbering.Levels.Last()._level;
+            while (this.Numbering.Levels.Count < levelIndex - 1) {
+                var clone = (Level)last.CloneNode(true);
+                this.Numbering.AddLevel(clone);
+            }
+        }
+
+        if (levelIndex > 1 && this.Numbering.Levels.Count == 0) {
+            levelIndex = 1;
+        }
+
+        var newLevel = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
+        this.Numbering.AddLevel(newLevel);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a list level using the provided formatting.
+    /// </summary>
+    /// <param name="levelIndex">1-based level index.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name.</param>
+    /// <param name="color">Color for bullet.</param>
+    /// <param name="colorHex">Hex color fallback.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The <see cref="WordList"/> for chaining.</returns>
+    public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        string finalColor = color?.ToHexColor() ?? colorHex;
+        return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
+    }
+
+    private static Level CreateBulletLevel(char symbol, string fontName, string colorHex, int? fontSize) {
+        var level = new Level();
+        level.Append(new StartNumberingValue() { Val = 1 });
+        level.Append(new NumberingFormat() { Val = NumberFormatValues.Bullet });
+        level.Append(new LevelText() { Val = symbol.ToString() });
+        level.Append(new LevelJustification() { Val = LevelJustificationValues.Left });
+
+        var prevProps = new PreviousParagraphProperties();
+        prevProps.Append(new Indentation() { Left = "720", Hanging = "360" });
+        level.Append(prevProps);
+
+        var symbolProps = new NumberingSymbolRunProperties();
+        if (!string.IsNullOrEmpty(fontName)) {
+            symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
+        }
+        if (!string.IsNullOrEmpty(colorHex)) {
+            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+        }
+        if (fontSize.HasValue) {
+            var size = (fontSize.Value * 2).ToString();
+            symbolProps.Append(new FontSize { Val = size });
+            symbolProps.Append(new FontSizeComplexScript { Val = size });
+        }
+        level.Append(symbolProps);
+        return level;
+    }
+
     private static void EnsureW15Namespace(Numbering numbering) {
         const string prefix = "w15";
         const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
