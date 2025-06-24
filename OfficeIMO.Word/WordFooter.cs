@@ -6,22 +6,39 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to the footer instances associated with a
+    /// <see cref="WordDocument"/> section.
+    /// </summary>
     public class WordFooters {
+        /// <summary>
+        /// Gets or sets the default footer for the section.
+        /// </summary>
         public WordFooter Default {
             get;
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the footer used for even pages.
+        /// </summary>
         public WordFooter Even {
             get;
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the footer used for the first page.
+        /// </summary>
         public WordFooter First {
             get;
             set;
         }
     }
+    /// <summary>
+    /// Represents a footer in a Word document and allows manipulation
+    /// of its contents.
+    /// </summary>
     public partial class WordFooter : WordHeaderFooter {
         private readonly WordSection _section;
 
@@ -58,6 +75,11 @@ namespace OfficeIMO.Word {
             _section = section;
         }
 
+        /// <summary>
+        /// Adds a page number to this footer using the specified style.
+        /// </summary>
+        /// <param name="wordPageNumberStyle">Style of the page number to insert.</param>
+        /// <returns>The created <see cref="WordPageNumber"/> instance.</returns>
         public WordPageNumber AddPageNumber(WordPageNumberStyle wordPageNumberStyle) {
             var pageNumber = new WordPageNumber(_document, this, wordPageNumberStyle);
             return pageNumber;
