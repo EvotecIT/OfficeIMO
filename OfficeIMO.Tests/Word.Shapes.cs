@@ -59,5 +59,69 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(45d, document.Paragraphs[0].Shape.Rotation!.Value, 1);
             }
         }
+
+        [Fact]
+        public void Test_AddShapeFromDocument() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentAddShape.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var shape = document.AddShape(ShapeType.Rectangle, 80, 40, Color.Lime, Color.Black, 2);
+                Assert.True(document.Paragraphs[0].IsShape);
+                Assert.Equal(Color.Lime.ToHexColor(), shape.FillColorHex);
+                Assert.Equal(Color.Black.ToHexColor(), shape.StrokeColorHex);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs[0].IsShape);
+                Assert.Equal(Color.Lime.ToHexColor(), document.Paragraphs[0].Shape.FillColorHex);
+                Assert.Equal(Color.Black.ToHexColor(), document.Paragraphs[0].Shape.StrokeColorHex);
+            }
+        }
+
+        [Fact]
+        public void Test_AddShapeOnParagraphEnum() {
+            string filePath = Path.Combine(_directoryWithFiles, "ParagraphAddShape.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                var shape = paragraph.AddShape(ShapeType.Ellipse, 60, 30, Color.Aqua, Color.Red, 1.5);
+                Assert.True(paragraph.IsShape);
+                Assert.Equal(Color.Aqua.ToHexColor(), shape.FillColorHex);
+                Assert.Equal(Color.Red.ToHexColor(), shape.StrokeColorHex);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs[0].IsShape);
+                Assert.Equal(Color.Aqua.ToHexColor(), document.Paragraphs[0].Shape.FillColorHex);
+                Assert.Equal(Color.Red.ToHexColor(), document.Paragraphs[0].Shape.StrokeColorHex);
+            }
+        }
+
+        [Fact]
+        public void Test_ShapeCollectionsAndRemoval() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentShapesCollections.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var rect = document.AddShape(ShapeType.Rectangle, 50, 20);
+                var ellipse = document.AddShape(ShapeType.Ellipse, 40, 40, Color.Green, Color.Blue);
+                ellipse.FillColor = Color.Yellow;
+
+                Assert.True(document.Shapes.Count == 2);
+                Assert.True(document.ParagraphsShapes.Count == 2);
+                Assert.True(document.Sections[0].Shapes.Count == 2);
+                Assert.True(document.Sections[0].ParagraphsShapes.Count == 2);
+
+                rect.Remove();
+
+                Assert.True(document.Shapes.Count == 1);
+                Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Shapes.Count == 1);
+                Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
+            }
+        }
     }
 }

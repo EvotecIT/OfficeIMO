@@ -592,6 +592,46 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a basic shape to the paragraph.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points or line end X.</param>
+        /// <param name="heightPt">Height in points or line end Y.</param>
+        /// <param name="fillColor">Fill color in hex format.</param>
+        /// <param name="strokeColor">Stroke color in hex format.</param>
+        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
+            WordShape shape;
+            switch (shapeType) {
+                case ShapeType.Rectangle:
+                    shape = AddShape(widthPt, heightPt, fillColor);
+                    break;
+                case ShapeType.Ellipse:
+                    shape = WordShape.AddEllipse(this, widthPt, heightPt, fillColor);
+                    break;
+                case ShapeType.Line:
+                    shape = WordShape.AddLine(this, 0, 0, widthPt, heightPt, strokeColor, strokeWeightPt);
+                    return shape;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
+            }
+
+            shape.Stroked = true;
+            shape.StrokeColorHex = strokeColor;
+            shape.StrokeWeight = strokeWeightPt;
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds a basic shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/> values.
+        /// </summary>
+        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+        }
+
+        /// <summary>
         /// Add a line shape to the paragraph.
         /// </summary>
         /// <param name="startXPt">Start X position in points.</param>
