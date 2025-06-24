@@ -6,11 +6,34 @@ namespace OfficeIMO.Word;
 /// Enumeration of additional image types supported by the library.
 /// </summary>
 public enum CustomImagePartType {
+    /// <summary>
+    /// Bitmap image type.
+    /// </summary>
     Bmp,
+
+    /// <summary>
+    /// GIF image type.
+    /// </summary>
     Gif,
+
+    /// <summary>
+    /// JPEG image type.
+    /// </summary>
     Jpeg,
+
+    /// <summary>
+    /// PNG image type.
+    /// </summary>
     Png,
+
+    /// <summary>
+    /// TIFF image type.
+    /// </summary>
     Tiff,
+
+    /// <summary>
+    /// Enhanced metafile image type.
+    /// </summary>
     Emf
 }
 
