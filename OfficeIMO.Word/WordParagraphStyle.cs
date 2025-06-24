@@ -21,7 +21,26 @@ namespace OfficeIMO.Word {
     }
 
     public static class WordParagraphStyle {
+        private static readonly Dictionary<string, Style> _customStyles = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<WordParagraphStyles, Style> _overrides = new();
+
+        internal static IEnumerable<Style> CustomStyles => _customStyles.Values;
+
+        public static void RegisterCustomStyle(string styleId, Style styleDefinition) {
+            if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
+            if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            _customStyles[styleId] = styleDefinition;
+        }
+
+        public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition) {
+            if (style == WordParagraphStyles.Custom) throw new ArgumentException("Cannot override custom style placeholder", nameof(style));
+            if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            _overrides[style] = styleDefinition;
+        }
+
         public static Style GetStyleDefinition(WordParagraphStyles style) {
+            if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style) overrideStyle.CloneNode(true);
+            if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style) customStyle.CloneNode(true);
             switch (style) {
                 case WordParagraphStyles.Normal: return StyleNormal;
                 case WordParagraphStyles.Heading1: return StyleHeading1;
