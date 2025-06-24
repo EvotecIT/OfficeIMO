@@ -90,7 +90,7 @@ namespace OfficeIMO.Word {
 
         private EmbeddedObject ConvertFileToEmbeddedObject(WordDocument wordDocument, string fileName, string fileImage, double width, double height) {
             ImagePart imagePart = wordDocument._document.MainDocumentPart.AddImagePart(ImagePartType.Png);
-            using (FileStream stream = new FileStream(fileImage, FileMode.Open)) {
+            using (FileStream stream = new FileStream(fileImage, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 imagePart.FeedData(stream);
             }
             MainDocumentPart mainPart = wordDocument._document.MainDocumentPart;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
 
             EmbeddedPackagePart embeddedObjectPart = mainPart.AddEmbeddedPackagePart(contentType);
 
-            using (FileStream fileStream = new FileStream(fileName, FileMode.Open)) {
+            using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 embeddedObjectPart.FeedData(fileStream);
             }
 
