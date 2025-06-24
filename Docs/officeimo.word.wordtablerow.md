@@ -60,7 +60,8 @@ public int CellsCount { get; }
 
 ### **Height**
 
-Gets or sets height of a row
+Gets or sets the height of a row. The value is stored with
+`HeightRuleValues.Exact` to ensure it is preserved even when AutoFit is used.
 
 ```csharp
 public Nullable<int> Height { get; set; }

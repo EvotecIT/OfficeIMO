@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
+using System.IO.Packaging;
+using System.Reflection;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
@@ -127,6 +130,15 @@ namespace OfficeIMO.Word {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var main = document._wordprocessingDocument.MainDocumentPart;
             if (main.VbaProjectPart != null) {
+                var vbaUri = main.VbaProjectPart.Uri;
+                var packageProp = document._wordprocessingDocument.GetType().GetProperty("Package", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (packageProp?.GetValue(document._wordprocessingDocument) is Package package) {
+                    foreach (var rel in package.GetRelationshipsByType("http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToList()) {
+                        if (rel.TargetUri == vbaUri) {
+                            package.DeleteRelationship(rel.Id);
+                        }
+                    }
+                }
                 main.DeletePart(main.VbaProjectPart);
             }
         }

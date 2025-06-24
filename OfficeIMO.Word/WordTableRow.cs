@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a row within a <see cref="WordTable"/> and exposes row level operations.
+    /// </summary>
     public class WordTableRow {
         internal readonly TableRow _tableRow;
 
@@ -54,10 +57,11 @@ namespace OfficeIMO.Word {
                     AddTableRowProperties();
                     var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight == null) {
-                        _tableRow.TableRowProperties.InsertAt(new TableRowHeight(), 0);
-                        tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                        tableRowHeight = new TableRowHeight();
+                        _tableRow.TableRowProperties.InsertAt(tableRowHeight, 0);
                     }
                     tableRowHeight.Val = (uint)value;
+                    tableRowHeight.HeightType = HeightRuleValues.Exact;
                 } else {
                     var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight != null) {
@@ -67,7 +71,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-
+        /// <summary>
+        /// Gets or sets a value indicating whether the row is allowed to break across pages.
+        /// When set to <c>false</c>, the row is kept intact on a single page.
+        /// </summary>
         public bool AllowRowToBreakAcrossPages {
             get {
                 if (_tableRow.TableRowProperties != null) {
@@ -132,6 +139,11 @@ namespace OfficeIMO.Word {
         private readonly WordTable _wordTable;
         private readonly WordDocument _document;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordTableRow"/> class and creates an empty row.
+        /// </summary>
+        /// <param name="document">The parent <see cref="WordDocument"/>.</param>
+        /// <param name="wordTable">The table to which this row belongs.</param>
         public WordTableRow(WordDocument document, WordTable wordTable) {
             // Create a row.
             TableRow tableRow = new TableRow();
@@ -140,6 +152,12 @@ namespace OfficeIMO.Word {
             _wordTable = wordTable;
 
         }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordTableRow"/> class from an existing <see cref="TableRow"/>.
+        /// </summary>
+        /// <param name="wordTable">The parent <see cref="WordTable"/>.</param>
+        /// <param name="row">The underlying Open XML table row.</param>
+        /// <param name="document">The parent <see cref="WordDocument"/>.</param>
         public WordTableRow(WordTable wordTable, TableRow row, WordDocument document) {
             _document = document;
             _tableRow = row;
@@ -150,6 +168,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Appends the specified <see cref="WordTableCell"/> to the end of this row.
+        /// </summary>
+        /// <param name="cell">The cell to append.</param>
         public void Add(WordTableCell cell) {
             _tableRow.Append(cell._tableCell);
         }

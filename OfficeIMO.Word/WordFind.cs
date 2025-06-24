@@ -3,17 +3,30 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the results of a find and replace operation within a document.
+    /// </summary>
     public class WordFind {
+        /// <summary>Gets or sets the number of matches found.</summary>
         public int Found = 0;
+        /// <summary>Gets or sets the number of replacements performed.</summary>
         public int Replacements = 0;
 
+        /// <summary>Paragraphs containing matches.</summary>
         public List<WordParagraph> Paragraphs = new List<WordParagraph>();
+        /// <summary>Table cells containing matches.</summary>
         public List<WordParagraph> Tables = new List<WordParagraph>();
+        /// <summary>Header paragraphs containing matches when using the default header.</summary>
         public List<WordParagraph> HeaderDefault = new List<WordParagraph>();
+        /// <summary>Header paragraphs containing matches when using even page headers.</summary>
         public List<WordParagraph> HeaderEven = new List<WordParagraph>();
+        /// <summary>Header paragraphs containing matches when using the first page header.</summary>
         public List<WordParagraph> HeaderFirst = new List<WordParagraph>();
+        /// <summary>Footer paragraphs containing matches when using the default footer.</summary>
         public List<WordParagraph> FooterDefault = new List<WordParagraph>();
+        /// <summary>Footer paragraphs containing matches when using even page footers.</summary>
         public List<WordParagraph> FooterEven = new List<WordParagraph>();
+        /// <summary>Footer paragraphs containing matches when using the first page footer.</summary>
         public List<WordParagraph> FooterFirst = new List<WordParagraph>();
 
 
@@ -61,7 +74,19 @@ namespace OfficeIMO.Word {
 
 
 
+/// <summary>
+/// Provides helper string extensions used by the library.
+/// </summary>
 public static class StringExtensions {
+    /// <summary>
+    /// Replaces all occurrences of <paramref name="oldValue"/> with <paramref name="newValue"/> using the specified comparison type.
+    /// </summary>
+    /// <param name="str">Source string.</param>
+    /// <param name="oldValue">Value to search for.</param>
+    /// <param name="newValue">Value to replace with.</param>
+    /// <param name="comparisonType">String comparison type.</param>
+    /// <param name="count">Outputs the number of replacements performed.</param>
+    /// <returns>The resulting string after replacements.</returns>
     public static string FindAndReplace(this string str, string oldValue, string newValue, StringComparison comparisonType, ref int count) {
         List<string> list = new List<string>();
         // Check inputs.

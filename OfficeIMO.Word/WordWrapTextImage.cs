@@ -3,21 +3,40 @@ using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Specifies the available options for how text should wrap around an image.
+    /// </summary>
     public enum WrapTextImage {
+        /// <summary>No wrapping is applied and the image is placed inline with the surrounding text.</summary>
         InLineWithText,
+        /// <summary>Wrap text around the image using a square boundary.</summary>
         Square,
+        /// <summary>Wrap text tightly around the outline of the image.</summary>
         Tight,
+        /// <summary>Allow text to flow through transparent regions of the image.</summary>
         Through,
+        /// <summary>Place text above and below the image leaving the sides clear.</summary>
         TopAndBottom,
+        /// <summary>Position the image behind the text.</summary>
         BehindText,
+        /// <summary>Position the image in front of the text.</summary>
         InFrontOfText,
     }
 
+    /// <summary>
+    /// Provides helper methods for configuring image wrap options on Wordprocessing elements.
+    /// </summary>
     public class WordWrapTextImage {
         private WordWrapTextImage(WrapTextImage wrapTextImage) {
 
         }
 
+        /// <summary>
+        /// Appends the appropriate wrapping element for the specified option to the given anchor.
+        /// </summary>
+        /// <param name="anchor">The anchor to which the wrapping should be applied.</param>
+        /// <param name="wrapImage">The desired wrapping option.</param>
+        /// <returns>The modified anchor.</returns>
         public static Anchor AppendWrapTextImage(Anchor anchor, WrapTextImage wrapImage) {
             if (wrapImage == WrapTextImage.Square) {
                 WrapSquare wrapSquare1 = new WrapSquare() {
@@ -47,6 +66,12 @@ namespace OfficeIMO.Word {
             return anchor;
         }
 
+        /// <summary>
+        /// Returns the currently applied wrapping option for the specified drawing.
+        /// </summary>
+        /// <param name="anchor">Anchor element associated with the drawing.</param>
+        /// <param name="inline">Inline element associated with the drawing.</param>
+        /// <returns>The wrap option or <c>null</c> if none can be determined.</returns>
         public static WrapTextImage? GetWrapTextImage(Anchor anchor, Inline inline) {
             if (anchor != null) {
                 var wrapSquare = anchor.OfType<WrapSquare>().FirstOrDefault();
@@ -78,6 +103,13 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        /// <summary>
+        /// Sets the wrapping option for the provided drawing.
+        /// </summary>
+        /// <param name="drawing">The drawing element to update.</param>
+        /// <param name="anchor">Anchor element associated with the drawing.</param>
+        /// <param name="inline">Inline element associated with the drawing.</param>
+        /// <param name="wrapImage">The desired wrapping option.</param>
         public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WrapTextImage? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
             if (currentWrap == wrapImage) {
@@ -151,6 +183,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets a <see cref="WrapTopBottom"/> instance used for top and bottom wrapping.
+        /// </summary>
         public static WrapTopBottom WrapTopBottom {
             get {
                 WrapTopBottom wrapTopBottom1 = new WrapTopBottom() {
@@ -162,6 +197,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a <see cref="WrapThrough"/> instance used for through wrapping.
+        /// </summary>
         public static WrapThrough WrapThrough {
             get {
                 WrapThrough wrapThrough1 = new WrapThrough() { WrapText = WrapTextValues.BothSides };
@@ -184,6 +222,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a <see cref="WrapTight"/> instance used for tight wrapping.
+        /// </summary>
         public static WrapTight WrapTight {
             get {
                 WrapTight wrapTight1 = new WrapTight() { WrapText = WrapTextValues.BothSides };

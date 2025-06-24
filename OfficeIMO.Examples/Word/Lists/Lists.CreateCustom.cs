@@ -74,8 +74,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("This is 2nd list");
 
-                // define list 
-                WordList wordList2 = document.AddList(WordListStyle.Custom);
+                // define list
+                // prefer AddCustomList over AddList(WordListStyle.Custom)
+                WordList wordList2 = document.AddCustomList();
                 // add levels
                 var level21 = new WordListLevel(SimplifiedListNumbers.Decimal);
                 wordList2.Numbering.AddLevel(level21);
@@ -113,7 +114,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("This is 3rd list");
 
-                WordList wordList3 = document.AddList(WordListStyle.Custom);
+                // another custom list
+                WordList wordList3 = document.AddCustomList();
                 var level31 = new WordListLevel(SimplifiedListNumbers.UpperRoman);
                 wordList3.Numbering.AddLevel(level31);
                 var level32 = new WordListLevel(SimplifiedListNumbers.UpperRomanBracket);

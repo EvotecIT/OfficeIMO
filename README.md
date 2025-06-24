@@ -419,6 +419,20 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     document.AddParagraph();
 
+    // create a custom bullet list
+    var custom = document.AddCustomBulletList(WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
+    custom.AddItem("Custom bullet item");
+
+    // create a multi-level custom list
+    var builder = document.AddCustomList()
+        .AddListLevel(1, WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
+        .AddListLevel(5, WordBulletSymbol.BlackCircle, "Arial", colorHex: "#00ff00", fontSize: 10);
+    builder.AddItem("First");
+    builder.AddItem("Fifth", 4);
+
+    // Note: use AddCustomList() rather than AddList(WordListStyle.Custom)
+    // when you want to build lists with your own levels.
+
     var listNumbered = document.AddList(WordListStyle.Heading1ai);
     listNumbered.AddItem("Different list number 1");
     listNumbered.AddItem("Different list number 2", 1);
