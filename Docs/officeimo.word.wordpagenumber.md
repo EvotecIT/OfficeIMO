@@ -40,6 +40,26 @@ public IReadOnlyList<WordParagraph> Paragraphs { get; }
 
 [IReadOnlyList<WordParagraph>](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlylist-1)<br>
 
+### **Field**
+
+```csharp
+public WordField Field { get; }
+```
+
+#### Property Value
+
+[WordField](./officeimo.word.wordfield.md)<br>
+
+### **Number**
+
+```csharp
+public Nullable<int> Number { get; }
+```
+
+#### Property Value
+
+[Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+
 ## Constructors
 
 ### **WordPageNumber(WordDocument, WordHeader, WordPageNumberStyle)**
