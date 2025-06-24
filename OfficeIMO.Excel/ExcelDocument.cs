@@ -251,10 +251,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Asynchronously saves the document.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(CancellationToken cancellationToken = default) {
             return SaveAsync("", false, cancellationToken);
         }
 
+        /// <summary>
+        /// Asynchronously saves the document and optionally opens Excel.
+        /// </summary>
+        /// <param name="openExcel">Whether to open Excel after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
             return SaveAsync("", openExcel, cancellationToken);
         }
