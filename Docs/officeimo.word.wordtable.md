@@ -270,7 +270,7 @@ public List<int> ColumnWidth { get; set; }
 
 ### **RowHeight**
 
-Get or Set Table Row Height for 1st row
+Gets or sets the height for each row in the table.
 
 ```csharp
 public List<int> RowHeight { get; set; }
@@ -279,6 +279,7 @@ public List<int> RowHeight { get; set; }
 #### Property Value
 
 [List&lt;Int32&gt;](https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1)<br>
+The collection contains the height of each row or `0` if the row has no explicit height set.
 
 ### **Cells**
 

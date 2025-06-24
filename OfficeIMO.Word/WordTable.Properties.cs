@@ -172,14 +172,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or Set Table Row Height for 1st row
+        /// Get or set row heights for the table
         /// </summary>
         public List<int> RowHeight {
             get {
                 var listReturn = new List<int>();
-                // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int rowIndex = 0; rowIndex >= this.Rows.Count; rowIndex++) {
-                    listReturn.Add(this.Rows[rowIndex].Height.Value);
+                for (int rowIndex = 0; rowIndex < this.Rows.Count; rowIndex++) {
+                    if (this.Rows[rowIndex].Height.HasValue)
+                        listReturn.Add(this.Rows[rowIndex].Height.Value);
+                    else
+                        listReturn.Add(0);
                 }
                 return listReturn;
             }

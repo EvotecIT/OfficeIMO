@@ -1322,5 +1322,23 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_TableRowHeightWithAutoFit() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableRowHeightAutoFit.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(2, 2);
+                table.Rows[0].Height = 500;
+                table.Rows[1].Height = 300;
+                table.AutoFitToWindow();
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                Assert.Equal(500, table.Rows[0].Height);
+                Assert.Equal(300, table.Rows[1].Height);
+            }
+        }
+
     }
 }
