@@ -56,6 +56,11 @@ namespace OfficeIMO.Word {
             } else {
                 if (_run.ChildElements.Count == 1) {
                     this._run.Remove();
+                    if (!_paragraph.ChildElements.OfType<Run>().Any() &&
+                        _paragraph.ChildElements.OfType<Hyperlink>().Any() == false &&
+                        _paragraph.ChildElements.Count <= 1) {
+                        _paragraph.Remove();
+                    }
                 } else {
                     this._run.ChildElements.OfType<Break>().FirstOrDefault()?.Remove();
                 }
