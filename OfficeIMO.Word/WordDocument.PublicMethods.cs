@@ -103,6 +103,14 @@ namespace OfficeIMO.Word {
             return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
         }
 
+        /// <summary>
+        /// Creates a custom list with no predefined levels for manual configuration.
+        /// </summary>
+        /// <returns>The created <see cref="WordList"/>.</returns>
+        public WordList AddCustomList() {
+            return WordList.AddCustomList(this);
+        }
+
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
             wordList.AddList(style);

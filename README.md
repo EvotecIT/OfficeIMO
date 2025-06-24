@@ -423,6 +423,13 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     var custom = document.AddCustomBulletList('■', "Courier New", "#ff0000", 16);
     custom.AddItem("Custom bullet item");
 
+    // create a multi-level custom list
+    var builder = document.AddCustomList()
+        .AddListLevel(1, '■', "Courier New", "#ff0000", 14)
+        .AddListLevel(5, '●', "Arial", "#00ff00", 10);
+    builder.AddItem("First");
+    builder.AddItem("Fifth", 4);
+
     var listNumbered = document.AddList(WordListStyle.Heading1ai);
     listNumbered.AddItem("Different list number 1");
     listNumbered.AddItem("Different list number 2", 1);
