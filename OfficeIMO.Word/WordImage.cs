@@ -1481,7 +1481,7 @@ namespace OfficeIMO.Word {
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
-            using var imageStream = new FileStream(filePath, FileMode.Open);
+            using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
             compressionQuality ??= BlipCompressionValues.Print; // Set default value if not provided
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
