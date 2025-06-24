@@ -113,6 +113,25 @@ namespace OfficeIMO.Tests {
             }
 
         }
+
+        [Fact]
+        public void Test_DefaultMarginsWhenAddingSection() {
+            using var document = WordDocument.Create();
+
+            Assert.Equal(WordMargin.Normal, document.Sections[0].Margins.Type);
+            Assert.Equal<UInt32>(1440U, document.Sections[0].Margins.Left);
+            Assert.Equal<UInt32>(1440U, document.Sections[0].Margins.Right);
+            Assert.Equal(1440, document.Sections[0].Margins.Top);
+            Assert.Equal(1440, document.Sections[0].Margins.Bottom);
+
+            var section = document.AddSection();
+
+            Assert.Equal(WordMargin.Normal, section.Margins.Type);
+            Assert.Equal<UInt32>(1440U, section.Margins.Left);
+            Assert.Equal<UInt32>(1440U, section.Margins.Right);
+            Assert.Equal(1440, section.Margins.Top);
+            Assert.Equal(1440, section.Margins.Bottom);
+        }
     }
 
 }

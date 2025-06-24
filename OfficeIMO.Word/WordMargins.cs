@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Left;
                 }
 
-                return null;
+                return WordMargins.Normal.Left;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Right;
                 }
 
-                return null;
+                return WordMargins.Normal.Right;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Top;
                 }
 
-                return null;
+                return WordMargins.Normal.Top;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Bottom;
                 }
 
-                return null;
+                return WordMargins.Normal.Bottom;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -177,7 +177,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Header;
                 }
 
-                return null;
+                return WordMargins.Normal.Header;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -200,7 +200,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Footer;
                 }
 
-                return null;
+                return WordMargins.Normal.Footer;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word {
                     return pageMargin.Gutter;
                 }
 
-                return null;
+                return WordMargins.Normal.Gutter;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -277,7 +277,7 @@ namespace OfficeIMO.Word {
                     return WordMargin.Unknown;
                 }
 
-                return null;
+                return WordMargin.Normal;
             }
             set => SetMargins(value);
         }
