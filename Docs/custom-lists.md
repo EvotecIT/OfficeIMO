@@ -17,5 +17,15 @@ builder.AddItem("First");
 builder.AddItem("Fifth", 4);
 ```
 
+You can adjust where numbering begins using `StartNumberingValue` on a level:
+
+```csharp
+var numbered = document.AddCustomList();
+var level = new WordListLevel(WordListLevelKind.Decimal)
+    .SetStartNumberingValue(3);
+numbered.Numbering.AddLevel(level);
+numbered.AddItem("Starts at three");
+```
+
 See [`WordListLevelKind`](./officeimo.word.wordlistlevelkind.md) for the available bullet symbols.
 

@@ -58,6 +58,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Sets the starting number for this level.
+        /// </summary>
+        /// <param name="value">The starting number.</param>
+        /// <returns>The current <see cref="WordListLevel"/> instance.</returns>
+        public WordListLevel SetStartNumberingValue(int value) {
+            StartNumberingValue = value;
+            return this;
+        }
+
+        /// <summary>
         /// Gets or sets the text indentation (left indentation) in twentieths of a point.
         /// </summary>
         public int IndentationLeft {
