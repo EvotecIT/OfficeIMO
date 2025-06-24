@@ -92,7 +92,7 @@
 
 [WordListStyles](./officeimo.word.wordliststyles.md)
 
-[WordBulletSymbol](./officeimo.word.wordbulletsymbol.md)
+[WordListLevelKind](./officeimo.word.wordlistlevelkind.md)
 
 [Custom Lists](./custom-lists.md)
 

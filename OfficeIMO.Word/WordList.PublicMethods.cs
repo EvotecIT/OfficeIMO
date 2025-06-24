@@ -145,6 +145,12 @@ namespace OfficeIMO.Word {
             return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
         }
 
+        public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+            char symbol = GetBulletSymbol(kind);
+            string finalColor = color?.ToHexColor() ?? colorHex;
+            return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
+        }
+
         public static WordList AddCustomList(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
@@ -177,6 +183,12 @@ namespace OfficeIMO.Word {
         public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
             string finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
+        }
+
+        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+            char symbol = GetBulletSymbol(kind);
+            string finalColor = color?.ToHexColor() ?? colorHex;
+            return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);
         }
     }
 }
