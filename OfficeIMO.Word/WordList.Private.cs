@@ -272,8 +272,14 @@ public partial class WordList : WordElement {
                 numberingProps.NumberingId.Val = newNumberId;
             }
             currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
+            var run = ((Paragraph)currentRef).GetFirstChild<Run>() ?? new Run();
+            if (run.Parent == null) ((Paragraph)currentRef).AppendChild(run);
+            var wp = new WordParagraph(_document, (Paragraph)currentRef, run);
+            wp.Text = item.Text;
+            wp._list = clonedList;
+            clonedList._listItems.Add(wp);
             if (firstInserted == null) {
-                firstInserted = new WordParagraph(_document, (Paragraph)currentRef);
+                firstInserted = wp;
             }
         }
 
