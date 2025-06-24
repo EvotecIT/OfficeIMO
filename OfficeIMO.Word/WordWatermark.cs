@@ -17,11 +17,24 @@ using DocumentFormat.OpenXml.Vml;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Specifies the type of watermark to insert into a Word document.
+    /// </summary>
     public enum WordWatermarkStyle {
+        /// <summary>
+        /// Indicates a text watermark.
+        /// </summary>
         Text,
+
+        /// <summary>
+        /// Indicates an image watermark.
+        /// </summary>
         Image
     }
 
+    /// <summary>
+    /// Represents a watermark element within a Word document.
+    /// </summary>
     public class WordWatermark : WordElement {
         private WordDocument _document;
         private SdtBlock _sdtBlock;
@@ -29,6 +42,9 @@ namespace OfficeIMO.Word {
         private WordSection _section;
         //private WordParagraph _wordParagraph;
 
+        /// <summary>
+        /// Gets or sets the watermark text.
+        /// </summary>
         public string Text {
             get {
                 var paragraph = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>().FirstOrDefault();
@@ -111,6 +127,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the width of the watermark in points.
+        /// </summary>
         public double? Width {
             get {
                 var shape = _shape;
@@ -146,6 +165,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the height of the watermark in points.
+        /// </summary>
         public double? Height {
             get {
                 var shape = _shape;
@@ -482,6 +504,13 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordWatermark"/> class for the specified section.
+        /// </summary>
+        /// <param name="wordDocument">The parent document.</param>
+        /// <param name="wordSection">The section to which the watermark should be added.</param>
+        /// <param name="style">The type of watermark to add.</param>
+        /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath) {
             this._document = wordDocument;
             this._section = wordSection;
@@ -517,6 +546,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordWatermark"/> class for the specified header.
+        /// </summary>
+        /// <param name="wordDocument">The parent document.</param>
+        /// <param name="wordSection">The section associated with the header.</param>
+        /// <param name="wordHeader">The header where the watermark will be placed.</param>
+        /// <param name="style">The type of watermark to add.</param>
+        /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath) {
             this._document = wordDocument;
             this._section = wordSection;
@@ -549,6 +586,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordWatermark"/> class from an existing structured document tag.
+        /// </summary>
+        /// <param name="wordDocument">The parent document.</param>
+        /// <param name="sdtBlock">The structured document tag block representing the watermark.</param>
         public WordWatermark(WordDocument wordDocument, SdtBlock sdtBlock) {
             _document = wordDocument;
             _sdtBlock = sdtBlock;

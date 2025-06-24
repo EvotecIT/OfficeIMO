@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Helper methods for adding and retrieving headers and footers in Word documents.
+    /// </summary>
     public static partial class WordHeadersAndFooters {
         /// <summary>
         /// Add default header and footers to section. You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
