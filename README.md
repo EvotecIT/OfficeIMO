@@ -419,20 +419,22 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     document.AddParagraph();
 
-    // create a custom bullet list
-    var custom = document.AddCustomBulletList(WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
+    // create a custom bullet list that uses the same symbol on every level
+    var custom = document.AddCustomBulletList(
+        WordBulletSymbol.Square,
+        "Courier New",
+        SixLabors.ImageSharp.Color.Red,
+        fontSize: 16);
     custom.AddItem("Custom bullet item");
 
-    // create a multi-level custom list
+    // create a multi-level list and configure each level manually
     var builder = document.AddCustomList()
         .AddListLevel(1, WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
         .AddListLevel(5, WordBulletSymbol.BlackCircle, "Arial", colorHex: "#00ff00", fontSize: 10);
     builder.AddItem("First");
     builder.AddItem("Fifth", 4);
 
-    // Note: use AddCustomList() rather than AddList(WordListStyle.Custom)
-    // when you want to build lists with your own levels.
-    // See [Custom Lists](Docs/custom-lists.md) for details on configuring levels.
+    // AddList is still available for built-in numbering styles
 
     var listNumbered = document.AddList(WordListStyle.Heading1ai);
     listNumbered.AddItem("Different list number 1");
@@ -475,6 +477,11 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.Save(openWord);
 }
 ```
+
+Use `AddList` when you want one of the built-in numbering styles.
+`AddCustomBulletList` creates a simple bullet list with the same symbol on all levels.
+For lists where you need to define each level yourself, use `AddCustomList`. See
+[Custom Lists](Docs/custom-lists.md) for detailed configuration options.
 
 ## Tests
 

@@ -75,7 +75,6 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is 2nd list");
 
                 // define list
-                // prefer AddCustomList over AddList(WordListStyle.Custom)
                 WordList wordList2 = document.AddCustomList();
                 // add levels
                 var level21 = new WordListLevel(SimplifiedListNumbers.Decimal);
