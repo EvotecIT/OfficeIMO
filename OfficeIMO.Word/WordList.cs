@@ -37,110 +37,13 @@ public partial class WordList : WordElement {
     public List<WordParagraph> ListItems {
         get {
             List<WordParagraph> list = new List<WordParagraph>();
-            foreach (var paragraph in _document.Paragraphs) {
-                if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
+
+            foreach (var paragraph in _document.EnumerateAllParagraphs()) {
+                if (paragraph.IsListItem && paragraph._listNumberId == _numberId) {
                     list.Add(paragraph);
                 }
             }
 
-            foreach (var table in _document.Tables) {
-                foreach (var paragraph in table.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-            }
-
-            if (_document.Header.Default != null) {
-                foreach (var paragraph in _document.Header.Default.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Header.Default.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
-
-            if (_document.Header.Even != null) {
-                foreach (var paragraph in _document.Header.Even.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Header.Even.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
-
-            if (_document.Header.First != null) {
-                foreach (var paragraph in _document.Header.First.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Header.First.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
-
-
-            if (_document.Footer.Default != null) {
-                foreach (var paragraph in _document.Footer.Default.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Footer.Default.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
-
-            if (_document.Footer.Even != null) {
-                foreach (var paragraph in _document.Footer.Even.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Footer.Even.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
-
-            if (_document.Footer.First != null) {
-                foreach (var paragraph in _document.Footer.First.Paragraphs) {
-                    if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                        list.Add(paragraph);
-                    }
-                }
-                foreach (var table in _document.Footer.First.Tables) {
-                    foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsListItem == true && paragraph._listNumberId == _numberId) {
-                            list.Add(paragraph);
-                        }
-                    }
-                }
-            }
             return list;
 
 
