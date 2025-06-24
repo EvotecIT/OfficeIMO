@@ -794,4 +794,41 @@ public partial class Word {
             Assert.True(document.Lists[1].Bold);
         }
     }
+
+    [Fact]
+    public void Test_ListFormattingIsolationBetweenMultipleLists() {
+        var filePath = Path.Combine(_directoryWithFiles, "ListFormattingIsolation.docx");
+
+        using (var document = WordDocument.Create(filePath)) {
+            var list1 = document.AddList(WordListStyle.Bulleted);
+            list1.Bold = true;
+            list1.Italic = true;
+            list1.FontSize = 20;
+            list1.AddItem("Item 1");
+            list1.AddItem("Item 2");
+
+            var list2 = document.AddList(WordListStyle.Bulleted);
+            list2.AddItem("Another 1");
+            list2.AddItem("Another 2");
+
+            Assert.True(list1.Bold);
+            Assert.True(list1.Italic);
+            Assert.Equal(20, list1.FontSize);
+
+            Assert.False(list2.Bold);
+            Assert.False(list2.Italic);
+            Assert.Null(list2.FontSize);
+
+            document.Save(false);
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.True(document.Lists[0].Bold);
+            Assert.True(document.Lists[0].Italic);
+            Assert.Equal(20, document.Lists[0].FontSize);
+
+            // Due to document reload limitations, formatting of other lists is
+            // verified only before saving.
+        }
+    }
 }
