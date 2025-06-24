@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word;
 
@@ -20,6 +21,8 @@ public partial class WordList : WordElement {
     private WordParagraph _wordParagraph;
     private readonly WordHeaderFooter _headerFooter;
 
+    private readonly List<WordParagraph> _listItems = new();
+
     /// <summary>
     /// Indicates whether the list is treated as a Table of Contents (TOC).
     /// </summary>
@@ -36,16 +39,9 @@ public partial class WordList : WordElement {
     /// </summary>
     public List<WordParagraph> ListItems {
         get {
-            List<WordParagraph> list = new List<WordParagraph>();
-
-            foreach (var paragraph in _document.EnumerateAllParagraphs()) {
-                if (paragraph.IsListItem && paragraph._listNumberId == _numberId) {
-                    list.Add(paragraph);
-                }
-            }
-
-            return list;
-
+            return _listItems;
+        }
+    }
 
             //if (_wordParagraph != null) {
             //    var list = new List<Paragraph>();
@@ -67,8 +63,6 @@ public partial class WordList : WordElement {
             //return _document.Paragraphs
             //    .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
             //    .ToList();
-        }
-    }
 
     /// <summary>
     /// Restarts numbering of a list after a break. Requires a list to be set to RestartNumbering overall.
@@ -305,6 +299,10 @@ public partial class WordList : WordElement {
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         //  _section = section;
         _numberId = numberId;
+        foreach (var p in _document.EnumerateAllParagraphs().Where(p => p.IsListItem && p._listNumberId == _numberId)) {
+            p._list = this;
+            _listItems.Add(p);
+        }
     }
 
     /// <summary>
