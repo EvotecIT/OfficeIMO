@@ -928,6 +928,26 @@ namespace OfficeIMO.Word {
             }
         }
 
+        public (int X, int Y) Location {
+            get {
+                if (_Image.Anchor != null) {
+                    var hPos = _Image.Anchor.HorizontalPosition;
+                    var vPos = _Image.Anchor.VerticalPosition;
+                    int x = 0;
+                    int y = 0;
+                    if (hPos?.PositionOffset != null) {
+                        int.TryParse(hPos.PositionOffset.Text, out x);
+                    }
+                    if (vPos?.PositionOffset != null) {
+                        int.TryParse(vPos.PositionOffset.Text, out y);
+                    }
+                    return (x, y);
+                }
+
+                return (0, 0);
+            }
+        }
+
         /// <summary>
         /// Indicates whether resizing should be relative to the original size.
         /// </summary>
