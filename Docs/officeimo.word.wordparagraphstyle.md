@@ -71,3 +71,24 @@ internal static WordParagraphStyles GetStyle(int level)
 #### Exceptions
 
 [ArgumentOutOfRangeException](https://docs.microsoft.com/en-us/dotnet/api/system.argumentoutofrangeexception)<br>
+
+### **RegisterCustomStyle(String, Style)**
+
+```csharp
+public static void RegisterCustomStyle(string styleId, Style styleDefinition)
+```
+
+Adds a new style definition keyed by the provided style identifier.
+
+#### Parameters
+
+`styleId` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`styleDefinition` Style<br>
+
+### **OverrideBuiltInStyle(WordParagraphStyles, Style)**
+
+```csharp
+public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition)
+```
+
+Replaces the definition for a built-in style.

@@ -145,7 +145,13 @@ namespace OfficeIMO.Word {
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
             foreach (var style in listOfStyles) {
-                styles1.Append(WordParagraphStyle.GetStyleDefinition(style));
+                var styleDef = WordParagraphStyle.GetStyleDefinition(style);
+                if (styleDef != null) {
+                    styles1.Append(styleDef);
+                }
+            }
+            foreach (var custom in WordParagraphStyle.CustomStyles) {
+                styles1.Append((Style)custom.CloneNode(true));
             }
             // TODO: load only needed character styles
             var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
