@@ -10,10 +10,6 @@
 
 [CoverPageTemplate](./officeimo.word.coverpagetemplate.md)
 
-[CustomListStyle](./officeimo.word.customliststyle.md)
-
-[CustomListStyles](./officeimo.word.customliststyles.md)
-
 [Helpers](./officeimo.word.helpers.md)
 
 [ImageFormatNotSupportedException](./officeimo.word.imageformatnotsupportedexception.md)
@@ -95,6 +91,10 @@
 [WordListStyle](./officeimo.word.wordliststyle.md)
 
 [WordListStyles](./officeimo.word.wordliststyles.md)
+
+[WordBulletSymbol](./officeimo.word.wordbulletsymbol.md)
+
+[Custom Lists](./custom-lists.md)
 
 [WordMargin](./officeimo.word.wordmargin.md)
 
