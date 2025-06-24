@@ -86,6 +86,10 @@ namespace OfficeIMO.Word {
             return chartInstance;
         }
 
+        /// <summary>
+        /// Creates a list using one of the built-in numbering styles.
+        /// For manually configured lists prefer <see cref="AddCustomList"/>.
+        /// </summary>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this);
             wordList.AddList(style);
