@@ -119,7 +119,6 @@
       <w:bookmarkStart w:name="EndOfDocument" w:id="4" />
       <w:bookmarkEnd w:id="4" />
     </w:p>
-    <w:p />
     <w:p>
       <w:pPr />
       <w:r>
