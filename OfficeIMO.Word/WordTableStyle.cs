@@ -1,7 +1,4 @@
     /// <summary>
-    /// Predefined table styles available when creating tables.
-    /// </summary>
-    /// <summary>
     /// Helper methods for working with predefined table styles.
     /// </summary>
         /// <summary>
