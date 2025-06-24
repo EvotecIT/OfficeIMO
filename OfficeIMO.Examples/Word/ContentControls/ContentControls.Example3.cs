@@ -9,13 +9,13 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "DocumentAdvancedContentControls.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var para1 = document.AddParagraph("Control 1:");
-                para1.AddStructuredDocumentTag("Alias1", "First", "Tag1");
+                para1.AddStructuredDocumentTag(alias: "Alias1", text: "First", tag: "Tag1");
 
                 var para2 = document.AddParagraph("Control 2:");
-                para2.AddStructuredDocumentTag("Alias2", "Second", "Tag2");
+                para2.AddStructuredDocumentTag(alias: "Alias2", text: "Second", tag: "Tag2");
 
                 var para3 = document.AddParagraph("Control 3:");
-                para3.AddStructuredDocumentTag("Alias3", "Third", "Tag3");
+                para3.AddStructuredDocumentTag(alias: "Alias3", text: "Third", tag: "Tag3");
 
                 document.Save(openWord);
             }

@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "CustomBulletList.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var list = document.AddCustomList()
-                    .AddListLevel(1, WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
-                    .AddListLevel(5, WordBulletSymbol.BlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+                    .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
+                    .AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
                 list.AddItem("Level1");
                 list.AddItem("Level5", 4);
                 document.Save(false);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddCustomBulletList() {
             var filePath = Path.Combine(_directoryWithFiles, "CustomBulletSimple.docx");
             using (var document = WordDocument.Create(filePath)) {
-                var list = document.AddCustomBulletList(WordBulletSymbol.Diamond, "Wingdings", SixLabors.ImageSharp.Color.Blue, fontSize: 12);
+                var list = document.AddCustomBulletList(WordListLevelKind.BulletDiamondSymbol, "Wingdings", SixLabors.ImageSharp.Color.Blue, fontSize: 12);
                 list.AddItem("Item");
                 document.Save(false);
             }

@@ -46,28 +46,28 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Current levels count: " + wordList1.Numbering.Levels.Count);
 
                 // add custom levels
-                var level = new WordListLevel(SimplifiedListNumbers.BulletOpenCircle);
+                var level = new WordListLevel(WordListLevelKind.BulletOpenCircle);
                 wordList1.Numbering.AddLevel(level);
 
-                var level1 = new WordListLevel(SimplifiedListNumbers.BulletSolidRound);
+                var level1 = new WordListLevel(WordListLevelKind.BulletSolidRound);
                 wordList1.Numbering.AddLevel(level1);
 
-                var level2 = new WordListLevel(SimplifiedListNumbers.BulletSquare);
+                var level2 = new WordListLevel(WordListLevelKind.BulletSquare);
                 wordList1.Numbering.AddLevel(level2);
 
-                var level3 = new WordListLevel(SimplifiedListNumbers.BulletSquare2);
+                var level3 = new WordListLevel(WordListLevelKind.BulletSquare2);
                 wordList1.Numbering.AddLevel(level3);
 
-                var level4 = new WordListLevel(SimplifiedListNumbers.BulletClubs);
+                var level4 = new WordListLevel(WordListLevelKind.BulletClubs);
                 wordList1.Numbering.AddLevel(level4);
 
-                var level5 = new WordListLevel(SimplifiedListNumbers.BulletDiamond);
+                var level5 = new WordListLevel(WordListLevelKind.BulletDiamond);
                 wordList1.Numbering.AddLevel(level5);
 
-                var level6 = new WordListLevel(SimplifiedListNumbers.BulletCheckmark);
+                var level6 = new WordListLevel(WordListLevelKind.BulletCheckmark);
                 wordList1.Numbering.AddLevel(level6);
 
-                var level7 = new WordListLevel(SimplifiedListNumbers.BulletArrow);
+                var level7 = new WordListLevel(WordListLevelKind.BulletArrow);
                 wordList1.Numbering.AddLevel(level7);
 
                 Console.WriteLine("Current levels count: " + wordList1.Numbering.Levels.Count);
@@ -78,23 +78,23 @@ namespace OfficeIMO.Examples.Word {
                 // prefer AddCustomList over AddList(WordListStyle.Custom)
                 WordList wordList2 = document.AddCustomList();
                 // add levels
-                var level21 = new WordListLevel(SimplifiedListNumbers.Decimal);
+                var level21 = new WordListLevel(WordListLevelKind.Decimal);
                 wordList2.Numbering.AddLevel(level21);
-                var level22 = new WordListLevel(SimplifiedListNumbers.DecimalBracket);
+                var level22 = new WordListLevel(WordListLevelKind.DecimalBracket);
                 wordList2.Numbering.AddLevel(level22);
-                var level23 = new WordListLevel(SimplifiedListNumbers.DecimalDot);
+                var level23 = new WordListLevel(WordListLevelKind.DecimalDot);
                 wordList2.Numbering.AddLevel(level23);
-                var level24 = new WordListLevel(SimplifiedListNumbers.LowerLetter);
+                var level24 = new WordListLevel(WordListLevelKind.LowerLetter);
                 wordList2.Numbering.AddLevel(level24);
-                var level25 = new WordListLevel(SimplifiedListNumbers.LowerLetterBracket);
+                var level25 = new WordListLevel(WordListLevelKind.LowerLetterBracket);
                 wordList2.Numbering.AddLevel(level25);
-                var level26 = new WordListLevel(SimplifiedListNumbers.LowerLetterDot);
+                var level26 = new WordListLevel(WordListLevelKind.LowerLetterDot);
                 wordList2.Numbering.AddLevel(level26);
-                var level27 = new WordListLevel(SimplifiedListNumbers.UpperLetter);
+                var level27 = new WordListLevel(WordListLevelKind.UpperLetter);
                 wordList2.Numbering.AddLevel(level27);
-                var level28 = new WordListLevel(SimplifiedListNumbers.UpperLetterBracket);
+                var level28 = new WordListLevel(WordListLevelKind.UpperLetterBracket);
                 wordList2.Numbering.AddLevel(level28);
-                var level29 = new WordListLevel(SimplifiedListNumbers.UpperLetterDot);
+                var level29 = new WordListLevel(WordListLevelKind.UpperLetterDot);
                 wordList2.Numbering.AddLevel(level29);
 
                 // add items to the list
@@ -116,25 +116,25 @@ namespace OfficeIMO.Examples.Word {
 
                 // another custom list
                 WordList wordList3 = document.AddCustomList();
-                var level31 = new WordListLevel(SimplifiedListNumbers.UpperRoman);
+                var level31 = new WordListLevel(WordListLevelKind.UpperRoman);
                 wordList3.Numbering.AddLevel(level31);
-                var level32 = new WordListLevel(SimplifiedListNumbers.UpperRomanBracket);
+                var level32 = new WordListLevel(WordListLevelKind.UpperRomanBracket);
                 wordList3.Numbering.AddLevel(level32);
-                var level33 = new WordListLevel(SimplifiedListNumbers.UpperRomanDot);
+                var level33 = new WordListLevel(WordListLevelKind.UpperRomanDot);
                 wordList3.Numbering.AddLevel(level33);
-                var level34 = new WordListLevel(SimplifiedListNumbers.LowerRoman);
+                var level34 = new WordListLevel(WordListLevelKind.LowerRoman);
                 level34.StartNumberingValue = 4;
                 level34.LevelJustification = LevelJustificationValues.Right;
                 wordList3.Numbering.AddLevel(level34);
-                var level35 = new WordListLevel(SimplifiedListNumbers.LowerRomanBracket);
+                var level35 = new WordListLevel(WordListLevelKind.LowerRomanBracket);
                 wordList3.Numbering.AddLevel(level35);
-                var level36 = new WordListLevel(SimplifiedListNumbers.LowerRomanDot);
+                var level36 = new WordListLevel(WordListLevelKind.LowerRomanDot);
                 wordList3.Numbering.AddLevel(level36);
-                var level37 = new WordListLevel(SimplifiedListNumbers.DecimalBracket);
+                var level37 = new WordListLevel(WordListLevelKind.DecimalBracket);
                 wordList3.Numbering.AddLevel(level37);
-                var level38 = new WordListLevel(SimplifiedListNumbers.DecimalDot);
+                var level38 = new WordListLevel(WordListLevelKind.DecimalDot);
                 wordList3.Numbering.AddLevel(level38);
-                var level39 = new WordListLevel(SimplifiedListNumbers.Decimal);
+                var level39 = new WordListLevel(WordListLevelKind.Decimal);
                 wordList3.Numbering.AddLevel(level39);
 
 

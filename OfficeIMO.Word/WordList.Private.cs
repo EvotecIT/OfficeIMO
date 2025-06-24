@@ -311,6 +311,25 @@ public partial class WordList : WordElement {
         return level;
     }
 
+    private static char GetBulletSymbol(WordListLevelKind kind) {
+        return kind switch {
+            WordListLevelKind.Bullet => '\u2022',
+            WordListLevelKind.BulletSquareSymbol => '\u25A0',
+            WordListLevelKind.BulletBlackCircle => '\u25CF',
+            WordListLevelKind.BulletDiamondSymbol => '\u25C6',
+            WordListLevelKind.BulletArrowSymbol => '\u25BA',
+            WordListLevelKind.BulletSolidRound => '·',
+            WordListLevelKind.BulletOpenCircle => 'o',
+            WordListLevelKind.BulletSquare2 => '■',
+            WordListLevelKind.BulletSquare => '§',
+            WordListLevelKind.BulletClubs => 'v',
+            WordListLevelKind.BulletArrow => 'Ø',
+            WordListLevelKind.BulletDiamond => '¨',
+            WordListLevelKind.BulletCheckmark => 'ü',
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), "Only bullet kinds are supported")
+        };
+    }
+
     private static void EnsureW15Namespace(Numbering numbering) {
         const string prefix = "w15";
         const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
