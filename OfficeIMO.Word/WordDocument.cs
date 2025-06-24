@@ -1162,6 +1162,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Asynchronously saves the document to where it was open from.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(CancellationToken cancellationToken = default) {
             return SaveAsync("", false, cancellationToken);
         }
@@ -1170,6 +1174,11 @@ namespace OfficeIMO.Word {
             return SaveAsync(filePath, false, cancellationToken);
         }
 
+        /// <summary>
+        /// Asynchronously saves the document and opens it in Microsoft Word (if Word is present).
+        /// </summary>
+        /// <param name="openWord">Whether to open Word after saving.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(bool openWord, CancellationToken cancellationToken = default) {
             return SaveAsync("", openWord, cancellationToken);
         }
