@@ -27,4 +27,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         SmallCaps
     };
+
+    /// <summary>
+    /// Shape types supported by <see cref="WordDocument.AddShape(ShapeType,double,double,string,string,double)"/>.
+    /// </summary>
+    public enum ShapeType {
+        Rectangle,
+        Ellipse,
+        Line
+    }
+
 }

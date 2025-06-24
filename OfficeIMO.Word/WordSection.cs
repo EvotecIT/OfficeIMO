@@ -129,6 +129,13 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsTextBox).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain shapes.
+        /// </summary>
+        public List<WordParagraph> ParagraphsShapes {
+            get { return Paragraphs.Where(p => p.IsShape).ToList(); }
+        }
+
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -267,6 +274,21 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsTextBox).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.TextBox);
+                }
+                return list;
+            }
+
+        }
+
+        /// <summary>
+        /// Collection of shapes available within the section.
+        /// </summary>
+        public List<WordShape> Shapes {
+            get {
+                List<WordShape> list = new List<WordShape>();
+                var paragraphs = ParagraphsShapes;
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.Shape);
                 }
                 return list;
             }
