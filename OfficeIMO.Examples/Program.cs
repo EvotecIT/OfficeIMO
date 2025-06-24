@@ -43,6 +43,9 @@ namespace OfficeIMO.Examples {
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
+            Paragraphs.Example_RegisterCustomParagraphStyle(folderPath, false);
+            Paragraphs.Example_MultipleCustomParagraphStyles(folderPath, false);
+            Paragraphs.Example_OverrideBuiltInParagraphStyle(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
             Paragraphs.Example_BasicTabStops(folderPath, false);
             Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
