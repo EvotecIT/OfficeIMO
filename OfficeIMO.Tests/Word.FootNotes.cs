@@ -201,5 +201,24 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_FootnoteNumberingAcrossSections() {
+            string filePath = Path.Combine(_directoryWithFiles, "FootnoteNumberingSections.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddFootnoteProperties(restartNumbering: RestartNumberValues.EachSection);
+
+                document.AddParagraph("Section1").AddFootNote("fn1");
+                document.AddSection();
+                document.Sections[1].AddParagraph("Section2").AddFootNote("fn2");
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.FootNotes.Count);
+                Assert.Null(document.Sections[1].FootnoteProperties?.NumberingRestart);
+            }
+        }
     }
 }
