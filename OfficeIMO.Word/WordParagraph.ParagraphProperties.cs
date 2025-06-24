@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Provides access to the borders applied to this paragraph.
+        /// </summary>
         public WordParagraphBorders Borders {
             get {
                 return new WordParagraphBorders(_document, this);
@@ -50,7 +53,9 @@ namespace OfficeIMO.Word {
                 _paragraphProperties.TextAlignment = textAlignment;
             }
         }
-
+        /// <summary>
+        /// Gets or sets the indentation before the paragraph in twips (1/20 of a point).
+        /// </summary>
         public int? IndentationBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Left != "") {
@@ -91,7 +96,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the indentation after the paragraph in twips (1/20 of a point).
+        /// </summary>
         public int? IndentationAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Right != "") {
@@ -150,7 +157,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the first line indentation in twips (1/20 of a point).
+        /// </summary>
         public int? IndentationFirstLine {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
@@ -192,7 +201,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the hanging indentation in twips (1/20 of a point).
+        /// </summary>
         public int? IndentationHanging {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Hanging != "") {
@@ -233,7 +244,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the text flow direction for the paragraph.
+        /// </summary>
         public TextDirectionValues? TextDirection {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
@@ -276,7 +289,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the rule used to calculate line spacing for the paragraph.
+        /// </summary>
         public LineSpacingRuleValues? LineSpacingRule {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
@@ -300,7 +315,9 @@ namespace OfficeIMO.Word {
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
-
+        /// <summary>
+        /// Gets or sets the line spacing for the paragraph in twips (1/20 of a point).
+        /// </summary>
         public int? LineSpacing {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
@@ -342,7 +359,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the spacing before the paragraph in twips (1/20 of a point).
+        /// </summary>
         public int? LineSpacingBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (_paragraphProperties.SpacingBetweenLines.Before != "") {
@@ -383,7 +402,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
+        /// <summary>
+        /// Gets or sets the spacing after the paragraph in twips (1/20 of a point).
+        /// </summary>
         public int? LineSpacingAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
