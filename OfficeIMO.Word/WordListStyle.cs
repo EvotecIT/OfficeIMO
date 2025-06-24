@@ -45,6 +45,32 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Attempts to match an <see cref="AbstractNum"/> to one of the built-in list styles.
+        /// </summary>
+        /// <param name="abstractNum">The abstract numbering definition to compare.</param>
+        /// <returns>The matching <see cref="WordListStyle"/> or <see cref="WordListStyle.Custom"/> when no match is found.</returns>
+        public static WordListStyle MatchStyle(AbstractNum abstractNum) {
+            if (abstractNum == null) throw new ArgumentNullException(nameof(abstractNum));
+
+            var templateCode = abstractNum.GetFirstChild<TemplateCode>()?.Val?.Value;
+            return templateCode switch {
+                "934E79A6" => WordListStyle.Bulleted,
+                "04090023" => WordListStyle.ArticleSections,
+                "04090025" => WordListStyle.Headings111,
+                "04090027" => WordListStyle.HeadingIA1,
+                "04090029" => WordListStyle.Chapters,
+                "04090021" => WordListStyle.BulletedChars,
+                "0409001D" => WordListStyle.Heading1ai,
+                "0409001F" => WordListStyle.Headings111Shifted,
+                "BB9E481E" => WordListStyle.LowerLetterWithBracket,
+                "73ECA528" => WordListStyle.LowerLetterWithDot,
+                "76643E8A" => WordListStyle.UpperLetterWithDot,
+                "76643E8C" => WordListStyle.UpperLetterWithBracket,
+                _ => WordListStyle.Custom
+            };
+        }
+
+        /// <summary>
         /// The next abstract number identifier stored to be used when creating new abstract numbers
         /// </summary>
         private static int nextAbstractNumberId;

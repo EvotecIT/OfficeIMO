@@ -8,8 +8,15 @@ public partial class WordList : WordElement {
     /// Retrieves the <see cref="AbstractNum"/> associated with this list.
     /// </summary>
     private AbstractNum GetAbstractNum() {
-        return _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
-            .Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        if (_abstractId == 0) {
+            var instance = numbering.Elements<NumberingInstance>()
+                .FirstOrDefault(n => n.NumberID.Value == _numberId);
+            if (instance?.AbstractNumId?.Val != null) {
+                _abstractId = (int)instance.AbstractNumId.Val.Value;
+            }
+        }
+        return numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
     }
 
     /// <summary>
