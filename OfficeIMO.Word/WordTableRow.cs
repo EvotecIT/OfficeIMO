@@ -54,10 +54,11 @@ namespace OfficeIMO.Word {
                     AddTableRowProperties();
                     var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight == null) {
-                        _tableRow.TableRowProperties.InsertAt(new TableRowHeight(), 0);
-                        tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                        tableRowHeight = new TableRowHeight();
+                        _tableRow.TableRowProperties.InsertAt(tableRowHeight, 0);
                     }
                     tableRowHeight.Val = (uint)value;
+                    tableRowHeight.HeightType = HeightRuleValues.Exact;
                 } else {
                     var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight != null) {
