@@ -467,5 +467,26 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(document.Paragraphs[6].VerticalTextAlignment, VerticalPositionValues.Superscript);
             }
         }
+
+        [Fact]
+        public void Test_RunCharacterStyle() {
+            string filePath = Path.Combine(_directoryWithFiles, "RunCharacterStyle.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Styled text");
+                paragraph.SetCharacterStyle(WordCharacterStyles.Heading1Char);
+                var run = paragraph.AddText(" link");
+                run.SetCharacterStyleId("Hyperlink");
+
+                Assert.Equal(WordCharacterStyles.Heading1Char, paragraph.CharacterStyle);
+                Assert.Equal("Hyperlink", run.CharacterStyleId);
+
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var para = document.Paragraphs[0];
+                Assert.Equal(WordCharacterStyles.Heading1Char, para.CharacterStyle);
+                document.Save();
+            }
+        }
     }
 }
