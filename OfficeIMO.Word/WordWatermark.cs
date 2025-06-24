@@ -501,7 +501,7 @@ namespace OfficeIMO.Word {
                 this._sdtBlock = GetStyle(style);
 
                 var fileName = System.IO.Path.GetFileName(textOrFilePath);
-                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
+                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
 
                 if (this._section.Paragraphs.Count == 0) {
                     this._document._document.Body.Append(_sdtBlock);
@@ -538,7 +538,7 @@ namespace OfficeIMO.Word {
                 this._sdtBlock = GetStyle(style);
 
                 var fileName = System.IO.Path.GetFileName(textOrFilePath);
-                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open);
+                using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
 
                 wordHeader._header.Append(_sdtBlock);
 
