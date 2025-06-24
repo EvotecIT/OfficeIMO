@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -224,5 +225,107 @@ public partial class WordList : WordElement {
         NumberingInstance numberingInstance = new NumberingInstance();
         numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
         numbering.Append(numberingInstance, abstractNum);
+    }
+
+    private WordList Clone(OpenXmlElement referenceParagraph, bool after) {
+        var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+        if (numberingPart == null) {
+            numberingPart = _document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+            numberingPart.Numbering = new Numbering();
+        }
+        var numbering = numberingPart.Numbering;
+
+        var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId.Value == _abstractId);
+        var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID.Value == _numberId);
+
+        int newAbstractId = GetNextAbstractNum(numbering);
+        int newNumberId = GetNextNumberingInstance(numbering);
+
+        var newAbstract = (AbstractNum)originalAbstract.CloneNode(true);
+        newAbstract.AbstractNumberId = newAbstractId;
+        numbering.Append(newAbstract);
+
+        var newInstance = (NumberingInstance)originalInstance.CloneNode(true);
+        newInstance.NumberID = newNumberId;
+        var absId = newInstance.GetFirstChild<AbstractNumId>();
+        if (absId != null) absId.Val = newAbstractId;
+        numbering.Append(newInstance);
+
+        WordList clonedList;
+        if (_headerFooter != null) {
+            clonedList = new WordList(_document, _headerFooter);
+        } else if (_wordParagraph != null) {
+            clonedList = new WordList(_document, _wordParagraph, _isToc);
+        } else {
+            clonedList = new WordList(_document, _isToc);
+        }
+
+        clonedList._abstractId = newAbstractId;
+        clonedList._numberId = newNumberId;
+
+        OpenXmlElement currentRef = referenceParagraph;
+        WordParagraph firstInserted = null;
+        foreach (var item in ListItems) {
+            var clonedParagraph = (Paragraph)item._paragraph.CloneNode(true);
+            var numberingProps = clonedParagraph.GetFirstChild<ParagraphProperties>()?.NumberingProperties;
+            if (numberingProps != null) {
+                numberingProps.NumberingId.Val = newNumberId;
+            }
+            currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
+            if (firstInserted == null) {
+                firstInserted = new WordParagraph(_document, (Paragraph)currentRef);
+            }
+        }
+
+        if (firstInserted != null) {
+            clonedList._wordParagraph = firstInserted;
+        }
+
+        return clonedList;
+    }
+
+    private static Level CreateBulletLevel(char symbol, string fontName, string colorHex, int? fontSize) {
+        var level = new Level();
+        level.Append(new StartNumberingValue() { Val = 1 });
+        level.Append(new NumberingFormat() { Val = NumberFormatValues.Bullet });
+        level.Append(new LevelText() { Val = symbol.ToString() });
+        level.Append(new LevelJustification() { Val = LevelJustificationValues.Left });
+
+        var prevProps = new PreviousParagraphProperties();
+        prevProps.Append(new Indentation() { Left = "720", Hanging = "360" });
+        level.Append(prevProps);
+
+        var symbolProps = new NumberingSymbolRunProperties();
+        if (!string.IsNullOrEmpty(fontName)) {
+            symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
+        }
+        if (!string.IsNullOrEmpty(colorHex)) {
+            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+        }
+        if (fontSize.HasValue) {
+            var size = (fontSize.Value * 2).ToString();
+            symbolProps.Append(new FontSize { Val = size });
+            symbolProps.Append(new FontSizeComplexScript { Val = size });
+        }
+        level.Append(symbolProps);
+        return level;
+    }
+
+    private static void EnsureW15Namespace(Numbering numbering) {
+        const string prefix = "w15";
+        const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
+        if (numbering.LookupNamespace(prefix) == null) {
+            numbering.AddNamespaceDeclaration(prefix, ns);
+        }
+        if (numbering.MCAttributes == null) {
+                numbering.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = prefix };
+        } else {
+            var ignorable = numbering.MCAttributes.Ignorable?.Value;
+            if (string.IsNullOrEmpty(ignorable)) {
+                numbering.MCAttributes.Ignorable = prefix;
+            } else if (!ignorable.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Contains(prefix)) {
+                numbering.MCAttributes.Ignorable = ignorable + " " + prefix;
+            }
+        }
     }
 }
