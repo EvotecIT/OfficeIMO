@@ -627,6 +627,16 @@ namespace OfficeIMO.Word {
                         //    newSectionProperties.Append(element.CloneNode(true));
                         //} else if (element is SectionType) {
                         //    newSectionProperties.Append(element.CloneNode(true));
+                    } else if (element is FootnoteProperties footnoteProps) {
+                        var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
+                        cloned.RemoveAllChildren<NumberingRestart>();
+                        newSectionProperties.Append(cloned);
+                        footnoteProps.RemoveAllChildren<NumberingRestart>();
+                    } else if (element is EndnoteProperties endnoteProps) {
+                        var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
+                        cloned.RemoveAllChildren<NumberingRestart>();
+                        newSectionProperties.Append(cloned);
+                        endnoteProps.RemoveAllChildren<NumberingRestart>();
                     } else if (element is TitlePage) {
                         newSectionProperties.Append(element.CloneNode(true));
                         sectionProperties.RemoveChild(element);
