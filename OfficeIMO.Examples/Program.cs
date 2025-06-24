@@ -43,8 +43,13 @@ namespace OfficeIMO.Examples {
 
             Paragraphs.Example_BasicParagraphs(folderPath, false);
             Paragraphs.Example_BasicParagraphStyles(folderPath, false);
+            Paragraphs.Example_RegisterCustomParagraphStyle(folderPath, false);
+            Paragraphs.Example_MultipleCustomParagraphStyles(folderPath, false);
+            Paragraphs.Example_OverrideBuiltInParagraphStyle(folderPath, false);
             Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
             Paragraphs.Example_BasicTabStops(folderPath, false);
+            Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
+            Paragraphs.Example_RunCharacterStylesAdvanced(folderPath, false);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
@@ -67,6 +72,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_CustomList1(folderPath, false);
             Lists.Example_BasicListsWithChangedStyling(folderPath, false);
             Lists.Example_CloneList(folderPath, false);
+            Lists.Example_ListStartNumber(folderPath, false);
 
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);

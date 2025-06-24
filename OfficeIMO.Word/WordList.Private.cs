@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using System.Linq;
 
 namespace OfficeIMO.Word;
 
@@ -272,8 +273,14 @@ public partial class WordList : WordElement {
                 numberingProps.NumberingId.Val = newNumberId;
             }
             currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
+            var run = ((Paragraph)currentRef).GetFirstChild<Run>() ?? new Run();
+            if (run.Parent == null) ((Paragraph)currentRef).AppendChild(run);
+            var wp = new WordParagraph(_document, (Paragraph)currentRef, run);
+            wp.Text = item.Text;
+            wp._list = clonedList;
+            clonedList._listItems.Add(wp);
             if (firstInserted == null) {
-                firstInserted = new WordParagraph(_document, (Paragraph)currentRef);
+                firstInserted = wp;
             }
         }
 
@@ -309,6 +316,46 @@ public partial class WordList : WordElement {
         }
         level.Append(symbolProps);
         return level;
+    }
+
+    /// <summary>
+    /// Replaces the underlying abstract numbering definition while keeping the current numbering instance.
+    /// </summary>
+    /// <param name="newAbstract">The new abstract numbering definition.</param>
+    private void ReplaceAbstractNum(AbstractNum newAbstract) {
+        var numberingPart = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!;
+        var numbering = numberingPart.Numbering;
+
+        var oldAbstract = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+        if (oldAbstract == null) {
+            return;
+        }
+
+        // preserve indentation from existing levels
+        var oldLevels = oldAbstract.Elements<Level>().ToList();
+        var newLevels = newAbstract.Elements<Level>().ToList();
+        for (int i = 0; i < Math.Min(oldLevels.Count, newLevels.Count); i++) {
+            var oldIndent = oldLevels[i].GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+            if (oldIndent != null) {
+                var prev = newLevels[i].GetFirstChild<PreviousParagraphProperties>();
+                if (prev == null) {
+                    prev = new PreviousParagraphProperties();
+                    newLevels[i].Append(prev);
+                }
+                var indent = prev.GetFirstChild<Indentation>();
+                if (indent == null) {
+                    prev.Append((Indentation)oldIndent.CloneNode(true));
+                } else {
+                    indent.Left = oldIndent.Left;
+                    indent.Hanging = oldIndent.Hanging;
+                }
+            }
+        }
+
+        newAbstract.AbstractNumberId = _abstractId;
+        numbering.InsertAfter(newAbstract, oldAbstract);
+        oldAbstract.Remove();
+        numbering.Save();
     }
 
     private static char GetBulletSymbol(WordListLevelKind kind) {

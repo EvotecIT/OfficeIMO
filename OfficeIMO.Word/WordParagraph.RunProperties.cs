@@ -493,5 +493,56 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        public WordCharacterStyles? CharacterStyle {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                if (runProperties != null && runProperties.RunStyle != null) {
+                    return WordCharacterStyle.GetStyle(runProperties.RunStyle.Val);
+                }
+                return null;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+
+                if (value == null) {
+                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
+                } else {
+                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
+                    runProperties.RunStyle.Val = WordCharacterStyle.ToStringStyle(value.Value);
+                }
+            }
+        }
+
+        public string CharacterStyleId {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
+                return runProperties?.RunStyle?.Val;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    VerifyRunProperties(this.Hyperlink._hyperlink, this.Hyperlink._run, this.Hyperlink._runProperties);
+                    runProperties = this.Hyperlink._runProperties;
+                } else {
+                    VerifyRunProperties();
+                    runProperties = _runProperties;
+                }
+
+                if (string.IsNullOrEmpty(value)) {
+                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
+                } else {
+                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
+                    runProperties.RunStyle.Val = value;
+                }
+            }
+        }
     }
 }

@@ -79,6 +79,16 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        public WordParagraph SetCharacterStyle(WordCharacterStyles style) {
+            CharacterStyle = style;
+            return this;
+        }
+
+        public WordParagraph SetCharacterStyleId(string styleId) {
+            CharacterStyleId = styleId;
+            return this;
+        }
+
         /// <summary>
         /// Set the vertical text alignment
         /// </summary>
