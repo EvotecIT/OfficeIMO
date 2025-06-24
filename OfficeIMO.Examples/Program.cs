@@ -69,6 +69,7 @@ namespace OfficeIMO.Examples {
             Lists.Example_CustomList1(folderPath, false);
             Lists.Example_BasicListsWithChangedStyling(folderPath, false);
             Lists.Example_CloneList(folderPath, false);
+            Lists.Example_ListStartNumber(folderPath, false);
 
             Tables.Example_BasicTables1(folderPath, false);
             Tables.Example_BasicTablesLoad1(folderPath, false);
