@@ -171,8 +171,12 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            if (levelIndex > 1 && this.Numbering.Levels.Count == 0) {
-                levelIndex = 1;
+            if (currentCount == 0 && levelIndex > 1) {
+                var placeholder = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
+                while (this.Numbering.Levels.Count < levelIndex - 1) {
+                    var clone = (Level)placeholder.CloneNode(true);
+                    this.Numbering.AddLevel(clone);
+                }
             }
 
             var newLevel = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
