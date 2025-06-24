@@ -398,6 +398,11 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
+    /// Gets the list style or <see cref="WordListStyle.Custom"/> when the list does not match a built-in style.
+    /// </summary>
+    public WordListStyle Style => WordListStyles.MatchStyle(GetAbstractNum());
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WordList"/> class.
     /// </summary>
     /// <param name="wordDocument">The Word document.</param>
