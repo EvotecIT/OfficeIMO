@@ -157,6 +157,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates whether the paragraph is part of a numbered or bulleted list.
+        /// </summary>
         public bool IsListItem {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -167,6 +170,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the indentation level of the list item when the paragraph is within a list.
+        /// </summary>
         public int? ListItemLevel {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
@@ -283,6 +289,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns a <see cref="WordTabChar"/> when the run contains a tab character; otherwise <c>null</c>.
+        /// </summary>
         public WordTabChar Tab {
             get {
                 if (_run != null) {
@@ -492,6 +501,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph contains a hyperlink.
+        /// </summary>
         public bool IsHyperLink {
             get {
                 if (this.Hyperlink != null) {
@@ -502,6 +514,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph hosts a field code.
+        /// </summary>
         public bool IsField {
             get {
                 if (this.Field != null && this.Field.Field != null) {
@@ -512,6 +527,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph includes a bookmark start tag.
+        /// </summary>
         public bool IsBookmark {
             get {
                 if (this.Bookmark != null && this.Bookmark.Name != null) {
@@ -522,6 +540,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates that the paragraph contains an equation.
+        /// </summary>
         public bool IsEquation {
             get {
                 if (this.Equation != null) {
@@ -532,6 +553,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates that the paragraph holds a structured document tag.
+        /// </summary>
         public bool IsStructuredDocumentTag {
             get {
                 if (this.StructuredDocumentTag != null) {
@@ -542,6 +566,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph contains a checkbox control.
+        /// </summary>
         public bool IsCheckBox {
             get {
                 if (this.CheckBox != null) {
@@ -552,6 +579,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when an image is found in the paragraph.
+        /// </summary>
         public bool IsImage {
             get {
                 if (this.Image != null) {
@@ -562,6 +592,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates that the paragraph has an embedded object.
+        /// </summary>
         public bool IsEmbeddedObject {
             get {
                 if (this.EmbeddedObject != null) {
@@ -572,6 +605,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates that the run within the paragraph contains a tab character.
+        /// </summary>
         public bool IsTab {
             get {
                 if (this.Tab != null) {
@@ -582,6 +618,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when a chart is associated with the paragraph.
+        /// </summary>
         public bool IsChart {
             get {
                 if (this.Chart != null) {
@@ -591,6 +630,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when an endnote reference is present in the paragraph.
+        /// </summary>
         public bool IsEndNote {
             get {
                 if (this.EndNote != null) {
@@ -600,6 +642,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when a footnote reference is present in the paragraph.
+        /// </summary>
         public bool IsFootNote {
             get {
                 if (this.FootNote != null) {
@@ -609,6 +654,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all tab stops defined on the paragraph.
+        /// </summary>
         public List<WordTabStop> TabStops {
             get {
                 List<WordTabStop> list = new List<WordTabStop>();
@@ -623,6 +671,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the <see cref="WordTextBox"/> contained within the paragraph, if any.
+        /// </summary>
         public WordTextBox TextBox {
             get {
                 if (_run != null && _runProperties != null) {
@@ -664,6 +715,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph contains a text box.
+        /// </summary>
         public bool IsTextBox {
             get {
                 if (this.TextBox != null) {
@@ -687,6 +741,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns <c>true</c> when the paragraph contains a VML line shape.
+        /// </summary>
         public bool IsLine {
             get {
                 if (this.Line != null) {
