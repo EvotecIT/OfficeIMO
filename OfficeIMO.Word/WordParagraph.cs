@@ -158,7 +158,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates whether the paragraph is part of a numbered or bulleted list.
+        /// Gets a value indicating whether this paragraph is part of a numbered or bulleted list.
         /// </summary>
         public bool IsListItem {
             get {
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the indentation level of the list item when the paragraph is within a list.
+        /// Gets or sets the indentation level for the paragraph when it belongs to a list.
         /// </summary>
         public int? ListItemLevel {
             get {
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns a <see cref="WordTabChar"/> when the run contains a tab character; otherwise <c>null</c>.
+        /// Gets the <see cref="WordTabChar"/> representing a tab character in the current run, or <c>null</c> if none is present.
         /// </summary>
         public WordTabChar Tab {
             get {
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph contains a hyperlink.
+        /// Gets a value indicating whether the paragraph contains a hyperlink.
         /// </summary>
         public bool IsHyperLink {
             get {
@@ -515,7 +515,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph hosts a field code.
+        /// Gets a value indicating whether the paragraph hosts a field code.
         /// </summary>
         public bool IsField {
             get {
@@ -528,7 +528,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph includes a bookmark start tag.
+        /// Gets a value indicating whether the paragraph includes a bookmark start tag.
         /// </summary>
         public bool IsBookmark {
             get {
@@ -541,7 +541,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates that the paragraph contains an equation.
+        /// Gets a value indicating whether the paragraph contains an equation.
         /// </summary>
         public bool IsEquation {
             get {
@@ -554,7 +554,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates that the paragraph holds a structured document tag.
+        /// Gets a value indicating whether the paragraph holds a structured document tag.
         /// </summary>
         public bool IsStructuredDocumentTag {
             get {
@@ -567,7 +567,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph contains a checkbox control.
+        /// Gets a value indicating whether the paragraph contains a checkbox control.
         /// </summary>
         public bool IsCheckBox {
             get {
@@ -580,7 +580,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when an image is found in the paragraph.
+        /// Gets a value indicating whether an image is found in the paragraph.
         /// </summary>
         public bool IsImage {
             get {
@@ -593,7 +593,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates that the paragraph has an embedded object.
+        /// Gets a value indicating whether the paragraph has an embedded object.
         /// </summary>
         public bool IsEmbeddedObject {
             get {
@@ -606,7 +606,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates that the run within the paragraph contains a tab character.
+        /// Gets a value indicating whether the run within the paragraph contains a tab character.
         /// </summary>
         public bool IsTab {
             get {
@@ -619,7 +619,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when a chart is associated with the paragraph.
+        /// Gets a value indicating whether a chart is associated with the paragraph.
         /// </summary>
         public bool IsChart {
             get {
@@ -631,7 +631,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when an endnote reference is present in the paragraph.
+        /// Gets a value indicating whether an endnote reference is present in the paragraph.
         /// </summary>
         public bool IsEndNote {
             get {
@@ -643,7 +643,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when a footnote reference is present in the paragraph.
+        /// Gets a value indicating whether a footnote reference is present in the paragraph.
         /// </summary>
         public bool IsFootNote {
             get {
@@ -716,7 +716,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph contains a text box.
+        /// Gets a value indicating whether the paragraph contains a text box.
         /// </summary>
         public bool IsTextBox {
             get {
@@ -729,7 +729,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Indicates whether the paragraph contains a VML shape.
+        /// Gets a value indicating whether the paragraph contains a VML shape.
         /// </summary>
         public bool IsShape {
             get {
@@ -742,7 +742,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns <c>true</c> when the paragraph contains a VML line shape.
+        /// Gets a value indicating whether the paragraph contains a VML line shape.
         /// </summary>
         public bool IsLine {
             get {
