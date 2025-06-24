@@ -113,6 +113,7 @@
 [WordParagraphStyle](./officeimo.word.wordparagraphstyle.md)
 
 [WordParagraphStyles](./officeimo.word.wordparagraphstyles.md)
+[Custom Paragraph Styles](./custom-paragraph-styles.md)
 
 [WordPieChart](./officeimo.word.wordpiechart.md)
 [WordPieChart3D](./officeimo.word.wordpiechart3d.md)
