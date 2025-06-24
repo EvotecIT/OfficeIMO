@@ -46,4 +46,14 @@ public partial class WordPageNumber {
     public IReadOnlyList<WordParagraph> Paragraphs {
         get { return _listParagraphs; }
     }
+
+    public WordField Field {
+        get { return _wordParagraph.Field; }
+    }
+
+    public int? Number {
+        get {
+            return int.TryParse(Field.Text, out int result) ? result : null;
+        }
+    }
 }
