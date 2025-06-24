@@ -91,6 +91,18 @@ namespace OfficeIMO.Word {
             return wordList;
         }
 
+        /// <summary>
+        /// Adds a custom bullet list with formatting options.
+        /// </summary>
+        /// <param name="symbol">Bullet symbol.</param>
+        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="colorHex">Hex color of the symbol.</param>
+        /// <param name="fontSize">Font size in points.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
+        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, int? fontSize = null) {
+            return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
+        }
+
         public WordList AddTableOfContentList(WordListStyle style) {
             WordList wordList = new WordList(this, true);
             wordList.AddList(style);

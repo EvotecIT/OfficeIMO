@@ -663,6 +663,49 @@ public partial class WordList : WordElement {
         documentList.Remove();
     }
 
+    /// <summary>
+    /// Adds a custom bullet list with a single level using provided formatting.
+    /// </summary>
+    /// <param name="document">Target document.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name for the symbol.</param>
+    /// <param name="colorHex">Hex color of the symbol.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The created <see cref="WordList"/>.</returns>
+    public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontName, string colorHex, int? fontSize = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+
+        var list = document.AddList(WordListStyle.Custom);
+
+        var level = new Level();
+        level.Append(new StartNumberingValue() { Val = 1 });
+        level.Append(new NumberingFormat() { Val = NumberFormatValues.Bullet });
+        level.Append(new LevelText() { Val = symbol.ToString() });
+        level.Append(new LevelJustification() { Val = LevelJustificationValues.Left });
+
+        var prevProps = new PreviousParagraphProperties();
+        prevProps.Append(new Indentation() { Left = "720", Hanging = "360" });
+        level.Append(prevProps);
+
+        var symbolProps = new NumberingSymbolRunProperties();
+        if (!string.IsNullOrEmpty(fontName)) {
+            symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
+        }
+        if (!string.IsNullOrEmpty(colorHex)) {
+            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+        }
+        if (fontSize.HasValue) {
+            var size = (fontSize.Value * 2).ToString();
+            symbolProps.Append(new FontSize { Val = size });
+            symbolProps.Append(new FontSizeComplexScript { Val = size });
+        }
+        level.Append(symbolProps);
+
+        list.Numbering.AddLevel(level);
+
+        return list;
+    }
+
     private static void EnsureW15Namespace(Numbering numbering) {
         const string prefix = "w15";
         const string ns = "http://schemas.microsoft.com/office/word/2012/wordml";
