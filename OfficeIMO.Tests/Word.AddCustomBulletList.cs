@@ -56,5 +56,24 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("24", props.GetFirstChild<FontSize>()?.Val);
             }
         }
+
+        [Fact]
+        public void Test_CustomListStartingAtThirdLevel() {
+            var filePath = Path.Combine(_directoryWithFiles, "CustomListStartAt3.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var list = document.AddCustomList()
+                    .AddListLevel(3, WordListLevelKind.BulletBlackCircle, "Arial");
+                list.AddItem("Level3", 2);
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var list = document.Lists[0];
+                Assert.Equal(3, list.Numbering.Levels.Count);
+                Assert.Equal("●", list.Numbering.Levels[0].LevelText);
+                Assert.Equal("●", list.Numbering.Levels[1].LevelText);
+                Assert.Equal("●", list.Numbering.Levels[2].LevelText);
+            }
+        }
     }
 }
