@@ -125,5 +125,29 @@ namespace OfficeIMO.Tests {
                 Assert.Single(cell.NestedTables);
             }
         }
+
+        [Fact]
+        public void Test_CloneTableWithNestedTablesPreservesStyle() {
+            string filePath = Path.Combine(_directoryWithFiles, "DeepCloneNested.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(2, 2, WordTableStyle.GridTable1LightAccent1);
+                WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.GridTable2Accent4);
+                nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested";
+
+                WordTable cloned = table.Clone();
+
+                Assert.Equal(2, document.Tables.Count);
+                Assert.Equal(table.NestedTables[0].Style, cloned.NestedTables[0].Style);
+                Assert.Equal("Nested", cloned.NestedTables[0].Rows[0].Cells[0].Paragraphs[0].Text);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Tables.Count);
+                Assert.Equal(document.Tables[0].NestedTables[0].Style, document.Tables[1].NestedTables[0].Style);
+                Assert.Equal("Nested", document.Tables[1].NestedTables[0].Rows[0].Cells[0].Paragraphs[0].Text);
+            }
+        }
     }
 }
