@@ -479,6 +479,9 @@ namespace OfficeIMO.Word {
         private void CreateExtendedFileProperties() {
             if (_wordprocessingDocument.ExtendedFilePropertiesPart == null) {
                 _wordprocessingDocument.AddExtendedFilePropertiesPart();
+            }
+
+            if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                 _wordprocessingDocument.ExtendedFilePropertiesPart.Properties = new Properties();
             }
         }
