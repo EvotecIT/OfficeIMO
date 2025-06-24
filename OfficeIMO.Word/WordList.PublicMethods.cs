@@ -200,5 +200,19 @@ namespace OfficeIMO.Word {
             string finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);
         }
+
+        /// <summary>
+        /// Converts this list to a numbered style while preserving existing list items.
+        /// </summary>
+        public void ConvertToNumbered() {
+            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Headings111));
+        }
+
+        /// <summary>
+        /// Converts this list to a bulleted style while preserving existing list items.
+        /// </summary>
+        public void ConvertToBulleted() {
+            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Bulleted));
+        }
     }
 }
