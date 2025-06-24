@@ -2,6 +2,9 @@
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to the built-in document properties stored in a Word processing document.
+    /// </summary>
     public class BuiltinDocumentProperties {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;

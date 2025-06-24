@@ -5,6 +5,9 @@ using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a structured document tag (content control) element.
+    /// </summary>
     public class WordStructuredDocumentTag : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;

@@ -635,7 +635,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
         /// <summary>
-        /// Collection of document variables accessible via <see cref="WordField.DocVariable"/> fields.
+        /// Collection of document variables accessible via <see cref="WordFieldType.DocVariable"/> fields.
         /// </summary>
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 

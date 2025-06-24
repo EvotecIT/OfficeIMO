@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Specifies the compatibility mode for a Word document.
+    /// </summary>
     public enum CompatibilityMode {
         None = 0,
         Word2003 = 11,
@@ -15,6 +18,9 @@ namespace OfficeIMO.Word {
         Word2013 = 15
     }
 
+    /// <summary>
+    /// Provides access to compatibility options for a Word document.
+    /// </summary>
     public class WordCompatibilitySettings {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;

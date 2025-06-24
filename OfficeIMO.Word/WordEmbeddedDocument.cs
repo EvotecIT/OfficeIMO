@@ -5,15 +5,25 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an embedded document such as RTF or HTML content inserted into a Word document.
+    /// </summary>
     public class WordEmbeddedDocument : WordElement {
         private string _id;
         private AltChunk _altChunk;
         private readonly AlternativeFormatImportPart _altContent;
         private readonly WordDocument _document;
 
+        /// <summary>
+        /// Gets the content type of the embedded document.
+        /// </summary>
         public string ContentType => _altContent.ContentType;
 
 
+        /// <summary>
+        /// Saves the embedded document to the specified <paramref name="fileName"/>.
+        /// </summary>
+        /// <param name="fileName">Path of the file to create.</param>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
                 var altStream = _altContent.GetStream();
@@ -22,6 +32,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Removes the embedded document from the parent Word document.
+        /// </summary>
         public void Remove() {
             _altChunk.Remove();
 

@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to list numbering definitions within a Word document.
+    /// </summary>
     public class WordListNumbering {
 
         public List<WordListLevel> Levels {

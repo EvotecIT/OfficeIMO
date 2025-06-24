@@ -3,6 +3,9 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Common numbering formats used for lists.
+    /// </summary>
     public enum SimplifiedListNumbers {
         None,
         BulletSolidRound,
@@ -33,6 +36,9 @@ namespace OfficeIMO.Word {
         UpperRomanBracket,
         UpperRomanDot
     }
+    /// <summary>
+    /// Represents numbering properties for a single list level.
+    /// </summary>
     public class WordListLevel {
         public WordListLevel(Level level) {
             _level = level;

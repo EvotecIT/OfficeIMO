@@ -10,6 +10,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to various document-level settings.
+    /// </summary>
     public class WordSettings {
         private WordDocument _document;
 

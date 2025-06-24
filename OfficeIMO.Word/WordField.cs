@@ -86,6 +86,9 @@ namespace OfficeIMO.Word {
         XE
     }
 
+    /// <summary>
+    /// Common field format switches that can be applied to Word fields.
+    /// </summary>
     public enum WordFieldFormat {
         Lower,
         Upper,

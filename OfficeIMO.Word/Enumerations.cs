@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Defines the data type of a custom document property.
+    /// </summary>
     public enum PropertyTypes : int {
         Undefined,
         YesNo,
@@ -11,6 +14,9 @@ namespace OfficeIMO.Word {
         NumberInteger,
         NumberDouble
     }
+    /// <summary>
+    /// Specifies capitalization styles available for text.
+    /// </summary>
     public enum CapsStyle {
         /// <summary>
         /// No caps, characters as written.

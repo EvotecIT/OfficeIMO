@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the footer sections of a Word document.
+    /// </summary>
     public class WordFooters {
         public WordFooter Default {
             get;

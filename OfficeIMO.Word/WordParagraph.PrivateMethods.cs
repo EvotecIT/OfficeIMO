@@ -5,6 +5,9 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Contains private helper methods for <see cref="WordParagraph"/>.
+    /// </summary>
     public partial class WordParagraph {
         /// <summary>
         /// Checks where the paragraph is located. If it is located in the header, footer or main document.

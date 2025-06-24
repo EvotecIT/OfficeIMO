@@ -1,6 +1,9 @@
 using System;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Options controlling how an embedded object is inserted into a document.
+    /// </summary>
     public class WordEmbeddedObjectOptions {
         public bool DisplayAsIcon { get; set; } = true;
         public string IconPath { get; set; }

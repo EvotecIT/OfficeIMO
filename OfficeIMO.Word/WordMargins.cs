@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Standard margin presets.
+    /// </summary>
     public enum WordMargin {
         Normal,
         Mirrored,
@@ -13,6 +16,9 @@ namespace OfficeIMO.Word {
         Unknown
     }
 
+    /// <summary>
+    /// Allows modification of page margins for a Word document section.
+    /// </summary>
     public class WordMargins {
         private readonly WordDocument _document;
         private readonly WordSection _section;

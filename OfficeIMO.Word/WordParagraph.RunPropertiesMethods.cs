@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Convenience extension methods for modifying run properties on <see cref="WordParagraph"/>.
+    /// </summary>
     public partial class WordParagraph {
         public WordParagraph SetBold(bool isBold = true) {
             this.Bold = isBold;

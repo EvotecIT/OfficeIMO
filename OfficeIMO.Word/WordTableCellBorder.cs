@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides border manipulation for an individual table cell.
+    /// </summary>
     public class WordTableCellBorder {
         private readonly WordTableCell _wordTableCell;
         private readonly WordTableRow _wordTableRow;

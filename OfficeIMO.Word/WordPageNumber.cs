@@ -15,6 +15,9 @@ using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Available numbering styles for page numbers.
+    /// </summary>
     public enum WordPageNumberStyle {
         PlainNumber,
         AccentBar,
@@ -54,6 +57,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         VerticalOutline2
     }
+    /// <summary>
+    /// Provides access to page numbering settings for a Word document.
+    /// </summary>
     public class WordPageNumber {
         private WordDocument _document;
         private SdtBlock _sdtBlock;

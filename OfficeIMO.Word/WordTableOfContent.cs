@@ -1,11 +1,17 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Preset styles that can be applied when generating a table of contents.
+    /// </summary>
     public enum TableOfContentStyle {
         Template1,
         Template2
     }
 
+    /// <summary>
+    /// Represents a table of contents element within a Word document.
+    /// </summary>
     public class WordTableOfContent : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;

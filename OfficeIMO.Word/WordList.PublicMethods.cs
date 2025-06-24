@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides public operations for modifying Word lists.
+    /// </summary>
     public partial class WordList {
         public WordParagraph AddItem(WordParagraph wordParagraph, int level = 0) {
             return AddItem(null, level, wordParagraph);

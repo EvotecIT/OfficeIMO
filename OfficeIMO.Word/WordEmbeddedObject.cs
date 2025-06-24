@@ -10,6 +10,9 @@ using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an embedded object stored within a Word document, such as an Excel spreadsheet or image.
+    /// </summary>
     public class WordEmbeddedObject {
         private readonly WordDocument _document;
         private readonly Run _run;

@@ -54,6 +54,9 @@ namespace OfficeIMO.Word {
         B5
     }
 
+    /// <summary>
+    /// Provides helper methods for working with page sizes of a <see cref="WordDocument"/> section.
+    /// </summary>
     public class WordPageSizes {
         private readonly WordSection _section;
         private readonly WordDocument _document;

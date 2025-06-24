@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides access to run-level properties such as bold or italic for <see cref="WordParagraph"/>.
+    /// </summary>
     public partial class WordParagraph {
 
         public bool Bold {

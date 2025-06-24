@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Provides internal helper methods for list manipulation.
+/// </summary>
 public partial class WordList : WordElement {
     /// <summary>
     /// Retrieves the <see cref="AbstractNum"/> associated with this list.

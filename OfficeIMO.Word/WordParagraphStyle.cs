@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Predefined paragraph styles supported by Word.
+    /// </summary>
     public enum WordParagraphStyles {
         Normal,
         Heading1,

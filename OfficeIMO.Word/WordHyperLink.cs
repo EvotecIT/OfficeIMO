@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Specifies where a hyperlink target should be opened.
+    /// </summary>
     public enum TargetFrame {
         /// <summary>
         /// opens in the current window
@@ -25,6 +28,9 @@ namespace OfficeIMO.Word {
         _blank
     }
 
+    /// <summary>
+    /// Represents a hyperlink element within a Word document.
+    /// </summary>
     public class WordHyperLink : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;

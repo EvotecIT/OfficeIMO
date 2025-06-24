@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Represents an equation contained in a Word document.
+    /// </summary>
     public class WordEquation : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
