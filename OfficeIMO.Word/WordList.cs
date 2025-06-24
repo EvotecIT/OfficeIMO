@@ -707,6 +707,21 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
+    /// Adds a custom bullet list with a single level using provided formatting.
+    /// </summary>
+    /// <param name="document">Target document.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name for the symbol.</param>
+    /// <param name="color">Color of the symbol.</param>
+    /// <param name="colorHex">Hex color fallback.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The created <see cref="WordList"/>.</returns>
+    public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        string finalColor = color?.ToHexColor() ?? colorHex;
+        return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
+    }
+
+    /// <summary>
     /// Adds a custom list with no predefined levels so that levels can be configured manually.
     /// </summary>
     /// <param name="document">Target document.</param>
@@ -748,6 +763,21 @@ public partial class WordList : WordElement {
         var newLevel = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
         this.Numbering.AddLevel(newLevel);
         return this;
+    }
+
+    /// <summary>
+    /// Adds a list level using the provided formatting.
+    /// </summary>
+    /// <param name="levelIndex">1-based level index.</param>
+    /// <param name="symbol">Bullet symbol.</param>
+    /// <param name="fontName">Font name.</param>
+    /// <param name="color">Color for bullet.</param>
+    /// <param name="colorHex">Hex color fallback.</param>
+    /// <param name="fontSize">Font size in points.</param>
+    /// <returns>The <see cref="WordList"/> for chaining.</returns>
+    public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        string finalColor = color?.ToHexColor() ?? colorHex;
+        return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
     }
 
     private static Level CreateBulletLevel(char symbol, string fontName, string colorHex, int? fontSize) {

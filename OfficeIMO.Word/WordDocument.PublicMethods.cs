@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -101,6 +102,19 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
+        }
+
+        /// <summary>
+        /// Adds a custom bullet list with formatting options.
+        /// </summary>
+        /// <param name="symbol">Bullet symbol.</param>
+        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="color">Bullet color.</param>
+        /// <param name="colorHex">Hex color fallback.</param>
+        /// <param name="fontSize">Font size in points.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+            return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
         /// <summary>
