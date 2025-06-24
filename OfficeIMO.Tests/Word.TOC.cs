@@ -197,5 +197,23 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_TocListLevelClamping() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocLevelClamp.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var tocList = document.AddTableOfContentList(WordListStyle.Headings111);
+                tocList.AddItem("First", -2);
+                tocList.AddItem("Last", 10);
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var list = document.Lists[0];
+                Assert.Equal(2, list.ListItems.Count);
+                Assert.Equal(WordParagraphStyles.Heading1, list.ListItems[0].Style);
+                Assert.Equal(WordParagraphStyles.Heading9, list.ListItems[1].Style);
+            }
+        }
+
     }
 }

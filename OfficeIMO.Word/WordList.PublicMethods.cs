@@ -16,11 +16,17 @@ namespace OfficeIMO.Word {
             run.Append(new RunProperties());
             run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
 
+            var levelIndex = level;
+            if (_isToc || IsToc) {
+                if (levelIndex < 0) levelIndex = 0;
+                else if (levelIndex > 8) levelIndex = 8;
+            }
+
             var paragraphProperties = new ParagraphProperties();
             paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
             paragraphProperties.Append(
                 new NumberingProperties(
-                    new NumberingLevelReference { Val = level },
+                    new NumberingLevelReference { Val = levelIndex },
                     new NumberingId { Val = _numberId }
                 ));
             paragraph.Append(paragraphProperties);
@@ -56,7 +62,7 @@ namespace OfficeIMO.Word {
             }
 
             if (_isToc || IsToc) {
-                newParagraph.Style = WordParagraphStyle.GetStyle(level);
+                newParagraph.Style = WordParagraphStyle.GetStyle(levelIndex);
             }
 
             return newParagraph;
