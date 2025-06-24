@@ -430,6 +430,9 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     builder.AddItem("First");
     builder.AddItem("Fifth", 4);
 
+    // Note: use AddCustomList() rather than AddList(WordListStyle.Custom)
+    // when you want to build lists with your own levels.
+
     var listNumbered = document.AddList(WordListStyle.Heading1ai);
     listNumbered.AddItem("Different list number 1");
     listNumbered.AddItem("Different list number 2", 1);
