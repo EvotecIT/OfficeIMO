@@ -22,12 +22,16 @@ using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
-        private static void AddTableStyles(Styles styles) {
-            // TODO: load all styles to document, probably we should load those in use
+        private static void AddTableStyles(Styles styles, bool overrideExisting) {
             var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
             foreach (var style in listOfTableStyles) {
-                if (WordTableStyles.IsAvailableStyle(styles, style) == false) {
-                    styles.Append(WordTableStyles.GetStyleDefinition(style));
+                var definition = WordTableStyles.GetStyleDefinition(style);
+                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == definition.StyleId);
+                if (existing == null) {
+                    styles.Append((Style)definition.CloneNode(true));
+                } else if (overrideExisting) {
+                    existing.Remove();
+                    styles.Append((Style)definition.CloneNode(true));
                 }
             }
         }
@@ -36,15 +40,24 @@ namespace OfficeIMO.Word {
         /// This method is supposed to bring missing elements such as table styles to loaded document
         /// </summary>
         /// <param name="styleDefinitionsPart"></param>
-        private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
+        private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
             var styles = styleDefinitionsPart.Styles;
-            // this forces all tables styles, should be rewritten
-            AddTableStyles(styles);
-            // this tries to actually find missing styles
-            FindMissingStyleDefinitions(styleDefinitionsPart);
+            AddTableStyles(styles, overrideExisting);
+
+            foreach (var style in WordParagraphStyle.CustomStyles) {
+                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == style.StyleId);
+                if (existing == null) {
+                    styles.Append((Style)style.CloneNode(true));
+                } else if (overrideExisting) {
+                    existing.Remove();
+                    styles.Append((Style)style.CloneNode(true));
+                }
+            }
+
+            FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
         }
 
-        internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart) {
+        internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
             var footNoteText = false;
             var noList = false;
             var footNoteTextChar = false;
@@ -62,59 +75,70 @@ namespace OfficeIMO.Word {
                 foreach (var styleDefinition in styles) {
                     if (styleDefinition.StyleId == "FootnoteText") {
                         footNoteText = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "FootnoteTextChar") {
                         footNoteTextChar = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "FootnoteReference") {
                         footnoteReference = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "EndnoteText") {
                         endnoteText = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "EndnoteTextChar") {
                         endNoteTextChar = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "EndnoteReference") {
                         endNoteReference = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "NoList") {
                         noList = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "FooterChar") {
                         footerChar = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "Footer") {
                         footer = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "HeaderChar") {
                         headerChar = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     } else if (styleDefinition.StyleId == "Header") {
                         header = true;
+                        if (overrideExisting) styleDefinition.Remove();
                     }
                 }
-                if (!footNoteText) {
+                if (!footNoteText || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleFootnoteText());
                 }
-                if (!noList) {
+                if (!noList || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleNoList());
                 }
-                if (!footNoteTextChar) {
+                if (!footNoteTextChar || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteTextChar());
                 }
-                if (!footnoteReference) {
+                if (!footnoteReference || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleFootNoteReference());
                 }
-                if (!endNoteTextChar) {
+                if (!endNoteTextChar || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteTextChar());
                 }
-                if (!endnoteText) {
+                if (!endnoteText || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteText());
                 }
-                if (!endNoteReference) {
+                if (!endNoteReference || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleEndNoteReference());
                 }
-                if (!footer) {
+                if (!footer || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleFooter());
                 }
-                if (!footerChar) {
+                if (!footerChar || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleFooterChar());
                 }
-                if (!header) {
+                if (!header || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleHeader());
                 }
-                if (!headerChar) {
+                if (!headerChar || overrideExisting) {
                     styleDefinitionsPart.Styles.Append(GenerateStyleHeaderChar());
                 }
             }
@@ -140,7 +164,7 @@ namespace OfficeIMO.Word {
             styles1.Append(docDefaults1);
             styles1.Append(latentStyles1);
 
-            AddTableStyles(styles1);
+            AddTableStyles(styles1, false);
 
             // TODO: load all styles to document, probably we should load those in use
             var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
