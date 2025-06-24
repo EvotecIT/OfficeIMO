@@ -8,12 +8,21 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a single cell within a <see cref="WordTable"/>.
+    /// </summary>
     public class WordTableCell {
+        /// <summary>
+        /// Provides access to the border configuration of the cell.
+        /// </summary>
         public WordTableCellBorder Borders;
 
         internal TableCell _tableCell;
         internal TableCellProperties _tableCellProperties;
 
+        /// <summary>
+        /// Gets all <see cref="WordParagraph"/> instances contained in the cell.
+        /// </summary>
         public List<WordParagraph> Paragraphs => WordSection.ConvertParagraphsToWordParagraphs(_document, _tableCell.ChildElements.OfType<Paragraph>());
         private readonly WordTable _wordTable;
         private readonly WordTableRow _wordTableRow;
