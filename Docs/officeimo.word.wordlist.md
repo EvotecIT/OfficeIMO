@@ -128,6 +128,9 @@ public WordParagraph AddItem(string text, int level)
 
 `level` [Int32](https://docs.microsoft.com/en-us/dotnet/api/system.int32)<br>
 
+When the list is used as a table of contents, values outside the range 0-8 are
+automatically clamped to that range.
+
 #### Returns
 
 [WordParagraph](./officeimo.word.wordparagraph.md)<br>
