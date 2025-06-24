@@ -121,6 +121,10 @@ namespace OfficeIMO.Word {
             return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+            return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
+        }
+
         /// <summary>
         /// Creates a custom list with no predefined levels for manual configuration.
         /// </summary>

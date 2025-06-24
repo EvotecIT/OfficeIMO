@@ -420,13 +420,13 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.AddParagraph();
 
     // create a custom bullet list
-    var custom = document.AddCustomBulletList(WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
+    var custom = document.AddCustomBulletList(WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
     custom.AddItem("Custom bullet item");
 
     // create a multi-level custom list
     var builder = document.AddCustomList()
-        .AddListLevel(1, WordBulletSymbol.Square, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
-        .AddListLevel(5, WordBulletSymbol.BlackCircle, "Arial", colorHex: "#00ff00", fontSize: 10);
+        .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 14)
+        .AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00ff00", fontSize: 10);
     builder.AddItem("First");
     builder.AddItem("Fifth", 4);
 

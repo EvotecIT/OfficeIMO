@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 numbered.AddItem("Numbered");
 
                 var custom = document.AddCustomList();
-                custom.AddListLevel(1, WordBulletSymbol.Square, "Courier New", colorHex: "#FF0000");
+                custom.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000");
                 custom.AddItem("Custom");
 
                 document.Save();

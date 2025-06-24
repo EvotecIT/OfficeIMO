@@ -3,8 +3,13 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public enum SimplifiedListNumbers {
+    public enum WordListLevelKind {
         None,
+        Bullet,
+        BulletSquareSymbol,
+        BulletBlackCircle,
+        BulletDiamondSymbol,
+        BulletArrowSymbol,
         BulletSolidRound,
         BulletOpenCircle,
         BulletSquare,
@@ -128,9 +133,74 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="simplifiedListNumbers"></param>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public WordListLevel(SimplifiedListNumbers simplifiedListNumbers) {
+        public WordListLevel(WordListLevelKind simplifiedListNumbers) {
             switch (simplifiedListNumbers) {
-                case SimplifiedListNumbers.BulletSolidRound:
+                case WordListLevelKind.Bullet:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        TemplateCode = "",
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                        LevelText = new LevelText() { Val = "\u2022" },
+                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
+                        PreviousParagraphProperties = new PreviousParagraphProperties() {
+                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
+                        }
+                    };
+                    break;
+                case WordListLevelKind.BulletSquareSymbol:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        TemplateCode = "",
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                        LevelText = new LevelText() { Val = "\u25A0" },
+                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
+                        PreviousParagraphProperties = new PreviousParagraphProperties() {
+                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
+                        }
+                    };
+                    break;
+                case WordListLevelKind.BulletBlackCircle:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        TemplateCode = "",
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                        LevelText = new LevelText() { Val = "\u25CF" },
+                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
+                        PreviousParagraphProperties = new PreviousParagraphProperties() {
+                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
+                        }
+                    };
+                    break;
+                case WordListLevelKind.BulletDiamondSymbol:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        TemplateCode = "",
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                        LevelText = new LevelText() { Val = "\u25C6" },
+                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
+                        PreviousParagraphProperties = new PreviousParagraphProperties() {
+                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
+                        }
+                    };
+                    break;
+                case WordListLevelKind.BulletArrowSymbol:
+                    _level = new Level() {
+                        LevelIndex = 0,
+                        TemplateCode = "",
+                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
+                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
+                        LevelText = new LevelText() { Val = "\u25BA" },
+                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
+                        PreviousParagraphProperties = new PreviousParagraphProperties() {
+                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
+                        }
+                    };
+                    break;
+                case WordListLevelKind.BulletSolidRound:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -146,7 +216,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletOpenCircle:
+                case WordListLevelKind.BulletOpenCircle:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -162,7 +232,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletSquare2:
+                case WordListLevelKind.BulletSquare2:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -175,7 +245,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletSquare:
+                case WordListLevelKind.BulletSquare:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -191,7 +261,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletClubs:
+                case WordListLevelKind.BulletClubs:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -207,7 +277,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletArrow:
+                case WordListLevelKind.BulletArrow:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -223,7 +293,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletDiamond:
+                case WordListLevelKind.BulletDiamond:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -239,7 +309,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.BulletCheckmark:
+                case WordListLevelKind.BulletCheckmark:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -255,7 +325,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.Decimal:
+                case WordListLevelKind.Decimal:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -268,7 +338,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.DecimalBracket:
+                case WordListLevelKind.DecimalBracket:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -281,7 +351,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.DecimalDot:
+                case WordListLevelKind.DecimalDot:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -294,7 +364,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.LowerLetter:
+                case WordListLevelKind.LowerLetter:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -307,7 +377,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.LowerLetterBracket:
+                case WordListLevelKind.LowerLetterBracket:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -320,7 +390,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.LowerLetterDot:
+                case WordListLevelKind.LowerLetterDot:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -333,7 +403,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperLetter:
+                case WordListLevelKind.UpperLetter:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -346,7 +416,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperLetterBracket:
+                case WordListLevelKind.UpperLetterBracket:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -359,7 +429,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperLetterDot:
+                case WordListLevelKind.UpperLetterDot:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -372,7 +442,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.LowerRoman:
+                case WordListLevelKind.LowerRoman:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -385,7 +455,7 @@ namespace OfficeIMO.Word {
                         },
                     };
                     break;
-                case SimplifiedListNumbers.LowerRomanBracket:
+                case WordListLevelKind.LowerRomanBracket:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -398,7 +468,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.LowerRomanDot:
+                case WordListLevelKind.LowerRomanDot:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -411,7 +481,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperRoman:
+                case WordListLevelKind.UpperRoman:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -424,7 +494,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperRomanBracket:
+                case WordListLevelKind.UpperRomanBracket:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -437,7 +507,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.UpperRomanDot:
+                case WordListLevelKind.UpperRomanDot:
                     _level = new Level() {
                         LevelIndex = 0,
                         TemplateCode = "",
@@ -450,7 +520,7 @@ namespace OfficeIMO.Word {
                         }
                     };
                     break;
-                case SimplifiedListNumbers.None:
+                case WordListLevelKind.None:
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(simplifiedListNumbers), simplifiedListNumbers, null);
