@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
         }
 
         using (var merged = WordDocument.Load(filePath1)) {
-            Assert.Equal(1, merged.Lists.Count);
+            Assert.Single(merged.Lists);
             Assert.Contains(merged.Paragraphs, p => p.Text == "Just text");
         }
     }

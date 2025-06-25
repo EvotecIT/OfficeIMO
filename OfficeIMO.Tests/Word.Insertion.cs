@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Tables.Count);
+                Assert.Single(document.Tables);
                 Assert.Equal("Test", document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
 
                 var body = document._document.Body;
