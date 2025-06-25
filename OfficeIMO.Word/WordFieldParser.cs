@@ -6,23 +6,38 @@ using System.Collections.Generic;
 [assembly: InternalsVisibleTo("OfficeIMo.Tests")]
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Parses Word field codes and exposes their individual parts.
+    /// </summary>
     internal class WordFieldParser {
         private WordFieldType _wordFieldType;
+        /// <summary>
+        /// Gets the type of field represented by the parsed code.
+        /// </summary>
         public WordFieldType WordFieldType {
             get { return _wordFieldType; }
         }
 
         private readonly List<WordFieldFormat> _formatSwitches = new();
+        /// <summary>
+        /// Gets the collection of format switches found in the field code.
+        /// </summary>
         public List<WordFieldFormat> FormatSwitches {
             get { return _formatSwitches; }
         }
 
         private readonly List<String> _switches = new();
+        /// <summary>
+        /// Gets the list of general switches present in the field code.
+        /// </summary>
         public List<String> Switches {
             get { return _switches; }
         }
 
         private readonly List<String> _instructions = new();
+        /// <summary>
+        /// Gets the positional instructions extracted from the field code.
+        /// </summary>
         public List<String> Instructions {
             get { return _instructions; }
         }
