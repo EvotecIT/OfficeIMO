@@ -4,20 +4,62 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Built-in cover page templates available for Word documents.
     /// </summary>
-    public enum CoverPageTemplate {
+public enum CoverPageTemplate {
+        /// <summary>
+        /// The "Austin" built-in template.
+        /// </summary>
         Austin,
+        /// <summary>
+        /// The "Banded" built-in template.
+        /// </summary>
         Banded,
+        /// <summary>
+        /// The "Facet" built-in template.
+        /// </summary>
         Facet,
+        /// <summary>
+        /// The "Grid" built-in template.
+        /// </summary>
         Grid,
+        /// <summary>
+        /// The "Ion (Dark)" built-in template.
+        /// </summary>
         IonDark,
+        /// <summary>
+        /// The "Ion (Light)" built-in template.
+        /// </summary>
         IonLight,
+        /// <summary>
+        /// The "Element" built-in template.
+        /// </summary>
         Element,
+        /// <summary>
+        /// The "Wisp" built-in template.
+        /// </summary>
         Wisp,
+        /// <summary>
+        /// The "View Master" built-in template.
+        /// </summary>
         ViewMaster,
+        /// <summary>
+        /// The "Slice (Light)" built-in template.
+        /// </summary>
         SliceLight,
+        /// <summary>
+        /// The "Slice (Dark)" built-in template.
+        /// </summary>
         SliceDark,
+        /// <summary>
+        /// The "Sideline" built-in template.
+        /// </summary>
         SideLine,
+        /// <summary>
+        /// The "Semaphore" built-in template.
+        /// </summary>
         Semaphore,
+        /// <summary>
+        /// The "Retrospect" built-in template.
+        /// </summary>
         Retrospect
     }
 
