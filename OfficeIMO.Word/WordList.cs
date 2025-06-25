@@ -6,6 +6,10 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Represents a collection of paragraphs formatted as a list and
+/// exposes methods to manipulate the list's numbering and style.
+/// </summary>
 public partial class WordList : WordElement {
     private readonly WordprocessingDocument _wordprocessingDocument;
     private readonly WordDocument _document;
