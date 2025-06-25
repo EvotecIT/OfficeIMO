@@ -6,6 +6,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the shared functionality for headers and footers and
+    /// provides methods to manipulate their content.
+    /// </summary>
     public partial class WordHeaderFooter {
         /// <summary>
         /// Adds a new paragraph with the specified text to the header or footer.
