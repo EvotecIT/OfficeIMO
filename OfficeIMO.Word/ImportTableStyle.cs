@@ -7,9 +7,18 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides helper methods for copying table styles between Word documents.
+    /// </summary>
     internal class ImportTableStyle {
         private static XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
+        /// <summary>
+        /// Copies table styles from the <paramref name="sourcefilepath"/> document to the
+        /// <paramref name="destinationfilepath"/> document.
+        /// </summary>
+        /// <param name="sourcefilepath">Path to the source document containing styles to copy.</param>
+        /// <param name="destinationfilepath">Path to the destination document that receives the styles.</param>
         internal static void ImportTableStyles(string sourcefilepath, string destinationfilepath) {
             using (var repeaterSourceDocument = WordprocessingDocument.Open(sourcefilepath, true)) {
                 XDocument source_style_doc;
