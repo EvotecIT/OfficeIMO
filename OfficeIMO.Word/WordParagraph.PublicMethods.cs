@@ -543,7 +543,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
-        /// Use <see cref="WordChart.AddBar"/> and <see cref="WordChart.AddLine"/>
+        /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
+        /// and then <see cref="WordChart.AddBar"/> / <see cref="WordChart.AddLine"/>
         /// to add data.
         /// </summary>
         public WordChart AddComboChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {

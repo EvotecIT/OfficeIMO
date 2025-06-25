@@ -384,7 +384,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var categories = new List<string> { "A", "B", "C" };
                 var chart = document.AddComboChart();
-                chart.AddCategories(categories);
+                chart.AddChartAxisX(categories);
                 chart.AddBar("Sales", new List<int> { 1, 2, 3 }, Color.Blue);
                 chart.AddLine("Trend", new List<int> { 3, 2, 1 }, Color.Red);
                 document.Save(false);

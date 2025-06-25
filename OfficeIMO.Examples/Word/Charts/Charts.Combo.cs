@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using WordDocument document = WordDocument.Create(filePath);
             List<string> categories = new() { "Food", "Housing", "Mix", "Data" };
             var comboChart = document.AddComboChart("Combo chart");
-            comboChart.AddCategories(categories);
+            comboChart.AddChartAxisX(categories);
             comboChart.AddBar("Sales", new List<int> { 10, 35, 18, 23 }, Color.Brown);
             comboChart.AddLine("Trend", new List<int> { 12, 30, 20, 25 }, Color.AliceBlue);
             comboChart.AddLegend(LegendPositionValues.Top);
