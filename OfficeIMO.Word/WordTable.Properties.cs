@@ -4,6 +4,10 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a table in a Word document and exposes various
+    /// properties controlling its appearance and behavior.
+    /// </summary>
     public partial class WordTable {
         /// <summary>
         /// Gets or sets a Title/Caption to a Table
