@@ -1067,6 +1067,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath"></param>
         /// <param name="readOnly"></param>
         /// <param name="autoSave"></param>
+        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions.</param>
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
@@ -1110,6 +1111,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to the file.</param>
         /// <param name="readOnly">Open the document in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
@@ -1150,6 +1152,7 @@ namespace OfficeIMO.Word {
         /// <param name="stream"></param>
         /// <param name="readOnly"></param>
         /// <param name="autoSave"></param>
+        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             var document = new WordDocument();
