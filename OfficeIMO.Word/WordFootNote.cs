@@ -15,6 +15,9 @@ namespace OfficeIMO.Word {
         private readonly Paragraph _paragraph;
         private readonly Run _run;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordFootNote"/> class.
+        /// </summary>
         public WordFootNote(WordDocument document, Paragraph paragraph, Run run) {
             this._document = document;
             this._paragraph = paragraph;
