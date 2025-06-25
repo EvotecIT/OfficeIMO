@@ -265,6 +265,19 @@ using (var loaded = WordDocument.Load(stream)) {
 }
 ```
 
+### Saving as a new document
+
+`SaveAs` clones the current document to a new path and returns a new `WordDocument` instance without changing the original `FilePath`.
+
+```csharp
+using (WordDocument document = WordDocument.Create()) {
+    document.AddParagraph("Some text");
+    using var copy = document.SaveAs(filePath);
+    // document.FilePath is still null
+    // copy.FilePath equals filePath
+}
+```
+
 ### Basic Document with Headers/Footers (first, odd, even)
 
 This short example shows how to add headers and footers to Word Document.

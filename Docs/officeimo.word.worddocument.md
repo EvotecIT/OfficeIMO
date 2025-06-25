@@ -139,3 +139,24 @@ public void UpdateFields()
 ```
 
 Use this when you want fields refreshed before opening the file. Alternatively set `Settings.UpdateFieldsOnOpen` to rely on Word to update them.
+
+### **SaveAs(String, Nullable<Boolean>)**
+
+Creates a new file from the current document without changing the original `FilePath`.
+
+```csharp
+public WordDocument SaveAs(string filePath, bool openWord = false)
+```
+
+#### Parameters
+
+`filePath` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+Path to save the cloned document.
+
+`openWord` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
+Open the document in Microsoft Word after saving.
+
+#### Returns
+
+[WordDocument](./officeimo.word.worddocument.md)<br>
+Newly loaded instance representing the saved file.
