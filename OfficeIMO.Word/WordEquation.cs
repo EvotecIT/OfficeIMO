@@ -6,6 +6,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Encapsulates a mathematical equation contained in a paragraph.
+    /// Provides access to the underlying Open XML elements so the
+    /// equation can be removed from the document when required.
+    /// </summary>
     public class WordEquation : WordElement {
         private WordDocument _document;
         private Paragraph _paragraph;
