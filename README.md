@@ -1,6 +1,6 @@
 # OfficeIMO - Microsoft Word .NET Library
 
-OfficeIMO is available as NuGet from the gallery and its preferred way of using it.
+OfficeIMO is available as a NuGet package from the gallery and is the preferred installation method.
 
 [![nuget downloads](https://img.shields.io/nuget/dt/officeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
@@ -18,7 +18,7 @@ If you would like to contact me you can do so via Twitter or LinkedIn.
 
 This is a small project (under development) that allows to create Microsoft Word documents (.docx) using .NET.
 Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but heavily simplifies it.
-It was created because working with OpenXML is way too hard for me, and time consuming.
+It was created because working with OpenXML is way too hard for me and time-consuming.
 I created it for use within the PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
 This repository also includes an experimental **OfficeIMO.Excel** component for creating simple spreadsheets.
@@ -36,7 +36,7 @@ but it only supports .NET Framework, and their newest community license makes th
 - If you see something that I made a fool of myself - please open an issue/submit PR
 - If you see something that works not the way I think it works - please open an issue/submit PR
 
-I hope you get the drift? If it's bad - open an issue/fix it! I don't know what I'm doing!
+If you notice any issues or have suggestions for improvement, please open an issue or submit a pull request.
 The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 and so on.
 
 **This project is under development and as such there's a lot of things that can and will change, especially if some people help out.**
@@ -268,7 +268,7 @@ These features are available as part of `WordHelpers` class.
 
 ### Basic Document with few document properties and paragraph
 
-This short example show how to create Word Document with just one paragraph with Text and few document properties.
+This short example shows how to create a Word document with just one paragraph of text and a few document properties.
 
 ```csharp
 string filePath = System.IO.Path.Combine(
@@ -323,7 +323,7 @@ using (WordDocument document = WordDocument.Create()) {
 
 ### Basic Document with Headers/Footers (first, odd, even)
 
-This short example shows how to add headers and footers to Word Document.
+This short example shows how to add headers and footers to a Word document.
 
 ```csharp
 using (WordDocument document = WordDocument.Create(filePath)) {
