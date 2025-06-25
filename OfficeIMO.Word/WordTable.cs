@@ -5,7 +5,13 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a table within a <see cref="WordDocument"/>.
+    /// </summary>
     public partial class WordTable : WordElement {
+        /// <summary>
+        /// Gets all <see cref="WordParagraph"/> instances contained in the table.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -307,8 +313,14 @@ namespace OfficeIMO.Word {
             set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
         }
 
+        /// <summary>
+        /// Gets the number of rows in the table.
+        /// </summary>
         public int RowsCount => this.Rows.Count;
 
+        /// <summary>
+        /// Gets the collection of rows belonging to the table.
+        /// </summary>
         public List<WordTableRow> Rows {
             get {
                 var list = new List<WordTableRow>();
@@ -322,11 +334,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the first row of the table.
+        /// </summary>
         public WordTableRow FirstRow {
             get {
                 return Rows.First();
             }
         }
+        /// <summary>
+        /// Gets the last row of the table.
+        /// </summary>
         public WordTableRow LastRow {
             get {
                 return Rows.Last();
@@ -367,6 +385,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides positioning information for the table within the document.
+        /// </summary>
         public WordTablePosition Position;
 
         /// <summary>
@@ -480,6 +501,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="WordTable"/> inside the specified <see cref="TableCell"/>.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
+        /// <param name="wordTableCell">Table cell that will host the table.</param>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="columns">Number of columns.</param>
+        /// <param name="tableStyle">Style applied to the table.</param>
         public WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
 
