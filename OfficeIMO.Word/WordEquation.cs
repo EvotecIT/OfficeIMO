@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Removes the equation from the document by deleting the underlying
-        /// Open&nbsp;XML elements.
+        /// Open XML elements.
         /// </summary>
         public void Remove() {
             if (this._officeMath != null) {
