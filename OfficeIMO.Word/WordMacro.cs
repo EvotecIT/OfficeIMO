@@ -152,12 +152,33 @@ namespace OfficeIMO.Word {
             /// <summary>Represents a directory entry inside the compound file.</summary>
             private class DirEntry {
                 public string Name = string.Empty;
+                /// <summary>
+                /// Directory entry type (0 = unknown, 1 = storage, 2 = stream, 5 = root).
+                /// </summary>
                 public byte Type;
+                /// <summary>
+                /// Index of the left sibling entry.
+                /// </summary>
                 public int Left;
+                /// <summary>
+                /// Index of the right sibling entry.
+                /// </summary>
                 public int Right;
+                /// <summary>
+                /// Index of the first child entry.
+                /// </summary>
                 public int Child;
+                /// <summary>
+                /// Starting sector of the stream associated with this entry.
+                /// </summary>
                 public int StartSector;
+                /// <summary>
+                /// Size of the stream in bytes.
+                /// </summary>
                 public long Size;
+                /// <summary>
+                /// Index of the parent directory entry.
+                /// </summary>
                 public int Parent = -1;
             }
 
