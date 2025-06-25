@@ -7,6 +7,10 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a table in a Word document and provides methods for
+    /// manipulating its content and formatting.
+    /// </summary>
     public partial class WordTable {
         /// <summary>
         /// Add comment to a Table
@@ -111,8 +115,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Applies a table style defined in the document.
+        /// </summary>
+        /// <param name="styleId">Identifier of the table style to apply.</param>
+        /// <returns>The current <see cref="WordTable"/> instance.</returns>
         public WordTable SetStyleId(string styleId) {
-            //Todo Check the styleId exist
+            // Todo: Verify that the style exists in the document.
             if (!string.IsNullOrEmpty(styleId)) {
                 if (_tableProperties?.TableStyle == null) {
                     _tableProperties.TableStyle = new TableStyle() { Val = styleId };
