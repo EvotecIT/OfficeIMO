@@ -32,6 +32,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the table of contents defined in the document.
+        /// </summary>
         public WordTableOfContent TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
@@ -39,6 +42,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the cover page if one is defined in the document.
+        /// </summary>
         public WordCoverPage CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
@@ -46,6 +52,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns all paragraphs from every section of the document.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -57,6 +66,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain page breaks.
+        /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -68,6 +80,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain any break elements.
+        /// </summary>
         public List<WordParagraph> ParagraphsBreaks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -79,6 +94,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that include hyperlinks.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -90,6 +108,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain tab characters.
+        /// </summary>
         public List<WordParagraph> ParagraphsTabs {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -101,6 +122,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that define tab stops.
+        /// </summary>
         public List<WordParagraph> ParagraphsTabStops {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -112,6 +136,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that include fields.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -123,6 +150,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain bookmarks.
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -134,6 +164,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs containing equations.
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -145,6 +178,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that host structured document tags.
+        /// </summary>
         public List<WordParagraph> ParagraphsStructuredDocumentTags {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -156,6 +192,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain check boxes.
+        /// </summary>
         public List<WordParagraph> ParagraphsCheckBoxes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -167,6 +206,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs with embedded charts.
+        /// </summary>
         public List<WordParagraph> ParagraphsCharts {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -178,6 +220,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs referencing endnotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsEndNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -188,6 +233,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs that contain text boxes.
+        /// </summary>
         public List<WordParagraph> ParagraphsTextBoxes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -211,6 +259,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs containing embedded objects.
+        /// </summary>
         public List<WordParagraph> ParagraphsEmbeddedObjects {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -221,6 +272,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Returns paragraphs referencing footnotes.
+        /// </summary>
         public List<WordParagraph> ParagraphsFootNotes {
             get {
                 List<WordParagraph> list = new List<WordParagraph>();
@@ -525,6 +579,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Collection of all hyperlinks in the document.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -536,6 +593,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all text boxes in the document.
+        /// </summary>
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
@@ -561,6 +621,9 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Collection of tab character elements in the document.
+        /// </summary>
         public List<WordTabChar> TabChars {
             get {
                 List<WordTabChar> list = new List<WordTabChar>();
@@ -572,6 +635,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of structured document tags in the document.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -583,6 +649,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all check boxes in the document.
+        /// </summary>
         public List<WordCheckBox> CheckBoxes {
             get {
                 List<WordCheckBox> list = new List<WordCheckBox>();
@@ -594,6 +663,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all equations in the document.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
