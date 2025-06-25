@@ -183,6 +183,8 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add categories and legends
     - ☑️ Configure axes
     - ☑️ Add multiple series
+    - ⚠️ When mixing bar and line series call `AddChartAxisX` before adding
+      any data so both chart types share the same category axis.
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists

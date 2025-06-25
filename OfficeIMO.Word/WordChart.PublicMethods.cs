@@ -39,7 +39,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Add a line to a chart. Multiple lines can be added.
-        /// You cannot mix lines with pies or bars.
+        /// You cannot mix lines with pie charts. Lines can be combined with bar
+        /// series to create combo charts, but make sure to call
+        /// <see cref="AddChartAxisX"/> before adding either series.
         /// </summary>
         /// <param name="name"></param>
         /// <param name="values"></param>
@@ -54,10 +56,20 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Sets the category labels for the X axis. This should be called
+        /// before adding bar or line series when creating a combo chart so that
+        /// both chart types share the same axis.
+        /// </summary>
         public void AddChartAxisX(List<string> categories) {
             Categories = categories;
         }
 
+        /// <summary>
+        /// Adds a bar series to the chart. When mixing bar and line series be
+        /// sure to call <see cref="AddChartAxisX"/> first so the categories are
+        /// shared across both chart types.
+        /// </summary>
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -67,6 +79,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a bar series with multiple values. When used in a combo chart
+        /// with line series the categories must be set via
+        /// <see cref="AddChartAxisX"/> before calling this method.
+        /// </summary>
         public void AddBar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
@@ -76,6 +93,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a bar series from an array of values. For combo charts ensure
+        /// <see cref="AddChartAxisX"/> has been called first.
+        /// </summary>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
             var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
