@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a section within a Word document.
+    /// </summary>
     public partial class WordSection {
         /// <summary>
         /// Provides a list of all elements within the section including paragraphs, tables, images, etc.
