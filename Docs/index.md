@@ -78,6 +78,7 @@
 [WordHeadersAndFooters](./officeimo.word.wordheadersandfooters.md)
 
 [WordHelpers](./officeimo.word.wordhelpers.md)
+[WordXmlSerialization](./officeimo.word.wordxmlserialization.md)
 
 [WordHyperLink](./officeimo.word.wordhyperlink.md)
 
