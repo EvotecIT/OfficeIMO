@@ -15,6 +15,9 @@ using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a paragraph within a Word document.
+    /// </summary>
     public partial class WordParagraph : WordElement {
         internal WordDocument _document;
         internal Paragraph _paragraph;
@@ -327,6 +330,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new paragraph.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
+        /// <param name="newParagraph">Create a new paragraph element.</param>
+        /// <param name="newRun">Create a new run inside the paragraph.</param>
         public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
             this._document = document;
 
@@ -351,11 +360,22 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Wraps an existing paragraph from the document.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
+        /// <param name="paragraph">Paragraph to wrap.</param>
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             this._document = document;
             this._paragraph = paragraph;
         }
 
+        /// <summary>
+        /// Wraps an existing paragraph and run from the document.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
+        /// <param name="paragraph">Paragraph to wrap.</param>
+        /// <param name="run">Run within the paragraph.</param>
         public WordParagraph(WordDocument document, Paragraph paragraph, Run run) {
             _document = document;
             _paragraph = paragraph;
@@ -428,6 +448,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the checkbox contained in this paragraph, if present.
+        /// </summary>
         public WordCheckBox CheckBox {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true) {
@@ -438,6 +461,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the bookmark associated with this paragraph, if present.
+        /// </summary>
         public WordBookmark Bookmark {
             get {
                 if (_bookmarkStart != null) {
@@ -448,6 +474,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the mathematical equation contained in this paragraph, if any.
+        /// </summary>
         public WordEquation Equation {
             get {
                 if (_officeMath != null || _mathParagraph != null) {
@@ -458,6 +487,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the field contained in this paragraph, if any.
+        /// </summary>
         public WordField Field {
             get {
                 if (_simpleField != null || _runs != null) {
@@ -468,6 +500,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the chart contained in this paragraph, if present.
+        /// </summary>
         public WordChart Chart {
             get {
                 if (_run != null) {
@@ -489,6 +524,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the hyperlink contained in this paragraph, if present.
+        /// </summary>
         public WordHyperLink Hyperlink {
             get {
                 if (_hyperlink != null) {
@@ -499,6 +537,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the footnote associated with this paragraph, if any.
+        /// </summary>
         public WordFootNote FootNote {
             get {
                 if (_run != null && _runProperties != null) {
@@ -511,6 +552,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the endnote associated with this paragraph, if any.
+        /// </summary>
         public WordEndNote EndNote {
             get {
                 if (_run != null && _runProperties != null) {
@@ -725,6 +769,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the line shape contained in this paragraph, if present.
+        /// </summary>
         public WordLine Line {
             get {
                 if (_run != null) {
