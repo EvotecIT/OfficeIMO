@@ -1,11 +1,24 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Defines template styles that can be used when generating a table of contents.
+    /// </summary>
     public enum TableOfContentStyle {
+        /// <summary>
+        /// Built-in layout with a heading followed by entries.
+        /// </summary>
         Template1,
+
+        /// <summary>
+        /// Alternative layout with the same structure but different identifiers.
+        /// </summary>
         Template2
     }
 
+    /// <summary>
+    /// Represents a table of contents within a Word document.
+    /// </summary>
     public class WordTableOfContent : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
@@ -16,6 +29,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public TableOfContentStyle Style { get; }
 
+        /// <summary>
+        /// Gets or sets the heading text displayed for the table of contents.
+        /// </summary>
         public string Text {
             get {
                 if (_sdtBlock != null) {
@@ -47,6 +63,10 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets the text shown when the document has no entries for the table of contents.
+        /// </summary>
         public string TextNoContent {
             get {
                 if (_sdtBlock != null) {
@@ -87,6 +107,11 @@ namespace OfficeIMO.Word {
 
 
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordTableOfContent"/> class and appends it to the document body.
+        /// </summary>
+        /// <param name="wordDocument">Parent document where the table of contents will be created.</param>
+        /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
         public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle) {
             this._document = wordDocument;
             this.Style = tableOfContentStyle;
@@ -101,12 +126,20 @@ namespace OfficeIMO.Word {
             //}
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordTableOfContent"/> class using an existing structured document tag.
+        /// </summary>
+        /// <param name="wordDocument">Parent document that owns the table of contents.</param>
+        /// <param name="sdtBlock">Structured document tag representing the table of contents.</param>
         public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock) {
             this._document = wordDocument;
             this._sdtBlock = sdtBlock;
             this.Style = TableOfContentStyle.Template1;
         }
 
+        /// <summary>
+        /// Flags the document to update this table of contents when the file is opened.
+        /// </summary>
         public void Update() {
             this._document.Settings.UpdateFieldsOnOpen = true;
         }
