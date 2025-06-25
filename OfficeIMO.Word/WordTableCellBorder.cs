@@ -5,6 +5,10 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the border configuration for a <see cref="WordTableCell"/>
+    /// and allows customization of each border side.
+    /// </summary>
     public class WordTableCellBorder {
         private readonly WordTableCell _wordTableCell;
         private readonly WordTableRow _wordTableRow;
