@@ -27,6 +27,9 @@ namespace OfficeIMO.Word {
             _section = wordSection;
         }
 
+        /// <summary>
+        /// Gets or sets the width of the left border.
+        /// </summary>
         public UInt32Value LeftSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -51,6 +54,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border color using a hexadecimal value.
+        /// </summary>
         public string LeftColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -75,11 +81,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the left border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// </summary>
         public SixLabors.ImageSharp.Color LeftColor {
             get { return Helpers.ParseColor(LeftColorHex); }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the style of the left border.
+        /// </summary>
         public BorderValues? LeftStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -104,6 +116,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the space between the left border and page text.
+        /// </summary>
         public UInt32Value LeftSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -128,6 +143,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the left border has a shadow.
+        /// </summary>
         public bool? LeftShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -152,6 +170,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the left border is part of a frame.
+        /// </summary>
         public bool? LeftFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -176,6 +197,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the width of the right border.
+        /// </summary>
         public UInt32Value RightSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -200,6 +224,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border color using a hexadecimal value.
+        /// </summary>
         public string RightColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -224,11 +251,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the right border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// </summary>
         public SixLabors.ImageSharp.Color RightColor {
             get { return Helpers.ParseColor(RightColorHex); }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the style of the right border.
+        /// </summary>
         public BorderValues? RightStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -253,6 +286,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the space between the right border and page text.
+        /// </summary>
         public UInt32Value RightSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -277,6 +313,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the right border has a shadow.
+        /// </summary>
         public bool? RightShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -301,6 +340,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the right border is part of a frame.
+        /// </summary>
         public bool? RightFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -325,6 +367,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the width of the top border.
+        /// </summary>
         public UInt32Value TopSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -349,6 +394,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border color using a hexadecimal value.
+        /// </summary>
         public string TopColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -373,11 +421,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the top border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// </summary>
         public SixLabors.ImageSharp.Color TopColor {
             get { return Helpers.ParseColor(TopColorHex); }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the style of the top border.
+        /// </summary>
         public BorderValues? TopStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -402,6 +456,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the space between the top border and page text.
+        /// </summary>
         public UInt32Value TopSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -426,6 +483,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the top border has a shadow.
+        /// </summary>
         public bool? TopShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -450,6 +510,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the top border is part of a frame.
+        /// </summary>
         public bool? TopFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -475,6 +538,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the width of the bottom border.
+        /// </summary>
         public UInt32Value BottomSize {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -499,6 +565,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border color using a hexadecimal value.
+        /// </summary>
         public string BottomColorHex {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -523,11 +592,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the bottom border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// </summary>
         public SixLabors.ImageSharp.Color BottomColor {
             get { return Helpers.ParseColor(BottomColorHex); }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the style of the bottom border.
+        /// </summary>
         public BorderValues? BottomStyle {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -552,6 +627,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the space between the bottom border and page text.
+        /// </summary>
         public UInt32Value BottomSpace {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -576,6 +654,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the bottom border has a shadow.
+        /// </summary>
         public bool? BottomShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -600,6 +681,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the bottom border is part of a frame.
+        /// </summary>
         public bool? BottomFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -643,6 +727,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the preset border configuration applied to the section.
+        /// </summary>
         public WordBorder Type {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
