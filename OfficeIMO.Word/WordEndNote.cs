@@ -8,6 +8,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Handles endnotes.
+    /// </summary>
     public partial class WordEndNote : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
