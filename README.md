@@ -185,6 +185,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
+    - ☑️ Add picture bullet lists
 - ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open
@@ -451,6 +452,11 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     // create a custom bullet list
     var custom = document.AddCustomBulletList(WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
     custom.AddItem("Custom bullet item");
+
+    // create a list using an image as the bullet
+    var pictureList = document.AddPictureBulletList(Path.Combine(folderPath, "Images", "Kulek.jpg"));
+    pictureList.AddItem("Image bullet 1");
+    pictureList.AddItem("Image bullet 2");
 
     // create a multi-level custom list
     var builder = document.AddCustomList()
