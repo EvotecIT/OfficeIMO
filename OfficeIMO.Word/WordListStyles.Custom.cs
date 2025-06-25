@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Defines built-in list styles.
+/// </summary>
 public static partial class WordListStyles {
     // API methods moved to WordListStyles.Api.cs
 

@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Defines built-in list styles.
+/// </summary>
 public static partial class WordListStyles {
     internal static AbstractNum CreatePictureBulletStyle(int pictureBulletId) {
         AbstractNum abstractNum1 = CreateNewAbstractNum();
