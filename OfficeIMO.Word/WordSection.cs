@@ -109,22 +109,37 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain embedded objects.
+        /// </summary>
         public List<WordParagraph> ParagraphsEmbeddedObjects {
             get { return Paragraphs.Where(p => p.IsEmbeddedObject).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain charts.
+        /// </summary>
         public List<WordParagraph> ParagraphsCharts {
             get { return Paragraphs.Where(p => p.IsChart).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain end notes.
+        /// </summary>
         public List<WordParagraph> ParagraphsEndNotes {
             get { return Paragraphs.Where(p => p.IsEndNote).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain foot notes.
+        /// </summary>
         public List<WordParagraph> ParagraphsFootNotes {
             get { return Paragraphs.Where(p => p.IsFootNote).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain text boxes.
+        /// </summary>
         public List<WordParagraph> ParagraphsTextBoxes {
             get { return Paragraphs.Where(p => p.IsTextBox).ToList(); }
         }
@@ -136,6 +151,9 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsShape).ToList(); }
         }
 
+        /// <summary>
+        /// Gets all page break objects within the section.
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -147,6 +165,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all charts contained in the section.
+        /// </summary>
         public List<WordChart> Charts {
             get {
                 List<WordChart> list = new List<WordChart>();
@@ -158,6 +179,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all line breaks within the section.
+        /// </summary>
         public List<WordBreak> Breaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -183,6 +207,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all embedded objects within the section.
+        /// </summary>
         public List<WordEmbeddedObject> EmbeddedObjects {
             get {
                 List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
@@ -193,6 +220,9 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+        /// <summary>
+        /// Gets all bookmarks defined in the section.
+        /// </summary>
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -204,6 +234,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all fields within the section.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -215,6 +248,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all end notes within the section.
+        /// </summary>
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
@@ -226,6 +262,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all foot notes within the section.
+        /// </summary>
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
@@ -237,6 +276,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all hyperlinks within the section.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -256,6 +298,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all tab characters defined in the section.
+        /// </summary>
         public List<WordTabChar> Tabs {
             get {
                 List<WordTabChar> list = new List<WordTabChar>();
@@ -268,6 +313,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets all text boxes within the section.
+        /// </summary>
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
@@ -295,6 +343,9 @@ namespace OfficeIMO.Word {
 
         }
 
+        /// <summary>
+        /// Gets all equations within the section.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
@@ -306,6 +357,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all structured document tags within the section.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -317,6 +371,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all checkbox content controls within the section.
+        /// </summary>
         public List<WordCheckBox> CheckBoxes {
             get {
                 List<WordCheckBox> list = new List<WordCheckBox>();
@@ -487,6 +544,9 @@ namespace OfficeIMO.Word {
             wordDocument.Sections.Add(this);
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the first page has different headers and footers.
+        /// </summary>
         public bool DifferentFirstPage {
             get {
                 var sectionProperties = _sectionProperties;
@@ -526,6 +586,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether odd and even pages use separate headers and footers.
+        /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
                 var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
@@ -553,6 +616,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the gutter should be on the right for RTL pages.
+        /// </summary>
         public bool RtlGutter {
             get {
                 var sectionProperties = _sectionProperties;

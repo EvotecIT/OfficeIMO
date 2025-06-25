@@ -43,6 +43,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the number of columns in the section.
+        /// </summary>
         public int? ColumnCount {
             get {
                 Columns columns = _sectionProperties.GetFirstChild<Columns>();
@@ -66,6 +69,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the footnote properties for the section.
+        /// </summary>
         public FootnoteProperties FootnoteProperties {
             get {
                 return _sectionProperties.GetFirstChild<FootnoteProperties>();
@@ -79,6 +85,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the endnote properties for the section.
+        /// </summary>
         public EndnoteProperties EndnoteProperties {
             get {
                 return _sectionProperties.GetFirstChild<EndnoteProperties>();
@@ -98,6 +107,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the page numbering configuration for the section.
+        /// </summary>
         public PageNumberType PageNumberType {
             get {
                 return _sectionProperties.GetFirstChild<PageNumberType>();
