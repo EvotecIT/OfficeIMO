@@ -4,6 +4,11 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides helper methods to manage numbering definitions for
+    /// lists within a document. Levels can be added or removed and the
+    /// numbering updated to match the Open XML specification.
+    /// </summary>
     public class WordListNumbering {
 
         public List<WordListLevel> Levels {
