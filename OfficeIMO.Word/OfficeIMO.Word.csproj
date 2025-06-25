@@ -32,7 +32,7 @@
     -->
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
-        <PackageReadmeFile>README.MD</PackageReadmeFile>
+        <PackageReadmeFile>../README.md</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -53,10 +53,6 @@
 
     <ItemGroup>
         <None Include="..\Assets\OfficeIMO.png">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
-        <None Include="..\Assets\README.MD">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
