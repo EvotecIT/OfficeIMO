@@ -5,19 +5,33 @@ namespace OfficeIMO.Word {
     /// Built-in cover page templates available for Word documents.
     /// </summary>
     public enum CoverPageTemplate {
+        /// <summary>Template named Austin.</summary>
         Austin,
+        /// <summary>Template named Banded.</summary>
         Banded,
+        /// <summary>Template named Facet.</summary>
         Facet,
+        /// <summary>Template named Grid.</summary>
         Grid,
+        /// <summary>Template named IonDark.</summary>
         IonDark,
+        /// <summary>Template named IonLight.</summary>
         IonLight,
+        /// <summary>Template named Element.</summary>
         Element,
+        /// <summary>Template named Wisp.</summary>
         Wisp,
+        /// <summary>Template named ViewMaster.</summary>
         ViewMaster,
+        /// <summary>Template named SliceLight.</summary>
         SliceLight,
+        /// <summary>Template named SliceDark.</summary>
         SliceDark,
+        /// <summary>Template named SideLine.</summary>
         SideLine,
+        /// <summary>Template named Semaphore.</summary>
         Semaphore,
+        /// <summary>Template named Retrospect.</summary>
         Retrospect
     }
 

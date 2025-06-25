@@ -236,6 +236,11 @@ namespace OfficeIMO.Word {
             return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
         }
 
+        /// <summary>
+        /// Creates an empty custom list without any predefined levels.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomList(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
@@ -244,6 +249,13 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// Creates a bulleted list using the specified image as the bullet symbol.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <param name="imageStream">Stream containing the bullet image.</param>
+        /// <param name="fileName">Name of the image file.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddPictureBulletList(WordDocument document, Stream imageStream, string fileName) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
@@ -282,11 +294,26 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        /// <summary>
+        /// Creates a bulleted list using an image file as the bullet symbol.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <param name="imagePath">Path to the image file.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddPictureBulletList(WordDocument document, string imagePath) {
             using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return AddPictureBulletList(document, stream, System.IO.Path.GetFileName(imagePath));
         }
 
+        /// <summary>
+        /// Adds a bullet level to the list using a custom symbol.
+        /// </summary>
+        /// <param name="levelIndex">The one-based level index to add.</param>
+        /// <param name="symbol">Bullet character to use.</param>
+        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="colorHex">Color of the symbol in hex format.</param>
+        /// <param name="fontSize">Optional symbol size in points.</param>
+        /// <returns>The current <see cref="WordList"/> instance.</returns>
         public WordList AddListLevel(int levelIndex, char symbol, string fontName, string colorHex, int? fontSize = null) {
             if (levelIndex < 1) throw new ArgumentOutOfRangeException(nameof(levelIndex));
 
@@ -312,11 +339,31 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Adds a bullet level using a predefined <see cref="WordBulletSymbol"/>.
+        /// </summary>
+        /// <param name="levelIndex">The one-based level index to add.</param>
+        /// <param name="symbol">Predefined symbol.</param>
+        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="color">Optional color for the symbol.</param>
+        /// <param name="colorHex">Optional color as hex when <paramref name="color"/> is not provided.</param>
+        /// <param name="fontSize">Optional symbol size in points.</param>
+        /// <returns>The current <see cref="WordList"/> instance.</returns>
         public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
             string finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
         }
 
+        /// <summary>
+        /// Adds a bullet level using one of the predefined <see cref="WordListLevelKind"/> values.
+        /// </summary>
+        /// <param name="levelIndex">The one-based level index to add.</param>
+        /// <param name="kind">Specifies the symbol kind.</param>
+        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="color">Optional color for the symbol.</param>
+        /// <param name="colorHex">Optional color as hex when <paramref name="color"/> is not provided.</param>
+        /// <param name="fontSize">Optional symbol size in points.</param>
+        /// <returns>The current <see cref="WordList"/> instance.</returns>
         public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
             string finalColor = color?.ToHexColor() ?? colorHex;

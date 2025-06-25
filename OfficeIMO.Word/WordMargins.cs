@@ -7,12 +7,39 @@ namespace OfficeIMO.Word {
     /// Predefined margin configurations available for a document section.
     /// </summary>
     public enum WordMargin {
+        /// <summary>
+        /// Standard one inch margins on all sides.
+        /// </summary>
         Normal,
+
+        /// <summary>
+        /// Margins mirrored for odd and even pages when binding.
+        /// </summary>
         Mirrored,
+
+        /// <summary>
+        /// Slightly narrower left and right margins.
+        /// </summary>
         Moderate,
+
+        /// <summary>
+        /// Half inch margins on all sides.
+        /// </summary>
         Narrow,
+
+        /// <summary>
+        /// Wide margins for editing or notes.
+        /// </summary>
         Wide,
+
+        /// <summary>
+        /// Default margins used by Office 2003.
+        /// </summary>
         Office2003Default,
+
+        /// <summary>
+        /// Margin configuration is not recognized.
+        /// </summary>
         Unknown
     }
 

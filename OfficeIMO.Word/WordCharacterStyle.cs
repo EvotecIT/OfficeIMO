@@ -6,15 +6,25 @@ namespace OfficeIMO.Word {
     /// Predefined character styles available in Word documents.
     /// </summary>
     public enum WordCharacterStyles {
+        /// <summary>Default font of the paragraph.</summary>
         DefaultParagraphFont,
+        /// <summary>Character style for heading level 1.</summary>
         Heading1Char,
+        /// <summary>Character style for heading level 2.</summary>
         Heading2Char,
+        /// <summary>Character style for heading level 3.</summary>
         Heading3Char,
+        /// <summary>Character style for heading level 4.</summary>
         Heading4Char,
+        /// <summary>Character style for heading level 5.</summary>
         Heading5Char,
+        /// <summary>Character style for heading level 6.</summary>
         Heading6Char,
+        /// <summary>Character style for heading level 7.</summary>
         Heading7Char,
+        /// <summary>Character style for heading level 8.</summary>
         Heading8Char,
+        /// <summary>Character style for heading level 9.</summary>
         Heading9Char,
     }
 

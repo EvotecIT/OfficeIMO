@@ -1065,9 +1065,10 @@ namespace OfficeIMO.Word {
         /// Load WordDocument from filePath
         /// </summary>
         /// <param name="filePath"></param>
-        /// <param name="readOnly"></param>
-        /// <param name="autoSave"></param>
-        /// <returns></returns>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save when disposing.</param>
+        /// <param name="overrideStyles">When true, existing styles are overwritten.</param>
+        /// <returns>The loaded <see cref="WordDocument"/>.</returns>
         /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             if (filePath != null) {
@@ -1110,6 +1111,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to the file.</param>
         /// <param name="readOnly">Open the document in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="overrideStyles">When true, existing styles are overwritten.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
@@ -1147,10 +1149,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Load WordDocument from stream
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="readOnly"></param>
-        /// <param name="autoSave"></param>
-        /// <returns></returns>
+        /// <param name="stream">Stream containing the document.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save when disposing.</param>
+        /// <param name="overrideStyles">When true, existing styles are overwritten.</param>
+        /// <returns>The loaded <see cref="WordDocument"/>.</returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             var document = new WordDocument();
 
@@ -1467,6 +1470,9 @@ namespace OfficeIMO.Word {
             body.Append(sectionProperties);
         }
 
+        /// <summary>
+        /// Saves and releases all resources used by the document.
+        /// </summary>
         public void Dispose() {
             if (this._wordprocessingDocument.AutoSave) {
                 Save();

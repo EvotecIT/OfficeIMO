@@ -154,6 +154,7 @@ namespace OfficeIMO.Word {
         UserInitials,
         /// <summary>UserName field code.</summary>
         UserName,
+        /// <summary>Index entry field code.</summary>
         XE
     }
 

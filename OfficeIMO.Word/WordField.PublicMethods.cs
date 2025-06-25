@@ -55,6 +55,9 @@ namespace OfficeIMO.Word {
             return AddField(paragraph, fieldCode.FieldType, wordFieldFormat, customFormat, advanced, parameters);
         }
 
+        /// <summary>
+        /// Deletes the field from the document along with its runs.
+        /// </summary>
         public void Remove() {
             if (_runs != null) {
                 foreach (var run in _runs) {

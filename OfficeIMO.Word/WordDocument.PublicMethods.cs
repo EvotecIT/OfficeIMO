@@ -189,10 +189,21 @@ namespace OfficeIMO.Word {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
         }
 
+        /// <summary>
+        /// Creates a bulleted list using the provided image stream as the bullet symbol.
+        /// </summary>
+        /// <param name="imageStream">Stream containing the bullet image.</param>
+        /// <param name="fileName">Image file name for metadata.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddPictureBulletList(Stream imageStream, string fileName) {
             return WordList.AddPictureBulletList(this, imageStream, fileName);
         }
 
+        /// <summary>
+        /// Creates a bulleted list using an image file as the bullet symbol.
+        /// </summary>
+        /// <param name="imagePath">Path to the image file.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddPictureBulletList(string imagePath) {
             return WordList.AddPictureBulletList(this, imagePath);
         }
