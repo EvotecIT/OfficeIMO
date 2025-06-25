@@ -176,6 +176,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Pie and Pie 3D
         - ☑️ Bar and Bar 3D
         - ☑️ Line and Line 3D
+        - ☑️ Combo (Bar + Line)
         - ☑️ Area and Area 3D
         - ☑️ Scatter
         - ☑️ Radar
