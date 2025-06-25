@@ -239,6 +239,12 @@ namespace OfficeIMO.Word {
             return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
         }
 
+        /// <summary>
+        /// Creates a list that does not contain any predefined levels. Levels can
+        /// be configured manually after creation.
+        /// </summary>
+        /// <param name="document">Parent document where the list will be added.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomList(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 

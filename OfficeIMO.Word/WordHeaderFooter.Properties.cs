@@ -13,10 +13,23 @@ namespace OfficeIMO.Word {
     public partial class WordHeaderFooter {
         private protected HeaderFooterValues _type;
         private protected HeaderPart _headerPart;
+
+        /// <summary>
+        /// Underlying OpenXML header element associated with this header or footer.
+        /// </summary>
         protected internal Header _header;
+
+        /// <summary>
+        /// Underlying OpenXML footer element associated with this header or footer.
+        /// </summary>
         protected internal Footer _footer;
+
         protected private FooterPart _footerPart;
         private protected string _id;
+
+        /// <summary>
+        /// Parent <see cref="WordDocument"/> instance this header or footer belongs to.
+        /// </summary>
         protected WordDocument _document;
 
         /// <summary>

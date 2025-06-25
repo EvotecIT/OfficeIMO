@@ -55,10 +55,16 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain hyperlinks.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
+        /// <summary>
+        /// Provides a list of paragraphs that contain fields.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
