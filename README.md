@@ -102,6 +102,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add Default, Odd, Even, First
     - ☑️ Remove Default, Odd, Even, First
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
+    - ☑️ Custom paragraph styles via `WordParagraphStyle`
 - ☑️ Paragraphs and change alignment
 - ☑️ Tables
     - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
@@ -135,6 +136,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read PageBreak
     - ☑️ Remove PageBreak
     - ☑️ Change PageBreak
+- ☑️ Page numbering
+    - ☑️ Insert page numbers in headers or footers
+    - ☑️ Choose style with `WordPageNumberStyle`
 - ☑️ Bookmarks
     - ☑️ Add Bookmark
     - ☑️ Read Bookmark
@@ -159,6 +163,15 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️Add new endnotes
     - ☑️Read endnotes
     - ☑️Remove endnotes
+- ☑️ Document variables
+    - ☑️ Set and read variables stored in the document
+    - ☑️ Remove variables by name or index
+- ☑️ Macros
+    - ☑️ Add or extract VBA projects
+    - ☑️ Remove macro modules
+- ☑️ Mail merge
+    - ☑️ Replace `MERGEFIELD` values
+    - ☑️ Optionally keep field codes
 - ☑️ Content Controls
     - ☑️ Add controls
     - ☑️ Read controls
@@ -185,9 +198,13 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add multiple series
     - ⚠️ When mixing bar and line series call `AddChartAxisX` before adding
       any data so both chart types share the same category axis.
+- ☑️ Equations
+    - ☑️ Insert Office Math equations from OMML
+    - ☑️ Remove equations when needed
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
+    - ☑️ Create custom bullet and numbered lists
 - ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open
@@ -198,6 +215,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Set background color
 - ☑️ Watermarks
     - ☑️ Add text or image watermark
+    - ☑️ Choose text or image style via `WordWatermarkStyle`
     - ☑️ Set rotation, width and height
     - ☑️ Remove watermark
 
