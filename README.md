@@ -228,6 +228,14 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Insert HTML fragment after a paragraph
     - ☑️ Replace text with an HTML fragment
     - ☑️ Remove embedded documents
+ - ☑️ [Digital signatures and document security](OfficeIMO.Tests/Word.DigitalSignature.cs)
+ - ☑️ [Accepting/rejecting revisions](OfficeIMO.Tests/Word.Revisions.cs)
+ - ☑️ [Async save/load APIs](OfficeIMO.Tests/Word.Async.cs)
+ - ☑️ [Merging multiple documents](OfficeIMO.Tests/Word.MergeDocuments.cs)
+ - ☑️ [Text boxes with positioning options](OfficeIMO.Tests/Word.TextBox.cs)
+ - ☑️ [Page orientation, page size, and margin presets](OfficeIMO.Tests/Word.PageSettings.cs) ([margins](OfficeIMO.Tests/Word.Sections.cs))
+ - ☑️ [Tab characters and custom tab stops](OfficeIMO.Tests/Word.TabStops.cs)
+ - ☑️ [Document validation utilities](OfficeIMO.Tests/Word.Validation.cs)
 
 - ☑️ Experimental Excel component
     - ☑️ Create and load workbooks
