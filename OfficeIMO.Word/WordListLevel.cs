@@ -6,39 +6,123 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Defines the numbering or bullet style used for a particular list level.
     /// </summary>
-    public enum WordListLevelKind {
+public enum WordListLevelKind {
+        /// <summary>
+        /// No bullet or numbering.
+        /// </summary>
         None,
+        /// <summary>
+        /// Standard bullet symbol.
+        /// </summary>
         Bullet,
+        /// <summary>
+        /// Square bullet symbol.
+        /// </summary>
         BulletSquareSymbol,
+        /// <summary>
+        /// Black circle bullet symbol.
+        /// </summary>
         BulletBlackCircle,
+        /// <summary>
+        /// Diamond bullet symbol.
+        /// </summary>
         BulletDiamondSymbol,
+        /// <summary>
+        /// Arrow bullet symbol.
+        /// </summary>
         BulletArrowSymbol,
+        /// <summary>
+        /// Solid round bullet symbol.
+        /// </summary>
         BulletSolidRound,
+        /// <summary>
+        /// Open circle bullet symbol.
+        /// </summary>
         BulletOpenCircle,
+        /// <summary>
+        /// Square bullet style.
+        /// </summary>
         BulletSquare,
         /// <summary>
         /// The BulletSquare2, not the same as BulletSquare, and not even used by Word
         /// </summary>
         BulletSquare2,
+        /// <summary>
+        /// Checkmark bullet symbol.
+        /// </summary>
         BulletCheckmark,
+        /// <summary>
+        /// Clubs bullet symbol.
+        /// </summary>
         BulletClubs,
+        /// <summary>
+        /// Diamond shape bullet.
+        /// </summary>
         BulletDiamond,
+        /// <summary>
+        /// Arrow shape bullet.
+        /// </summary>
         BulletArrow,
 
+        /// <summary>
+        /// Decimal numbers.
+        /// </summary>
         Decimal,
+        /// <summary>
+        /// Decimal numbers followed by a bracket.
+        /// </summary>
         DecimalBracket,
+        /// <summary>
+        /// Decimal numbers followed by a dot.
+        /// </summary>
         DecimalDot,
+        /// <summary>
+        /// Lowercase letters.
+        /// </summary>
         LowerLetter,
+        /// <summary>
+        /// Lowercase letters followed by a bracket.
+        /// </summary>
         LowerLetterBracket,
+        /// <summary>
+        /// Lowercase letters followed by a dot.
+        /// </summary>
         LowerLetterDot,
+        /// <summary>
+        /// Uppercase letters.
+        /// </summary>
         UpperLetter,
+        /// <summary>
+        /// Uppercase letters followed by a bracket.
+        /// </summary>
         UpperLetterBracket,
+        /// <summary>
+        /// Uppercase letters followed by a dot.
+        /// </summary>
         UpperLetterDot,
+        /// <summary>
+        /// Lowercase Roman numerals.
+        /// </summary>
         LowerRoman,
+        /// <summary>
+        /// Lowercase Roman numerals followed by a bracket.
+        /// </summary>
         LowerRomanBracket,
+        /// <summary>
+        /// Lowercase Roman numerals followed by a dot.
+        /// </summary>
         LowerRomanDot,
+        /// <summary>
+        /// Uppercase Roman numerals.
+        /// </summary>
         UpperRoman,
+        /// <summary>
+        /// Uppercase Roman numerals followed by a bracket.
+        /// </summary>
         UpperRomanBracket,
+        /// <summary>
+        /// Uppercase Roman numerals followed by a dot.
+        /// </summary>
         UpperRomanDot
     }
     /// <summary>
