@@ -185,6 +185,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
+    - ☑️ Clone lists preserving numbering settings
 - ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open

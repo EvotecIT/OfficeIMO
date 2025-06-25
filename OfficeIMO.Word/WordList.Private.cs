@@ -1,6 +1,6 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
 using System.Linq;
 
 namespace OfficeIMO.Word;
@@ -244,12 +244,20 @@ public partial class WordList : WordElement {
 
         var newAbstract = (AbstractNum)originalAbstract.CloneNode(true);
         newAbstract.AbstractNumberId = newAbstractId;
+
+        var restartAttr = originalAbstract.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
+        if (!string.IsNullOrEmpty(restartAttr.Value)) {
+            EnsureW15Namespace(numbering);
+            newAbstract.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", restartAttr.Value));
+        }
+
         numbering.Append(newAbstract);
 
-        var newInstance = (NumberingInstance)originalInstance.CloneNode(true);
-        newInstance.NumberID = newNumberId;
-        var absId = newInstance.GetFirstChild<AbstractNumId>();
-        if (absId != null) absId.Val = newAbstractId;
+        var newInstance = new NumberingInstance { NumberID = newNumberId };
+        newInstance.Append(new AbstractNumId { Val = newAbstractId });
+        foreach (var levelOverride in originalInstance.Elements<LevelOverride>()) {
+            newInstance.Append((LevelOverride)levelOverride.CloneNode(true));
+        }
         numbering.Append(newInstance);
 
         WordList clonedList;
@@ -384,7 +392,7 @@ public partial class WordList : WordElement {
             numbering.AddNamespaceDeclaration(prefix, ns);
         }
         if (numbering.MCAttributes == null) {
-                numbering.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = prefix };
+            numbering.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = prefix };
         } else {
             var ignorable = numbering.MCAttributes.Ignorable?.Value;
             if (string.IsNullOrEmpty(ignorable)) {
