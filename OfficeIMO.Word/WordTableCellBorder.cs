@@ -6,8 +6,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Represents the border configuration for a <see cref="WordTableCell"/>
-    /// and allows customization of each border side.
+    /// Provides a rich API for configuring the borders of a
+    /// <see cref="WordTableCell"/>.  Every edge of the cell—including the
+    /// diagonals—has properties for style, color, spacing and size so that
+    /// callers can individually tailor each side of a cell.
     /// </summary>
     public class WordTableCellBorder {
         private readonly WordTableCell _wordTableCell;
