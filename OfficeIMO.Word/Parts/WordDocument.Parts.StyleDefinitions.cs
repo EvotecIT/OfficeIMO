@@ -42,7 +42,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// This method is supposed to bring missing elements such as table styles to loaded document
         /// </summary>
-        /// <param name="styleDefinitionsPart"></param>
+        /// <param name="styleDefinitionsPart">The style definitions part to update.</param>
+        /// <param name="overrideExisting">When <c>true</c>, existing styles are replaced with the library versions.</param>
         private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
             var styles = styleDefinitionsPart.Styles;
             AddTableStyles(styles, overrideExisting);
