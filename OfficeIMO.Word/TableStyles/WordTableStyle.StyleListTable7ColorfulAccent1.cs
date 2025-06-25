@@ -7,8 +7,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Contains predefined table style definitions.
+/// </summary>
 public static partial class WordTableStyles {
 
+    /// <summary>
+    /// Gets the predefined style definition for List Table 7 Colorful Accent 1.
+    /// </summary>
     private static Style StyleListTable7ColorfulAccent1 {
         get {
             Style style1 = new Style() { Type = StyleValues.Table, StyleId = "ListTable7Colorful-Accent1" };

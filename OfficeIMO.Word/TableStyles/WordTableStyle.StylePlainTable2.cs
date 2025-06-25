@@ -7,8 +7,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Contains predefined table style definitions.
+/// </summary>
 public static partial class WordTableStyles {
 
+    /// <summary>
+    /// Gets the predefined style definition for Plain Table 2.
+    /// </summary>
     private static Style StylePlainTable2 {
         get {
             Style style1 = new Style() { Type = StyleValues.Table, StyleId = "PlainTable2" };
