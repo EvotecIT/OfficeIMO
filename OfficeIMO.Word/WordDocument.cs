@@ -326,6 +326,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all break elements (page, column, or text wrapping) found across the document.
+        /// </summary>
+        /// <returns>List of <see cref="WordBreak"/> items representing every break instance.</returns>
         public List<WordBreak> Breaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -337,6 +341,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all endnotes referenced throughout the document.
+        /// </summary>
+        /// <returns>List of <see cref="WordEndNote"/> items representing endnote references.</returns>
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
@@ -347,6 +355,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all footnotes referenced throughout the document.
+        /// </summary>
+        /// <returns>List of <see cref="WordFootNote"/> items representing footnote references.</returns>
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
@@ -357,6 +369,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all comments inserted into the document.
+        /// </summary>
+        /// <returns>List of <see cref="WordComment"/> objects for each comment.</returns>
         public List<WordComment> Comments {
             get { return WordComment.GetAllComments(this); }
         }
