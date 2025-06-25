@@ -25,6 +25,11 @@ namespace OfficeIMO.Word {
         _blank
     }
 
+    /// <summary>
+    /// Represents a hyperlink element within a Word document.
+    /// Provides helper methods for modifying hyperlink text,
+    /// formatting, and target information.
+    /// </summary>
     public class WordHyperLink : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
