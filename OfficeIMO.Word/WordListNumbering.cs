@@ -4,8 +4,17 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides helper methods to manage numbering definitions for
+    /// lists within a document. Levels can be added or removed and the
+    /// numbering updated to match the Open XML specification.
+    /// </summary>
     public class WordListNumbering {
 
+        /// <summary>
+        /// Gets all numbering levels defined in the underlying
+        /// <see cref="AbstractNum"/> element.
+        /// </summary>
         public List<WordListLevel> Levels {
             get {
                 List<WordListLevel> levels = new List<WordListLevel>();
@@ -40,6 +49,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance based on the provided
+        /// <see cref="AbstractNum"/> definition.
+        /// </summary>
+        /// <param name="abstractNum">Numbering definition to wrap.</param>
         public WordListNumbering(AbstractNum abstractNum) {
             _abstractNum = abstractNum;
         }
