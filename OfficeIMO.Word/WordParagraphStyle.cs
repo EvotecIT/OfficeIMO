@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Lists built-in and custom paragraph styles.
+    /// </summary>
     public enum WordParagraphStyles {
         Normal,
         Heading1,
@@ -20,24 +23,36 @@ namespace OfficeIMO.Word {
         Custom
     }
 
+    /// <summary>
+    /// Provides helper methods for working with paragraph styles.
+    /// </summary>
     public static class WordParagraphStyle {
         private static readonly Dictionary<string, Style> _customStyles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<WordParagraphStyles, Style> _overrides = new();
 
         internal static IEnumerable<Style> CustomStyles => _customStyles.Values;
 
+        /// <summary>
+        /// Registers a custom paragraph style for later retrieval.
+        /// </summary>
         public static void RegisterCustomStyle(string styleId, Style styleDefinition) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
             _customStyles[styleId] = styleDefinition;
         }
 
+        /// <summary>
+        /// Replaces a built-in style definition with a custom one.
+        /// </summary>
         public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition) {
             if (style == WordParagraphStyles.Custom) throw new ArgumentException("Cannot override custom style placeholder", nameof(style));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
             _overrides[style] = styleDefinition;
         }
 
+        /// <summary>
+        /// Returns the Open XML style definition for the specified style.
+        /// </summary>
         public static Style GetStyleDefinition(WordParagraphStyles style) {
             if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style) overrideStyle.CloneNode(true);
             if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style) customStyle.CloneNode(true);
@@ -59,6 +74,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Converts an enumeration value to its style name string.
+        /// </summary>
         public static string ToStringStyle(this WordParagraphStyles style) {
             switch (style) {
                 case WordParagraphStyles.Normal: return "Normal";
@@ -78,6 +96,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
+        /// <summary>
+        /// Converts a style name string to its enumeration value.
+        /// </summary>
         public static WordParagraphStyles GetStyle(string style) {
             switch (style) {
                 case "Normal": return WordParagraphStyles.Normal;
