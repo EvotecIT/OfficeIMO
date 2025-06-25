@@ -12,6 +12,10 @@ using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides functionality for creating and manipulating charts within a
+    /// <see cref="WordDocument"/>.
+    /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
         private static int _docPrIdSeed = 1;
@@ -44,12 +48,27 @@ namespace OfficeIMO.Word {
             }
             _axisIdSeed = (int)max;
         }
+        /// <summary>
+        /// Initializes a <see cref="WordChart"/> instance from an existing drawing.
+        /// </summary>
+        /// <param name="document">Parent document that owns the chart.</param>
+        /// <param name="paragraph">Paragraph containing the chart.</param>
+        /// <param name="drawing">Existing drawing element with chart data.</param>
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
             _paragraph = paragraph;
         }
 
+        /// <summary>
+        /// Creates a new chart and inserts it into the specified paragraph.
+        /// </summary>
+        /// <param name="document">Parent document that will contain the chart.</param>
+        /// <param name="paragraph">Paragraph where the chart will be placed.</param>
+        /// <param name="title">Optional chart title.</param>
+        /// <param name="roundedCorners">Specifies whether the chart frame should have rounded corners.</param>
+        /// <param name="width">Initial chart width in pixels.</param>
+        /// <param name="height">Initial chart height in pixels.</param>
         public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             _document = document;
             _paragraph = paragraph;

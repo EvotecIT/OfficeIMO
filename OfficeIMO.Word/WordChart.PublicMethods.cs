@@ -1,10 +1,24 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Partial class containing public methods for building chart content.
+    /// </summary>
     public partial class WordChart {
+        /// <summary>
+        /// Sets the category labels used by subsequent chart series.
+        /// </summary>
+        /// <param name="categories">List of category names.</param>
         public void AddCategories(List<string> categories) {
             Categories = categories;
         }
+        /// <summary>
+        /// Adds a single value to a pie chart.
+        /// </summary>
+        /// <typeparam name="T">Numeric type representing the value.</typeparam>
+        /// <param name="category">Category label.</param>
+        /// <param name="value">Data value for the slice.</param>
+        /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart AddPie<T>(string category, T value) {
             // if value is a list we need to throw as not supported
             if (!(value is int || value is double || value is float)) {
@@ -16,6 +30,13 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Adds a single value to a 3D pie chart.
+        /// </summary>
+        /// <typeparam name="T">Numeric type representing the value.</typeparam>
+        /// <param name="category">Category label.</param>
+        /// <param name="value">Data value for the slice.</param>
+        /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart AddPie3D<T>(string category, T value) {
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
@@ -26,6 +47,13 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Adds a line series to the chart from an array of integer values.
+        /// </summary>
+        /// <typeparam name="T">Unused generic parameter.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Values for the series.</param>
+        /// <param name="color">Line color.</param>
         public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine();
             if (_chart != null) {
@@ -106,6 +134,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds an area chart series using the provided values.
+        /// </summary>
+        /// <typeparam name="T">Numeric type of the data values.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Values for the series.</param>
+        /// <param name="color">Fill color for the series.</param>
         public void AddArea<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea();
             if (_chart != null) {
@@ -117,6 +152,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds an area chart series using an array of integer values.
+        /// </summary>
+        /// <typeparam name="T">Unused generic parameter.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Data values.</param>
+        /// <param name="color">Fill color for the series.</param>
         public void AddArea<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea();
             if (_chart != null) {
@@ -128,6 +170,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a scatter chart series with separate X and Y values.
+        /// </summary>
+        /// <param name="name">Series name.</param>
+        /// <param name="xValues">Values plotted on the X axis.</param>
+        /// <param name="yValues">Values plotted on the Y axis.</param>
+        /// <param name="color">Color of the series.</param>
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
@@ -139,6 +188,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a radar chart series.
+        /// </summary>
+        /// <typeparam name="T">Numeric type of the values.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Values for the series.</param>
+        /// <param name="color">Color of the series.</param>
         public void AddRadar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsRadar();
             if (_chart != null) {
@@ -149,6 +205,13 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Adds a 3D bar chart series.
+        /// </summary>
+        /// <typeparam name="T">Numeric type of the data values.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Series data values.</param>
+        /// <param name="color">Color of the bars.</param>
         public void AddBar3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar3D();
             if (_chart != null) {
@@ -202,6 +265,13 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a 3D area chart series.
+        /// </summary>
+        /// <typeparam name="T">Numeric type of the data values.</typeparam>
+        /// <param name="name">Series name.</param>
+        /// <param name="values">Series data values.</param>
+        /// <param name="color">Series color.</param>
         public void AddArea3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea3D();
             if (_chart != null) {
@@ -213,6 +283,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a legend to the chart at the specified position.
+        /// </summary>
+        /// <param name="legendPosition">Desired legend position.</param>
         public void AddLegend(LegendPositionValues legendPosition) {
             if (_chart != null) {
                 Legend legend = new Legend();
@@ -233,18 +307,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Sets the title displayed on the X axis.
+        /// </summary>
+        /// <param name="title">Axis title text.</param>
+        /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart SetXAxisTitle(string title) {
             _xAxisTitle = title;
             UpdateAxisTitles();
             return this;
         }
 
+        /// <summary>
+        /// Sets the title displayed on the Y axis.
+        /// </summary>
+        /// <param name="title">Axis title text.</param>
+        /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart SetYAxisTitle(string title) {
             _yAxisTitle = title;
             UpdateAxisTitles();
             return this;
         }
 
+        /// <summary>
+        /// Defines font formatting for axis titles.
+        /// </summary>
+        /// <param name="fontName">Font family name.</param>
+        /// <param name="fontSize">Font size in points.</param>
+        /// <param name="color">Text color.</param>
+        /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart SetAxisTitleFormat(string fontName, int fontSize, SixLabors.ImageSharp.Color color) {
             _axisTitleFontName = fontName;
             _axisTitleFontSize = fontSize;
