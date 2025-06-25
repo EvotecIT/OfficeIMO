@@ -969,7 +969,7 @@ namespace OfficeIMO.Word {
         /// <param name="autoSave"></param>
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
-        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
                     throw new FileNotFoundException("File doesn't exists", filePath);
@@ -989,7 +989,7 @@ namespace OfficeIMO.Word {
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
-                InitialiseStyleDefinitions(wordDocument, readOnly);
+                InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles);
 
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
@@ -1012,7 +1012,7 @@ namespace OfficeIMO.Word {
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
+        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
                     throw new FileNotFoundException("File doesn't exists", filePath);
@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Word {
                 _document = wordDocument.MainDocumentPart.Document
             };
 
-            InitialiseStyleDefinitions(wordDocument, readOnly);
+            InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles);
             word.LoadDocument();
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
@@ -1051,7 +1051,7 @@ namespace OfficeIMO.Word {
         /// <param name="readOnly"></param>
         /// <param name="autoSave"></param>
         /// <returns></returns>
-        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false) {
+        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             var document = new WordDocument();
 
             var openSettings = new OpenSettings {
@@ -1059,7 +1059,7 @@ namespace OfficeIMO.Word {
             };
 
             var wordDocument = WordprocessingDocument.Open(stream, !readOnly, openSettings);
-            InitialiseStyleDefinitions(wordDocument, readOnly);
+            InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles);
 
             document._wordprocessingDocument = wordDocument;
             document._document = wordDocument.MainDocumentPart.Document;
@@ -1325,13 +1325,13 @@ namespace OfficeIMO.Word {
 
         }
 
-        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly) {
+        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
             // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
             if (readOnly == false) {
                 var styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>()
                     .FirstOrDefault();
                 if (styleDefinitionsPart != null) {
-                    AddStyleDefinitions(styleDefinitionsPart);
+                    AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
                 } else {
 
                     var styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");

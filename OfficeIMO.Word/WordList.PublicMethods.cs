@@ -57,6 +57,8 @@ namespace OfficeIMO.Word {
             }
 
             var newParagraph = new WordParagraph(_document, paragraph, run);
+            newParagraph._list = this;
+            _listItems.Add(newParagraph);
             if (text != null) {
                 newParagraph.Text = text;
             }
@@ -68,25 +70,35 @@ namespace OfficeIMO.Word {
             return newParagraph;
         }
 
+        internal void RemoveItem(WordParagraph paragraph) {
+            _listItems.Remove(paragraph);
+        }
+
         public void Remove() {
+            foreach (var listItem in _listItems.ToList()) {
+                listItem.Remove();
+            }
+            _listItems.Clear();
+
             var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
             var numbering = numberingPart?.Numbering;
             if (numbering != null) {
-                var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
-                abstractNum?.Remove();
+                bool stillReferenced = _document.EnumerateAllParagraphs()
+                    .Any(p => p.IsListItem && p._listNumberId == _numberId);
 
-                var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
-                numberingInstance?.Remove();
+                if (!stillReferenced) {
+                    var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+                    abstractNum?.Remove();
 
-                if (!numbering.ChildElements.OfType<AbstractNum>().Any() &&
-                    !numbering.ChildElements.OfType<NumberingInstance>().Any() &&
-                    !numbering.ChildElements.OfType<NumberingPictureBullet>().Any()) {
-                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(numberingPart);
+                    var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
+                    numberingInstance?.Remove();
+
+                    if (!numbering.Elements<AbstractNum>().Any() &&
+                        !numbering.Elements<NumberingInstance>().Any() &&
+                        !numbering.Elements<NumberingPictureBullet>().Any()) {
+                        _document._wordprocessingDocument.MainDocumentPart.DeletePart(numberingPart);
+                    }
                 }
-            }
-
-            foreach (var listItem in ListItems.ToList()) {
-                listItem.Remove();
             }
         }
 
@@ -103,11 +115,14 @@ namespace OfficeIMO.Word {
         }
 
         public void Merge(WordList documentList) {
-            foreach (var item in documentList.ListItems) {
+            foreach (var item in documentList.ListItems.ToList()) {
                 var numberingProperties = item._paragraphProperties.NumberingProperties;
                 if (numberingProperties != null && numberingProperties.NumberingId != null) {
                     numberingProperties.NumberingId.Val = this._numberId;
                 }
+                documentList._listItems.Remove(item);
+                item._list = this;
+                _listItems.Add(item);
             }
             documentList.Remove();
         }
@@ -199,6 +214,20 @@ namespace OfficeIMO.Word {
             char symbol = GetBulletSymbol(kind);
             string finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);
+        }
+
+        /// <summary>
+        /// Converts this list to a numbered style while preserving existing list items.
+        /// </summary>
+        public void ConvertToNumbered() {
+            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Headings111));
+        }
+
+        /// <summary>
+        /// Converts this list to a bulleted style while preserving existing list items.
+        /// </summary>
+        public void ConvertToBulleted() {
+            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Bulleted));
         }
     }
 }

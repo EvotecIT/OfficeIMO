@@ -126,6 +126,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
         public void Remove() {
+            _list?.RemoveItem(this);
             if (_paragraph != null) {
                 if (this._paragraph.Parent != null) {
                     if (this.IsBookmark) {

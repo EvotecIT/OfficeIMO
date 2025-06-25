@@ -831,4 +831,30 @@ public partial class Word {
             // verified only before saving.
         }
     }
+
+    [Fact]
+    public void Test_SharedNumberingListRemovalKeepsNumberingPart() {
+        var filePath = Path.Combine(_directoryWithFiles, "SharedNumbering.docx");
+
+        using (var document = WordDocument.Create(filePath)) {
+            var list1 = document.AddList(WordListStyle.Bulleted);
+            list1.AddItem("One");
+
+            var list2 = new WordList(document, list1._numberId);
+            list2.AddItem("Two");
+
+            list1.Remove();
+
+            Assert.Single(document.Lists);
+            Assert.Equal("Two", document.Lists[0].ListItems[0].Text);
+            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
+
+            document.Save(false);
+        }
+
+        using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {
+            Assert.NotNull(wordDoc.MainDocumentPart.NumberingDefinitionsPart);
+            Assert.Equal(1, wordDoc.MainDocumentPart.NumberingDefinitionsPart.Numbering.Elements<NumberingInstance>().Count());
+        }
+    }
 }
