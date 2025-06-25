@@ -11,17 +11,22 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var bulletList = document.AddList(WordListStyle.Bulleted);
                 bulletList.AddItem("Bullet item");
+                Console.WriteLine($"Bullet list uses style: {bulletList.Style}");
 
                 var numberedList = document.AddList(WordListStyle.Headings111);
                 numberedList.AddItem("Numbered item");
+                Console.WriteLine($"Numbered list uses style: {numberedList.Style}");
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
+                foreach (var list in document.Lists) {
+                    Console.WriteLine($"Loaded list style: {list.Style}");
+                }
                 foreach (var paragraph in document.Paragraphs) {
                     if (paragraph.IsListItem) {
-                        Console.WriteLine($"{paragraph.Text} -> {paragraph.GetListStyle()}");
+                        Console.WriteLine($"{paragraph.Text} -> {paragraph.ListStyle}");
                     }
                 }
                 document.Save(openWord);

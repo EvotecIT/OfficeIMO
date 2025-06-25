@@ -215,6 +215,15 @@ namespace OfficeIMO.Word {
             return list?.Style;
         }
 
+        /// <summary>
+        /// Gets the list style when this paragraph is part of a list.
+        /// </summary>
+        public WordListStyle? ListStyle {
+            get {
+                return GetListStyle();
+            }
+        }
+
 
         /// <summary>
         /// Gets or sets the paragraph style. Updating this to a heading style will flag the document to update the table of contents on open.
