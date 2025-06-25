@@ -622,7 +622,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private DocumentFormat.OpenXml.Drawing.Pictures.Picture? GetPicture() {
+        private DocumentFormat.OpenXml.Drawing.Pictures.Picture GetPicture() {
             if (_Image.Inline != null) {
                 return _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
             }
@@ -1868,7 +1868,7 @@ namespace OfficeIMO.Word {
             return anchor1;
         }
 
-        private Blip? GetBlip() {
+        private Blip GetBlip() {
             if (_Image.Inline != null) {
                 var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 return picture?.BlipFill?.Blip;
@@ -2088,15 +2088,15 @@ namespace OfficeIMO.Word {
             string relationshipId;
             var location = paragraph.Location();
             if (location.GetType() == typeof(Header)) {
-                var part = ((Header)location).HeaderPart;
+                var part = ((Header)location).HeaderPart!;
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Footer)) {
-                var part = ((Footer)location).FooterPart;
+                var part = ((Footer)location).FooterPart!;
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Document)) {
-                var part = document._wordprocessingDocument.MainDocumentPart;
+                var part = document._wordprocessingDocument.MainDocumentPart!;
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {

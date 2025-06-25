@@ -195,7 +195,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Optional title of the shape.
         /// </summary>
-        public string? Title {
+        public string Title {
             get {
                 if (_rectangle != null) return _rectangle.Title?.Value;
                 if (_ellipse != null) return _ellipse.Title?.Value;
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Alternative text description of the shape.
         /// </summary>
-        public string? Description {
+        public string Description {
             get {
                 if (_rectangle != null) return _rectangle.Alternate?.Value;
                 if (_ellipse != null) return _ellipse.Alternate?.Value;
@@ -251,7 +251,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Outline color in hex format. Null when not applicable.
         /// </summary>
-        public string? StrokeColorHex {
+        public string StrokeColorHex {
             get {
                 if (_rectangle != null) return _rectangle.StrokeColor?.Value;
                 if (_ellipse != null) return _ellipse.StrokeColor?.Value;
@@ -285,7 +285,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? StrokeWeight {
             get {
-                string? v = null;
+                string v = null;
                 if (_rectangle != null) v = _rectangle.StrokeWeight?.Value;
                 if (_ellipse != null) v ??= _ellipse.StrokeWeight?.Value;
                 if (_polygon != null) v ??= _polygon.StrokeWeight?.Value;
@@ -294,7 +294,7 @@ namespace OfficeIMO.Word {
                 return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
             }
             set {
-                string? v = value != null ? $"{value.Value.ToString(CultureInfo.InvariantCulture)}pt" : null;
+                string v = value != null ? $"{value.Value.ToString(CultureInfo.InvariantCulture)}pt" : null;
                 if (_rectangle != null) _rectangle.StrokeWeight = v;
                 if (_ellipse != null) _ellipse.StrokeWeight = v;
                 if (_polygon != null) _polygon.StrokeWeight = v;
@@ -321,7 +321,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private string? GetStyle() {
+        private string GetStyle() {
             return _rectangle?.Style?.Value ?? _ellipse?.Style?.Value ?? _polygon?.Style?.Value;
         }
 
@@ -331,7 +331,7 @@ namespace OfficeIMO.Word {
             if (_polygon != null) _polygon.Style = style;
         }
 
-        private string? GetStyleValue(string name) {
+        private string GetStyleValue(string name) {
             var style = GetStyle();
             if (string.IsNullOrEmpty(style)) return null;
             foreach (var part in style.Split(';')) {
