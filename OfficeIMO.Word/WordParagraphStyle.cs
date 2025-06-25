@@ -9,17 +9,53 @@ namespace OfficeIMO.Word {
     /// Lists built-in and custom paragraph styles.
     /// </summary>
     public enum WordParagraphStyles {
+        /// <summary>
+        /// The default paragraph style.
+        /// </summary>
         Normal,
+        /// <summary>
+        /// First-level heading.
+        /// </summary>
         Heading1,
+        /// <summary>
+        /// Second-level heading.
+        /// </summary>
         Heading2,
+        /// <summary>
+        /// Third-level heading.
+        /// </summary>
         Heading3,
+        /// <summary>
+        /// Fourth-level heading.
+        /// </summary>
         Heading4,
+        /// <summary>
+        /// Fifth-level heading.
+        /// </summary>
         Heading5,
+        /// <summary>
+        /// Sixth-level heading.
+        /// </summary>
         Heading6,
+        /// <summary>
+        /// Seventh-level heading.
+        /// </summary>
         Heading7,
+        /// <summary>
+        /// Eighth-level heading.
+        /// </summary>
         Heading8,
+        /// <summary>
+        /// Ninth-level heading.
+        /// </summary>
         Heading9,
+        /// <summary>
+        /// Style used for list paragraphs.
+        /// </summary>
         ListParagraph,
+        /// <summary>
+        /// Placeholder for a custom paragraph style.
+        /// </summary>
         Custom
     }
 
