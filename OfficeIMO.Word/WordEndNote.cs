@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
         private readonly Paragraph _paragraph;
         private readonly Run _run;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordEndNote"/> class.
+        /// </summary>
         public WordEndNote(WordDocument document, Paragraph paragraph, Run run) {
             this._document = document;
             this._paragraph = paragraph;
@@ -68,6 +71,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the endnote reference identifier if available.
+        /// </summary>
         public long? ReferenceId {
             get {
                 if (_paragraph != null && _run != null) {
@@ -80,6 +86,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Removes the endnote and its reference from the document.
+        /// </summary>
         public void Remove() {
             long referenceId = 0;
             var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
