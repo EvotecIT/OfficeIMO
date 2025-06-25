@@ -512,6 +512,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all embedded documents within the document.
+        /// </summary>
         public List<WordEmbeddedDocument> EmbeddedDocuments {
             get {
                 List<WordEmbeddedDocument> list = new List<WordEmbeddedDocument>();
@@ -563,6 +566,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all embedded objects within the document.
+        /// </summary>
         public List<WordEmbeddedObject> EmbeddedObjects {
             get {
                 List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
@@ -573,6 +579,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all fields within the document.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -584,6 +593,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Provides a list of all charts within the document.
+        /// </summary>
         public List<WordChart> Charts {
             get {
                 List<WordChart> list = new List<WordChart>();
@@ -1405,6 +1417,11 @@ namespace OfficeIMO.Word {
             return SaveAsync("", false, cancellationToken);
         }
 
+        /// <summary>
+        /// Asynchronously saves the document to the specified file.
+        /// </summary>
+        /// <param name="filePath">The path to save the document to.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(string filePath, CancellationToken cancellationToken = default) {
             return SaveAsync(filePath, false, cancellationToken);
         }
