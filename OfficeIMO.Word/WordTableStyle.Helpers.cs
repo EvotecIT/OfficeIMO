@@ -2,7 +2,15 @@
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Provides helper methods for working with table styles.
+/// </summary>
 public static partial class WordTableStyles {
+    /// <summary>
+    /// Converts a style name into its corresponding <see cref="WordTableStyle"/> value.
+    /// </summary>
+    /// <param name="style">The style name as defined by Microsoft Word.</param>
+    /// <returns>The matching <see cref="WordTableStyle"/> enumeration value.</returns>
     public static WordTableStyle GetStyle(string style) {
         switch (style) {
             // Grid Tables - Line 1
@@ -135,6 +143,11 @@ public static partial class WordTableStyles {
         throw new ArgumentOutOfRangeException(nameof(style));
     }
 
+    /// <summary>
+    /// Creates a <see cref="TableStyle"/> element representing the specified table style.
+    /// </summary>
+    /// <param name="style">The <see cref="WordTableStyle"/> to convert.</param>
+    /// <returns>A <see cref="TableStyle"/> element configured for the given style.</returns>
     public static TableStyle GetStyle(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
@@ -280,6 +293,11 @@ public static partial class WordTableStyles {
         return false;
     }
 
+    /// <summary>
+    /// Gets the underlying <see cref="Style"/> definition for a given table style.
+    /// </summary>
+    /// <param name="style">The style to retrieve.</param>
+    /// <returns>The <see cref="Style"/> definition that represents the provided enumeration value.</returns>
     public static Style GetStyleDefinition(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
