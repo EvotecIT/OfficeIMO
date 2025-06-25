@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// A wrapper for Word document comments.
+    /// </summary>
     public partial class WordComment : WordElement {
         private WordParagraph _paragraph;
         private readonly WordDocument _document;
