@@ -6,6 +6,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents the shared functionality for headers and footers and
+    /// exposes their content through various collections.
+    /// </summary>
     public partial class WordHeaderFooter {
         private protected HeaderFooterValues _type;
         private protected HeaderPart _headerPart;
@@ -15,6 +19,9 @@ namespace OfficeIMO.Word {
         private protected string _id;
         protected WordDocument _document;
 
+        /// <summary>
+        /// Gets all paragraphs contained in the header or footer.
+        /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
                 if (_header != null) {
@@ -27,6 +34,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all tables contained in the header or footer.
+        /// </summary>
         public List<WordTable> Tables {
             get {
                 if (_header != null) {
@@ -39,22 +49,37 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain a page break.
+        /// </summary>
         public List<WordParagraph> ParagraphsPageBreaks {
             get { return Paragraphs.Where(p => p.IsPageBreak).ToList(); }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain a hyperlink.
+        /// </summary>
         public List<WordParagraph> ParagraphsHyperLinks {
             get { return Paragraphs.Where(p => p.IsHyperLink).ToList(); }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain a field.
+        /// </summary>
         public List<WordParagraph> ParagraphsFields {
             get { return Paragraphs.Where(p => p.IsField).ToList(); }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain a bookmark.
+        /// </summary>
         public List<WordParagraph> ParagraphsBookmarks {
             get { return Paragraphs.Where(p => p.IsBookmark).ToList(); }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain an equation.
+        /// </summary>
         public List<WordParagraph> ParagraphsEquations {
             get { return Paragraphs.Where(p => p.IsEquation).ToList(); }
         }
@@ -66,6 +91,9 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList(); }
         }
 
+        /// <summary>
+        /// Gets paragraphs that contain a check box.
+        /// </summary>
         public List<WordParagraph> ParagraphsCheckBoxes {
             get { return Paragraphs.Where(p => p.IsCheckBox).ToList(); }
         }
@@ -77,6 +105,9 @@ namespace OfficeIMO.Word {
             get { return Paragraphs.Where(p => p.IsImage).ToList(); }
         }
 
+        /// <summary>
+        /// Gets the page breaks contained in the header or footer.
+        /// </summary>
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
@@ -104,6 +135,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the bookmarks contained in the header or footer.
+        /// </summary>
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
@@ -116,6 +150,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the fields contained in the header or footer.
+        /// </summary>
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
@@ -128,6 +165,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the hyperlinks contained in the header or footer.
+        /// </summary>
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
@@ -140,6 +180,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the equations contained in the header or footer.
+        /// </summary>
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
@@ -152,6 +195,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the structured document tags contained in the header or footer.
+        /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
@@ -164,6 +210,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the check boxes contained in the header or footer.
+        /// </summary>
         public List<WordCheckBox> CheckBoxes {
             get {
                 List<WordCheckBox> list = new List<WordCheckBox>();
@@ -176,6 +225,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the watermarks contained in the header or footer.
+        /// </summary>
         public List<WordWatermark> Watermarks {
             get {
                 if (_header != null) {

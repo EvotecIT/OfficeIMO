@@ -13,6 +13,10 @@ using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an image contained in a <see cref="WordDocument"/> and provides
+    /// functionality to insert and manipulate pictures.
+    /// </summary>
     public class WordImage : WordElement {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
@@ -98,6 +102,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the compression quality for embedded images.
+        /// </summary>
         public BlipCompressionValues? CompressionQuality {
             get {
                 if (_Image.Inline != null) {
@@ -138,6 +145,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the relationship id of the embedded image.
+        /// </summary>
         public string RelationshipId {
             get {
                 if (_Image.Inline != null) {
@@ -176,6 +186,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the file path or name for the image.
+        /// </summary>
         public string FilePath { get; set; }
 
         /// <summary>
@@ -368,6 +381,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the image width in EMUs.
+        /// </summary>
         public double? EmuWidth {
             get {
                 if (_Image.Inline != null) {
@@ -380,6 +396,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets the image height in EMUs.
+        /// </summary>
         public double? EmuHeight {
             get {
                 if (_Image.Inline != null) {
@@ -393,6 +412,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the shape type used to display the image.
+        /// </summary>
         public ShapeTypeValues? Shape {
             get {
                 if (_Image.Inline != null) {
@@ -476,6 +498,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets whether the image is vertically flipped.
+        /// </summary>
         public bool? VerticalFlip {
             get {
                 if (_Image.Inline != null) {
@@ -512,6 +537,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets whether the image is horizontally flipped.
+        /// </summary>
         public bool? HorizontalFlip {
             get {
                 if (_Image.Inline != null) {
@@ -550,6 +578,9 @@ namespace OfficeIMO.Word {
         }
 
 
+        /// <summary>
+        /// Gets or sets the image rotation in degrees.
+        /// </summary>
         public int? Rotation {
             get {
                 if (_Image.Inline != null) {
@@ -928,6 +959,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the anchor location of the image.
+        /// </summary>
         public (int X, int Y) Location {
             get {
                 if (_Image.Anchor != null) {
@@ -973,6 +1007,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the aspect ratio is locked.
+        /// </summary>
         public bool? NoChangeAspect {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -985,6 +1022,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the image cannot be cropped.
+        /// </summary>
         public bool? NoCrop {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -997,6 +1037,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the image is locked from moving.
+        /// </summary>
         public bool? NoMove {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -1009,6 +1052,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the image cannot be resized.
+        /// </summary>
         public bool? NoResize {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -1021,6 +1067,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the image cannot be rotated.
+        /// </summary>
         public bool? NoRot {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -1033,6 +1082,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the image cannot be selected.
+        /// </summary>
         public bool? NoSelect {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
@@ -1094,6 +1146,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the alpha inversion color in hex.
+        /// </summary>
         public string AlphaInversionColorHex {
             get {
                 var blip = GetBlip();
@@ -1124,6 +1179,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the alpha inversion color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? AlphaInversionColor {
             get {
                 if (AlphaInversionColorHex == null) return (SixLabors.ImageSharp.Color?)null;
@@ -1132,6 +1190,9 @@ namespace OfficeIMO.Word {
             set { AlphaInversionColorHex = value?.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the threshold for black and white effect.
+        /// </summary>
         public int? BlackWhiteThreshold {
             get {
                 var blip = GetBlip();
@@ -1158,6 +1219,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the blur radius in EMUs.
+        /// </summary>
         public int? BlurRadius {
             get {
                 var blip = GetBlip();
@@ -1183,6 +1247,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the blur grows the image's bounds.
+        /// </summary>
         public bool? BlurGrow {
             get {
                 var blip = GetBlip();
@@ -1208,6 +1275,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the source color to change from in hex.
+        /// </summary>
         public string ColorChangeFromHex {
             get {
                 var blip = GetBlip();
@@ -1221,6 +1291,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the target color to change to in hex.
+        /// </summary>
         public string ColorChangeToHex {
             get {
                 var blip = GetBlip();
@@ -1234,6 +1307,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the source color to change from.
+        /// </summary>
         public SixLabors.ImageSharp.Color? ColorChangeFrom {
             get {
                 return ColorChangeFromHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeFromHex);
@@ -1241,6 +1317,9 @@ namespace OfficeIMO.Word {
             set { ColorChangeFromHex = value?.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the target color to change to.
+        /// </summary>
         public SixLabors.ImageSharp.Color? ColorChangeTo {
             get {
                 return ColorChangeToHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeToHex);
@@ -1276,6 +1355,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a color replacement hex value.
+        /// </summary>
         public string ColorReplacementHex {
             get {
                 var blip = GetBlip();
@@ -1306,6 +1388,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a color replacement.
+        /// </summary>
         public SixLabors.ImageSharp.Color? ColorReplacement {
             get {
                 return ColorReplacementHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorReplacementHex);
@@ -1313,6 +1398,9 @@ namespace OfficeIMO.Word {
             set { ColorReplacementHex = value?.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the first duotone color in hex.
+        /// </summary>
         public string DuotoneColor1Hex {
             get {
                 var blip = GetBlip();
@@ -1326,6 +1414,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the second duotone color in hex.
+        /// </summary>
         public string DuotoneColor2Hex {
             get {
                 var blip = GetBlip();
@@ -1339,6 +1430,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the first duotone color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? DuotoneColor1 {
             get {
                 return DuotoneColor1Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor1Hex);
@@ -1346,6 +1440,9 @@ namespace OfficeIMO.Word {
             set { DuotoneColor1Hex = value?.ToHexColor(); }
         }
 
+        /// <summary>
+        /// Gets or sets the second duotone color.
+        /// </summary>
         public SixLabors.ImageSharp.Color? DuotoneColor2 {
             get {
                 return DuotoneColor2Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor2Hex);
@@ -1372,6 +1469,9 @@ namespace OfficeIMO.Word {
                 duo.Append(new RgbColorModelHex { Val = _duotoneColor2Hex });
         }
 
+        /// <summary>
+        /// Gets or sets whether the image is displayed in grayscale.
+        /// </summary>
         public bool? GrayScale {
             get {
                 var blip = GetBlip();
@@ -1392,6 +1492,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the brightness adjustment.
+        /// </summary>
         public int? LuminanceBrightness {
             get {
                 var blip = GetBlip();
@@ -1406,6 +1509,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the contrast adjustment.
+        /// </summary>
         public int? LuminanceContrast {
             get {
                 var blip = GetBlip();
@@ -1436,6 +1542,9 @@ namespace OfficeIMO.Word {
             lum.Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null;
         }
 
+        /// <summary>
+        /// Gets or sets the tint amount.
+        /// </summary>
         public int? TintAmount {
             get {
                 var blip = GetBlip();
@@ -1449,6 +1558,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the tint hue.
+        /// </summary>
         public int? TintHue {
             get {
                 var blip = GetBlip();
@@ -1478,6 +1590,9 @@ namespace OfficeIMO.Word {
             tint.Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null;
         }
 
+        /// <summary>
+        /// Initializes a new image from a file path.
+        /// </summary>
         public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
@@ -1487,6 +1602,9 @@ namespace OfficeIMO.Word {
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
+        /// <summary>
+        /// Initializes a new image from a stream.
+        /// </summary>
         public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = fileName;
             shape ??= ShapeTypeValues.Rectangle; // Set default value if not provided
@@ -1494,6 +1612,9 @@ namespace OfficeIMO.Word {
             AddImage(document, paragraph, imageStream, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
+        /// <summary>
+        /// Initializes a new image from a base64 string.
+        /// </summary>
         public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = fileName;
             shape ??= ShapeTypeValues.Rectangle;
@@ -1503,6 +1624,9 @@ namespace OfficeIMO.Word {
             AddImage(document, paragraph, ms, fileName, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
         }
 
+        /// <summary>
+        /// Initializes an image linked to an external URI.
+        /// </summary>
         public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
             FilePath = externalUri.ToString();
             shape ??= ShapeTypeValues.Rectangle;
@@ -1758,6 +1882,9 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        /// <summary>
+        /// Wraps an existing drawing as a WordImage.
+        /// </summary>
         public WordImage(WordDocument document, Drawing drawing) {
             _document = document;
             _Image = drawing;

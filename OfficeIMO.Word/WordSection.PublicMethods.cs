@@ -9,10 +9,20 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordSection {
+        /// <summary>
+        /// Updates the margins for this section.
+        /// </summary>
+        /// <param name="pageMargins">Margin values to apply.</param>
+        /// <returns>The current section.</returns>
         public WordSection SetMargins(WordMargin pageMargins) {
             return WordMargins.SetMargins(this, pageMargins);
         }
 
+        /// <summary>
+        /// Adds a new paragraph to the section.
+        /// </summary>
+        /// <param name="newRun">Whether to create a run within the paragraph.</param>
+        /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(bool newRun) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (this.Paragraphs.Count == 0) {
@@ -25,6 +35,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a new paragraph containing the specified text.
+        /// </summary>
+        /// <param name="text">Text to place in the paragraph.</param>
+        /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(string text = "") {
             if (this.Paragraphs.Count == 0) {
                 WordParagraph paragraph = this._document.AddParagraph();
@@ -46,6 +61,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a watermark to the section.
+        /// </summary>
+        /// <param name="watermarkStyle">Watermark style.</param>
+        /// <param name="textOrFilePath">Text or image file path.</param>
+        /// <returns>The created <see cref="WordWatermark"/> instance.</returns>
         public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
             // return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
             return new WordWatermark(this._document, this, watermarkStyle, textOrFilePath);
@@ -60,33 +81,81 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Applies border settings to the section.
+        /// </summary>
+        /// <param name="wordBorder">Border preset to apply.</param>
+        /// <returns>The current section.</returns>
         public WordSection SetBorders(WordBorder wordBorder) {
             this.Borders.SetBorder(wordBorder);
 
             return this;
         }
 
+        /// <summary>
+        /// Inserts a horizontal line paragraph into the section.
+        /// </summary>
+        /// <param name="lineType">Border style of the line.</param>
+        /// <param name="color">Line color.</param>
+        /// <param name="size">Line width.</param>
+        /// <param name="space">Line spacing.</param>
+        /// <returns>The paragraph containing the line.</returns>
         public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
             return this.AddParagraph("").AddHorizontalLine(lineType.Value, color, size, space);
         }
 
+        /// <summary>
+        /// Adds a hyperlink paragraph pointing to a URI.
+        /// </summary>
+        /// <param name="text">Display text.</param>
+        /// <param name="uri">Target URI.</param>
+        /// <param name="addStyle">Whether to apply hyperlink style.</param>
+        /// <param name="tooltip">Optional tooltip.</param>
+        /// <param name="history">Add to document history.</param>
+        /// <returns>The created paragraph.</returns>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
+        /// <summary>
+        /// Adds a hyperlink paragraph pointing to an internal anchor.
+        /// </summary>
+        /// <param name="text">Display text.</param>
+        /// <param name="anchor">Bookmark anchor name.</param>
+        /// <param name="addStyle">Whether to apply hyperlink style.</param>
+        /// <param name="tooltip">Optional tooltip.</param>
+        /// <param name="history">Add to document history.</param>
+        /// <returns>The created paragraph.</returns>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
+        /// <summary>
+        /// Adds default headers and footers to the section.
+        /// </summary>
         public void AddHeadersAndFooters() {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
+        /// <summary>
+        /// Adds a text box paragraph to the section.
+        /// </summary>
+        /// <param name="text">Initial text inside the text box.</param>
+        /// <param name="wrapTextImage">Wrapping style.</param>
+        /// <returns>The created <see cref="WordTextBox"/>.</returns>
         public WordTextBox AddTextBox(string text, WrapTextImage wrapTextImage = WrapTextImage.Square) {
             return AddParagraph(newRun: true).AddTextBox(text, wrapTextImage);
         }
 
+        /// <summary>
+        /// Configures footnote properties for the section.
+        /// </summary>
+        /// <param name="numberingFormat">Numbering format.</param>
+        /// <param name="position">Footnote position.</param>
+        /// <param name="restartNumbering">Restart numbering option.</param>
+        /// <param name="startNumber">Starting number.</param>
+        /// <returns>The current section.</returns>
         public WordSection AddFootnoteProperties(NumberFormatValues? numberingFormat = null,
             FootnotePositionValues? position = null,
             RestartNumberValues? restartNumbering = null,
@@ -121,6 +190,14 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Configures endnote properties for the section.
+        /// </summary>
+        /// <param name="numberingFormat">Numbering format.</param>
+        /// <param name="position">Endnote position.</param>
+        /// <param name="restartNumbering">Restart numbering option.</param>
+        /// <param name="startNumber">Starting number.</param>
+        /// <returns>The current section.</returns>
         public WordSection AddEndnoteProperties(NumberFormatValues? numberingFormat = null,
             EndnotePositionValues? position = null,
             RestartNumberValues? restartNumbering = null,
@@ -155,6 +232,12 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        /// <summary>
+        /// Adds or updates page numbering for the section.
+        /// </summary>
+        /// <param name="startNumber">Starting page number.</param>
+        /// <param name="format">Number format.</param>
+        /// <returns>The current section.</returns>
         public WordSection AddPageNumbering(int? startNumber = null, NumberFormatValues? format = null) {
             var existing = _sectionProperties.GetFirstChild<PageNumberType>();
             existing?.Remove();

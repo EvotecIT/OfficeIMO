@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Defines hyperlink target frames.
+    /// </summary>
     public enum TargetFrame {
         /// <summary>
         /// opens in the current window
@@ -25,11 +28,19 @@ namespace OfficeIMO.Word {
         _blank
     }
 
+    /// <summary>
+    /// Represents a hyperlink element within a Word document.
+    /// Provides helper methods for modifying hyperlink text,
+    /// formatting, and target information.
+    /// </summary>
     public class WordHyperLink : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         internal readonly Hyperlink _hyperlink;
 
+        /// <summary>
+        /// Gets or sets the URI of the hyperlink.
+        /// </summary>
         public System.Uri Uri {
             get {
                 var list = _document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships;
@@ -73,8 +84,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Indicates whether the hyperlink uses the mailto scheme.
+        /// </summary>
         public bool IsEmail => Uri.Scheme == Uri.UriSchemeMailto;
 
+        /// <summary>
+        /// Gets the email address if the hyperlink is a mailto link.
+        /// </summary>
         public string EmailAddress {
             get {
                 if (IsEmail) {
@@ -85,6 +102,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether the hyperlink is marked as visited.
+        /// </summary>
         public bool History {
             get {
                 return _hyperlink.History;
@@ -120,6 +140,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the tooltip displayed when hovering over the hyperlink.
+        /// </summary>
         public string Tooltip {
             get {
                 return _hyperlink.Tooltip;
@@ -129,6 +152,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the target frame for the hyperlink.
+        /// </summary>
         public TargetFrame? TargetFrame {
             get {
                 if (_hyperlink != null) {
@@ -146,10 +172,19 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the hyperlink uses the HTTP or HTTPS scheme.
+        /// </summary>
         public bool IsHttp => Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp;
 
+        /// <summary>
+        /// Gets the scheme component of the hyperlink URI.
+        /// </summary>
         public string Scheme => Uri.Scheme;
 
+        /// <summary>
+        /// Gets or sets the display text for the hyperlink.
+        /// </summary>
         public string Text {
             get {
                 var run = _hyperlink.ChildElements.OfType<Run>().FirstOrDefault();
@@ -177,6 +212,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordHyperLink"/> class.
+        /// </summary>
         public WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
             _paragraph = paragraph;
@@ -228,6 +266,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Adds a hyperlink pointing to the specified anchor within the document.
+        /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             Hyperlink hyperlink = new Hyperlink() {
                 Anchor = anchor,
@@ -259,6 +300,9 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        /// <summary>
+        /// Adds a hyperlink pointing to an external URI.
+        /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 

@@ -16,6 +16,9 @@ using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Inserts and controls page-number elements.
+/// </summary>
 public partial class WordPageNumber {
     private WordDocument _document;
     private SdtBlock _sdtBlock;
@@ -24,6 +27,9 @@ public partial class WordPageNumber {
     private WordParagraph _wordParagraph;
     private readonly List<WordParagraph> _listParagraphs;
 
+    /// <summary>
+    /// Gets or sets the alignment of the page-number paragraph.
+    /// </summary>
     public JustificationValues? ParagraphAlignment {
         get {
             return this._wordParagraph.ParagraphAlignment;
@@ -47,10 +53,16 @@ public partial class WordPageNumber {
         get { return _listParagraphs; }
     }
 
+    /// <summary>
+    /// Gets the underlying field representing the page number.
+    /// </summary>
     public WordField Field {
         get { return _wordParagraph.Field; }
     }
 
+    /// <summary>
+    /// Gets the numeric value from the field text if available.
+    /// </summary>
     public int? Number {
         get {
             return int.TryParse(Field.Text, out int result) ? result : null;

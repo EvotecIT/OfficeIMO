@@ -3,6 +3,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Partial class containing property definitions and helper fields for
+    /// <see cref="WordChart"/>.
+    /// </summary>
     public partial class WordChart {
         private const long EnglishMetricUnitsPerInch = 914400;
         private const long PixelsPerInch = 96;
@@ -43,6 +47,9 @@ namespace OfficeIMO.Word {
         private SixLabors.ImageSharp.Color _axisTitleColor = SixLabors.ImageSharp.Color.Black;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
+        /// <summary>
+        /// Gets or sets the bar grouping mode for bar charts.
+        /// </summary>
         public BarGroupingValues? BarGrouping {
             get {
                 if (_chartPart != null) {
@@ -71,6 +78,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the bar direction (row or column) for bar charts.
+        /// </summary>
         public BarDirectionValues? BarDirection {
             get {
                 if (_chartPart != null) {
@@ -101,6 +111,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets whether the chart frame uses rounded corners.
+        /// </summary>
         public bool RoundedCorners {
             get {
                 var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();

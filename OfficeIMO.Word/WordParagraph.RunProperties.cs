@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the run is bold.
+        /// </summary>
         public bool Bold {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -38,6 +41,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the run is italic.
+        /// </summary>
         public bool Italic {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -64,6 +70,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the underline style for the run.
+        /// </summary>
         public UnderlineValues? Underline {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -94,6 +103,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether spelling and grammar checks are disabled.
+        /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -120,6 +132,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the character spacing value in twentieths of a point.
+        /// </summary>
         public int? Spacing {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -148,6 +163,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the run is struck through.
+        /// </summary>
         public bool Strike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -174,6 +192,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the run has a double strikethrough.
+        /// </summary>
         public bool DoubleStrike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -199,6 +220,9 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the font size in points.
+        /// </summary>
         public int? FontSize {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -228,6 +252,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the text color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// </summary>
         public SixLabors.ImageSharp.Color? Color {
             get {
                 if (ColorHex == "") {
@@ -243,6 +270,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the text color as a hexadecimal string.
+        /// </summary>
         public string ColorHex {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -271,6 +301,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the theme color applied to the run.
+        /// </summary>
         public ThemeColorValues? ThemeColor {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -302,6 +335,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the highlight color applied to the run.
+        /// </summary>
         public HighlightColorValues? Highlight {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -327,6 +363,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the capitalization style for the run.
+        /// </summary>
         public CapsStyle CapsStyle {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -404,6 +443,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the HighAnsi font family.
+        /// </summary>
         public string FontFamilyHighAnsi {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -434,6 +476,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the East Asia font family.
+        /// </summary>
         public string FontFamilyEastAsia {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -464,6 +509,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the complex script font family.
+        /// </summary>
         public string FontFamilyComplexScript {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -494,6 +542,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the character style applied to the run.
+        /// </summary>
         public WordCharacterStyles? CharacterStyle {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
@@ -521,6 +572,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the style identifier applied to the run.
+        /// </summary>
         public string CharacterStyleId {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;

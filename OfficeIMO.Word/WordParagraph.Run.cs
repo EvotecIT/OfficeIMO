@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains no run element.
+        /// </summary>
         public bool IsEmpty {
             get {
                 if (_run == null) {
@@ -15,6 +18,9 @@ namespace OfficeIMO.Word {
                 return false;
             }
         }
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a page break.
+        /// </summary>
         public bool IsPageBreak {
             get {
                 if (this.PageBreak != null) {
@@ -25,6 +31,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a break element.
+        /// </summary>
         public bool IsBreak {
             get {
                 if (this.Break != null) {

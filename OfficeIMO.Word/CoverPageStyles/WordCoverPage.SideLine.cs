@@ -12,6 +12,9 @@ using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents a cover page within a Word document.
+    /// </summary>
     public partial class WordCoverPage {
 
         private static SdtBlock CoverPageSideLine {

@@ -377,5 +377,40 @@ namespace OfficeIMO.Tests {
                     Word.FormatValidationErrors(chartErrors));
             }
         }
+        [Fact]
+        public void Test_ComboChartBarAndLine() {
+            var filePath = Path.Combine(_directoryWithFiles, "ComboChart.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var categories = new List<string> { "A", "B", "C" };
+                var chart = document.AddComboChart();
+                chart.AddChartAxisX(categories);
+                chart.AddBar("Sales", new List<int> { 1, 2, 3 }, Color.Blue);
+                chart.AddLine("Trend", new List<int> { 3, 2, 1 }, Color.Red);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.Charts);
+                var part = document._wordprocessingDocument.MainDocumentPart.ChartParts.First();
+                var c = part.ChartSpace.GetFirstChild<Chart>();
+                var bar = c.PlotArea.GetFirstChild<BarChart>();
+                var line = c.PlotArea.GetFirstChild<LineChart>();
+                Assert.NotNull(bar);
+                Assert.NotNull(line);
+                var barIds = bar.Elements<AxisId>().Select(a => a.Val.Value).ToList();
+                var lineIds = line.Elements<AxisId>().Select(a => a.Val.Value).ToList();
+                Assert.Equal(barIds, lineIds);
+                var seriesIdx = bar.Elements<BarChartSeries>().Select(s => s.Index.Val.Value)
+                    .Concat(line.Elements<LineChartSeries>().Select(s => s.Index.Val.Value))
+                    .ToList();
+                Assert.Equal(seriesIdx.Count, seriesIdx.Distinct().Count());
+
+                var validation = document.ValidateDocument();
+                var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
+                Assert.True(chartErrors.Count == 0,
+                    Word.FormatValidationErrors(chartErrors));
+            }
+        }
     }
 }
