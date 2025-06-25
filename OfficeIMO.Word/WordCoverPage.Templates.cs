@@ -14,12 +14,13 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Represents a cover page within a Word document.
+    /// Represents a cover page within a Word document. This file serves as a
+    /// placeholder for the <see cref="WordCoverPage"/> class and its various
+    /// templates, which are defined in separate files.
     /// </summary>
-    // This file serves as a placeholder for the WordCoverPage class
-    // All individual cover page templates have been moved to separate files
+    /// <remarks>
+    /// Each template follows the pattern <c>WordCoverPage.[TemplateName].cs</c>.
+    /// </remarks>
     public partial class WordCoverPage {
-        // All cover page templates are now in individual files
-        // Each template follows the pattern WordCoverPage.[TemplateName].cs
     }
 }
