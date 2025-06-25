@@ -6,15 +6,45 @@ namespace OfficeIMO.Word {
     /// Predefined character styles available in Word documents.
     /// </summary>
     public enum WordCharacterStyles {
+        /// <summary>
+        /// Default character formatting used for paragraphs.
+        /// </summary>
         DefaultParagraphFont,
+        /// <summary>
+        /// Character style associated with Heading 1 paragraphs.
+        /// </summary>
         Heading1Char,
+        /// <summary>
+        /// Character style associated with Heading 2 paragraphs.
+        /// </summary>
         Heading2Char,
+        /// <summary>
+        /// Character style associated with Heading 3 paragraphs.
+        /// </summary>
         Heading3Char,
+        /// <summary>
+        /// Character style associated with Heading 4 paragraphs.
+        /// </summary>
         Heading4Char,
+        /// <summary>
+        /// Character style associated with Heading 5 paragraphs.
+        /// </summary>
         Heading5Char,
+        /// <summary>
+        /// Character style associated with Heading 6 paragraphs.
+        /// </summary>
         Heading6Char,
+        /// <summary>
+        /// Character style associated with Heading 7 paragraphs.
+        /// </summary>
         Heading7Char,
+        /// <summary>
+        /// Character style associated with Heading 8 paragraphs.
+        /// </summary>
         Heading8Char,
+        /// <summary>
+        /// Character style associated with Heading 9 paragraphs.
+        /// </summary>
         Heading9Char,
     }
 
