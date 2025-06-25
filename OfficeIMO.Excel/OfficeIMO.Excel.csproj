@@ -28,6 +28,7 @@
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>
         <LangVersion>Latest</LangVersion>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <!--
       Turns off reference assembly generation
       See: https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies

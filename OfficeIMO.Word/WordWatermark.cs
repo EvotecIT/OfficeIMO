@@ -928,6 +928,10 @@ namespace OfficeIMO.Word {
             shape.Append(imageData1);
         }
 
+        /// <summary>
+        /// Removes this watermark from the document by deleting the structured
+        /// document tag that stores its content.
+        /// </summary>
         public void Remove() {
             _sdtBlock.Remove();
         }

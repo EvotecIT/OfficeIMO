@@ -6,7 +6,16 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Provides access to the built-in list styles and helper methods for
+/// working with numbering definitions.
+/// </summary>
 public static partial class WordListStyles {
+    /// <summary>
+    /// Retrieves the abstract numbering definition for the specified built-in list style.
+    /// </summary>
+    /// <param name="style">The list style to retrieve.</param>
+    /// <returns>The corresponding <see cref="AbstractNum"/> definition.</returns>
     public static AbstractNum GetStyle(WordListStyle style) {
         switch (style) {
             case WordListStyle.Bulleted: return Bulleted;

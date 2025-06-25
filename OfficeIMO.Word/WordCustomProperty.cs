@@ -16,9 +16,24 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordCustomProperty {
         //public string Name;
-        public Object Value;
+        /// <summary>
+        /// Gets or sets the raw value of the custom property.
+        /// </summary>
+        /// <remarks>The actual type is defined by <see cref="PropertyType"/>.</remarks>
+        public object Value;
+        /// <summary>
+        /// Gets or sets the kind of custom property.
+        /// </summary>
+        /// <remarks>
+        /// This determines how <see cref="Value"/> is interpreted when reading or
+        /// writing the property to a document.
+        /// </remarks>
         public PropertyTypes PropertyType;
 
+        /// <summary>
+        /// Gets the value as a <see cref="DateTime"/> when the property type is a date.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> if the underlying value is not a date.</remarks>
         public DateTime? Date {
             get {
                 if ((Value) is DateTime) {
@@ -28,6 +43,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets the value as an <see cref="int"/> when the property type represents an integer.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> when the value is not an integer.</remarks>
         public int? NumberInteger {
             get {
                 if ((Value) is int) {
@@ -38,6 +57,10 @@ namespace OfficeIMO.Word {
 
             }
         }
+        /// <summary>
+        /// Gets the value as a <see cref="double"/> when the property type represents a floating point number.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> when the value is not a double.</remarks>
         public double? NumberDouble {
             get {
                 if ((Value) is double) {
@@ -47,6 +70,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+        /// <summary>
+        /// Gets the value as text when the property type is textual.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> if the value does not contain text.</remarks>
         public string Text {
             get {
                 if ((Value) is string) {
@@ -57,6 +84,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the value as a boolean when the property type is <see cref="PropertyTypes.YesNo"/>.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> when the value is not a boolean.</remarks>
         public bool? Bool {
             get {
                 if ((Value) is bool) {

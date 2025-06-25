@@ -3,6 +3,9 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Defines the numbering or bullet style used for a particular list level.
+    /// </summary>
     public enum WordListLevelKind {
         None,
         Bullet,
@@ -38,11 +41,23 @@ namespace OfficeIMO.Word {
         UpperRomanBracket,
         UpperRomanDot
     }
+    /// <summary>
+    /// Represents a single level within a list and provides access to numbering and indentation settings.
+    /// </summary>
     public class WordListLevel {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordListLevel"/> class
+        /// based on an existing Open XML <see cref="Level"/> element.
+        /// </summary>
+        /// <param name="level">The underlying Open XML list level element.</param>
         public WordListLevel(Level level) {
             _level = level;
         }
 
+        /// <summary>
+        /// Gets or sets the underlying Open XML list level element that backs
+        /// this instance.
+        /// </summary>
         public Level _level { get; set; }
 
         /// <summary>

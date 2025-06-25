@@ -5,15 +5,25 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an embedded document within a <see cref="WordDocument"/>.
+    /// </summary>
     public class WordEmbeddedDocument : WordElement {
         private string _id;
         private AltChunk _altChunk;
         private readonly AlternativeFormatImportPart _altContent;
         private readonly WordDocument _document;
 
+        /// <summary>
+        /// Gets the content type of the embedded document.
+        /// </summary>
         public string ContentType => _altContent.ContentType;
 
 
+        /// <summary>
+        /// Saves the embedded document to the specified file.
+        /// </summary>
+        /// <param name="fileName">Target file path.</param>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
                 var altStream = _altContent.GetStream();
@@ -22,6 +32,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Removes the embedded document from the parent <see cref="WordDocument"/>.
+        /// </summary>
         public void Remove() {
             _altChunk.Remove();
 
@@ -39,6 +52,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordEmbeddedDocument"/> class
+        /// based on an existing <see cref="AltChunk"/> element.
+        /// </summary>
+        /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
+        /// <param name="altChunk">AltChunk that defines the embedded content.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, AltChunk altChunk) {
             _id = altChunk.Id;
             _altChunk = altChunk;
@@ -53,6 +72,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordEmbeddedDocument"/> class
+        /// using the specified file or HTML fragment.
+        /// </summary>
+        /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
+        /// <param name="fileNameOrContent">File path or HTML content to embed.</param>
+        /// <param name="alternativeFormatImportPartType">Explicit part type or <c>null</c> to infer from the file extension.</param>
+        /// <param name="htmlFragment">When <c>true</c>, <paramref name="fileNameOrContent"/> is treated as HTML markup rather than a file path.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
             WordAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {

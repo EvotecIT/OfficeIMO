@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml;
+using System.Linq;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
@@ -216,6 +217,20 @@ namespace OfficeIMO.Word {
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else if (_chart.PlotArea.GetFirstChild<BarChart>() == null) {
+                var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+                if (lineChart != null) {
+                    var ids = lineChart.Elements<AxisId>().ToList();
+                    var barChart = CreateBarChart(ids[0].Val, ids[1].Val);
+                    var catAxis = _chart.PlotArea.GetFirstChild<CategoryAxis>();
+                    if (catAxis != null) {
+                        _chart.PlotArea.InsertBefore(barChart, catAxis);
+                    } else {
+                        _chart.PlotArea.Append(barChart);
+                    }
+                } else {
+                    _chart = GenerateChartBar(_chart);
+                }
             }
         }
 
@@ -240,6 +255,20 @@ namespace OfficeIMO.Word {
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else if (_chart.PlotArea.GetFirstChild<LineChart>() == null) {
+                var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+                if (barChart != null) {
+                    var ids = barChart.Elements<AxisId>().ToList();
+                    var lineChart = CreateLineChart(ids[0].Val, ids[1].Val);
+                    var catAxis = _chart.PlotArea.GetFirstChild<CategoryAxis>();
+                    if (catAxis != null) {
+                        _chart.PlotArea.InsertBefore(lineChart, catAxis);
+                    } else {
+                        _chart.PlotArea.Append(lineChart);
+                    }
+                } else {
+                    _chart = GenerateLineChart(_chart);
+                }
             }
         }
 

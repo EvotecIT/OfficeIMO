@@ -10,10 +10,24 @@ using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an embedded object, such as a spreadsheet or PDF file, within a <see cref="WordDocument"/>.
+    /// </summary>
     public class WordEmbeddedObject {
         private readonly WordDocument _document;
         private readonly Run _run;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordEmbeddedObject"/> class and
+        /// inserts it into the specified <see cref="WordParagraph"/>.
+        /// </summary>
+        /// <param name="wordParagraph">Paragraph that will host the embedded object.</param>
+        /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
+        /// <param name="fileName">Path to the file to embed.</param>
+        /// <param name="fileImage">Path to the icon representing the embedded object.</param>
+        /// <param name="description">Description for the embedded object.</param>
+        /// <param name="width">Width of the icon in points. Defaults to <c>64.8</c>.</param>
+        /// <param name="height">Height of the icon in points. Defaults to <c>64.8</c>.</param>
         public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, double? width = null, double? height = null) {
 
 
@@ -35,6 +49,13 @@ namespace OfficeIMO.Word {
             //wordDocument._document.MainDocumentPart.Document.Body.AppendChild(p);
         }
 
+        /// <summary>
+        /// Initializes a new instance for unit tests or internal scenarios using specified options.
+        /// </summary>
+        /// <param name="wordParagraph">Paragraph that will host the object.</param>
+        /// <param name="wordDocument">Parent document.</param>
+        /// <param name="fileName">File to embed.</param>
+        /// <param name="options">Options controlling icon and dimensions.</param>
         internal WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, WordEmbeddedObjectOptions options) {
             _document = wordDocument;
             options ??= WordEmbeddedObjectOptions.Icon();
@@ -53,6 +74,11 @@ namespace OfficeIMO.Word {
             _run = run;
         }
 
+        /// <summary>
+        /// Initializes a new instance that wraps an existing <see cref="Run"/> containing an embedded object.
+        /// </summary>
+        /// <param name="wordDocument">Parent document.</param>
+        /// <param name="run">Run holding the embedded object.</param>
         internal WordEmbeddedObject(WordDocument wordDocument, Run run) {
             _document = wordDocument;
             _run = run;
@@ -209,6 +235,15 @@ namespace OfficeIMO.Word {
             return embeddedObject1;
         }
 
+        /// <summary>
+        /// Creates a new embedded object element using the provided identifiers.
+        /// </summary>
+        /// <param name="imageId">Relationship ID of the preview image.</param>
+        /// <param name="packageEmbedId">Relationship ID of the embedded package.</param>
+        /// <param name="programId">Program identifier describing the embedded content.</param>
+        /// <param name="width">Width of the object icon in points.</param>
+        /// <param name="height">Height of the object icon in points.</param>
+        /// <returns>The constructed <see cref="EmbeddedObject"/> instance.</returns>
         public EmbeddedObject GenerateEmbeddedObject(string imageId, string packageEmbedId, string programId, double width, double height) {
             EmbeddedObject embeddedObject1 = new EmbeddedObject() { DxaOriginal = "1297", DyaOriginal = "816", AnchorId = "595268A8" };
 

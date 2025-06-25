@@ -102,7 +102,10 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add Default, Odd, Even, First
     - ☑️ Remove Default, Odd, Even, First
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
+    - ☑️ Custom paragraph styles via `WordParagraphStyle`
 - ☑️ Paragraphs and change alignment
+- ☑️ Paragraph indentation (before, after, first line, hanging)
+- ☑️ Line spacing with support for twips and points
 - ☑️ Tables
     - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
     - ☑️ Add rows and columns
@@ -124,6 +127,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add images from file to Word
     - ☑️ Add images from Base64 strings
     - ☑️ Save image from Word to File
+    - ☑️ Crop images and set transparency
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
@@ -135,6 +139,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read PageBreak
     - ☑️ Remove PageBreak
     - ☑️ Change PageBreak
+- ☑️ Page numbering
+    - ☑️ Insert page numbers in headers or footers
+    - ☑️ Choose style with `WordPageNumberStyle`
 - ☑️ Bookmarks
     - ☑️ Add Bookmark
     - ☑️ Read Bookmark
@@ -159,6 +166,15 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️Add new endnotes
     - ☑️Read endnotes
     - ☑️Remove endnotes
+- ☑️ Document variables
+    - ☑️ Set and read variables stored in the document
+    - ☑️ Remove variables by name or index
+- ☑️ Macros
+    - ☑️ Add or extract VBA projects
+    - ☑️ Remove macro modules
+- ☑️ Mail merge
+    - ☑️ Replace `MERGEFIELD` values
+    - ☑️ Optionally keep field codes
 - ☑️ Content Controls
     - ☑️ Add controls
     - ☑️ Read controls
@@ -176,16 +192,25 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Pie and Pie 3D
         - ☑️ Bar and Bar 3D
         - ☑️ Line and Line 3D
+        - ☑️ Combo (Bar + Line)
         - ☑️ Area and Area 3D
         - ☑️ Scatter
         - ☑️ Radar
     - ☑️ Add categories and legends
     - ☑️ Configure axes
     - ☑️ Add multiple series
+    - ⚠️ When mixing bar and line series call `AddChartAxisX` before adding
+      any data so both chart types share the same category axis.
+- ☑️ Equations
+    - ☑️ Insert Office Math equations from OMML
+    - ☑️ Remove equations when needed
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
     - ☑️ Clone lists preserving numbering settings
+    - ☑️ Add picture bullet lists
+    - ☑️ Create custom bullet and numbered lists
+    - ☑️ Detect list style from existing paragraphs
 - ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open
@@ -196,6 +221,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Set background color
 - ☑️ Watermarks
     - ☑️ Add text or image watermark
+    - ☑️ Choose text or image style via `WordWatermarkStyle`
     - ☑️ Set rotation, width and height
     - ☑️ Remove watermark
 
@@ -208,16 +234,26 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Insert HTML fragment after a paragraph
     - ☑️ Replace text with an HTML fragment
     - ☑️ Remove embedded documents
+    - ☑️ Embed objects with custom icons and sizes
+ - ☑️ [Digital signatures and document security](OfficeIMO.Tests/Word.DigitalSignature.cs)
+ - ☑️ [Accepting/rejecting revisions](OfficeIMO.Tests/Word.Revisions.cs)
+ - ☑️ [Async save/load APIs](OfficeIMO.Tests/Word.Async.cs)
+ - ☑️ [Merging multiple documents](OfficeIMO.Tests/Word.MergeDocuments.cs)
+ - ☑️ [Text boxes with positioning options](OfficeIMO.Tests/Word.TextBox.cs)
+ - ☑️ [Page orientation, page size, and margin presets](OfficeIMO.Tests/Word.PageSettings.cs) ([margins](OfficeIMO.Tests/Word.Sections.cs))
+ - ☑️ [Tab characters and custom tab stops](OfficeIMO.Tests/Word.TabStops.cs)
+ - ☑️ [Document validation utilities](OfficeIMO.Tests/Word.Validation.cs)
 
 - ☑️ Experimental Excel component
     - ☑️ Create and load workbooks
     - ☑️ Add worksheets
+    - ☑️ Async save and load APIs
 
 
 ## Features (oneliners):
 
 This list of features is for times when you want to quickly fix something rather than playing with full features.
-This features are available as part of `WordHelpers` class.
+These features are available as part of `WordHelpers` class.
 
 - ☑️ Remove Headers and Footers from a file
 - ☑️ Convert DOTX template to DOCX
@@ -452,6 +488,11 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     // create a custom bullet list
     var custom = document.AddCustomBulletList(WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
     custom.AddItem("Custom bullet item");
+
+    // create a list using an image as the bullet
+    var pictureList = document.AddPictureBulletList(Path.Combine(folderPath, "Images", "Kulek.jpg"));
+    pictureList.AddItem("Image bullet 1");
+    pictureList.AddItem("Image bullet 2");
 
     // create a multi-level custom list
     var builder = document.AddCustomList()

@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-
+using System.Threading;
 using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
@@ -10,9 +10,12 @@ using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
-using System.Threading;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides functionality for creating and manipulating charts within a
+    /// <see cref="WordDocument"/>.
+    /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
         private static int _docPrIdSeed = 1;
@@ -45,12 +48,27 @@ namespace OfficeIMO.Word {
             }
             _axisIdSeed = (int)max;
         }
+        /// <summary>
+        /// Initializes a <see cref="WordChart"/> instance from an existing drawing.
+        /// </summary>
+        /// <param name="document">Parent document that owns the chart.</param>
+        /// <param name="paragraph">Paragraph containing the chart.</param>
+        /// <param name="drawing">Existing drawing element with chart data.</param>
         public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
             _document = document;
             _drawing = drawing;
             _paragraph = paragraph;
         }
 
+        /// <summary>
+        /// Creates a new chart and inserts it into the specified paragraph.
+        /// </summary>
+        /// <param name="document">Parent document that will contain the chart.</param>
+        /// <param name="paragraph">Paragraph where the chart will be placed.</param>
+        /// <param name="title">Optional chart title.</param>
+        /// <param name="roundedCorners">Specifies whether the chart frame should have rounded corners.</param>
+        /// <param name="width">Initial chart width in pixels.</param>
+        /// <param name="height">Initial chart height in pixels.</param>
         public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
             _document = document;
             _paragraph = paragraph;
@@ -61,57 +79,18 @@ namespace OfficeIMO.Word {
 
         private UInt32Value _index {
             get {
-                var ids = new List<UInt32Value>();
                 if (_chart != null) {
-                    var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
-                    var line3dChart = _chart.PlotArea.GetFirstChild<Line3DChart>();
-                    var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
-                    var bar3dChart = _chart.PlotArea.GetFirstChild<Bar3DChart>();
-                    var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                    var pie3dChart = _chart.PlotArea.GetFirstChild<Pie3DChart>();
-                    var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
-                    if (lineChart != null) {
-                        var series = lineChart.ChildElements.OfType<LineChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (line3dChart != null) {
-                        var series = line3dChart.ChildElements.OfType<LineChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (pieChart != null) {
-                        var series = pieChart.ChildElements.OfType<PieChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (pie3dChart != null) {
-                        var series = pie3dChart.ChildElements.OfType<PieChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (barChart != null) {
-                        var series = barChart.ChildElements.OfType<BarChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (bar3dChart != null) {
-                        var series = bar3dChart.ChildElements.OfType<BarChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (areaChart != null) {
-                        var series = areaChart.ChildElements.OfType<AreaChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
+                    var ids = _chart.PlotArea
+                        .Descendants<DocumentFormat.OpenXml.Drawing.Charts.Index>()
+                        .Select(i => i.Val)
+                        .ToList();
+
+                    if (ids.Count > 0) {
+                        return ids.Max() + 1U;
                     }
                 }
-                if (ids.Count > 0) {
-                    return ids.Max() + 1;
-                } else {
-                    return 0;
-                }
+
+                return 0U;
             }
         }
         private CategoryAxis AddCategoryAxis() {
