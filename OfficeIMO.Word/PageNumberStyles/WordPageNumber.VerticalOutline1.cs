@@ -16,6 +16,9 @@ using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Represents a page-numbering building block.
+/// </summary>
 public partial class WordPageNumber {
     private static SdtBlock VerticalOutline1 {
         get {
