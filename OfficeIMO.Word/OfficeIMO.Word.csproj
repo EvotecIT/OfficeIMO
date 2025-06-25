@@ -29,7 +29,7 @@
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <ApplicationIcon>OfficeIMO.ico</ApplicationIcon>
-        <PackageReadmeFile>../README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -57,7 +57,7 @@
         </None>
         <None Include="..\README.md">
             <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
+            <PackagePath>README.md</PackagePath>
         </None>
     </ItemGroup>
 
