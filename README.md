@@ -128,6 +128,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add images from Base64 strings
     - ☑️ Save image from Word to File
     - ☑️ Crop images and set transparency
+    - ☑️ Image positioning and location retrieval
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
@@ -180,6 +181,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Read controls
     - ☑️ Update control text
     - ☑️ Remove controls
+    - ☑️ Checkbox form controls
 - ☑️ Shapes
     - ☑️ Add rectangles
     - ☑️ Add ellipses
@@ -236,6 +238,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Remove embedded documents
     - ☑️ Embed objects with custom icons and sizes
  - ☑️ [Digital signatures and document security](OfficeIMO.Tests/Word.DigitalSignature.cs)
+ - ☑️ [Document protection options](OfficeIMO.Tests/Word.Settings.cs) (final document, read-only recommended, read-only enforced)
  - ☑️ [Accepting/rejecting revisions](OfficeIMO.Tests/Word.Revisions.cs)
  - ☑️ [Async save/load APIs](OfficeIMO.Tests/Word.Async.cs)
  - ☑️ [Merging multiple documents](OfficeIMO.Tests/Word.MergeDocuments.cs)
@@ -243,6 +246,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
  - ☑️ [Page orientation, page size, and margin presets](OfficeIMO.Tests/Word.PageSettings.cs) ([margins](OfficeIMO.Tests/Word.Sections.cs))
  - ☑️ [Tab characters and custom tab stops](OfficeIMO.Tests/Word.TabStops.cs)
  - ☑️ [Document validation utilities](OfficeIMO.Tests/Word.Validation.cs)
+ - ☑️ [CleanupDocument method](OfficeIMO.Tests/Word.Cleanup.cs) merges identical runs
+ - ☑️ [Paragraph XML serialization](OfficeIMO.Examples/Word/XmlSerialization/XmlSerialization.Basic.cs)
+ - ☑️ [Measurement unit conversion helpers](OfficeIMO.Tests/Word.HelpersConversions.cs)
 
 - ☑️ Experimental Excel component
     - ☑️ Create and load workbooks
