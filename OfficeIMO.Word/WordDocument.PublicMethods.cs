@@ -139,15 +139,35 @@ namespace OfficeIMO.Word {
             return wordList;
         }
 
+        /// <summary>
+        /// Adds a table to the end of the document body.
+        /// </summary>
+        /// <param name="rows">Number of rows to create.</param>
+        /// <param name="columns">Number of columns to create.</param>
+        /// <param name="tableStyle">Optional table style to apply.</param>
+        /// <returns>The inserted <see cref="WordTable"/> instance.</returns>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
         }
 
+        /// <summary>
+        /// Creates a table without inserting it into the document.
+        /// </summary>
+        /// <param name="rows">Number of rows to create.</param>
+        /// <param name="columns">Number of columns to create.</param>
+        /// <param name="tableStyle">Optional table style to apply.</param>
+        /// <returns>The newly created <see cref="WordTable"/>.</returns>
         public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
             return WordTable.Create(this, rows, columns, tableStyle);
         }
 
+        /// <summary>
+        /// Inserts an existing table after the provided paragraph.
+        /// </summary>
+        /// <param name="anchor">Paragraph after which the table will be inserted.</param>
+        /// <param name="table">Table instance to insert.</param>
+        /// <returns>The inserted <see cref="WordTable"/>.</returns>
         public WordTable InsertTableAfter(WordParagraph anchor, WordTable table) {
             if (anchor == null) throw new ArgumentNullException(nameof(anchor));
             if (table == null) throw new ArgumentNullException(nameof(table));
@@ -156,6 +176,12 @@ namespace OfficeIMO.Word {
             return table;
         }
 
+        /// <summary>
+        /// Inserts a paragraph at the specified index within the body.
+        /// </summary>
+        /// <param name="index">Zero-based position at which to insert the paragraph.</param>
+        /// <param name="paragraph">Optional paragraph to insert. When <c>null</c> a new paragraph is created.</param>
+        /// <returns>The inserted <see cref="WordParagraph"/>.</returns>
         public WordParagraph InsertParagraphAt(int index, WordParagraph paragraph = null) {
             if (paragraph == null) {
                 paragraph = new WordParagraph(this, true, false);
