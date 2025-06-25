@@ -4,6 +4,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Contains methods to change print orientation for existing documents.
+    /// </summary>
     internal class OrientationOfPage {
         // https://github.com/OfficeDev/open-xml-docs/blob/master/docs/how-to-change-the-print-orientation-of-a-word-processing-document.md
         /// <summary>
