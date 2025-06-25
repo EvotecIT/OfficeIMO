@@ -7,7 +7,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-
+    /// <summary>
+    /// Manages footnotes within a Word document.
+    /// </summary>
     public partial class WordFootNote : WordElement {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
