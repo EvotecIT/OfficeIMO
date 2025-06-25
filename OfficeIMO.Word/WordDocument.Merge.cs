@@ -7,6 +7,11 @@ using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        /// <summary>
+        /// Appends the content of another <see cref="WordDocument"/> to this
+        /// document.
+        /// </summary>
+        /// <param name="source">The document to append.</param>
         public void AppendDocument(WordDocument source) {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
