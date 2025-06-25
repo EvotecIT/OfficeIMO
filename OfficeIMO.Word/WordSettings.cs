@@ -10,6 +10,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides typed access to document-level settings such as protection,
+    /// fonts and view options.
+    /// </summary>
     public class WordSettings {
         private WordDocument _document;
 
@@ -543,6 +547,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the document is marked as
+        /// final. When set to <c>true</c>, Word notifies users that the
+        /// document is finalized and should be treated as read-only.
+        /// </summary>
         public bool FinalDocument {
             get {
                 if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
@@ -562,6 +571,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the gutter should be placed
+        /// at the top of the page when the document uses a vertical layout.
+        /// </summary>
         public bool GutterAtTop {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
