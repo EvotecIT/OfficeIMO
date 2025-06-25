@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Predefined margin configurations available for a document section.
+    /// </summary>
     public enum WordMargin {
         Normal,
         Mirrored,
@@ -13,10 +16,18 @@ namespace OfficeIMO.Word {
         Unknown
     }
 
+    /// <summary>
+    /// Provides access to page margin settings for a document section.
+    /// </summary>
     public class WordMargins {
         private readonly WordDocument _document;
         private readonly WordSection _section;
 
+        /// <summary>
+        /// Initializes a new instance for managing margins within the specified section.
+        /// </summary>
+        /// <param name="wordDocument">Parent document.</param>
+        /// <param name="wordSection">Section associated with the margins.</param>
         public WordMargins(WordDocument wordDocument, WordSection wordSection) {
             _document = wordDocument;
             _section = wordSection;
@@ -213,6 +224,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the gutter size in Twips.
+        /// </summary>
         public UInt32Value Gutter {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -233,6 +247,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a predefined margin set that matches the current settings.
+        /// </summary>
         public WordMargin? Type {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -303,6 +320,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Applies a predefined margin configuration to the given section.
+        /// </summary>
+        /// <param name="wordSection">Target section to update.</param>
+        /// <param name="pageMargins">Predefined margin set to apply.</param>
+        /// <returns>The updated section.</returns>
         public static WordSection SetMargins(WordSection wordSection, WordMargin pageMargins) {
             var pageMarginData = GetDefault(pageMargins);
 
