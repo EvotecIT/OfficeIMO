@@ -245,7 +245,23 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     paragraph.ParagraphAlignment = JustificationValues.Center;
     paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-    document.Save(true);
+document.Save(true);
+}
+```
+
+### Creating documents directly in a stream
+
+This overload allows generating a document entirely in memory or on any provided stream.
+
+```csharp
+using var stream = new MemoryStream();
+using (var document = WordDocument.Create(stream)) {
+    document.AddParagraph("Stream based document");
+    document.Save(stream);
+}
+stream.Position = 0;
+using (var loaded = WordDocument.Load(stream)) {
+    Console.WriteLine(loaded.Paragraphs[0].Text);
 }
 ```
 

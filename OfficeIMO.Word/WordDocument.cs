@@ -806,7 +806,8 @@ namespace OfficeIMO.Word {
 
             WordDocument word = new WordDocument();
 
-            WordprocessingDocument wordDocument = WordprocessingDocument.Create(stream, documentType, autoSave);
+            // Always create the package in memory to avoid corrupting the target stream
+            WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
             wordDocument.MainDocumentPart.Document = new Document() {

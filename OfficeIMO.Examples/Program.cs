@@ -211,6 +211,8 @@ namespace OfficeIMO.Examples {
             FootNotes.Example_DocumentWithFootNotesEmpty(folderPath, false);
 
             SaveToStream.Example_StreamDocumentProperties(folderPath, false);
+            SaveToStream.Example_CreateInProvidedStream(folderPath, false);
+            SaveToStream.Example_CreateInProvidedStreamAdvanced(folderPath, false);
 
             Protect.Example_FinalDocument(folderPath, false);
             Protect.Example_ReadOnlyEnforced(folderPath, false);
