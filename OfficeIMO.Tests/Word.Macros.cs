@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             vba.AddStream("_VBA_PROJECT").SetData(new byte[0]);
             vba.AddStream("Module1").SetData(System.Text.Encoding.UTF8.GetBytes("test"));
             cf.RootStorage.AddStream("PROJECT").SetData(new byte[0]);
-            cf.Save(path);
+            cf.SaveAs(path);
             cf.Close();
             return path;
         }

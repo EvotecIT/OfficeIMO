@@ -1469,7 +1469,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Closes the underlying <see cref="WordprocessingDocument"/> and
-        /// saves the document when <see cref="WordprocessingDocument.AutoSave"/> is enabled.
+        /// saves the document when <see cref="DocumentFormat.OpenXml.Packaging.OpenXmlPackage.AutoSave"/> is enabled.
         /// </summary>
         public void Dispose() {
             if (this._wordprocessingDocument.AutoSave) {
