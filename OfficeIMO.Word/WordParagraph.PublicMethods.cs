@@ -470,11 +470,25 @@ namespace OfficeIMO.Word {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }
+        /// <summary>
+        /// Embeds an object with a preview image.
+        /// </summary>
+        /// <param name="filePath">Path to the object file.</param>
+        /// <param name="imageFilePath">Preview image path.</param>
+        /// <param name="width">Optional width in points.</param>
+        /// <param name="height">Optional height in points.</param>
+        /// <returns>The paragraph containing the embedded object.</returns>
         public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "", width, height);
             return this;
         }
 
+        /// <summary>
+        /// Embeds an object with custom options.
+        /// </summary>
+        /// <param name="filePath">Path to the object file.</param>
+        /// <param name="options">Embedding options.</param>
+        /// <returns>The paragraph containing the embedded object.</returns>
         public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, options);
             return this;
