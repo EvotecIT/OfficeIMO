@@ -4,9 +4,21 @@ namespace OfficeIMO.Word;
 /// Word horizontal alignment values
 /// </summary>
 public enum WordHorizontalAlignmentValues {
+    /// <summary>
+    /// Content is aligned to the left.
+    /// </summary>
     Left,
+    /// <summary>
+    /// Content is centered.
+    /// </summary>
     Center,
+    /// <summary>
+    /// Content is aligned to the right.
+    /// </summary>
     Right,
+    /// <summary>
+    /// Content is aligned to the outside of odd or even pages.
+    /// </summary>
     Outside
 }
 

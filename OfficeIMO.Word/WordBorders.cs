@@ -9,9 +9,21 @@ namespace OfficeIMO.Word {
     /// Border presets that can be applied to a document section.
     /// </summary>
     public enum WordBorder {
+        /// <summary>
+        /// No preset border is applied.
+        /// </summary>
         None,
+        /// <summary>
+        /// Custom border configured by the user.
+        /// </summary>
         Custom,
+        /// <summary>
+        /// Box border around the page.
+        /// </summary>
         Box,
+        /// <summary>
+        /// Border with a shadow effect.
+        /// </summary>
         Shadow
     }
 
