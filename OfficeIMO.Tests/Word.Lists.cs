@@ -854,7 +854,7 @@ public partial class Word {
 
         using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {
             Assert.NotNull(wordDoc.MainDocumentPart.NumberingDefinitionsPart);
-            Assert.Equal(1, wordDoc.MainDocumentPart.NumberingDefinitionsPart.Numbering.Elements<NumberingInstance>().Count());
+            Assert.Single(wordDoc.MainDocumentPart.NumberingDefinitionsPart.Numbering.Elements<NumberingInstance>());
         }
     }
 }
