@@ -7,8 +7,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Contains predefined table style definitions.
+/// </summary>
 public static partial class WordTableStyles {
 
+    /// <summary>
+    /// Gets the predefined style definition for Grid Table 2 Accent 1.
+    /// </summary>
     private static Style StyleGridTable2Accent1 {
         get {
             Style style1 = new Style() { Type = StyleValues.Table, StyleId = "GridTable2-Accent1" };

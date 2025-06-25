@@ -7,8 +7,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Contains predefined table style definitions.
+/// </summary>
 public static partial class WordTableStyles {
 
+    /// <summary>
+    /// Gets the predefined style definition for Table Grid.
+    /// </summary>
     private static Style StyleTableGrid {
         get {
             Style style1 = new Style() { Type = StyleValues.Table, StyleId = "TableGrid" };
