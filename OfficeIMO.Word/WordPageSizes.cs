@@ -54,6 +54,9 @@ namespace OfficeIMO.Word {
         B5
     }
 
+    /// <summary>
+    /// Provides helpers for manipulating Word page size and orientation.
+    /// </summary>
     public class WordPageSizes {
         private readonly WordSection _section;
         private readonly WordDocument _document;
@@ -288,6 +291,9 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(pageSize));
         }
 
+        /// <summary>
+        /// Gets the default A3 page size.
+        /// </summary>
         public static PageSize A3 {
             get {
                 return new PageSize() {
@@ -298,6 +304,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the default A4 page size.
+        /// </summary>
         public static PageSize A4 {
             get {
                 return new PageSize() {
@@ -308,6 +317,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the default A5 page size.
+        /// </summary>
         public static PageSize A5 {
             get {
                 return new PageSize() {
@@ -318,6 +330,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the default Executive page size.
+        /// </summary>
         public static PageSize Executive =>
             new PageSize() {
                 Width = (UInt32Value)10440U,
@@ -325,10 +340,25 @@ namespace OfficeIMO.Word {
                 Code = (UInt16Value)7U
             };
 
+        /// <summary>
+        /// Gets the default A6 page size.
+        /// </summary>
         public static PageSize A6 => new PageSize() { Width = (UInt32Value)5953U, Height = (UInt32Value)8391U, Code = (UInt16Value)70U };
+        /// <summary>
+        /// Gets the default B5 page size.
+        /// </summary>
         public static PageSize B5 => new PageSize() { Width = (UInt32Value)10318U, Height = (UInt32Value)14570U, Code = (UInt16Value)13U };
+        /// <summary>
+        /// Gets the default Statement page size.
+        /// </summary>
         public static PageSize Statement => new PageSize() { Width = (UInt32Value)7920U, Height = (UInt32Value)12240U, Code = (UInt16Value)6U };
+        /// <summary>
+        /// Gets the default Legal page size.
+        /// </summary>
         public static PageSize Legal => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)20160U, Code = (UInt16Value)5U };
+        /// <summary>
+        /// Gets the default Letter page size.
+        /// </summary>
         public static PageSize Letter => new PageSize() { Width = (UInt32Value)12240U, Height = (UInt32Value)15840U, Code = (UInt16Value)1U };
     }
 }
