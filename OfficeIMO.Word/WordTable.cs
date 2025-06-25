@@ -75,6 +75,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the built-in table style applied to this table.
+        /// Returns <c>null</c> when no style is assigned.
+        /// </summary>
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
@@ -90,6 +94,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the table within the page.
+        /// </summary>
         public TableRowAlignmentValues? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
@@ -111,6 +118,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the unit type used by the <see cref="Width"/> property.
+        /// </summary>
         public TableWidthUnitValues? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
