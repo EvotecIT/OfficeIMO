@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-
+using System.Threading;
 using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
@@ -10,7 +10,6 @@ using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
-using System.Threading;
 
 namespace OfficeIMO.Word {
     public partial class WordChart : WordElement {
@@ -61,57 +60,18 @@ namespace OfficeIMO.Word {
 
         private UInt32Value _index {
             get {
-                var ids = new List<UInt32Value>();
                 if (_chart != null) {
-                    var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
-                    var line3dChart = _chart.PlotArea.GetFirstChild<Line3DChart>();
-                    var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
-                    var bar3dChart = _chart.PlotArea.GetFirstChild<Bar3DChart>();
-                    var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                    var pie3dChart = _chart.PlotArea.GetFirstChild<Pie3DChart>();
-                    var areaChart = _chart.PlotArea.GetFirstChild<AreaChart>();
-                    if (lineChart != null) {
-                        var series = lineChart.ChildElements.OfType<LineChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (line3dChart != null) {
-                        var series = line3dChart.ChildElements.OfType<LineChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (pieChart != null) {
-                        var series = pieChart.ChildElements.OfType<PieChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (pie3dChart != null) {
-                        var series = pie3dChart.ChildElements.OfType<PieChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (barChart != null) {
-                        var series = barChart.ChildElements.OfType<BarChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (bar3dChart != null) {
-                        var series = bar3dChart.ChildElements.OfType<BarChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
-                    } else if (areaChart != null) {
-                        var series = areaChart.ChildElements.OfType<AreaChartSeries>();
-                        foreach (var index in series) {
-                            ids.Add(index.Index.Val);
-                        }
+                    var ids = _chart.PlotArea
+                        .Descendants<DocumentFormat.OpenXml.Drawing.Charts.Index>()
+                        .Select(i => i.Val)
+                        .ToList();
+
+                    if (ids.Count > 0) {
+                        return ids.Max() + 1U;
                     }
                 }
-                if (ids.Count > 0) {
-                    return ids.Max() + 1;
-                } else {
-                    return 0;
-                }
+
+                return 0U;
             }
         }
         private CategoryAxis AddCategoryAxis() {

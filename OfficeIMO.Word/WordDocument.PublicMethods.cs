@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
         /// .AddBar3D() to add a 3-D bar chart.
         /// .AddPie3D() to add a 3-D pie chart.
         /// .AddLine3D() to add a 3-D line chart.
-        /// You can't mix and match the types of charts.
+        /// You can't mix and match the types of charts, except bar and line which can coexist in a combo chart.
         /// </summary>
         /// <param name="title">The title.</param>
         /// <param name="roundedCorners">if set to <c>true</c> [rounded corners].</param>
@@ -84,6 +84,17 @@ namespace OfficeIMO.Word {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
+        }
+
+        /// <summary>
+        /// Creates a chart ready for combining bar and line series.
+        /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
+        /// and then <see cref="WordChart.AddBar"/> / <see cref="WordChart.AddLine"/>
+        /// to add data. The call to <c>AddChartAxisX</c> must be performed
+        /// before adding any series so both chart types share the same axes.
+        /// </summary>
+        public WordChart AddComboChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+            return AddChart(title, roundedCorners, width, height);
         }
 
         /// <summary>

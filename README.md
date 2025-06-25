@@ -176,12 +176,15 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
         - ☑️ Pie and Pie 3D
         - ☑️ Bar and Bar 3D
         - ☑️ Line and Line 3D
+        - ☑️ Combo (Bar + Line)
         - ☑️ Area and Area 3D
         - ☑️ Scatter
         - ☑️ Radar
     - ☑️ Add categories and legends
     - ☑️ Configure axes
     - ☑️ Add multiple series
+    - ⚠️ When mixing bar and line series call `AddChartAxisX` before adding
+      any data so both chart types share the same category axis.
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
