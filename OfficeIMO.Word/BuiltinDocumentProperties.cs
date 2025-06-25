@@ -9,6 +9,11 @@ namespace OfficeIMO.Word {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BuiltinDocumentProperties"/> class
+        /// for the specified <see cref="WordDocument"/>.
+        /// </summary>
+        /// <param name="document">The document whose built-in properties are exposed.</param>
         public BuiltinDocumentProperties(WordDocument document) {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;

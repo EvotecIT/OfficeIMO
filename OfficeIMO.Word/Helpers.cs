@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Packaging;
 using SixLabors.ImageSharp.Formats;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides various utility methods used throughout the library.
+    /// </summary>
     public static partial class Helpers {
         private const double PixelsPerInch = 96.0;
 
