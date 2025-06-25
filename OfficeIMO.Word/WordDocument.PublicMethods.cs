@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
@@ -186,6 +187,14 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
+        }
+
+        public WordList AddPictureBulletList(Stream imageStream, string fileName) {
+            return WordList.AddPictureBulletList(this, imageStream, fileName);
+        }
+
+        public WordList AddPictureBulletList(string imagePath) {
+            return WordList.AddPictureBulletList(this, imagePath);
         }
 
         /// <summary>

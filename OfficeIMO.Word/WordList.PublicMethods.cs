@@ -1,8 +1,10 @@
 using System;
+using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public partial class WordList {
@@ -240,6 +242,49 @@ namespace OfficeIMO.Word {
             var list = document.AddList(WordListStyle.Custom);
             list.Numbering.RemoveAllLevels();
             return list;
+        }
+
+        public static WordList AddPictureBulletList(WordDocument document, Stream imageStream, string fileName) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+
+            var numberingPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+            if (numberingPart == null) {
+                numberingPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+                numberingPart.Numbering = new Numbering();
+            }
+            var numbering = numberingPart.Numbering;
+            EnsureW15Namespace(numbering);
+
+            var characteristics = Helpers.GetImageCharacteristics(imageStream, fileName);
+            var imagePart = numberingPart.AddImagePart(characteristics.Type.ToOpenXmlImagePartType());
+            imageStream.Position = 0;
+            imagePart.FeedData(imageStream);
+            var relId = numberingPart.GetIdOfPart(imagePart);
+
+            int picId = numbering.Elements<NumberingPictureBullet>()
+                .Select(p => (int)p.NumberingPictureBulletId.Value)
+                .DefaultIfEmpty(0)
+                .Max() + 1;
+
+            var numPicBullet = new NumberingPictureBullet { NumberingPictureBulletId = picId };
+            var pict = new PictureBulletBase();
+            var shape = new V.Shape { Style = "width:12pt;height:12pt" };
+            var imageData = new V.ImageData { RelationshipId = relId };
+            shape.Append(imageData);
+            pict.Append(shape);
+            numPicBullet.Append(pict);
+            numbering.Append(numPicBullet);
+
+            var list = document.AddList(WordListStyle.Custom);
+            list.Numbering.RemoveAllLevels();
+            list.ReplaceAbstractNum(WordListStyles.CreatePictureBulletStyle(picId));
+            return list;
+        }
+
+        public static WordList AddPictureBulletList(WordDocument document, string imagePath) {
+            using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return AddPictureBulletList(document, stream, System.IO.Path.GetFileName(imagePath));
         }
 
         public WordList AddListLevel(int levelIndex, char symbol, string fontName, string colorHex, int? fontSize = null) {
