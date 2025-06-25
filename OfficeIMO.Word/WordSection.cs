@@ -385,11 +385,29 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Exposes the footers available for this section.
+        /// </summary>
         public WordFooters Footer = new WordFooters();
+
+        /// <summary>
+        /// Exposes the headers available for this section.
+        /// </summary>
         public WordHeaders Header = new WordHeaders();
 
+        /// <summary>
+        /// Provides access to page border settings for this section.
+        /// </summary>
         public WordBorders Borders;
+
+        /// <summary>
+        /// Provides access to page margin settings for this section.
+        /// </summary>
         public WordMargins Margins;
+
+        /// <summary>
+        /// Provides access to page size and orientation settings for this section.
+        /// </summary>
         public WordPageSizes PageSettings;
 
         /// <summary>
