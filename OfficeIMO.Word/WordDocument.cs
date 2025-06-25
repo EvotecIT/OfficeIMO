@@ -1107,6 +1107,58 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Save the document to a new file without modifying <see cref="FilePath"/> on this instance.
+        /// </summary>
+        /// <param name="filePath">Destination path for the cloned document.</param>
+        /// <param name="openWord">Whether to open Microsoft Word after saving.</param>
+        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="filePath"/>.</returns>
+        public WordDocument SaveAs(string filePath, bool openWord = false) {
+            if (FileOpenAccess == FileAccess.Read) {
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            }
+            if (string.IsNullOrEmpty(filePath)) {
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+            }
+
+            PreSaving();
+
+            if (_wordprocessingDocument == null) {
+                throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
+            }
+
+            try {
+                _wordprocessingDocument.Save();
+
+                if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                    throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+                }
+
+                var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                    var dirInfo = new DirectoryInfo(directory);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                        throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
+                    }
+                }
+
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                using (var clone = _wordprocessingDocument.Clone(fs)) {
+                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                }
+                Helpers.MakeOpenOfficeCompatible(fs);
+                fs.Flush();
+            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
+                throw;
+            }
+
+            if (openWord) {
+                Open(filePath, true);
+            }
+
+            return WordDocument.Load(filePath);
+        }
+
+        /// <summary>
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>

@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             // We're checking if the file is locked (it shouldn't be - yet)
             Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
-            document.Save(filePathOutput, false);
+            document.SaveAs(filePathOutput, false);
 
             // both files should not be locked
             Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
             WordDocument document1 = WordDocument.Load(filePathOutput);
 
             document1.AddParagraph("This is my test in document 2");
-            document1.Save(filePathOutput2, openWord);
+            document1.SaveAs(filePathOutput2, openWord);
         }
 
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document");
 
-            document.Save(filePath, openWord);
+            document.SaveAs(filePath, openWord);
         }
 
         public static void Example_BasicDocumentSaveAs3(string folderPath, bool openWord) {
@@ -79,15 +79,15 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document 1");
 
-            document.Save(filePath1);
+            document.SaveAs(filePath1);
 
             document.AddParagraph("This is my test in document 2");
 
-            document.Save(filePath2);
+            document.SaveAs(filePath2);
 
             document.AddParagraph("This is my test in document 3");
 
-            document.Save(filePath3, openWord);
+            document.SaveAs(filePath3, openWord);
         }
     }
 }
