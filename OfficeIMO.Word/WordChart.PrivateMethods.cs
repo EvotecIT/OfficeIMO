@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml;
 using System.Linq;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Holds private helper methods for chart construction.
+    /// </summary>
     public partial class WordChart {
         private CategoryAxisData InitializeCategoryAxisData() {
             var pieChartSeries = InitializePieChartSeries();

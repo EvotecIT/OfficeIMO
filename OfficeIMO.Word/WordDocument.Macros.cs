@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Adds support for VBA macros.
+    /// </summary>
     public partial class WordDocument {
         /// <summary>
         /// Provides basic support for VBA macro projects.

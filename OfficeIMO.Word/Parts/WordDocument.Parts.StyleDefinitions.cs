@@ -21,6 +21,9 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Generates the style definitions part.
+    /// </summary>
     public partial class WordDocument {
         private static void AddTableStyles(Styles styles, bool overrideExisting) {
             var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));

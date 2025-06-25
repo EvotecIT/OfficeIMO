@@ -8,6 +8,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Handles revisions within the document.
+    /// </summary>
     public partial class WordDocument {
 
         /// <summary>

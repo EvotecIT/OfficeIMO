@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides enumerators for traversing document content.
+    /// </summary>
     public partial class WordDocument {
         internal IEnumerable<WordParagraph> EnumerateAllParagraphs() {
             foreach (var paragraph in this.Paragraphs) {

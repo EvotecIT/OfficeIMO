@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Exposes run-level helpers for WordParagraph.
+    /// </summary>
     public partial class WordParagraph {
         /// <summary>
         /// Gets a value indicating whether the paragraph contains no run element.

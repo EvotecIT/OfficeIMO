@@ -2,6 +2,9 @@ using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Adds revision-related utilities.
+    /// </summary>
     public partial class WordParagraph {
         /// <summary>
         /// Inserts revision text marked as added.

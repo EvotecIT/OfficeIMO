@@ -12,6 +12,9 @@ using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Contains public methods for editing paragraphs.
+    /// </summary>
     public partial class WordParagraph {
         // Should the return type be changed to signify the difference between paragraph and run?
         /// <summary>

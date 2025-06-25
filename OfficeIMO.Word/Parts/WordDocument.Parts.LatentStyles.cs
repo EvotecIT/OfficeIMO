@@ -21,6 +21,9 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Creates the latent style definitions part.
+    /// </summary>
     public partial class WordDocument {
         private static LatentStyles GenerateLatentStyles() {
             LatentStyles latentStyles1 = new LatentStyles() { DefaultLockedState = false, DefaultUiPriority = 99, DefaultSemiHidden = false, DefaultUnhideWhenUsed = false, DefaultPrimaryStyle = false, Count = 376 };

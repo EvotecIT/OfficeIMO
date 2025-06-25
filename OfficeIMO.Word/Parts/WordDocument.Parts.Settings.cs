@@ -21,6 +21,9 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Contains document settings part generators.
+    /// </summary>
     public partial class WordDocument {
         /// <summary>
         /// Adds default settings for WebSettings

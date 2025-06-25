@@ -21,6 +21,9 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides the theme part content.
+    /// </summary>
     public partial class WordDocument {
         // Generates content of themePart1.
         private static void GenerateThemePart1Content(ThemePart themePart1) {

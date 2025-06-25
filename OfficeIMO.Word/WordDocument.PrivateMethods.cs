@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
+/// <summary>
+/// Contains internal helper methods for WordDocument.
+/// </summary>
 public partial class WordDocument {
     private void SaveNumbering() {
         var numbering = GetNumbering();

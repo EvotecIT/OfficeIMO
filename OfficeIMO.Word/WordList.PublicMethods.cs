@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides public list manipulation methods.
+    /// </summary>
     public partial class WordList {
         /// <summary>
         /// Adds a new empty item to the list.
