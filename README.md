@@ -207,6 +207,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Lists
     - ☑️ Add lists
     - ☑️ Remove lists
+    - ☑️ Clone lists preserving numbering settings
     - ☑️ Add picture bullet lists
     - ☑️ Create custom bullet and numbered lists
     - ☑️ Detect list style from existing paragraphs
