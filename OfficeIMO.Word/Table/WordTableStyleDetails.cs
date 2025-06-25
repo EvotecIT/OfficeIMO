@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
+/// <summary>
+/// Manages table style settings and borders.
+/// </summary>
 public partial class WordTableStyleDetails {
     private readonly WordTable _table;
     private readonly TableProperties _tableProperties;
