@@ -1,5 +1,6 @@
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -73,6 +74,25 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("●", list.Numbering.Levels[0].LevelText);
                 Assert.Equal("●", list.Numbering.Levels[1].LevelText);
                 Assert.Equal("●", list.Numbering.Levels[2].LevelText);
+            }
+        }
+
+        [Fact]
+        public void Test_CustomList_W15RestartAttributePresent() {
+            var filePath = Path.Combine(_directoryWithFiles, "CustomListW15.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var list = document.AddCustomList();
+                list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New");
+                list.AddItem("Item1");
+                document.Save(false);
+            }
+
+            using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {
+                var numbering = wordDoc.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+                Assert.NotNull(numbering.LookupNamespace("w15"));
+                var abstractNum = numbering.Elements<AbstractNum>().First();
+                var restartAttr = abstractNum.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
+                Assert.Equal("0", restartAttr.Value);
             }
         }
     }
