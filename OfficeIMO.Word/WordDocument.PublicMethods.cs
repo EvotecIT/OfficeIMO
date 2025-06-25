@@ -144,6 +144,42 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
+        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            return WordTable.Create(this, rows, columns, tableStyle);
+        }
+
+        public WordTable InsertTableAfter(WordParagraph anchor, WordTable table) {
+            if (anchor == null) throw new ArgumentNullException(nameof(anchor));
+            if (table == null) throw new ArgumentNullException(nameof(table));
+
+            anchor._paragraph.InsertAfterSelf(table._table);
+            return table;
+        }
+
+        public WordParagraph InsertParagraphAt(int index, WordParagraph paragraph = null) {
+            if (paragraph == null) {
+                paragraph = new WordParagraph(this, true, false);
+            }
+
+            var body = _document.Body;
+            var paragraphs = body.Elements<Paragraph>().ToList();
+            if (index < 0 || index > paragraphs.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            if (index == paragraphs.Count) {
+                var sectPr = body.Elements<SectionProperties>().FirstOrDefault();
+                if (sectPr != null) {
+                    body.InsertBefore(paragraph._paragraph, sectPr);
+                } else {
+                    body.Append(paragraph._paragraph);
+                }
+            } else {
+                body.InsertBefore(paragraph._paragraph, paragraphs[index]);
+            }
+            return paragraph;
+        }
+
         /// <summary>
         /// Updates page and total page number fields.
         /// When a table of contents is present the document is flagged to refresh

@@ -421,6 +421,10 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
         }
 
+        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            return new WordTable(document, rows, columns, tableStyle, insert: false);
+        }
+
         internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle, string location) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
@@ -437,15 +441,17 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+        internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, bool insert = true) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
 
             // Establish Position property
             Position = new WordTablePosition(this);
 
-            // Append the table to the document.
-            document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+            if (insert) {
+                // Append the table to the document.
+                document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+            }
         }
 
         public WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
