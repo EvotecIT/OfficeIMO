@@ -40,3 +40,8 @@ var copy = doc.AddParagraphFromXml(xml);
 
 doc.Save(true);
 ```
+
+## Examples in repository
+
+- `XmlSerialization.Example_XmlSerializationBasic`
+- `XmlSerialization.Example_XmlSerializationAdvanced`
