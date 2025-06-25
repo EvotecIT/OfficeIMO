@@ -1042,3 +1042,24 @@ public void RemoveCheckBox()
 public void SetCheckBoxValue(bool value)
 ```
 
+### **InsertTableAfter(WordParagraph, WordTable)**
+
+Insert an existing table after this paragraph.
+
+```csharp
+public WordTable InsertTableAfter(WordParagraph anchor, WordTable table)
+```
+
+```csharp
+var table = document.CreateTable(2, 2);
+document.InsertTableAfter(paragraph, table);
+```
+
+### **InsertParagraphAfter()**
+
+Insert a new paragraph after this paragraph.
+
+```csharp
+var inserted = paragraph.AddParagraphAfterSelf();
+```
+
