@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides helper methods for Word document manipulation.
+    /// </summary>
     public partial class WordHelpers {
         /// <summary>
         /// Converts a DOTX template to a DOCX document.
