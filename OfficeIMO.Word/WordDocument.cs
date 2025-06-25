@@ -1467,6 +1467,10 @@ namespace OfficeIMO.Word {
             body.Append(sectionProperties);
         }
 
+        /// <summary>
+        /// Closes the underlying <see cref="WordprocessingDocument"/> and
+        /// saves the document when <see cref="WordprocessingDocument.AutoSave"/> is enabled.
+        /// </summary>
         public void Dispose() {
             if (this._wordprocessingDocument.AutoSave) {
                 Save();
