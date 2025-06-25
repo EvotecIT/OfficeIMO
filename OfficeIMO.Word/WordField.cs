@@ -9,8 +9,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
 
     /// <summary>
-    /// List of supported FieldCodes for Word. For the correlating switches, please have a look at the MS docs:<br/>
-    /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see>
+    /// Enumerates field codes available in Word documents. For
+    /// related format switches see the
+    /// <see href="https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51">Microsoft documentation</see>.
     /// </summary>
     public enum WordFieldType {
         AddressBlock,
@@ -86,6 +87,9 @@ namespace OfficeIMO.Word {
         XE
     }
 
+    /// <summary>
+    /// Specifies format switches for Word field codes.
+    /// </summary>
     public enum WordFieldFormat {
         Lower,
         Upper,
@@ -105,12 +109,18 @@ namespace OfficeIMO.Word {
         CharFormat,
     }
 
+    /// <summary>
+    /// Represents a field element within a Word document.
+    /// </summary>
     public partial class WordField : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly List<Run> _runs = new List<Run>();
         private readonly SimpleField _simpleField;
 
+        /// <summary>
+        /// Gets the type of the current field.
+        /// </summary>
         public WordFieldType? FieldType {
             get {
                 var parser = new WordFieldParser(Field);
@@ -118,6 +128,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the format switches applied to the field.
+        /// </summary>
         public IReadOnlyList<WordFieldFormat> FieldFormat {
             get {
                 var parser = new WordFieldParser(Field);
@@ -125,6 +138,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the raw switch parameters from the field code.
+        /// </summary>
         public List<String> FieldSwitches {
             get {
                 var parser = new WordFieldParser(Field);
@@ -132,6 +148,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the instructions portion of the field code.
+        /// </summary>
         public List<String> FieldInstructions {
             get {
                 var parser = new WordFieldParser(Field);
@@ -139,6 +158,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets the raw field code.
+        /// </summary>
         public string Field {
             get {
                 if (_simpleField != null) {
@@ -156,6 +178,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the field is marked dirty.
+        /// </summary>
         public bool UpdateField {
             get {
                 if (_simpleField != null) {
@@ -192,6 +217,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the field is locked.
+        /// </summary>
         public bool LockField {
             get {
                 if (_simpleField != null) {
@@ -228,6 +256,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the display text of the field.
+        /// </summary>
         public string Text {
             get {
                 foreach (var run in _runs) {
