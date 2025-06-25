@@ -13,6 +13,10 @@ using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Represents an image contained in a <see cref="WordDocument"/> and provides
+    /// functionality to insert and manipulate pictures.
+    /// </summary>
     public class WordImage : WordElement {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
