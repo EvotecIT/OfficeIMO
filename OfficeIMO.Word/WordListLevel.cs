@@ -633,7 +633,6 @@ public enum WordListLevelKind {
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(simplifiedListNumbers), simplifiedListNumbers, null);
-                    break;
             }
         }
     }
