@@ -29,6 +29,12 @@ public partial class WordPageNumber {
         var paragraph = _listParagraphs.Last();
         return paragraph.AddText(text);
     }
+    /// <summary>
+    /// Initializes a new instance of <see cref="WordPageNumber"/> and appends it to the specified header.
+    /// </summary>
+    /// <param name="wordDocument">Document where the page number will be inserted.</param>
+    /// <param name="wordHeader">Header that will contain the page number.</param>
+    /// <param name="wordPageNumberStyle">Style applied to the page number.</param>
     public WordPageNumber(WordDocument wordDocument, WordHeader wordHeader, WordPageNumberStyle wordPageNumberStyle) {
         this._document = wordDocument;
         this._wordHeader = wordHeader;
@@ -49,6 +55,12 @@ public partial class WordPageNumber {
         }
         wordHeader._header.Append(_sdtBlock);
     }
+    /// <summary>
+    /// Initializes a new instance of <see cref="WordPageNumber"/> and appends it to the specified footer.
+    /// </summary>
+    /// <param name="wordDocument">Document where the page number will be inserted.</param>
+    /// <param name="wordFooter">Footer that will contain the page number.</param>
+    /// <param name="wordPageNumberStyle">Style applied to the page number.</param>
     public WordPageNumber(WordDocument wordDocument, WordFooter wordFooter, WordPageNumberStyle wordPageNumberStyle) {
         this._document = wordDocument;
         this._wordFooter = wordFooter;
