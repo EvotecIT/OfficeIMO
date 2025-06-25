@@ -22,6 +22,10 @@ namespace OfficeIMO.Word {
     public class WordTableOfContent : WordElement {
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
+
+        /// <summary>
+        /// Exposes the underlying structured document tag for this table of contents.
+        /// </summary>
         internal SdtBlock SdtBlock => _sdtBlock;
 
         /// <summary>
@@ -159,6 +163,10 @@ namespace OfficeIMO.Word {
             return _document.RegenerateTableOfContent();
         }
 
+        /// <summary>
+        /// Returns a predefined structured document tag matching the chosen style.
+        /// </summary>
+        /// <param name="style">Template identifier to retrieve.</param>
         private static SdtBlock GetStyle(TableOfContentStyle style) {
             switch (style) {
                 case TableOfContentStyle.Template1: return Template1;
@@ -166,6 +174,9 @@ namespace OfficeIMO.Word {
             }
             throw new ArgumentOutOfRangeException(nameof(style));
         }
+        /// <summary>
+        /// Structured document tag implementing the default table-of-contents layout.
+        /// </summary>
         private static SdtBlock Template1 {
             get {
                 SdtBlock sdtBlock1 = new SdtBlock();
@@ -256,6 +267,9 @@ namespace OfficeIMO.Word {
 
             }
         }
+        /// <summary>
+        /// Alternative layout used for table-of-contents generation.
+        /// </summary>
         private static SdtBlock Template2 {
             get {
 
