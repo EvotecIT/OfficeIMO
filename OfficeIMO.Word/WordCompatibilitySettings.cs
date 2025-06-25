@@ -7,18 +7,45 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
 
+    /// <summary>
+    /// Specifies compatibility modes corresponding to different Word versions.
+    /// </summary>
     public enum CompatibilityMode {
+        /// <summary>
+        /// No specific compatibility mode is applied.
+        /// </summary>
         None = 0,
+        /// <summary>
+        /// Compatibility with Word 2003 (version 11).
+        /// </summary>
         Word2003 = 11,
+        /// <summary>
+        /// Compatibility with Word 2007 (version 12).
+        /// </summary>
         Word2007 = 12,
+        /// <summary>
+        /// Compatibility with Word 2010 (version 14).
+        /// </summary>
         Word2010 = 14,
+        /// <summary>
+        /// Compatibility with Word 2013 (version 15).
+        /// </summary>
         Word2013 = 15
     }
 
+    /// <summary>
+    /// Provides access to compatibility settings for the document and allows
+    /// reading or changing the compatibility mode.
+    /// </summary>
     public class WordCompatibilitySettings {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="WordCompatibilitySettings"/>
+        /// for the specified document.
+        /// </summary>
+        /// <param name="document">Word document associated with the settings.</param>
         public WordCompatibilitySettings(WordDocument document) {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
