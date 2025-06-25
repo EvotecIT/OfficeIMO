@@ -75,6 +75,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the built-in table style applied to this table.
+        /// Returns <c>null</c> when no style is assigned.
+        /// </summary>
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
@@ -90,6 +94,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the table within the page.
+        /// </summary>
         public TableRowAlignmentValues? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
@@ -111,6 +118,9 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets or sets the unit type used by the <see cref="Width"/> property.
+        /// </summary>
         public TableWidthUnitValues? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
@@ -421,6 +431,18 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
         }
 
+        /// <summary>
+        /// Creates a table instance without inserting it into the document.
+        /// </summary>
+        /// <param name="document">Parent <see cref="WordDocument"/>.</param>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="columns">Number of columns.</param>
+        /// <param name="tableStyle">Style to apply to the table.</param>
+        /// <returns>The newly created <see cref="WordTable"/>.</returns>
+        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            return new WordTable(document, rows, columns, tableStyle, insert: false);
+        }
+
         internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle, string location) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
@@ -437,15 +459,25 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+        /// <summary>
+        /// Initializes a new instance of <see cref="WordTable"/> and optionally inserts it into the document.
+        /// </summary>
+        /// <param name="document">Parent document.</param>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="columns">Number of columns.</param>
+        /// <param name="tableStyle">Style applied to the table.</param>
+        /// <param name="insert">If set to <c>true</c> the table is appended to the document immediately.</param>
+        internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, bool insert = true) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
 
             // Establish Position property
             Position = new WordTablePosition(this);
 
-            // Append the table to the document.
-            document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+            if (insert) {
+                // Append the table to the document.
+                document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+            }
         }
 
         public WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {

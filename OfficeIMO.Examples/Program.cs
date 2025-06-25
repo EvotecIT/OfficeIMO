@@ -50,6 +50,7 @@ namespace OfficeIMO.Examples {
             Paragraphs.Example_BasicTabStops(folderPath, false);
             Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
             Paragraphs.Example_RunCharacterStylesAdvanced(folderPath, false);
+            Paragraphs.Example_InsertParagraphAt(folderPath, false);
 
             BasicDocument.Example_BasicDocument(folderPath, false);
             BasicDocument.Example_BasicDocumentSaveAs1(folderPath, false);
@@ -84,6 +85,8 @@ namespace OfficeIMO.Examples {
             Tables.Example_TableBorders(folderPath, false);
             Tables.Example_NestedTables(folderPath, false);
             Tables.Example_TablesAddedAfterParagraph(folderPath, false);
+            Tables.Example_InsertTableAfterSimple(folderPath, false);
+            Tables.Example_InsertTableAfterAdvanced(folderPath, false);
             Tables.Example_BasicTables8(folderPath, false);
             Tables.Example_Tables1CopyRow(folderPath, false);
             Tables.Example_BasicTables8_StylesModification(folderPath, false);
