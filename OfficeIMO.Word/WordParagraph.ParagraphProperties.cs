@@ -2,6 +2,9 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides accessors for paragraph formatting.
+    /// </summary>
     public partial class WordParagraph {
         /// <summary>
         /// Provides access to the borders applied to this paragraph.

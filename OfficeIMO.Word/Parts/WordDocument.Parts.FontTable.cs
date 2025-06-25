@@ -21,6 +21,9 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Creates the default font table part.
+    /// </summary>
     public partial class WordDocument {
         // Generates content of fontTablePart1.
         private static void GenerateFontTablePart1Content(FontTablePart fontTablePart1) {

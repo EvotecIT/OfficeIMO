@@ -5,6 +5,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Exposes section-level properties.
+    /// </summary>
     public partial class WordDocument {
         /// <summary>
         /// Gets or sets the orientation of the pages in the first section.

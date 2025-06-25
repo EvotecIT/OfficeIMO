@@ -4,6 +4,9 @@ using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides public methods for field manipulation.
+    /// </summary>
     public partial class WordField {
         /// <summary>
         /// Inserts a field into the specified paragraph.

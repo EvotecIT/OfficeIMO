@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Supports merging multiple documents.
+    /// </summary>
     public partial class WordDocument {
         /// <summary>
         /// Appends the content of another <see cref="WordDocument"/> to this

@@ -7,6 +7,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Replaces text with HTML fragments.
+    /// </summary>
     public partial class WordDocument {
         /// <summary>
         /// Searches for text in the document and replaces each occurrence with an

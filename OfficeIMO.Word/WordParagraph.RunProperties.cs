@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Manages run property settings.
+    /// </summary>
     public partial class WordParagraph {
 
         /// <summary>
