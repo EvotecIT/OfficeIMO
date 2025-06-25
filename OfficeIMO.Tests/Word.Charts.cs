@@ -401,6 +401,10 @@ namespace OfficeIMO.Tests {
                 var barIds = bar.Elements<AxisId>().Select(a => a.Val.Value).ToList();
                 var lineIds = line.Elements<AxisId>().Select(a => a.Val.Value).ToList();
                 Assert.Equal(barIds, lineIds);
+                var seriesIdx = bar.Elements<BarChartSeries>().Select(s => s.Index.Val.Value)
+                    .Concat(line.Elements<LineChartSeries>().Select(s => s.Index.Val.Value))
+                    .ToList();
+                Assert.Equal(seriesIdx.Count, seriesIdx.Distinct().Count());
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
