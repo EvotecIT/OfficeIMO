@@ -104,6 +104,8 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Paragraphs/Text and make it bold, underlined, colored and so on
     - ☑️ Custom paragraph styles via `WordParagraphStyle`
 - ☑️ Paragraphs and change alignment
+- ☑️ Paragraph indentation (before, after, first line, hanging)
+- ☑️ Line spacing with support for twips and points
 - ☑️ Tables
     - ☑️ [Add and modify table styles (one of 105 built-in styles)](https://evotec.xyz/docs/adding-tables-with-built-in-styles-managing-borders/)
     - ☑️ Add rows and columns
@@ -125,6 +127,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add images from file to Word
     - ☑️ Add images from Base64 strings
     - ☑️ Save image from Word to File
+    - ☑️ Crop images and set transparency
     - ◼️ Other location types
 - ☑️ Hyperlinks
     - ☑️ Add HyperLink
@@ -205,6 +208,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Add lists
     - ☑️ Remove lists
     - ☑️ Create custom bullet and numbered lists
+    - ☑️ Detect list style from existing paragraphs
 - ☑️ Table of contents
     - ☑️ Add TOC
     - ☑️ Update TOC fields on open
@@ -228,6 +232,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Insert HTML fragment after a paragraph
     - ☑️ Replace text with an HTML fragment
     - ☑️ Remove embedded documents
+    - ☑️ Embed objects with custom icons and sizes
  - ☑️ [Digital signatures and document security](OfficeIMO.Tests/Word.DigitalSignature.cs)
  - ☑️ [Accepting/rejecting revisions](OfficeIMO.Tests/Word.Revisions.cs)
  - ☑️ [Async save/load APIs](OfficeIMO.Tests/Word.Async.cs)
@@ -240,12 +245,13 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Experimental Excel component
     - ☑️ Create and load workbooks
     - ☑️ Add worksheets
+    - ☑️ Async save and load APIs
 
 
 ## Features (oneliners):
 
 This list of features is for times when you want to quickly fix something rather than playing with full features.
-This features are available as part of `WordHelpers` class.
+These features are available as part of `WordHelpers` class.
 
 - ☑️ Remove Headers and Footers from a file
 - ☑️ Convert DOTX template to DOCX
