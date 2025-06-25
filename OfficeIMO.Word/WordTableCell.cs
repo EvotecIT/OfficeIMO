@@ -589,6 +589,11 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
+        /// <summary>
+        /// Creates a list within this table cell using the specified style.
+        /// </summary>
+        /// <param name="style">List style to apply.</param>
+        /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddList(WordListStyle style) {
             WordList wordList = new WordList(this._document, this.Paragraphs.Last());
             wordList.AddList(style);
