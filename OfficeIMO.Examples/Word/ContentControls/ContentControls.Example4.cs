@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var table = document.AddTable(2, 2);
-                table.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag(alias: "Alias1", text: "One", tag: "Tag1");
+                table.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag(text: "One", alias: "Alias1", tag: "Tag1");
                 var cb = table.Rows[1].Cells[1].Paragraphs[0].AddCheckBox(false, "CheckAlias", "CheckTag");
                 document.Save(openWord);
             }
