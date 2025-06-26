@@ -41,6 +41,34 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets the alias associated with this checkbox control.
+        /// </summary>
+        public string Alias {
+            get {
+                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                return sdtAlias?.Val;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the tag value for this checkbox control.
+        /// </summary>
+        public string Tag {
+            get {
+                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                return tag?.Val;
+            }
+            set {
+                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                if (tag == null) {
+                    tag = new Tag();
+                    _sdtRun.SdtProperties.Append(tag);
+                }
+                tag.Val = value;
+            }
+        }
+
+        /// <summary>
         /// Removes the checkbox from the paragraph.
         /// </summary>
         public void Remove() {

@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Accept terms:");
-                var checkBox = paragraph.AddCheckBox(true, "Terms");
+                var checkBox = paragraph.AddCheckBox(true, "Terms", "TermsTag");
                 Console.WriteLine($"Checkbox initially checked: {checkBox.IsChecked}");
                 document.Save(openWord);
             }

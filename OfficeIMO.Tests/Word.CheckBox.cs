@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddingCheckBox() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithCheckBox.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var checkBox = document.AddParagraph("Agree:").AddCheckBox(true);
+                var checkBox = document.AddParagraph("Agree:").AddCheckBox(true, "Agree", "AgreeTag");
 
                 Assert.Single(document.CheckBoxes);
                 Assert.True(checkBox.IsChecked);
@@ -20,13 +20,20 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Single(document.CheckBoxes);
                 Assert.True(document.CheckBoxes[0].IsChecked);
+                Assert.Equal("AgreeTag", document.CheckBoxes[0].Tag);
+                Assert.Equal("Agree", document.CheckBoxes[0].Alias);
 
-                document.CheckBoxes[0].IsChecked = false;
+                var byTag = document.GetCheckBoxByTag("AgreeTag");
+                Assert.NotNull(byTag);
+                var byAlias = document.GetCheckBoxByAlias("Agree");
+                Assert.NotNull(byAlias);
+
+                byTag.IsChecked = false;
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.False(document.CheckBoxes[0].IsChecked);
+                Assert.False(document.GetCheckBoxByTag("AgreeTag").IsChecked);
             }
         }
     }

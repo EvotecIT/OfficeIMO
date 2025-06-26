@@ -1012,12 +1012,12 @@ public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, s
 
 [WordStructuredDocumentTag](./officeimo.word.wordstructureddocumenttag.md)<br>
 
-### **AddCheckBox(Boolean, String)**
+### **AddCheckBox(Boolean, String, String)**
 
 Adds a checkbox content control to the paragraph.
 
 ```csharp
-public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null)
+public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null, string tag = null)
 ```
 
 #### Parameters
@@ -1025,6 +1025,7 @@ public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null)
 `isChecked` [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
 `alias` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`tag` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
 
 #### Returns
 

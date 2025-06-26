@@ -51,3 +51,19 @@ using (WordDocument document = WordDocument.Load(filePath)) {
     Console.WriteLine(tag.Text);
 }
 ```
+
+### Working with checkboxes
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    var para = document.AddParagraph("Accept:");
+    para.AddCheckBox(false, "Consent", "ConsentTag");
+    document.Save();
+}
+
+using (WordDocument document = WordDocument.Load(filePath)) {
+    var cb = document.GetCheckBoxByTag("ConsentTag");
+    cb.IsChecked = true;
+    Console.WriteLine(cb.Alias);
+}
+```
