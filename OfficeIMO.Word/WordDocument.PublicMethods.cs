@@ -577,6 +577,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Retrieves a checkbox control by its tag value.
+        /// </summary>
+        /// <param name="tag">Tag value of the checkbox.</param>
+        /// <returns>The matching <see cref="WordCheckBox"/> or <c>null</c>.</returns>
+        public WordCheckBox GetCheckBoxByTag(string tag) {
+            return this.CheckBoxes.FirstOrDefault(cb => cb.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a checkbox control by its alias.
+        /// </summary>
+        /// <param name="alias">Alias of the checkbox.</param>
+        /// <returns>The matching <see cref="WordCheckBox"/> or <c>null</c>.</returns>
+        public WordCheckBox GetCheckBoxByAlias(string alias) {
+            return this.CheckBoxes.FirstOrDefault(cb => cb.Alias == alias);
+        }
+
+        /// <summary>
         /// Removes an embedded document from the document.
         /// </summary>
         /// <param name="embeddedDocument">Embedded document to remove.</param>

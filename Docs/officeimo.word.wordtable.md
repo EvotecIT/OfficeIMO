@@ -341,6 +341,30 @@ public WordTable ParentTable { get; }
 
 [WordTable](./officeimo.word.wordtable.md)<br>
 
+### **StructuredDocumentTags**
+
+Returns structured document tags contained in the table
+
+```csharp
+public List<WordStructuredDocumentTag> StructuredDocumentTags { get; }
+```
+
+#### Property Value
+
+[List<WordStructuredDocumentTag>](./officeimo.word.wordstructureddocumenttag.md)<br>
+
+### **CheckBoxes**
+
+Returns checkbox content controls contained in the table
+
+```csharp
+public List<WordCheckBox> CheckBoxes { get; }
+```
+
+#### Property Value
+
+[List<WordCheckBox>](./officeimo.word.wordcheckbox.md)<br>
+
 ## Constructors
 
 ### **WordTable(WordDocument, TableCell, Int32, Int32, WordTableStyle)**

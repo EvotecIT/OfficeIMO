@@ -20,6 +20,26 @@ public bool IsChecked { get; set; }
 
 [Boolean](https://docs.microsoft.com/en-us/dotnet/api/system.boolean)<br>
 
+### **Alias**
+
+```csharp
+public string Alias { get; }
+```
+
+#### Property Value
+
+[String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+### **Tag**
+
+```csharp
+public string Tag { get; set; }
+```
+
+#### Property Value
+
+[String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
 ## Constructors
 
 ### **WordCheckBox(WordDocument, Paragraph, SdtRun)**

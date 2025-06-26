@@ -723,13 +723,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="isChecked">Initial checked state.</param>
         /// <param name="alias">Optional alias for the control.</param>
+        /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordCheckBox"/> instance.</returns>
-        public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null) {
+        public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null, string tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
             if (!string.IsNullOrEmpty(alias)) {
                 props.Append(new SdtAlias() { Val = alias });
+            }
+            if (!string.IsNullOrEmpty(tag)) {
+                props.Append(new Tag() { Val = tag });
             }
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
 
