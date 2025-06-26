@@ -535,7 +535,7 @@ namespace OfficeIMO.Word {
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/>.</returns>
         public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null, string tag = null) {
-            return this.AddParagraph().AddStructuredDocumentTag(alias, text, tag);
+            return this.AddParagraph().AddStructuredDocumentTag(text, alias, tag);
         }
 
         /// <summary>
