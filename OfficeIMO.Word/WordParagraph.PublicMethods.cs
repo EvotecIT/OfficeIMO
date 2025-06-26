@@ -689,11 +689,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a simple content control (structured document tag) to the paragraph.
         /// </summary>
-        /// <param name="alias">Optional alias for the content control.</param>
         /// <param name="text">Initial text of the control.</param>
+        /// <param name="alias">Optional alias for the content control.</param>
         /// <param name="tag">Optional tag for the content control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/> instance.</returns>
-        public WordStructuredDocumentTag AddStructuredDocumentTag(string alias = null, string text = "", string tag = null) {
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text = "", string alias = null, string tag = null) {
             var sdtRun = new SdtRun();
 
             var sdtProperties = new SdtProperties();
