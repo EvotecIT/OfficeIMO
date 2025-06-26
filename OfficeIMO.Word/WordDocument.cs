@@ -207,6 +207,33 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Returns paragraphs that contain date picker controls.
+        /// </summary>
+        public List<WordParagraph> ParagraphsDatePickers {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsDatePickers);
+                }
+
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Returns paragraphs that contain dropdown list controls.
+        /// </summary>
+        public List<WordParagraph> ParagraphsDropDownLists {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsDropDownLists);
+                }
+
+                return list;
+            }
+        }
+        /// <summary>
         /// Returns paragraphs with embedded charts.
         /// </summary>
         public List<WordParagraph> ParagraphsCharts {
@@ -691,6 +718,31 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Collection of all date picker controls in the document.
+        /// </summary>
+        public List<WordDatePicker> DatePickers {
+            get {
+                List<WordDatePicker> list = new List<WordDatePicker>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.DatePickers);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Collection of all dropdown list controls in the document.
+        /// </summary>
+        public List<WordDropDownList> DropDownLists {
+            get {
+                List<WordDropDownList> list = new List<WordDropDownList>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.DropDownLists);
+                }
+                return list;
+            }
+        }
         /// <summary>
         /// Collection of all equations in the document.
         /// </summary>

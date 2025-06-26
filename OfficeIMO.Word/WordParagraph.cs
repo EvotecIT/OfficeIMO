@@ -461,6 +461,32 @@ namespace OfficeIMO.Word {
             }
         }
 
+
+        /// <summary>
+        /// Gets the date picker contained in this paragraph, if present.
+        /// </summary>
+        public WordDatePicker DatePicker {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentDate>().Any() == true) {
+                    return new WordDatePicker(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the dropdown list contained in this paragraph, if present.
+        /// </summary>
+        public WordDropDownList DropDownList {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentDropDownList>().Any() == true) {
+                    return new WordDropDownList(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
         /// <summary>
         /// Gets the bookmark associated with this paragraph, if present.
         /// </summary>
@@ -645,6 +671,32 @@ namespace OfficeIMO.Word {
             }
         }
 
+
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a date picker control.
+        /// </summary>
+        public bool IsDatePicker {
+            get {
+                if (this.DatePicker != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a dropdown list control.
+        /// </summary>
+        public bool IsDropDownList {
+            get {
+                if (this.DropDownList != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
         /// <summary>
         /// Gets a value indicating whether an image is found in the paragraph.
         /// </summary>

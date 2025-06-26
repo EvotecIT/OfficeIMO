@@ -112,6 +112,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets paragraphs that contain a date picker control.
+        /// </summary>
+        public List<WordParagraph> ParagraphsDatePickers {
+            get { return Paragraphs.Where(p => p.IsDatePicker).ToList(); }
+        }
+
+        /// <summary>
+        /// Gets paragraphs that contain a dropdown list control.
+        /// </summary>
+        public List<WordParagraph> ParagraphsDropDownLists {
+            get { return Paragraphs.Where(p => p.IsDropDownList).ToList(); }
+        }
+        /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
         public List<WordParagraph> ParagraphsImages {
@@ -232,6 +245,35 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.CheckBox);
+                }
+
+                return list;
+            }
+        }
+        /// <summary>
+        /// Gets the date pickers contained in the header or footer.
+        /// </summary>
+        public List<WordDatePicker> DatePickers {
+            get {
+                List<WordDatePicker> list = new List<WordDatePicker>();
+                var paragraphs = Paragraphs.Where(p => p.IsDatePicker).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.DatePicker);
+                }
+
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets the dropdown lists contained in the header or footer.
+        /// </summary>
+        public List<WordDropDownList> DropDownLists {
+            get {
+                List<WordDropDownList> list = new List<WordDropDownList>();
+                var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.DropDownList);
                 }
 
                 return list;

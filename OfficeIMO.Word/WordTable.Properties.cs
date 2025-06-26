@@ -305,5 +305,40 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
-    }
+        /// <summary>
+        /// Gets all date picker content controls contained in the table.
+        /// </summary>
+        public List<WordDatePicker> DatePickers {
+            get {
+                List<WordDatePicker> list = new();
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        var paragraphs = cell.Paragraphs.Where(p => p.IsDatePicker).ToList();
+                        foreach (var paragraph in paragraphs) {
+                            list.Add(paragraph.DatePicker);
+                        }
+                    }
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets all dropdown list content controls contained in the table.
+        /// </summary>
+        public List<WordDropDownList> DropDownLists {
+            get {
+                List<WordDropDownList> list = new();
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        var paragraphs = cell.Paragraphs.Where(p => p.IsDropDownList).ToList();
+                        foreach (var paragraph in paragraphs) {
+                            list.Add(paragraph.DropDownList);
+                        }
+                    }
+                }
+                return list;
+            }
+        }
+}
 }
