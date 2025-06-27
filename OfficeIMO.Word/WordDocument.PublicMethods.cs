@@ -539,6 +539,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a new paragraph with a repeating section content control.
+        /// </summary>
+        /// <param name="sectionTitle">Optional title of the repeating section.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <param name="tag">Optional tag for the control.</param>
+        /// <returns>The created <see cref="WordRepeatingSection"/>.</returns>
+        public WordRepeatingSection AddRepeatingSection(string sectionTitle = null, string alias = null, string tag = null) {
+            return this.AddParagraph().AddRepeatingSection(sectionTitle, alias, tag);
+        }
+
+        /// <summary>
         /// Embeds another document as an alternative format part.
         /// </summary>
         /// <param name="fileName">Path to the document.</param>
@@ -628,6 +639,48 @@ namespace OfficeIMO.Word {
         /// <returns>The matching <see cref="WordDropDownList"/> or <c>null</c>.</returns>
         public WordDropDownList GetDropDownListByAlias(string alias) {
             return this.DropDownLists.FirstOrDefault(dl => dl.Alias == alias);
+        }
+
+        /// <summary>
+        /// Retrieves a combo box control by its tag value.
+        /// </summary>
+        public WordComboBox GetComboBoxByTag(string tag) {
+            return this.ComboBoxes.FirstOrDefault(cb => cb.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a combo box control by its alias.
+        /// </summary>
+        public WordComboBox GetComboBoxByAlias(string alias) {
+            return this.ComboBoxes.FirstOrDefault(cb => cb.Alias == alias);
+        }
+
+        /// <summary>
+        /// Retrieves a picture control by its tag value.
+        /// </summary>
+        public WordPictureControl GetPictureControlByTag(string tag) {
+            return this.PictureControls.FirstOrDefault(pc => pc.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a picture control by its alias.
+        /// </summary>
+        public WordPictureControl GetPictureControlByAlias(string alias) {
+            return this.PictureControls.FirstOrDefault(pc => pc.Alias == alias);
+        }
+
+        /// <summary>
+        /// Retrieves a repeating section control by its tag value.
+        /// </summary>
+        public WordRepeatingSection GetRepeatingSectionByTag(string tag) {
+            return this.RepeatingSections.FirstOrDefault(rs => rs.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a repeating section control by its alias.
+        /// </summary>
+        public WordRepeatingSection GetRepeatingSectionByAlias(string alias) {
+            return this.RepeatingSections.FirstOrDefault(rs => rs.Alias == alias);
         }
         /// <summary>
         /// Removes an embedded document from the document.

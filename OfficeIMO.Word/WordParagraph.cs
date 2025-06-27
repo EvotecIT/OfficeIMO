@@ -6,6 +6,8 @@ using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
+using SdtContentPicture = DocumentFormat.OpenXml.Wordprocessing.SdtContentPicture;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
@@ -487,6 +489,45 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+
+        /// <summary>
+        /// Gets the combo box contained in this paragraph, if present.
+        /// </summary>
+        public WordComboBox ComboBox {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentComboBox>().Any() == true) {
+                    return new WordComboBox(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the picture content control contained in this paragraph, if present.
+        /// </summary>
+        public WordPictureControl PictureControl {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true) {
+                    return new WordPictureControl(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the repeating section contained in this paragraph, if present.
+        /// </summary>
+        public WordRepeatingSection RepeatingSection {
+            get {
+                if (_stdRun != null && _stdRun.SdtProperties?.Elements<W15.SdtRepeatedSection>().Any() == true) {
+                    return new WordRepeatingSection(_document, _paragraph, _stdRun);
+                }
+
+                return null;
+            }
+        }
         /// <summary>
         /// Gets the bookmark associated with this paragraph, if present.
         /// </summary>
@@ -691,6 +732,45 @@ namespace OfficeIMO.Word {
         public bool IsDropDownList {
             get {
                 if (this.DropDownList != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a combo box control.
+        /// </summary>
+        public bool IsComboBox {
+            get {
+                if (this.ComboBox != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a picture control.
+        /// </summary>
+        public bool IsPictureControl {
+            get {
+                if (this.PictureControl != null) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the paragraph contains a repeating section control.
+        /// </summary>
+        public bool IsRepeatingSection {
+            get {
+                if (this.RepeatingSection != null) {
                     return true;
                 }
 
