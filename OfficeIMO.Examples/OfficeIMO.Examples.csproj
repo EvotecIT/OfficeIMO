@@ -4,7 +4,7 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>Latest</LangVersion>
-        <VersionPrefix>1.0.2</VersionPrefix>
+        <VersionPrefix>1.0.3</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>
