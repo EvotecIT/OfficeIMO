@@ -112,6 +112,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Provides a list of paragraphs that contain date picker controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsDatePickers {
+            get { return Paragraphs.Where(p => p.IsDatePicker).ToList(); }
+        }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain dropdown list controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsDropDownLists {
+            get { return Paragraphs.Where(p => p.IsDropDownList).ToList(); }
+        }
+        /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
         public List<WordParagraph> ParagraphsImages {
@@ -394,6 +407,33 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Gets all date picker content controls within the section.
+        /// </summary>
+        public List<WordDatePicker> DatePickers {
+            get {
+                List<WordDatePicker> list = new List<WordDatePicker>();
+                var paragraphs = Paragraphs.Where(p => p.IsDatePicker).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.DatePicker);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets all dropdown list content controls within the section.
+        /// </summary>
+        public List<WordDropDownList> DropDownLists {
+            get {
+                List<WordDropDownList> list = new List<WordDropDownList>();
+                var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.DropDownList);
+                }
+                return list;
+            }
+        }
         /// <summary>
         /// Exposes the footers available for this section.
         /// </summary>

@@ -595,6 +595,41 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Retrieves a date picker control by its tag value.
+        /// </summary>
+        /// <param name="tag">Tag value of the date picker.</param>
+        /// <returns>The matching <see cref="WordDatePicker"/> or <c>null</c>.</returns>
+        public WordDatePicker GetDatePickerByTag(string tag) {
+            return this.DatePickers.FirstOrDefault(dp => dp.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a date picker control by its alias.
+        /// </summary>
+        /// <param name="alias">Alias of the date picker.</param>
+        /// <returns>The matching <see cref="WordDatePicker"/> or <c>null</c>.</returns>
+        public WordDatePicker GetDatePickerByAlias(string alias) {
+            return this.DatePickers.FirstOrDefault(dp => dp.Alias == alias);
+        }
+
+        /// <summary>
+        /// Retrieves a dropdown list control by its tag value.
+        /// </summary>
+        /// <param name="tag">Tag value of the dropdown list.</param>
+        /// <returns>The matching <see cref="WordDropDownList"/> or <c>null</c>.</returns>
+        public WordDropDownList GetDropDownListByTag(string tag) {
+            return this.DropDownLists.FirstOrDefault(dl => dl.Tag == tag);
+        }
+
+        /// <summary>
+        /// Retrieves a dropdown list control by its alias.
+        /// </summary>
+        /// <param name="alias">Alias of the dropdown list.</param>
+        /// <returns>The matching <see cref="WordDropDownList"/> or <c>null</c>.</returns>
+        public WordDropDownList GetDropDownListByAlias(string alias) {
+            return this.DropDownLists.FirstOrDefault(dl => dl.Alias == alias);
+        }
+        /// <summary>
         /// Removes an embedded document from the document.
         /// </summary>
         /// <param name="embeddedDocument">Embedded document to remove.</param>

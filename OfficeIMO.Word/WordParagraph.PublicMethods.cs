@@ -768,5 +768,76 @@ namespace OfficeIMO.Word {
                 this.CheckBox.IsChecked = value;
             }
         }
-    }
+        /// <summary>
+        /// Adds a date picker content control to the paragraph.
+        /// </summary>
+        /// <param name="date">Initial date value.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <param name="tag">Optional tag for the control.</param>
+        /// <returns>The created <see cref="WordDatePicker"/> instance.</returns>
+        public WordDatePicker AddDatePicker(System.DateTime? date = null, string alias = null, string tag = null) {
+            var sdtRun = new SdtRun();
+
+            var props = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                props.Append(new SdtAlias() { Val = alias });
+            }
+            if (!string.IsNullOrEmpty(tag)) {
+                props.Append(new Tag() { Val = tag });
+            }
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+
+            var dateProp = new SdtContentDate();
+            if (date.HasValue) {
+                dateProp.FullDate = new DateTimeValue(date.Value);
+            }
+            props.Append(dateProp);
+
+            var content = new SdtContentRun(new Run());
+
+            sdtRun.Append(props);
+            sdtRun.Append(content);
+
+            this._paragraph.Append(sdtRun);
+
+            return new WordDatePicker(this._document, this._paragraph, sdtRun);
+        }
+
+        /// <summary>
+        /// Adds a dropdown list content control to the paragraph.
+        /// </summary>
+        /// <param name="items">Items to include in the list.</param>
+        /// <param name="alias">Optional alias for the control.</param>
+        /// <param name="tag">Optional tag for the control.</param>
+        /// <returns>The created <see cref="WordDropDownList"/> instance.</returns>
+        public WordDropDownList AddDropDownList(System.Collections.Generic.IEnumerable<string> items, string alias = null, string tag = null) {
+            var sdtRun = new SdtRun();
+
+            var props = new SdtProperties();
+            if (!string.IsNullOrEmpty(alias)) {
+                props.Append(new SdtAlias() { Val = alias });
+            }
+            if (!string.IsNullOrEmpty(tag)) {
+                props.Append(new Tag() { Val = tag });
+            }
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+
+            var ddl = new SdtContentDropDownList();
+            if (items != null) {
+                foreach (var item in items) {
+                    ddl.Append(new ListItem() { DisplayText = item, Value = item });
+                }
+            }
+            props.Append(ddl);
+
+            var content = new SdtContentRun(new Run());
+
+            sdtRun.Append(props);
+            sdtRun.Append(content);
+
+            this._paragraph.Append(sdtRun);
+
+            return new WordDropDownList(this._document, this._paragraph, sdtRun);
+        }
+}
 }
