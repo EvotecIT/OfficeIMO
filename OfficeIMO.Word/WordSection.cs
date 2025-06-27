@@ -124,6 +124,27 @@ namespace OfficeIMO.Word {
         public List<WordParagraph> ParagraphsDropDownLists {
             get { return Paragraphs.Where(p => p.IsDropDownList).ToList(); }
         }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain combo box controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsComboBoxes {
+            get { return Paragraphs.Where(p => p.IsComboBox).ToList(); }
+        }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain picture controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsPictureControls {
+            get { return Paragraphs.Where(p => p.IsPictureControl).ToList(); }
+        }
+
+        /// <summary>
+        /// Provides a list of paragraphs that contain repeating section controls
+        /// </summary>
+        public List<WordParagraph> ParagraphsRepeatingSections {
+            get { return Paragraphs.Where(p => p.IsRepeatingSection).ToList(); }
+        }
         /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
@@ -430,6 +451,48 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.DropDownList);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets all combo box content controls within the section.
+        /// </summary>
+        public List<WordComboBox> ComboBoxes {
+            get {
+                List<WordComboBox> list = new List<WordComboBox>();
+                var paragraphs = Paragraphs.Where(p => p.IsComboBox).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.ComboBox);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets all picture content controls within the section.
+        /// </summary>
+        public List<WordPictureControl> PictureControls {
+            get {
+                List<WordPictureControl> list = new List<WordPictureControl>();
+                var paragraphs = Paragraphs.Where(p => p.IsPictureControl).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.PictureControl);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets all repeating section content controls within the section.
+        /// </summary>
+        public List<WordRepeatingSection> RepeatingSections {
+            get {
+                List<WordRepeatingSection> list = new List<WordRepeatingSection>();
+                var paragraphs = Paragraphs.Where(p => p.IsRepeatingSection).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.RepeatingSection);
                 }
                 return list;
             }

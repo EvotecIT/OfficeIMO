@@ -340,5 +340,23 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+
+        /// <summary>
+        /// Gets all repeating section content controls contained in the table.
+        /// </summary>
+        public List<WordRepeatingSection> RepeatingSections {
+            get {
+                List<WordRepeatingSection> list = new();
+                foreach (var row in this.Rows) {
+                    foreach (var cell in row.Cells) {
+                        var paragraphs = cell.Paragraphs.Where(p => p.IsRepeatingSection).ToList();
+                        foreach (var paragraph in paragraphs) {
+                            list.Add(paragraph.RepeatingSection);
+                        }
+                    }
+                }
+                return list;
+            }
+        }
 }
 }

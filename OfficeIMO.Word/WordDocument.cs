@@ -233,6 +233,48 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+
+        /// <summary>
+        /// Returns paragraphs that contain combo box controls.
+        /// </summary>
+        public List<WordParagraph> ParagraphsComboBoxes {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsComboBoxes);
+                }
+
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Returns paragraphs that contain picture controls.
+        /// </summary>
+        public List<WordParagraph> ParagraphsPictureControls {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsPictureControls);
+                }
+
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Returns paragraphs that contain repeating section controls.
+        /// </summary>
+        public List<WordParagraph> ParagraphsRepeatingSections {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsRepeatingSections);
+                }
+
+                return list;
+            }
+        }
         /// <summary>
         /// Returns paragraphs with embedded charts.
         /// </summary>
@@ -739,6 +781,45 @@ namespace OfficeIMO.Word {
                 List<WordDropDownList> list = new List<WordDropDownList>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.DropDownLists);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Collection of all combo box controls in the document.
+        /// </summary>
+        public List<WordComboBox> ComboBoxes {
+            get {
+                List<WordComboBox> list = new List<WordComboBox>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ComboBoxes);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Collection of all picture controls in the document.
+        /// </summary>
+        public List<WordPictureControl> PictureControls {
+            get {
+                List<WordPictureControl> list = new List<WordPictureControl>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.PictureControls);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Collection of all repeating section controls in the document.
+        /// </summary>
+        public List<WordRepeatingSection> RepeatingSections {
+            get {
+                List<WordRepeatingSection> list = new List<WordRepeatingSection>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.RepeatingSections);
                 }
                 return list;
             }

@@ -124,6 +124,13 @@ namespace OfficeIMO.Word {
         public List<WordParagraph> ParagraphsDropDownLists {
             get { return Paragraphs.Where(p => p.IsDropDownList).ToList(); }
         }
+
+        /// <summary>
+        /// Gets paragraphs that contain a repeating section control.
+        /// </summary>
+        public List<WordParagraph> ParagraphsRepeatingSections {
+            get { return Paragraphs.Where(p => p.IsRepeatingSection).ToList(); }
+        }
         /// <summary>
         /// Provides a list of paragraphs that contain Image
         /// </summary>
@@ -274,6 +281,21 @@ namespace OfficeIMO.Word {
                 var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.DropDownList);
+                }
+
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets the repeating sections contained in the header or footer.
+        /// </summary>
+        public List<WordRepeatingSection> RepeatingSections {
+            get {
+                List<WordRepeatingSection> list = new List<WordRepeatingSection>();
+                var paragraphs = Paragraphs.Where(p => p.IsRepeatingSection).ToList();
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.RepeatingSection);
                 }
 
                 return list;
