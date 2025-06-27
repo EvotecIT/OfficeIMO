@@ -905,7 +905,9 @@ namespace OfficeIMO.Word {
             this.AddImage(filePath, width, height);
             var newRun = this._paragraph.ChildElements[beforeCount] as Run;
             newRun?.Remove();
-            content.Append(newRun);
+            if (newRun != null) {
+                content.Append(newRun);
+            }
 
             sdtRun.Append(props);
             sdtRun.Append(content);
