@@ -182,6 +182,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
     - ☑️ Update control text
     - ☑️ Remove controls
     - ☑️ Checkbox form controls
+    - ☑️ Date picker form controls
+    - ☑️ Dropdown list form controls
+    - ❔ The Open XML specification defines additional types such as combo boxes, repeating sections, or picture controls, but these are not yet present in the repository.
 - ☑️ Shapes
     - ☑️ Add rectangles
     - ☑️ Add ellipses
