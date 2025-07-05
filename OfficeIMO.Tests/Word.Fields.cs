@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Bibliography;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -306,6 +307,24 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", document.Fields[0].Field);
                     Assert.Equal(WordFieldType.Time, document.Fields[0].FieldType);
                 }
+        }
+
+        [Fact]
+        public void Test_BibliographyAndCitation() {
+            using (WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "DocumentWithCitation.docx"))) {
+                var src = new WordBibliographySource("S1", DataSourceValues.Book) {
+                    Title = "Sample Book",
+                    Author = "John Doe",
+                    Year = "2024"
+                };
+                document.BibliographySources[src.Tag] = src;
+                document.AddCitation(src.Tag);
+                document.Save();
+
+                Assert.Single(document.BibliographySources);
+                Assert.Single(document.Fields);
+                Assert.Equal(WordFieldType.Citation, document.Fields[0].FieldType);
+            }
         }
 
         [Fact]
