@@ -1535,6 +1535,35 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Save the document to a new <see cref="MemoryStream"/>.
+        /// </summary>
+        /// <returns>A memory stream containing the saved document.</returns>
+        public MemoryStream SaveAsMemoryStream() {
+            var stream = new MemoryStream();
+            Save(stream);
+            stream.Seek(0, SeekOrigin.Begin);
+            return stream;
+        }
+
+        /// <summary>
+        /// Clone the document to the specified stream and return a new instance loaded from it.
+        /// </summary>
+        /// <param name="outputStream">Target stream that must support reading and seeking.</param>
+        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="outputStream"/>.</returns>
+        public WordDocument SaveAs(Stream outputStream) {
+            if (outputStream == null) {
+                throw new ArgumentNullException(nameof(outputStream));
+            }
+            if (!outputStream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking", nameof(outputStream));
+            }
+
+            Save(outputStream);
+            outputStream.Seek(0, SeekOrigin.Begin);
+            return WordDocument.Load(outputStream);
+        }
+
+        /// <summary>
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
