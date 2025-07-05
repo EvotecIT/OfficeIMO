@@ -30,6 +30,9 @@ namespace OfficeIMO.Word {
         internal string TopParent {
             get {
                 var test = _paragraph.Parent;
+                if (test == null) {
+                    throw new InvalidOperationException($"Paragraph with text '{Text}' has no parent.");
+                }
                 if (test is Body) {
                     return "body";
                 }
@@ -52,7 +55,7 @@ namespace OfficeIMO.Word {
                 if (parent is Header) {
                     return "header";
                 }
-                throw new InvalidOperationException("Please open an issue and describe your situation with Parent");
+                throw new InvalidOperationException($"Unsupported parent chain for paragraph with text '{Text}'.");
             }
         }
 
