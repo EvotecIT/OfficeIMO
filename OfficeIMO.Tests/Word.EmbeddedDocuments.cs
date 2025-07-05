@@ -1,3 +1,4 @@
+using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -233,5 +234,24 @@ public partial class Word {
 
             Assert.Equal(ids.Count, ids.Distinct().Count());
         }
+    }
+
+    [Fact]
+    public void Test_SaveEmbeddedDocument_DoesNotLockFile() {
+        string filePath = Path.Combine(_directoryWithFiles, "EmbeddedLockTest.docx");
+        string rtfFilePath = Path.Combine(_directoryDocuments, "SampleFileRTF.rtf");
+        string savedPath = Path.Combine(_directoryWithFiles, "EmbeddedOutput.rtf");
+
+        using (var document = WordDocument.Create(filePath)) {
+            document.AddEmbeddedDocument(rtfFilePath);
+            document.Save();
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            document.EmbeddedDocuments[0].Save(savedPath);
+            Assert.False(savedPath.IsFileLocked());
+        }
+
+        File.Delete(savedPath);
     }
 }

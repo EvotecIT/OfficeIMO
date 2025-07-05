@@ -26,9 +26,8 @@ namespace OfficeIMO.Word {
         /// <param name="fileName">Target file path.</param>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
-                var altStream = _altContent.GetStream();
+                using var altStream = _altContent.GetStream();
                 altStream.CopyTo(stream);
-                altStream.Close();
             }
         }
 
