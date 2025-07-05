@@ -188,11 +188,11 @@ namespace OfficeIMO.Word {
                         }
                     }
                 } else {
-                    throw new InvalidOperationException("This shouldn't happen? Why? Oh why 1?");
+                    throw new InvalidOperationException($"Cannot remove paragraph because it no longer has a parent. Paragraph text: '{Text}'.");
                 }
             } else {
                 // this shouldn't happen
-                throw new InvalidOperationException("This shouldn't happen? Why? Oh why 2?");
+                throw new InvalidOperationException($"Cannot remove paragraph because it is not initialized in the document. Paragraph text: '{Text}'.");
             }
         }
 
