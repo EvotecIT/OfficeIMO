@@ -473,6 +473,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a citation field referencing the specified source tag.
+        /// </summary>
+        /// <param name="sourceTag">Tag of the bibliographic source.</param>
+        /// <returns>The created <see cref="WordParagraph"/>.</returns>
+        public WordParagraph AddCitation(string sourceTag) {
+            var field = new CitationField { SourceTag = sourceTag };
+            return this.AddParagraph().AddField(field);
+        }
+
+        /// <summary>
         /// Adds a field to the document in a new paragraph.
         /// </summary>
         /// <param name="wordFieldType">Type of field to insert.</param>

@@ -873,6 +873,11 @@ namespace OfficeIMO.Word {
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
         /// <summary>
+        /// Collection of bibliographic sources used in the document.
+        /// </summary>
+        public Dictionary<string, WordBibliographySource> BibliographySources { get; } = new Dictionary<string, WordBibliographySource>();
+
+        /// <summary>
         /// Provides basic statistics for the document.
         /// </summary>
         public WordDocumentStatistics Statistics { get; internal set; }
@@ -1142,6 +1147,7 @@ namespace OfficeIMO.Word {
             var builtinDocumentProperties = new BuiltinDocumentProperties(this);
             var wordCustomProperties = new WordCustomProperties(this);
             var wordDocumentVariables = new WordDocumentVariables(this);
+            var bibliography = new WordBibliography(this);
             var wordBackground = new WordBackground(this);
             var statistics = new WordDocumentStatistics(this);
             var compatibilitySettings = new WordCompatibilitySettings(this);
@@ -1750,6 +1756,7 @@ namespace OfficeIMO.Word {
             if (hasVariables || DocumentVariables.Count > 0) {
                 _ = new WordDocumentVariables(this, true);
             }
+            _ = new WordBibliography(this, true);
         }
     }
 }
