@@ -327,6 +327,19 @@ using (WordDocument document = WordDocument.Create()) {
 }
 ```
 
+### Saving to byte arrays and streams
+
+`SaveAsByteArray` and `SaveAsMemoryStream` let you keep everything in memory. `SaveAs(Stream)` clones the document to a provided stream and returns a new instance loaded from it.
+
+```csharp
+using (WordDocument document = WordDocument.Create()) {
+    document.AddParagraph("In memory");
+    byte[] data = document.SaveAsByteArray();
+    using MemoryStream stream = document.SaveAsMemoryStream();
+    using var clone = document.SaveAs(stream);
+}
+```
+
 ### Basic Document with Headers/Footers (first, odd, even)
 
 This short example shows how to add headers and footers to a Word document.
