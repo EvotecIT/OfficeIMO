@@ -56,6 +56,7 @@
 [WordMacros](./officeimo.word.wordmacros.md)
 
 [WordDocumentVariables](./officeimo.word.worddocumentvariables.md)
+[WordDocumentStatistics](./officeimo.word.worddocumentstatistics.md)
 
 [WordEquation](./officeimo.word.wordequation.md)
 
