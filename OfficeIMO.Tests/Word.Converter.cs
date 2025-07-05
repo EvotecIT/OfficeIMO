@@ -17,4 +17,15 @@ public partial class Word {
             Assert.Contains(document.Paragraphs[56].Text, "Feel free to use and share the file according to the license above.");
         }
     }
+
+    [Fact]
+    public void Test_ConvertDotXtoDocX_ReleasesDocumentStream() {
+        string templatePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
+        string outFilePath = Path.Combine(_directoryWithFiles, "ExampleTemplate_Cleanup.docx");
+
+        WordHelpers.ConvertDotXtoDocX(templatePath, outFilePath);
+
+        Assert.False(templatePath.IsFileLocked());
+        Assert.True(File.Exists(outFilePath));
+    }
 }

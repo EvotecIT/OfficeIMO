@@ -14,32 +14,32 @@ namespace OfficeIMO.Word {
         /// <param name="outputPath">The path where the converted DOCX file will be saved.</param>
         public static void ConvertDotXtoDocX(string templatePath, string outputPath) {
             // Read the DOTX template file into a MemoryStream
-            MemoryStream documentStream = Helpers.ReadFileToMemoryStream(templatePath);
+            using (MemoryStream documentStream = Helpers.ReadFileToMemoryStream(templatePath)) {
+                // Open the WordprocessingDocument from the MemoryStream
+                using (WordprocessingDocument template = WordprocessingDocument.Open(documentStream, true)) {
+                    // Change the document type from template to document
+                    template.ChangeDocumentType(DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
 
-            // Open the WordprocessingDocument from the MemoryStream
-            using (WordprocessingDocument template = WordprocessingDocument.Open(documentStream, true)) {
-                // Change the document type from template to document
-                template.ChangeDocumentType(DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+                    // Get the main document part
+                    MainDocumentPart mainPart = template.MainDocumentPart;
 
-                // Get the main document part
-                MainDocumentPart mainPart = template.MainDocumentPart;
+                    // Ensure the DocumentSettingsPart exists
+                    if (mainPart.DocumentSettingsPart == null) {
+                        mainPart.AddNewPart<DocumentSettingsPart>();
+                    }
 
-                // Ensure the DocumentSettingsPart exists
-                if (mainPart.DocumentSettingsPart == null) {
-                    mainPart.AddNewPart<DocumentSettingsPart>();
+                    // Add an external relationship to the template
+                    mainPart.DocumentSettingsPart.AddExternalRelationship(
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
+                        new Uri(templatePath, UriKind.Absolute));
+
+                    // Save the changes to the main document part
+                    mainPart.Document.Save();
                 }
 
-                // Add an external relationship to the template
-                mainPart.DocumentSettingsPart.AddExternalRelationship(
-                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
-                    new Uri(templatePath, UriKind.Absolute));
-
-                // Save the changes to the main document part
-                mainPart.Document.Save();
+                // Write the MemoryStream contents to the output file
+                File.WriteAllBytes(outputPath, documentStream.ToArray());
             }
-
-            // Write the MemoryStream contents to the output file
-            File.WriteAllBytes(outputPath, documentStream.ToArray());
         }
     }
 }
