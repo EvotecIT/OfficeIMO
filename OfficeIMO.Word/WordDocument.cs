@@ -882,6 +882,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool AutoSave => _wordprocessingDocument.AutoSave;
 
+        /// <summary>
+        /// When <c>true</c> the table of contents is flagged to update before saving.
+        /// </summary>
+        public bool AutoUpdateToc { get; set; }
+
 
         // we expose them to help with integration
         /// <summary>
@@ -1704,6 +1709,9 @@ namespace OfficeIMO.Word {
         private void PreSaving() {
             MoveSectionProperties();
             SaveNumbering();
+            if (AutoUpdateToc && TableOfContent != null) {
+                TableOfContent.Update();
+            }
             _ = new WordCustomProperties(this, true);
             var settingsPart = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
