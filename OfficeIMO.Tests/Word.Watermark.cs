@@ -257,5 +257,28 @@ namespace OfficeIMO.Tests {
                 Assert.True(watermark.Height > 0);
             }
         }
+
+        [Fact]
+        public void Test_WatermarkOffsetsAndScale() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkOffsetsAndScale.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test");
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Offset", 10, 20, 2.0);
+                Assert.Equal(10, watermark.HorizontalOffset);
+                Assert.Equal(20, watermark.VerticalOffset);
+                Assert.True(watermark.Width > 0);
+                Assert.True(watermark.Height > 0);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                Assert.Equal(10, watermark.HorizontalOffset);
+                Assert.Equal(20, watermark.VerticalOffset);
+                Assert.True(watermark.Width > 0);
+                Assert.True(watermark.Height > 0);
+            }
+        }
     }
 }

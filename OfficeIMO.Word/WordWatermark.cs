@@ -511,7 +511,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordSection">The section to which the watermark should be added.</param>
         /// <param name="style">The type of watermark to add.</param>
         /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath) {
+        /// <param name="horizontalOffset">Horizontal offset in points.</param>
+        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="scale">Scale factor for width and height.</param>
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
             this._section = wordSection;
 
@@ -544,6 +547,19 @@ namespace OfficeIMO.Word {
                 var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
                 SetWatermarkImageData(imageLocation);
             }
+
+            if (horizontalOffset != null) {
+                this.HorizontalOffset = horizontalOffset.Value;
+            }
+
+            if (verticalOffset != null) {
+                this.VerticalOffset = verticalOffset.Value;
+            }
+
+            if (Math.Abs(scale - 1.0) > double.Epsilon) {
+                if (this.Width != null) this.Width = this.Width.Value * scale;
+                if (this.Height != null) this.Height = this.Height.Value * scale;
+            }
         }
 
         /// <summary>
@@ -554,7 +570,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordHeader">The header where the watermark will be placed.</param>
         /// <param name="style">The type of watermark to add.</param>
         /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath) {
+        /// <param name="horizontalOffset">Horizontal offset in points.</param>
+        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="scale">Scale factor for width and height.</param>
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
             this._section = wordSection;
 
@@ -583,6 +602,19 @@ namespace OfficeIMO.Word {
                 var wordParagraph = new WordParagraph(wordDocument, paragraph);
                 var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
                 SetWatermarkImageData(imageLocation);
+            }
+
+            if (horizontalOffset != null) {
+                this.HorizontalOffset = horizontalOffset.Value;
+            }
+
+            if (verticalOffset != null) {
+                this.VerticalOffset = verticalOffset.Value;
+            }
+
+            if (Math.Abs(scale - 1.0) > double.Epsilon) {
+                if (this.Width != null) this.Width = this.Width.Value * scale;
+                if (this.Height != null) this.Height = this.Height.Value * scale;
             }
         }
 
