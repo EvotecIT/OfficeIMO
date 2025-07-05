@@ -85,13 +85,18 @@ namespace OfficeIMO.Word {
             string altChunkId = mainDocPart.GetIdOfPart(chunk);
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
-            using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
-                chunk.FeedData(ms);
+            try {
+                using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
+                    chunk.FeedData(ms);
+                }
+
+                paragraph._paragraph.InsertAfterSelf(altChunk);
+
+                return new WordEmbeddedDocument(this, altChunk);
+            } catch {
+                mainDocPart.DeletePart(chunk);
+                throw;
             }
-
-            paragraph._paragraph.InsertAfterSelf(altChunk);
-
-            return new WordEmbeddedDocument(this, altChunk);
         }
 
         /// <summary>

@@ -106,21 +106,28 @@ namespace OfficeIMO.Word {
             string altChunkId = mainDocPart.GetIdOfPart(chunk);
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
-            // if it's a fragment, we don't need to read the file
-            var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
+            try {
+                // if it's a fragment, we don't need to read the file
+                var documentContent = htmlFragment
+                    ? fileNameOrContent
+                    : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
 
-            using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(documentContent))) {
-                chunk.FeedData(ms);
+                using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(documentContent))) {
+                    chunk.FeedData(ms);
+                }
+
+                _id = altChunkId;
+                _altChunk = altChunk;
+                _altContent = chunk;
+                _document = wordDocument;
+
+                mainDocPart.Document.Body.Append(altChunk);
+
+                mainDocPart.Document.Save();
+            } catch {
+                mainDocPart.DeletePart(chunk);
+                throw;
             }
-
-            _id = altChunkId;
-            _altChunk = altChunk;
-            _altContent = chunk;
-            _document = wordDocument;
-
-            mainDocPart.Document.Body.Append(altChunk);
-
-            mainDocPart.Document.Save();
         }
     }
 }
