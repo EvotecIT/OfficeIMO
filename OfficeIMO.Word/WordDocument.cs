@@ -1503,6 +1503,38 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Save the document to a memory stream and return the stream's byte array.
+        /// </summary>
+        /// <returns>A byte array representing the saved Word document.</returns>
+        public byte[] SaveAsByteArray() {
+            if (FileOpenAccess == FileAccess.Read) {
+                throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            }
+
+            PreSaving();
+
+            if (_wordprocessingDocument == null) {
+                throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
+            }
+
+            try {
+                _wordprocessingDocument.Save();
+
+                using var memoryStream = new MemoryStream();
+                using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
+                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                }
+
+                Helpers.MakeOpenOfficeCompatible(memoryStream);
+                memoryStream.Flush();
+
+                return memoryStream.ToArray();
+            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
