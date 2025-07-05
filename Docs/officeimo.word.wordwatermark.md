@@ -22,10 +22,10 @@ public string Text { get; set; }
 
 ## Constructors
 
-### **WordWatermark(WordDocument, WordSection, WordHeader, WordWatermarkStyle, String)**
+### **WordWatermark(WordDocument, WordSection, WordHeader, WordWatermarkStyle, String, Nullable(Double), Nullable(Double), Double)**
 
 ```csharp
-public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text)
+public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string text, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0)
 ```
 
 #### Parameters
@@ -39,6 +39,9 @@ public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHea
 `style` [WordWatermarkStyle](./officeimo.word.wordwatermarkstyle.md)<br>
 
 `text` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`horizontalOffset` [Nullable(Double)](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+`verticalOffset` [Nullable(Double)](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
+`scale` [Double](https://docs.microsoft.com/en-us/dotnet/api/system.double)<br>
 
 ### **Remove()**
 

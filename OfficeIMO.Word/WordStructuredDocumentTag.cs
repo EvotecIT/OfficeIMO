@@ -61,12 +61,18 @@ namespace OfficeIMO.Word {
             }
             set {
                 var run = _stdRun.SdtContentRun.ChildElements.OfType<Run>().FirstOrDefault();
-                if (run != null) {
-                    var text = run.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.Text = value;
-                    }
+                if (run == null) {
+                    run = new Run();
+                    _stdRun.SdtContentRun.Append(run);
                 }
+
+                var text = run.OfType<Text>().FirstOrDefault();
+                if (text == null) {
+                    text = new Text { Space = SpaceProcessingModeValues.Preserve };
+                    run.Append(text);
+                }
+
+                text.Text = value;
             }
         }
 

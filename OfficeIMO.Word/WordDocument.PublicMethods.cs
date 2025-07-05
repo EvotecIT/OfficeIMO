@@ -498,6 +498,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a field built using <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Whether to use advanced formatting.</param>
+        /// <returns>The created <see cref="WordParagraph"/>.</returns>
+        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+            return this.AddParagraph().AddField(builder, advanced);
+        }
+
+        /// <summary>
         /// Inserts an equation specified in OMML format.
         /// </summary>
         /// <param name="omml">OMML markup for the equation.</param>
@@ -846,7 +856,7 @@ namespace OfficeIMO.Word {
             if (foundList?.Count > 0) {
                 count += foundList.Count;
                 foreach (var ts in foundList) {
-                    if (ts == null)
+                    if (!IsSegmentValid(paragraphs, ts))
                         continue;
                     if (ts.BeginIndex == ts.EndIndex) {
                         var p = paragraphs[ts.BeginIndex];
@@ -997,6 +1007,33 @@ namespace OfficeIMO.Word {
             }
 
             return list;
+        }
+
+        private static bool IsSegmentValid(List<WordParagraph> paragraphs, WordTextSegment ts) {
+            if (paragraphs == null || ts == null) {
+                return false;
+            }
+
+            if (ts.BeginIndex < 0 || ts.EndIndex < ts.BeginIndex || ts.EndIndex >= paragraphs.Count) {
+                return false;
+            }
+
+            var beginPara = paragraphs[ts.BeginIndex];
+            var endPara = paragraphs[ts.EndIndex];
+
+            if (beginPara == null || endPara == null) {
+                return false;
+            }
+
+            if (ts.BeginChar < 0 || ts.BeginChar >= beginPara.Text.Length) {
+                return false;
+            }
+
+            if (ts.EndChar < 0 || ts.EndChar >= endPara.Text.Length) {
+                return false;
+            }
+
+            return true;
         }
     }
 }

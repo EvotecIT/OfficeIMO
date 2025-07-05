@@ -59,6 +59,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a field constructed using <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="paragraph">Paragraph to add the field to.</param>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Whether to use advanced field representation.</param>
+        /// <returns>The <see cref="WordParagraph"/> containing the field.</returns>
+        public static WordParagraph AddField(WordParagraph paragraph, WordFieldBuilder builder, bool advanced = false) {
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+
+            var parameters = builder.GetParameters();
+            return AddField(paragraph, builder.FieldType, builder.Format, builder.CustomFormat, advanced, parameters);
+        }
+
+        /// <summary>
         /// Deletes all runs and simple field elements associated with this field.
         /// </summary>
         public void Remove() {

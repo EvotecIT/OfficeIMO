@@ -873,9 +873,19 @@ namespace OfficeIMO.Word {
         public Dictionary<string, string> DocumentVariables { get; } = new Dictionary<string, string>();
 
         /// <summary>
+        /// Provides basic statistics for the document.
+        /// </summary>
+        public WordDocumentStatistics Statistics { get; internal set; }
+
+        /// <summary>
         /// Indicates whether the document is saved automatically.
         /// </summary>
         public bool AutoSave => _wordprocessingDocument.AutoSave;
+
+        /// <summary>
+        /// When <c>true</c> the table of contents is flagged to update before saving.
+        /// </summary>
+        public bool AutoUpdateToc { get; set; }
 
 
         // we expose them to help with integration
@@ -1013,6 +1023,7 @@ namespace OfficeIMO.Word {
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
             WordSection wordSection = new WordSection(word, null);
             WordBackground wordBackground = new WordBackground(word);
+            WordDocumentStatistics statistics = new WordDocumentStatistics(word);
 
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -1112,6 +1123,7 @@ namespace OfficeIMO.Word {
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
             WordSection wordSection = new WordSection(word, null);
             WordBackground wordBackground = new WordBackground(word);
+            WordDocumentStatistics statistics = new WordDocumentStatistics(word);
 
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -1131,6 +1143,7 @@ namespace OfficeIMO.Word {
             var wordCustomProperties = new WordCustomProperties(this);
             var wordDocumentVariables = new WordDocumentVariables(this);
             var wordBackground = new WordBackground(this);
+            var statistics = new WordDocumentStatistics(this);
             var compatibilitySettings = new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
@@ -1696,6 +1709,9 @@ namespace OfficeIMO.Word {
         private void PreSaving() {
             MoveSectionProperties();
             SaveNumbering();
+            if (AutoUpdateToc && TableOfContent != null) {
+                TableOfContent.Update();
+            }
             _ = new WordCustomProperties(this, true);
             var settingsPart = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;

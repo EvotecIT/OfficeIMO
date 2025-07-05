@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using Xunit;
 using System.IO;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -79,6 +80,41 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal("Updated", document.StructuredDocumentTags[0].Text);
                 Assert.Equal("Tag100", document.StructuredDocumentTags[0].Tag);
+            }
+        }
+
+        [Fact]
+        public void Test_SettingTextOnEmptyStructuredDocumentTag() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithEmptySdt.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var sdtRun = new SdtRun();
+
+                var properties = new SdtProperties();
+                properties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+                sdtRun.Append(properties);
+                sdtRun.Append(new SdtContentRun());
+
+                var paragraph = new Paragraph(sdtRun);
+                var wordParagraph = new WordParagraph(document, paragraph, sdtRun);
+                document.AddParagraph(wordParagraph);
+
+                var sdt = wordParagraph.StructuredDocumentTag;
+                Assert.Null(sdt.Text);
+
+                sdt.Text = "New text";
+
+                Assert.Equal("New text", sdt.Text);
+                Assert.NotNull(sdtRun.SdtContentRun.GetFirstChild<Run>());
+                Assert.Equal("New text", sdtRun.SdtContentRun.GetFirstChild<Run>().GetFirstChild<Text>().Text);
+
+                document.Save(false);
+                Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.StructuredDocumentTags);
+                Assert.Equal("New text", document.StructuredDocumentTags[0].Text);
             }
         }
     }

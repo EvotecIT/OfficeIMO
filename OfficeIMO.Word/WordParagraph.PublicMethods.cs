@@ -188,11 +188,11 @@ namespace OfficeIMO.Word {
                         }
                     }
                 } else {
-                    throw new InvalidOperationException("This shouldn't happen? Why? Oh why 1?");
+                    throw new InvalidOperationException($"Cannot remove paragraph because it no longer has a parent. Paragraph text: '{Text}'.");
                 }
             } else {
                 // this shouldn't happen
-                throw new InvalidOperationException("This shouldn't happen? Why? Oh why 2?");
+                throw new InvalidOperationException($"Cannot remove paragraph because it is not initialized in the document. Paragraph text: '{Text}'.");
             }
         }
 
@@ -340,6 +340,17 @@ namespace OfficeIMO.Word {
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
             WordField.AddField(this, fieldCode, wordFieldFormat, customFormat, advanced);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a field constructed using <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Use advanced field representation.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+            WordField.AddField(this, builder, advanced);
             return this;
         }
 

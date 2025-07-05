@@ -488,5 +488,27 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_RemoveParagraphTwiceThrowsDetailedMessage() {
+            string filePath = Path.Combine(_directoryWithFiles, "RemoveParagraphTwice.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Test paragraph");
+                paragraph.Remove();
+                var ex = Assert.Throws<InvalidOperationException>(() => paragraph.Remove());
+                Assert.Contains("no longer has a parent", ex.Message);
+            }
+        }
+
+        [Fact]
+        public void Test_TopParentOnRemovedParagraphThrowsDetailedMessage() {
+            string filePath = Path.Combine(_directoryWithFiles, "TopParentRemoved.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Another paragraph");
+                paragraph.Remove();
+                var ex = Assert.Throws<InvalidOperationException>(() => _ = paragraph.TopParent);
+                Assert.Contains("has no parent", ex.Message);
+            }
+        }
     }
 }

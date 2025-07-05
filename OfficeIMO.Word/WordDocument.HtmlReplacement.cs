@@ -85,13 +85,18 @@ namespace OfficeIMO.Word {
             string altChunkId = mainDocPart.GetIdOfPart(chunk);
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
-            using (MemoryStream ms = new MemoryStream(Encoding.ASCII.GetBytes(htmlContent))) {
-                chunk.FeedData(ms);
+            try {
+                using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
+                    chunk.FeedData(ms);
+                }
+
+                paragraph._paragraph.InsertAfterSelf(altChunk);
+
+                return new WordEmbeddedDocument(this, altChunk);
+            } catch {
+                mainDocPart.DeletePart(chunk);
+                throw;
             }
-
-            paragraph._paragraph.InsertAfterSelf(altChunk);
-
-            return new WordEmbeddedDocument(this, altChunk);
         }
 
         /// <summary>
@@ -100,6 +105,10 @@ namespace OfficeIMO.Word {
         /// <param name="paragraphs">Paragraph list to operate on.</param>
         /// <param name="ts">Segment describing the text range to remove.</param>
         private static void RemoveTextSegment(List<WordParagraph> paragraphs, WordTextSegment ts) {
+            if (!IsSegmentValid(paragraphs, ts)) {
+                return;
+            }
+
             if (ts.BeginIndex == ts.EndIndex) {
                 var p = paragraphs[ts.BeginIndex];
                 var len = ts.EndChar - ts.BeginChar + 1;
@@ -114,5 +123,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        // Uses WordDocument.IsSegmentValid for validation
     }
 }

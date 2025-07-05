@@ -154,6 +154,7 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
       - ☑️ Read comments
       - ☑️ Remove comments (single or all)
       - ☑️ Track comments
+      - ☑️ Threaded replies
 - ☑️ Fields
     - ☑️ Add Field
     - ☑️ Read Field

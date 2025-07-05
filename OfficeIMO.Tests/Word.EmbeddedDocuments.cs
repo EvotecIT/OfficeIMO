@@ -254,4 +254,39 @@ public partial class Word {
 
         File.Delete(savedPath);
     }
+     
+    [Fact]
+    public void Test_RemoveSpecificEmbeddedDocument() {
+        string filePath = Path.Combine(_directoryWithFiles, "RemoveSpecificEmbeddedDocument.docx");
+        string htmlFilePath = Path.Combine(_directoryDocuments, "SampleFileHTML.html");
+        string rtfFilePath = Path.Combine(_directoryDocuments, "SampleFileRTF.rtf");
+
+        using (var document = WordDocument.Create(filePath)) {
+            document.AddEmbeddedDocument(rtfFilePath);
+            document.AddEmbeddedDocument(htmlFilePath);
+
+            Assert.True(document.EmbeddedDocuments.Count == 2);
+
+            var listBefore = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            Assert.True(listBefore.Count() == 2);
+
+            document.EmbeddedDocuments[0].Remove();
+
+            Assert.True(document.EmbeddedDocuments.Count == 1);
+            Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
+
+            var listAfter = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            Assert.True(listAfter.Count() == 1);
+
+            document.Save(false);
+        }
+
+        using (var document = WordDocument.Load(filePath)) {
+            Assert.True(document.EmbeddedDocuments.Count == 1);
+            Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
+
+            var listAfter = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            Assert.True(listAfter.Count() == 1);
+        }
+    }
 }

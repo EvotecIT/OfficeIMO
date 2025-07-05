@@ -4,15 +4,17 @@ using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
     /// A wrapper for Word document comments.
     /// </summary>
     public partial class WordComment {
-        private WordComment(WordDocument document, Comment comment) {
+        private WordComment(WordDocument document, Comment comment, CommentEx commentEx) {
             _document = document;
             _comment = comment;
+            _commentEx = commentEx;
 
             var paragraph = comment.ChildElements.OfType<Paragraph>();
             List<WordParagraph> list = WordSection.ConvertParagraphsToWordParagraphs(document, paragraph);
@@ -54,6 +56,39 @@ namespace OfficeIMO.Word {
             }
 
             return comments;
+        }
+
+        internal static CommentsEx GetCommentsExPart(WordDocument document) {
+            CommentsEx commentsEx = null;
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+            if (mainPart != null && mainPart.GetPartsOfType<WordprocessingCommentsExPart>().Any()) {
+                commentsEx = mainPart.WordprocessingCommentsExPart?.CommentsEx;
+            } else {
+                if (mainPart != null) {
+                    var commentExPart = mainPart.AddNewPart<WordprocessingCommentsExPart>();
+                    commentExPart.CommentsEx = new CommentsEx();
+                    commentsEx = commentExPart.CommentsEx;
+                }
+            }
+
+            return commentsEx;
+        }
+
+        internal static string GetNewParaId(CommentsEx commentsEx) {
+            var existing = commentsEx
+                .Descendants<CommentEx>()
+                .Select(c => c.ParaId?.Value)
+                .Where(v => v != null)
+                .ToList();
+
+            int max = 0;
+            foreach (var v in existing) {
+                if (int.TryParse(v, System.Globalization.NumberStyles.HexNumber, null, out int num)) {
+                    if (num > max) max = num;
+                }
+            }
+
+            return (max + 1).ToString("X8");
         }
     }
 }

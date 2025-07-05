@@ -73,3 +73,36 @@ public WordBackground SetColor(Color color)
 #### Returns
 
 [WordBackground](./officeimo.word.wordbackground.md)<br>
+
+### **SetImage(String, Double?, Double?)**
+
+```csharp
+public WordBackground SetImage(string filePath, double? width = null, double? height = null)
+```
+
+#### Parameters
+
+`filePath` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`width` [Double](https://docs.microsoft.com/en-us/dotnet/api/system.double)?<br>
+`height` [Double](https://docs.microsoft.com/en-us/dotnet/api/system.double)?<br>
+
+#### Returns
+
+[WordBackground](./officeimo.word.wordbackground.md)<br>
+
+### **SetImage(Stream, String, Double?, Double?)**
+
+```csharp
+public WordBackground SetImage(Stream imageStream, string fileName, double? width = null, double? height = null)
+```
+
+#### Parameters
+
+`imageStream` [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream)<br>
+`fileName` [String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+`width` [Double](https://docs.microsoft.com/en-us/dotnet/api/system.double)?<br>
+`height` [Double](https://docs.microsoft.com/en-us/dotnet/api/system.double)?<br>
+
+#### Returns
+
+[WordBackground](./officeimo.word.wordbackground.md)<br>
