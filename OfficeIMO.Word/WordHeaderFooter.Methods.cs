@@ -110,6 +110,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a field constructed with <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Whether to use advanced formatting.</param>
+        /// <returns>The created <see cref="WordParagraph"/> instance.</returns>
+        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+            return this.AddParagraph().AddField(builder, advanced);
+        }
+
+        /// <summary>
         /// Inserts a page number field.
         /// </summary>
         /// <param name="includeTotalPages">Include total pages in the display.</param>

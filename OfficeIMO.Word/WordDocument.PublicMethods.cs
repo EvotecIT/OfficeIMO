@@ -498,6 +498,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a field built using <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Whether to use advanced formatting.</param>
+        /// <returns>The created <see cref="WordParagraph"/>.</returns>
+        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+            return this.AddParagraph().AddField(builder, advanced);
+        }
+
+        /// <summary>
         /// Inserts an equation specified in OMML format.
         /// </summary>
         /// <param name="omml">OMML markup for the equation.</param>

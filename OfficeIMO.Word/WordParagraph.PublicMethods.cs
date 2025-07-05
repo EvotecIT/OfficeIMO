@@ -344,6 +344,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a field constructed using <see cref="WordFieldBuilder"/>.
+        /// </summary>
+        /// <param name="builder">Field builder instance.</param>
+        /// <param name="advanced">Use advanced field representation.</param>
+        /// <returns>The paragraph that this was called on.</returns>
+        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+            WordField.AddField(this, builder, advanced);
+            return this;
+        }
+
+        /// <summary>
         /// Adds a page number field to the paragraph.
         /// </summary>
         /// <param name="includeTotalPages">If true adds a NUMPAGES field preceded by text " of ".</param>
