@@ -202,6 +202,9 @@ namespace OfficeIMO.Examples {
             Fields.Example_FieldFormatAdvanced(folderPath, false);
             Fields.Example_FieldWithMultipleSwitches(folderPath, false);
 
+            CitationsExamples.Example_BasicCitations(folderPath, false);
+            CitationsExamples.Example_AdvancedCitations(folderPath, false);
+
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
             Watermark.Watermark_Sample3(folderPath, false);

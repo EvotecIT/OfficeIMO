@@ -24,17 +24,41 @@ namespace OfficeIMO.Word {
         }
 
         private void LoadBibliography() {
-            // Loading existing bibliography sources is not currently implemented.
+            if (_wordDocument.MainDocumentPart == null) return;
+
+            _part = _wordDocument.MainDocumentPart.CustomXmlParts
+                .FirstOrDefault(p => string.Equals(p.ContentType, "application/bibliography+xml", System.StringComparison.OrdinalIgnoreCase));
+
+            if (_part == null) return;
+
+            var sources = new Sources();
+            sources.Load(_part);
+
+            foreach (var source in sources.Elements<Source>()) {
+                var wrapper = new WordBibliographySource(source);
+                if (!string.IsNullOrEmpty(wrapper.Tag)) {
+                    _document.BibliographySources[wrapper.Tag] = wrapper;
+                }
+            }
         }
 
         private void SaveBibliography() {
             if (_wordDocument.MainDocumentPart == null) return;
 
             if (_part == null) {
+                if (_document.BibliographySources.Count == 0) return;
+
                 if (_document.FileOpenAccess == FileAccess.Read) {
                     throw new System.ArgumentException("Document is read only!");
                 }
+
                 _part = _wordDocument.MainDocumentPart.AddCustomXmlPart(CustomXmlPartType.Bibliography);
+            }
+
+            if (_document.BibliographySources.Count == 0) {
+                _wordDocument.MainDocumentPart.DeletePart(_part);
+                _part = null;
+                return;
             }
 
             var sources = new Sources();
@@ -42,14 +66,7 @@ namespace OfficeIMO.Word {
                 sources.Append(pair.Value.ToOpenXml());
             }
 
-            if (sources.ChildElements.Count > 0) {
-                sources.Save(_part);
-            } else {
-                if (_part != null) {
-                    _wordDocument.MainDocumentPart.DeletePart(_part);
-                    _part = null;
-                }
-            }
+            sources.Save(_part);
         }
     }
 }
