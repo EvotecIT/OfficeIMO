@@ -100,6 +100,10 @@ namespace OfficeIMO.Word {
         /// <param name="paragraphs">Paragraph list to operate on.</param>
         /// <param name="ts">Segment describing the text range to remove.</param>
         private static void RemoveTextSegment(List<WordParagraph> paragraphs, WordTextSegment ts) {
+            if (!IsSegmentValid(paragraphs, ts)) {
+                return;
+            }
+
             if (ts.BeginIndex == ts.EndIndex) {
                 var p = paragraphs[ts.BeginIndex];
                 var len = ts.EndChar - ts.BeginChar + 1;
@@ -114,5 +118,7 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        // Uses WordDocument.IsSegmentValid for validation
     }
 }

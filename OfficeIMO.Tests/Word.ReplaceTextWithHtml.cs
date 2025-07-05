@@ -47,5 +47,38 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.EmbeddedDocuments);
             }
         }
+
+        [Fact]
+        public void Test_ReplaceTextWithHtmlFragment_BoundaryStart() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReplaceHtmlBoundaryStart.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("target middle");
+                var count = document.ReplaceTextWithHtmlFragment("target", "<html><p>Injected</p></html>");
+                Assert.Equal(1, count);
+                Assert.Single(document.EmbeddedDocuments);
+                Assert.Equal(" middle", document.Paragraphs[0].Text);
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.EmbeddedDocuments);
+            }
+        }
+
+        [Fact]
+        public void Test_ReplaceTextWithHtmlFragment_BoundaryEnd() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReplaceHtmlBoundaryEnd.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Some text");
+                document.AddParagraph("final target");
+                var count = document.ReplaceTextWithHtmlFragment("target", "<html><p>Injected</p></html>");
+                Assert.Equal(1, count);
+                Assert.Single(document.EmbeddedDocuments);
+                Assert.Equal("final ", document.Paragraphs[1].Text);
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.EmbeddedDocuments);
+            }
+        }
     }
 }
