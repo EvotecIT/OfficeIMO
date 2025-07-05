@@ -1,8 +1,8 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.IO;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -39,16 +39,12 @@ namespace OfficeIMO.Word {
             _altChunk.Remove();
 
             var list = _document._document.MainDocumentPart.AlternativeFormatImportParts;
-            AlternativeFormatImportPart itemToDelete = null;
             foreach (var item in list) {
                 var relationshipId = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(item);
                 if (relationshipId == _id) {
-                    itemToDelete = item;
+                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(item);
+                    break;
                 }
-            }
-
-            if (itemToDelete != null) {
-                _document._wordprocessingDocument.MainDocumentPart.DeletePart(itemToDelete);
             }
         }
 
