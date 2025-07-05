@@ -123,9 +123,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="watermarkStyle">Watermark style.</param>
         /// <param name="textOrFilePath">Text or image path for the watermark.</param>
+        /// <param name="horizontalOffset">Horizontal offset in points.</param>
+        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="scale">Scale factor for width and height.</param>
         /// <returns>The created <see cref="WordWatermark"/>.</returns>
-        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath) {
-            return new WordWatermark(this._document, this._section, this, watermarkStyle, textOrFilePath);
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
+            return new WordWatermark(this._document, this._section, this, watermarkStyle, textOrFilePath, horizontalOffset, verticalOffset, scale);
         }
 
         /// <summary>
