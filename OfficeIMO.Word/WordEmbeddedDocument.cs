@@ -111,9 +111,9 @@ namespace OfficeIMO.Word {
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
             // if it's a fragment, we don't need to read the file
-            var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.ASCII);
+            var documentContent = htmlFragment ? fileNameOrContent : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
 
-            using (MemoryStream ms = new MemoryStream(Encoding.ASCII.GetBytes(documentContent))) {
+            using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(documentContent))) {
                 chunk.FeedData(ms);
             }
 

@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
             string altChunkId = mainDocPart.GetIdOfPart(chunk);
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
-            using (MemoryStream ms = new MemoryStream(Encoding.ASCII.GetBytes(htmlContent))) {
+            using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
                 chunk.FeedData(ms);
             }
 
