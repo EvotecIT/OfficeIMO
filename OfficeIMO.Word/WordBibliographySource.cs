@@ -8,6 +8,8 @@ namespace OfficeIMO.Word {
     public class WordBibliographySource {
         internal Source Source { get; }
 
+        private string _tag;
+
         /// <summary>
         /// Initializes a new source with the given tag and type.
         /// </summary>
@@ -19,16 +21,21 @@ namespace OfficeIMO.Word {
 
         internal WordBibliographySource(Source source) {
             Source = source;
+            _tag = source.Tag?.Text;
         }
 
         /// <summary>
         /// Gets or sets the tag used to reference the source in citation fields.
         /// </summary>
         public string Tag {
-            get => Source.Tag?.Text;
+            get => _tag;
             set {
-                if (Source.Tag == null) Source.Tag = new Tag();
-                Source.Tag.Text = value;
+                _tag = value;
+                if (string.IsNullOrEmpty(value)) {
+                    Source.Tag = null;
+                } else {
+                    Source.Tag = new Tag { Text = value };
+                }
             }
         }
 
@@ -91,6 +98,14 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal Source ToOpenXml() => Source;
+        internal Source ToOpenXml() {
+            // ensure Tag element reflects current state
+            if (string.IsNullOrEmpty(_tag)) {
+                Source.Tag = null;
+            } else {
+                Source.Tag = new Tag { Text = _tag };
+            }
+            return Source;
+        }
     }
 }
