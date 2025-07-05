@@ -215,5 +215,19 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_AutoUpdateToc() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoUpdateToc.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddTableOfContent();
+                document.AutoUpdateToc = true;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
     }
 }

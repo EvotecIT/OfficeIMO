@@ -67,6 +67,14 @@ Enable or disable tracking of comment changes.
 public bool TrackComments { get; set; }
 ```
 
+### **AutoUpdateToc**
+
+Flag the table of contents for update before saving when set to <code>true</code>.
+
+```csharp
+public bool AutoUpdateToc { get; set; }
+```
+
 ### **HasDocumentVariables**
 
 Indicates if the document contains any document variables.
