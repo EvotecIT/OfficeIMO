@@ -5,7 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 
+/// <summary>
+/// Examples demonstrating document cleanup operations.
+/// </summary>
 internal static partial class CleanupDocuments {
+    /// <summary>
+    /// Loads a template and performs cleanup of redundant runs.
+    /// </summary>
+    /// <param name="openWord">Opens Word when <c>true</c>.</param>
     public static void CleanupDocuments_Sample01(bool openWord) {
         Console.WriteLine("[*] Load external Word Document - Sample 1");
         string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");

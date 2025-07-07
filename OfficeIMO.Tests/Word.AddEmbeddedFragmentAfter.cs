@@ -4,7 +4,13 @@ using Xunit;
 using System.IO;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests related to inserting HTML fragments after a paragraph.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Adds an HTML fragment after an existing paragraph.
+        /// </summary>
         [Fact]
         public void Test_AddEmbeddedFragmentAfter() {
             string filePath = Path.Combine(_directoryWithFiles, "FragmentAfter.docx");

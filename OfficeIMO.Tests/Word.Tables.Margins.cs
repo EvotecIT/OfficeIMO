@@ -6,7 +6,13 @@ using Color = SixLabors.ImageSharp.Color;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests table margin properties defined in centimeters.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Verifies correct handling of table margins specified in centimeters.
+        /// </summary>
         [Fact]
         public void Test_TableMarginsWithCentimeters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTableMargins.docx");

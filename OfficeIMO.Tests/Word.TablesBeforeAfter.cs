@@ -6,7 +6,13 @@ using Color = SixLabors.ImageSharp.Color;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests adding tables before and after paragraphs.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Creates a document with tables inserted before and after content.
+        /// </summary>
         [Fact]
         public void Test_CreatingWordDocumentWithTablesAfterBefore() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAfterBefore.docx");

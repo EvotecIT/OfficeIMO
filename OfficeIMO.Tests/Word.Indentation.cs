@@ -3,7 +3,13 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests paragraph indentation helpers.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Validates indentation values set in points.
+        /// </summary>
         [Fact]
         public void Test_ParagraphIndentationPoints() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithIndentationPoints.docx");
