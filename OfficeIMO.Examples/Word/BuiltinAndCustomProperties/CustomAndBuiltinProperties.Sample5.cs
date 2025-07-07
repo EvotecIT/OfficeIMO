@@ -8,6 +8,11 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class CustomAndBuiltinProperties {
+        /// <summary>
+        /// Creates a basic document and sets a few built-in properties.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the document.</param>
+        /// <param name="openWord">Whether to open Word after creation.</param>
         public static void Example_BasicDocumentProperties(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with some properties and single paragraph");
             string filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");

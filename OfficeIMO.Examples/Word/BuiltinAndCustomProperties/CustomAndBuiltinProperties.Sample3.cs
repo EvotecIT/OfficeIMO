@@ -8,6 +8,10 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class CustomAndBuiltinProperties {
+        /// <summary>
+        /// Creates a document and validates its properties and content.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the document.</param>
         public static void Example_ValidateDocument(string folderPath) {
             Console.WriteLine("[*] Creating standard document and validate it");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document for validation.docx");

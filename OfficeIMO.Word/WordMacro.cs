@@ -151,6 +151,9 @@ namespace OfficeIMO.Word {
 
             /// <summary>Represents a directory entry inside the compound file.</summary>
             private class DirEntry {
+                /// <summary>
+                /// Name of the entry.
+                /// </summary>
                 public string Name = string.Empty;
                 /// <summary>
                 /// Directory entry type (0 = unknown, 1 = storage, 2 = stream, 5 = root).

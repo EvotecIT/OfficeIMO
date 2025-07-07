@@ -8,6 +8,11 @@ using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
+        /// <summary>
+        /// Demonstrates how to create a document with a basic watermark.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the file.</param>
+        /// <param name="openWord">Whether to open the document after creation.</param>
         public static void Watermark_Sample1(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Watermark 2");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Watermark 4.docx");

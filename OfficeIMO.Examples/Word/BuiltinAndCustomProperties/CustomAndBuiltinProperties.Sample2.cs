@@ -8,6 +8,10 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class CustomAndBuiltinProperties {
+        /// <summary>
+        /// Loads a document and prints basic property information.
+        /// </summary>
+        /// <param name="openWord">Whether to open Word after loading the document.</param>
         public static void Example_Load(bool openWord = false) {
             Console.WriteLine("[*] Loading basic document");
 

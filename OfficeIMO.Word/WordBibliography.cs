@@ -12,6 +12,11 @@ namespace OfficeIMO.Word {
         private readonly WordprocessingDocument _wordDocument;
         private CustomXmlPart _part;
 
+        /// <summary>
+        /// Initializes a new instance responsible for managing bibliography sources.
+        /// </summary>
+        /// <param name="document">Parent document instance.</param>
+        /// <param name="create">If set to <c>true</c>, a new bibliography part is created.</param>
         public WordBibliography(WordDocument document, bool? create = null) {
             _document = document;
             _wordDocument = document._wordprocessingDocument;
