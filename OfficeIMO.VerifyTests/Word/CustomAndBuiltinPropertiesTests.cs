@@ -10,6 +10,9 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Verifies custom and built‑in document property handling.
+/// </summary>
 public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

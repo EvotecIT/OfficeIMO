@@ -9,6 +9,9 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Provides baseline document generation tests.
+/// </summary>
 public class BasicDocumentTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {
