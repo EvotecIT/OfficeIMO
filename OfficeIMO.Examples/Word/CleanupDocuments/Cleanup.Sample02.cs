@@ -2,7 +2,15 @@ using System;
 using System.IO;
 using OfficeIMO.Word;
 
+/// <summary>
+/// Additional document cleanup examples.
+/// </summary>
 internal static partial class CleanupDocuments {
+    /// <summary>
+    /// Creates a document, performs cleanup operations and reloads it.
+    /// </summary>
+    /// <param name="folderPath">Directory to create the file in.</param>
+    /// <param name="openWord">Opens Word when <c>true</c>.</param>
     public static void CleanupDocuments_Sample02(string folderPath, bool openWord) {
         string filePath = System.IO.Path.Combine(folderPath, "SimpleWordDocumentReadyToCleanup1.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {

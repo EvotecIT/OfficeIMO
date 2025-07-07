@@ -4,7 +4,13 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests configuring footnote and endnote properties.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Creates a document, sets footnote and endnote options, and reloads it.
+        /// </summary>
         [Fact]
         public void Test_FootnoteEndnotePropertiesRoundtrip() {
             string filePath = Path.Combine(_directoryWithFiles, "FootnoteEndnoteProperties.docx");

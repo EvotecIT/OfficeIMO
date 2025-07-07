@@ -8,7 +8,13 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests;
 
+/// <summary>
+/// Tests adjusting line spacing settings on paragraphs.
+/// </summary>
 public partial class Word {
+    /// <summary>
+    /// Creates a document and verifies various line spacing options.
+    /// </summary>
     [Fact]
     public void Test_CreatingWordDocumentWithLineRules() {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithLineRules.docx");

@@ -4,7 +4,13 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests related to custom document properties.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Creates a document with custom properties and verifies values.
+        /// </summary>
         [Fact]
         public void Test_SimpleWordDocumentCreationWithCustomProperties() {
             string filePath = Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx");

@@ -5,7 +5,13 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Tests enumerating list items across different document parts.
+    /// </summary>
     public partial class Word {
+        /// <summary>
+        /// Creates lists in body, tables, headers and footers and enumerates them.
+        /// </summary>
         [Fact]
         public void Test_ListItemsFromBodyTablesHeadersFooters() {
             var filePath = Path.Combine(_directoryWithFiles, "ListItemsEnumerator.docx");
