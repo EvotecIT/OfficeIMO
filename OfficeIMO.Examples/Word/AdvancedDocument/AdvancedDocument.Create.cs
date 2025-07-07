@@ -5,7 +5,11 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class AdvancedDocument {
-
+        /// <summary>
+        /// Creates an advanced document showcasing various features.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the document.</param>
+        /// <param name="openWord">Whether to open Word after creation.</param>
         public static void Example_AdvancedWord(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating advanced document");
             string filePath = System.IO.Path.Combine(folderPath, "AdvancedDocument.docx");

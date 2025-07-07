@@ -57,10 +57,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Parent Paragraph is Paragraph/Run that has EndNote attached to it.
-        /// This provides ability to find proper Run that has EndNote
+        /// Parent paragraph containing the endnote reference.
         /// </summary>
-
         public WordParagraph ParentParagraph {
             get {
                 var previousRun = _run.PreviousSibling<Run>();

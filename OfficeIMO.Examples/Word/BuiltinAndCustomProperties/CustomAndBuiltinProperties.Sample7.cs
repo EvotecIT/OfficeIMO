@@ -9,6 +9,11 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Examples.Word {
     internal static partial class CustomAndBuiltinProperties {
 
+        /// <summary>
+        /// Creates a document with a few custom properties set.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the document.</param>
+        /// <param name="openWord">Whether to open Word after creation.</param>
         public static void Example_BasicCustomProperties(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with custom properties");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with custom properties.docx");

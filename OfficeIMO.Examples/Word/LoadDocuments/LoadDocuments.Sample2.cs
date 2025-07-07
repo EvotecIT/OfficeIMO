@@ -7,6 +7,10 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class LoadDocuments {
+        /// <summary>
+        /// Loads another sample document demonstrating read-only access.
+        /// </summary>
+        /// <param name="openWord">Whether to open the document after loading.</param>
         public static void LoadWordDocument_Sample2(bool openWord) {
             Console.WriteLine("[*] Load external Word Document - Sample 2");
 

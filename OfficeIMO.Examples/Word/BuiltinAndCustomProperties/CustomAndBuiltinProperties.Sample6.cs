@@ -7,6 +7,10 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class CustomAndBuiltinProperties {
+        /// <summary>
+        /// Reads a document and prints its custom properties.
+        /// </summary>
+        /// <param name="openWord">Whether to open the document after reading.</param>
         public static void Example_ReadWord(bool openWord) {
             Console.WriteLine("[*] Read Basic Word");
 

@@ -2,6 +2,11 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
+        /// <summary>
+        /// Creates a document with an image watermark.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the file.</param>
+        /// <param name="openWord">Whether to open the document after creation.</param>
         public static void Watermark_SampleImage1(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Watermark Image 1");
             var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");

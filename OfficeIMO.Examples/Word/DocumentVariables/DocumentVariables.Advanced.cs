@@ -4,6 +4,11 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class DocumentVariablesExamples {
+        /// <summary>
+        /// Shows how to work with advanced document variables.
+        /// </summary>
+        /// <param name="folderPath">Destination folder for the document.</param>
+        /// <param name="openWord">Whether to open the document after creation.</param>
         public static void Example_AdvancedDocumentVariables(string folderPath, bool openWord) {
             Console.WriteLine("[*] Working with document variables");
             string filePath = Path.Combine(folderPath, "AdvancedDocumentWithVariables.docx");
