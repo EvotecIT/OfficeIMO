@@ -7,6 +7,9 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Tests bookmark creation and removal within documents.
+/// </summary>
 public class BookmarkTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

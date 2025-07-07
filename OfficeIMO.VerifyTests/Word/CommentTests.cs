@@ -7,6 +7,9 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Tests adding and verifying comments in documents.
+/// </summary>
 public class CommentTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

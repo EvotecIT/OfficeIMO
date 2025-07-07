@@ -9,6 +9,9 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Verifies border and margin related functionality.
+/// </summary>
 public class BordersAndMarginsTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

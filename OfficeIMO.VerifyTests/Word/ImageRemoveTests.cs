@@ -10,6 +10,9 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Tests removal of images and related cleanup.
+/// </summary>
 public class ImageRemoveTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

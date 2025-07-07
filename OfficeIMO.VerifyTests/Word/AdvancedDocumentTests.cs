@@ -10,6 +10,9 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Exercises advanced document features such as sections and headers.
+/// </summary>
 public class AdvancedDocumentTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

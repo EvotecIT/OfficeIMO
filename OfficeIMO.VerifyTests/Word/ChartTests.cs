@@ -14,6 +14,9 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Tests generating documents that contain charts.
+/// </summary>
 public class ChartTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

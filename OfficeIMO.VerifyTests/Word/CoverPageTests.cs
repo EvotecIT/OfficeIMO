@@ -6,6 +6,9 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
+/// <summary>
+/// Validates cover page functionality within generated documents.
+/// </summary>
 public class CoverPageTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {

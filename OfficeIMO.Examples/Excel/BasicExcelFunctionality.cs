@@ -7,8 +7,16 @@ using OfficeIMO.Excel;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Excel {
+    /// <summary>
+    /// Contains basic examples demonstrating <see cref="ExcelDocument"/> usage.
+    /// </summary>
     public class BasicExcelFunctionality {
 
+        /// <summary>
+        /// Creates a simple workbook with three sheets.
+        /// </summary>
+        /// <param name="folderPath">Target folder for the workbook.</param>
+        /// <param name="openExcel">Opens the workbook after saving when set to <c>true</c>.</param>
         public static void BasicExcel_Example1(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Creating standard Excel Document 1");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Excel 1.xlsx");
