@@ -10,6 +10,9 @@ using Xunit;
 using Path = System.IO.Path;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains bookmark tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithBookmarks() {

@@ -4,6 +4,9 @@ using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains basic Excel document tests.
+    /// </summary>
     public partial class Excel {
         [Fact]
         public void Test_SimpleExcelDocumentCreation() {

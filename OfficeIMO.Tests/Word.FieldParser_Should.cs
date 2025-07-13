@@ -5,6 +5,9 @@ using Xunit;
 
 namespace OfficeIMO.Tests
 {
+    /// <summary>
+    /// Contains tests for the field parser.
+    /// </summary>
     public partial class Word
     {
         /// <summary>

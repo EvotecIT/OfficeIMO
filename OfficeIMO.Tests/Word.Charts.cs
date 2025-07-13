@@ -9,6 +9,9 @@ using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains chart-related tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_BasicWordWithCharts() {

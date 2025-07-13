@@ -4,6 +4,9 @@ using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains async Excel tests.
+    /// </summary>
     public partial class Excel {
         [Fact]
         public async Task Test_ExcelSaveLoadAsync() {
