@@ -5,6 +5,9 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+/// <summary>
+/// Provides helper methods for Word tests.
+/// </summary>
 public partial class Word {
     [Theory]
     [InlineData("snail.bmp", CustomImagePartType.Bmp)]

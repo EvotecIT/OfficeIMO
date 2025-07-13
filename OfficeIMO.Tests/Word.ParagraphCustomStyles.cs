@@ -7,6 +7,9 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains tests for custom paragraph styles.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_RegisterCustomParagraphStyle() {

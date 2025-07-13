@@ -4,6 +4,9 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains tests for headers and footers.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFooters() {

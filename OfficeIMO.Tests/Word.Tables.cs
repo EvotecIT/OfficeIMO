@@ -7,6 +7,9 @@ using Xunit;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains table-related tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithTables() {

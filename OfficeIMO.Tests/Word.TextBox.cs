@@ -5,6 +5,9 @@ using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains tests for text boxes.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithTextBox() {

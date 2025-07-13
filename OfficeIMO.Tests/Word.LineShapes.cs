@@ -4,6 +4,9 @@ using SixLabors.ImageSharp;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains line shape tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_CreatingWordDocumentWithLines() {

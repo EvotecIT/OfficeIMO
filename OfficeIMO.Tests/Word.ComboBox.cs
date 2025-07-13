@@ -4,6 +4,9 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains combo box content control tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_AddingComboBox() {

@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Provides test setup for Excel documents.
+    /// </summary>
     public partial class Excel {
         private readonly string _directoryDocuments;
         private readonly string _directoryWithFiles;

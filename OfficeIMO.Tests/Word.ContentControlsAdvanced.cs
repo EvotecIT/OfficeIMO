@@ -3,6 +3,9 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains advanced content control tests.
+    /// </summary>
     public partial class Word {
         [Fact]
         public void Test_AdvancedContentControls() {

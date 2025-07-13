@@ -4,6 +4,9 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    /// <summary>
+    /// Contains tests for saving Word documents.
+    /// </summary>
     public partial class Word {
 
         [Fact]
