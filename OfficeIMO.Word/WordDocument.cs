@@ -1496,14 +1496,6 @@ namespace OfficeIMO.Word {
                     throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                 }
 
-                var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                    var dirInfo = new DirectoryInfo(directory);
-                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                        throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                    }
-                }
-
                 using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
                 using (var clone = _wordprocessingDocument.Clone(fs)) {
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
