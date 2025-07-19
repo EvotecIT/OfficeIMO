@@ -849,6 +849,11 @@ namespace OfficeIMO.Word {
         public string FilePath { get; set; }
 
         /// <summary>
+        /// Original stream where this document was created / loaded from.
+        /// </summary>
+        internal Stream OriginalStream { get; set; }
+
+        /// <summary>
         /// Provides access to document settings.
         /// </summary>
         public WordSettings Settings;
@@ -945,8 +950,14 @@ namespace OfficeIMO.Word {
             WordDocument word = new WordDocument();
 
             WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
-            if (!string.IsNullOrEmpty(filePath) && Path.GetExtension(filePath).Equals(".docm", StringComparison.OrdinalIgnoreCase)) {
-                documentType = WordprocessingDocumentType.MacroEnabledDocument;
+            if (!string.IsNullOrEmpty(filePath)) {
+                if (Path.GetExtension(filePath).Equals(".docm", StringComparison.OrdinalIgnoreCase)) {
+                    documentType = WordprocessingDocumentType.MacroEnabledDocument;
+                } else if (Path.GetExtension(filePath).Equals(".dotx", StringComparison.OrdinalIgnoreCase)) {
+                    documentType = WordprocessingDocumentType.Template;
+                } else if (Path.GetExtension(filePath).Equals(".dotm", StringComparison.OrdinalIgnoreCase)) {
+                    documentType = WordprocessingDocumentType.MacroEnabledTemplate;
+                }
             }
             WordprocessingDocument wordDocument;
 
@@ -1053,7 +1064,9 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            WordDocument word = new WordDocument();
+            WordDocument word = new WordDocument() {
+                OriginalStream = stream,
+            };
 
             // Always create the package in memory to avoid corrupting the target stream
             WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
@@ -1307,7 +1320,9 @@ namespace OfficeIMO.Word {
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
-            var document = new WordDocument();
+            var document = new WordDocument() {
+                OriginalStream = stream,
+            };
 
             var openSettings = new OpenSettings {
                 AutoSave = autoSave
@@ -1406,14 +1421,6 @@ namespace OfficeIMO.Word {
                         throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                     }
 
-                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                        var dirInfo = new DirectoryInfo(directory);
-                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                        }
-                    }
-
                     using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
                     using (var clone = this._wordprocessingDocument.Clone(fs)) {
                         CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
@@ -1437,7 +1444,7 @@ namespace OfficeIMO.Word {
         /// Save WordDocument to where it was open from
         /// </summary>
         public void Save() {
-            this.Save("", false);
+            this.Save(false);
         }
 
         /// <summary>
@@ -1453,7 +1460,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="openWord"></param>
         public void Save(bool openWord) {
-            this.Save("", openWord);
+            if (string.IsNullOrEmpty(this.FilePath) && this.OriginalStream != null)
+            {
+                this.Save(this.OriginalStream);
+            } else
+            {
+                this.Save("", openWord);
+            }
         }
 
         /// <summary>
@@ -1667,6 +1680,8 @@ namespace OfficeIMO.Word {
                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
             }
 
+            OriginalStream = outputStream;
+            
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
             }
