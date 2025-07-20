@@ -155,6 +155,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a SmartArt diagram into this section.
+        /// </summary>
+        /// <param name="type">Layout type of the SmartArt.</param>
+        /// <returns>The created <see cref="WordSmartArt"/>.</returns>
+        public WordSmartArt AddSmartArt(SmartArtType type) {
+            var paragraph = AddParagraph(newRun: true);
+            var smartArt = new WordSmartArt(_document, paragraph, type);
+            return smartArt;
+        }
+
+        /// <summary>
         /// Configures footnote properties for the section.
         /// </summary>
         /// <param name="numberingFormat">Numbering format.</param>
