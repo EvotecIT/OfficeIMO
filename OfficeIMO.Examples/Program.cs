@@ -22,6 +22,10 @@ namespace OfficeIMO.Examples {
             BasicDocument.Example_BasicWordWithBreaks(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultStyleChange(folderPath, false);
             BasicDocument.Example_BasicWordWithDefaultFontChange(folderPath, false);
+            Fonts.Example_EmbedFont(templatesPath, folderPath, false);
+            Fonts.Example_EmbeddedAndBuiltinFonts(templatesPath, folderPath, false);
+            Fonts.Example_EmbeddedFontStyle(templatesPath, folderPath, false);
+            Fonts.Example_EmbedFontWithStyle(templatesPath, folderPath, false);
             BasicDocument.Example_BasicLoadHamlet(templatesPath, folderPath, false);
             BasicDocument.Example_BasicWordWithPolishChars(folderPath, false);
             BasicDocument.Example_BasicWordWithNewLines(folderPath, false);
