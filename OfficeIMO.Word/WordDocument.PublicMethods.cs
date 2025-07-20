@@ -408,6 +408,17 @@ namespace OfficeIMO.Word {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
         }
 
+        /// <summary>
+        /// Inserts a SmartArt diagram into the document.
+        /// </summary>
+        /// <param name="type">Layout type of the SmartArt.</param>
+        /// <returns>The created <see cref="WordSmartArt"/> instance.</returns>
+        public WordSmartArt AddSmartArt(SmartArtType type) {
+            var paragraph = AddParagraph();
+            var smartArt = new WordSmartArt(this, paragraph, type);
+            return smartArt;
+        }
+
 
         /// <summary>
         /// Inserts a horizontal line into the document.

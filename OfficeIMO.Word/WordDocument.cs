@@ -329,6 +329,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Returns paragraphs that contain SmartArt diagrams.
+        /// </summary>
+        public List<WordParagraph> ParagraphsSmartArts {
+            get {
+                List<WordParagraph> list = new List<WordParagraph>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.ParagraphsSmartArts);
+                }
+                return list;
+            }
+        }
+
+        /// <summary>
         /// Returns paragraphs containing embedded objects.
         /// </summary>
         public List<WordParagraph> ParagraphsEmbeddedObjects {
@@ -724,6 +737,20 @@ namespace OfficeIMO.Word {
                 List<WordShape> list = new List<WordShape>();
                 foreach (var section in this.Sections) {
                     list.AddRange(section.Shapes);
+                }
+                return list;
+            }
+
+        }
+
+        /// <summary>
+        /// Collection of all SmartArt diagrams in the document.
+        /// </summary>
+        public List<WordSmartArt> SmartArts {
+            get {
+                List<WordSmartArt> list = new List<WordSmartArt>();
+                foreach (var section in this.Sections) {
+                    list.AddRange(section.SmartArts);
                 }
                 return list;
             }

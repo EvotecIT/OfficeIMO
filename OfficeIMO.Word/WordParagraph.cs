@@ -595,6 +595,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets the SmartArt diagram contained in this paragraph, if present.
+        /// </summary>
+        public WordSmartArt SmartArt {
+            get {
+                if (_run != null) {
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        var data = drawing.Descendants<GraphicData>().FirstOrDefault();
+                        if (data != null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
+                            return new WordSmartArt(_document, this, drawing);
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets the hyperlink contained in this paragraph, if present.
         /// </summary>
         public WordHyperLink Hyperlink {
@@ -825,6 +843,18 @@ namespace OfficeIMO.Word {
         public bool IsChart {
             get {
                 if (this.Chart != null) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether SmartArt is present in the paragraph.
+        /// </summary>
+        public bool IsSmartArt {
+            get {
+                if (this.SmartArt != null) {
                     return true;
                 }
                 return false;

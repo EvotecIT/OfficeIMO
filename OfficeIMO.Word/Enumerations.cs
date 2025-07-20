@@ -76,5 +76,4 @@ namespace OfficeIMO.Word {
         /// </summary>
         Line
     }
-
 }

@@ -604,6 +604,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a SmartArt diagram at the current position.
+        /// </summary>
+        /// <param name="type">Layout of SmartArt to create.</param>
+        /// <returns>The created <see cref="WordSmartArt"/>.</returns>
+        public WordSmartArt AddSmartArt(SmartArtType type) {
+            var paragraph = this.AddParagraph();
+            return new WordSmartArt(this._document, paragraph, type);
+        }
+
+        /// <summary>
         /// Add a foot note for the current paragraph.
         /// </summary>
         /// <param name="text">The text of the note.</param>

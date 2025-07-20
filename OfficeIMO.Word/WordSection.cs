@@ -195,6 +195,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Provides a list of paragraphs that contain SmartArt diagrams.
+        /// </summary>
+        public List<WordParagraph> ParagraphsSmartArts {
+            get { return Paragraphs.Where(p => p.IsSmartArt).ToList(); }
+        }
+
+        /// <summary>
         /// Gets all page break objects within the section.
         /// </summary>
         public List<WordBreak> PageBreaks {
@@ -380,6 +387,21 @@ namespace OfficeIMO.Word {
                 var paragraphs = ParagraphsShapes;
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.Shape);
+                }
+                return list;
+            }
+
+        }
+
+        /// <summary>
+        /// Collection of SmartArt diagrams available within the section.
+        /// </summary>
+        public List<WordSmartArt> SmartArts {
+            get {
+                List<WordSmartArt> list = new List<WordSmartArt>();
+                var paragraphs = ParagraphsSmartArts;
+                foreach (var paragraph in paragraphs) {
+                    list.Add(paragraph.SmartArt);
                 }
                 return list;
             }
