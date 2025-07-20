@@ -596,9 +596,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Enable or disable tracking of comments in the document.
+        /// Enable or disable tracking of revisions in the document.
         /// </summary>
-        public bool TrackComments {
+        public bool TrackRevisions {
             get {
                 var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
                 return settings.GetFirstChild<TrackRevisions>() != null;
@@ -612,6 +612,53 @@ namespace OfficeIMO.Word {
                     }
                 } else {
                     track?.Remove();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of comments in the document.
+        /// Wrapper around <see cref="TrackRevisions"/> for backwards compatibility.
+        /// </summary>
+        public bool TrackComments {
+            get => TrackRevisions;
+            set => TrackRevisions = value;
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of formatting changes.
+        /// </summary>
+        public bool TrackFormatting {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                return settings.GetFirstChild<DoNotTrackFormatting>() == null;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var formatting = settings.GetFirstChild<DoNotTrackFormatting>();
+                if (value) {
+                    formatting?.Remove();
+                } else if (formatting == null) {
+                    settings.Append(new DoNotTrackFormatting());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable tracking of move operations.
+        /// </summary>
+        public bool TrackMoves {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                return settings.GetFirstChild<DoNotTrackMoves>() == null;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+                var moves = settings.GetFirstChild<DoNotTrackMoves>();
+                if (value) {
+                    moves?.Remove();
+                } else if (moves == null) {
+                    settings.Append(new DoNotTrackMoves());
                 }
             }
         }

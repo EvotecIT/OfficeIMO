@@ -531,6 +531,18 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Enable or disable tracking of all revisions, moves and formatting changes.
+        /// </summary>
+        public bool TrackChanges {
+            get => this.Settings.TrackRevisions;
+            set {
+                this.Settings.TrackRevisions = value;
+                this.Settings.TrackFormatting = value;
+                this.Settings.TrackMoves = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the lists in the document
         /// </summary>
         /// <value>
