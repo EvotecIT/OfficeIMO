@@ -42,6 +42,27 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Normalizes color input which may be a hex value or a named color.
+        /// Returns a lowercase hex string without '#'.
+        /// </summary>
+        internal static string NormalizeColor(string color) {
+            if (string.IsNullOrEmpty(color)) {
+                return null;
+            }
+
+            try {
+                var parsed = SixLabors.ImageSharp.Color.Parse(color);
+                return parsed.ToHexColor();
+            } catch {
+                if (!color.StartsWith("#")) {
+                    var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
+                    return parsedHex.ToHexColor();
+                }
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Opens up any file using assigned Application
         /// </summary>
         /// <param name="filePath"></param>

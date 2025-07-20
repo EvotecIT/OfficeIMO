@@ -107,6 +107,8 @@ namespace OfficeIMO.Examples {
             Tables.Example_CloneTable(folderPath, false);
             Tables.Example_SplitVertically(folderPath, false);
             Tables.Example_SplitHorizontally(folderPath, false);
+            Tables.Example_ConditionalFormattingValues(folderPath, false);
+            Tables.Example_ConditionalFormattingAdvanced(folderPath, false);
             PageSettings.Example_BasicSettings(folderPath, false);
             PageSettings.Example_PageOrientation(folderPath, false);
 
