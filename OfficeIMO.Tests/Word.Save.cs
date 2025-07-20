@@ -224,6 +224,24 @@ namespace OfficeIMO.Tests {
             var paragraph = Assert.Single(loadedDoc.Paragraphs);
             Assert.Equal("Stream paragraph", paragraph.Text);
         }
+
+        [Fact]
+        public void Test_SaveWithoutFilePath_UsesOriginalStream() {
+            using var stream = new MemoryStream();
+            using (var document = WordDocument.Create(stream)) {
+                document.AddParagraph("Hello original stream");
+                document.Save();
+            }
+
+            using (var openXmlDoc = WordprocessingDocument.Open(stream, false)) {
+                Assert.NotNull(openXmlDoc.MainDocumentPart);
+            }
+            stream.Seek(0, SeekOrigin.Begin);
+
+            using var loadedDoc = WordDocument.Load(stream);
+            var paragraph = Assert.Single(loadedDoc.Paragraphs);
+            Assert.Equal("Hello original stream", paragraph.Text);
+        }
        
         [Fact]
         public void Test_SaveReadOnlyDocument_ThrowsInvalidOperationException() {
