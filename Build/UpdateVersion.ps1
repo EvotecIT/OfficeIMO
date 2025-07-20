@@ -3,4 +3,4 @@
 $Path = "$PSScriptRoot\.."
 
 Get-ProjectVersion -Path "$Path" -ExcludeFolders @("$Path\Module\Artefacts") | Format-Table
-Set-ProjectVersion -Path "$Path" -NewVersion "1.0.4" -WhatIf:$false -Verbose -ExcludeFolders @("$Path\Module\Artefacts") | Format-Table
+Set-ProjectVersion -Path "$Path" -NewVersion "1.0.5" -WhatIf:$false -Verbose -ExcludeFolders @("$Path\Module\Artefacts") | Format-Table
