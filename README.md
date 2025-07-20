@@ -237,6 +237,9 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
 - ☑️ Cover pages
     - ☑️ Add built-in cover pages
 
+- ☑️ Fonts
+    - ☑️ Embed fonts via `WordDocument.EmbedFont`
+
 - ☑️ Embedded content
     - ☑️ Add embedded documents (RTF, HTML, TXT)
     - ☑️ Add HTML fragments
@@ -338,6 +341,60 @@ using (WordDocument document = WordDocument.Create()) {
     byte[] data = document.SaveAsByteArray();
     using MemoryStream stream = document.SaveAsMemoryStream();
     using var clone = document.SaveAs(stream);
+}
+```
+
+### Embedding a font
+
+`EmbedFont` adds a TrueType or OpenType font file to the document so it can be used on any machine.
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.EmbedFont(fontPath);
+    document.AddParagraph("This document uses an embedded font.");
+    document.Save();
+}
+```
+
+`EmbedFont` has an overload that can register a paragraph style automatically:
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.EmbedFont(fontPath, "DejaVuStyle", "DejaVu Style");
+    document.AddParagraph("Styled paragraph").SetStyleId("DejaVuStyle");
+    document.Save();
+}
+```
+
+### Mixing builtin and embedded fonts
+
+After embedding a font you can reference it by name along with standard fonts.
+
+```csharp
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.EmbedFont(fontPath);
+    document.AddParagraph("Builtin Arial").SetFontFamily("Arial");
+    document.AddParagraph("Embedded DejaVu Sans").SetFontFamily("DejaVu Sans");
+    var mixed = document.AddParagraph("Mix: ");
+    mixed.AddText("Arial, ").SetFontFamily("Arial");
+    mixed.AddText("DejaVu").SetFontFamily("DejaVu Sans");
+    document.Save();
+}
+```
+
+You can also create a paragraph style that uses the embedded font.
+
+```csharp
+var style = new Style { Type = StyleValues.Paragraph, StyleId = "EmbeddedStyle" };
+style.Append(new StyleName { Val = "EmbeddedStyle" });
+style.Append(new StyleRunProperties(new RunFonts { Ascii = "DejaVu Sans" }));
+WordParagraphStyle.RegisterCustomStyle("EmbeddedStyle", style);
+
+using (WordDocument document = WordDocument.Create(filePath)) {
+    document.EmbedFont(fontPath);
+    document.AddParagraph("Paragraph with embedded style").SetStyleId("EmbeddedStyle");
+    document.AddParagraph("Built-in style example").Style = WordParagraphStyles.Normal;
+    document.Save();
 }
 ```
 

@@ -78,6 +78,33 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Creates a simple paragraph style that uses the specified font and returns it.
+        /// </summary>
+        /// <param name="styleId">Identifier of the style.</param>
+        /// <param name="fontName">Font family to apply to runs.</param>
+        /// <param name="styleName">Optional friendly style name.</param>
+        /// <returns>The created style.</returns>
+        public static Style CreateFontStyle(string styleId, string fontName, string styleName = null) {
+            if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
+            if (string.IsNullOrWhiteSpace(fontName)) throw new ArgumentException("Font name cannot be empty", nameof(fontName));
+
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId };
+            style.Append(new StyleName { Val = styleName ?? styleId });
+            var runProps = new StyleRunProperties();
+            runProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName, ComplexScript = fontName, EastAsia = fontName });
+            style.Append(runProps);
+            return style;
+        }
+
+        /// <summary>
+        /// Registers a paragraph style that applies the specified font to all runs.
+        /// </summary>
+        public static void RegisterFontStyle(string styleId, string fontName, string styleName = null) {
+            var style = CreateFontStyle(styleId, fontName, styleName);
+            RegisterCustomStyle(styleId, style);
+        }
+
+        /// <summary>
         /// Replaces a built-in style definition with a custom one.
         /// </summary>
         public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition) {
