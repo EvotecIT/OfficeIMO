@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 
+#nullable enable annotations
+#nullable disable warnings
+
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents simple VML shapes inside a paragraph.
