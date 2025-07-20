@@ -208,6 +208,7 @@ namespace OfficeIMO.Examples {
 
             CitationsExamples.Example_BasicCitations(folderPath, false);
             CitationsExamples.Example_AdvancedCitations(folderPath, false);
+            CrossReferences.Example_BasicCrossReferences(folderPath, false);
 
             Watermark.Watermark_Sample2(folderPath, false);
             Watermark.Watermark_Sample1(folderPath, false);
