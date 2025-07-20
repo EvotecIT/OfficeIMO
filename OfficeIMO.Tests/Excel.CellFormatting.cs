@@ -20,6 +20,8 @@ namespace OfficeIMO.Tests {
                 cell.NumberFormat = "@";
                 document.Save();
             }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets[0];
@@ -29,6 +31,8 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(cell.Border);
                 Assert.Equal("@", cell.NumberFormat);
             }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
 
             File.Delete(filePath);
         }
