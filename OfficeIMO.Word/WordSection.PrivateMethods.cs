@@ -121,15 +121,14 @@ namespace OfficeIMO.Word {
                 return new WordCoverPage(document, sdtBlock);
             } else if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
                 return new WordTableOfContent(document, sdtBlock);
-            } else {
-                var watermark = ConvertStdBlockToWatermark(document, sdtBlock);
-                if (watermark != null) {
-                    return watermark;
-                } else {
-                    Debug.WriteLine("Please implement me! " + docPartGallery.Val);
-                }
             }
-            return null;
+
+            var watermark = ConvertStdBlockToWatermark(document, sdtBlock);
+            if (watermark != null) {
+                return watermark;
+            }
+
+            return new WordStructuredDocumentTag(document, sdtBlock);
         }
 
         /// <summary>
