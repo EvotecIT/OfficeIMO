@@ -432,6 +432,15 @@ namespace OfficeIMO.Word {
                 foreach (var paragraph in paragraphs) {
                     list.Add(paragraph.StructuredDocumentTag);
                 }
+
+                var sdtBlocks = GetSdtBlockList();
+                foreach (var block in sdtBlocks) {
+                    var element = ConvertStdBlockToWordElements(_document, block);
+                    if (element is WordStructuredDocumentTag sdt) {
+                        list.Add(sdt);
+                    }
+                }
+
                 return list;
             }
         }
