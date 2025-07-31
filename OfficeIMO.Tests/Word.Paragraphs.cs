@@ -510,5 +510,18 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("has no parent", ex.Message);
             }
         }
+
+        [Fact]
+        public void Test_TopParentWithoutValidAncestorThrowsDetailedMessage() {
+            string filePath = Path.Combine(_directoryWithFiles, "TopParentInvalidChain.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var table = new Table();
+                var openXmlParagraph = new Paragraph();
+                table.Append(openXmlParagraph);
+                WordParagraph paragraph = new WordParagraph(document, openXmlParagraph);
+                var ex = Assert.Throws<InvalidOperationException>(() => _ = paragraph.TopParent);
+                Assert.Contains("Unsupported parent chain", ex.Message);
+            }
+        }
     }
 }
