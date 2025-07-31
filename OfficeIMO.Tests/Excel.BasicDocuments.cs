@@ -71,5 +71,12 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        [Fact]
+        public void Test_LoadingReadOnlyExcel() {
+            var filePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
+            using var document = ExcelDocument.Load(filePath, readOnly: true);
+            Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+        }
     }
 }
