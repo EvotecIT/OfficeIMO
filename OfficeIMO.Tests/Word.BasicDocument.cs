@@ -22,7 +22,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OpeningWordAndParagraphCountMatches() {
-            using (var document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocument.docx"))) {
+            string sourceFile = Path.Combine(_directoryDocuments, "BasicDocument.docx");
+            string filePath = Path.Combine(_directoryWithFiles, "BasicDocument.docx");
+            File.Copy(sourceFile, filePath, true);
+
+            using (var document = WordDocument.Load(filePath)) {
                 // There is only one Paragraph at the document level.
                 Assert.True(document.Paragraphs.Count == 12);
 
@@ -31,6 +35,8 @@ namespace OfficeIMO.Tests {
 
                 // This table has 12 Paragraphs.
                 //Assert.True(t0.Paragraphs.Count() == 12);
+
+                document.Save();
             }
         }
 
