@@ -43,9 +43,12 @@ namespace OfficeIMO.Word {
                     return "footer";
                 }
                 var parent = test;
-                do {
+                while (!(parent is Header) && !(parent is Footer) && !(parent is Body)) {
                     parent = parent.Parent;
-                } while (!(parent is Header) && !(parent is Footer) && !(parent is Body));
+                    if (parent == null) {
+                        throw new InvalidOperationException($"Unsupported parent chain for paragraph with text '{Text}'.");
+                    }
+                }
                 if (parent is Body) {
                     return "body";
                 }
