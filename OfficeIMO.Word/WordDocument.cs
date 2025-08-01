@@ -1724,9 +1724,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         private void MoveSectionProperties() {
             var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
-            var sectionProperties = this._wordprocessingDocument.MainDocumentPart.Document.Body.Elements<SectionProperties>().Last();
-            body.RemoveChild(sectionProperties);
-            body.Append(sectionProperties);
+            var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
+            if (sectionProperties != null) {
+                body.RemoveChild(sectionProperties);
+                body.Append(sectionProperties);
+            }
         }
 
         /// <summary>
