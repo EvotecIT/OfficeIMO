@@ -554,19 +554,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool FinalDocument {
             get {
-                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
-                    // key exists in dictionary
-                    var markFinalProperty = _document.CustomDocumentProperties["_MarkAsFinal"];
-                    return markFinalProperty != null && (bool)markFinalProperty.Value;
-                } else {
-                    return false;
+                if (_document.CustomDocumentProperties.TryGetValue("_MarkAsFinal", out var markFinalProperty)) {
+                    if (markFinalProperty?.Value != null) {
+                        return markFinalProperty.Value.ToString() == "1";
+                    }
                 }
+                return false;
             }
             set {
+                string newValue = value ? "1" : "0";
                 if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
-                    _document.CustomDocumentProperties["_MarkAsFinal"].Value = value;
+                    _document.CustomDocumentProperties["_MarkAsFinal"].Value = newValue;
                 } else {
-                    _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                    _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(newValue));
                 }
             }
         }
