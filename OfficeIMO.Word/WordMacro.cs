@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to a <c>vbaProject.bin</c> file.</param>
         internal static void AddMacro(WordDocument document, string filePath) {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
-            if (!File.Exists(filePath)) throw new FileNotFoundException("File doesn't exist", filePath);
+            if (!File.Exists(filePath)) throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
 
             AddMacro(document, File.ReadAllBytes(filePath));
         }

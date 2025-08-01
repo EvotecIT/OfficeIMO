@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
         public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException("File doesn't exists", filePath);
+                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
                 }
             }
             ExcelDocument document = new ExcelDocument();
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel {
         public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException("File doesn't exists", filePath);
+                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
                 }
             }
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
