@@ -23,5 +23,24 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public async Task Test_WordCreateAsync() {
+            var filePath = Path.Combine(_directoryWithFiles, "AsyncCreate.docx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var document = await WordDocument.CreateAsync(filePath)) {
+                document.AddParagraph("Created");
+                await document.SaveAsync();
+            }
+
+            Assert.True(File.Exists(filePath));
+
+            using (var document = await WordDocument.LoadAsync(filePath)) {
+                Assert.Single(document.Paragraphs);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }
