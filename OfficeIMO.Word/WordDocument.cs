@@ -1277,7 +1277,7 @@ namespace OfficeIMO.Word {
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException("File doesn't exists", filePath);
+                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
                 }
             }
 
@@ -1321,7 +1321,7 @@ namespace OfficeIMO.Word {
         public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException("File doesn't exists", filePath);
+                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
                 }
             }
 

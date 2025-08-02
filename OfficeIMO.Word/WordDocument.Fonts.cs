@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontPath">Path to a TrueType/OpenType font file.</param>
         public void EmbedFont(string fontPath) {
             if (string.IsNullOrEmpty(fontPath)) throw new ArgumentNullException(nameof(fontPath));
-            if (!File.Exists(fontPath)) throw new FileNotFoundException("Font file not found", fontPath);
+            if (!File.Exists(fontPath)) throw new FileNotFoundException($"Font file '{fontPath}' doesn't exist.", fontPath);
 
             var mainPart = _wordprocessingDocument.MainDocumentPart;
             var fontTablePart = mainPart.FontTablePart ?? mainPart.AddNewPart<FontTablePart>();
