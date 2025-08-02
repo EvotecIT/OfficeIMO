@@ -590,6 +590,30 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_GetImagesMethods() {
+            var filePath = Path.Combine(_directoryDocuments, "DocumentWithImages.docx");
+            using var document = WordDocument.Load(filePath);
+
+            var bytes = document.GetImages();
+            Assert.Equal(document.Images.Count, bytes.Count);
+
+            for (int i = 0; i < bytes.Count; i++) {
+                var savePath = Path.Combine(_directoryWithFiles, $"extracted_{i}.bin");
+                File.WriteAllBytes(savePath, bytes[i]);
+                Assert.True(new FileInfo(savePath).Length > 0);
+            }
+
+            var streams = document.GetImageStreams();
+            Assert.Equal(document.Images.Count, streams.Count);
+            for (int i = 0; i < streams.Count; i++) {
+                var path2 = Path.Combine(_directoryWithFiles, $"stream_{i}.bin");
+                using var fs = new FileStream(path2, FileMode.Create);
+                streams[i].CopyTo(fs);
+                Assert.True(new FileInfo(path2).Length > 0);
+            }
+        }
+
     }
 
 }

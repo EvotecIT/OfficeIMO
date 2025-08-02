@@ -1995,6 +1995,34 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Retrieves the image data as a new memory stream.
+        /// </summary>
+        /// <returns>A <see cref="Stream"/> containing the image bytes.</returns>
+        public Stream GetStream() {
+            if (_imagePart == null) {
+                throw new InvalidOperationException("Image is linked externally and cannot be extracted.");
+            }
+
+            MemoryStream ms = new MemoryStream();
+            using (var stream = _imagePart.GetStream()) {
+                stream.CopyTo(ms);
+            }
+            ms.Position = 0;
+            return ms;
+        }
+
+        /// <summary>
+        /// Retrieves the image data as a byte array.
+        /// </summary>
+        /// <returns>Bytes representing the image.</returns>
+        public byte[] GetBytes() {
+            using var stream = GetStream();
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return ms.ToArray();
+        }
+
+        /// <summary>
         /// Remove image from a Word Document
         /// </summary>
         public void Remove() {
