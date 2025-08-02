@@ -986,128 +986,36 @@ namespace OfficeIMO.Word {
         /// <param name="autoSave"></param>
         /// <returns></returns>
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
-            WordDocument word = new WordDocument();
-
-            WordprocessingDocumentType documentType = WordprocessingDocumentType.Document;
             if (!string.IsNullOrEmpty(filePath)) {
-                if (Path.GetExtension(filePath).Equals(".docm", StringComparison.OrdinalIgnoreCase)) {
-                    documentType = WordprocessingDocumentType.MacroEnabledDocument;
-                } else if (Path.GetExtension(filePath).Equals(".dotx", StringComparison.OrdinalIgnoreCase)) {
-                    documentType = WordprocessingDocumentType.Template;
-                } else if (Path.GetExtension(filePath).Equals(".dotm", StringComparison.OrdinalIgnoreCase)) {
-                    documentType = WordprocessingDocumentType.MacroEnabledTemplate;
-                }
-            }
-            WordprocessingDocument wordDocument;
-
-            if (filePath != "") {
                 // Ensure the file exists
-                using var fs = new FileStream(filePath, FileMode.Create);
+                using var _ = new FileStream(filePath, FileMode.Create);
             }
 
-            //Always create package in memory.
-            wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
-
-            wordDocument.AddMainDocumentPart();
-            wordDocument.MainDocumentPart.Document = new Document() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
-
-            wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
-
-            word.FilePath = filePath;
-            word._wordprocessingDocument = wordDocument;
-            word._document = wordDocument.MainDocumentPart.Document;
-
-            StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
-            GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-            WebSettingsPart webSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<WebSettingsPart>("rId3");
-            GenerateWebSettingsPart1Content(webSettingsPart1);
-
-            DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
-            GenerateDocumentSettingsPart1Content(documentSettingsPart1);
-
-            EndnotesPart endnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<EndnotesPart>("rId4");
-            GenerateEndNotesPart1Content(endnotesPart1);
-
-            FootnotesPart footnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<FootnotesPart>("rId5");
-            GenerateFootNotesPart1Content(footnotesPart1);
-
-            FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId6");
-            GenerateFontTablePart1Content(fontTablePart1);
-
-            ThemePart themePart1 = wordDocument.MainDocumentPart.AddNewPart<ThemePart>("rId7");
-            GenerateThemePart1Content(themePart1);
-
-            WordSettings wordSettings = new WordSettings(word);
-            WordCompatibilitySettings compatibilitySettings = new WordCompatibilitySettings(word);
-            ApplicationProperties applicationProperties = new ApplicationProperties(word);
-            BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
-            //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(word);
-            WordSection wordSection = new WordSection(word, null);
-            WordBackground wordBackground = new WordBackground(word);
-            WordDocumentStatistics statistics = new WordDocumentStatistics(word);
-
-            // initialize abstract number id for lists to make sure those are unique
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-
-            // initialize abstract number id for lists to make sure those are unique
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-
-            //word.Save();
+            var documentType = GetDocumentType(filePath);
+            var word = CreateInternal(filePath, null, documentType, autoSave);
             return word;
         }
 
-        /// <summary>
-        /// Create a new <see cref="WordDocument"/> writing directly to the provided stream.
-        /// </summary>
-        /// <param name="stream">Destination stream.</param>
-        /// <param name="documentType">Type of the document.</param>
-        /// <param name="autoSave">Whether to save automatically on dispose.</param>
-        /// <returns>Instance of <see cref="WordDocument"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-        public static WordDocument Create(Stream stream, WordprocessingDocumentType documentType = WordprocessingDocumentType.Document, bool autoSave = false) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
+        private static WordprocessingDocumentType GetDocumentType(string? filePath) {
+            if (string.IsNullOrEmpty(filePath)) {
+                return WordprocessingDocumentType.Document;
             }
 
-            WordDocument word = new WordDocument() {
-                OriginalStream = stream,
+            var extension = Path.GetExtension(filePath);
+            return extension.ToLowerInvariant() switch {
+                ".docm" => WordprocessingDocumentType.MacroEnabledDocument,
+                ".dotx" => WordprocessingDocumentType.Template,
+                ".dotm" => WordprocessingDocumentType.MacroEnabledTemplate,
+                _ => WordprocessingDocumentType.Document
             };
+        }
 
-            // Always create the package in memory to avoid corrupting the target stream
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, bool autoSave) {
+            WordDocument word = new WordDocument();
+            if (stream != null) {
+                word.OriginalStream = stream;
+            }
+
             WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
@@ -1150,6 +1058,7 @@ namespace OfficeIMO.Word {
 
             wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
 
+            word.FilePath = filePath ?? string.Empty;
             word._wordprocessingDocument = wordDocument;
             word._document = wordDocument.MainDocumentPart.Document;
 
@@ -1185,6 +1094,39 @@ namespace OfficeIMO.Word {
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
 
+            return word;
+        }
+
+        /// <summary>
+        /// Asynchronously create a new <see cref="WordDocument"/>.
+        /// </summary>
+        /// <param name="filePath">Destination file path.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <returns>Created <see cref="WordDocument"/>.</returns>
+        public static async Task<WordDocument> CreateAsync(string filePath = "", bool autoSave = false) {
+            if (!string.IsNullOrEmpty(filePath)) {
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                await fs.FlushAsync();
+            }
+
+            var documentType = GetDocumentType(filePath);
+            return CreateInternal(filePath, null, documentType, autoSave);
+        }
+
+        /// <summary>
+        /// Create a new <see cref="WordDocument"/> writing directly to the provided stream.
+        /// </summary>
+        /// <param name="stream">Destination stream.</param>
+        /// <param name="documentType">Type of the document.</param>
+        /// <param name="autoSave">Whether to save automatically on dispose.</param>
+        /// <returns>Instance of <see cref="WordDocument"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
+        public static WordDocument Create(Stream stream, WordprocessingDocumentType documentType = WordprocessingDocumentType.Document, bool autoSave = false) {
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            var word = CreateInternal(null, stream, documentType, autoSave);
             return word;
         }
 
