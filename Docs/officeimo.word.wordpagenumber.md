@@ -60,6 +60,24 @@ public Nullable<int> Number { get; }
 
 [Nullable<int>](https://docs.microsoft.com/en-us/dotnet/api/system.nullable-1)<br>
 
+### **CustomFormat**
+
+```csharp
+public string CustomFormat { get; set; }
+```
+
+#### Property Value
+
+[String](https://docs.microsoft.com/en-us/dotnet/api/system.string)<br>
+
+#### Example
+
+```csharp
+pageNumber.CustomFormat = "00";   // 01, 02, 03...
+pageNumber.CustomFormat = "000";  // 001, 002, 003...
+pageNumber.CustomFormat = "10-20"; // 10, 11, 12...
+```
+
 ## Constructors
 
 ### **WordPageNumber(WordDocument, WordHeader, WordPageNumberStyle)**
