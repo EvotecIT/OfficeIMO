@@ -162,5 +162,40 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
             }
         }
+
+        [Theory]
+        [InlineData("0")]
+        [InlineData("00")]
+        [InlineData("000")]
+        [InlineData("0000")]
+        [InlineData("#")]
+        [InlineData("##")]
+        [InlineData("###")]
+        [InlineData("#,##0")]
+        [InlineData("0.00")]
+        [InlineData("##0.##")]
+        [InlineData("000#")]
+        [InlineData("#000")]
+        [InlineData("10-20")]
+        [InlineData("Page 0")]
+        [InlineData("0-00")]
+        public void Test_PageNumberCustomFormat(string format) {
+            string filePath = Path.Combine(_directoryWithFiles, $"PageNumberCustomFormat_{Guid.NewGuid()}.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                pageNumber.CustomFormat = format;
+                Assert.Equal(format, pageNumber.CustomFormat);
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                string xml = footerPart.Footer.InnerXml;
+                Assert.Contains($"\\@ \"{format}\"", xml);
+                var errors = document.ValidateDocument();
+                errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            }
+        }
     }
 }
