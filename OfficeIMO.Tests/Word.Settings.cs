@@ -210,6 +210,24 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData("1", true)]
+        [InlineData("0", false)]
+        [InlineData(null, false)]
+        public void Test_FinalDocument_CustomPropertyValues(string value, bool expected) {
+            string filePath = Path.Combine(_directoryWithFiles, $"Test_FinalDocument_Value_{expected}.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Test FinalDocument values");
+                if (value != null) {
+                    document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                }
+                document.Save(false);
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.FinalDocument == expected);
+            }
+        }
+
         [Fact]
         public void Test_Protection_ReadOnlyEnforced() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_ReadOnlyEnforced.docx");
