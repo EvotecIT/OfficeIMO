@@ -45,7 +45,13 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph().AddImage(imagePath, 50, 50);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath);
+                PdfSaveOptions options = new PdfSaveOptions {
+                    MarginLeft = 2,
+                    MarginTop = 2,
+                    MarginRight = 2,
+                    MarginBottom = 2
+                };
+                document.SaveAsPdf(pdfPath, options);
             }
         }
     }

@@ -1,6 +1,10 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using System.Globalization;
+using System.IO.Compression;
+using System.Text;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -49,5 +53,70 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_WithMargins() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfMargin.docx");
+        var defaultPdf = Path.Combine(_directoryWithFiles, "PdfMarginDefault.pdf");
+        var customPdf = Path.Combine(_directoryWithFiles, "PdfMarginCustom.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Margins test");
+            document.Save();
+            document.SaveAsPdf(defaultPdf);
+            PdfSaveOptions options = new PdfSaveOptions {
+                MarginLeft = 2,
+                MarginTop = 2,
+                MarginRight = 2,
+                MarginBottom = 2
+            };
+            document.SaveAsPdf(customPdf, options);
+        }
+
+        double defaultLeft = ExtractMargin(defaultPdf);
+        double customLeft = ExtractMargin(customPdf);
+
+        Assert.True(customLeft > defaultLeft + 20);
+
+        static double ExtractMargin(string pdfPath) {
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            byte[] streamMarker = Encoding.ASCII.GetBytes("stream");
+            byte[] endMarker = Encoding.ASCII.GetBytes("endstream");
+            int streamIndex = IndexOf(bytes, streamMarker, 0);
+            int dataStart = streamIndex + streamMarker.Length;
+            if (bytes[dataStart] == 13 && bytes[dataStart + 1] == 10) {
+                dataStart += 2;
+            } else if (bytes[dataStart] == 10 || bytes[dataStart] == 13) {
+                dataStart += 1;
+            }
+            int endIndex = IndexOf(bytes, endMarker, dataStart);
+            using MemoryStream ms = new MemoryStream(bytes, dataStart, endIndex - dataStart);
+            using ZLibStream z = new ZLibStream(ms, CompressionMode.Decompress);
+            using StreamReader sr = new StreamReader(z);
+            string content = sr.ReadToEnd();
+            MatchCollection matches = Regex.Matches(content, @"4 0 0 4 ([0-9\.]+) [0-9\.]+ cm");
+            if (matches.Count > 0) {
+                Match match = matches[matches.Count - 1];
+                return double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            }
+            return double.NaN;
+        }
+
+        static int IndexOf(byte[] array, byte[] pattern, int start) {
+            for (int i = start; i <= array.Length - pattern.Length; i++) {
+                bool match = true;
+                for (int j = 0; j < pattern.Length; j++) {
+                    if (array[i + j] != pattern[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    return i;
+                }
+            }
+            return -1;
+        }
     }
 }
