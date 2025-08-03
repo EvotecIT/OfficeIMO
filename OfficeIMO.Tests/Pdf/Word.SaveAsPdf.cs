@@ -1,7 +1,12 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Xunit;
+using QuestPDF.Infrastructure;
+using QuestPDF.Helpers;
+using PageSize = QuestPDF.Helpers.PageSize;
 
 namespace OfficeIMO.Tests;
 
@@ -49,5 +54,45 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_Landscape() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfLandscape.docx");
+        var pdfPath = Path.Combine(_directoryWithFiles, "PdfLandscape.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Landscape");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { Orientation = PdfPageOrientation.Landscape });
+        }
+
+        (double width, double height) = GetPdfSize(pdfPath);
+        Assert.True(width > height);
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_CustomSize() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfCustom.docx");
+        var pdfPath = Path.Combine(_directoryWithFiles, "PdfCustom.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Custom Size");
+            document.Save();
+            var options = new PdfSaveOptions { PageSize = new PageSize(300, 400, Unit.Point) };
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        (double width, double height) = GetPdfSize(pdfPath);
+        Assert.InRange(width, 299, 301);
+        Assert.InRange(height, 399, 401);
+    }
+
+    private static (double Width, double Height) GetPdfSize(string path) {
+        string content = File.ReadAllText(path);
+        Match match = Regex.Match(content, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>\d+(?:\.\d+)?)\s+(?<h>\d+(?:\.\d+)?)\s*\]");
+        double width = double.Parse(match.Groups["w"].Value, CultureInfo.InvariantCulture);
+        double height = double.Parse(match.Groups["h"].Value, CultureInfo.InvariantCulture);
+        return (width, height);
     }
 }

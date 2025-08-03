@@ -17,13 +17,21 @@ public static class WordPdfConverter {
     /// </summary>
     /// <param name="document">The document to convert.</param>
     /// <param name="path">The output PDF file path.</param>
-    public static void SaveAsPdf(this WordDocument document, string path) {
+    /// <param name="options">PDF save options.</param>
+    public static void SaveAsPdf(this WordDocument document, string path, PdfSaveOptions? options = null) {
         QuestPDF.Settings.License = LicenseType.Community;
+
+        options ??= new PdfSaveOptions();
 
         Dictionary<WordParagraph, string> listPrefixes = BuildListPrefixes(document);
 
         Document pdf = Document.Create(container => {
             container.Page(page => {
+                PageSize size = options.PageSize;
+                if (options.Orientation == PdfPageOrientation.Landscape) {
+                    size = size.Landscape();
+                }
+                page.Size(size);
                 page.Margin(1, Unit.Centimetre);
 
                 WordHeaderFooter header = document.Header?.Default;
