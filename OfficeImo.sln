@@ -32,6 +32,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.VerifyTests", "OfficeIMO.VerifyTests\OfficeIMO.VerifyTests.csproj", "{91F78177-72D4-429C-A29E-1B28B37F7BC6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Pdf", "OfficeIMO.Pdf\OfficeIMO.Pdf.csproj", "{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{5A10AB86-32EA-42AE-A029-222CCE1E282C}"
 	ProjectSection(SolutionItems) = preProject
 		Docs\index.md = Docs\index.md
@@ -198,6 +200,10 @@ Global
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Debug|x86.Build.0 = Debug|Any CPU
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|Any CPU.Build.0 = Release|Any CPU
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|x64.ActiveCfg = Release|Any CPU
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|x64.Build.0 = Release|Any CPU
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|x86.ActiveCfg = Release|Any CPU
