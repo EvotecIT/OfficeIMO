@@ -30,6 +30,7 @@
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -51,4 +52,4 @@
       <EmbeddedResource Include="Images\Kulek.jpg" />
   </ItemGroup>
 
-</Project>
+</Project>

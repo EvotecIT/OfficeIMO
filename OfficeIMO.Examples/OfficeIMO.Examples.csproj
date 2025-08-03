@@ -10,6 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -30,4 +31,4 @@
         <Using Include="System.IO" />
     </ItemGroup>
 
-</Project>
+</Project>
