@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using QuestPDF.Helpers;
 using System;
 using System.IO;
 
@@ -45,7 +46,10 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph().AddImage(imagePath, 50, 50);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath);
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    PageSize = PageSizes.A4,
+                    Orientation = PdfPageOrientation.Landscape
+                });
             }
         }
 
@@ -59,7 +63,9 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
 
                 using (MemoryStream pdfStream = new MemoryStream()) {
-                    document.SaveAsPdf(pdfStream);
+                    document.SaveAsPdf(pdfStream, new PdfSaveOptions {
+                        PageSize = new PageSize(300, 500)
+                    });
                     File.WriteAllBytes(pdfPath, pdfStream.ToArray());
                 }
             }

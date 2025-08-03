@@ -1,6 +1,10 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
+using QuestPDF.Helpers;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -81,5 +85,62 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
+    }
+
+    [Theory]
+    [InlineData(PdfPageOrientation.Portrait)]
+    [InlineData(PdfPageOrientation.Landscape)]
+    public void Test_WordDocument_SaveAsPdf_PageOrientation(PdfPageOrientation orientation) {
+        string docPath = Path.Combine(_directoryWithFiles, $"PdfOrientation{orientation}.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, $"PdfOrientation{orientation}.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                Orientation = orientation,
+                PageSize = PageSizes.A4
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
+        Assert.True(mediaBox.Success, "MediaBox not found");
+        double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
+        double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
+        if (orientation == PdfPageOrientation.Landscape) {
+            Assert.True(width > height);
+        } else {
+            Assert.True(height > width);
+        }
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_CustomPageSize() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.pdf");
+        QuestPDF.Helpers.PageSize size = new QuestPDF.Helpers.PageSize(300, 500);
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                PageSize = size
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
+        Assert.True(mediaBox.Success, "MediaBox not found");
+        double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
+        double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
+        Assert.True(System.Math.Abs(width - size.Width) < 1);
+        Assert.True(System.Math.Abs(height - size.Height) < 1);
     }
 }

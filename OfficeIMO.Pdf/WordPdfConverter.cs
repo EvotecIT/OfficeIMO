@@ -18,8 +18,9 @@ public static class WordPdfConverter {
     /// </summary>
     /// <param name="document">The document to convert.</param>
     /// <param name="path">The output PDF file path.</param>
-    public static void SaveAsPdf(this WordDocument document, string path) {
-        Document pdf = CreatePdfDocument(document);
+    /// <param name="options">Optional PDF configuration.</param>
+    public static void SaveAsPdf(this WordDocument document, string path, PdfSaveOptions? options = null) {
+        Document pdf = CreatePdfDocument(document, options);
         pdf.GeneratePdf(path);
     }
 
@@ -28,12 +29,13 @@ public static class WordPdfConverter {
     /// </summary>
     /// <param name="document">The document to convert.</param>
     /// <param name="stream">The output stream to receive the PDF data.</param>
-    public static void SaveAsPdf(this WordDocument document, Stream stream) {
-        Document pdf = CreatePdfDocument(document);
+    /// <param name="options">Optional PDF configuration.</param>
+    public static void SaveAsPdf(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+        Document pdf = CreatePdfDocument(document, options);
         pdf.GeneratePdf(stream);
     }
 
-    private static Document CreatePdfDocument(WordDocument document) {
+    private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
         QuestPDF.Settings.License = LicenseType.Community;
 
         Dictionary<WordParagraph, string> listPrefixes = BuildListPrefixes(document);
@@ -41,6 +43,16 @@ public static class WordPdfConverter {
         Document pdf = Document.Create(container => {
             container.Page(page => {
                 page.Margin(1, Unit.Centimetre);
+                if (options != null) {
+                    PageSize size = options.PageSize ?? PageSizes.A4;
+                    if (options.Orientation == PdfPageOrientation.Landscape) {
+                        size = size.Landscape();
+                    } else if (options.Orientation == PdfPageOrientation.Portrait) {
+                        size = size.Portrait();
+                    }
+
+                    page.Size(size);
+                }
 
                 WordHeaderFooter header = document.Header?.Default;
                 if (header != null && (header.Paragraphs.Count > 0 || header.Tables.Count > 0)) {
