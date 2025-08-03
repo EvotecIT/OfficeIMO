@@ -77,4 +77,42 @@ public partial class WordDocument {
         }
         return count;
     }
+
+    private static int CleanupParagraph(Paragraph paragraph, DocumentCleanupOptions options) {
+        int count = 0;
+
+        if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyRuns) || options.HasFlag(DocumentCleanupOptions.RemoveRedundantRunProperties)) {
+            foreach (var run in paragraph.Elements<Run>().ToList()) {
+                if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyRuns) && IsRunEmpty(run)) {
+                    run.Remove();
+                    count++;
+                    continue;
+                }
+
+                if (options.HasFlag(DocumentCleanupOptions.RemoveRedundantRunProperties) && run.RunProperties != null && !run.RunProperties.ChildElements.Any()) {
+                    run.RunProperties.Remove();
+                    count++;
+                }
+            }
+        }
+
+        if (options.HasFlag(DocumentCleanupOptions.RemoveEmptyParagraphs) && IsParagraphEmpty(paragraph)) {
+            paragraph.Remove();
+            return count + 1;
+        }
+
+        if (options.HasFlag(DocumentCleanupOptions.MergeIdenticalRuns)) {
+            count += CombineIdenticalRuns(paragraph);
+        }
+
+        return count;
+    }
+
+    private static bool IsRunEmpty(Run run) {
+        return !run.ChildElements.OfType<Text>().Any() && run.ChildElements.All(e => e is RunProperties);
+    }
+
+    private static bool IsParagraphEmpty(Paragraph paragraph) {
+        return !paragraph.Elements<Run>().Any() && paragraph.ChildElements.All(e => e is ParagraphProperties);
+    }
 }

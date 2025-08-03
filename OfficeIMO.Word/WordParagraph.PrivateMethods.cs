@@ -142,41 +142,6 @@ namespace OfficeIMO.Word {
         //        }
         //    }
         //}
-
-        /// <summary>
-        /// Combines the identical runs.
-        /// </summary>
-        /// <param name="body"></param>
-        ///
-        ///
-        /// https://stackoverflow.com/questions/31056953/when-using-mergefield-fieldcodes-in-openxml-sdk-in-c-sharp-why-do-field-codes-di
-        public static void CombineIdenticalRuns(Body body) {
-
-            List<Run> runsToRemove = new List<Run>();
-
-            foreach (Paragraph para in body.Descendants<Paragraph>()) {
-                List<Run> runs = para.Elements<Run>().ToList();
-                for (int i = runs.Count - 2; i >= 0; i--) {
-                    Text text1 = runs[i].GetFirstChild<Text>();
-                    Text text2 = runs[i + 1].GetFirstChild<Text>();
-                    if (text1 != null && text2 != null) {
-                        string rPr1 = "";
-                        string rPr2 = "";
-                        if (runs[i].RunProperties != null) rPr1 = runs[i].RunProperties.OuterXml;
-                        if (runs[i + 1].RunProperties != null) rPr2 = runs[i + 1].RunProperties.OuterXml;
-                        if (rPr1 == rPr2) {
-                            text1.Text += text2.Text;
-                            runsToRemove.Add(runs[i + 1]);
-                        }
-                    }
-                }
-            }
-
-            foreach (Run run in runsToRemove) {
-                run.Remove();
-            }
-        }
-
         private List<string> ConvertStringToList(string text) {
             string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
             string[] textSplit = text.Split(splitStrings, StringSplitOptions.RemoveEmptyEntries);
