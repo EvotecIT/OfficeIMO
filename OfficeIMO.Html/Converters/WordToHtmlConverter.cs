@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Html {
     /// <summary>
@@ -27,7 +28,16 @@ namespace OfficeIMO.Html {
             sb.Append("<html><body>");
 
             foreach (Paragraph paragraph in document.MainDocumentPart!.Document.Body!.Elements<Paragraph>()) {
-                sb.Append("<p>");
+                string tag = "p";
+                string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+                if (styleId != null && Enum.TryParse(styleId, true, out WordParagraphStyles style)) {
+                    if (style >= WordParagraphStyles.Heading1 && style <= WordParagraphStyles.Heading6) {
+                        int level = (int)style - (int)WordParagraphStyles.Heading1 + 1;
+                        tag = $"h{level}";
+                    }
+                }
+
+                sb.Append('<').Append(tag).Append('>');
                 foreach (Run run in paragraph.Elements<Run>()) {
                     string text = run.InnerText;
                     string encoded = System.Net.WebUtility.HtmlEncode(text);
@@ -50,7 +60,7 @@ namespace OfficeIMO.Html {
 
                     sb.Append(result);
                 }
-                sb.Append("</p>");
+                sb.Append("</").Append(tag).Append('>');
             }
 
             sb.Append("</body></html>");

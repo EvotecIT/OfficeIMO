@@ -43,6 +43,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Text" />
         <Using Include="System.Collections.Generic" />

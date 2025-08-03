@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Html {
     /// <summary>
@@ -34,13 +35,43 @@ namespace OfficeIMO.Html {
             // Wrap in a root element to allow multiple top-level paragraphs
             XDocument xdoc = XDocument.Parse("<root>" + html + "</root>");
 
-            foreach (XElement paragraphElement in xdoc.Root!.Elements("p")) {
+            foreach (XElement element in xdoc.Root!.Elements()) {
                 Paragraph paragraph = new Paragraph();
-                foreach (XNode node in paragraphElement.Nodes()) {
+                WordParagraphStyles? style = null;
+                switch (element.Name.LocalName.ToLowerInvariant()) {
+                    case "p":
+                        break;
+                    case "h1":
+                        style = WordParagraphStyles.Heading1;
+                        break;
+                    case "h2":
+                        style = WordParagraphStyles.Heading2;
+                        break;
+                    case "h3":
+                        style = WordParagraphStyles.Heading3;
+                        break;
+                    case "h4":
+                        style = WordParagraphStyles.Heading4;
+                        break;
+                    case "h5":
+                        style = WordParagraphStyles.Heading5;
+                        break;
+                    case "h6":
+                        style = WordParagraphStyles.Heading6;
+                        break;
+                    default:
+                        continue;
+                }
+
+                if (style.HasValue) {
+                    paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = style.Value.ToString() });
+                }
+
+                foreach (XNode node in element.Nodes()) {
                     if (node is XText textNode) {
                         paragraph.Append(CreateRun(textNode.Value, options));
-                    } else if (node is XElement element) {
-                        paragraph.Append(CreateRunFromElement(element, options));
+                    } else if (node is XElement inlineElement) {
+                        paragraph.Append(CreateRunFromElement(inlineElement, options));
                     }
                 }
                 body.Append(paragraph);
