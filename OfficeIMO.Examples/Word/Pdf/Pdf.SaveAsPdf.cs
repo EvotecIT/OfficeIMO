@@ -1,9 +1,9 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using QuestPDF.Helpers;
 using System;
 using System.IO;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {
@@ -28,8 +28,8 @@ namespace OfficeIMO.Examples.Word {
                 WordParagraph formatted = document.AddParagraph("Bold Italic Underlined Centered");
                 formatted.Bold = true;
                 formatted.Italic = true;
-                formatted.Underline = UnderlineValues.Single;
-                formatted.ParagraphAlignment = JustificationValues.Center;
+                formatted.Underline = W.UnderlineValues.Single;
+                formatted.ParagraphAlignment = W.JustificationValues.Center;
 
                 WordList list = document.AddList(WordListStyle.ArticleSections);
                 list.AddItem("First Item");
