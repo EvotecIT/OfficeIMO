@@ -279,6 +279,7 @@ namespace OfficeIMO.Examples {
 
             XmlSerialization.Example_XmlSerializationBasic(folderPath, false);
             XmlSerialization.Example_XmlSerializationAdvanced(folderPath, false);
+            CompareDocuments.Example_BasicComparison(folderPath, false);
         }
     }
 }
