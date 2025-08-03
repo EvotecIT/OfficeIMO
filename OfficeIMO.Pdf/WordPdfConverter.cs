@@ -1,12 +1,26 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+
+
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>
+/// Provides extension methods for converting <see cref="WordDocument"/> instances to PDF files.
+/// </summary>
+    /// <summary>
+    /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
+    /// </summary>
+    /// <param name="document">The document to convert.</param>
+    /// <param name="path">The output PDF file path.</param>
+                        bool bullet = list.Style.ToString().IndexOf("Bullet", StringComparison.OrdinalIgnoreCase) >= 0;
 namespace OfficeIMO.Pdf;
 
 public static class WordPdfConverter {
@@ -107,7 +121,7 @@ public static class WordPdfConverter {
                     span = span.Underline();
                 }
 
-                if (paragraph.Style.HasValue) {
+}
                     switch (paragraph.Style.Value) {
                         case WordParagraphStyles.Heading1:
                             span.FontSize(24);
