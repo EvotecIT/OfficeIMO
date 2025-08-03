@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
         /// Accept all revisions in the document
         /// </summary>
         public void AcceptRevisions() {
-            // Given a document name and an author name, accept revisions. 
+            // Given a document name and an author name, accept revisions.
             var body = this._document.Body;
 
             // Handle the formatting changes.
@@ -109,6 +109,45 @@ namespace OfficeIMO.Word {
                 insertion.RemoveAttribute("rsidR", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
                 insertion.RemoveAttribute("rsidRPr", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
                 insertion.Remove();
+            }
+        }
+
+        /// <summary>
+        /// Converts tracked revisions into visible markup by replacing revision
+        /// elements with formatted runs. Inserted text is underlined and colored
+        /// blue, while deleted text is displayed with red strikethrough.
+        /// </summary>
+        public void ConvertRevisionsToMarkup() {
+            var body = this._document.Body;
+
+            // Process insertions
+            foreach (var insertion in body.Descendants<InsertedRun>().ToList()) {
+                var parent = insertion.Parent;
+                OpenXmlElement last = insertion;
+                foreach (var run in insertion.Elements<Run>().Select(r => (Run)r.CloneNode(true))) {
+                    var rPr = run.RunProperties ?? new RunProperties();
+                    rPr.Color = new Color() { Val = "0000FF" };
+                    rPr.Underline = new Underline() { Val = UnderlineValues.Single };
+                    run.RunProperties = rPr;
+                    parent.InsertAfter(run, last);
+                    last = run;
+                }
+                insertion.Remove();
+            }
+
+            // Process deletions
+            foreach (var deletion in body.Descendants<DeletedRun>().ToList()) {
+                var parent = deletion.Parent;
+                OpenXmlElement last = deletion;
+                foreach (var run in deletion.Elements<Run>().Select(r => (Run)r.CloneNode(true))) {
+                    var rPr = run.RunProperties ?? new RunProperties();
+                    rPr.Color = new Color() { Val = "FF0000" };
+                    rPr.Strike = new Strike();
+                    run.RunProperties = rPr;
+                    parent.InsertAfter(run, last);
+                    last = run;
+                }
+                deletion.Remove();
             }
         }
 

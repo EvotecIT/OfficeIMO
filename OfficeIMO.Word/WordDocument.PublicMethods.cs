@@ -755,57 +755,27 @@ namespace OfficeIMO.Word {
         /// It may impact on how your document looks like, please do extensive testing before using this feature.
         /// </summary>
         /// <returns></returns>
-        public int CleanupDocument() {
+        public int CleanupDocument(DocumentCleanupOptions options = DocumentCleanupOptions.All) {
             int count = 0;
 
-            foreach (var paragraph in this.Paragraphs) {
-                count += CombineIdenticalRuns(paragraph._paragraph);
-            }
-
-            foreach (var table in this.Tables) {
-                table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-            }
-
-            if (this.Header.Default != null) {
-                foreach (var p in this.Header.Default.Paragraphs) count += CombineIdenticalRuns(p._paragraph);
-                foreach (var table in this.Header.Default.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+            if (_wordprocessingDocument?.MainDocumentPart?.Document?.Body != null) {
+                foreach (var paragraph in _wordprocessingDocument.MainDocumentPart.Document.Body.Descendants<Paragraph>().ToList()) {
+                    count += CleanupParagraph(paragraph, options);
                 }
             }
 
-            if (this.Header.Even != null) {
-                this.Header.Even.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                foreach (var table in this.Header.Even.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                }
-            }
-            if (this.Header.First != null) {
-                this.Header.First.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                foreach (var table in this.Header.First.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+            foreach (var header in _wordprocessingDocument?.MainDocumentPart?.HeaderParts ?? Enumerable.Empty<HeaderPart>()) {
+                foreach (var paragraph in header.Header.Descendants<Paragraph>().ToList()) {
+                    count += CleanupParagraph(paragraph, options);
                 }
             }
 
-            if (this.Footer.Default != null) {
-                this.Footer.Default.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                foreach (var table in this.Footer.Default.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
+            foreach (var footer in _wordprocessingDocument?.MainDocumentPart?.FooterParts ?? Enumerable.Empty<FooterPart>()) {
+                foreach (var paragraph in footer.Footer.Descendants<Paragraph>().ToList()) {
+                    count += CleanupParagraph(paragraph, options);
                 }
             }
 
-            if (this.Footer.Even != null) {
-                this.Footer.Even.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                foreach (var table in this.Footer.Even.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                }
-            }
-
-            if (this.Footer.First != null) {
-                this.Footer.First.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                foreach (var table in this.Footer.First.Tables) {
-                    table.Paragraphs.ForEach(p => count += CombineIdenticalRuns(p._paragraph));
-                }
-            }
             return count;
         }
 
