@@ -50,4 +50,36 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
     }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_ToMemoryStream() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfStreamSample.docx");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            using (MemoryStream pdfStream = new MemoryStream()) {
+                document.SaveAsPdf(pdfStream);
+                Assert.True(pdfStream.Length > 0);
+            }
+        }
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_ToFileStream() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            using (FileStream fileStream = File.Create(pdfPath)) {
+                document.SaveAsPdf(fileStream);
+            }
+        }
+
+        Assert.True(File.Exists(pdfPath));
+    }
 }
