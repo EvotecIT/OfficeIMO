@@ -3,6 +3,8 @@ using System.IO;
 using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 
+using HtmlExamples = OfficeIMO.Examples.Html.Html;
+
 namespace OfficeIMO.Examples {
     internal static class Program {
         private static void Setup(string path) {
@@ -277,6 +279,7 @@ namespace OfficeIMO.Examples {
             Macros.Example_ExtractAndRemoveMacro(templatesPath, folderPath, false);
             Macros.Example_ListAndRemoveMacro(templatesPath, folderPath, false);
 
+            HtmlExamples.Example_HtmlRoundTrip(folderPath, false);
             XmlSerialization.Example_XmlSerializationBasic(folderPath, false);
             XmlSerialization.Example_XmlSerializationAdvanced(folderPath, false);
         }
