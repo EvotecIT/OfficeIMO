@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 using OfficeIMO.Pdf;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -11,31 +11,37 @@ public partial class Word {
         var docPath = Path.Combine(_directoryWithFiles, "PdfSample.docx");
         var pdfPath = Path.Combine(_directoryWithFiles, "PdfSample.pdf");
 
-        using (var document = WordDocument.Create(docPath)) {
+        using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             document.Header.Default.AddParagraph("Sample Header");
+            WordTable headerTable = document.Header.Default.AddTable(1, 1);
+            headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
             document.Footer.Default.AddParagraph("Sample Footer");
+            WordTable footerTable = document.Footer.Default.AddTable(1, 1);
+            footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
 
-            var heading = document.AddParagraph("Heading One");
+            WordParagraph heading = document.AddParagraph("Heading One");
             heading.Style = WordParagraphStyles.Heading1;
 
-            var formatted = document.AddParagraph("Centered Bold Italic Underlined");
+            WordParagraph formatted = document.AddParagraph("Centered Bold Italic Underlined");
             formatted.Bold = true;
             formatted.Italic = true;
             formatted.Underline = UnderlineValues.Single;
             formatted.ParagraphAlignment = JustificationValues.Center;
 
-            var list = document.AddList(WordListStyle.ArticleSections);
+            WordList list = document.AddList(WordListStyle.ArticleSections);
             list.AddItem("Numbered Item 1");
             list.AddItem("Numbered Item 2");
 
-            var table = document.AddTable(2, 2);
+            WordTable table = document.AddTable(2, 2);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "A1";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "B1";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "A2";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "B2";
+            WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = "N1";
 
-            var imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             document.AddParagraph().AddImage(imagePath, 50, 50);
 
             document.Save();
