@@ -1,6 +1,7 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System;
 using System.IO;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -48,7 +49,9 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     PageSize = PageSizes.A4,
-                    Orientation = PdfPageOrientation.Landscape
+                    Orientation = PdfPageOrientation.Landscape,
+                    Margin = 2,
+                    MarginUnit = Unit.Centimetre
                 });
             }
         }

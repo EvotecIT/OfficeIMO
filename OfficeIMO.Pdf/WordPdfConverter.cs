@@ -42,7 +42,10 @@ public static class WordPdfConverter {
 
         Document pdf = Document.Create(container => {
             container.Page(page => {
-                page.Margin(1, Unit.Centimetre);
+                float margin = options?.Margin ?? 1;
+                Unit unit = options?.MarginUnit ?? Unit.Centimetre;
+                page.Margin(margin, unit);
+
                 if (options != null) {
                     PageSize size = options.PageSize ?? PageSizes.A4;
                     if (options.Orientation == PdfPageOrientation.Landscape) {

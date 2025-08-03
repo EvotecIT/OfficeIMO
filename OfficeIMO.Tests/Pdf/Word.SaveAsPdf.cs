@@ -2,9 +2,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -142,5 +144,70 @@ public partial class Word {
         double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
         Assert.True(System.Math.Abs(width - size.Width) < 1);
         Assert.True(System.Math.Abs(height - size.Height) < 1);
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_CustomMargins() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfCustomMargins.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomMargins.pdf");
+        const double marginCm = 2;
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                Margin = (float)marginCm,
+                MarginUnit = Unit.Centimetre
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        byte[] startPattern = Encoding.ASCII.GetBytes("stream\n");
+        byte[] endPattern = Encoding.ASCII.GetBytes("\nendstream");
+        int start = IndexOf(bytes, startPattern, 0);
+        Assert.True(start >= 0, "stream marker not found");
+        start += startPattern.Length;
+        int end = IndexOf(bytes, endPattern, start);
+        Assert.True(end >= 0, "endstream marker not found");
+        int length = end - start;
+        // remove zlib header (2 bytes) and Adler32 checksum (last 4 bytes)
+        int deflateLength = length - 6;
+        byte[] deflateData = new byte[deflateLength];
+        Array.Copy(bytes, start + 2, deflateData, 0, deflateLength);
+        using MemoryStream ms = new MemoryStream(deflateData);
+        using DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
+        using StreamReader reader = new StreamReader(ds, Encoding.GetEncoding("ISO-8859-1"));
+        string content = reader.ReadToEnd();
+
+        MatchCollection matches = Regex.Matches(content, @"4 0 0 4 (?<x>[0-9\.]+) (?<y>[0-9\.]+) cm");
+        Assert.True(matches.Count > 0, "Margin transform not found");
+        double value = 0;
+        foreach (Match m in matches) {
+            value = double.Parse(m.Groups["x"].Value, CultureInfo.InvariantCulture);
+            if (value > 0) {
+                break;
+            }
+        }
+        double marginPoints = value / 4.0;
+        double resultMarginCm = marginPoints / 28.3464566929;
+        Assert.True(System.Math.Abs(resultMarginCm - marginCm) < 0.1);
+    }
+
+    private static int IndexOf(byte[] buffer, byte[] pattern, int start) {
+        for (int i = start; i <= buffer.Length - pattern.Length; i++) {
+            int j = 0;
+            for (; j < pattern.Length; j++) {
+                if (buffer[i + j] != pattern[j]) {
+                    break;
+                }
+            }
+            if (j == pattern.Length) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
