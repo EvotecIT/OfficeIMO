@@ -48,5 +48,21 @@ namespace OfficeIMO.Examples.Word {
                 document.SaveAsPdf(pdfPath);
             }
         }
+
+        public static void Example_SaveAsPdfInMemory(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Creating document and exporting to in-memory PDF");
+            string docPath = Path.Combine(folderPath, "ExportToPdfInMemory.docx");
+            string pdfPath = Path.Combine(folderPath, "ExportToPdfInMemory.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Hello World");
+                document.Save();
+
+                using (MemoryStream pdfStream = new MemoryStream()) {
+                    document.SaveAsPdf(pdfStream);
+                    File.WriteAllBytes(pdfPath, pdfStream.ToArray());
+                }
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Pdf;
@@ -18,6 +19,21 @@ public static class WordPdfConverter {
     /// <param name="document">The document to convert.</param>
     /// <param name="path">The output PDF file path.</param>
     public static void SaveAsPdf(this WordDocument document, string path) {
+        Document pdf = CreatePdfDocument(document);
+        pdf.GeneratePdf(path);
+    }
+
+    /// <summary>
+    /// Saves the specified <see cref="WordDocument"/> as a PDF to the provided <paramref name="stream"/>.
+    /// </summary>
+    /// <param name="document">The document to convert.</param>
+    /// <param name="stream">The output stream to receive the PDF data.</param>
+    public static void SaveAsPdf(this WordDocument document, Stream stream) {
+        Document pdf = CreatePdfDocument(document);
+        pdf.GeneratePdf(stream);
+    }
+
+    private static Document CreatePdfDocument(WordDocument document) {
         QuestPDF.Settings.License = LicenseType.Community;
 
         Dictionary<WordParagraph, string> listPrefixes = BuildListPrefixes(document);
@@ -52,7 +68,7 @@ public static class WordPdfConverter {
             });
         });
 
-        pdf.GeneratePdf(path);
+        return pdf;
 
         string GetPrefix(WordParagraph paragraph) {
             if (listPrefixes.TryGetValue(paragraph, out string value)) {
@@ -157,28 +173,28 @@ public static class WordPdfConverter {
 
             return container;
         }
+    }
 
-        static Dictionary<WordParagraph, string> BuildListPrefixes(WordDocument document) {
-            Dictionary<WordParagraph, string> result = new Dictionary<WordParagraph, string>();
+    private static Dictionary<WordParagraph, string> BuildListPrefixes(WordDocument document) {
+        Dictionary<WordParagraph, string> result = new Dictionary<WordParagraph, string>();
 
-            foreach (WordList list in document.Lists) {
-                Dictionary<int, int> indices = new Dictionary<int, int>();
-                bool bullet = list.Style.ToString().IndexOf("Bullet", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                foreach (WordParagraph item in list.ListItems) {
-                    int level = item.ListItemLevel ?? 0;
-                    if (!indices.ContainsKey(level)) {
-                        indices[level] = 1;
-                    }
-
-                    int index = indices[level];
-                    indices[level] = index + 1;
-                    string prefix = bullet ? "• " : $"{index}. ";
-                    string indent = new string(' ', level * 2);
-                    result[item] = indent + prefix;
+        foreach (WordList list in document.Lists) {
+            Dictionary<int, int> indices = new Dictionary<int, int>();
+            bool bullet = list.Style.ToString().IndexOf("Bullet", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            foreach (WordParagraph item in list.ListItems) {
+                int level = item.ListItemLevel ?? 0;
+                if (!indices.ContainsKey(level)) {
+                    indices[level] = 1;
                 }
-            }
 
-            return result;
+                int index = indices[level];
+                indices[level] = index + 1;
+                string prefix = bullet ? "• " : $"{index}. ";
+                string indent = new string(' ', level * 2);
+                result[item] = indent + prefix;
+            }
         }
+
+        return result;
     }
 }
