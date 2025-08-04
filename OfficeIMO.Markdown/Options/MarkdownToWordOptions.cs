@@ -1,10 +1,11 @@
 using System;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public class MarkdownToWordOptions {
+    public class MarkdownToWordOptions : IConversionOptions {
         /// <summary>
         /// Optional font family applied to created runs.
         /// </summary>

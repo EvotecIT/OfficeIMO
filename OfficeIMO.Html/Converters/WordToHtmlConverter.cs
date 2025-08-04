@@ -8,12 +8,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
     /// <summary>
     /// Converts WordprocessingDocument content into simple HTML fragments.
     /// </summary>
-    public static class WordToHtmlConverter {
+    public class WordToHtmlConverter : IWordConverter {
         /// <summary>
         /// Converts a DOCX contained in the provided stream into HTML.
         /// </summary>
@@ -201,6 +202,16 @@ namespace OfficeIMO.Html {
 
                 sb.Append(result);
             }
+        }
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            string html = Convert(input, options as WordToHtmlOptions);
+            using StreamWriter writer = new StreamWriter(
+                output,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
+            writer.Write(html);
+            writer.Flush();
         }
     }
 }

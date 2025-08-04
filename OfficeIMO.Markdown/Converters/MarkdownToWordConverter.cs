@@ -1,14 +1,16 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Word;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Markdown text into a Word document without intermediate formats.
     /// </summary>
-    public static class MarkdownToWordConverter {
+    public class MarkdownToWordConverter : IWordConverter {
         /// <summary>
         /// Converts Markdown content to DOCX and writes it to the provided stream.
         /// </summary>
@@ -97,6 +99,19 @@ namespace OfficeIMO.Markdown {
                     run.SetItalic();
                 }
             }
+        }
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            if (input == null) {
+                throw new ArgumentNullException(nameof(input));
+            }
+            using StreamReader reader = new StreamReader(
+                input,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1024,
+                leaveOpen: true);
+            string markdown = reader.ReadToEnd();
+            Convert(markdown, output, options as MarkdownToWordOptions);
         }
     }
 }
