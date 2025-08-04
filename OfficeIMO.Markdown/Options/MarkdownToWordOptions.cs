@@ -1,6 +1,8 @@
 using System;
 using OfficeIMO.Word.Converters;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.

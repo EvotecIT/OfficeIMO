@@ -2,6 +2,8 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using OfficeIMO.Word.Converters;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Pdf {
     /// <summary>
     /// Specifies page orientation for PDF export.

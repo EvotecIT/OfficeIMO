@@ -1,7 +1,13 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
+
+#nullable enable annotations
+
+namespace OfficeIMO.Html {
+            string html = Convert(input, options as WordToHtmlOptions);
+            using StreamWriter writer = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: true);
+            writer.Write(html);
+            writer.Flush();
+        }
+
 using System;
 using System.Collections.Generic;
 using System.IO;

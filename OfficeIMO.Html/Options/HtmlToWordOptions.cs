@@ -1,6 +1,8 @@
 using System;
 using OfficeIMO.Word.Converters;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Html {
     /// <summary>
     /// Options controlling HTML to Word conversion.

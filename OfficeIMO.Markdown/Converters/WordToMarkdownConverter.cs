@@ -7,6 +7,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word.Converters;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Word documents into Markdown text without relying on HTML or external tools.
@@ -16,7 +18,7 @@ namespace OfficeIMO.Markdown {
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             var markdownOptions = options as WordToMarkdownOptions ?? new WordToMarkdownOptions();
             string result = Convert(input, markdownOptions);
-            using StreamWriter writer = new StreamWriter(output, leaveOpen: true);
+            using StreamWriter writer = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: true);
             writer.Write(result);
             writer.Flush();
         }

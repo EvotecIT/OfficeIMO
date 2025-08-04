@@ -1,8 +1,13 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Converters;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
+using System;
+using DocumentFormat.OpenXml;
+using W = DocumentFormat.OpenXml.Wordprocessing;
+
+#nullable enable annotations
+
+namespace OfficeIMO.Pdf;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;

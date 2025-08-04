@@ -1,4 +1,7 @@
-using DocumentFormat.OpenXml;
+
+#nullable enable annotations
+
+namespace OfficeIMO.Html {
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;

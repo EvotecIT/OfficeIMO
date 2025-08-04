@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using OfficeIMO.Word.Converters;
 using OfficeIMO.Word;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Markdown text into a Word document without intermediate formats.
