@@ -5,12 +5,13 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Word documents into Markdown text without relying on HTML or external tools.
     /// </summary>
-    public static class WordToMarkdownConverter {
+    public class WordToMarkdownConverter : IWordConverter {
         /// <summary>
         /// Converts a DOCX document from the provided stream into Markdown text.
         /// </summary>
@@ -94,6 +95,12 @@ namespace OfficeIMO.Markdown {
             var level = abstractNum.Elements<Level>().FirstOrDefault(l => l.LevelIndex != null && l.LevelIndex.Value == levelIndex);
             var format = level?.NumberingFormat?.Val;
             return format != null && format == NumberFormatValues.Bullet;
+        }
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            string markdown = Convert(input, options as WordToMarkdownOptions);
+            using StreamWriter writer = new StreamWriter(output, leaveOpen: true);
+            writer.Write(markdown);
+            writer.Flush();
         }
     }
 }

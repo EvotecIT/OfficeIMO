@@ -11,12 +11,13 @@ using SixLabors.ImageSharp;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
     /// <summary>
     /// Converts simple HTML fragments into WordprocessingDocument instances.
     /// </summary>
-    public static class HtmlToWordConverter {
+    public class HtmlToWordConverter : IWordConverter {
         /// <summary>
         /// Converts provided HTML string into a DOCX document written to the specified stream.
         /// </summary>
@@ -290,6 +291,14 @@ namespace OfficeIMO.Html {
             }
 
             throw new InvalidOperationException("Unable to resolve image source: " + src);
+        }
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            if (input == null) {
+                throw new ArgumentNullException(nameof(input));
+            }
+            using StreamReader reader = new StreamReader(input, leaveOpen: true);
+            string html = reader.ReadToEnd();
+            Convert(html, output, options as HtmlToWordOptions);
         }
     }
 }

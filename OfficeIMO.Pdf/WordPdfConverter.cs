@@ -8,13 +8,24 @@ using System.IO;
 using System;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Converters;
 
 namespace OfficeIMO.Pdf;
 
 /// <summary>
+/// Provides stream based conversion from Word documents to PDF.
+/// </summary>
+public class WordPdfConverter : IWordConverter {
+    public void Convert(Stream input, Stream output, IConversionOptions options) {
+        using WordDocument document = WordDocument.Load(input);
+        document.SaveAsPdf(output, options as PdfSaveOptions);
+    }
+}
+
+/// <summary>
 /// Provides extension methods for converting <see cref="WordDocument"/> instances to PDF files.
 /// </summary>
-public static class WordPdfConverter {
+public static class WordPdfConverterExtensions {
     /// <summary>
     /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
     /// </summary>
