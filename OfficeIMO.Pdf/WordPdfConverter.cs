@@ -191,7 +191,17 @@ public static class WordPdfConverter {
 
             container.Column(col => {
                 if (paragraph.Image != null) {
-                    col.Item().Image(paragraph.Image.GetBytes());
+                    col.Item().Element(imageContainer => {
+                        var img = paragraph.Image;
+                        var sized = imageContainer;
+                        if (img.Width.HasValue) {
+                            sized = sized.Width((float)(img.Width.Value * 72 / 96));
+                        }
+                        if (img.Height.HasValue) {
+                            sized = sized.Height((float)(img.Height.Value * 72 / 96));
+                        }
+                        sized.Image(img.GetBytes());
+                    });
                 }
 
                 string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
