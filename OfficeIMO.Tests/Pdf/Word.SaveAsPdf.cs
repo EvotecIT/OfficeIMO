@@ -214,6 +214,33 @@ public partial class Word {
         Assert.Contains("/URI (https://evotec.xyz", pdfContent);
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_MultiLevelLists() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfMultiLevelLists.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfMultiLevelLists.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordList numberList = document.AddList(WordListStyle.Headings111);
+            WordParagraph first = numberList.AddItem("Item 1");
+            WordParagraph second = numberList.AddItem("Item 1.1");
+            second.ListItemLevel = 1;
+            WordParagraph third = numberList.AddItem("Item 1.1.1");
+            third.ListItemLevel = 2;
+            numberList.AddItem("Item 2");
+
+            WordList bulletList = document.AddList(WordListStyle.Bulleted);
+            bulletList.AddItem("Bullet 1");
+            WordParagraph bulletNested = bulletList.AddItem("Bullet 1.1");
+            bulletNested.ListItemLevel = 1;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        Assert.True(new FileInfo(pdfPath).Length > 0);
+    }
+
     private static int IndexOf(byte[] buffer, byte[] pattern, int start) {
         for (int i = start; i <= buffer.Length - pattern.Length; i++) {
             int j = 0;
