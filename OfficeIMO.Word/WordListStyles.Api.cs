@@ -62,6 +62,32 @@ public static partial class WordListStyles {
     }
 
     /// <summary>
+    /// Creates numbering definitions for basic bulleted and numbered lists.
+    /// </summary>
+    /// <param name="document">The document to base the numbering definitions on.</param>
+    /// <param name="bulletNumberId">Returns the numbering identifier for bullets.</param>
+    /// <param name="orderedNumberId">Returns the numbering identifier for ordered lists.</param>
+    /// <returns>A <see cref="Numbering"/> instance containing the definitions.</returns>
+    public static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        InitializeAbstractNumberId(document);
+
+        AbstractNum bulletAbstract = GetStyle(WordListStyle.Bulleted);
+        AbstractNum orderedAbstract = GetStyle(WordListStyle.Headings111);
+
+        bulletNumberId = 1;
+        orderedNumberId = 2;
+
+        NumberingInstance bulletInstance = new NumberingInstance(new AbstractNumId { Val = bulletAbstract.AbstractNumberId }) { NumberID = bulletNumberId };
+        NumberingInstance orderedInstance = new NumberingInstance(new AbstractNumId { Val = orderedAbstract.AbstractNumberId }) { NumberID = orderedNumberId };
+
+        return new Numbering(bulletAbstract, bulletInstance, orderedAbstract, orderedInstance);
+    }
+
+    /// <summary>
     /// The next abstract number identifier stored to be used when creating new abstract numbers
     /// </summary>
     private static int nextAbstractNumberId;
