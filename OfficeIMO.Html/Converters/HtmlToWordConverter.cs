@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Xml.Linq;
 using SixLabors.ImageSharp;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -296,7 +297,12 @@ namespace OfficeIMO.Html {
             if (input == null) {
                 throw new ArgumentNullException(nameof(input));
             }
-            using StreamReader reader = new StreamReader(input, leaveOpen: true);
+            using StreamReader reader = new StreamReader(
+                input,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1024,
+                leaveOpen: true);
             string html = reader.ReadToEnd();
             Convert(html, output, options as HtmlToWordOptions);
         }

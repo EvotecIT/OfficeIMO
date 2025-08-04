@@ -98,7 +98,11 @@ namespace OfficeIMO.Markdown {
         }
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             string markdown = Convert(input, options as WordToMarkdownOptions);
-            using StreamWriter writer = new StreamWriter(output, leaveOpen: true);
+            using StreamWriter writer = new StreamWriter(
+                output,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
             writer.Write(markdown);
             writer.Flush();
         }

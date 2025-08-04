@@ -205,7 +205,11 @@ namespace OfficeIMO.Html {
         }
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             string html = Convert(input, options as WordToHtmlOptions);
-            using StreamWriter writer = new StreamWriter(output, leaveOpen: true);
+            using StreamWriter writer = new StreamWriter(
+                output,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
             writer.Write(html);
             writer.Flush();
         }
