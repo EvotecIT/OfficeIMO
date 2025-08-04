@@ -1,12 +1,21 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
+#nullable enable
+
 namespace OfficeIMO.Pdf {
     /// <summary>
     /// Specifies page orientation for PDF export.
     /// </summary>
     public enum PdfPageOrientation {
+        /// <summary>
+        /// Pages are oriented vertically.
+        /// </summary>
         Portrait,
+
+        /// <summary>
+        /// Pages are oriented horizontally.
+        /// </summary>
         Landscape
     }
 

@@ -287,7 +287,7 @@ public static class WordPdfConverter {
                     var parts = indices.Where(kv => kv.Key <= level)
                         .OrderBy(kv => kv.Key)
                         .Select(kv => kv.Value.ToString());
-                    marker = string.Join('.', parts) + ".";
+                    marker = string.Join(".", parts) + ".";
                 }
 
                 result[item] = new ListItemInfo {
