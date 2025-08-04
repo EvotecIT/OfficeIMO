@@ -4,6 +4,7 @@ using OfficeIMO.Examples.Excel;
 using OfficeIMO.Examples.Word;
 
 using HtmlExamples = OfficeIMO.Examples.Html.Html;
+using MarkdownExamples = OfficeIMO.Examples.Markdown.Markdown;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
@@ -280,6 +281,7 @@ namespace OfficeIMO.Examples {
             Macros.Example_ListAndRemoveMacro(templatesPath, folderPath, false);
 
             HtmlExamples.Example_HtmlRoundTrip(folderPath, false);
+            MarkdownExamples.Example_MarkdownRoundTrip(folderPath, false);
             XmlSerialization.Example_XmlSerializationBasic(folderPath, false);
             XmlSerialization.Example_XmlSerializationAdvanced(folderPath, false);
             CompareDocuments.Example_BasicComparison(folderPath, false);
