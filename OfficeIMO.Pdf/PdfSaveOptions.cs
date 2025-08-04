@@ -1,5 +1,6 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using OfficeIMO.Word.Converters;
 
 namespace OfficeIMO.Pdf {
     /// <summary>
@@ -13,7 +14,7 @@ namespace OfficeIMO.Pdf {
     /// <summary>
     /// Options controlling PDF export.
     /// </summary>
-    public class PdfSaveOptions {
+    public class PdfSaveOptions : IConversionOptions {
         /// <summary>
         /// Optional page size for the generated PDF.
         /// </summary>

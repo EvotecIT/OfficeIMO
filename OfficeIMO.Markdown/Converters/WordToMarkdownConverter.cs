@@ -5,12 +5,22 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Word.Converters;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Word documents into Markdown text without relying on HTML or external tools.
     /// </summary>
-    public static class WordToMarkdownConverter {
+    public class WordToMarkdownConverter : IWordConverter {
+        /// <inheritdoc />
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            var markdownOptions = options as WordToMarkdownOptions ?? new WordToMarkdownOptions();
+            string result = Convert(input, markdownOptions);
+            using StreamWriter writer = new StreamWriter(output, leaveOpen: true);
+            writer.Write(result);
+            writer.Flush();
+        }
+
         /// <summary>
         /// Converts a DOCX document from the provided stream into Markdown text.
         /// </summary>

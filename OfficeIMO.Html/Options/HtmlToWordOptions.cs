@@ -1,10 +1,11 @@
 using System;
+using OfficeIMO.Word.Converters;
 
 namespace OfficeIMO.Html {
     /// <summary>
     /// Options controlling HTML to Word conversion.
     /// </summary>
-    public class HtmlToWordOptions {
+    public class HtmlToWordOptions : IConversionOptions {
         /// <summary>
         /// Optional font family applied to created runs.
         /// </summary>

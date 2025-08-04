@@ -1,36 +1,36 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>Latest</LangVersion>
-        <VersionPrefix>1.0.6</VersionPrefix>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>Latest</LangVersion>
+        <VersionPrefix>1.0.6</VersionPrefix>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
         <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
         <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-        <None Update="Images\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Templates\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Using Include="System" />
-        <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
-        <Using Include="System.Collections" />
-        <Using Include="System.Linq" />
-        <Using Include="System.IO" />
-    </ItemGroup>
-
-</Project>
+
+    <ItemGroup>
+        <None Update="Images\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Templates\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Text" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Collections" />
+        <Using Include="System.Linq" />
+        <Using Include="System.IO" />
+    </ItemGroup>
+
+</Project>

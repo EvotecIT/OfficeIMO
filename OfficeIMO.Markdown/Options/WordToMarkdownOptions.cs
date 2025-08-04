@@ -1,7 +1,9 @@
+using OfficeIMO.Word.Converters;
+
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Placeholder for future Word to Markdown conversion options.
     /// </summary>
-    public class WordToMarkdownOptions {
+    public class WordToMarkdownOptions : IConversionOptions {
     }
 }

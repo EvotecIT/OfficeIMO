@@ -2,13 +2,21 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using OfficeIMO.Word.Converters;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
     /// Converts Markdown text into a Word document without intermediate formats.
     /// </summary>
-    public static class MarkdownToWordConverter {
+    public class MarkdownToWordConverter : IWordConverter {
+        /// <inheritdoc />
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+            using StreamReader reader = new StreamReader(input);
+            string markdown = reader.ReadToEnd();
+            Convert(markdown, output, options as MarkdownToWordOptions);
+        }
+
         /// <summary>
         /// Converts Markdown content to DOCX and writes it to the provided stream.
         /// </summary>
