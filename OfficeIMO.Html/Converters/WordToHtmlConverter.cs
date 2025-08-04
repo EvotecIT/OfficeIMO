@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Html {
     /// <summary>
@@ -31,13 +32,13 @@ namespace OfficeIMO.Html {
             sb.Append("<html><body>");
 
             Dictionary<int, bool> listTypes = GetListTypes(document);
-            AppendElements(document.MainDocumentPart!.Document.Body!.ChildElements, sb, options, listTypes);
+            AppendElements(document.MainDocumentPart!.Document.Body!.ChildElements, sb, options, listTypes, document.MainDocumentPart);
 
             sb.Append("</body></html>");
             return sb.ToString();
         }
 
-        private static void AppendElements(IEnumerable<OpenXmlElement> elements, StringBuilder sb, WordToHtmlOptions options, Dictionary<int, bool> listTypes) {
+        private static void AppendElements(IEnumerable<OpenXmlElement> elements, StringBuilder sb, WordToHtmlOptions options, Dictionary<int, bool> listTypes, MainDocumentPart mainPart) {
             Stack<(int numId, bool ordered)> listStack = new Stack<(int numId, bool ordered)>();
 
             foreach (OpenXmlElement element in elements) {
@@ -91,7 +92,7 @@ namespace OfficeIMO.Html {
                         }
 
                         sb.Append("<li>");
-                        AppendRuns(sb, paragraph, options);
+                        AppendRuns(sb, paragraph, options, mainPart);
                         sb.Append("</li>");
                     } else {
                         while (listStack.Count > 0) {
@@ -109,7 +110,7 @@ namespace OfficeIMO.Html {
                         }
 
                         sb.Append('<').Append(tag).Append('>');
-                        AppendRuns(sb, paragraph, options);
+                        AppendRuns(sb, paragraph, options, mainPart);
                         sb.Append("</").Append(tag).Append('>');
                     }
                 } else if (element is Table table) {
@@ -118,7 +119,7 @@ namespace OfficeIMO.Html {
                         sb.Append(closing.ordered ? "</ol>" : "</ul>");
                     }
 
-                    AppendTable(sb, table, options, listTypes);
+                    AppendTable(sb, table, options, listTypes, mainPart);
                 }
             }
 
@@ -128,13 +129,13 @@ namespace OfficeIMO.Html {
             }
         }
 
-        private static void AppendTable(StringBuilder sb, Table table, WordToHtmlOptions options, Dictionary<int, bool> listTypes) {
+        private static void AppendTable(StringBuilder sb, Table table, WordToHtmlOptions options, Dictionary<int, bool> listTypes, MainDocumentPart mainPart) {
             sb.Append("<table>");
             foreach (TableRow row in table.Elements<TableRow>()) {
                 sb.Append("<tr>");
                 foreach (TableCell cell in row.Elements<TableCell>()) {
                     sb.Append("<td>");
-                    AppendElements(cell.ChildElements, sb, options, listTypes);
+                    AppendElements(cell.ChildElements, sb, options, listTypes, mainPart);
                     sb.Append("</td>");
                 }
                 sb.Append("</tr>");
@@ -162,8 +163,23 @@ namespace OfficeIMO.Html {
             return listTypes;
         }
 
-        private static void AppendRuns(StringBuilder sb, Paragraph paragraph, WordToHtmlOptions options) {
+        private static void AppendRuns(StringBuilder sb, Paragraph paragraph, WordToHtmlOptions options, MainDocumentPart mainPart) {
             foreach (Run run in paragraph.Elements<Run>()) {
+                Drawing? drawing = run.GetFirstChild<Drawing>();
+                if (drawing != null) {
+                    A.Blip? blip = drawing.Descendants<A.Blip>().FirstOrDefault();
+                    string? embed = blip?.Embed;
+                    if (embed != null) {
+                        ImagePart part = (ImagePart)mainPart.GetPartById(embed);
+                        using Stream imgStream = part.GetStream();
+                        using MemoryStream ms = new MemoryStream();
+                        imgStream.CopyTo(ms);
+                        string base64 = System.Convert.ToBase64String(ms.ToArray());
+                        sb.Append($"<img src=\"data:{part.ContentType};base64,{base64}\" />");
+                    }
+                    continue;
+                }
+
                 string text = run.InnerText;
                 string encoded = System.Net.WebUtility.HtmlEncode(text);
                 RunProperties? runProps = run.RunProperties;
