@@ -58,6 +58,23 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_HeaderFooterImagesScaling() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfHeaderFooterImages.docx");
+        var pdfPath = Path.Combine(_directoryWithFiles, "PdfHeaderFooterImages.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.Header.Default.AddParagraph().AddImage(imagePath, 20, 20);
+            document.Footer.Default.AddParagraph().AddImage(imagePath, 400, 400);
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_ToMemoryStream() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfStreamSample.docx");
 

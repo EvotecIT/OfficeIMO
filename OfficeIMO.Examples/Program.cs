@@ -181,6 +181,7 @@ namespace OfficeIMO.Examples {
             Images.Example_ImageTransparencySimple(folderPath, false);
             Images.Example_ImageTransparencyAdvanced(folderPath, false);
             Images.Example_ImageNewFeatures(folderPath, false);
+            Word.Pdf.Example_HeaderFooterImages(folderPath, false);
 
             Background.Example_BackgroundImageSimple(folderPath, false);
             Background.Example_BackgroundImageAdvanced(folderPath, false);
