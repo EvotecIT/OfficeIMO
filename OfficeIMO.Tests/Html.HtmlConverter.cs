@@ -55,4 +55,32 @@ public partial class Html {
         Assert.Contains("Sub 1", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Second", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Test_Html_Table_RoundTrip() {
+        string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
+
+        ms.Position = 0;
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions());
+
+        Assert.Contains("<table>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("A", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("D", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_NestedTable_RoundTrip() {
+        string html = "<table><tr><td>Outer</td><td><table><tr><td>Inner</td></tr></table></td></tr></table>";
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
+
+        ms.Position = 0;
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions());
+
+        int tableCount = roundTrip.Split(new string[] { "<table>" }, StringSplitOptions.None).Length - 1;
+        Assert.True(tableCount >= 2);
+        Assert.Contains("Inner", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
 }

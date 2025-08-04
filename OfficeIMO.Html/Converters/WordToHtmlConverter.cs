@@ -1,8 +1,11 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Html {
@@ -27,29 +30,77 @@ namespace OfficeIMO.Html {
             StringBuilder sb = new StringBuilder();
             sb.Append("<html><body>");
 
-            foreach (var evt in WordListTraversal.Traverse(document)) {
-                switch (evt.EventType) {
-                    case WordListEventType.StartList:
-                        string tagOpen = evt.Ordered ? "<ol>" : "<ul>";
-                        if (options.PreserveListStyles) {
-                            string listStyle = evt.Ordered ? "decimal" : "disc";
-                            tagOpen = evt.Ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
+            Dictionary<int, bool> listTypes = GetListTypes(document);
+            AppendElements(document.MainDocumentPart!.Document.Body!.ChildElements, sb, options, listTypes);
+
+            sb.Append("</body></html>");
+            return sb.ToString();
+        }
+
+        private static void AppendElements(IEnumerable<OpenXmlElement> elements, StringBuilder sb, WordToHtmlOptions options, Dictionary<int, bool> listTypes) {
+            Stack<(int numId, bool ordered)> listStack = new Stack<(int numId, bool ordered)>();
+
+            foreach (OpenXmlElement element in elements) {
+                if (element is Paragraph paragraph) {
+                    NumberingProperties? numProps = paragraph.ParagraphProperties?.NumberingProperties;
+                    if (numProps != null) {
+                        int level = numProps.NumberingLevelReference?.Val ?? 0;
+                        int numId = numProps.NumberingId?.Val ?? 0;
+                        bool ordered = listTypes.ContainsKey(numId) && listTypes[numId];
+
+                        if (listStack.Count == 0) {
+                            for (int i = 0; i <= level; i++) {
+                                string tagOpen = ordered ? "<ol>" : "<ul>";
+                                if (options.PreserveListStyles) {
+                                    string listStyle = ordered ? "decimal" : "disc";
+                                    tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
+                                }
+                                sb.Append(tagOpen);
+                                listStack.Push((numId, ordered));
+                            }
+                        } else {
+                            int currentLevel = listStack.Count - 1;
+                            if (level > currentLevel) {
+                                for (int i = currentLevel + 1; i <= level; i++) {
+                                    string tagOpen = ordered ? "<ol>" : "<ul>";
+                                    if (options.PreserveListStyles) {
+                                        string listStyle = ordered ? "decimal" : "disc";
+                                        tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
+                                    }
+                                    sb.Append(tagOpen);
+                                    listStack.Push((numId, ordered));
+                                }
+                            } else {
+                                while (currentLevel > level) {
+                                    var closing = listStack.Pop();
+                                    sb.Append(closing.ordered ? "</ol>" : "</ul>");
+                                    currentLevel--;
+                                }
+                                if (listStack.Count > 0 && listStack.Peek().numId != numId) {
+                                    var closing = listStack.Pop();
+                                    sb.Append(closing.ordered ? "</ol>" : "</ul>");
+                                    string tagOpen = ordered ? "<ol>" : "<ul>";
+                                    if (options.PreserveListStyles) {
+                                        string listStyle = ordered ? "decimal" : "disc";
+                                        tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
+                                    }
+                                    sb.Append(tagOpen);
+                                    listStack.Push((numId, ordered));
+                                }
+                            }
                         }
-                        sb.Append(tagOpen);
-                        break;
-                    case WordListEventType.EndList:
-                        sb.Append(evt.Ordered ? "</ol>" : "</ul>");
-                        break;
-                    case WordListEventType.StartItem:
+
                         sb.Append("<li>");
-                        AppendRuns(sb, evt.Paragraph!, options);
-                        break;
-                    case WordListEventType.EndItem:
+                        AppendRuns(sb, paragraph, options);
                         sb.Append("</li>");
-                        break;
-                    case WordListEventType.Paragraph:
+                    } else {
+                        while (listStack.Count > 0) {
+                            var closing = listStack.Pop();
+                            sb.Append(closing.ordered ? "</ol>" : "</ul>");
+                        }
+
                         string tag = "p";
-                        string? styleId = evt.Paragraph!.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+                        string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
                         if (styleId != null && Enum.TryParse(styleId, true, out WordParagraphStyles style)) {
                             if (style >= WordParagraphStyles.Heading1 && style <= WordParagraphStyles.Heading6) {
                                 int levelHeading = (int)style - (int)WordParagraphStyles.Heading1 + 1;
@@ -58,14 +109,57 @@ namespace OfficeIMO.Html {
                         }
 
                         sb.Append('<').Append(tag).Append('>');
-                        AppendRuns(sb, evt.Paragraph!, options);
+                        AppendRuns(sb, paragraph, options);
                         sb.Append("</").Append(tag).Append('>');
-                        break;
+                    }
+                } else if (element is Table table) {
+                    while (listStack.Count > 0) {
+                        var closing = listStack.Pop();
+                        sb.Append(closing.ordered ? "</ol>" : "</ul>");
+                    }
+
+                    AppendTable(sb, table, options, listTypes);
                 }
             }
 
-            sb.Append("</body></html>");
-            return sb.ToString();
+            while (listStack.Count > 0) {
+                var closing = listStack.Pop();
+                sb.Append(closing.ordered ? "</ol>" : "</ul>");
+            }
+        }
+
+        private static void AppendTable(StringBuilder sb, Table table, WordToHtmlOptions options, Dictionary<int, bool> listTypes) {
+            sb.Append("<table>");
+            foreach (TableRow row in table.Elements<TableRow>()) {
+                sb.Append("<tr>");
+                foreach (TableCell cell in row.Elements<TableCell>()) {
+                    sb.Append("<td>");
+                    AppendElements(cell.ChildElements, sb, options, listTypes);
+                    sb.Append("</td>");
+                }
+                sb.Append("</tr>");
+            }
+            sb.Append("</table>");
+        }
+
+        private static Dictionary<int, bool> GetListTypes(WordprocessingDocument document) {
+            NumberingDefinitionsPart? numberingPart = document.MainDocumentPart!.NumberingDefinitionsPart;
+            Dictionary<int, bool> listTypes = new Dictionary<int, bool>();
+            if (numberingPart?.Numbering != null) {
+                foreach (NumberingInstance instance in numberingPart.Numbering.Elements<NumberingInstance>()) {
+                    int id = instance.NumberID!.Value;
+                    int absId = instance.AbstractNumId!.Val!.Value;
+                    AbstractNum? abs = numberingPart.Numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId!.Value == absId);
+                    bool ordered = true;
+                    Level? lvl = abs?.Elements<Level>().FirstOrDefault(l => l.LevelIndex == 0);
+                    NumberFormatValues? format = lvl?.NumberingFormat?.Val;
+                    if (format == NumberFormatValues.Bullet) {
+                        ordered = false;
+                    }
+                    listTypes[id] = ordered;
+                }
+            }
+            return listTypes;
         }
 
         private static void AppendRuns(StringBuilder sb, Paragraph paragraph, WordToHtmlOptions options) {
