@@ -5,6 +5,8 @@ using QuestPDF.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System;
+using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Pdf;
@@ -114,14 +116,20 @@ public static class WordPdfConverter {
 
                 foreach (WordTableRow row in table.Rows) {
                     foreach (WordTableCell cell in row.Cells) {
-                        tableContainer.Cell().Column(cellColumn => {
-                            foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                cellColumn.Item().Element(e => RenderParagraph(e, paragraph, GetPrefix(paragraph)));
-                            }
+                        tableContainer.Cell().Element(cellContainer => {
+                            cellContainer = ApplyCellStyle(cellContainer, cell);
 
-                            foreach (WordTable nested in cell.NestedTables) {
-                                cellColumn.Item().Element(e => RenderTable(e, nested));
-                            }
+                            cellContainer.Column(cellColumn => {
+                                foreach (WordParagraph paragraph in cell.Paragraphs) {
+                                    cellColumn.Item().Element(e => RenderParagraph(e, paragraph, GetPrefix(paragraph)));
+                                }
+
+                                foreach (WordTable nested in cell.NestedTables) {
+                                    cellColumn.Item().Element(e => RenderTable(e, nested));
+                                }
+                            });
+
+                            return cellContainer;
                         });
                     }
                 }
@@ -129,6 +137,44 @@ public static class WordPdfConverter {
 
             return container;
         }
+
+        static IContainer ApplyCellStyle(IContainer container, WordTableCell cell) {
+            if (!string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
+                container = container.Background("#" + cell.ShadingFillColorHex);
+            }
+
+            WordTableCellBorder borders = cell.Borders;
+
+            List<string> colors = new() {
+                borders.TopColorHex,
+                borders.BottomColorHex,
+                borders.LeftColorHex,
+                borders.RightColorHex
+            };
+            colors.RemoveAll(string.IsNullOrEmpty);
+            if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
+                container = container.BorderColor("#" + colors[0]);
+            }
+
+            if (HasBorder(borders.TopStyle)) {
+                container = container.BorderTop(GetBorderWidth(borders.TopSize));
+            }
+            if (HasBorder(borders.BottomStyle)) {
+                container = container.BorderBottom(GetBorderWidth(borders.BottomSize));
+            }
+            if (HasBorder(borders.LeftStyle)) {
+                container = container.BorderLeft(GetBorderWidth(borders.LeftSize));
+            }
+            if (HasBorder(borders.RightStyle)) {
+                container = container.BorderRight(GetBorderWidth(borders.RightSize));
+            }
+
+            return container;
+        }
+
+        static bool HasBorder(W.BorderValues? style) => style != null && style != W.BorderValues.Nil && style != W.BorderValues.None;
+
+        static float GetBorderWidth(UInt32Value size) => size != null ? size.Value / 8f : 1f;
 
         static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, string prefix) {
             if (paragraph == null) {
@@ -203,7 +249,7 @@ public static class WordPdfConverter {
             }
         }
         }
-    }
+        }
 
     private static Dictionary<WordParagraph, string> BuildListPrefixes(WordDocument document) {
         Dictionary<WordParagraph, string> result = new Dictionary<WordParagraph, string>();
