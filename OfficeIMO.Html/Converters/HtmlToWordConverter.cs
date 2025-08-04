@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -47,7 +48,7 @@ namespace OfficeIMO.Html {
             mainPart.Document.Save();
         }
 
-        private static void AppendBlockElement(Body body, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId) {
+        private static void AppendBlockElement(OpenXmlElement parent, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId) {
             switch (element.Name.LocalName.ToLowerInvariant()) {
                 case "p":
                 case "h1":
@@ -56,17 +57,20 @@ namespace OfficeIMO.Html {
                 case "h4":
                 case "h5":
                 case "h6":
-                    body.Append(CreateParagraph(element, options));
+                    parent.Append(CreateParagraph(element, options));
                     break;
                 case "ul":
                     foreach (XElement li in element.Elements("li")) {
-                        AppendListItem(body, li, options, level, bulletNumberId, bulletNumberId, orderedNumberId);
+                        AppendListItem(parent, li, options, level, bulletNumberId, bulletNumberId, orderedNumberId);
                     }
                     break;
                 case "ol":
                     foreach (XElement li in element.Elements("li")) {
-                        AppendListItem(body, li, options, level, orderedNumberId, bulletNumberId, orderedNumberId);
+                        AppendListItem(parent, li, options, level, orderedNumberId, bulletNumberId, orderedNumberId);
                     }
+                    break;
+                case "table":
+                    parent.Append(CreateTable(element, options, level, bulletNumberId, orderedNumberId));
                     break;
             }
         }
@@ -110,7 +114,7 @@ namespace OfficeIMO.Html {
             return paragraph;
         }
 
-        private static void AppendListItem(Body body, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId) {
+        private static void AppendListItem(OpenXmlElement parent, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId) {
             Paragraph paragraph = new Paragraph();
             paragraph.ParagraphProperties = new ParagraphProperties(
                 new NumberingProperties(
@@ -124,8 +128,8 @@ namespace OfficeIMO.Html {
                 } else if (node is XElement el) {
                     if (el.Name.LocalName.Equals("ul", StringComparison.OrdinalIgnoreCase) || el.Name.LocalName.Equals("ol", StringComparison.OrdinalIgnoreCase)) {
                         // finalize current paragraph and process nested list
-                        body.Append(paragraph);
-                        AppendBlockElement(body, el, options, level + 1, bulletNumberId, orderedNumberId);
+                        parent.Append(paragraph);
+                        AppendBlockElement(parent, el, options, level + 1, bulletNumberId, orderedNumberId);
                         paragraph = new Paragraph(); // prevent re-adding
                     } else {
                         paragraph.Append(CreateRunFromElement(el, options));
@@ -134,8 +138,41 @@ namespace OfficeIMO.Html {
             }
 
             if (paragraph.HasChildren) {
-                body.Append(paragraph);
+                parent.Append(paragraph);
             }
+        }
+
+        private static Table CreateTable(XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId) {
+            Table table = new Table();
+
+            foreach (XElement tr in element.Elements("tr")) {
+                TableRow row = new TableRow();
+                foreach (XElement cellEl in tr.Elements().Where(e => e.Name.LocalName.Equals("td", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase))) {
+                    TableCell cell = new TableCell();
+
+                    bool hasBlock = false;
+                    foreach (XNode node in cellEl.Nodes()) {
+                        if (node is XElement blockEl) {
+                            AppendBlockElement(cell, blockEl, options, level, bulletNumberId, orderedNumberId);
+                            hasBlock = true;
+                        } else if (node is XText text) {
+                            Paragraph p = new Paragraph();
+                            p.Append(CreateRun(text.Value, options));
+                            cell.Append(p);
+                            hasBlock = true;
+                        }
+                    }
+
+                    if (!hasBlock) {
+                        cell.Append(new Paragraph());
+                    }
+
+                    row.Append(cell);
+                }
+                table.Append(row);
+            }
+
+            return table;
         }
 
         private static Run CreateRunFromElement(XElement element, HtmlToWordOptions options) {
