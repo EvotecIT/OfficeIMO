@@ -1,7 +1,7 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -85,6 +85,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the AutoFit behavior for the table. Alias for <see cref="LayoutMode"/>.
+        /// </summary>
+        public WordTableLayoutType AutoFit {
+            get => LayoutMode;
+            set => LayoutMode = value;
+        }
+
+        /// <summary>
         /// Allow text to wrap around table.
         /// </summary>
         public bool AllowTextWrap {
@@ -98,6 +106,38 @@ namespace OfficeIMO.Word {
                     Position.VerticalAnchor = VerticalAnchorValues.Text;
                 else
                     Position.VerticalAnchor = null;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether text wraps within all cells of the table.
+        /// </summary>
+        public bool WrapText {
+            get {
+                return Rows.SelectMany(row => row.Cells).All(cell => cell.WrapText);
+            }
+            set {
+                foreach (var row in Rows) {
+                    foreach (var cell in row.Cells) {
+                        cell.WrapText = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether text is compressed to fit within all cells of the table.
+        /// </summary>
+        public bool FitText {
+            get {
+                return Rows.SelectMany(row => row.Cells).All(cell => cell.FitText);
+            }
+            set {
+                foreach (var row in Rows) {
+                    foreach (var cell in row.Cells) {
+                        cell.FitText = value;
+                    }
+                }
             }
         }
 
@@ -358,5 +398,5 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
-}
+    }
 }

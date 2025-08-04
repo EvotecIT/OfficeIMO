@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 
 namespace OfficeIMO.Word {
@@ -365,18 +365,45 @@ namespace OfficeIMO.Word {
         public TextBodyProperties TextBodyProperties => _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
 
         /// <summary>
-        /// Gets or sets auto-fit to text size
+        /// Gets or sets the AutoFit behavior for the textbox.
         /// </summary>
-        public bool AutoFitToTextSize {
-            get => TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().Any();
+        public WordTextBoxAutoFitType AutoFit {
+            get {
+                if (TextBodyProperties.GetFirstChild<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>() != null) {
+                    return WordTextBoxAutoFitType.ResizeShapeToFitText;
+                }
+
+                if (TextBodyProperties.GetFirstChild<DocumentFormat.OpenXml.Drawing.NormalAutoFit>() != null) {
+                    return WordTextBoxAutoFitType.ShrinkTextOnOverflow;
+                }
+
+                return WordTextBoxAutoFitType.NoAutoFit;
+            }
             set {
-                TextBodyProperties.RemoveChild(TextBodyProperties.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>().FirstOrDefault());
-                if (value) {
-                    TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.ShapeAutoFit());
-                } else {
-                    TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.NoAutoFit());
+                TextBodyProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.ShapeAutoFit>();
+                TextBodyProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NormalAutoFit>();
+                TextBodyProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoAutoFit>();
+
+                switch (value) {
+                    case WordTextBoxAutoFitType.ResizeShapeToFitText:
+                        TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.ShapeAutoFit());
+                        break;
+                    case WordTextBoxAutoFitType.ShrinkTextOnOverflow:
+                        TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.NormalAutoFit());
+                        break;
+                    default:
+                        TextBodyProperties.Append(new DocumentFormat.OpenXml.Drawing.NoAutoFit());
+                        break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets or sets whether the textbox resizes to fit text. Use <see cref="AutoFit"/> for more options.
+        /// </summary>
+        public bool AutoFitToTextSize {
+            get => AutoFit == WordTextBoxAutoFitType.ResizeShapeToFitText;
+            set => AutoFit = value ? WordTextBoxAutoFitType.ResizeShapeToFitText : WordTextBoxAutoFitType.NoAutoFit;
         }
 
         /// <summary>
@@ -687,7 +714,8 @@ namespace OfficeIMO.Word {
                 var verticalPosition = anchor.VerticalPosition;
                 if (verticalPosition == null) {
                     anchor.VerticalPosition = new VerticalPosition() {
-                        RelativeFrom = VerticalRelativePositionValues.Page, VerticalAlignment = new VerticalAlignment() {
+                        RelativeFrom = VerticalRelativePositionValues.Page,
+                        VerticalAlignment = new VerticalAlignment() {
                             Text = "top"
                         }
                     };

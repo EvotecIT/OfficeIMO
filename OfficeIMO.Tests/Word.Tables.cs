@@ -1,10 +1,10 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
-using Xunit;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using Xunit;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -1340,6 +1340,96 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.Tables[0];
                 Assert.Equal(500, table.Rows[0].Height);
                 Assert.Equal(300, table.Rows[1].Height);
+            }
+        }
+
+        [Fact]
+        public void Test_TableCellWrapText() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableCellWrapText.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                WordTableCell cell = table.Rows[0].Cells[0];
+                cell.AddParagraph("Some long text that should demonstrate wrapping options.");
+
+                cell.WrapText = true;
+                Assert.True(cell.WrapText);
+
+                cell.WrapText = false;
+                Assert.False(cell.WrapText);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableCell cell = document.Tables[0].Rows[0].Cells[0];
+                Assert.False(cell.WrapText);
+            }
+        }
+
+        [Fact]
+        public void Test_TableCellFitText() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableCellFitText.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                WordTableCell cell = table.Rows[0].Cells[0];
+                cell.AddParagraph("Some text that should demonstrate fit text option.");
+
+                cell.FitText = true;
+                Assert.True(cell.FitText);
+
+                cell.FitText = false;
+                Assert.False(cell.FitText);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableCell cell = document.Tables[0].Rows[0].Cells[0];
+                Assert.False(cell.FitText);
+            }
+        }
+
+        [Fact]
+        public void Test_TableCellOptionsForWholeTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableCellOptionsForWholeTable.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(2, 2);
+                table.WrapText = false;
+                table.FitText = true;
+
+                Assert.False(table.WrapText);
+                Assert.True(table.FitText);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                Assert.False(table.Rows[0].Cells[0].WrapText);
+                Assert.True(table.Rows[0].Cells[0].FitText);
+            }
+        }
+
+        [Fact]
+        public void Test_TableAutoFitProperty() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableAutoFitProperty.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.AutoFit = WordTableLayoutType.AutoFitToContents;
+                Assert.Equal(WordTableLayoutType.AutoFitToContents, table.AutoFit);
+
+                table.AutoFit = WordTableLayoutType.AutoFitToWindow;
+                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
+
+                table.AutoFit = WordTableLayoutType.FixedWidth;
+                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
             }
         }
 

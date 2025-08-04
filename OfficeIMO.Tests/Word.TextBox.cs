@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
@@ -486,6 +486,33 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Contains(document.Sections[0].Header.Default.Paragraphs, p => p.IsTextBox);
 
+            }
+        }
+
+        [Fact]
+        public void Test_TextBoxAutoFitOptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "TextBoxAutoFitOptions.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var tb1 = document.AddTextBox("Resize shape to fit text");
+                tb1.AutoFit = WordTextBoxAutoFitType.ResizeShapeToFitText;
+
+                var tb2 = document.AddTextBox("Shrink text on overflow");
+                tb2.AutoFit = WordTextBoxAutoFitType.ShrinkTextOnOverflow;
+
+                var tb3 = document.AddTextBox("No autofit");
+                tb3.AutoFit = WordTextBoxAutoFitType.NoAutoFit;
+
+                Assert.Equal(WordTextBoxAutoFitType.ResizeShapeToFitText, tb1.AutoFit);
+                Assert.Equal(WordTextBoxAutoFitType.ShrinkTextOnOverflow, tb2.AutoFit);
+                Assert.Equal(WordTextBoxAutoFitType.NoAutoFit, tb3.AutoFit);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(WordTextBoxAutoFitType.ResizeShapeToFitText, document.TextBoxes[0].AutoFit);
+                Assert.Equal(WordTextBoxAutoFitType.ShrinkTextOnOverflow, document.TextBoxes[1].AutoFit);
+                Assert.Equal(WordTextBoxAutoFitType.NoAutoFit, document.TextBoxes[2].AutoFit);
             }
         }
     }
