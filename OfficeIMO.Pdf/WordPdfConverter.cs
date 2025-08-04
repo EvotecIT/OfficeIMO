@@ -9,6 +9,8 @@ using System;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
+#nullable enable annotations
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -302,8 +304,8 @@ public static class WordPdfConverter {
     }
 
     private class ListItemInfo {
-        public int Level { get; init; }
-        public string Marker { get; init; } = string.Empty;
-        public bool IsBullet { get; init; }
+        public int Level { get; set; }
+        public string Marker { get; set; } = string.Empty;
+        public bool IsBullet { get; set; }
     }
 }
