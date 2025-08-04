@@ -43,7 +43,7 @@ namespace OfficeIMO.Markdown {
                     int level = line.TakeWhile(c => c == '#').Count();
                     string text = line.Substring(level).TrimStart();
                     var paragraph = document.AddParagraph();
-                    AddInlineRuns(paragraph, text, options);
+                    InlineRunHelper.AddInlineRuns(paragraph, text, options.FontFamily);
                     paragraph.Style = level switch {
                         1 => WordParagraphStyles.Heading1,
                         2 => WordParagraphStyles.Heading2,
@@ -67,39 +67,18 @@ namespace OfficeIMO.Markdown {
                     }
 
                     var item = currentList.AddItem(string.Empty);
-                    AddInlineRuns(item, text, options);
+                    InlineRunHelper.AddInlineRuns(item, text, options.FontFamily);
                     continue;
                 }
 
                 currentList = null;
                 var para = document.AddParagraph();
-                AddInlineRuns(para, line, options);
+                InlineRunHelper.AddInlineRuns(para, line, options.FontFamily);
             }
 
             document.Save(output);
         }
-
-        private static void AddInlineRuns(WordParagraph paragraph, string text, MarkdownToWordOptions options) {
-            var regex = new Regex(@"(\*\*[^\*]+\*\*|\*[^\*]+\*|[^\*]+)", RegexOptions.Singleline);
-            foreach (Match match in regex.Matches(text)) {
-                string token = match.Value;
-                bool bold = token.StartsWith("**") && token.EndsWith("**");
-                bool italic = !bold && token.StartsWith("*") && token.EndsWith("*");
-                string value = bold ? token.Substring(2, token.Length - 4) :
-                               italic ? token.Substring(1, token.Length - 2) : token;
-
-                var run = paragraph.AddText(value);
-                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                    run.SetFontFamily(options.FontFamily);
-                }
-                if (bold) {
-                    run.SetBold();
-                }
-                if (italic) {
-                    run.SetItalic();
-                }
-            }
-        }
+        
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             if (input == null) {
                 throw new ArgumentNullException(nameof(input));

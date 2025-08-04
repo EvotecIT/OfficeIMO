@@ -1,0 +1,37 @@
+using System.Text.RegularExpressions;
+
+namespace OfficeIMO.Word;
+
+/// <summary>
+/// Provides utilities for adding inline formatted runs.
+/// </summary>
+public static class InlineRunHelper {
+    private static readonly Regex _inlineRegex = new("(\\*\\*[^\\*]+\\*\\*|\\*[^\\*]+\\*|[^\\*]+)", RegexOptions.Singleline);
+
+    /// <summary>
+    /// Adds text runs to <paramref name="paragraph"/> parsing Markdown style bold and italic markers.
+    /// </summary>
+    /// <param name="paragraph">Paragraph to add runs to.</param>
+    /// <param name="text">Input text containing optional <c>**bold**</c> or <c>*italic*</c> markers.</param>
+    /// <param name="fontFamily">Optional font family for the runs.</param>
+    public static void AddInlineRuns(WordParagraph paragraph, string text, string? fontFamily = null) {
+        foreach (Match match in _inlineRegex.Matches(text)) {
+            string token = match.Value;
+            bool bold = token.StartsWith("**") && token.EndsWith("**");
+            bool italic = !bold && token.StartsWith("*") && token.EndsWith("*");
+            string value = bold ? token.Substring(2, token.Length - 4) :
+                           italic ? token.Substring(1, token.Length - 2) : token;
+
+            var run = paragraph.AddText(value);
+            if (!string.IsNullOrEmpty(fontFamily)) {
+                run.SetFontFamily(fontFamily);
+            }
+            if (bold) {
+                run.SetBold();
+            }
+            if (italic) {
+                run.SetItalic();
+            }
+        }
+    }
+}
