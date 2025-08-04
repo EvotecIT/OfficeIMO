@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word.Converters;
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Markdown {
     /// <summary>

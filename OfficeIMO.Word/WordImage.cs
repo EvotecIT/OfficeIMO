@@ -9,7 +9,7 @@ using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 
-#nullable enable annotations
+#nullable enable
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;

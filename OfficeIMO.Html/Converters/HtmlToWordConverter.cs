@@ -1,5 +1,5 @@
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Html {
     public class HtmlToWordConverter : IWordConverter {

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Word {
     /// <summary>

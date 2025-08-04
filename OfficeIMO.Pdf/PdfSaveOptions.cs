@@ -2,7 +2,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using OfficeIMO.Word.Converters;
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Pdf {
     /// <summary>

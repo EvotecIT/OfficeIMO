@@ -1,7 +1,7 @@
 using System;
 using OfficeIMO.Word.Converters;
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Html {
     /// <summary>

@@ -4,7 +4,7 @@ using System;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
-#nullable enable annotations
+#nullable enable
 
 namespace OfficeIMO.Pdf;
 
