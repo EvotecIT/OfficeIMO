@@ -40,7 +40,7 @@ public static class WordPdfConverter {
     private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
         QuestPDF.Settings.License = LicenseType.Community;
 
-        Dictionary<WordParagraph, string> listPrefixes = BuildListPrefixes(document);
+        Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = BuildListMarkers(document);
 
         Document pdf = Document.Create(container => {
             container.Page(page => {
@@ -76,7 +76,7 @@ public static class WordPdfConverter {
                 page.Content().Column(column => {
                     foreach (WordElement element in document.Elements) {
                         if (element is WordParagraph paragraph) {
-                            column.Item().Element(e => RenderParagraph(e, paragraph, GetPrefix(paragraph)));
+                            column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
                         } else if (element is WordTable table) {
                             column.Item().Element(e => RenderTable(e, table));
                         }
@@ -87,17 +87,17 @@ public static class WordPdfConverter {
 
         return pdf;
 
-        string GetPrefix(WordParagraph paragraph) {
-            if (listPrefixes.TryGetValue(paragraph, out string value)) {
+        (int Level, string Marker)? GetMarker(WordParagraph paragraph) {
+            if (listMarkers.TryGetValue(paragraph, out var value)) {
                 return value;
             }
 
-            return string.Empty;
+            return null;
         }
 
         void RenderElements(ColumnDescriptor column, IEnumerable<WordParagraph> paragraphs, IEnumerable<WordTable> tables) {
             foreach (WordParagraph paragraph in paragraphs) {
-                column.Item().Element(e => RenderParagraph(e, paragraph, GetPrefix(paragraph)));
+                column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
             }
 
             foreach (WordTable table in tables) {
@@ -121,7 +121,7 @@ public static class WordPdfConverter {
 
                             cellContainer.Column(cellColumn => {
                                 foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                    cellColumn.Item().Element(e => RenderParagraph(e, paragraph, GetPrefix(paragraph)));
+                                    cellColumn.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
                                 }
 
                                 foreach (WordTable nested in cell.NestedTables) {
@@ -176,7 +176,7 @@ public static class WordPdfConverter {
 
         static float GetBorderWidth(UInt32Value size) => size != null ? size.Value / 8f : 1f;
 
-        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, string prefix) {
+        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker) {
             if (paragraph == null) {
                 return container;
             }
@@ -205,18 +205,31 @@ public static class WordPdfConverter {
                 }
 
                 string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
-                if (!string.IsNullOrEmpty(content) || !string.IsNullOrEmpty(prefix)) {
-                    col.Item().Text(text => {
-                        if (!string.IsNullOrEmpty(prefix)) {
-                            text.Span(prefix);
-                        }
-
-                        if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
-                            ApplyFormatting(text.Hyperlink(content, paragraph.Hyperlink.Uri.ToString()));
-                        } else {
-                            ApplyFormatting(text.Span(content));
-                        }
-                    });
+                if (!string.IsNullOrEmpty(content) || marker != null) {
+                    if (marker != null) {
+                        const float indentSize = 15f;
+                        col.Item().Row(row => {
+                            if (marker.Value.Level > 0) {
+                                row.ConstantItem(indentSize * marker.Value.Level);
+                            }
+                            row.ConstantItem(indentSize).Text(marker.Value.Marker);
+                            row.RelativeItem().Text(text => {
+                                if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
+                                    ApplyFormatting(text.Hyperlink(content, paragraph.Hyperlink.Uri.ToString()));
+                                } else {
+                                    ApplyFormatting(text.Span(content));
+                                }
+                            });
+                        });
+                    } else {
+                        col.Item().Text(text => {
+                            if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
+                                ApplyFormatting(text.Hyperlink(content, paragraph.Hyperlink.Uri.ToString()));
+                            } else {
+                                ApplyFormatting(text.Span(content));
+                            }
+                        });
+                    }
                 }
             });
 
@@ -259,14 +272,15 @@ public static class WordPdfConverter {
             }
         }
         }
-        }
 
-    private static Dictionary<WordParagraph, string> BuildListPrefixes(WordDocument document) {
-        Dictionary<WordParagraph, string> result = new Dictionary<WordParagraph, string>();
+    }
+
+    private static Dictionary<WordParagraph, (int Level, string Marker)> BuildListMarkers(WordDocument document) {
+        Dictionary<WordParagraph, (int, string)> result = new Dictionary<WordParagraph, (int, string)>();
 
         foreach (WordList list in document.Lists) {
             Dictionary<int, int> indices = new Dictionary<int, int>();
-            bool bullet = list.Style.ToString().IndexOf("Bullet", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            bool bullet = list.Style.ToString().IndexOf("Bullet", StringComparison.OrdinalIgnoreCase) >= 0;
             foreach (WordParagraph item in list.ListItems) {
                 int level = item.ListItemLevel ?? 0;
                 if (!indices.ContainsKey(level)) {
@@ -275,9 +289,8 @@ public static class WordPdfConverter {
 
                 int index = indices[level];
                 indices[level] = index + 1;
-                string prefix = bullet ? "• " : $"{index}. ";
-                string indent = new string(' ', level * 2);
-                result[item] = indent + prefix;
+                string marker = bullet ? "•" : $"{index}.";
+                result[item] = (level, marker);
             }
         }
 
