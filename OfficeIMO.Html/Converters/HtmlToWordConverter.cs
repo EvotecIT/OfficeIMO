@@ -2,8 +2,9 @@
 #nullable enable annotations
 
 namespace OfficeIMO.Html {
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+    public class HtmlToWordConverter : IWordConverter {
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
+
 using OfficeIMO.Word;
 using System;
 using System.IO;

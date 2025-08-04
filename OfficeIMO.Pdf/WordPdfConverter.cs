@@ -143,8 +143,9 @@ public static class WordPdfConverter {
 
             return container;
         }
-
-        static IContainer ApplyCellStyle(IContainer container, WordTableCell cell) {
+public class WordPdfStreamConverter : IWordConverter {
+    public void Convert(Stream input, Stream output, IConversionOptions options) {
+
             if (!string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
                 container = container.Background("#" + cell.ShadingFillColorHex);
             }

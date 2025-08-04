@@ -2,9 +2,8 @@
 #nullable enable annotations
 
 namespace OfficeIMO.Html {
-            string html = Convert(input, options as WordToHtmlOptions);
-            using StreamWriter writer = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: true);
-            writer.Write(html);
+    public class WordToHtmlConverter : IWordConverter {
+        public void Convert(Stream input, Stream output, IConversionOptions options) {
             writer.Flush();
         }
 

@@ -12,7 +12,6 @@ namespace OfficeIMO.Markdown {
     /// Converts Markdown text into a Word document without intermediate formats.
     /// </summary>
     public class MarkdownToWordConverter : IWordConverter {
-        /// <inheritdoc />
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             using StreamReader reader = new StreamReader(input);
             string markdown = reader.ReadToEnd();

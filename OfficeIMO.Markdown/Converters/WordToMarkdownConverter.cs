@@ -14,7 +14,6 @@ namespace OfficeIMO.Markdown {
     /// Converts Word documents into Markdown text without relying on HTML or external tools.
     /// </summary>
     public class WordToMarkdownConverter : IWordConverter {
-        /// <inheritdoc />
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             var markdownOptions = options as WordToMarkdownOptions ?? new WordToMarkdownOptions();
             string result = Convert(input, markdownOptions);
