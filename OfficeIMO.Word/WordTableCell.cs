@@ -1,10 +1,9 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-
-using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
@@ -331,6 +330,50 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets whether text wraps within the cell.
+        /// </summary>
+        public bool WrapText {
+            get {
+                return _tableCellProperties?.GetFirstChild<NoWrap>() == null;
+            }
+            set {
+                AddTableCellProperties();
+                var current = _tableCellProperties.GetFirstChild<NoWrap>();
+                if (value) {
+                    current?.Remove();
+                } else {
+                    if (current == null) {
+                        _tableCellProperties.Append(new NoWrap());
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether text is compressed to fit within the cell width.
+        /// </summary>
+        public bool FitText {
+            get {
+                var tcPr = _tableCell.GetFirstChild<TableCellProperties>();
+                return tcPr?.GetFirstChild<TableCellFitText>() != null;
+            }
+            set {
+                AddTableCellProperties();
+                var current = _tableCellProperties.GetFirstChild<TableCellFitText>();
+                if (value) {
+                    if (current == null) {
+                        _tableCellProperties.Append(new TableCellFitText { Val = OnOffOnlyValues.On });
+                    } else {
+                        current.Val = OnOffOnlyValues.On;
+                    }
+                } else {
+                    current?.Remove();
+                }
+            }
+        }
+
 
         /// <summary>
         /// Create a WordTableCell and add it to given Table Row
