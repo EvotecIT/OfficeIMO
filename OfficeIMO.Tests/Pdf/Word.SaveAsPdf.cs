@@ -196,6 +196,24 @@ public partial class Word {
         Assert.True(System.Math.Abs(resultMarginCm - marginCm) < 0.1);
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_Hyperlink() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfHyperlink.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfHyperlink.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
+            document.Save();
+
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/URI (https://evotec.xyz", pdfContent);
+    }
+
     private static int IndexOf(byte[] buffer, byte[] pattern, int start) {
         for (int i = start; i <= buffer.Length - pattern.Length; i++) {
             int j = 0;

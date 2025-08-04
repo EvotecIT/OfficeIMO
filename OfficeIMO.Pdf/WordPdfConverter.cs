@@ -148,45 +148,60 @@ public static class WordPdfConverter {
                     col.Item().Image(paragraph.Image.GetBytes());
                 }
 
-                if (!string.IsNullOrEmpty(paragraph.Text) || !string.IsNullOrEmpty(prefix)) {
+                string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+                if (!string.IsNullOrEmpty(content) || !string.IsNullOrEmpty(prefix)) {
                     col.Item().Text(text => {
-                        TextSpanDescriptor span = text.Span(prefix + paragraph.Text);
-                        if (paragraph.Bold) {
-                            span = span.Bold();
+                        if (!string.IsNullOrEmpty(prefix)) {
+                            text.Span(prefix);
                         }
-                        if (paragraph.Italic) {
-                            span = span.Italic();
-                        }
-                        if (paragraph.Underline != null) {
-                            span = span.Underline();
-                        }
-                        if (paragraph.Style.HasValue) {
-                            switch (paragraph.Style.Value) {
-                                case WordParagraphStyles.Heading1:
-                                    span.FontSize(24).Bold();
-                                    break;
-                                case WordParagraphStyles.Heading2:
-                                    span.FontSize(20).Bold();
-                                    break;
-                                case WordParagraphStyles.Heading3:
-                                    span.FontSize(16).Bold();
-                                    break;
-                                case WordParagraphStyles.Heading4:
-                                    span.FontSize(14).Bold();
-                                    break;
-                                case WordParagraphStyles.Heading5:
-                                    span.FontSize(13).Bold();
-                                    break;
-                                case WordParagraphStyles.Heading6:
-                                    span.FontSize(12).Bold();
-                                    break;
-                            }
+
+                        if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
+                            ApplyFormatting(text.Hyperlink(content, paragraph.Hyperlink.Uri.ToString()));
+                        } else {
+                            ApplyFormatting(text.Span(content));
                         }
                     });
                 }
             });
 
             return container;
+        
+        void ApplyFormatting(TextSpanDescriptor span) {
+            if (paragraph.Bold) {
+                span = span.Bold();
+            }
+            if (paragraph.Italic) {
+                span = span.Italic();
+            }
+            if (paragraph.Underline != null) {
+                span = span.Underline();
+            }
+            if (!string.IsNullOrEmpty(paragraph.ColorHex)) {
+                span = span.FontColor("#" + paragraph.ColorHex);
+            }
+            if (paragraph.Style.HasValue) {
+                switch (paragraph.Style.Value) {
+                    case WordParagraphStyles.Heading1:
+                        span.FontSize(24).Bold();
+                        break;
+                    case WordParagraphStyles.Heading2:
+                        span.FontSize(20).Bold();
+                        break;
+                    case WordParagraphStyles.Heading3:
+                        span.FontSize(16).Bold();
+                        break;
+                    case WordParagraphStyles.Heading4:
+                        span.FontSize(14).Bold();
+                        break;
+                    case WordParagraphStyles.Heading5:
+                        span.FontSize(13).Bold();
+                        break;
+                    case WordParagraphStyles.Heading6:
+                        span.FontSize(12).Bold();
+                        break;
+                }
+            }
+        }
         }
     }
 
