@@ -1,6 +1,6 @@
+using OfficeIMO.Html;
 using System;
 using System.IO;
-using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -39,5 +39,20 @@ public partial class Html {
             Assert.Contains($"Heading {i}", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("</" + tag + ">", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    [Fact]
+    public void Test_Html_Lists_RoundTrip() {
+        string html = "<ul><li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li><li>Item 2</li></ul><ol><li>First</li><li>Second</li></ol>";
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
+
+        ms.Position = 0;
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { PreserveListStyles = true });
+
+        Assert.Contains("<ul", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<ol", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Sub 1", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Second", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 }

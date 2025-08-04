@@ -1,10 +1,10 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Html {
     /// <summary>
@@ -32,52 +32,110 @@ namespace OfficeIMO.Html {
             mainPart.Document = new Document(new Body());
             Body body = mainPart.Document.Body;
 
-            // Wrap in a root element to allow multiple top-level paragraphs
+            // add numbering definitions for ordered and unordered lists using shared Word logic
+            NumberingDefinitionsPart numberingPart = mainPart.AddNewPart<NumberingDefinitionsPart>();
+            numberingPart.Numbering = new Numbering();
+            Numbering numbering = WordListStyles.CreateDefaultNumberingDefinitions(document, out int bulletNumberId, out int orderedNumberId);
+            numberingPart.Numbering = numbering;
+
             XDocument xdoc = XDocument.Parse("<root>" + html + "</root>");
 
             foreach (XElement element in xdoc.Root!.Elements()) {
-                Paragraph paragraph = new Paragraph();
-                WordParagraphStyles? style = null;
-                switch (element.Name.LocalName.ToLowerInvariant()) {
-                    case "p":
-                        break;
-                    case "h1":
-                        style = WordParagraphStyles.Heading1;
-                        break;
-                    case "h2":
-                        style = WordParagraphStyles.Heading2;
-                        break;
-                    case "h3":
-                        style = WordParagraphStyles.Heading3;
-                        break;
-                    case "h4":
-                        style = WordParagraphStyles.Heading4;
-                        break;
-                    case "h5":
-                        style = WordParagraphStyles.Heading5;
-                        break;
-                    case "h6":
-                        style = WordParagraphStyles.Heading6;
-                        break;
-                    default:
-                        continue;
-                }
-
-                if (style.HasValue) {
-                    paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = style.Value.ToString() });
-                }
-
-                foreach (XNode node in element.Nodes()) {
-                    if (node is XText textNode) {
-                        paragraph.Append(CreateRun(textNode.Value, options));
-                    } else if (node is XElement inlineElement) {
-                        paragraph.Append(CreateRunFromElement(inlineElement, options));
-                    }
-                }
-                body.Append(paragraph);
+                AppendBlockElement(body, element, options, 0, bulletNumberId, orderedNumberId);
             }
 
             mainPart.Document.Save();
+        }
+
+        private static void AppendBlockElement(Body body, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId) {
+            switch (element.Name.LocalName.ToLowerInvariant()) {
+                case "p":
+                case "h1":
+                case "h2":
+                case "h3":
+                case "h4":
+                case "h5":
+                case "h6":
+                    body.Append(CreateParagraph(element, options));
+                    break;
+                case "ul":
+                    foreach (XElement li in element.Elements("li")) {
+                        AppendListItem(body, li, options, level, bulletNumberId, bulletNumberId, orderedNumberId);
+                    }
+                    break;
+                case "ol":
+                    foreach (XElement li in element.Elements("li")) {
+                        AppendListItem(body, li, options, level, orderedNumberId, bulletNumberId, orderedNumberId);
+                    }
+                    break;
+            }
+        }
+
+        private static Paragraph CreateParagraph(XElement element, HtmlToWordOptions options) {
+            Paragraph paragraph = new Paragraph();
+            WordParagraphStyles? style = null;
+            switch (element.Name.LocalName.ToLowerInvariant()) {
+                case "h1":
+                    style = WordParagraphStyles.Heading1;
+                    break;
+                case "h2":
+                    style = WordParagraphStyles.Heading2;
+                    break;
+                case "h3":
+                    style = WordParagraphStyles.Heading3;
+                    break;
+                case "h4":
+                    style = WordParagraphStyles.Heading4;
+                    break;
+                case "h5":
+                    style = WordParagraphStyles.Heading5;
+                    break;
+                case "h6":
+                    style = WordParagraphStyles.Heading6;
+                    break;
+            }
+
+            if (style.HasValue) {
+                paragraph.ParagraphProperties = new ParagraphProperties(new ParagraphStyleId { Val = style.Value.ToString() });
+            }
+
+            foreach (XNode node in element.Nodes()) {
+                if (node is XText textNode) {
+                    paragraph.Append(CreateRun(textNode.Value, options));
+                } else if (node is XElement inlineElement) {
+                    paragraph.Append(CreateRunFromElement(inlineElement, options));
+                }
+            }
+
+            return paragraph;
+        }
+
+        private static void AppendListItem(Body body, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId) {
+            Paragraph paragraph = new Paragraph();
+            paragraph.ParagraphProperties = new ParagraphProperties(
+                new NumberingProperties(
+                    new NumberingLevelReference { Val = level },
+                    new NumberingId { Val = numId }
+                ));
+
+            foreach (XNode node in li.Nodes()) {
+                if (node is XText textNode) {
+                    paragraph.Append(CreateRun(textNode.Value, options));
+                } else if (node is XElement el) {
+                    if (el.Name.LocalName.Equals("ul", StringComparison.OrdinalIgnoreCase) || el.Name.LocalName.Equals("ol", StringComparison.OrdinalIgnoreCase)) {
+                        // finalize current paragraph and process nested list
+                        body.Append(paragraph);
+                        AppendBlockElement(body, el, options, level + 1, bulletNumberId, orderedNumberId);
+                        paragraph = new Paragraph(); // prevent re-adding
+                    } else {
+                        paragraph.Append(CreateRunFromElement(el, options));
+                    }
+                }
+            }
+
+            if (paragraph.HasChildren) {
+                body.Append(paragraph);
+            }
         }
 
         private static Run CreateRunFromElement(XElement element, HtmlToWordOptions options) {

@@ -9,5 +9,10 @@ namespace OfficeIMO.Html {
         /// Optional font family applied to created runs.
         /// </summary>
         public string? FontFamily { get; set; }
+
+        /// <summary>
+        /// When true, attempts to keep list styling information during conversion.
+        /// </summary>
+        public bool PreserveListStyles { get; set; }
     }
 }
