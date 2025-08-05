@@ -3,8 +3,10 @@ using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
 using System;
+using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text;
+using Markdig.Extensions.Tables;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -23,32 +25,189 @@ namespace OfficeIMO.Word.Markdown.Converters {
     /// </summary>
     internal class MarkdownToWordConverter {
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
-            if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+            if (markdown == null) {
+                throw new ArgumentNullException(nameof(markdown));
+            }
+
             options ??= new MarkdownToWordOptions();
-            
-            var wordDoc = WordDocument.Create();
-            
-            // Apply defaults from options
-            if (options.DefaultPageSize.HasValue) {
-                wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
+
+            var document = WordDocument.Create();
+            options.ApplyDefaults(document);
+
+            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+            var parsed = Markdig.Markdown.Parse(markdown, pipeline);
+
+            foreach (var block in parsed) {
+                ProcessBlock(block, document, options);
             }
-            if (options.DefaultOrientation.HasValue) {
-                wordDoc.PageOrientation = options.DefaultOrientation.Value;
+
+            return document;
+        }
+
+        private static void ProcessBlock(Block block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0) {
+            switch (block) {
+                case HeadingBlock heading:
+                    var headingParagraph = document.AddParagraph(string.Empty);
+                    ProcessInline(heading.Inline, headingParagraph, options);
+                    headingParagraph.Style = GetHeadingStyleForLevel(heading.Level);
+                    break;
+                case ParagraphBlock paragraphBlock when currentList == null:
+                    var paragraph = document.AddParagraph(string.Empty);
+                    ProcessInline(paragraphBlock.Inline, paragraph, options);
+                    break;
+                case ParagraphBlock paragraphBlock:
+                    var listItemParagraph = currentList!.AddItem(string.Empty, listLevel);
+                    ProcessInline(paragraphBlock.Inline, listItemParagraph, options);
+                    break;
+                case ListBlock listBlock:
+                    var style = listBlock.IsOrdered ? WordListStyle.Headings111 : WordListStyle.Bulleted;
+                    var list = document.AddList(style);
+                    foreach (ListItemBlock listItem in listBlock) {
+                        var firstParagraph = listItem.FirstOrDefault() as ParagraphBlock;
+                        if (firstParagraph != null) {
+                            var listParagraph = list.AddItem(string.Empty, listLevel);
+                            ProcessInline(firstParagraph.Inline, listParagraph, options);
+                        }
+                        foreach (var sub in listItem.Skip(1)) {
+                            ProcessBlock(sub, document, options, list, listLevel + 1);
+                        }
+                    }
+                    break;
+                case QuoteBlock quote:
+                    foreach (var sub in quote) {
+                        if (sub is ParagraphBlock qp) {
+                            var qpParagraph = document.AddParagraph(string.Empty);
+                            qpParagraph.IndentationBefore = 720;
+                            ProcessInline(qp.Inline, qpParagraph, options);
+                        } else {
+                            ProcessBlock(sub, document, options);
+                        }
+                    }
+                    break;
+                case CodeBlock codeBlock:
+                    var codeParagraph = document.AddParagraph(string.Empty);
+                    var codeText = GetCodeBlockText(codeBlock);
+                    var run = codeParagraph.AddText(codeText);
+                    run.SetFontFamily("Consolas");
+                    break;
+                case Table table:
+                    ProcessTable(table, document, options);
+                    break;
+                case ThematicBreakBlock:
+                    document.AddHorizontalLine();
+                    break;
             }
-            
-            // TODO: Implement full Markdown to Word conversion using Markdig
-            // For now, just add the markdown as plain text
-            
-            var lines = markdown.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-            foreach (var line in lines) {
-                if (!string.IsNullOrWhiteSpace(line)) {
-                    wordDoc.AddParagraph(line);
-                } else {
-                    wordDoc.AddParagraph();
+        }
+
+        private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options) {
+            int rows = table.Count();
+            int cols = table.ColumnDefinitions.Count;
+            var wordTable = document.AddTable(rows, cols);
+            int r = 0;
+            foreach (TableRow row in table) {
+                int c = 0;
+                foreach (TableCell cell in row) {
+                    var target = wordTable.Rows[r].Cells[c].Paragraphs[0];
+                    foreach (var cellBlock in cell) {
+                        if (cellBlock is ParagraphBlock pb) {
+                            ProcessInline(pb.Inline, target, options);
+                        }
+                    }
+                    c++;
+                }
+                r++;
+            }
+        }
+
+        private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options) {
+            if (inline == null) {
+                return;
+            }
+
+            var buffer = new StringBuilder();
+
+            void Flush() {
+                if (buffer.Length > 0) {
+                    InlineRunHelper.AddInlineRuns(paragraph, buffer.ToString(), options.FontFamily);
+                    buffer.Clear();
                 }
             }
-            
-            return wordDoc;
+
+            for (var current = inline; current != null; current = current.NextSibling) {
+                if (current is LinkInline link) {
+                    Flush();
+                    if (link.IsImage) {
+                        AddImage(paragraph, link);
+                    } else {
+                        string label = BuildMarkdown(link.FirstChild);
+                        var hyperlink = paragraph.AddHyperLink(label, new Uri(link.Url, UriKind.RelativeOrAbsolute));
+                        if (!string.IsNullOrEmpty(options.FontFamily)) {
+                            hyperlink.SetFontFamily(options.FontFamily);
+                        }
+                    }
+                } else {
+                    buffer.Append(BuildMarkdown(current));
+                }
+            }
+            Flush();
         }
+
+        private static void AddImage(WordParagraph paragraph, LinkInline link) {
+            if (File.Exists(link.Url)) {
+                paragraph.AddImage(link.Url);
+            } else if (Uri.TryCreate(link.Url, UriKind.Absolute, out var uri)) {
+                paragraph.AddImage(uri, 50, 50);
+            }
+        }
+
+        private static string BuildMarkdown(Inline? inline) {
+            if (inline == null) {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            for (var current = inline; current != null; current = current.NextSibling) {
+                switch (current) {
+                    case LiteralInline literal:
+                        sb.Append(literal.Content.ToString());
+                        break;
+                    case EmphasisInline emphasis:
+                        string marker = new('*', emphasis.DelimiterCount);
+                        sb.Append(marker);
+                        sb.Append(BuildMarkdown(emphasis.FirstChild));
+                        sb.Append(marker);
+                        break;
+                    case LineBreakInline:
+                        sb.Append('\n');
+                        break;
+                    case ContainerInline container:
+                        sb.Append(BuildMarkdown(container.FirstChild));
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string GetCodeBlockText(CodeBlock codeBlock) {
+            var sb = new StringBuilder();
+            foreach (var line in codeBlock.Lines.Lines) {
+                sb.AppendLine(line.Slice.ToString());
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        private static WordParagraphStyles GetHeadingStyleForLevel(int level) => level switch {
+            1 => WordParagraphStyles.Heading1,
+            2 => WordParagraphStyles.Heading2,
+            3 => WordParagraphStyles.Heading3,
+            4 => WordParagraphStyles.Heading4,
+            5 => WordParagraphStyles.Heading5,
+            6 => WordParagraphStyles.Heading6,
+            7 => WordParagraphStyles.Heading7,
+            8 => WordParagraphStyles.Heading8,
+            9 => WordParagraphStyles.Heading9,
+            _ => WordParagraphStyles.Heading1
+        };
     }
 }

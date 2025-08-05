@@ -8,9 +8,10 @@ namespace OfficeIMO.Examples.Word.Converters {
         public static void Example(string folderPath, bool openWord) {
             Console.WriteLine("[*] Loading Markdown and converting to Word");
             
-            string markdown = @"# Main Title
+            string imagePath = Path.Combine(AppContext.BaseDirectory, "..", "Assets", "OfficeIMO.png");
+            string markdown = $@"# Main Title
 
-This is a paragraph with **bold** and *italic* text.
+This is a paragraph with **bold** and *italic* text and a [link](https://example.com).
 
 ## Features
 
@@ -27,6 +28,12 @@ var example = ""Hello World"";
 | Column 1 | Column 2 |
 |----------|----------|
 | Data 1   | Data 2   |
+
+> Quoted text
+
+---
+
+![Logo]({imagePath})
 ";
             
             var doc = markdown.LoadFromMarkdown();
@@ -42,4 +49,4 @@ var example = ""Hello World"";
             }
         }
     }
-}
+}
