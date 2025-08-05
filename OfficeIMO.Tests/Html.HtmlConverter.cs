@@ -22,7 +22,7 @@ public partial class Html {
         Assert.Contains("<i>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("</i>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("universe", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("font-family:Calibri", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains($"font-family:{FontResolver.Resolve("Calibri")}", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
