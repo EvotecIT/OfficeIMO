@@ -119,15 +119,18 @@ public static partial class WordPdfConverterExtensions {
 
         IContainer RenderTable(IContainer container, WordTable table) {
             container.Table(tableContainer => {
-                var rows = TableBuilder.Map(table).ToList();
-                int columnCount = rows.Max(r => r.Count);
+                TableLayout layout = TableLayoutCache.GetLayout(table);
                 tableContainer.ColumnsDefinition(columns => {
-                    for (int i = 0; i < columnCount; i++) {
-                        columns.RelativeColumn();
+                    foreach (float width in layout.ColumnWidths) {
+                        if (width > 0) {
+                            columns.ConstantColumn(width);
+                        } else {
+                            columns.RelativeColumn();
+                        }
                     }
                 });
 
-                foreach (var row in rows) {
+                foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {
                     foreach (WordTableCell cell in row) {
                         tableContainer.Cell().Element(cellContainer => {
                             cellContainer = ApplyCellStyle(cellContainer, cell);
