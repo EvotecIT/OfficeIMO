@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Word;
@@ -26,6 +27,26 @@ public static class FontResolver {
         { "monospace", "Menlo" }
     };
 
+    private static readonly string[] _windowsFallbackFonts = {
+        "Calibri",
+        "Arial",
+        "Times New Roman",
+        "Consolas"
+    };
+
+    private static readonly string[] _linuxFallbackFonts = {
+        "DejaVu Sans",
+        "DejaVu Serif",
+        "DejaVu Sans Mono"
+    };
+
+    private static readonly string[] _macFallbackFonts = {
+        "Helvetica",
+        "Arial",
+        "Times",
+        "Menlo"
+    };
+
     /// <summary>
     /// Resolves the provided font family name to an actual installed font.
     /// Generic families like <c>serif</c> or <c>monospace</c> are mapped to
@@ -39,20 +60,46 @@ public static class FontResolver {
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            if (_windowsFonts.TryGetValue(fontFamily, out string value)) {
-                return value;
-            }
-        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            if (_linuxFonts.TryGetValue(fontFamily, out string value)) {
-                return value;
-            }
-        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            if (_macFonts.TryGetValue(fontFamily, out string value)) {
-                return value;
-            }
+            return ResolvePlatform(fontFamily, _windowsFonts, _windowsFallbackFonts);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            return ResolvePlatform(fontFamily, _linuxFonts, _linuxFallbackFonts);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            return ResolvePlatform(fontFamily, _macFonts, _macFallbackFonts);
         }
 
         return fontFamily;
+    }
+
+    private static string ResolvePlatform(string fontFamily, Dictionary<string, string> genericFonts, IEnumerable<string> fallbackFonts) {
+        if (genericFonts.TryGetValue(fontFamily, out string value)) {
+            fontFamily = value;
+        }
+
+        bool installed = IsFontInstalled(fontFamily);
+        if (installed) {
+            return fontFamily;
+        }
+
+        foreach (string fallback in fallbackFonts) {
+            if (IsFontInstalled(fallback)) {
+                return fallback;
+            }
+        }
+
+        return fallbackFonts.FirstOrDefault() ?? fontFamily;
+    }
+
+    private static bool IsFontInstalled(string fontFamily) {
+        try {
+            using var fonts = new System.Drawing.Text.InstalledFontCollection();
+            return fonts.Families.Any(f => string.Equals(f.Name, fontFamily, StringComparison.OrdinalIgnoreCase));
+        } catch {
+            return false;
+        }
     }
 }
 

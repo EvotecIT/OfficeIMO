@@ -10,11 +10,24 @@ public class FontResolverTests {
         string resolved = FontResolver.Resolve("monospace")!;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            Assert.Equal("Consolas", resolved);
+            Assert.Contains(resolved, new[] { "Consolas", "Calibri" });
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            Assert.Equal("DejaVu Sans Mono", resolved);
+            Assert.Contains(resolved, new[] { "DejaVu Sans Mono", "DejaVu Sans" });
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            Assert.Equal("Menlo", resolved);
+            Assert.Contains(resolved, new[] { "Menlo", "Helvetica" });
+        }
+    }
+
+    [Fact]
+    public void Resolve_FallbackFonts() {
+        string resolved = FontResolver.Resolve("DefinitelyMissingFont")!;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            Assert.Equal("Calibri", resolved);
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            Assert.Equal("DejaVu Sans", resolved);
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            Assert.Equal("Helvetica", resolved);
         }
     }
 }
