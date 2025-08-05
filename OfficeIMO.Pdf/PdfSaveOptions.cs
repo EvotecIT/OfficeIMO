@@ -14,7 +14,7 @@ namespace OfficeIMO.Pdf {
     /// <summary>
     /// Options controlling PDF export.
     /// </summary>
-    public class PdfSaveOptions : IConversionOptions {
+    public class PdfSaveOptions : ConversionOptions {
         /// <summary>
         /// Optional page size for the generated PDF.
         /// </summary>

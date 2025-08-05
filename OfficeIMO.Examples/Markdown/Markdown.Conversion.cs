@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Markdown {
                 File.WriteAllBytes(filePath, ms.ToArray());
 
                 ms.Position = 0;
-                string roundTrip = WordToMarkdownConverter.Convert(ms, new WordToMarkdownOptions());
+                string roundTrip = WordToMarkdownConverter.Convert(ms, new WordToMarkdownOptions { FontFamily = "Calibri" });
                 Console.WriteLine(roundTrip);
             }
 
