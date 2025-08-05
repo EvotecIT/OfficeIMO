@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Examples.Markdown {
@@ -8,9 +9,12 @@ namespace OfficeIMO.Examples.Markdown {
             string filePath = Path.Combine(folderPath, "MarkdownGenericFont.docx");
             string markdown = "Generic font sample.";
 
-            using MemoryStream ms = new MemoryStream();
-            MarkdownToWordConverter.Convert(markdown, ms, new MarkdownToWordOptions { FontFamily = "monospace" });
-            File.WriteAllBytes(filePath, ms.ToArray());
+            ConverterRegistry.Register("markdown->word", () => new MarkdownToWordConverter());
+            using MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(markdown));
+            using MemoryStream output = new MemoryStream();
+            IWordConverter converter = ConverterRegistry.Resolve("markdown->word");
+            converter.Convert(input, output, new MarkdownToWordOptions { FontFamily = "monospace" });
+            File.WriteAllBytes(filePath, output.ToArray());
 
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
