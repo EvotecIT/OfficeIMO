@@ -370,3 +370,5 @@ Ignore/*
 *.received.*
 dotnet-install.sh
 packages-microsoft-prod.deb
+CLAUDE.md
+.claude/*

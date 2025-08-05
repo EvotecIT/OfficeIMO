@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>PDF converter for OfficeIMO.Word - Export Word documents to PDF using QuestPDF</Description>
+    <PackageId>OfficeIMO.Word.Pdf</PackageId>
+    <AssemblyName>OfficeIMO.Word.Pdf</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Word.Pdf</AssemblyTitle>
+    <VersionPrefix>1.0.6</VersionPrefix>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">net8.0</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="QuestPDF" Version="2025.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Tests" />
+  </ItemGroup>
+</Project>
