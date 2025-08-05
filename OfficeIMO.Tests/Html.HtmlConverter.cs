@@ -2,6 +2,9 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -114,6 +117,21 @@ public partial class Html {
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Image_AltText_Mapped() {
+        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        byte[] imageBytes = File.ReadAllBytes(assetPath);
+        string base64 = Convert.ToBase64String(imageBytes);
+        string html = $"<p><img src=\"data:image/png;base64,{base64}\" alt=\"Sample alt\" /></p>"; 
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
+
+        ms.Position = 0;
+        using WordprocessingDocument doc = WordprocessingDocument.Open(ms, false);
+        Drawing drawing = doc.MainDocumentPart!.Document.Body!.Descendants<Drawing>().First();
+        Assert.Equal("Sample alt", drawing.Inline.DocProperties.Description);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ namespace OfficeIMO.Markdown {
     /// Converts Markdown text into a Word document without intermediate formats.
     /// </summary>
     public class MarkdownToWordConverter : IWordConverter {
+        private static readonly Regex _imageRegex = new("!\\[(.*?)\\]\\((.*?)\\)");
         /// <summary>
         /// Converts Markdown content to DOCX and writes it to the provided stream.
         /// </summary>
@@ -68,16 +70,84 @@ namespace OfficeIMO.Markdown {
                     }
 
                     var item = currentList.AddItem(string.Empty);
-                    InlineRunHelper.AddInlineRuns(item, text, fontFamily);
+                    AddInlineContent(item, text, fontFamily);
                     continue;
                 }
 
                 currentList = null;
                 var para = document.AddParagraph();
-                InlineRunHelper.AddInlineRuns(para, line, fontFamily);
+                AddInlineContent(para, line, fontFamily);
             }
 
             document.Save(output);
+        }
+
+        private static void AddInlineContent(WordParagraph paragraph, string text, string? fontFamily) {
+            int position = 0;
+            foreach (Match match in _imageRegex.Matches(text)) {
+                string before = text.Substring(position, match.Index - position);
+                if (!string.IsNullOrEmpty(before)) {
+                    InlineRunHelper.AddInlineRuns(paragraph, before, fontFamily);
+                }
+
+                string alt = match.Groups[1].Value;
+                string src = match.Groups[2].Value;
+                EmbedImage(paragraph, src, alt);
+
+                position = match.Index + match.Length;
+            }
+
+            string after = text.Substring(position);
+            if (!string.IsNullOrEmpty(after)) {
+                InlineRunHelper.AddInlineRuns(paragraph, after, fontFamily);
+            }
+        }
+
+        private static void EmbedImage(WordParagraph paragraph, string src, string alt) {
+            if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
+                int commaIndex = src.IndexOf(',');
+                string base64Data = src.Substring(commaIndex + 1);
+                int semicolonIndex = src.IndexOf(';');
+                string extension = ".png";
+                if (semicolonIndex > 5) {
+                    string mime = src.Substring(5, semicolonIndex - 5);
+                    extension = mime switch {
+                        "image/jpeg" => ".jpg",
+                        "image/jpg" => ".jpg",
+                        "image/gif" => ".gif",
+                        "image/bmp" => ".bmp",
+                        "image/tiff" => ".tiff",
+                        _ => ".png"
+                    };
+                }
+                paragraph.AddImageFromBase64(base64Data, "image" + extension, description: alt);
+                return;
+            }
+
+            if (Uri.TryCreate(src, UriKind.Absolute, out Uri uri)) {
+                if (uri.Scheme == Uri.UriSchemeFile) {
+                    paragraph.AddImage(uri.LocalPath, description: alt);
+                    return;
+                }
+                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
+                    using HttpClient client = new HttpClient();
+                    byte[] bytes = client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+                    using MemoryStream ms = new MemoryStream(bytes);
+                    string fileName = Path.GetFileName(uri.AbsolutePath);
+                    if (string.IsNullOrEmpty(fileName)) {
+                        fileName = "image";
+                    }
+                    paragraph.AddImage(ms, fileName, null, null, description: alt);
+                    return;
+                }
+            }
+
+            if (File.Exists(src)) {
+                paragraph.AddImage(src, description: alt);
+                return;
+            }
+
+            throw new InvalidOperationException("Unable to resolve image source: " + src);
         }
         
         public void Convert(Stream input, Stream output, IConversionOptions options) {

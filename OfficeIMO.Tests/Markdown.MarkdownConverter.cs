@@ -47,5 +47,19 @@ namespace OfficeIMO.Tests {
             RunFonts fonts = doc.MainDocumentPart!.Document.Body!.Descendants<RunFonts>().First();
             Assert.Equal(FontResolver.Resolve("monospace"), fonts.Ascii);
         }
+
+        [Fact]
+        public void Test_Markdown_Image_AltText() {
+            byte[] imageBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string base64 = Convert.ToBase64String(imageBytes);
+            string md = $"![Sample alt](data:image/png;base64,{base64})";
+            using MemoryStream ms = new MemoryStream();
+            MarkdownToWordConverter.Convert(md, ms, new MarkdownToWordOptions());
+
+            ms.Position = 0;
+            using WordprocessingDocument doc = WordprocessingDocument.Open(ms, false);
+            Drawing drawing = doc.MainDocumentPart!.Document.Body!.Descendants<Drawing>().First();
+            Assert.Equal("Sample alt", drawing.Inline.DocProperties.Description);
+        }
     }
 }

@@ -77,9 +77,10 @@ namespace OfficeIMO.Html {
                     break;
                 case "img":
                     string? src = element.Attribute("src")?.Value;
+                    string? alt = element.Attribute("alt")?.Value;
                     if (!string.IsNullOrEmpty(src)) {
                         Paragraph p = new Paragraph();
-                        p.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                        p.Append(ImageEmbedder.CreateImageRun(mainPart, src, alt));
                         parent.Append(p);
                     }
                     break;
@@ -120,8 +121,9 @@ namespace OfficeIMO.Html {
                 } else if (node is XElement inlineElement) {
                     if (inlineElement.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
                         string? src = inlineElement.Attribute("src")?.Value;
+                        string? alt = inlineElement.Attribute("alt")?.Value;
                         if (!string.IsNullOrEmpty(src)) {
-                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src, alt));
                         }
                     } else {
                         paragraph.Append(CreateRunFromElement(inlineElement, options));
@@ -151,8 +153,9 @@ namespace OfficeIMO.Html {
                         paragraph = new Paragraph(); // prevent re-adding
                     } else if (el.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
                         string? src = el.Attribute("src")?.Value;
+                        string? alt = el.Attribute("alt")?.Value;
                         if (!string.IsNullOrEmpty(src)) {
-                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src, alt));
                         }
                     } else {
                         paragraph.Append(CreateRunFromElement(el, options));

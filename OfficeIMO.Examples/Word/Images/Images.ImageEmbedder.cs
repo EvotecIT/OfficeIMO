@@ -4,9 +4,12 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-
-namespace OfficeIMO.Examples.Word {
-    internal static partial class Images {
+                string imagePath = Path.Combine("Assets", "OfficeIMO.png");
+                Paragraph p = new Paragraph();
+                p.Append(ImageEmbedder.CreateImageRun(mainPart, imagePath, "OfficeIMO logo"));
+                mainPart.Document.Body.Append(p);
+                mainPart.Document.Save();
+            }
         internal static void Example_ImageEmbedderHelper(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document with ImageEmbedder helper");
             string filePath = Path.Combine(folderPath, "ImageEmbedder.docx");

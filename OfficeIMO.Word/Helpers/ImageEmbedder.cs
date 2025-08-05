@@ -10,7 +10,7 @@ using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace OfficeIMO.Word {
     public static class ImageEmbedder {
-        public static Run CreateImageRun(MainDocumentPart mainPart, string src) {
+        public static Run CreateImageRun(MainDocumentPart mainPart, string src, string? altText = null) {
             byte[] bytes = ResolveImageSource(src);
             using Image image = Image.Load(bytes, out var format);
             long cx = (long)(image.Width * 9525L);
@@ -26,13 +26,13 @@ namespace OfficeIMO.Word {
             var inline = new DW.Inline(
                 new DW.Extent { Cx = cx, Cy = cy },
                 new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
-                new DW.DocProperties { Id = 1U, Name = "Picture" },
+                new DW.DocProperties { Id = 1U, Name = "Picture", Description = altText },
                 new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
                 new A.Graphic(
                     new A.GraphicData(
                         new PIC.Picture(
                             new PIC.NonVisualPictureProperties(
-                                new PIC.NonVisualDrawingProperties { Id = 0U, Name = "Image" },
+                                new PIC.NonVisualDrawingProperties { Id = 0U, Name = "Image", Description = altText },
                                 new PIC.NonVisualPictureDrawingProperties()),
                             new PIC.BlipFill(
                                 new A.Blip { Embed = relationshipId },

@@ -5,9 +5,28 @@ using OfficeIMO.Word;
 using System;
 using System.IO;
 using Xunit;
-
-namespace OfficeIMO.Tests {
-    public class ImageEmbedderTests {
+        public void Test_ImageEmbedder_AddsImage() {
+            Assert.NotEmpty(mainPart.ImageParts);
+        }
+
+        [Fact]
+        public void Test_ImageEmbedder_AltText() {
+            using MemoryStream ms = new MemoryStream();
+            using WordprocessingDocument doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true);
+            MainDocumentPart mainPart = doc.AddMainDocumentPart();
+            mainPart.Document = new Document(new Body());
+
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            Run run = ImageEmbedder.CreateImageRun(mainPart, assetPath, "Alt text");
+            mainPart.Document.Body.Append(new Paragraph(run));
+            mainPart.Document.Save();
+
+            Drawing drawing = run.GetFirstChild<Drawing>();
+            Assert.Equal("Alt text", drawing.Inline.DocProperties.Description);
+        }
+    }
+}
+
         [Fact]
         public void Test_ImageEmbedder_AddsImage() {
             using MemoryStream ms = new MemoryStream();

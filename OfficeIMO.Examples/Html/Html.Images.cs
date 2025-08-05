@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
+using System.Text;
 
 namespace OfficeIMO.Examples.Html {
     internal static partial class Html {
@@ -9,7 +10,7 @@ namespace OfficeIMO.Examples.Html {
             string filePath = Path.Combine(folderPath, "HtmlImage.docx");
             byte[] imageBytes = File.ReadAllBytes(Path.Combine("Assets", "OfficeIMO.png"));
             string base64 = Convert.ToBase64String(imageBytes);
-            string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
+            string html = $"<p><img src=\"data:image/png;base64,{base64}\" alt=\"OfficeIMO logo\" /></p>";
 
             ConverterRegistry.Register("html->word", () => new HtmlToWordConverter());
             ConverterRegistry.Register("word->html", () => new WordToHtmlConverter());
