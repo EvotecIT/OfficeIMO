@@ -15,7 +15,7 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="QuestPDF" Version="2024.12.3" />
+    <PackageReference Include="QuestPDF" Version="2025.7.0" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="System" />
