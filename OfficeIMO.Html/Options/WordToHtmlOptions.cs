@@ -9,11 +9,11 @@ namespace OfficeIMO.Html {
         /// <summary>
         /// When true, includes run font information as inline styles.
         /// </summary>
-        public bool IncludeStyles { get; set; }
+        public bool IncludeFontStyles { get; set; }
 
         /// <summary>
-        /// When set, retains list style information in generated HTML.
+        /// When set, includes list style information in generated HTML.
         /// </summary>
-        public bool PreserveListStyles { get; set; }
+        public bool IncludeListStyles { get; set; }
     }
 }

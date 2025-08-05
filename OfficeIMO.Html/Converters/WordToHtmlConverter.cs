@@ -53,7 +53,7 @@ namespace OfficeIMO.Html {
                         if (listStack.Count == 0) {
                             for (int i = 0; i <= level; i++) {
                                 string tagOpen = ordered ? "<ol>" : "<ul>";
-                                if (options.PreserveListStyles) {
+                                if (options.IncludeListStyles) {
                                     string listStyle = ordered ? "decimal" : "disc";
                                     tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
                                 }
@@ -65,7 +65,7 @@ namespace OfficeIMO.Html {
                             if (level > currentLevel) {
                                 for (int i = currentLevel + 1; i <= level; i++) {
                                     string tagOpen = ordered ? "<ol>" : "<ul>";
-                                    if (options.PreserveListStyles) {
+                                    if (options.IncludeListStyles) {
                                         string listStyle = ordered ? "decimal" : "disc";
                                         tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
                                     }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Html {
                                     var closing = listStack.Pop();
                                     sb.Append(closing.ordered ? "</ol>" : "</ul>");
                                     string tagOpen = ordered ? "<ol>" : "<ul>";
-                                    if (options.PreserveListStyles) {
+                                    if (options.IncludeListStyles) {
                                         string listStyle = ordered ? "decimal" : "disc";
                                         tagOpen = ordered ? $"<ol style=\"list-style-type:{listStyle}\">" : $"<ul style=\"list-style-type:{listStyle}\">";
                                     }
@@ -167,7 +167,7 @@ namespace OfficeIMO.Html {
                 RunProperties? runProps = run.RunProperties;
                 string result = encoded;
 
-                if (options.IncludeStyles && runProps?.RunFonts?.Ascii != null) {
+                if (options.IncludeFontStyles && runProps?.RunFonts?.Ascii != null) {
                     result = $"<span style=\"font-family:{runProps.RunFonts.Ascii}\">{result}</span>";
                 }
 
