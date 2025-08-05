@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Markdown {
     internal static partial class Markdown {

@@ -1,7 +1,7 @@
 using System.IO;
-using OfficeIMO.Converters;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {

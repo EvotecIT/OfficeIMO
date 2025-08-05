@@ -1,4 +1,4 @@
-namespace OfficeIMO.Converters {
+namespace OfficeIMO.Word {
     public interface IConversionOptions {
     }
 }

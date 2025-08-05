@@ -1,4 +1,4 @@
-namespace OfficeIMO.Converters {
+namespace OfficeIMO.Word {
     /// <summary>
     /// Base class for conversion option classes shared across OfficeIMO converters.
     /// </summary>
