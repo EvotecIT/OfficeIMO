@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html.Helpers;
 using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
@@ -49,26 +50,28 @@ namespace OfficeIMO.Html {
 
         private static Paragraph CreateParagraph(XElement element, HtmlToWordOptions options, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             Paragraph paragraph = new Paragraph();
-            WordParagraphStyles? style = null;
-            switch (element.Name.LocalName.ToLowerInvariant()) {
+            WordParagraphStyles? style = CssStyleMapper.MapParagraphStyle(element.Attribute("style")?.Value);
+            if (!style.HasValue) {
+                switch (element.Name.LocalName.ToLowerInvariant()) {
                 case "h1":
-                    style = WordParagraphStyles.Heading1;
-                    break;
+                        style = WordParagraphStyles.Heading1;
+                        break;
                 case "h2":
-                    style = WordParagraphStyles.Heading2;
-                    break;
+                        style = WordParagraphStyles.Heading2;
+                        break;
                 case "h3":
-                    style = WordParagraphStyles.Heading3;
-                    break;
+                        style = WordParagraphStyles.Heading3;
+                        break;
                 case "h4":
-                    style = WordParagraphStyles.Heading4;
-                    break;
+                        style = WordParagraphStyles.Heading4;
+                        break;
                 case "h5":
-                    style = WordParagraphStyles.Heading5;
-                    break;
+                        style = WordParagraphStyles.Heading5;
+                        break;
                 case "h6":
-                    style = WordParagraphStyles.Heading6;
-                    break;
+                        style = WordParagraphStyles.Heading6;
+                        break;
+                }
             }
 
             if (style.HasValue) {
@@ -96,11 +99,16 @@ namespace OfficeIMO.Html {
 
         private static void AppendListItem(OpenXmlElement parent, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             Paragraph paragraph = new Paragraph();
-            paragraph.ParagraphProperties = new ParagraphProperties(
+            WordParagraphStyles? style = CssStyleMapper.MapParagraphStyle(li.Attribute("style")?.Value);
+            ParagraphProperties properties = new ParagraphProperties(
                 new NumberingProperties(
                     new NumberingLevelReference { Val = level },
                     new NumberingId { Val = numId }
                 ));
+            if (style.HasValue) {
+                properties.ParagraphStyleId = new ParagraphStyleId { Val = style.Value.ToString() };
+            }
+            paragraph.ParagraphProperties = properties;
 
             foreach (XNode node in li.Nodes()) {
                 cancellationToken.ThrowIfCancellationRequested();
