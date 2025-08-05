@@ -21,7 +21,7 @@ namespace OfficeIMO.Markdown {
         /// <returns>Markdown representation of the document.</returns>
         public static string Convert(Stream input, WordToMarkdownOptions? options = null) {
             if (input == null) {
-                throw new ArgumentNullException(nameof(input));
+                throw new ConversionException($"{nameof(input)} cannot be null.");
             }
 
             options ??= new WordToMarkdownOptions();

@@ -23,7 +23,7 @@ namespace OfficeIMO.Html {
         /// <returns>Generated HTML string.</returns>
         public static string Convert(Stream docxStream, WordToHtmlOptions? options = null) {
             if (docxStream == null) {
-                throw new ArgumentNullException(nameof(docxStream));
+                throw new ConversionException($"{nameof(docxStream)} cannot be null.");
             }
 
             options ??= new WordToHtmlOptions();
