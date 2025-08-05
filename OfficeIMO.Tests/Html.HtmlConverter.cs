@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Word;
 using System;
 using System.IO;
 using Xunit;
@@ -113,5 +114,16 @@ public partial class Html {
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_FontResolver() {
+        string html = "<p>Hello</p>";
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions { FontFamily = "monospace" });
+
+        ms.Position = 0;
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeStyles = true });
+        Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 }

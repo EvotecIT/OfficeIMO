@@ -1,6 +1,10 @@
 using OfficeIMO.Markdown;
 using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -30,6 +34,18 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("- Item 1", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("1. First", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_Markdown_FontResolver() {
+            string md = "Hello";
+            using MemoryStream ms = new MemoryStream();
+            MarkdownToWordConverter.Convert(md, ms, new MarkdownToWordOptions { FontFamily = "monospace" });
+
+            ms.Position = 0;
+            using WordprocessingDocument doc = WordprocessingDocument.Open(ms, false);
+            RunFonts fonts = doc.MainDocumentPart!.Document.Body!.Descendants<RunFonts>().First();
+            Assert.Equal(FontResolver.Resolve("monospace"), fonts.Ascii);
         }
     }
 }
