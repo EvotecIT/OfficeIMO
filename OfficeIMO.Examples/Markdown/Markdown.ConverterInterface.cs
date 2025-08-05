@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Markdown {
             string markdown = "# Title\nContent";
             using MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(markdown));
             using MemoryStream output = new MemoryStream();
-            IWordConverter converter = new MarkdownToWordConverter();
+            ConverterRegistry.Register("markdown->word", () => new MarkdownToWordConverter());
+            IWordConverter converter = ConverterRegistry.Resolve("markdown->word");
             converter.Convert(input, output, new MarkdownToWordOptions());
             File.WriteAllBytes(filePath, output.ToArray());
             if (openWord) {

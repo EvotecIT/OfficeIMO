@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Html {
             string html = "<p>Hello world</p>";
             using MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(html));
             using MemoryStream output = new MemoryStream();
-            IWordConverter converter = new HtmlToWordConverter();
+            ConverterRegistry.Register("html->word", () => new HtmlToWordConverter());
+            IWordConverter converter = ConverterRegistry.Resolve("html->word");
             converter.Convert(input, output, new HtmlToWordOptions());
             File.WriteAllBytes(filePath, output.ToArray());
             if (openWord) {

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Examples.Markdown {
@@ -8,14 +9,21 @@ namespace OfficeIMO.Examples.Markdown {
             string filePath = Path.Combine(folderPath, "MarkdownLists.docx");
             string markdown = "- Item 1\n- Item 2\n\n1. First\n1. Second";
 
-            using (MemoryStream ms = new MemoryStream()) {
-                MarkdownToWordConverter.Convert(markdown, ms, new MarkdownToWordOptions());
-                File.WriteAllBytes(filePath, ms.ToArray());
+            ConverterRegistry.Register("markdown->word", () => new MarkdownToWordConverter());
+            ConverterRegistry.Register("word->markdown", () => new WordToMarkdownConverter());
 
-                ms.Position = 0;
-                string roundTrip = WordToMarkdownConverter.Convert(ms, new WordToMarkdownOptions());
-                Console.WriteLine(roundTrip);
-            }
+            using MemoryStream markdownStream = new MemoryStream(Encoding.UTF8.GetBytes(markdown));
+            using MemoryStream wordStream = new MemoryStream();
+            IWordConverter mdToWord = ConverterRegistry.Resolve("markdown->word");
+            mdToWord.Convert(markdownStream, wordStream, new MarkdownToWordOptions());
+            File.WriteAllBytes(filePath, wordStream.ToArray());
+
+            wordStream.Position = 0;
+            using MemoryStream markdownOutput = new MemoryStream();
+            IWordConverter wordToMd = ConverterRegistry.Resolve("word->markdown");
+            wordToMd.Convert(wordStream, markdownOutput, new WordToMarkdownOptions());
+            string roundTrip = Encoding.UTF8.GetString(markdownOutput.ToArray());
+            Console.WriteLine(roundTrip);
 
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
