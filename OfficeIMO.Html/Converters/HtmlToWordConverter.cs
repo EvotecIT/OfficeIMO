@@ -23,10 +23,10 @@ namespace OfficeIMO.Html {
         /// <param name="options">Conversion options.</param>
         public static void Convert(string html, Stream output, HtmlToWordOptions? options = null) {
             if (html == null) {
-                throw new ArgumentNullException(nameof(html));
+                throw new ConversionException($"{nameof(html)} cannot be null.");
             }
             if (output == null) {
-                throw new ArgumentNullException(nameof(output));
+                throw new ConversionException($"{nameof(output)} cannot be null.");
             }
 
             options ??= new HtmlToWordOptions();
@@ -234,7 +234,7 @@ namespace OfficeIMO.Html {
 
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             if (input == null) {
-                throw new ArgumentNullException(nameof(input));
+                throw new ConversionException($"{nameof(input)} cannot be null.");
             }
             using StreamReader reader = new StreamReader(
                 input,

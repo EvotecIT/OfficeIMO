@@ -19,10 +19,10 @@ namespace OfficeIMO.Markdown {
         /// <param name="options">Optional conversion settings.</param>
         public static void Convert(string markdown, Stream output, MarkdownToWordOptions? options = null) {
             if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
+                throw new ConversionException($"{nameof(markdown)} cannot be null.");
             }
             if (output == null) {
-                throw new ArgumentNullException(nameof(output));
+                throw new ConversionException($"{nameof(output)} cannot be null.");
             }
 
             options ??= new MarkdownToWordOptions();
@@ -82,7 +82,7 @@ namespace OfficeIMO.Markdown {
         
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             if (input == null) {
-                throw new ArgumentNullException(nameof(input));
+                throw new ConversionException($"{nameof(input)} cannot be null.");
             }
             using StreamReader reader = new StreamReader(
                 input,
