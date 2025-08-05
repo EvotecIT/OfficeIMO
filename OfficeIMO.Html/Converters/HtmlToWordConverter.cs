@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -165,36 +166,34 @@ namespace OfficeIMO.Html {
         }
 
         private static Table CreateTable(XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart) {
-            Table table = new Table();
+            List<List<Action<TableCell>>> structure = new();
 
             foreach (XElement tr in element.Elements("tr")) {
-                TableRow row = new TableRow();
+                List<Action<TableCell>> row = new();
                 foreach (XElement cellEl in tr.Elements().Where(e => e.Name.LocalName.Equals("td", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase))) {
-                    TableCell cell = new TableCell();
-
-                    bool hasBlock = false;
-                    foreach (XNode node in cellEl.Nodes()) {
-                        if (node is XElement blockEl) {
-                            AppendBlockElement(cell, blockEl, options, level, bulletNumberId, orderedNumberId, mainPart);
-                            hasBlock = true;
-                        } else if (node is XText text) {
-                            Paragraph p = new Paragraph();
-                            p.Append(CreateRun(text.Value, options));
-                            cell.Append(p);
-                            hasBlock = true;
+                    row.Add(cell => {
+                        bool hasBlock = false;
+                        foreach (XNode node in cellEl.Nodes()) {
+                            if (node is XElement blockEl) {
+                                AppendBlockElement(cell, blockEl, options, level, bulletNumberId, orderedNumberId, mainPart);
+                                hasBlock = true;
+                            } else if (node is XText text) {
+                                Paragraph p = new Paragraph();
+                                p.Append(CreateRun(text.Value, options));
+                                cell.Append(p);
+                                hasBlock = true;
+                            }
                         }
-                    }
 
-                    if (!hasBlock) {
-                        cell.Append(new Paragraph());
-                    }
-
-                    row.Append(cell);
+                        if (!hasBlock) {
+                            cell.Append(new Paragraph());
+                        }
+                    });
                 }
-                table.Append(row);
+                structure.Add(row);
             }
 
-            return table;
+            return TableBuilder.Build(structure);
         }
 
         private static Run CreateRunFromElement(XElement element, HtmlToWordOptions options) {
