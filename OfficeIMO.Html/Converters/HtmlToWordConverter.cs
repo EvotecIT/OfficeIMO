@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using System.Threading.Tasks;
-using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
     /// <summary>

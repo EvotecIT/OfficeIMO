@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using OfficeIMO.Converters;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 

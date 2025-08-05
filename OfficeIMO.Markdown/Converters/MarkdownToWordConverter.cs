@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
-using OfficeIMO.Converters;
 
 namespace OfficeIMO.Markdown {
     /// <summary>

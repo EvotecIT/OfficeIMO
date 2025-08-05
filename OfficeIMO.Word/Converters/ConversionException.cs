@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace OfficeIMO.Converters {
+namespace OfficeIMO.Word {
     [Serializable]
     public class ConversionException : Exception {
         public ConversionException() {

@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
     /// <summary>

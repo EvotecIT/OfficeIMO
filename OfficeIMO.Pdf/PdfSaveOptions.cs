@@ -1,16 +1,8 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using OfficeIMO.Converters;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Pdf {
-    /// <summary>
-    /// Specifies page orientation for PDF export.
-    /// </summary>
-    public enum PdfPageOrientation {
-        Portrait,
-        Landscape
-    }
-
     /// <summary>
     /// Options controlling PDF export.
     /// </summary>

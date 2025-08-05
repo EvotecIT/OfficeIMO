@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Markdown {
     internal static partial class Markdown {

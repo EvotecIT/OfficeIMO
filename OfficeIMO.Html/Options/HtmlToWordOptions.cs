@@ -1,5 +1,5 @@
 using System;
-using OfficeIMO.Converters;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Html {
     /// <summary>

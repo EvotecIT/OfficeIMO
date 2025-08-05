@@ -1,4 +1,3 @@
-using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
 using OfficeIMO.Html;
 using OfficeIMO.Pdf;

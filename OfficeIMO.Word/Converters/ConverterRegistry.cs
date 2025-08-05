@@ -1,4 +1,4 @@
-namespace OfficeIMO.Converters {
+namespace OfficeIMO.Word {
     /// <summary>
     /// Provides registration and resolution of <see cref="IWordConverter"/> instances by key.
     /// </summary>

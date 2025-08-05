@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
-using OfficeIMO.Converters;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Markdown {
