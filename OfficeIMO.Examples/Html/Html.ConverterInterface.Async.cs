@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
@@ -14,7 +15,8 @@ namespace OfficeIMO.Examples.Html {
             using MemoryStream output = new MemoryStream();
             ConverterRegistry.Register("html->word", () => new HtmlToWordConverter());
             IWordConverter converter = ConverterRegistry.Resolve("html->word");
-            await converter.ConvertAsync(input, output, new HtmlToWordOptions());
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            await converter.ConvertAsync(input, output, new HtmlToWordOptions(), cts.Token);
             await File.WriteAllBytesAsync(filePath, output.ToArray());
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

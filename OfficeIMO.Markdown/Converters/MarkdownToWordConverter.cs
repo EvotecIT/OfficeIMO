@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 
@@ -17,7 +18,8 @@ namespace OfficeIMO.Markdown {
         /// <param name="markdown">Markdown source text.</param>
         /// <param name="output">Destination stream for the generated document.</param>
         /// <param name="options">Optional conversion settings.</param>
-        public static void Convert(string markdown, Stream output, MarkdownToWordOptions? options = null) {
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        public static void Convert(string markdown, Stream output, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ConversionException($"{nameof(markdown)} cannot be null.");
             }
@@ -34,6 +36,7 @@ namespace OfficeIMO.Markdown {
             bool currentListIsNumbered = false;
 
             foreach (var raw in markdown.Replace("\r", string.Empty).Split('\n')) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var line = raw.TrimEnd();
                 if (string.IsNullOrWhiteSpace(line)) {
                     currentList = null;
@@ -95,7 +98,7 @@ namespace OfficeIMO.Markdown {
             Convert(markdown, output, options as MarkdownToWordOptions);
         }
 
-        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options, CancellationToken cancellationToken = default) {
             if (input == null) {
                 throw new ConversionException($"{nameof(input)} cannot be null.");
             }
@@ -105,9 +108,15 @@ namespace OfficeIMO.Markdown {
                 detectEncodingFromByteOrderMarks: true,
                 bufferSize: 1024,
                 leaveOpen: true);
-            string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
-            Convert(markdown, output, options as MarkdownToWordOptions);
-            await output.FlushAsync().ConfigureAwait(false);
+            string markdown;
+#if NET8_0_OR_GREATER
+            markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
+            markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
+            Convert(markdown, output, options as MarkdownToWordOptions, cancellationToken);
+            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

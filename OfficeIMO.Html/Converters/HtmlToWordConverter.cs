@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Html {
@@ -23,7 +24,8 @@ namespace OfficeIMO.Html {
         /// <param name="html">HTML content to convert. It should be a valid XHTML fragment.</param>
         /// <param name="output">Stream where DOCX content will be written.</param>
         /// <param name="options">Conversion options.</param>
-        public static void Convert(string html, Stream output, HtmlToWordOptions? options = null) {
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        public static void Convert(string html, Stream output, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (html == null) {
                 throw new ConversionException($"{nameof(html)} cannot be null.");
             }
@@ -48,14 +50,15 @@ namespace OfficeIMO.Html {
             XDocument xdoc = XDocument.Parse("<root>" + html + "</root>");
 
             foreach (XElement element in xdoc.Root!.Elements()) {
-                AppendBlockElement(body, element, options, 0, bulletNumberId, orderedNumberId, mainPart);
+                cancellationToken.ThrowIfCancellationRequested();
+                AppendBlockElement(body, element, options, 0, bulletNumberId, orderedNumberId, mainPart, cancellationToken);
             }
 
             mainPart.Document.Save();
             document.Save(output);
         }
 
-        private static void AppendBlockElement(OpenXmlElement parent, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart) {
+        private static void AppendBlockElement(OpenXmlElement parent, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             switch (element.Name.LocalName.ToLowerInvariant()) {
                 case "p":
                 case "h1":
@@ -64,20 +67,22 @@ namespace OfficeIMO.Html {
                 case "h4":
                 case "h5":
                 case "h6":
-                    parent.Append(CreateParagraph(element, options, mainPart));
+                    parent.Append(CreateParagraph(element, options, mainPart, cancellationToken));
                     break;
                 case "ul":
                     foreach (XElement li in element.Elements("li")) {
-                        AppendListItem(parent, li, options, level, bulletNumberId, bulletNumberId, orderedNumberId, mainPart);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        AppendListItem(parent, li, options, level, bulletNumberId, bulletNumberId, orderedNumberId, mainPart, cancellationToken);
                     }
                     break;
                 case "ol":
                     foreach (XElement li in element.Elements("li")) {
-                        AppendListItem(parent, li, options, level, orderedNumberId, bulletNumberId, orderedNumberId, mainPart);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        AppendListItem(parent, li, options, level, orderedNumberId, bulletNumberId, orderedNumberId, mainPart, cancellationToken);
                     }
                     break;
                 case "table":
-                    parent.Append(CreateTable(element, options, level, bulletNumberId, orderedNumberId, mainPart));
+                    parent.Append(CreateTable(element, options, level, bulletNumberId, orderedNumberId, mainPart, cancellationToken));
                     break;
                 case "img":
                     string? src = element.Attribute("src")?.Value;
@@ -90,7 +95,7 @@ namespace OfficeIMO.Html {
             }
         }
 
-        private static Paragraph CreateParagraph(XElement element, HtmlToWordOptions options, MainDocumentPart mainPart) {
+        private static Paragraph CreateParagraph(XElement element, HtmlToWordOptions options, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             Paragraph paragraph = new Paragraph();
             WordParagraphStyles? style = null;
             switch (element.Name.LocalName.ToLowerInvariant()) {
@@ -119,6 +124,7 @@ namespace OfficeIMO.Html {
             }
 
             foreach (XNode node in element.Nodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (node is XText textNode) {
                     AppendTextWithHyperlinks(paragraph, textNode.Value, options, mainPart);
                 } else if (node is XElement inlineElement) {
@@ -136,7 +142,7 @@ namespace OfficeIMO.Html {
             return paragraph;
         }
 
-        private static void AppendListItem(OpenXmlElement parent, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart) {
+        private static void AppendListItem(OpenXmlElement parent, XElement li, HtmlToWordOptions options, int level, int numId, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             Paragraph paragraph = new Paragraph();
             paragraph.ParagraphProperties = new ParagraphProperties(
                 new NumberingProperties(
@@ -145,13 +151,14 @@ namespace OfficeIMO.Html {
                 ));
 
             foreach (XNode node in li.Nodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (node is XText textNode) {
                     AppendTextWithHyperlinks(paragraph, textNode.Value, options, mainPart);
                 } else if (node is XElement el) {
                     if (el.Name.LocalName.Equals("ul", StringComparison.OrdinalIgnoreCase) || el.Name.LocalName.Equals("ol", StringComparison.OrdinalIgnoreCase)) {
                         // finalize current paragraph and process nested list
                         parent.Append(paragraph);
-                        AppendBlockElement(parent, el, options, level + 1, bulletNumberId, orderedNumberId, mainPart);
+                        AppendBlockElement(parent, el, options, level + 1, bulletNumberId, orderedNumberId, mainPart, cancellationToken);
                         paragraph = new Paragraph(); // prevent re-adding
                     } else if (el.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
                         string? src = el.Attribute("src")?.Value;
@@ -169,17 +176,20 @@ namespace OfficeIMO.Html {
             }
         }
 
-        private static Table CreateTable(XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart) {
+        private static Table CreateTable(XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart, CancellationToken cancellationToken) {
             List<List<Action<TableCell>>> structure = new();
 
             foreach (XElement tr in element.Elements("tr")) {
+                cancellationToken.ThrowIfCancellationRequested();
                 List<Action<TableCell>> row = new();
                 foreach (XElement cellEl in tr.Elements().Where(e => e.Name.LocalName.Equals("td", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase))) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     row.Add(cell => {
                         bool hasBlock = false;
                         foreach (XNode node in cellEl.Nodes()) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (node is XElement blockEl) {
-                                AppendBlockElement(cell, blockEl, options, level, bulletNumberId, orderedNumberId, mainPart);
+                                AppendBlockElement(cell, blockEl, options, level, bulletNumberId, orderedNumberId, mainPart, cancellationToken);
                                 hasBlock = true;
                             } else if (node is XText text) {
                                 Paragraph p = new Paragraph();
@@ -270,7 +280,7 @@ namespace OfficeIMO.Html {
             Convert(html, output, options as HtmlToWordOptions);
         }
 
-        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options, CancellationToken cancellationToken = default) {
             if (input == null) {
                 throw new ConversionException($"{nameof(input)} cannot be null.");
             }
@@ -280,9 +290,15 @@ namespace OfficeIMO.Html {
                 detectEncodingFromByteOrderMarks: true,
                 bufferSize: 1024,
                 leaveOpen: true);
-            string html = await reader.ReadToEndAsync().ConfigureAwait(false);
-            Convert(html, output, options as HtmlToWordOptions);
-            await output.FlushAsync().ConfigureAwait(false);
+            string html;
+#if NET8_0_OR_GREATER
+            html = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
+            html = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
+            Convert(html, output, options as HtmlToWordOptions, cancellationToken);
+            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

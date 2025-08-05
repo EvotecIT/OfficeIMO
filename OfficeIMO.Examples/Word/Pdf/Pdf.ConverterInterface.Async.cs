@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -17,7 +18,8 @@ namespace OfficeIMO.Examples.Word {
             using MemoryStream pdfStream = new MemoryStream();
             ConverterRegistry.Register("word->pdf", () => new WordPdfConverter());
             IWordConverter converter = ConverterRegistry.Resolve("word->pdf");
-            await converter.ConvertAsync(docStream, pdfStream, new PdfSaveOptions());
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            await converter.ConvertAsync(docStream, pdfStream, new PdfSaveOptions(), cts.Token);
             await File.WriteAllBytesAsync(pdfPath, pdfStream.ToArray());
         }
     }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 
@@ -12,10 +13,10 @@ namespace OfficeIMO.Pdf {
             document.SaveAsPdf(output, options as PdfSaveOptions);
         }
 
-        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options, CancellationToken cancellationToken = default) {
             using WordDocument document = WordDocument.Load(input);
             document.SaveAsPdf(output, options as PdfSaveOptions);
-            await output.FlushAsync().ConfigureAwait(false);
+            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }
