@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word;
@@ -14,7 +15,8 @@ namespace OfficeIMO.Examples.Markdown {
             using MemoryStream output = new MemoryStream();
             ConverterRegistry.Register("markdown->word", () => new MarkdownToWordConverter());
             IWordConverter converter = ConverterRegistry.Resolve("markdown->word");
-            await converter.ConvertAsync(input, output, new MarkdownToWordOptions());
+            using CancellationTokenSource cts = new CancellationTokenSource();
+            await converter.ConvertAsync(input, output, new MarkdownToWordOptions(), cts.Token);
             await File.WriteAllBytesAsync(filePath, output.ToArray());
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
