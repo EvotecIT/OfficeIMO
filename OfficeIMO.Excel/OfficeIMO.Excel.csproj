@@ -9,8 +9,7 @@
         <VersionPrefix>1.0.6</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
-        <TargetFrameworks
-            Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
             net8.0;net9.0</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 
@@ -35,7 +34,7 @@
 
     <ItemGroup>
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="[2.1.10,3.0.0)" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
     </ItemGroup>
 
     <ItemGroup>

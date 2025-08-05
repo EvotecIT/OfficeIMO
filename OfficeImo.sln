@@ -32,7 +32,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.VerifyTests", "OfficeIMO.VerifyTests\OfficeIMO.VerifyTests.csproj", "{91F78177-72D4-429C-A29E-1B28B37F7BC6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Pdf", "OfficeIMO.Pdf\OfficeIMO.Pdf.csproj", "{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Word.Pdf", "OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj", "{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{5A10AB86-32EA-42AE-A029-222CCE1E282C}"
 	ProjectSection(SolutionItems) = preProject
@@ -132,9 +132,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{D545
 		.github\FUNDING.yml = .github\FUNDING.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html", "OfficeIMO.Html\OfficeIMO.Html.csproj", "{1FAE812D-A40C-4AD2-98FD-69DAA91A41DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Word.Html", "OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj", "{1FAE812D-A40C-4AD2-98FD-69DAA91A41DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown", "OfficeIMO.Markdown\OfficeIMO.Markdown.csproj", "{9C2CC069-324D-4B80-88D2-1E3F49FB2C19}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Word.Markdown", "OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj", "{9C2CC069-324D-4B80-88D2-1E3F49FB2C19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System.Globalization;
 using System.IO;

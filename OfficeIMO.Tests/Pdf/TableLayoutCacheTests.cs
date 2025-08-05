@@ -1,4 +1,4 @@
-using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using Xunit;
 
