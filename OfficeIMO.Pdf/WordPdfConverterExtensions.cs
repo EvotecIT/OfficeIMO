@@ -48,16 +48,28 @@ public static class WordPdfConverterExtensions {
                 Unit unit = options?.MarginUnit ?? Unit.Centimetre;
                 page.Margin(margin, unit);
 
+                PageSize size = PageSizes.A4;
+                PdfPageOrientation? orientation = null;
                 if (options != null) {
-                    PageSize size = options.PageSize ?? PageSizes.A4;
-                    if (options.Orientation == PdfPageOrientation.Landscape) {
-                        size = size.Landscape();
-                    } else if (options.Orientation == PdfPageOrientation.Portrait) {
-                        size = size.Portrait();
+                    if (options.PageSize != null) {
+                        size = options.PageSize;
+                    } else if (options.DefaultPageSize.HasValue) {
+                        size = MapToPageSize(options.DefaultPageSize.Value);
                     }
 
-                    page.Size(size);
+                    orientation = options.Orientation;
+                    if (orientation == null && options.DefaultOrientation.HasValue) {
+                        orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+                    }
                 }
+
+                if (orientation == PdfPageOrientation.Landscape) {
+                    size = size.Landscape();
+                } else if (orientation == PdfPageOrientation.Portrait) {
+                    size = size.Portrait();
+                }
+
+                page.Size(size);
 
                 WordHeaderFooter header = document.Header?.Default;
                 if (header != null && (header.Paragraphs.Count > 0 || header.Tables.Count > 0)) {
@@ -274,6 +286,20 @@ public static class WordPdfConverterExtensions {
         }
         }
 
+    }
+
+    private static PageSize MapToPageSize(WordPageSize pageSize) {
+        return pageSize switch {
+            WordPageSize.Letter => PageSizes.Letter,
+            WordPageSize.Legal => PageSizes.Legal,
+            WordPageSize.Executive => PageSizes.Executive,
+            WordPageSize.A3 => PageSizes.A3,
+            WordPageSize.A4 => PageSizes.A4,
+            WordPageSize.A5 => PageSizes.A5,
+            WordPageSize.A6 => PageSizes.A6,
+            WordPageSize.B5 => PageSizes.B5,
+            _ => PageSizes.A4
+        };
     }
 
     private static Dictionary<WordParagraph, (int Level, string Marker)> BuildListMarkers(WordDocument document) {

@@ -29,6 +29,7 @@ namespace OfficeIMO.Markdown {
             var fontFamily = FontResolver.Resolve(options.FontFamily);
 
             using var document = WordDocument.Create();
+            options.ApplyDefaults(document);
             WordList? currentList = null;
             bool currentListIsNumbered = false;
 
