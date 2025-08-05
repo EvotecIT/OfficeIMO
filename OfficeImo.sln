@@ -18,14 +18,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Tests", "OfficeIM
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{180EED7F-C628-4AC2-A7D0-530B6C537C2C}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		azure-pipelines.yml = azure-pipelines.yml
 		CHANGELOG.MD = CHANGELOG.MD
 		CodeCoverage.runsettings = CodeCoverage.runsettings
-		README.md = README.md
 		Directory.Build.props = Directory.Build.props
-		.editorconfig = .editorconfig
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Excel", "OfficeIMO.Excel\OfficeIMO.Excel.csproj", "{80B77D75-D25C-4168-B6A3-FA58DB118EF8}"
@@ -208,8 +208,16 @@ Global
 		{91F78177-72D4-429C-A29E-1B28B37F7BC6}.Release|x86.Build.0 = Release|Any CPU
 		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|x64.Build.0 = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Debug|x86.Build.0 = Debug|Any CPU
 		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|x64.ActiveCfg = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|x64.Build.0 = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|x86.ActiveCfg = Release|Any CPU
+		{9D9952F0-776C-4E1D-BD5F-9D9FB3924633}.Release|x86.Build.0 = Release|Any CPU
 		{1FAE812D-A40C-4AD2-98FD-69DAA91A41DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1FAE812D-A40C-4AD2-98FD-69DAA91A41DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1FAE812D-A40C-4AD2-98FD-69DAA91A41DC}.Debug|x64.ActiveCfg = Debug|Any CPU

@@ -181,7 +181,15 @@ namespace OfficeIMO.Examples {
             Images.Example_ImageTransparencySimple(folderPath, false);
             Images.Example_ImageTransparencyAdvanced(folderPath, false);
             Images.Example_ImageNewFeatures(folderPath, false);
+
+            Word.Pdf.Example_SaveAsPdf(folderPath, false);
+            Word.Pdf.Example_SaveAsPdfWithHyperlinks(folderPath, false);
+            Word.Pdf.Example_SaveLists(folderPath, false);
+            Word.Pdf.Example_SaveAsPdfRelative(folderPath, false);
+            Word.Pdf.Example_SaveAsPdfInMemory(folderPath, false);
             Word.Pdf.Example_HeaderFooterImages(folderPath, false);
+            Word.Pdf.Example_PdfInterface(folderPath, false);
+            Word.Pdf.Example_TableStyles(folderPath, false);
 
             Background.Example_BackgroundImageSimple(folderPath, false);
             Background.Example_BackgroundImageAdvanced(folderPath, false);
