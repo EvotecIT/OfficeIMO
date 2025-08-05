@@ -32,7 +32,7 @@ namespace OfficeIMO.Html {
             StringBuilder sb = new StringBuilder();
             sb.Append("<html><body>");
 
-            Dictionary<int, bool> listTypes = GetListTypes(document);
+            Dictionary<int, bool> listTypes = ListParser.GetListTypes(document.MainDocumentPart!);
             AppendElements(document.MainDocumentPart!.Document.Body!.ChildElements, sb, options, listTypes, document.MainDocumentPart);
 
             sb.Append("</body></html>");
@@ -144,25 +144,6 @@ namespace OfficeIMO.Html {
             sb.Append("</table>");
         }
 
-        private static Dictionary<int, bool> GetListTypes(WordprocessingDocument document) {
-            NumberingDefinitionsPart? numberingPart = document.MainDocumentPart!.NumberingDefinitionsPart;
-            Dictionary<int, bool> listTypes = new Dictionary<int, bool>();
-            if (numberingPart?.Numbering != null) {
-                foreach (NumberingInstance instance in numberingPart.Numbering.Elements<NumberingInstance>()) {
-                    int id = instance.NumberID!.Value;
-                    int absId = instance.AbstractNumId!.Val!.Value;
-                    AbstractNum? abs = numberingPart.Numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId!.Value == absId);
-                    bool ordered = true;
-                    Level? lvl = abs?.Elements<Level>().FirstOrDefault(l => l.LevelIndex == 0);
-                    NumberFormatValues? format = lvl?.NumberingFormat?.Val;
-                    if (format == NumberFormatValues.Bullet) {
-                        ordered = false;
-                    }
-                    listTypes[id] = ordered;
-                }
-            }
-            return listTypes;
-        }
 
         private static void AppendRuns(StringBuilder sb, Paragraph paragraph, WordToHtmlOptions options, MainDocumentPart mainPart) {
             foreach (Run run in paragraph.Elements<Run>()) {

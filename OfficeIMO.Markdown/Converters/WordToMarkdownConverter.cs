@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Converters;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Markdown {
     /// <summary>
@@ -46,7 +47,7 @@ namespace OfficeIMO.Markdown {
                 }
 
                 if (paragraph.ParagraphProperties?.NumberingProperties != null) {
-                    bool bullet = IsBullet(paragraph, word.MainDocumentPart!);
+                    bool bullet = ListParser.IsBullet(paragraph, word.MainDocumentPart!);
                     sb.Append(bullet ? "- " : "1. ").Append(line).AppendLine();
                     continue;
                 }
@@ -74,28 +75,6 @@ namespace OfficeIMO.Markdown {
             return sb.ToString();
         }
 
-        private static bool IsBullet(Paragraph paragraph, MainDocumentPart mainPart) {
-            var numProps = paragraph.ParagraphProperties?.NumberingProperties;
-            if (numProps?.NumberingId == null || mainPart.NumberingDefinitionsPart?.Numbering == null) {
-                return false;
-            }
-
-            int id = (int)numProps.NumberingId.Val.Value;
-            var instance = mainPart.NumberingDefinitionsPart.Numbering
-                .Elements<NumberingInstance>()
-                .FirstOrDefault(n => n.NumberID != null && n.NumberID.Value == id);
-            if (instance == null) return false;
-
-            var abstractNum = mainPart.NumberingDefinitionsPart.Numbering
-                .Elements<AbstractNum>()
-                .FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == instance.AbstractNumId.Val.Value);
-            if (abstractNum == null) return false;
-
-            int levelIndex = numProps.NumberingLevelReference?.Val ?? 0;
-            var level = abstractNum.Elements<Level>().FirstOrDefault(l => l.LevelIndex != null && l.LevelIndex.Value == levelIndex);
-            var format = level?.NumberingFormat?.Val;
-            return format != null && format == NumberFormatValues.Bullet;
-        }
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             string markdown = Convert(input, options as WordToMarkdownOptions);
             using StreamWriter writer = new StreamWriter(
