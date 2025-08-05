@@ -66,6 +66,10 @@
         <PackageReference Include="SixLabors.ImageSharp" Version="[2.1.10,3.0.0)" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+
     <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Text" />
@@ -80,4 +84,4 @@
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
     </ItemGroup>
 
-</Project>
+</Project>

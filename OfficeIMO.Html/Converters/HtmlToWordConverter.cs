@@ -5,13 +5,8 @@ using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Xml.Linq;
-using SixLabors.ImageSharp;
-using A = DocumentFormat.OpenXml.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
@@ -80,9 +75,12 @@ namespace OfficeIMO.Html {
                     parent.Append(CreateTable(element, options, level, bulletNumberId, orderedNumberId, mainPart));
                     break;
                 case "img":
-                    Paragraph p = new Paragraph();
-                    p.Append(CreateImageRun(element, mainPart));
-                    parent.Append(p);
+                    string? src = element.Attribute("src")?.Value;
+                    if (!string.IsNullOrEmpty(src)) {
+                        Paragraph p = new Paragraph();
+                        p.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                        parent.Append(p);
+                    }
                     break;
             }
         }
@@ -120,7 +118,10 @@ namespace OfficeIMO.Html {
                     paragraph.Append(CreateRun(textNode.Value, options));
                 } else if (node is XElement inlineElement) {
                     if (inlineElement.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
-                        paragraph.Append(CreateImageRun(inlineElement, mainPart));
+                        string? src = inlineElement.Attribute("src")?.Value;
+                        if (!string.IsNullOrEmpty(src)) {
+                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                        }
                     } else {
                         paragraph.Append(CreateRunFromElement(inlineElement, options));
                     }
@@ -148,7 +149,10 @@ namespace OfficeIMO.Html {
                         AppendBlockElement(parent, el, options, level + 1, bulletNumberId, orderedNumberId, mainPart);
                         paragraph = new Paragraph(); // prevent re-adding
                     } else if (el.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
-                        paragraph.Append(CreateImageRun(el, mainPart));
+                        string? src = el.Attribute("src")?.Value;
+                        if (!string.IsNullOrEmpty(src)) {
+                            paragraph.Append(ImageEmbedder.CreateImageRun(mainPart, src));
+                        }
                     } else {
                         paragraph.Append(CreateRunFromElement(el, options));
                     }
@@ -228,71 +232,6 @@ namespace OfficeIMO.Html {
             return run;
         }
 
-        private static Run CreateImageRun(XElement element, MainDocumentPart mainPart) {
-            string? src = element.Attribute("src")?.Value;
-            if (string.IsNullOrEmpty(src)) {
-                return new Run();
-            }
-
-            byte[] bytes = ResolveImageSource(src);
-            using Image image = Image.Load(bytes, out var format);
-            long cx = (long)(image.Width * 9525L);
-            long cy = (long)(image.Height * 9525L);
-            string contentType = format.DefaultMimeType;
-
-            ImagePart imagePart = mainPart.AddImagePart(contentType);
-            using (MemoryStream ms = new MemoryStream(bytes)) {
-                imagePart.FeedData(ms);
-            }
-            string relationshipId = mainPart.GetIdOfPart(imagePart);
-
-            var inline = new DW.Inline(
-                new DW.Extent { Cx = cx, Cy = cy },
-                new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
-                new DW.DocProperties { Id = 1U, Name = "Picture" },
-                new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
-                new A.Graphic(
-                    new A.GraphicData(
-                        new PIC.Picture(
-                            new PIC.NonVisualPictureProperties(
-                                new PIC.NonVisualDrawingProperties { Id = 0U, Name = "Image" },
-                                new PIC.NonVisualPictureDrawingProperties()),
-                            new PIC.BlipFill(
-                                new A.Blip { Embed = relationshipId },
-                                new A.Stretch(new A.FillRectangle())),
-                            new PIC.ShapeProperties(
-                                new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = cx, Cy = cy }),
-                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }))
-                    ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
-            ) { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U };
-
-            var drawing = new Drawing(inline);
-            return new Run(drawing);
-        }
-
-        private static byte[] ResolveImageSource(string src) {
-            if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
-                int commaIndex = src.IndexOf(',');
-                string base64Data = src.Substring(commaIndex + 1);
-                return System.Convert.FromBase64String(base64Data);
-            }
-
-            if (Uri.TryCreate(src, UriKind.Absolute, out Uri uri)) {
-                if (uri.Scheme == Uri.UriSchemeFile) {
-                    return File.ReadAllBytes(uri.LocalPath);
-                }
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
-                    using HttpClient client = new HttpClient();
-                    return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
-                }
-            }
-
-            if (File.Exists(src)) {
-                return File.ReadAllBytes(src);
-            }
-
-            throw new InvalidOperationException("Unable to resolve image source: " + src);
-        }
         public void Convert(Stream input, Stream output, IConversionOptions options) {
             if (input == null) {
                 throw new ArgumentNullException(nameof(input));
@@ -307,4 +246,4 @@ namespace OfficeIMO.Html {
             Convert(html, output, options as HtmlToWordOptions);
         }
     }
-}
+}
