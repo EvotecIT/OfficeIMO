@@ -220,12 +220,13 @@ namespace OfficeIMO.Html {
 
         private static Run CreateRun(string text, HtmlToWordOptions options) {
             Run run = new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-            if (!string.IsNullOrEmpty(options.FontFamily)) {
+            var fontFamily = FontResolver.Resolve(options.FontFamily);
+            if (!string.IsNullOrEmpty(fontFamily)) {
                 RunProperties runProperties = run.RunProperties ??= new RunProperties();
                 runProperties.RunFonts = new RunFonts {
-                    Ascii = options.FontFamily,
-                    HighAnsi = options.FontFamily,
-                    ComplexScript = options.FontFamily
+                    Ascii = fontFamily,
+                    HighAnsi = fontFamily,
+                    ComplexScript = fontFamily
                 };
             }
             return run;

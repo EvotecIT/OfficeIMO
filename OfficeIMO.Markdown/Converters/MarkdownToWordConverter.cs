@@ -26,6 +26,7 @@ namespace OfficeIMO.Markdown {
             }
 
             options ??= new MarkdownToWordOptions();
+            var fontFamily = FontResolver.Resolve(options.FontFamily);
 
             using var document = WordDocument.Create();
             WordList? currentList = null;
@@ -43,7 +44,7 @@ namespace OfficeIMO.Markdown {
                     int level = line.TakeWhile(c => c == '#').Count();
                     string text = line.Substring(level).TrimStart();
                     var paragraph = document.AddParagraph();
-                    InlineRunHelper.AddInlineRuns(paragraph, text, options.FontFamily);
+                    InlineRunHelper.AddInlineRuns(paragraph, text, fontFamily);
                     paragraph.Style = level switch {
                         1 => WordParagraphStyles.Heading1,
                         2 => WordParagraphStyles.Heading2,
@@ -67,13 +68,13 @@ namespace OfficeIMO.Markdown {
                     }
 
                     var item = currentList.AddItem(string.Empty);
-                    InlineRunHelper.AddInlineRuns(item, text, options.FontFamily);
+                    InlineRunHelper.AddInlineRuns(item, text, fontFamily);
                     continue;
                 }
 
                 currentList = null;
                 var para = document.AddParagraph();
-                InlineRunHelper.AddInlineRuns(para, line, options.FontFamily);
+                InlineRunHelper.AddInlineRuns(para, line, fontFamily);
             }
 
             document.Save(output);
