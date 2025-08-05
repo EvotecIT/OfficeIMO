@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Converters;
 
@@ -92,6 +93,21 @@ namespace OfficeIMO.Markdown {
                 leaveOpen: true);
             string markdown = reader.ReadToEnd();
             Convert(markdown, output, options as MarkdownToWordOptions);
+        }
+
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+            if (input == null) {
+                throw new ConversionException($"{nameof(input)} cannot be null.");
+            }
+            using StreamReader reader = new StreamReader(
+                input,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1024,
+                leaveOpen: true);
+            string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
+            Convert(markdown, output, options as MarkdownToWordOptions);
+            await output.FlushAsync().ConfigureAwait(false);
         }
     }
 }

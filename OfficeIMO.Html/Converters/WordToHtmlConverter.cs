@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Converters;
 
@@ -193,6 +194,17 @@ namespace OfficeIMO.Html {
                 leaveOpen: true);
             writer.Write(html);
             writer.Flush();
+        }
+
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+            string html = Convert(input, options as WordToHtmlOptions);
+            using StreamWriter writer = new StreamWriter(
+                output,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
+            await writer.WriteAsync(html).ConfigureAwait(false);
+            await writer.FlushAsync().ConfigureAwait(false);
         }
     }
 }
