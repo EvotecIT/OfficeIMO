@@ -1,4 +1,4 @@
-using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -8,6 +8,12 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {
+        // TODO: Add more example methods as needed
+        public static void Example_PdfInterface(string folderPath, bool openWord) {
+            // Placeholder for PDF interface example
+            Example_SaveAsPdf(folderPath, openWord);
+        }
+        
         public static void Example_SaveAsPdf(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document and exporting to PDF");
             string docPath = Path.Combine(folderPath, "ExportToPdf.docx");

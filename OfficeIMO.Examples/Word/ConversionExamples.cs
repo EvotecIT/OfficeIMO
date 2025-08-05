@@ -1,7 +1,7 @@
 using OfficeIMO.Word;
-using OfficeIMO.Pdf;
-using OfficeIMO.Markdown;
-using OfficeIMO.Html;
+using OfficeIMO.Word.Pdf;
+using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Html;
 using System;
 using System.IO;
 
@@ -76,7 +76,7 @@ This is a paragraph with **bold** and *italic* text.
             Console.WriteLine(markdown);
             Console.WriteLine();
             
-            using (WordDocument fromMarkdown = WordDocument.LoadFromMarkdown(markdown)) {
+            using (WordDocument fromMarkdown = markdown.LoadFromMarkdown()) {
                 string docPath = Path.Combine(folderPath, "FromMarkdown.docx");
                 fromMarkdown.Save(docPath);
                 Console.WriteLine($"✓ Markdown → Word: {docPath}");
@@ -104,7 +104,7 @@ This is a paragraph with **bold** and *italic* text.
             Console.WriteLine(html);
             Console.WriteLine();
             
-            using (WordDocument fromHtml = WordDocument.LoadFromHtml(html)) {
+            using (WordDocument fromHtml = html.LoadFromHtml()) {
                 string docPath = Path.Combine(folderPath, "FromHtml.docx");
                 fromHtml.Save(docPath);
                 Console.WriteLine($"✓ HTML → Word: {docPath}");

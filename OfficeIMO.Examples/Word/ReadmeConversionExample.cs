@@ -1,7 +1,7 @@
 using OfficeIMO.Word;
-using OfficeIMO.Pdf;
-using OfficeIMO.Markdown;
-using OfficeIMO.Html;
+using OfficeIMO.Word.Pdf;
+using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Html;
 using System;
 using System.IO;
 using System.Text;
@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Word {
             try {
                 string outputPath = Path.Combine(folderPath, "README_from_markdown.docx");
                 
-                using (var document = WordDocument.LoadFromMarkdown(markdown, new MarkdownToWordOptions {
+                using (var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
                     FontFamily = "Calibri"
                 })) {
                     document.Save(outputPath);
@@ -127,7 +127,7 @@ namespace OfficeIMO.Examples.Word {
                     string htmlPath = Path.Combine(folderPath, "README_to_html.html");
                     document.SaveAsHtml(htmlPath, new WordToHtmlOptions {
                         IncludeFontStyles = true,
-                        PreserveListStyles = true
+                        IncludeListStyles = true
                     });
                     
                     string html = File.ReadAllText(htmlPath);
@@ -229,7 +229,7 @@ namespace OfficeIMO.Examples.Word {
 ";
             
             try {
-                using (var document = WordDocument.LoadFromHtml(sampleHtml, new HtmlToWordOptions {
+                using (var document = sampleHtml.LoadFromHtml(new HtmlToWordOptions {
                     FontFamily = "Calibri"
                 })) {
                     string outputPath = Path.Combine(folderPath, "README_from_html.docx");
@@ -259,7 +259,7 @@ namespace OfficeIMO.Examples.Word {
             // Test Markdown -> Word -> Markdown
             try {
                 Console.WriteLine("Testing: Markdown → Word → Markdown");
-                using (var document = WordDocument.LoadFromMarkdown(markdown.Substring(0, Math.Min(500, markdown.Length)))) {
+                using (var document = markdown.Substring(0, Math.Min(500, markdown.Length)).LoadFromMarkdown()) {
                     string backToMarkdown = document.ToMarkdown();
                     Console.WriteLine($"  • Original length: {markdown.Length}");
                     Console.WriteLine($"  • Round-trip length: {backToMarkdown.Length}");

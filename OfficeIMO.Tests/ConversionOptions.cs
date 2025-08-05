@@ -1,6 +1,6 @@
-using OfficeIMO.Html;
-using OfficeIMO.Markdown;
-using OfficeIMO.Pdf;
+using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -21,7 +21,7 @@ public class ConversionOptionsTests {
     }
 
     [Fact]
-    public void PdfSaveOptions_ExposeFontFamily() {
+    public void PdfOptions_ExposeFontFamily() {
         var options = new PdfSaveOptions { FontFamily = "Times New Roman" };
         Assert.Equal("Times New Roman", options.FontFamily);
     }

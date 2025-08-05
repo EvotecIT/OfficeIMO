@@ -1,6 +1,6 @@
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Markdown;
+using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Markdown {
@@ -9,13 +9,15 @@ namespace OfficeIMO.Examples.Markdown {
             string filePath = Path.Combine(folderPath, "MarkdownPageSettings.docx");
             string markdown = "Hello World";
 
-            using MemoryStream wordStream = new MemoryStream();
-            MarkdownToWordConverter.Convert(markdown, wordStream, new MarkdownToWordOptions {
+            // Convert Markdown to Word document with page settings
+            var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
                 DefaultOrientation = PageOrientationValues.Landscape,
                 DefaultPageSize = WordPageSize.A5
             });
-
-            File.WriteAllBytes(filePath, wordStream.ToArray());
+            
+            // Save the Word document
+            doc.Save(filePath);
+            
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
             }

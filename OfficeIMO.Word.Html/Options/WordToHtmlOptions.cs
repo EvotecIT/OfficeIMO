@@ -5,7 +5,12 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling Word to HTML conversion.
     /// </summary>
-    public class WordToHtmlOptions : ConversionOptions {
+    public class WordToHtmlOptions {
+        /// <summary>
+        /// Optional font family applied to created runs during conversion.
+        /// </summary>
+        public string FontFamily { get; set; }
+        
         /// <summary>
         /// When true, includes run font information as inline styles.
         /// </summary>

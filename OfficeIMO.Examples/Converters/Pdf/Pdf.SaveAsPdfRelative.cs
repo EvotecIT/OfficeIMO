@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
