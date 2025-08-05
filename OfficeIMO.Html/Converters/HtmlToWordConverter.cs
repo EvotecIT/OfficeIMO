@@ -31,15 +31,16 @@ namespace OfficeIMO.Html {
 
             options ??= new HtmlToWordOptions();
 
-            using WordprocessingDocument document = WordprocessingDocument.Create(output, WordprocessingDocumentType.Document, true);
-            MainDocumentPart mainPart = document.AddMainDocumentPart();
-            mainPart.Document = new Document(new Body());
+            using var document = WordDocument.Create();
+            options.ApplyDefaults(document);
+            WordprocessingDocument wordDoc = document._wordprocessingDocument;
+            MainDocumentPart mainPart = wordDoc.MainDocumentPart;
             Body body = mainPart.Document.Body;
 
             // add numbering definitions for ordered and unordered lists using shared Word logic
             NumberingDefinitionsPart numberingPart = mainPart.AddNewPart<NumberingDefinitionsPart>();
             numberingPart.Numbering = new Numbering();
-            Numbering numbering = WordListStyles.CreateDefaultNumberingDefinitions(document, out int bulletNumberId, out int orderedNumberId);
+            Numbering numbering = WordListStyles.CreateDefaultNumberingDefinitions(wordDoc, out int bulletNumberId, out int orderedNumberId);
             numberingPart.Numbering = numbering;
 
             XDocument xdoc = XDocument.Parse("<root>" + html + "</root>");
@@ -49,6 +50,7 @@ namespace OfficeIMO.Html {
             }
 
             mainPart.Document.Save();
+            document.Save(output);
         }
 
         private static void AppendBlockElement(OpenXmlElement parent, XElement element, HtmlToWordOptions options, int level, int bulletNumberId, int orderedNumberId, MainDocumentPart mainPart) {
