@@ -2,6 +2,9 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -125,5 +128,19 @@ public partial class Html {
         ms.Position = 0;
         string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeFontStyles = true });
         Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Urls_CreateHyperlinks() {
+        string html = "<p>Visit http://example.com</p>";
+        using MemoryStream ms = new MemoryStream();
+        HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
+
+        ms.Position = 0;
+        using WordprocessingDocument doc = WordprocessingDocument.Open(ms, false);
+        var hyperlink = doc.MainDocumentPart!.Document.Body!.Descendants<Hyperlink>().FirstOrDefault();
+        Assert.NotNull(hyperlink);
+        var rel = doc.MainDocumentPart.HyperlinkRelationships.First();
+        Assert.StartsWith("http://example.com", rel.Uri.ToString());
     }
 }

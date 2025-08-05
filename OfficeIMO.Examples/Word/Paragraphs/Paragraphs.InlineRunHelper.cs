@@ -8,7 +8,7 @@ internal static partial class Paragraphs {
         string filePath = Path.Combine(folderPath, "InlineRunHelper.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph();
-            InlineRunHelper.AddInlineRuns(paragraph, "Hello **world** and *universe*");
+            InlineRunHelper.AddInlineRuns(paragraph, "Hello **world** and *universe*. Visit https://example.com");
             document.Save(openWord);
         }
     }

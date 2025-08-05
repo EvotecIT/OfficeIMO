@@ -24,4 +24,17 @@ public partial class Word {
         Assert.NotNull(runs[3].RunProperties?.Italic);
         Assert.Null(runs[3].RunProperties?.Bold);
     }
+
+    [Fact]
+    public void InlineRunHelperCreatesHyperlinks() {
+        using var document = WordDocument.Create();
+        var paragraph = document.AddParagraph();
+        InlineRunHelper.AddInlineRuns(paragraph, "Visit http://example.com for info");
+
+        var hyperlink = paragraph._paragraph.Elements<Hyperlink>().FirstOrDefault();
+        Assert.NotNull(hyperlink);
+        Assert.Equal("http://example.com", hyperlink.InnerText);
+        var rel = document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships.First();
+        Assert.StartsWith("http://example.com", rel.Uri.ToString());
+    }
 }

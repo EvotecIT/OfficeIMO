@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word;
@@ -7,6 +8,7 @@ namespace OfficeIMO.Word;
 /// </summary>
 public static class InlineRunHelper {
     private static readonly Regex _inlineRegex = new("(\\*\\*[^\\*]+\\*\\*|\\*[^\\*]+\\*|[^\\*]+)", RegexOptions.Singleline);
+    private static readonly Regex _urlRegex = new("((?:https?|ftp)://[^\\s]+)", RegexOptions.IgnoreCase);
 
     /// <summary>
     /// Adds text runs to <paramref name="paragraph"/> parsing Markdown style bold and italic markers.
@@ -22,15 +24,43 @@ public static class InlineRunHelper {
             string value = bold ? token.Substring(2, token.Length - 4) :
                            italic ? token.Substring(1, token.Length - 2) : token;
 
-            var run = paragraph.AddText(value);
-            if (!string.IsNullOrEmpty(fontFamily)) {
-                run.SetFontFamily(fontFamily);
-            }
-            if (bold) {
-                run.SetBold();
-            }
-            if (italic) {
-                run.SetItalic();
+            if (!bold && !italic && _urlRegex.IsMatch(value)) {
+                int lastIndex = 0;
+                foreach (Match urlMatch in _urlRegex.Matches(value)) {
+                    if (urlMatch.Index > lastIndex) {
+                        var textPart = value.Substring(lastIndex, urlMatch.Index - lastIndex);
+                        var textRun = paragraph.AddText(textPart);
+                        if (!string.IsNullOrEmpty(fontFamily)) {
+                            textRun.SetFontFamily(fontFamily);
+                        }
+                    }
+
+                    string url = urlMatch.Value;
+                    var linkRun = paragraph.AddHyperLink(url, new Uri(url));
+                    if (!string.IsNullOrEmpty(fontFamily)) {
+                        linkRun.SetFontFamily(fontFamily);
+                    }
+
+                    lastIndex = urlMatch.Index + urlMatch.Length;
+                }
+
+                if (lastIndex < value.Length) {
+                    var tailRun = paragraph.AddText(value.Substring(lastIndex));
+                    if (!string.IsNullOrEmpty(fontFamily)) {
+                        tailRun.SetFontFamily(fontFamily);
+                    }
+                }
+            } else {
+                var run = paragraph.AddText(value);
+                if (!string.IsNullOrEmpty(fontFamily)) {
+                    run.SetFontFamily(fontFamily);
+                }
+                if (bold) {
+                    run.SetBold();
+                }
+                if (italic) {
+                    run.SetItalic();
+                }
             }
         }
     }
