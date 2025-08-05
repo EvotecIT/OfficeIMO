@@ -21,4 +21,7 @@
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Tests" />
+  </ItemGroup>
 </Project>
