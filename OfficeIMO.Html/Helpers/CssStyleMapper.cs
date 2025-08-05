@@ -40,8 +40,8 @@ namespace OfficeIMO.Html.Helpers {
 
         private static Dictionary<string, string> Parse(string style) {
             Dictionary<string, string> dict = new(StringComparer.OrdinalIgnoreCase);
-            foreach (string part in style.Split(';', StringSplitOptions.RemoveEmptyEntries)) {
-                string[] pieces = part.Split(':', 2);
+            foreach (string part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string[] pieces = part.Split(new[] { ':' }, 2);
                 if (pieces.Length == 2) {
                     dict[pieces[0].Trim()] = pieces[1].Trim();
                 }
