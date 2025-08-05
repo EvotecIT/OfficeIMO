@@ -7,8 +7,8 @@ namespace OfficeIMO.Html {
     /// </summary>
     public class HtmlToWordOptions : ConversionOptions {
         /// <summary>
-        /// When true, attempts to keep list styling information during conversion.
+        /// When true, attempts to include list styling information during conversion.
         /// </summary>
-        public bool PreserveListStyles { get; set; }
+        public bool IncludeListStyles { get; set; }
     }
 }

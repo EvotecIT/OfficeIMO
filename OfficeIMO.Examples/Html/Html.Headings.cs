@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Html {
             wordStream.Position = 0;
             using MemoryStream htmlOutput = new MemoryStream();
             IWordConverter wordToHtml = ConverterRegistry.Resolve("word->html");
-            wordToHtml.Convert(wordStream, htmlOutput, new WordToHtmlOptions { IncludeStyles = true });
+            wordToHtml.Convert(wordStream, htmlOutput, new WordToHtmlOptions { IncludeFontStyles = true });
             string roundTrip = Encoding.UTF8.GetString(htmlOutput.ToArray());
             Console.WriteLine(roundTrip);
 

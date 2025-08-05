@@ -14,7 +14,7 @@ public partial class Html {
         HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions { FontFamily = "Calibri" });
 
         ms.Position = 0;
-        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeStyles = true });
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeFontStyles = true });
 
         Assert.Contains("<b>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("</b>", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -32,7 +32,7 @@ public partial class Html {
         HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions { FontFamily = "Calibri" });
 
         ms.Position = 0;
-        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeStyles = true });
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeFontStyles = true });
 
         for (int i = 1; i <= 6; i++) {
             string tag = $"h{i}";
@@ -49,7 +49,7 @@ public partial class Html {
         HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions());
 
         ms.Position = 0;
-        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { PreserveListStyles = true });
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeListStyles = true });
 
         Assert.Contains("<ul", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<ol", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -123,7 +123,7 @@ public partial class Html {
         HtmlToWordConverter.Convert(html, ms, new HtmlToWordOptions { FontFamily = "monospace" });
 
         ms.Position = 0;
-        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeStyles = true });
+        string roundTrip = WordToHtmlConverter.Convert(ms, new WordToHtmlOptions { IncludeFontStyles = true });
         Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 }
