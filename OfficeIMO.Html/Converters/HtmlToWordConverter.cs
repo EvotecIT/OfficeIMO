@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Threading.Tasks;
 
@@ -15,6 +16,7 @@ namespace OfficeIMO.Html {
     /// Converts simple HTML fragments into WordprocessingDocument instances.
     /// </summary>
     public class HtmlToWordConverter : IWordConverter {
+        private static readonly Regex _urlRegex = new("((?:https?|ftp)://[^\\s]+)", RegexOptions.IgnoreCase);
         /// <summary>
         /// Converts provided HTML string into a DOCX document written to the specified stream.
         /// </summary>
@@ -116,7 +118,7 @@ namespace OfficeIMO.Html {
 
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
-                    paragraph.Append(CreateRun(textNode.Value, options));
+                    AppendTextWithHyperlinks(paragraph, textNode.Value, options, mainPart);
                 } else if (node is XElement inlineElement) {
                     if (inlineElement.Name.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase)) {
                         string? src = inlineElement.Attribute("src")?.Value;
@@ -142,7 +144,7 @@ namespace OfficeIMO.Html {
 
             foreach (XNode node in li.Nodes()) {
                 if (node is XText textNode) {
-                    paragraph.Append(CreateRun(textNode.Value, options));
+                    AppendTextWithHyperlinks(paragraph, textNode.Value, options, mainPart);
                 } else if (node is XElement el) {
                     if (el.Name.LocalName.Equals("ul", StringComparison.OrdinalIgnoreCase) || el.Name.LocalName.Equals("ol", StringComparison.OrdinalIgnoreCase)) {
                         // finalize current paragraph and process nested list
@@ -179,7 +181,7 @@ namespace OfficeIMO.Html {
                                 hasBlock = true;
                             } else if (node is XText text) {
                                 Paragraph p = new Paragraph();
-                                p.Append(CreateRun(text.Value, options));
+                                AppendTextWithHyperlinks(p, text.Value, options, mainPart);
                                 cell.Append(p);
                                 hasBlock = true;
                             }
@@ -230,6 +232,26 @@ namespace OfficeIMO.Html {
                 };
             }
             return run;
+        }
+
+        private static void AppendTextWithHyperlinks(OpenXmlElement parent, string text, HtmlToWordOptions options, MainDocumentPart mainPart) {
+            int lastIndex = 0;
+            foreach (Match match in _urlRegex.Matches(text)) {
+                if (match.Index > lastIndex) {
+                    parent.Append(CreateRun(text.Substring(lastIndex, match.Index - lastIndex), options));
+                }
+
+                string url = match.Value;
+                HyperlinkRelationship rel = mainPart.AddHyperlinkRelationship(new Uri(url), true);
+                Hyperlink link = new Hyperlink(new Run(new Text(url) { Space = SpaceProcessingModeValues.Preserve })) { Id = rel.Id };
+                parent.Append(link);
+
+                lastIndex = match.Index + match.Length;
+            }
+
+            if (lastIndex < text.Length) {
+                parent.Append(CreateRun(text.Substring(lastIndex), options));
+            }
         }
 
         public void Convert(Stream input, Stream output, IConversionOptions options) {

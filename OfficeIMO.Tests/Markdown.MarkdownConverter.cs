@@ -47,5 +47,19 @@ namespace OfficeIMO.Tests {
             RunFonts fonts = doc.MainDocumentPart!.Document.Body!.Descendants<RunFonts>().First();
             Assert.Equal(FontResolver.Resolve("monospace"), fonts.Ascii);
         }
+
+        [Fact]
+        public void Test_Markdown_Urls_CreateHyperlinks() {
+            string md = "Visit http://example.com";
+            using MemoryStream ms = new MemoryStream();
+            MarkdownToWordConverter.Convert(md, ms, new MarkdownToWordOptions());
+
+            ms.Position = 0;
+            using WordprocessingDocument doc = WordprocessingDocument.Open(ms, false);
+            var hyperlink = doc.MainDocumentPart!.Document.Body!.Descendants<Hyperlink>().FirstOrDefault();
+            Assert.NotNull(hyperlink);
+            var rel = doc.MainDocumentPart.HyperlinkRelationships.First();
+            Assert.StartsWith("http://example.com", rel.Uri.ToString());
+        }
     }
 }
