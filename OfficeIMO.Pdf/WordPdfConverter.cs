@@ -211,7 +211,7 @@ public static class WordPdfConverterExtensions {
                         if (img.Height.HasValue) {
                             sized = sized.Height((float)(img.Height.Value * 72 / 96));
                         }
-                        sized.Image(img.GetBytes());
+                        sized.Image(ImageEmbedder.GetImageBytes(img));
                     });
                 }
 
@@ -307,4 +307,4 @@ public static class WordPdfConverterExtensions {
 
         return result;
     }
-}
+}
