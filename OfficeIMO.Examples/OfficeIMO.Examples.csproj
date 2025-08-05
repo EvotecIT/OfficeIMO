@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Converters\OfficeIMO.Converters.csproj" />
         <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />

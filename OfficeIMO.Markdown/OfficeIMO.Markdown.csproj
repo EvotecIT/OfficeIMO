@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Converters\OfficeIMO.Converters.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
 

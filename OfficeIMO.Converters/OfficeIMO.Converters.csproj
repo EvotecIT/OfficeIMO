@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>An Open Source cross-platform .NET library providing HTML conversion helpers.</Description>
-        <AssemblyName>OfficeIMO.Html</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
+        <Description>Shared converter interfaces and options for OfficeIMO projects.</Description>
+        <AssemblyName>OfficeIMO.Converters</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Converters</AssemblyTitle>
 
         <VersionPrefix>1.0.6</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
@@ -16,8 +16,8 @@
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Html</PackageId>
-        <PackageTags>html;openxml;office;docx;net472;net8.0;net9.0</PackageTags>
+        <PackageId>OfficeIMO.Converters</PackageId>
+        <PackageTags>converter;openxml;office;net472;net8.0;net9.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>
@@ -39,26 +39,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\OfficeIMO.Converters\OfficeIMO.Converters.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
-    <ItemGroup>
         <Using Include="System" />
-        <Using Include="System.Text" />
-        <Using Include="System.Collections.Generic" />
-        <Using Include="System.Collections" />
-        <Using Include="System.Linq" />
         <Using Include="System.IO" />
-        <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 
 </Project>
