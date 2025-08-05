@@ -203,8 +203,14 @@ namespace OfficeIMO.Html {
                 Encoding.UTF8,
                 bufferSize: 1024,
                 leaveOpen: true);
+#if NET8_0_OR_GREATER
             await writer.WriteAsync(html.AsMemory(), cancellationToken).ConfigureAwait(false);
             await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+#else
+            await writer.WriteAsync(html).ConfigureAwait(false);
+            await writer.FlushAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
         }
     }
 }

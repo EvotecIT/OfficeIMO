@@ -94,8 +94,14 @@ namespace OfficeIMO.Markdown {
                 Encoding.UTF8,
                 bufferSize: 1024,
                 leaveOpen: true);
+#if NET8_0_OR_GREATER
             await writer.WriteAsync(markdown.AsMemory(), cancellationToken).ConfigureAwait(false);
             await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+#else
+            await writer.WriteAsync(markdown).ConfigureAwait(false);
+            await writer.FlushAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
         }
     }
 }

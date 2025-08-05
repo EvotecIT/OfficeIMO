@@ -266,7 +266,13 @@ namespace OfficeIMO.Html {
                 detectEncodingFromByteOrderMarks: true,
                 bufferSize: 1024,
                 leaveOpen: true);
-            string html = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            string html;
+#if NET8_0_OR_GREATER
+            html = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
+            html = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
             Convert(html, output, options as HtmlToWordOptions, cancellationToken);
             await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         }

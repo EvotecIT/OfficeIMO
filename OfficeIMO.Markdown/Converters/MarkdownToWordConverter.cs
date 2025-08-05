@@ -107,7 +107,13 @@ namespace OfficeIMO.Markdown {
                 detectEncodingFromByteOrderMarks: true,
                 bufferSize: 1024,
                 leaveOpen: true);
-            string markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            string markdown;
+#if NET8_0_OR_GREATER
+            markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
+            markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+#endif
             Convert(markdown, output, options as MarkdownToWordOptions, cancellationToken);
             await output.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
