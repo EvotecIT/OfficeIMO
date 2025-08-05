@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using System.Threading.Tasks;
 using OfficeIMO.Converters;
 
 namespace OfficeIMO.Html {
@@ -245,5 +246,20 @@ namespace OfficeIMO.Html {
             string html = reader.ReadToEnd();
             Convert(html, output, options as HtmlToWordOptions);
         }
+
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+            if (input == null) {
+                throw new ConversionException($"{nameof(input)} cannot be null.");
+            }
+            using StreamReader reader = new StreamReader(
+                input,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1024,
+                leaveOpen: true);
+            string html = await reader.ReadToEndAsync().ConfigureAwait(false);
+            Convert(html, output, options as HtmlToWordOptions);
+            await output.FlushAsync().ConfigureAwait(false);
+        }
     }
-}
+}

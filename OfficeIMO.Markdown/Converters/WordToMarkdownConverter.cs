@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
@@ -84,6 +85,17 @@ namespace OfficeIMO.Markdown {
                 leaveOpen: true);
             writer.Write(markdown);
             writer.Flush();
+        }
+
+        public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+            string markdown = Convert(input, options as WordToMarkdownOptions);
+            using StreamWriter writer = new StreamWriter(
+                output,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
+            await writer.WriteAsync(markdown).ConfigureAwait(false);
+            await writer.FlushAsync().ConfigureAwait(false);
         }
     }
 }

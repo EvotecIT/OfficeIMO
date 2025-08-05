@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Converters;
@@ -19,6 +20,12 @@ public class WordPdfConverter : IWordConverter {
     public void Convert(Stream input, Stream output, IConversionOptions options) {
         using WordDocument document = WordDocument.Load(input);
         document.SaveAsPdf(output, options as PdfSaveOptions);
+    }
+
+    public async Task ConvertAsync(Stream input, Stream output, IConversionOptions options) {
+        using WordDocument document = WordDocument.Load(input);
+        document.SaveAsPdf(output, options as PdfSaveOptions);
+        await output.FlushAsync().ConfigureAwait(false);
     }
 }
 

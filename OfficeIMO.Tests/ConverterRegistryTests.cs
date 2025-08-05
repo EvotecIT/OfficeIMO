@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using OfficeIMO.Converters;
 using OfficeIMO.Markdown;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -13,6 +14,16 @@ namespace OfficeIMO.Tests {
             using MemoryStream output = new MemoryStream();
             IWordConverter converter = ConverterRegistry.Resolve("markdown->word-test");
             converter.Convert(input, output, new MarkdownToWordOptions());
+            Assert.True(output.Length > 0);
+        }
+
+        [Fact]
+        public async Task RegisteredConverterCanBeResolvedAsync() {
+            ConverterRegistry.Register("markdown->word-test-async", () => new MarkdownToWordConverter());
+            using MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes("# Title"));
+            using MemoryStream output = new MemoryStream();
+            IWordConverter converter = ConverterRegistry.Resolve("markdown->word-test-async");
+            await converter.ConvertAsync(input, output, new MarkdownToWordOptions());
             Assert.True(output.Length > 0);
         }
 
