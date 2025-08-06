@@ -103,6 +103,28 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void Test_WordToHtml_TableCellStyles() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Pct;
+            table.Width = 5000;
+
+            var cell = table.Rows[0].Cells[0];
+            cell.WidthType = TableWidthUnitValues.Pct;
+            cell.Width = 2500;
+            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+            cell.Borders.LeftStyle = BorderValues.Single;
+            cell.Borders.RightStyle = BorderValues.Single;
+            cell.Borders.TopStyle = BorderValues.Single;
+            cell.Borders.BottomStyle = BorderValues.Single;
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<table style=\"width:100%;border:1px solid black;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<td style=\"width:50%;text-align:center;border:1px solid black\">", html, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 
