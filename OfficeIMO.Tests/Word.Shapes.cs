@@ -130,10 +130,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
                 section.AddShape(ShapeType.Rectangle, 40, 20, Color.Red, Color.Black);
+                section.AddShape(ShapeType.RoundedRectangle, 30, 15, Color.Yellow, Color.Black, 1, arcSize: 0.3);
                 section.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
                 section.AddHeadersAndFooters();
                 section.Header.Default.AddShape(ShapeType.Rectangle, 30, 15, Color.Blue, Color.Black);
+                section.Header.Default.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
                 section.Header.Default.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
                 document.Save(false);
@@ -141,10 +143,28 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var section = document.Sections[0];
-                Assert.Equal(2, document.Shapes.Count);
-                Assert.Equal(2, section.Shapes.Count);
+                Assert.Equal(3, document.Shapes.Count);
+                Assert.Equal(3, section.Shapes.Count);
                 Assert.True(section.Header.Default.Paragraphs[0].IsShape);
                 Assert.True(section.Header.Default.Paragraphs[1].IsShape);
+                Assert.True(section.Header.Default.Paragraphs[2].IsShape);
+            }
+        }
+
+        [Fact]
+        public void Test_AddRoundedRectangleShape() {
+            string filePath = Path.Combine(_directoryWithFiles, "RoundedRectangleShape.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var shape = document.AddShape(ShapeType.RoundedRectangle, 60, 30, Color.Lime, Color.Black, 1, arcSize: 0.3);
+                Assert.True(document.Paragraphs[0].IsShape);
+                Assert.NotNull(shape.ArcSize);
+                Assert.InRange(shape.ArcSize!.Value, 0.29, 0.31);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs[0].IsShape);
+                Assert.InRange(document.Paragraphs[0].Shape.ArcSize!.Value, 0.29, 0.31);
             }
         }
     }

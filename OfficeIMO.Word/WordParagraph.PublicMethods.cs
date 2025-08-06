@@ -756,8 +756,9 @@ namespace OfficeIMO.Word {
         /// <param name="fillColor">Fill color in hex format.</param>
         /// <param name="strokeColor">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             WordShape shape;
             switch (shapeType) {
                 case ShapeType.Rectangle:
@@ -765,6 +766,9 @@ namespace OfficeIMO.Word {
                     break;
                 case ShapeType.Ellipse:
                     shape = WordShape.AddEllipse(this, widthPt, heightPt, fillColor);
+                    break;
+                case ShapeType.RoundedRectangle:
+                    shape = WordShape.AddRoundedRectangle(this, widthPt, heightPt, fillColor, arcSize);
                     break;
                 case ShapeType.Line:
                     shape = WordShape.AddLine(this, 0, 0, widthPt, heightPt, strokeColor, strokeWeightPt);
@@ -783,8 +787,8 @@ namespace OfficeIMO.Word {
         /// Adds a basic shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
         }
 
         /// <summary>

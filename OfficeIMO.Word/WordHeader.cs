@@ -168,17 +168,18 @@ namespace OfficeIMO.Word {
         /// <param name="fillColor">Fill color in hex format.</param>
         /// <param name="strokeColor">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
-            return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt);
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
+            return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
         }
 
         /// <summary>
         /// Adds a VML shape to the header using <see cref="SixLabors.ImageSharp.Color"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
         }
 
         /// <summary>

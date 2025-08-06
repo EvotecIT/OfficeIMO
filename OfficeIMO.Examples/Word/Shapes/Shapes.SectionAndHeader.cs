@@ -11,10 +11,12 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
                 section.AddShape(ShapeType.Rectangle, 50, 25, Color.Red, Color.Black);
+                section.AddShape(ShapeType.RoundedRectangle, 40, 20, Color.Yellow, Color.Purple, 1, arcSize: 0.3);
                 section.AddShapeDrawing(ShapeType.Ellipse, 40, 40);
 
                 section.AddHeadersAndFooters();
                 section.Header.Default.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
+                section.Header.Default.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
                 section.Header.Default.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
                 document.Save(openWord);

@@ -106,6 +106,29 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a rounded rectangle shape to the given paragraph.
+        /// </summary>
+        public static WordShape AddRoundedRectangle(WordParagraph paragraph, double widthPt, double heightPt,
+            string fillColor = "#FFFFFF", double arcSize = 0.25) {
+            var arc = (int)Math.Round(arcSize * 65536d);
+            var roundRect = new V.RoundRectangle() {
+                Id = "RoundedRect" + Guid.NewGuid().ToString("N"),
+                Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
+                FillColor = fillColor,
+                Stroked = false,
+                ArcSize = $"{arc}f"
+            };
+
+            Picture pict = new Picture();
+            pict.Append(roundRect);
+
+            var run = paragraph.VerifyRun();
+            run.Append(pict);
+
+            return new WordShape(paragraph._document, paragraph._paragraph, run);
+        }
+
+        /// <summary>
         /// Adds a line shape to the given paragraph.
         /// </summary>
         public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
@@ -196,6 +219,7 @@ namespace OfficeIMO.Word {
             shapeProps.Append(new A.Transform2D(new A.Offset() { X = 0L, Y = 0L }, new A.Extents() { Cx = cx, Cy = cy }));
 
             A.ShapeTypeValues preset;
+            var adjustList = new A.AdjustValueList();
             switch (shapeType) {
                 case ShapeType.Ellipse:
                     preset = A.ShapeTypeValues.Ellipse;
@@ -203,11 +227,15 @@ namespace OfficeIMO.Word {
                 case ShapeType.Rectangle:
                     preset = A.ShapeTypeValues.Rectangle;
                     break;
+                case ShapeType.RoundedRectangle:
+                    preset = A.ShapeTypeValues.RoundRectangle;
+                    adjustList.Append(new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
             }
 
-            shapeProps.Append(new A.PresetGeometry(new A.AdjustValueList()) { Preset = preset });
+            shapeProps.Append(new A.PresetGeometry(adjustList) { Preset = preset });
             wsp.Append(shapeProps);
             graphicData.Append(wsp);
             graphic.Append(graphicData);
@@ -399,6 +427,23 @@ namespace OfficeIMO.Word {
                 if (_polygon != null) _polygon.StrokeWeight = v;
                 if (_line != null) _line.StrokeWeight = v;
                 if (_shape != null) _shape.StrokeWeight = v;
+            }
+        }
+
+        /// <summary>
+        /// Corner roundness as a fraction between 0 and 1 for rounded rectangles.
+        /// </summary>
+        public double? ArcSize {
+            get {
+                if (_roundRectangle?.ArcSize == null) return null;
+                var val = _roundRectangle.ArcSize.Value.TrimEnd('f');
+                if (!double.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num)) return null;
+                return num / 65536d;
+            }
+            set {
+                if (_roundRectangle == null || value == null) return;
+                var v = (int)Math.Round(value.Value * 65536d);
+                _roundRectangle.ArcSize = v.ToString(CultureInfo.InvariantCulture) + "f";
             }
         }
 

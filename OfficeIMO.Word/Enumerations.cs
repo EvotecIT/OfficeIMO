@@ -74,6 +74,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// A straight line shape.
         /// </summary>
-        Line
+        Line,
+
+        /// <summary>
+        /// A rectangle with rounded corners.
+        /// </summary>
+        RoundedRectangle
     }
 }

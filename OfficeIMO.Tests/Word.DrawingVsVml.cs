@@ -16,12 +16,13 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph().AddImage(img);
                 doc.AddShapeDrawing(ShapeType.Ellipse, 40, 40);
                 doc.AddShapeDrawing(ShapeType.Rectangle, 60, 30);
+                doc.AddShapeDrawing(ShapeType.RoundedRectangle, 50, 30);
                 doc.AddTextBox("Text");
                 doc.Save(false);
             }
             using (WordDocument doc = WordDocument.Load(drawingFile)) {
                 Assert.Single(doc.Images);
-                Assert.Equal(2, doc.Shapes.Count);
+                Assert.Equal(3, doc.Shapes.Count);
                 Assert.Single(doc.TextBoxes);
             }
 
@@ -30,12 +31,13 @@ namespace OfficeIMO.Tests {
                 doc.AddImageVml(img);
                 doc.AddShape(ShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
                 doc.AddShape(ShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
+                doc.AddShape(ShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);
                 doc.AddTextBoxVml("Text");
                 doc.Save(false);
             }
             using (WordDocument doc = WordDocument.Load(vmlFile)) {
                 Assert.Single(doc.Images);
-                Assert.Equal(2, doc.Shapes.Count);
+                Assert.Equal(3, doc.Shapes.Count);
                 Assert.Single(doc.TextBoxes);
             }
         }
