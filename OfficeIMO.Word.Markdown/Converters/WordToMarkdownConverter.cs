@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Word.Markdown.Converters {
@@ -44,6 +45,15 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
             }
 
+            if (document.FootNotes.Count > 0) {
+                _output.AppendLine();
+                foreach (var footnote in document.FootNotes.OrderBy(fn => fn.ReferenceId)) {
+                    if (footnote.ReferenceId.HasValue) {
+                        _output.AppendLine($"[^{footnote.ReferenceId}]: {RenderFootnote(footnote)}");
+                    }
+                }
+            }
+
             return _output.ToString().TrimEnd();
         }
 
@@ -71,8 +81,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private string RenderRuns(WordParagraph paragraph) {
             var sb = new StringBuilder();
-            foreach (var run in FormattingHelper.GetFormattedRuns(paragraph)) {
-                if (run.Image != null) {
+            foreach (var run in paragraph.GetRuns()) {
+                if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
+                    long id = run.FootNote.ReferenceId.Value;
+                    sb.Append($"[^{id}]");
+                    continue;
+                }
+
+                if (run.IsImage && run.Image != null) {
                     sb.Append(RenderImage(run.Image));
                     continue;
                 }
@@ -94,17 +110,35 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"~~{text}~~";
                 }
 
-                if (run.Code) {
+                string monospace = FontResolver.Resolve("monospace");
+                bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
+                if (code) {
                     text = $"`{text}`";
                 }
 
-                if (!string.IsNullOrEmpty(run.Hyperlink)) {
-                    text = $"[{text}]({run.Hyperlink})";
+                if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
+                    text = $"[{text}]({run.Hyperlink.Uri})";
                 }
 
                 sb.Append(text);
             }
 
+            return sb.ToString();
+        }
+
+        private string RenderFootnote(WordFootNote footNote) {
+            var paragraphs = footNote.Paragraphs;
+            if (paragraphs == null || paragraphs.Count < 2) {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            for (int i = 1; i < paragraphs.Count; i++) {
+                if (i > 1) {
+                    sb.Append(' ');
+                }
+                sb.Append(RenderRuns(paragraphs[i]));
+            }
             return sb.ToString();
         }
 

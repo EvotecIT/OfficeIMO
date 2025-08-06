@@ -48,6 +48,20 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| H1 | H2 |", markdown);
             Assert.Contains("![", markdown);
         }
+
+        [Fact]
+        public void WordToMarkdown_HandlesFootNotes() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Hello").AddFootNote("First note");
+            doc.AddParagraph("World").AddFootNote("Second note");
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            Assert.Contains("Hello[^1]", markdown);
+            Assert.Contains("World[^2]", markdown);
+            Assert.Contains("[^1]: First note", markdown);
+            Assert.Contains("[^2]: Second note", markdown);
+        }
     }
 }
 
