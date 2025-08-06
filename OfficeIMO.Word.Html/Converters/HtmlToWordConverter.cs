@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Html.Helpers;
 
@@ -144,8 +145,12 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                     case "ul":
                     case "ol": {
-                        var style = element.TagName.Equals("ul", StringComparison.OrdinalIgnoreCase) ? WordListStyle.Bulleted : WordListStyle.ArticleSections;
-                        WordList list = cell != null ? cell.AddList(style) : doc.AddList(style);
+                        WordList list;
+                        if (element.TagName.Equals("ul", StringComparison.OrdinalIgnoreCase)) {
+                            list = cell != null ? cell.AddList(WordListStyle.Bulleted) : doc.CreateBulletList();
+                        } else {
+                            list = cell != null ? cell.AddList(WordListStyle.Headings111) : doc.CreateNumberedList();
+                        }
                         listStack.Push(list);
                         foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {
                             ProcessNode(li, doc, section, options, null, listStack, formatting, cell);
@@ -167,8 +172,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         break;
                     }
                     case "img": {
-                        currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                        ProcessImage((IHtmlImageElement)element, currentParagraph);
+                        ProcessImage((IHtmlImageElement)element, doc);
                         break;
                     }
                     default: {
@@ -250,9 +254,13 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
-        private void ProcessImage(IHtmlImageElement img, WordParagraph paragraph) {
+        private void ProcessImage(IHtmlImageElement img, WordDocument doc) {
             var src = img.Source;
             if (string.IsNullOrEmpty(src)) return;
+
+            double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
+            double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
+
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 var commaIndex = src.IndexOf(',');
                 if (commaIndex > 0) {
@@ -263,16 +271,14 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (parts.Length >= 2) {
                         ext = parts[1];
                     }
-                    paragraph.AddImageFromBase64(base64, "image." + ext);
+                    doc.AddParagraph().AddImageFromBase64(base64, "image." + ext, width, height);
                 }
+            } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
+                doc.AddParagraph().AddImage(uri.LocalPath, width, height);
+            } else if (File.Exists(src)) {
+                doc.AddParagraph().AddImage(src, width, height);
             } else {
-                if (Uri.TryCreate(src, UriKind.Absolute, out var uri)) {
-                    if (uri.IsFile) {
-                        paragraph.AddImage(uri.LocalPath);
-                    }
-                } else {
-                    paragraph.AddImage(src);
-                }
+                doc.AddImageFromUrl(src, width, height);
             }
         }
     }

@@ -48,25 +48,24 @@ namespace OfficeIMO.Word.Markdown.Converters {
             switch (block) {
                 case HeadingBlock heading:
                     var headingParagraph = document.AddParagraph(string.Empty);
-                    ProcessInline(heading.Inline, headingParagraph, options);
+                    ProcessInline(heading.Inline, headingParagraph, options, document);
                     headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(heading.Level);
                     break;
                 case ParagraphBlock paragraphBlock when currentList == null:
                     var paragraph = document.AddParagraph(string.Empty);
-                    ProcessInline(paragraphBlock.Inline, paragraph, options);
+                    ProcessInline(paragraphBlock.Inline, paragraph, options, document);
                     break;
                 case ParagraphBlock paragraphBlock:
                     var listItemParagraph = currentList!.AddItem(string.Empty, listLevel);
-                    ProcessInline(paragraphBlock.Inline, listItemParagraph, options);
+                    ProcessInline(paragraphBlock.Inline, listItemParagraph, options, document);
                     break;
                 case ListBlock listBlock:
-                    var style = listBlock.IsOrdered ? WordListStyle.Headings111 : WordListStyle.Bulleted;
-                    var list = document.AddList(style);
+                    var list = listBlock.IsOrdered ? document.CreateNumberedList() : document.CreateBulletList();
                     foreach (ListItemBlock listItem in listBlock) {
                         var firstParagraph = listItem.FirstOrDefault() as ParagraphBlock;
                         if (firstParagraph != null) {
                             var listParagraph = list.AddItem(string.Empty, listLevel);
-                            ProcessInline(firstParagraph.Inline, listParagraph, options);
+                            ProcessInline(firstParagraph.Inline, listParagraph, options, document);
                         }
                         foreach (var sub in listItem.Skip(1)) {
                             ProcessBlock(sub, document, options, list, listLevel + 1);
@@ -78,7 +77,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                         if (sub is ParagraphBlock qp) {
                             var qpParagraph = document.AddParagraph(string.Empty);
                             qpParagraph.IndentationBefore = 720;
-                            ProcessInline(qp.Inline, qpParagraph, options);
+                            ProcessInline(qp.Inline, qpParagraph, options, document);
                         } else {
                             ProcessBlock(sub, document, options);
                         }
@@ -110,7 +109,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     var target = wordTable.Rows[r].Cells[c].Paragraphs[0];
                     foreach (var cellBlock in cell) {
                         if (cellBlock is ParagraphBlock pb) {
-                            ProcessInline(pb.Inline, target, options);
+                            ProcessInline(pb.Inline, target, options, document);
                         }
                     }
                     c++;
@@ -119,7 +118,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
         }
 
-        private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options) {
+        private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options, WordDocument document) {
             if (inline == null) {
                 return;
             }
@@ -137,7 +136,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 if (current is LinkInline link) {
                     Flush();
                     if (link.IsImage) {
-                        AddImage(paragraph, link);
+                        AddImage(document, paragraph, link);
                     } else {
                         string label = BuildMarkdown(link.FirstChild);
                         var hyperlink = paragraph.AddHyperLink(label, new Uri(link.Url, UriKind.RelativeOrAbsolute));
@@ -152,11 +151,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
             Flush();
         }
 
-        private static void AddImage(WordParagraph paragraph, LinkInline link) {
+        private static void AddImage(WordDocument document, WordParagraph paragraph, LinkInline link) {
             if (File.Exists(link.Url)) {
                 paragraph.AddImage(link.Url);
-            } else if (Uri.TryCreate(link.Url, UriKind.Absolute, out var uri)) {
-                paragraph.AddImage(uri, 50, 50);
+            } else {
+                document.AddImageFromUrl(link.Url, 50, 50);
             }
         }
 
