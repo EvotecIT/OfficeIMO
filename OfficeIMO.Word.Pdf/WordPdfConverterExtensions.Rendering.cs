@@ -8,6 +8,24 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private static readonly Dictionary<W.HighlightColorValues, string> HighlightColors = new() {
+            { W.HighlightColorValues.Yellow, "#ffff00" },
+            { W.HighlightColorValues.Green, "#00ff00" },
+            { W.HighlightColorValues.Cyan, "#00ffff" },
+            { W.HighlightColorValues.Magenta, "#ff00ff" },
+            { W.HighlightColorValues.Blue, "#0000ff" },
+            { W.HighlightColorValues.Red, "#ff0000" },
+            { W.HighlightColorValues.DarkBlue, "#00008b" },
+            { W.HighlightColorValues.DarkCyan, "#008b8b" },
+            { W.HighlightColorValues.DarkGreen, "#006400" },
+            { W.HighlightColorValues.DarkMagenta, "#8b008b" },
+            { W.HighlightColorValues.DarkRed, "#8b0000" },
+            { W.HighlightColorValues.DarkYellow, "#808000" },
+            { W.HighlightColorValues.DarkGray, "#a9a9a9" },
+            { W.HighlightColorValues.LightGray, "#d3d3d3" },
+            { W.HighlightColorValues.Black, "#000000" },
+            { W.HighlightColorValues.White, "#ffffff" }
+        };
         static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options) {
             if (paragraph == null) {
                 return container;
@@ -89,6 +107,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 if (!string.IsNullOrEmpty(paragraph.ColorHex)) {
                     span = span.FontColor("#" + paragraph.ColorHex);
+                }
+                if (paragraph.FontSize.HasValue) {
+                    span = span.FontSize(paragraph.FontSize.Value);
+                }
+                if (paragraph.Strike || paragraph.DoubleStrike) {
+                    span = span.Strikethrough();
+                }
+                if (paragraph.Highlight.HasValue && paragraph.Highlight.Value != W.HighlightColorValues.None) {
+                    if (HighlightColors.TryGetValue(paragraph.Highlight.Value, out string? color)) {
+                        span = span.BackgroundColor(color);
+                    }
                 }
                 if (paragraph.Style.HasValue) {
                     switch (paragraph.Style.Value) {
