@@ -43,58 +43,55 @@ public static partial class WordPdfConverterExtensions {
         Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = BuildListMarkers(document);
 
         Document pdf = Document.Create(container => {
-            container.Page(page => {
-                float margin = options?.Margin ?? 1;
-                Unit unit = options?.MarginUnit ?? Unit.Centimetre;
-                page.Margin(margin, unit);
+            foreach (WordSection section in document.Sections) {
+                container.Page(page => {
+                    float margin = options?.Margin ?? 1;
+                    Unit unit = options?.MarginUnit ?? Unit.Centimetre;
+                    page.Margin(margin, unit);
 
-                PageSize size = PageSizes.A4;
-                PdfPageOrientation? orientation = null;
-                if (options != null) {
-                    if (options.PageSize != null) {
-                        size = options.PageSize;
-                    } else if (options.DefaultPageSize.HasValue) {
-                        size = MapToPageSize(options.DefaultPageSize.Value);
-                    }
+                    PageSize size = PageSizes.A4;
+                    PdfPageOrientation? orientation = null;
+                    if (options != null) {
+                        if (options.PageSize != null) {
+                            size = options.PageSize;
+                        } else if (options.DefaultPageSize.HasValue) {
+                            size = MapToPageSize(options.DefaultPageSize.Value);
+                        }
 
-                    orientation = options.Orientation;
-                    if (orientation == null && options.DefaultOrientation.HasValue) {
-                        orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
-                    }
-                }
-
-                if (orientation == PdfPageOrientation.Landscape) {
-                    size = size.Landscape();
-                } else if (orientation == PdfPageOrientation.Portrait) {
-                    size = size.Portrait();
-                }
-
-                page.Size(size);
-
-                WordHeaderFooter header = document.Header?.Default;
-                if (header != null && (header.Paragraphs.Count > 0 || header.Tables.Count > 0)) {
-                    page.Header().Column(col => {
-                        RenderElements(col, header.Paragraphs, header.Tables);
-                    });
-                }
-
-                WordHeaderFooter footer = document.Footer?.Default;
-                if (footer != null && (footer.Paragraphs.Count > 0 || footer.Tables.Count > 0)) {
-                    page.Footer().Column(col => {
-                        RenderElements(col, footer.Paragraphs, footer.Tables);
-                    });
-                }
-
-                page.Content().Column(column => {
-                    foreach (WordElement element in document.Elements) {
-                        if (element is WordParagraph paragraph) {
-                            column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
-                        } else if (element is WordTable table) {
-                            column.Item().Element(e => RenderTable(e, table));
+                        orientation = options.Orientation;
+                        if (orientation == null && options.DefaultOrientation.HasValue) {
+                            orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
                         }
                     }
+
+                    if (orientation == PdfPageOrientation.Landscape) {
+                        size = size.Landscape();
+                    } else if (orientation == PdfPageOrientation.Portrait) {
+                        size = size.Portrait();
+                    }
+
+                    page.Size(size);
+
+                    RenderHeader(page, section);
+                    RenderFooter(page, section);
+
+                    page.Content().Column(column => {
+                        foreach (WordElement element in section.Elements) {
+                            if (element is WordParagraph paragraph) {
+                                column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
+                            } else if (element is WordTable table) {
+                                column.Item().Element(e => RenderTable(e, table));
+                            } else if (element is WordImage image) {
+                                column.Item().Element(e => RenderImage(e, image));
+                            } else if (element is WordHyperLink link) {
+                                column.Item().Element(e => RenderHyperLink(e, link));
+                            } else if (element is WordShape shape) {
+                                column.Item().Element(e => RenderShape(e, shape));
+                            }
+                        }
+                    });
                 });
-            });
+            }
         });
 
         return pdf;
@@ -115,6 +112,64 @@ public static partial class WordPdfConverterExtensions {
             foreach (WordTable table in tables) {
                 column.Item().Element(e => RenderTable(e, table));
             }
+        }
+
+        void RenderHeader(PageDescriptor page, WordSection section) {
+            if (section.Header == null) return;
+            bool hasContent =
+                (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0)) ||
+                (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0)) ||
+                (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0));
+            if (!hasContent) return;
+
+            page.Header().Layers(layers => {
+                if (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0)) {
+                    layers.PrimaryLayer().ShowIf(x => (section.Header.First == null || x.PageNumber > 1) && (section.Header.Even == null || x.PageNumber % 2 == 1)).Column(col => {
+                        RenderElements(col, section.Header.Default.Paragraphs, section.Header.Default.Tables);
+                    });
+                }
+
+                if (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0)) {
+                    layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
+                        RenderElements(col, section.Header.First.Paragraphs, section.Header.First.Tables);
+                    });
+                }
+
+                if (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0)) {
+                    layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
+                        RenderElements(col, section.Header.Even.Paragraphs, section.Header.Even.Tables);
+                    });
+                }
+            });
+        }
+
+        void RenderFooter(PageDescriptor page, WordSection section) {
+            if (section.Footer == null) return;
+            bool hasContent =
+                (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) ||
+                (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) ||
+                (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0));
+            if (!hasContent) return;
+
+            page.Footer().Layers(layers => {
+                if (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) {
+                    layers.PrimaryLayer().ShowIf(x => (section.Footer.First == null || x.PageNumber > 1) && (section.Footer.Even == null || x.PageNumber % 2 == 1)).Column(col => {
+                        RenderElements(col, section.Footer.Default.Paragraphs, section.Footer.Default.Tables);
+                    });
+                }
+
+                if (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) {
+                    layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
+                        RenderElements(col, section.Footer.First.Paragraphs, section.Footer.First.Tables);
+                    });
+                }
+
+                if (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0)) {
+                    layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
+                        RenderElements(col, section.Footer.Even.Paragraphs, section.Footer.Even.Tables);
+                    });
+                }
+            });
         }
 
         IContainer RenderTable(IContainer container, WordTable table) {

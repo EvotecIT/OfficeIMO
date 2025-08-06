@@ -142,5 +142,43 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
         }
+
+        static IContainer RenderImage(IContainer container, WordImage image) {
+            if (image == null) {
+                return container;
+            }
+
+            var sized = container;
+            if (image.Width.HasValue) {
+                sized = sized.Width((float)(image.Width.Value * 72 / 96));
+            }
+            if (image.Height.HasValue) {
+                sized = sized.Height((float)(image.Height.Value * 72 / 96));
+            }
+            sized.Image(ImageEmbedder.GetImageBytes(image));
+
+            return container;
+        }
+
+        static IContainer RenderHyperLink(IContainer container, WordHyperLink link) {
+            if (link == null) {
+                return container;
+            }
+
+            container.Text(text => {
+                text.Hyperlink(link.Text, link.Uri.ToString());
+            });
+
+            return container;
+        }
+
+        static IContainer RenderShape(IContainer container, WordShape shape) {
+            if (shape == null) {
+                return container;
+            }
+
+            container.Text("[Shape]");
+            return container;
+        }
     }
 }
