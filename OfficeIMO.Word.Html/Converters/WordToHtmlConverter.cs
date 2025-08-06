@@ -6,6 +6,7 @@ using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html.Converters {
@@ -142,6 +143,57 @@ namespace OfficeIMO.Word.Html.Converters {
                 parent.AppendChild(element);
             }
 
+            string? GetWidthCss(TableWidthUnitValues? type, int? width) {
+                if (type == null || width == null) {
+                    return null;
+                }
+
+                if (type == TableWidthUnitValues.Pct) {
+                    return $"{width.Value / 50}%";
+                }
+
+                if (type == TableWidthUnitValues.Dxa) {
+                    double points = width.Value / 20.0;
+                    double pixels = points * 96 / 72;
+                    return $"{Math.Round(pixels)}px";
+                }
+
+                return null;
+            }
+
+            string? GetTextAlignCss(JustificationValues? justification) {
+                if (justification == null) {
+                    return null;
+                }
+
+                if (justification == JustificationValues.Center) {
+                    return "center";
+                }
+
+                if (justification == JustificationValues.Right) {
+                    return "right";
+                }
+
+                if (justification == JustificationValues.Left) {
+                    return "left";
+                }
+
+                if (justification == JustificationValues.Both) {
+                    return "justify";
+                }
+
+                return null;
+            }
+
+            bool CellHasBorder(WordTableCell cell) {
+                var b = cell.Borders;
+                return b != null && (b.LeftStyle != null || b.RightStyle != null || b.TopStyle != null || b.BottomStyle != null);
+            }
+
+            bool TableHasBorder(WordTable table) {
+                return table.Rows.Any(r => r.Cells.Any(CellHasBorder));
+            }
+
             string? GetListStyle(DocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
                 if (format == NumberFormatValues.Decimal) {
@@ -213,10 +265,37 @@ namespace OfficeIMO.Word.Html.Converters {
                     } else if (element is WordTable table) {
                         CloseLists();
                         var tableEl = htmlDoc.CreateElement("table");
+                        var tableStyles = new List<string>();
+                        var tableWidth = GetWidthCss(table.WidthType, table.Width);
+                        if (!string.IsNullOrEmpty(tableWidth)) {
+                            tableStyles.Add($"width:{tableWidth}");
+                        }
+                        if (TableHasBorder(table)) {
+                            tableStyles.Add("border:1px solid black;border-collapse:collapse");
+                        }
+                        if (tableStyles.Count > 0) {
+                            tableEl.SetAttribute("style", string.Join(";", tableStyles));
+                        }
+
                         foreach (var row in table.Rows) {
                             var tr = htmlDoc.CreateElement("tr");
                             foreach (var cell in row.Cells) {
                                 var td = htmlDoc.CreateElement("td");
+                                var cellStyles = new List<string>();
+                                var width = GetWidthCss(cell.WidthType, cell.Width);
+                                if (!string.IsNullOrEmpty(width)) {
+                                    cellStyles.Add($"width:{width}");
+                                }
+                                var align = GetTextAlignCss(cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment);
+                                if (!string.IsNullOrEmpty(align)) {
+                                    cellStyles.Add($"text-align:{align}");
+                                }
+                                if (CellHasBorder(cell)) {
+                                    cellStyles.Add("border:1px solid black");
+                                }
+                                if (cellStyles.Count > 0) {
+                                    td.SetAttribute("style", string.Join(";", cellStyles));
+                                }
                                 foreach (var p in cell.Paragraphs) {
                                     AppendParagraph(td, p);
                                 }
