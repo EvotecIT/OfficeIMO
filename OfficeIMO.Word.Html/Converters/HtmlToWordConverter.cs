@@ -49,7 +49,17 @@ namespace OfficeIMO.Word.Html.Converters {
             return wordDoc;
         }
 
-        private readonly record struct TextFormatting(bool Bold = false, bool Italic = false, bool Underline = false);
+        private struct TextFormatting {
+            public bool Bold;
+            public bool Italic;
+            public bool Underline;
+
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false) {
+                Bold = bold;
+                Italic = italic;
+                Underline = underline;
+            }
+        }
 
         private static WordParagraphStyles GetHeadingStyleForLevel(int level) => level switch {
             1 => WordParagraphStyles.Heading1,
@@ -112,7 +122,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                     case "strong":
                     case "b": {
-                        var fmt = formatting with { Bold = true };
+                        var fmt = new TextFormatting(true, formatting.Italic, formatting.Underline);
                         foreach (var child in element.ChildNodes) {
                             ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                         }
@@ -120,14 +130,14 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                     case "em":
                     case "i": {
-                        var fmt = formatting with { Italic = true };
+                        var fmt = new TextFormatting(formatting.Bold, true, formatting.Underline);
                         foreach (var child in element.ChildNodes) {
                             ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                         }
                         break;
                     }
                     case "u": {
-                        var fmt = formatting with { Underline = true };
+                        var fmt = new TextFormatting(formatting.Bold, formatting.Italic, true);
                         foreach (var child in element.ChildNodes) {
                             ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                         }
