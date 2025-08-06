@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -21,7 +22,12 @@ namespace OfficeIMO.Word.Html {
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
         public PageOrientationValues? DefaultOrientation { get; set; }
-        
+
+        /// <summary>
+        /// Maps HTML class names to paragraph styles. Example: <code>ClassStyles["title"] = WordParagraphStyles.Heading1;</code>
+        /// </summary>
+        public Dictionary<string, WordParagraphStyles> ClassStyles { get; } = new Dictionary<string, WordParagraphStyles>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// When true, attempts to include list styling information during conversion.
         /// </summary>
