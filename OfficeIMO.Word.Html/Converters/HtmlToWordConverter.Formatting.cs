@@ -28,9 +28,45 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
-            var style = CssStyleMapper.MapParagraphStyle(element.GetAttribute("style"));
+            string? styleAttribute = element.GetAttribute("style");
+            var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
             if (style.HasValue) {
                 paragraph.Style = style.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(styleAttribute)) {
+                return;
+            }
+
+            foreach (var part in styleAttribute.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length != 2) {
+                    continue;
+                }
+                var name = pieces[0].Trim().ToLowerInvariant();
+                var value = pieces[1].Trim();
+                switch (name) {
+                    case "color":
+                        var color = NormalizeColor(value);
+                        if (color != null) {
+                            paragraph.SetColorHex(color);
+                        }
+                        break;
+                    case "background-color":
+                        var bgColor = NormalizeColor(value);
+                        if (bgColor != null) {
+                            var highlight = MapColorToHighlight(bgColor);
+                            if (highlight.HasValue) {
+                                paragraph.SetHighlight(highlight.Value);
+                            }
+                        }
+                        break;
+                    case "font-size":
+                        if (TryParseFontSize(value, out int size)) {
+                            paragraph.SetFontSize(size);
+                        }
+                        break;
+                }
             }
         }
 
@@ -143,6 +179,27 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
             return null;
+        }
+
+        private static HighlightColorValues? MapColorToHighlight(string hex) {
+            return hex.ToLowerInvariant() switch {
+                "ffff00" => HighlightColorValues.Yellow,
+                "00ff00" => HighlightColorValues.Green,
+                "00ffff" => HighlightColorValues.Cyan,
+                "ff00ff" => HighlightColorValues.Magenta,
+                "0000ff" => HighlightColorValues.Blue,
+                "ff0000" => HighlightColorValues.Red,
+                "00008b" => HighlightColorValues.DarkBlue,
+                "008b8b" => HighlightColorValues.DarkCyan,
+                "006400" => HighlightColorValues.DarkGreen,
+                "8b008b" => HighlightColorValues.DarkMagenta,
+                "8b0000" => HighlightColorValues.DarkRed,
+                "808000" => HighlightColorValues.DarkYellow,
+                "a9a9a9" => HighlightColorValues.DarkGray,
+                "d3d3d3" => HighlightColorValues.LightGray,
+                "000000" => HighlightColorValues.Black,
+                _ => null,
+            };
         }
     }
 }
