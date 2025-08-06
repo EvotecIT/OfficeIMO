@@ -115,7 +115,7 @@ public partial class Html {
         Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Skip = "TODO: Implement automatic URL detection and hyperlink creation")]
+    [Fact]
     public void Test_Html_Urls_CreateHyperlinks() {
         string html = "<p>Visit http://example.com</p>";
         using MemoryStream ms = new MemoryStream();
@@ -131,7 +131,7 @@ public partial class Html {
         Assert.StartsWith("http://example.com", rel.Uri.ToString());
     }
 
-    [Fact(Skip = "TODO: Implement CSS inline styles parsing and application")]
+    [Fact]
     public void Test_Html_InlineStyles_ParagraphStyle() {
         string html = "<p style=\"font-weight:bold;font-size:32px\">Styled</p>";
         using MemoryStream ms = new MemoryStream();
@@ -144,5 +144,63 @@ public partial class Html {
         Paragraph p = docx.MainDocumentPart!.Document.Body!.Elements<Paragraph>().First();
         string styleId = p.ParagraphProperties?.ParagraphStyleId?.Val;
         Assert.Equal(WordParagraphStyles.Heading1.ToString(), styleId);
+    }
+
+    [Fact]
+    public void Test_Html_Headings() {
+        string html = "<h1>Heading 1</h1><h2>Heading 2</h2>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
+        Assert.Equal("Heading 1", doc.Paragraphs[0].Text);
+        Assert.Equal(WordParagraphStyles.Heading2, doc.Paragraphs[1].Style);
+    }
+
+    [Fact]
+    public void Test_Html_Lists_Structure() {
+        string html = "<ul><li>Item 1<ul><li>Sub 1</li></ul></li><li>Item 2</li></ul>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.True(doc.Lists.Count > 0);
+    }
+
+    [Fact]
+    public void Test_Html_Table_Structure() {
+        string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        using MemoryStream ms = new MemoryStream();
+        doc.Save(ms);
+        ms.Position = 0;
+        using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
+        var cells = docx.MainDocumentPart!.Document.Body!.Descendants<TableCell>().ToArray();
+        Assert.Contains("A", cells[0].InnerText);
+        Assert.Contains("D", cells[3].InnerText);
+    }
+
+    [Fact]
+    public void Test_Html_Image_Base64_Conversion() {
+        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        byte[] imageBytes = File.ReadAllBytes(assetPath);
+        string base64 = Convert.ToBase64String(imageBytes);
+        string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Single(doc.Images);
+    }
+
+    [Fact]
+    public void Test_Html_Image_File_Conversion() {
+        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string uri = new Uri(assetPath).AbsoluteUri;
+        string html = $"<p><img src=\"{uri}\" /></p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Single(doc.Images);
     }
 }
