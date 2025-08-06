@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     ProcessInline(paragraphBlock.Inline, listItemParagraph, options, document);
                     break;
                 case ListBlock listBlock:
-                    ProcessListBlock(listBlock, document, options, listLevel);
+                    ProcessListBlock(listBlock, document, options, currentList, listLevel);
                     break;
                 case QuoteBlock quote:
                     foreach (var sub in quote) {
