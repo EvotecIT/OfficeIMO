@@ -185,18 +185,18 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Creates a bullet list using the default bulleted style.
+        /// Adds a bulleted list using the default bulleted style.
         /// </summary>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList CreateBulletList() {
+        public WordList AddListBulleted() {
             return AddList(WordListStyle.Bulleted);
         }
 
         /// <summary>
-        /// Creates a numbered list using the default heading style.
+        /// Adds a numbered list using the default heading style.
         /// </summary>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList CreateNumberedList() {
+        public WordList AddListNumbered() {
             return AddList(WordListStyle.Headings111);
         }
 

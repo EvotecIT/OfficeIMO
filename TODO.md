@@ -329,8 +329,8 @@ WordParagraph AddFormattedText(string text, bool bold, bool italic);
 WordHyperlink AddHyperlink(string text, string url); // May already exist
 
 // List helpers
-WordList CreateBulletList(); // Check if AddList() already exists
-WordList CreateNumberedList();
+WordList AddListBulleted(); // Check if AddList() already exists
+WordList AddListNumbered();
 
 // Image helpers
 WordImage AddImageFromBase64(string base64);
