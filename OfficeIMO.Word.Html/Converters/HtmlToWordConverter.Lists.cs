@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var list = listStack.Peek();
             int level = listStack.Count - 1;
             var paragraph = list.AddItem("", level);
+            ApplyClassStyle(element, paragraph, options);
             foreach (var child in element.ChildNodes) {
                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
             }
