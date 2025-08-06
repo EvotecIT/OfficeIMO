@@ -147,9 +147,9 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "ol": {
                         WordList list;
                         if (element.TagName.Equals("ul", StringComparison.OrdinalIgnoreCase)) {
-                            list = cell != null ? cell.AddList(WordListStyle.Bulleted) : doc.CreateBulletList();
+                            list = cell != null ? cell.AddList(WordListStyle.Bulleted) : doc.AddListBulleted();
                         } else {
-                            list = cell != null ? cell.AddList(WordListStyle.Headings111) : doc.CreateNumberedList();
+                            list = cell != null ? cell.AddList(WordListStyle.Headings111) : doc.AddListNumbered();
                         }
                         listStack.Push(list);
                         foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {

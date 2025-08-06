@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests {
         public void Test_ListHelpers() {
             var filePath = Path.Combine(_directoryWithFiles, "ListHelpers.docx");
             using (var document = WordDocument.Create(filePath)) {
-                var bullet = document.CreateBulletList();
+                var bullet = document.AddListBulleted();
                 bullet.AddItem("One");
 
-                var numbered = document.CreateNumberedList();
+                var numbered = document.AddListNumbered();
                 numbered.AddItem("First");
                 document.Save(false);
             }

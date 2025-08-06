@@ -60,7 +60,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     ProcessInline(paragraphBlock.Inline, listItemParagraph, options, document);
                     break;
                 case ListBlock listBlock:
-                    var list = listBlock.IsOrdered ? document.CreateNumberedList() : document.CreateBulletList();
+                    var list = listBlock.IsOrdered ? document.AddListNumbered() : document.AddListBulleted();
                     foreach (ListItemBlock listItem in listBlock) {
                         var firstParagraph = listItem.FirstOrDefault() as ParagraphBlock;
                         if (firstParagraph != null) {
