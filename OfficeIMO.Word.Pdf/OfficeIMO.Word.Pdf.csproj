@@ -14,6 +14,10 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="WordPdfConverterExtensions.Tables.cs" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="QuestPDF" Version="2025.7.0" />
   </ItemGroup>

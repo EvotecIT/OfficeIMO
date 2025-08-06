@@ -36,6 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Converters/MarkdownToWordConverter.Tables.cs" />
+    <Compile Update="Converters/MarkdownToWordConverter.Lists.cs" />
+    <Compile Update="Converters/MarkdownToWordConverter.Inlines.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="System" />
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
