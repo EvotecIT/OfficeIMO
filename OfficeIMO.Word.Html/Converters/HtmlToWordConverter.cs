@@ -112,6 +112,14 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "span": {
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
                     case "a": {
                             var href = element.GetAttribute("href");
                             if (!string.IsNullOrEmpty(href)) {
