@@ -125,6 +125,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<table style=\"width:100%;border:1px solid black;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<td style=\"width:50%;text-align:center;border:1px solid black\">", html, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void Test_WordToHtml_Blockquote() {
+            using var doc = WordDocument.Create();
+            var p = doc.AddParagraph("Quoted text");
+            p.IndentationBefore = 720;
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<blockquote>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Quoted text", html, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 

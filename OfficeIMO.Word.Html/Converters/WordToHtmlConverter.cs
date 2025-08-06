@@ -138,7 +138,9 @@ namespace OfficeIMO.Word.Html.Converters {
 
             void AppendParagraph(IElement parent, WordParagraph para) {
                 int level = para.Style.HasValue ? HeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
-                var element = htmlDoc.CreateElement(level > 0 ? $"h{level}" : "p");
+                bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
+                    || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
+                var element = htmlDoc.CreateElement(isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 AppendRuns(element, para);
                 parent.AppendChild(element);
             }

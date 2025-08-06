@@ -84,6 +84,16 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "blockquote": {
+                            var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            paragraph.SetStyleId("Quote");
+                            paragraph.IndentationBefore = 720;
+                            ApplyParagraphStyleFromCss(paragraph, element);
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                            }
+                            break;
+                        }
                     case "div": {
                             var fmt = formatting;
                             var divStyle = element.GetAttribute("style");
