@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Html.Converters {
             bool IsOrdered(WordListStyle? style) {
                 if (style == null) return true;
                 string name = style.Value.ToString();
-                return !name.Contains("Bullet", StringComparison.OrdinalIgnoreCase);
+                return name.IndexOf("Bullet", StringComparison.OrdinalIgnoreCase) < 0;
             }
 
             void CloseLists() {
