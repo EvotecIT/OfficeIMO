@@ -1,51 +1,13 @@
+using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
-using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        static IContainer ApplyCellStyle(IContainer container, WordTableCell cell) {
-            if (!string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
-                container = container.Background("#" + cell.ShadingFillColorHex);
-            }
-
-            WordTableCellBorder borders = cell.Borders;
-
-            List<string> colors = new() {
-                borders.TopColorHex,
-                borders.BottomColorHex,
-                borders.LeftColorHex,
-                borders.RightColorHex
-            };
-            colors.RemoveAll(string.IsNullOrEmpty);
-            if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
-                container = container.BorderColor("#" + colors[0]);
-            }
-
-            if (HasBorder(borders.TopStyle)) {
-                container = container.BorderTop(GetBorderWidth(borders.TopSize));
-            }
-            if (HasBorder(borders.BottomStyle)) {
-                container = container.BorderBottom(GetBorderWidth(borders.BottomSize));
-            }
-            if (HasBorder(borders.LeftStyle)) {
-                container = container.BorderLeft(GetBorderWidth(borders.LeftSize));
-            }
-            if (HasBorder(borders.RightStyle)) {
-                container = container.BorderRight(GetBorderWidth(borders.RightSize));
-            }
-
-            return container;
-        }
-
-        static bool HasBorder(W.BorderValues? style) => style != null && style != W.BorderValues.Nil && style != W.BorderValues.None;
-
-        static float GetBorderWidth(UInt32Value size) => size != null ? size.Value / 8f : 1f;
-
         static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker) {
             if (paragraph == null) {
                 return container;
