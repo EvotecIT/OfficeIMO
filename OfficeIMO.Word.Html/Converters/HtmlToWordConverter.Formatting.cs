@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Color = SixLabors.ImageSharp.Color;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
@@ -157,13 +159,6 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
             value = value.Trim();
-            if (value.StartsWith("#", StringComparison.Ordinal)) {
-                var hex = value.Substring(1);
-                if (hex.Length == 3) {
-                    hex = string.Concat(hex.Select(c => new string(c, 2)));
-                }
-                return hex.ToLowerInvariant();
-            }
             if (value.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
                 int start = value.IndexOf('(');
                 int end = value.IndexOf(')');
@@ -173,33 +168,67 @@ namespace OfficeIMO.Word.Html.Converters {
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
                         byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
-                        var hex = string.Concat(r.ToString("X2"), g.ToString("X2"), b.ToString("X2"));
-                        return hex.ToLowerInvariant();
+                        var color = new Color(new Rgb24(r, g, b));
+                        return color.ToHexColor();
                     }
                 }
+                return null;
             }
-            return null;
+            try {
+                var parsed = Color.Parse(value);
+                return parsed.ToHexColor();
+            } catch {
+                if (!value.StartsWith("#", StringComparison.Ordinal)) {
+                    try {
+                        var parsed = Color.Parse("#" + value);
+                        return parsed.ToHexColor();
+                    } catch {
+                        return null;
+                    }
+                }
+                return null;
+            }
         }
 
+        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new() {
+            { HighlightColorValues.Yellow, Color.Yellow },
+            { HighlightColorValues.Green, Color.Lime },
+            { HighlightColorValues.Cyan, Color.Cyan },
+            { HighlightColorValues.Magenta, Color.Magenta },
+            { HighlightColorValues.Blue, Color.Blue },
+            { HighlightColorValues.Red, Color.Red },
+            { HighlightColorValues.DarkBlue, Color.DarkBlue },
+            { HighlightColorValues.DarkCyan, Color.DarkCyan },
+            { HighlightColorValues.DarkGreen, Color.DarkGreen },
+            { HighlightColorValues.DarkMagenta, Color.DarkMagenta },
+            { HighlightColorValues.DarkRed, Color.DarkRed },
+            { HighlightColorValues.DarkYellow, Color.Parse("#808000") },
+            { HighlightColorValues.DarkGray, Color.DarkGray },
+            { HighlightColorValues.LightGray, Color.LightGray },
+            { HighlightColorValues.Black, Color.Black },
+            { HighlightColorValues.White, Color.White }
+        };
+
         private static HighlightColorValues? MapColorToHighlight(string hex) {
-            return hex.ToLowerInvariant() switch {
-                "ffff00" => HighlightColorValues.Yellow,
-                "00ff00" => HighlightColorValues.Green,
-                "00ffff" => HighlightColorValues.Cyan,
-                "ff00ff" => HighlightColorValues.Magenta,
-                "0000ff" => HighlightColorValues.Blue,
-                "ff0000" => HighlightColorValues.Red,
-                "00008b" => HighlightColorValues.DarkBlue,
-                "008b8b" => HighlightColorValues.DarkCyan,
-                "006400" => HighlightColorValues.DarkGreen,
-                "8b008b" => HighlightColorValues.DarkMagenta,
-                "8b0000" => HighlightColorValues.DarkRed,
-                "808000" => HighlightColorValues.DarkYellow,
-                "a9a9a9" => HighlightColorValues.DarkGray,
-                "d3d3d3" => HighlightColorValues.LightGray,
-                "000000" => HighlightColorValues.Black,
-                _ => null,
-            };
+            try {
+                var target = Color.Parse("#" + hex);
+                var targetRgb = target.ToPixel<Rgb24>();
+                HighlightColorValues? best = null;
+                int bestDistance = int.MaxValue;
+                foreach (var pair in _highlightColors) {
+                    var rgb = pair.Value.ToPixel<Rgb24>();
+                    int distance = (rgb.R - targetRgb.R) * (rgb.R - targetRgb.R) +
+                                   (rgb.G - targetRgb.G) * (rgb.G - targetRgb.G) +
+                                   (rgb.B - targetRgb.B) * (rgb.B - targetRgb.B);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = pair.Key;
+                    }
+                }
+                return best;
+            } catch {
+                return null;
+            }
         }
     }
 }
