@@ -221,6 +221,33 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
 
+            string? GetListType(DocumentTraversal.ListInfo info) {
+                var format = info.NumberFormat;
+                if (format == NumberFormatValues.Decimal) {
+                    return "1";
+                }
+                if (format == NumberFormatValues.LowerLetter) {
+                    return "a";
+                }
+                if (format == NumberFormatValues.UpperLetter) {
+                    return "A";
+                }
+                if (format == NumberFormatValues.LowerRoman) {
+                    return "i";
+                }
+                if (format == NumberFormatValues.UpperRoman) {
+                    return "I";
+                }
+                if (format == NumberFormatValues.Bullet) {
+                    return info.LevelText switch {
+                        "o" or "◦" => "circle",
+                        "■" or "§" => "square",
+                        _ => "disc",
+                    };
+                }
+                return null;
+            }
+
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 foreach (var element in section.Elements) {
                     if (element is WordParagraph paragraph) {
@@ -237,6 +264,10 @@ namespace OfficeIMO.Word.Html.Converters {
                                 var listEl = htmlDoc.CreateElement(listTag);
                                 if (ordered && listInfo.Value.Start > 1) {
                                     listEl.SetAttribute("start", listInfo.Value.Start.ToString());
+                                }
+                                var typeAttr = GetListType(listInfo.Value);
+                                if (!string.IsNullOrEmpty(typeAttr)) {
+                                    listEl.SetAttribute("type", typeAttr);
                                 }
                                 if (options.IncludeListStyles) {
                                     var css = GetListStyle(listInfo.Value);

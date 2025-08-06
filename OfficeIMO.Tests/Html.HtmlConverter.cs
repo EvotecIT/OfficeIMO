@@ -167,6 +167,25 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_OrderedList_StartAndType() {
+        string html = "<ol start=\"5\" type=\"a\"><li>First</li><li>Second</li></ol>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Equal(5, doc.Lists[0].Numbering.Levels[0].StartNumberingValue);
+        Assert.Equal(NumberFormatValues.LowerLetter, doc.Lists[0].Numbering.Levels[0]._level.NumberingFormat.Val.Value);
+    }
+
+    [Fact]
+    public void Test_Html_UnorderedList_Type() {
+        string html = "<ul type=\"circle\"><li>A</li><li>B</li></ul>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Equal("o", doc.Lists[0].Numbering.Levels[0]._level.LevelText.Val);
+    }
+
+    [Fact]
     public void Test_Html_Table_Structure() {
         string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
 

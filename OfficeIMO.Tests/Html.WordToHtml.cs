@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<ol start=\"4\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ol start=\"4\" type=\"1\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -101,7 +101,21 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
 
+            Assert.Contains("<ol type=\"I\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_BulletType() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.Bulleted);
+            list.Numbering.Levels[0]._level.LevelText.Val = "o";
+            list.AddItem("One");
+            list.AddItem("Two");
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<ul type=\"circle\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
