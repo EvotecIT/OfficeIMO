@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -31,14 +32,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 foreach (var paragraph in section.Paragraphs) {
-                    var text = ConvertParagraph(paragraph);
+                    var text = ConvertParagraph(paragraph, options);
                     if (!string.IsNullOrEmpty(text)) {
                         _output.AppendLine(text);
                     }
                 }
 
                 foreach (var table in section.Tables) {
-                    var tableText = ConvertTable(table);
+                    var tableText = ConvertTable(table, options);
                     if (!string.IsNullOrEmpty(tableText)) {
                         _output.AppendLine(tableText);
                     }
@@ -49,7 +50,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 _output.AppendLine();
                 foreach (var footnote in document.FootNotes.OrderBy(fn => fn.ReferenceId)) {
                     if (footnote.ReferenceId.HasValue) {
-                        _output.AppendLine($"[^{footnote.ReferenceId}]: {RenderFootnote(footnote)}");
+                        _output.AppendLine($"[^{footnote.ReferenceId}]: {RenderFootnote(footnote, options)}");
                     }
                 }
             }
@@ -57,7 +58,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return _output.ToString().TrimEnd();
         }
 
-        private string ConvertParagraph(WordParagraph paragraph) {
+        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
 
             int? headingLevel = paragraph.Style.HasValue
@@ -74,12 +75,12 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
             }
 
-            sb.Append(RenderRuns(paragraph));
+            sb.Append(RenderRuns(paragraph, options));
 
             return sb.ToString();
         }
 
-        private string RenderRuns(WordParagraph paragraph) {
+        private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
@@ -110,6 +111,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"~~{text}~~";
                 }
 
+                if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != UnderlineValues.None) {
+                    text = $"<u>{text}</u>";
+                }
+
+                if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != HighlightColorValues.None) {
+                    text = $"=={text}==";
+                }
+
                 string monospace = FontResolver.Resolve("monospace");
                 bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
                 if (code) {
@@ -126,7 +135,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString();
         }
 
-        private string RenderFootnote(WordFootNote footNote) {
+        private string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
             var paragraphs = footNote.Paragraphs;
             if (paragraphs == null || paragraphs.Count < 2) {
                 return string.Empty;
@@ -137,7 +146,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 if (i > 1) {
                     sb.Append(' ');
                 }
-                sb.Append(RenderRuns(paragraphs[i]));
+                sb.Append(RenderRuns(paragraphs[i], options));
             }
             return sb.ToString();
         }
@@ -169,14 +178,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return $"![{alt}](data:{mime};base64,{base64})";
         }
 
-        private string ConvertTable(WordTable table) {
+        private string ConvertTable(WordTable table, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             var rows = table.Rows;
             if (rows.Count == 0) return string.Empty;
 
             sb.Append('|');
             foreach (var cell in rows[0].Cells) {
-                sb.Append(' ').Append(GetCellText(cell)).Append(" |");
+                sb.Append(' ').Append(GetCellText(cell, options)).Append(" |");
             }
             sb.AppendLine();
 
@@ -189,7 +198,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             for (int r = 1; r < rows.Count; r++) {
                 sb.Append('|');
                 foreach (var cell in rows[r].Cells) {
-                    sb.Append(' ').Append(GetCellText(cell)).Append(" |");
+                    sb.Append(' ').Append(GetCellText(cell, options)).Append(" |");
                 }
                 sb.AppendLine();
             }
@@ -197,11 +206,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString().TrimEnd();
         }
 
-        private string GetCellText(WordTableCell cell) {
+        private string GetCellText(WordTableCell cell, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             foreach (var p in cell.Paragraphs) {
                 if (sb.Length > 0) sb.Append("<br>");
-                sb.Append(RenderRuns(p));
+                sb.Append(RenderRuns(p, options));
             }
             return sb.ToString();
         }
