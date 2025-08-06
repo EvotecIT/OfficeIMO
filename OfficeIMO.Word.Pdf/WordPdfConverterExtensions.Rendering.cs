@@ -8,7 +8,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker) {
+        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options) {
             if (paragraph == null) {
                 return container;
             }
@@ -73,6 +73,11 @@ namespace OfficeIMO.Word.Pdf {
             return container;
 
             void ApplyFormatting(TextSpanDescriptor span) {
+                if (!string.IsNullOrEmpty(paragraph.FontFamily)) {
+                    span = span.FontFamily(paragraph.FontFamily);
+                } else if (!string.IsNullOrEmpty(options?.FontFamily)) {
+                    span = span.FontFamily(options.FontFamily);
+                }
                 if (paragraph.Bold) {
                     span = span.Bold();
                 }

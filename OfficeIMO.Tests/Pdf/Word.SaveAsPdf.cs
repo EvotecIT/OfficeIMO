@@ -11,7 +11,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public partial class Word {
+    public partial class Word {
     [Fact]
     public void Test_WordDocument_SaveAsPdf() {
         var docPath = Path.Combine(_directoryWithFiles, "PdfSample.docx");
@@ -90,9 +90,9 @@ public partial class Word {
     }
 
     [Fact]
-    public void Test_WordDocument_SaveAsPdf_ToFileStream() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
+        public void Test_WordDocument_SaveAsPdf_ToFileStream() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
@@ -104,6 +104,43 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_CustomParagraphFont() {
+        string font = FontResolver.Resolve("monospace")!;
+        string expected = Regex.Replace(font, @"\s+", "");
+        string docPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph p = document.AddParagraph("Hello World");
+            p.FontFamily = font;
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains(expected, pdfContent);
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_CustomDefaultFont() {
+        string font = FontResolver.Resolve("monospace")!;
+        string expected = Regex.Replace(font, @"\s+", "");
+        string docPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = font });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains(expected, pdfContent);
     }
 
     [Theory]
