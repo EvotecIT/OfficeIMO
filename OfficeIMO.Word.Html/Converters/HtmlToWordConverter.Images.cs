@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
+            var alt = img.AlternativeText;
 
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 var commaIndex = src.IndexOf(',');
@@ -22,14 +23,15 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (parts.Length >= 2) {
                         ext = parts[1];
                     }
-                    doc.AddParagraph().AddImageFromBase64(base64, "image." + ext, width, height);
+                    doc.AddParagraph().AddImageFromBase64(base64, "image." + ext, width, height, description: alt);
                 }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
-                doc.AddParagraph().AddImage(uri.LocalPath, width, height);
+                doc.AddParagraph().AddImage(uri.LocalPath, width, height, description: alt);
             } else if (File.Exists(src)) {
-                doc.AddParagraph().AddImage(src, width, height);
+                doc.AddParagraph().AddImage(src, width, height, description: alt);
             } else {
-                doc.AddImageFromUrl(src, width, height);
+                var image = doc.AddImageFromUrl(src, width, height);
+                image.Description = alt;
             }
         }
     }
