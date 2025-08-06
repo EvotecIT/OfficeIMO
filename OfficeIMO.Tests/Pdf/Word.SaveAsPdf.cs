@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests;
     [Fact]
     public void Test_WordDocument_SaveAsPdf_CustomParagraphFont() {
         string font = FontResolver.Resolve("monospace")!;
-        string expected = Regex.Replace(font, "\s+", "");
+        string expected = Regex.Replace(font, @"\s+", "");
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.pdf");
 
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests;
     [Fact]
     public void Test_WordDocument_SaveAsPdf_CustomDefaultFont() {
         string font = FontResolver.Resolve("monospace")!;
-        string expected = Regex.Replace(font, "\s+", "");
+        string expected = Regex.Replace(font, @"\s+", "");
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.pdf");
 
