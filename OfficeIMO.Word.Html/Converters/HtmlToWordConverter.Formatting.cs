@@ -40,6 +40,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
+            int? marginLeft = null, marginRight = null, marginTop = null, marginBottom = null;
+            int? paddingLeft = null, paddingRight = null, paddingTop = null, paddingBottom = null;
+            JustificationValues? alignment = null;
+
             foreach (var part in styleAttribute.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var pieces = part.Split(new[] { ':' }, 2);
                 if (pieces.Length != 2) {
@@ -68,7 +72,60 @@ namespace OfficeIMO.Word.Html.Converters {
                             paragraph.SetFontSize(size);
                         }
                         break;
+                    case "text-align":
+                        alignment = value.ToLowerInvariant() switch {
+                            "center" => JustificationValues.Center,
+                            "right" => JustificationValues.Right,
+                            "justify" => JustificationValues.Both,
+                            "left" => JustificationValues.Left,
+                            _ => alignment
+                        };
+                        break;
+                    case "margin-left":
+                        if (TryParseSize(value, out int ml)) marginLeft = ml;
+                        break;
+                    case "margin-right":
+                        if (TryParseSize(value, out int mr)) marginRight = mr;
+                        break;
+                    case "margin-top":
+                        if (TryParseSize(value, out int mt)) marginTop = mt;
+                        break;
+                    case "margin-bottom":
+                        if (TryParseSize(value, out int mb)) marginBottom = mb;
+                        break;
+                    case "padding-left":
+                        if (TryParseSize(value, out int pl)) paddingLeft = pl;
+                        break;
+                    case "padding-right":
+                        if (TryParseSize(value, out int pr)) paddingRight = pr;
+                        break;
+                    case "padding-top":
+                        if (TryParseSize(value, out int pt)) paddingTop = pt;
+                        break;
+                    case "padding-bottom":
+                        if (TryParseSize(value, out int pb)) paddingBottom = pb;
+                        break;
                 }
+            }
+
+            if (alignment.HasValue) {
+                paragraph.ParagraphAlignment = alignment;
+            }
+            int before = (marginTop ?? 0) + (paddingTop ?? 0);
+            if (before > 0) {
+                paragraph.LineSpacingBefore = before;
+            }
+            int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
+            if (after > 0) {
+                paragraph.LineSpacingAfter = after;
+            }
+            int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
+            if (left > 0) {
+                paragraph.IndentationBefore = left;
+            }
+            int right = (marginRight ?? 0) + (paddingRight ?? 0);
+            if (right > 0) {
+                paragraph.IndentationAfter = right;
             }
         }
 
@@ -137,6 +194,31 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
+        private static string MergeStyles(string parentStyle, string? childStyle) {
+            var parentDict = ParseStyle(parentStyle);
+            var childDict = ParseStyle(childStyle);
+            foreach (var kv in parentDict) {
+                if (!childDict.ContainsKey(kv.Key)) {
+                    childDict[kv.Key] = kv.Value;
+                }
+            }
+            return string.Join("; ", childDict.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+        }
+
+        private static Dictionary<string, string> ParseStyle(string? style) {
+            Dictionary<string, string> dict = new(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(style)) {
+                return dict;
+            }
+            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length == 2) {
+                    dict[pieces[0].Trim()] = pieces[1].Trim();
+                }
+            }
+            return dict;
+        }
+
         private static bool TryParseFontSize(string value, out int size) {
             size = 0;
             if (string.IsNullOrWhiteSpace(value)) {
@@ -151,6 +233,25 @@ namespace OfficeIMO.Word.Html.Converters {
                 result *= 16;
             }
             size = (int)Math.Round(result);
+            return size > 0;
+        }
+
+        private static bool TryParseSize(string value, out int size) {
+            size = 0;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+            value = value.Trim().ToLowerInvariant();
+            string number = new(value.Where(c => char.IsDigit(c) || c == '.').ToArray());
+            if (!double.TryParse(number, NumberStyles.Number, CultureInfo.InvariantCulture, out double result)) {
+                return false;
+            }
+            if (value.EndsWith("px", StringComparison.Ordinal)) {
+                result *= 0.75; // convert pixels to points
+            } else if (value.EndsWith("em", StringComparison.Ordinal)) {
+                result *= 16; // approximate em to points
+            }
+            size = (int)Math.Round(result * 20); // points to twips
             return size > 0;
         }
 
