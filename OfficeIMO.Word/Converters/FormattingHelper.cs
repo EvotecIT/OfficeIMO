@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
@@ -14,14 +15,18 @@ namespace OfficeIMO.Word {
             public bool Bold { get; }
             public bool Italic { get; }
             public bool Underline { get; }
+            public bool Strike { get; }
+            public bool Code { get; }
             public string? Hyperlink { get; }
 
-            public FormattedRun(string? text, WordImage? image, bool bold, bool italic, bool underline, string? hyperlink) {
+            public FormattedRun(string? text, WordImage? image, bool bold, bool italic, bool underline, bool strike, bool code, string? hyperlink) {
                 Text = text;
                 Image = image;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                Strike = strike;
+                Code = code;
                 Hyperlink = hyperlink;
             }
         }
@@ -36,7 +41,7 @@ namespace OfficeIMO.Word {
 
             foreach (WordParagraph run in paragraph.GetRuns()) {
                 if (run.IsImage && run.Image != null) {
-                    yield return new FormattedRun(null, run.Image, false, false, false, null);
+                    yield return new FormattedRun(null, run.Image, false, false, false, false, false, null);
                     continue;
                 }
 
@@ -46,7 +51,10 @@ namespace OfficeIMO.Word {
                 }
 
                 string? hyperlink = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Uri?.ToString() : null;
-                yield return new FormattedRun(text, null, run.Bold, run.Italic, run.Underline != null, hyperlink);
+                bool strike = run.Strike;
+                string? monospace = FontResolver.Resolve("monospace");
+                bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
+                yield return new FormattedRun(text, null, run.Bold, run.Italic, run.Underline != null, strike, code, hyperlink);
             }
         }
     }

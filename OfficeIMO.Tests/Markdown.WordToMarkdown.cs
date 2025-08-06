@@ -15,6 +15,10 @@ namespace OfficeIMO.Tests {
             paragraph.AddText("bold").Bold = true;
             paragraph.AddText(" and ");
             paragraph.AddText("italic").Italic = true;
+            paragraph.AddText(" with ");
+            paragraph.AddText("strike").Strike = true;
+            paragraph.AddText(" and ");
+            paragraph.AddText("code").SetFontFamily(FontResolver.Resolve("monospace")!);
 
             var list = doc.AddList(WordListStyle.Bulleted);
             list.AddItem("Item 1");
@@ -37,6 +41,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("# Heading", markdown);
             Assert.Contains("**bold**", markdown);
             Assert.Contains("*italic*", markdown);
+            Assert.Contains("~~strike~~", markdown);
+            Assert.Contains("`code`", markdown);
             Assert.Contains("- Item 1", markdown);
             Assert.Contains("[OfficeIMO](https://example.com/)", markdown);
             Assert.Contains("| H1 | H2 |", markdown);

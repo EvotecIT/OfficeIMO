@@ -90,6 +90,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"*{text}*";
                 }
 
+                if (run.Strike) {
+                    text = $"~~{text}~~";
+                }
+
+                if (run.Code) {
+                    text = $"`{text}`";
+                }
+
                 if (!string.IsNullOrEmpty(run.Hyperlink)) {
                     text = $"[{text}]({run.Hyperlink})";
                 }
