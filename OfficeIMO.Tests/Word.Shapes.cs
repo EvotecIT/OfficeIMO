@@ -123,5 +123,29 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
             }
         }
+
+        [Fact]
+        public void Test_ShapesInSectionAndHeader() {
+            string filePath = Path.Combine(_directoryWithFiles, "SectionHeaderShapes.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var section = document.Sections[0];
+                section.AddShape(ShapeType.Rectangle, 40, 20, Color.Red, Color.Black);
+                section.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+
+                section.AddHeadersAndFooters();
+                section.Header.Default.AddShape(ShapeType.Rectangle, 30, 15, Color.Blue, Color.Black);
+                section.Header.Default.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var section = document.Sections[0];
+                Assert.Equal(2, document.Shapes.Count);
+                Assert.Equal(2, section.Shapes.Count);
+                Assert.True(section.Header.Default.Paragraphs[0].IsShape);
+                Assert.True(section.Header.Default.Paragraphs[1].IsShape);
+            }
+        }
     }
 }

@@ -171,6 +171,38 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a VML shape to the section.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points or line end X.</param>
+        /// <param name="heightPt">Height in points or line end Y.</param>
+        /// <param name="fillColor">Fill color in hex format.</param>
+        /// <param name="strokeColor">Stroke color in hex format.</param>
+        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
+            return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt);
+        }
+
+        /// <summary>
+        /// Adds a VML shape to the section using <see cref="SixLabors.ImageSharp.Color"/> values.
+        /// </summary>
+        public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+        }
+
+        /// <summary>
+        /// Adds a DrawingML shape to the section.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+            return AddParagraph(newRun: true).AddShapeDrawing(shapeType, widthPt, heightPt);
+        }
+
+        /// <summary>
         /// Inserts a SmartArt diagram into this section.
         /// </summary>
         /// <param name="type">Layout type of the SmartArt.</param>
