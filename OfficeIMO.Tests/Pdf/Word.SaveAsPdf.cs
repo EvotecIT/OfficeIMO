@@ -231,6 +231,26 @@ public partial class Word {
         Assert.Contains("/URI (https://evotec.xyz", pdfContent);
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_BookmarkLink() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfBookmarkLink.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfBookmarkLink.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            var target = document.AddParagraph("Bookmark target");
+            target.AddBookmark("TargetBookmark");
+            document.AddHyperLink("Go to bookmark", "TargetBookmark");
+            document.Save();
+
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/Dest /0#20|#20TargetBookmark", pdfContent);
+    }
+
     private static int IndexOf(byte[] buffer, byte[] pattern, int start) {
         for (int i = start; i <= buffer.Length - pattern.Length; i++) {
             int j = 0;
