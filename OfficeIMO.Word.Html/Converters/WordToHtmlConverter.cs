@@ -137,6 +137,12 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             void AppendParagraph(IElement parent, WordParagraph para) {
+                if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text)) {
+                    var hr = htmlDoc.CreateElement("hr");
+                    parent.AppendChild(hr);
+                    return;
+                }
+
                 int level = para.Style.HasValue ? HeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
                 bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
                     || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
