@@ -50,8 +50,10 @@ namespace OfficeIMO.Word.Markdown.Converters {
         private string ConvertParagraph(WordParagraph paragraph) {
             var sb = new StringBuilder();
 
-            int? headingLevel = GetLevelForHeadingStyle(paragraph.Style);
-            if (headingLevel != null) {
+            int? headingLevel = paragraph.Style.HasValue
+                ? HeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
+                : (int?)null;
+            if (headingLevel.HasValue && headingLevel.Value > 0) {
                 sb.Append(new string('#', headingLevel.Value)).Append(' ');
             }
 
@@ -163,17 +165,5 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString();
         }
 
-        private static int? GetLevelForHeadingStyle(WordParagraphStyles? style) => style switch {
-            WordParagraphStyles.Heading1 => 1,
-            WordParagraphStyles.Heading2 => 2,
-            WordParagraphStyles.Heading3 => 3,
-            WordParagraphStyles.Heading4 => 4,
-            WordParagraphStyles.Heading5 => 5,
-            WordParagraphStyles.Heading6 => 6,
-            WordParagraphStyles.Heading7 => 7,
-            WordParagraphStyles.Heading8 => 8,
-            WordParagraphStyles.Heading9 => 9,
-            _ => (int?)null
-        };
     }
 }

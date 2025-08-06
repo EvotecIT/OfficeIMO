@@ -61,19 +61,6 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
-        private static WordParagraphStyles GetHeadingStyleForLevel(int level) => level switch {
-            1 => WordParagraphStyles.Heading1,
-            2 => WordParagraphStyles.Heading2,
-            3 => WordParagraphStyles.Heading3,
-            4 => WordParagraphStyles.Heading4,
-            5 => WordParagraphStyles.Heading5,
-            6 => WordParagraphStyles.Heading6,
-            7 => WordParagraphStyles.Heading7,
-            8 => WordParagraphStyles.Heading8,
-            9 => WordParagraphStyles.Heading9,
-            _ => WordParagraphStyles.Heading1
-        };
-
         private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
             var style = CssStyleMapper.MapParagraphStyle(element.GetAttribute("style"));
             if (style.HasValue) {
@@ -100,7 +87,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "h6": {
                         int level = int.Parse(element.TagName.Substring(1));
                         var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                        paragraph.Style = GetHeadingStyleForLevel(level);
+                        paragraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
                         ApplyParagraphStyleFromCss(paragraph, element);
                         foreach (var child in element.ChildNodes) {
                             ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);

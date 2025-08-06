@@ -142,10 +142,8 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             void AppendParagraph(IElement parent, WordParagraph para) {
-                var element = htmlDoc.CreateElement(
-                    para.Style >= WordParagraphStyles.Heading1 && para.Style <= WordParagraphStyles.Heading9
-                        ? $"h{para.Style.Value - WordParagraphStyles.Heading1 + 1}"
-                        : "p");
+                int level = para.Style.HasValue ? HeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
+                var element = htmlDoc.CreateElement(level > 0 ? $"h{level}" : "p");
                 AppendRuns(element, para);
                 parent.AppendChild(element);
             }
