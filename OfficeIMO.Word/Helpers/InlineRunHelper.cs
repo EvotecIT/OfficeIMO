@@ -29,7 +29,7 @@ public static class InlineRunHelper {
                 foreach (Match urlMatch in _urlRegex.Matches(value)) {
                     if (urlMatch.Index > lastIndex) {
                         var textPart = value.Substring(lastIndex, urlMatch.Index - lastIndex);
-                        var textRun = paragraph.AddText(textPart);
+                        var textRun = paragraph.AddFormattedText(textPart);
                         if (!string.IsNullOrEmpty(fontFamily)) {
                             textRun.SetFontFamily(fontFamily);
                         }
@@ -45,21 +45,15 @@ public static class InlineRunHelper {
                 }
 
                 if (lastIndex < value.Length) {
-                    var tailRun = paragraph.AddText(value.Substring(lastIndex));
+                    var tailRun = paragraph.AddFormattedText(value.Substring(lastIndex));
                     if (!string.IsNullOrEmpty(fontFamily)) {
                         tailRun.SetFontFamily(fontFamily);
                     }
                 }
             } else {
-                var run = paragraph.AddText(value);
+                var run = paragraph.AddFormattedText(value, bold, italic);
                 if (!string.IsNullOrEmpty(fontFamily)) {
                     run.SetFontFamily(fontFamily);
-                }
-                if (bold) {
-                    run.SetBold();
-                }
-                if (italic) {
-                    run.SetItalic();
                 }
             }
         }

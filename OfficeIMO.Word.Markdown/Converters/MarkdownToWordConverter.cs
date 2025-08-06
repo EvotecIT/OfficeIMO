@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 case CodeBlock codeBlock:
                     var codeParagraph = document.AddParagraph(string.Empty);
                     var codeText = GetCodeBlockText(codeBlock);
-                    var run = codeParagraph.AddText(codeText);
+                    var run = codeParagraph.AddFormattedText(codeText);
                     run.SetFontFamily("Consolas");
                     break;
                 case Table table:

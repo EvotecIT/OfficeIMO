@@ -32,6 +32,28 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds formatted text to the paragraph and applies basic run properties.
+        /// </summary>
+        /// <param name="text">Text to insert.</param>
+        /// <param name="bold">Whether the text should be bold.</param>
+        /// <param name="italic">Whether the text should be italic.</param>
+        /// <param name="underline">Optional underline style.</param>
+        /// <returns>The run containing the formatted text.</returns>
+        public WordParagraph AddFormattedText(string text, bool bold = false, bool italic = false, UnderlineValues? underline = null) {
+            var run = AddText(text);
+            if (bold) {
+                run.SetBold();
+            }
+            if (italic) {
+                run.SetItalic();
+            }
+            if (underline != null) {
+                run.SetUnderline(underline.Value);
+            }
+            return run;
+        }
+
+        /// <summary>
         /// Add image from file with ability to provide width and height of the image
         /// The image will be resized given new dimensions
         /// </summary>

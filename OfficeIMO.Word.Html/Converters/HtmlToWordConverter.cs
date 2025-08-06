@@ -207,16 +207,21 @@ namespace OfficeIMO.Word.Html.Converters {
             int lastIndex = 0;
             foreach (System.Text.RegularExpressions.Match match in _urlRegex.Matches(text)) {
                 if (match.Index > lastIndex) {
-                    var run = paragraph.AddText(text.Substring(lastIndex, match.Index - lastIndex));
-                    ApplyFormatting(run, formatting, options);
+                    var segment = text.Substring(lastIndex, match.Index - lastIndex);
+                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                    if (!string.IsNullOrEmpty(options.FontFamily)) {
+                        run.SetFontFamily(options.FontFamily);
+                    }
                 }
                 var linkRun = paragraph.AddHyperLink(match.Value, new Uri(match.Value));
                 ApplyFormatting(linkRun, formatting, options);
                 lastIndex = match.Index + match.Length;
             }
             if (lastIndex < text.Length) {
-                var run = paragraph.AddText(text.Substring(lastIndex));
-                ApplyFormatting(run, formatting, options);
+                var run = paragraph.AddFormattedText(text.Substring(lastIndex), formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                if (!string.IsNullOrEmpty(options.FontFamily)) {
+                    run.SetFontFamily(options.FontFamily);
+                }
             }
         }
 
