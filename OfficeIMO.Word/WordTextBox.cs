@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -12,6 +13,7 @@ namespace OfficeIMO.Word {
         private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter _headerFooter;
         private Run _run => _wordParagraph._run;
+        private V.TextBox _vmlTextBox;
 
         /// <summary>
         /// Add a new text box to the document
@@ -38,6 +40,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, Paragraph paragraph, Run run) {
             _document = wordDocument;
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
+            _vmlTextBox = run.Descendants<V.TextBox>().FirstOrDefault();
         }
 
         /// <summary>
@@ -82,6 +85,14 @@ namespace OfficeIMO.Word {
             get {
                 if (_textBoxInfo2 != null) {
                     return _textBoxInfo2.Descendants<Run>().Select(run => new WordParagraph(_document, _paragraph, run)).ToList();
+                }
+                if (_vmlTextBox != null) {
+                    var content = _vmlTextBox.Descendants<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>().FirstOrDefault();
+                    if (content != null) {
+                        return content.Descendants<Run>()
+                            .Select(run => new WordParagraph(_document, run.Ancestors<Paragraph>().FirstOrDefault(), run))
+                            .ToList();
+                    }
                 }
                 return new List<WordParagraph>();
             }

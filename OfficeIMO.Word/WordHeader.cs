@@ -141,5 +141,22 @@ namespace OfficeIMO.Word {
             WordTextBox wordTextBox = new WordTextBox(this._document, this, text, wrapTextImage);
             return wordTextBox;
         }
+
+        /// <summary>
+        /// Adds a VML text box to the header.
+        /// </summary>
+        public WordTextBox AddTextBoxVml(string text) {
+            var paragraph = AddParagraph(newRun: true);
+            return paragraph.AddTextBoxVml(text);
+        }
+
+        /// <summary>
+        /// Adds a VML image to the header.
+        /// </summary>
+        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
+            var paragraph = AddParagraph(newRun: true);
+            paragraph.AddImageVml(filePathImage, width, height);
+            return paragraph.Image;
+        }
     }
 }

@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
+using V = DocumentFormat.OpenXml.Vml;
 
 #nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
@@ -57,6 +58,9 @@ namespace OfficeIMO.Word {
         private int? _luminanceContrast;
         private int? _tintAmount;
         private int? _tintHue;
+
+        internal V.Shape _vmlShape;
+        internal V.ImageData _vmlImageData;
 
         /// <summary>
         /// Get or set the Image's horizontal position.
@@ -1960,6 +1964,15 @@ namespace OfficeIMO.Word {
                     _useLocalDpi = ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>()?.Val?.Value;
                 }
             }
+        }
+
+        /// <summary>
+        /// Wraps an existing VML image as a WordImage.
+        /// </summary>
+        internal WordImage(WordDocument document, DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph, DocumentFormat.OpenXml.Wordprocessing.Run run, V.Shape shape) {
+            _document = document;
+            _vmlShape = shape;
+            _vmlImageData = shape.GetFirstChild<V.ImageData>();
         }
 
         /// <summary>

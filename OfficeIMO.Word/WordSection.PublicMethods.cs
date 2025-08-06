@@ -155,6 +155,22 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a VML text box paragraph to the section.
+        /// </summary>
+        public WordTextBox AddTextBoxVml(string text) {
+            return AddParagraph(newRun: true).AddTextBoxVml(text);
+        }
+
+        /// <summary>
+        /// Adds a VML image to the section.
+        /// </summary>
+        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
+            var paragraph = AddParagraph(newRun: true);
+            paragraph.AddImageVml(filePathImage, width, height);
+            return paragraph.Image;
+        }
+
+        /// <summary>
         /// Inserts a SmartArt diagram into this section.
         /// </summary>
         /// <param name="type">Layout type of the SmartArt.</param>
