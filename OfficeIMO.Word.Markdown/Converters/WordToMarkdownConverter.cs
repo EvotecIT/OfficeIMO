@@ -28,7 +28,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToMarkdownOptions();
 
-            foreach (var section in document.Sections) {
+            foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 foreach (var paragraph in section.Paragraphs) {
                     var text = ConvertParagraph(paragraph);
                     if (!string.IsNullOrEmpty(text)) {
@@ -57,12 +57,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 sb.Append(new string('#', headingLevel.Value)).Append(' ');
             }
 
-            if (paragraph.IsListItem) {
-                int level = paragraph.ListItemLevel ?? 0;
+            var listInfo = DocumentTraversal.GetListInfo(paragraph);
+            if (listInfo != null) {
+                int level = listInfo.Value.Level;
                 sb.Append(new string(' ', level * 2));
-                bool numbered = paragraph.ListStyle != WordListStyle.Bulleted &&
-                                paragraph.ListStyle != WordListStyle.BulletedChars;
-                sb.Append(numbered ? "1. " : "- ");
+                sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
             }
 
             sb.Append(RenderRuns(paragraph));
@@ -72,8 +71,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private string RenderRuns(WordParagraph paragraph) {
             var sb = new StringBuilder();
-            foreach (var run in paragraph.GetRuns()) {
-                if (run.IsImage) {
+            foreach (var run in FormattingHelper.GetFormattedRuns(paragraph)) {
+                if (run.Image != null) {
                     sb.Append(RenderImage(run.Image));
                     continue;
                 }
@@ -91,8 +90,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"*{text}*";
                 }
 
-                if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
-                    text = $"[{text}]({run.Hyperlink.Uri})";
+                if (!string.IsNullOrEmpty(run.Hyperlink)) {
+                    text = $"[{text}]({run.Hyperlink})";
                 }
 
                 sb.Append(text);

@@ -40,7 +40,7 @@ public static partial class WordPdfConverterExtensions {
     private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
         QuestPDF.Settings.License = LicenseType.Community;
 
-        Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = BuildListMarkers(document);
+        Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
 
         Document pdf = Document.Create(container => {
             foreach (WordSection section in document.Sections) {

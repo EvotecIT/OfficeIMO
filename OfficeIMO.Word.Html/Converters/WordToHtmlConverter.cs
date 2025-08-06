@@ -52,12 +52,6 @@ namespace OfficeIMO.Word.Html.Converters {
             Stack<IElement> listStack = new Stack<IElement>();
             Stack<IElement> itemStack = new Stack<IElement>();
 
-            bool IsOrdered(WordListStyle? style) {
-                if (style == null) return true;
-                string name = style.Value.ToString();
-                return name.IndexOf("Bullet", StringComparison.OrdinalIgnoreCase) < 0;
-            }
-
             void CloseLists() {
                 while (listStack.Count > 0) {
                     listStack.Pop();
@@ -82,7 +76,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             void AppendRuns(IElement parent, WordParagraph para) {
-                foreach (var run in para.GetRuns()) {
+                foreach (var run in FormattingHelper.GetFormattedRuns(para)) {
                     if (run.Image != null) {
                         var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
                         string src;
@@ -117,15 +111,15 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = em;
                     }
 
-                    if (run.Underline != null) {
+                    if (run.Underline) {
                         var u = htmlDoc.CreateElement("u");
                         u.AppendChild(node);
                         node = u;
                     }
 
-                    if (run.IsHyperLink && run.Hyperlink != null) {
+                    if (!string.IsNullOrEmpty(run.Hyperlink)) {
                         var a = htmlDoc.CreateElement("a");
-                        a.SetAttribute("href", run.Hyperlink.Uri.ToString());
+                        a.SetAttribute("href", run.Hyperlink);
                         a.AppendChild(node);
                         node = a;
                     }
@@ -148,17 +142,18 @@ namespace OfficeIMO.Word.Html.Converters {
                 parent.AppendChild(element);
             }
 
-            foreach (var section in document.Sections) {
+            foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 foreach (var element in section.Elements) {
                     if (element is WordParagraph paragraph) {
-                        if (paragraph.IsListItem) {
-                            int level = paragraph.ListItemLevel ?? 0;
+                        var listInfo = DocumentTraversal.GetListInfo(paragraph);
+                        if (listInfo != null) {
+                            int level = listInfo.Value.Level;
                             while (listStack.Count > level) {
                                 listStack.Pop();
                                 itemStack.Pop();
                             }
                             while (listStack.Count <= level) {
-                                bool ordered = IsOrdered(paragraph.ListStyle);
+                                bool ordered = listInfo.Value.Ordered;
                                 var listTag = ordered ? "ol" : "ul";
                                 var listEl = htmlDoc.CreateElement(listTag);
                                 if (options.IncludeListStyles) {
