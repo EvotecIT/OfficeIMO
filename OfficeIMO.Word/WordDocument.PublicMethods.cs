@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Net.Http;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
@@ -106,6 +107,38 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Downloads an image from the specified URL and inserts it into the document.
+        /// </summary>
+        /// <param name="url">URL of the image to download.</param>
+        /// <param name="width">Optional width for the image.</param>
+        /// <param name="height">Optional height for the image.</param>
+        /// <returns>The created <see cref="WordImage"/>.</returns>
+        public WordImage AddImageFromUrl(string url, double? width = null, double? height = null) {
+            if (string.IsNullOrWhiteSpace(url)) {
+                throw new ArgumentException("URL cannot be null or empty.", nameof(url));
+            }
+
+            using HttpClient client = new HttpClient();
+            var data = client.GetByteArrayAsync(url).GetAwaiter().GetResult();
+            using var ms = new MemoryStream(data);
+
+            string fileName = "image";
+            try {
+                var uri = new Uri(url);
+                fileName = Path.GetFileName(uri.LocalPath);
+                if (string.IsNullOrEmpty(fileName)) {
+                    fileName = "image";
+                }
+            } catch (UriFormatException) {
+                // ignore and use default filename
+            }
+
+            var paragraph = AddParagraph();
+            paragraph.AddImage(ms, fileName, width, height);
+            return paragraph.Image;
+        }
+
+        /// <summary>
         /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
         /// You can use multiple:
         /// .AddBar() to add a bar chart
@@ -149,6 +182,22 @@ namespace OfficeIMO.Word {
             WordList wordList = new WordList(this);
             wordList.AddList(style);
             return wordList;
+        }
+
+        /// <summary>
+        /// Creates a bullet list using the default bulleted style.
+        /// </summary>
+        /// <returns>The created <see cref="WordList"/>.</returns>
+        public WordList CreateBulletList() {
+            return AddList(WordListStyle.Bulleted);
+        }
+
+        /// <summary>
+        /// Creates a numbered list using the default heading style.
+        /// </summary>
+        /// <returns>The created <see cref="WordList"/>.</returns>
+        public WordList CreateNumberedList() {
+            return AddList(WordListStyle.Headings111);
         }
 
         /// <summary>
