@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<ul>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<ol>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ol", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Sub 1", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<table>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">A<", html, StringComparison.OrdinalIgnoreCase);
@@ -77,6 +77,31 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("data:image/png", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("content=\"Tester\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ListStartAttribute() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.Headings111);
+            list.Numbering.Levels[0].SetStartNumberingValue(4);
+            list.AddItem("Four");
+            list.AddItem("Five");
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<ol start=\"4\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_RomanNumerals() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.HeadingIA1);
+            list.AddItem("Intro");
+            list.AddItem("Body");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+
+            Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
