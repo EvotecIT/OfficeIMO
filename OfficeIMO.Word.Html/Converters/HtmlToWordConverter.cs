@@ -84,6 +84,23 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "div": {
+                            var fmt = formatting;
+                            var divStyle = element.GetAttribute("style");
+                            if (!string.IsNullOrWhiteSpace(divStyle)) {
+                                ApplySpanStyles(element, ref fmt);
+                            }
+                            foreach (var child in element.ChildNodes) {
+                                if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
+                                    if (!string.IsNullOrEmpty(merged)) {
+                                        childElement.SetAttribute("style", merged);
+                                    }
+                                }
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
                     case "br": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                             currentParagraph.AddBreak();
