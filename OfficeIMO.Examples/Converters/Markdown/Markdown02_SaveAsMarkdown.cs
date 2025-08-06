@@ -20,6 +20,11 @@ namespace OfficeIMO.Examples.Word.Converters {
             paragraph.AddText("bold text").Bold = true;
             paragraph.AddText(" and ");
             paragraph.AddText("italic text").Italic = true;
+            paragraph.AddText(", ");
+            paragraph.AddText("strikethrough").Strike = true;
+            paragraph.AddText(", and inline ");
+            var codeFont = FontResolver.Resolve("monospace") ?? "Consolas";
+            paragraph.AddText("code").SetFontFamily(codeFont);
             paragraph.AddText(" plus a ");
             paragraph.AddHyperLink("link", new Uri("https://example.com"));
             paragraph.AddText(".");
