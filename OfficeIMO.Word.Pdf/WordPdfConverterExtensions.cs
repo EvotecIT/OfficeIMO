@@ -45,6 +45,9 @@ namespace OfficeIMO.Word.Pdf {
             Document pdf = Document.Create(container => {
                 foreach (WordSection section in document.Sections) {
                     container.Page(page => {
+                        if (!string.IsNullOrEmpty(options?.FontFamily)) {
+                            page.DefaultTextStyle(t => t.FontFamily(options.FontFamily));
+                        }
                         float margin = options?.Margin ?? 1;
                         Unit unit = options?.MarginUnit ?? Unit.Centimetre;
                         page.Margin(margin, unit);
@@ -78,9 +81,9 @@ namespace OfficeIMO.Word.Pdf {
                         page.Content().Column(column => {
                             foreach (WordElement element in section.Elements) {
                                 if (element is WordParagraph paragraph) {
-                                    column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
+                                    column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph), options));
                                 } else if (element is WordTable table) {
-                                    column.Item().Element(e => RenderTable(e, table, GetMarker));
+                                    column.Item().Element(e => RenderTable(e, table, GetMarker, options));
                                 } else if (element is WordImage image) {
                                     column.Item().Element(e => RenderImage(e, image));
                                 } else if (element is WordHyperLink link) {
@@ -106,11 +109,11 @@ namespace OfficeIMO.Word.Pdf {
 
             void RenderElements(ColumnDescriptor column, IEnumerable<WordParagraph> paragraphs, IEnumerable<WordTable> tables) {
                 foreach (WordParagraph paragraph in paragraphs) {
-                    column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph)));
+                    column.Item().Element(e => RenderParagraph(e, paragraph, GetMarker(paragraph), options));
                 }
 
                 foreach (WordTable table in tables) {
-                    column.Item().Element(e => RenderTable(e, table, GetMarker));
+                    column.Item().Element(e => RenderTable(e, table, GetMarker, options));
                 }
             }
 
