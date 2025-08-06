@@ -158,6 +158,19 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_Blockquote_RoundTrip() {
+        string html = "<blockquote>Quoted text</blockquote>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+        Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
+        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Contains("<blockquote>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Quoted text", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Test_Html_Lists_Structure() {
         string html = "<ul><li>Item 1<ul><li>Sub 1</li></ul></li><li>Item 2</li></ul>";
 
