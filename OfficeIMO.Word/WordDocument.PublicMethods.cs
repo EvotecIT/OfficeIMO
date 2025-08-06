@@ -139,6 +139,15 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a VML image into the document.
+        /// </summary>
+        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
+            var paragraph = AddParagraph();
+            paragraph.AddImageVml(filePathImage, width, height);
+            return paragraph.Image;
+        }
+
+        /// <summary>
         /// Adds the chart to the document. The type of chart is determined by the type of data passed in.
         /// You can use multiple:
         /// .AddBar() to add a bar chart
@@ -434,6 +443,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts a VML text box into the document.
+        /// </summary>
+        public WordTextBox AddTextBoxVml(string text) {
+            var paragraph = this.AddParagraph();
+            return paragraph.AddTextBoxVml(text);
+        }
+
+        /// <summary>
         /// Adds a basic shape to the document in a new paragraph.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
@@ -442,19 +459,31 @@ namespace OfficeIMO.Word {
         /// <param name="fillColor">Fill color in hex format.</param>
         /// <param name="strokeColor">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         /// <returns>The created <see cref="WordShape"/>.</returns>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             var paragraph = AddParagraph();
-            return paragraph.AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt);
+            return paragraph.AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
         }
 
         /// <summary>
         /// Adds a basic shape to the document using <see cref="SixLabors.ImageSharp.Color"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
+        }
+
+        /// <summary>
+        /// Adds a DrawingML shape to the document in a new paragraph.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+            var paragraph = AddParagraph();
+            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt);
         }
 
         /// <summary>

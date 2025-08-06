@@ -15,6 +15,7 @@ using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 using System.Linq;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using V = DocumentFormat.OpenXml.Vml;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -130,22 +131,37 @@ namespace OfficeIMO.Word {
         public WordImage Image {
             get {
                 if (_run != null) {
+                    // DrawingML pictures
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
                     if (drawing != null) {
                         if (drawing.Inline != null) {
-                            if (drawing.Inline.Graphic != null) {
-                                if (drawing.Inline.Graphic.GraphicData != null) {
-                                    var picture = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().FirstOrDefault();
-                                    if (picture != null) {
-                                        return new WordImage(_document, drawing);
-                                    }
+                            if (drawing.Inline.Graphic != null && drawing.Inline.Graphic.GraphicData != null) {
+                                var picture = drawing.Inline.Graphic.GraphicData.ChildElements
+                                    .OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
+                                    .FirstOrDefault();
+                                if (picture != null) {
+                                    return new WordImage(_document, drawing);
                                 }
                             }
                         } else if (drawing.Anchor != null) {
                             var anchorGraphic = drawing.Anchor.OfType<Graphic>().FirstOrDefault();
-                            if (anchorGraphic != null) {
-                                return new WordImage(_document, drawing);
+                            if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                                var picture = anchorGraphic.GraphicData
+                                    .ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>()
+                                    .FirstOrDefault();
+                                if (picture != null) {
+                                    return new WordImage(_document, drawing);
+                                }
                             }
+                        }
+                    }
+
+                    // VML pictures
+                    var vmlImage = _run.Descendants<V.ImageData>().FirstOrDefault();
+                    if (vmlImage != null) {
+                        var shape = vmlImage.Ancestors<V.Shape>().FirstOrDefault();
+                        if (shape != null) {
+                            return new WordImage(_document, _paragraph, _run, shape);
                         }
                     }
                 }
@@ -910,9 +926,23 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTextBox TextBox {
             get {
-                if (_run != null && _runProperties != null) {
-                    var wordTextboxes = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
-                    if (wordTextboxes != null) {
+                if (_run != null) {
+                    // DrawingML text boxes
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        if (drawing.Descendants<Wps.TextBoxInfo2>().Any()) {
+                            return new WordTextBox(_document, _paragraph, _run);
+                        }
+                    }
+
+                    // Legacy text boxes wrapped in AlternateContent (Word 2007)
+                    var ac = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
+                    if (ac != null) {
+                        return new WordTextBox(_document, _paragraph, _run);
+                    }
+
+                    // VML text boxes
+                    if (_run.Descendants<V.TextBox>().Any()) {
                         return new WordTextBox(_document, _paragraph, _run);
                     }
                 }
@@ -921,16 +951,30 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns a <see cref="WordShape"/> instance when the paragraph contains VML shapes.
+        /// Returns a <see cref="WordShape"/> instance when the paragraph contains shapes.
         /// </summary>
         public WordShape Shape {
             get {
                 if (_run != null) {
+                    // VML shapes
                     if (_run.Descendants<V.Rectangle>().Any() ||
+                        _run.Descendants<V.RoundRectangle>().Any() ||
                         _run.Descendants<V.Oval>().Any() ||
                         _run.Descendants<V.Line>().Any() ||
-                        _run.Descendants<V.PolyLine>().Any()) {
+                        _run.Descendants<V.PolyLine>().Any() ||
+                        _run.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any())) {
                         return new WordShape(_document, _paragraph, _run);
+                    }
+
+                    // DrawingML shapes (non-pictures and not text boxes)
+                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing != null) {
+                        bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
+                        bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
+                        bool hasShape = drawing.Descendants<Wps.WordprocessingShape>().Any();
+                        if (!hasPicture && !hasTextBox && hasShape) {
+                            return new WordShape(_document, _paragraph, _run, drawing);
+                        }
                     }
                 }
                 return null;

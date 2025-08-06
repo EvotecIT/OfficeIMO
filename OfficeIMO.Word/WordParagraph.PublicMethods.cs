@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -674,6 +675,61 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a legacy VML text box to the paragraph.
+        /// </summary>
+        public WordTextBox AddTextBoxVml(string text) {
+            var run = this.VerifyRun();
+            var shape = new V.Shape() {
+                Id = "TextBox" + Guid.NewGuid().ToString("N"),
+                Style = "mso-wrap-style:square"
+            };
+
+            var textbox = new V.TextBox();
+            var content = new TextBoxContent(new Paragraph(new Run(new Text(text))));
+            textbox.Append(content);
+            shape.Append(textbox);
+
+            Picture pict = new Picture();
+            pict.Append(shape);
+            run.Append(pict);
+
+            return new WordTextBox(this._document, this._paragraph, run);
+        }
+
+        /// <summary>
+        /// Adds a legacy VML image to the paragraph.
+        /// </summary>
+        public WordParagraph AddImageVml(string filePathImage, double? width = null, double? height = null) {
+            var run = this.VerifyRun();
+            var mainPart = _document._wordprocessingDocument.MainDocumentPart;
+
+            var imagePart = mainPart.AddImagePart(ImagePartType.Png);
+            using (var fs = File.OpenRead(filePathImage)) {
+                imagePart.FeedData(fs);
+            }
+            var relId = mainPart.GetIdOfPart(imagePart);
+
+            string style = "mso-wrap-style:square";
+            if (width.HasValue) style = $"width:{width}pt;" + style;
+            if (height.HasValue) style = $"height:{height}pt;" + style;
+
+            var shape = new V.Shape() {
+                Id = "Image" + Guid.NewGuid().ToString("N"),
+                Style = style,
+                Type = "#_x0000_t75"
+            };
+            var imageData = new V.ImageData() {
+                RelationshipId = relId,
+                Title = Path.GetFileName(filePathImage)
+            };
+            shape.Append(imageData);
+            Picture pict = new Picture();
+            pict.Append(shape);
+            run.Append(pict);
+            return this;
+        }
+
+        /// <summary>
         /// Add a rectangle shape to the paragraph.
         /// </summary>
         /// <param name="widthPt">Width in points.</param>
@@ -700,8 +756,9 @@ namespace OfficeIMO.Word {
         /// <param name="fillColor">Fill color in hex format.</param>
         /// <param name="strokeColor">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1) {
+            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             WordShape shape;
             switch (shapeType) {
                 case ShapeType.Rectangle:
@@ -709,6 +766,9 @@ namespace OfficeIMO.Word {
                     break;
                 case ShapeType.Ellipse:
                     shape = WordShape.AddEllipse(this, widthPt, heightPt, fillColor);
+                    break;
+                case ShapeType.RoundedRectangle:
+                    shape = WordShape.AddRoundedRectangle(this, widthPt, heightPt, fillColor, arcSize);
                     break;
                 case ShapeType.Line:
                     shape = WordShape.AddLine(this, 0, 0, widthPt, heightPt, strokeColor, strokeWeightPt);
@@ -727,8 +787,18 @@ namespace OfficeIMO.Word {
         /// Adds a basic shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt);
+            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
+        }
+
+        /// <summary>
+        /// Adds a DrawingML shape to the paragraph.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt) {
+            return WordShape.AddDrawingShape(this, shapeType, widthPt, heightPt);
         }
 
         /// <summary>
