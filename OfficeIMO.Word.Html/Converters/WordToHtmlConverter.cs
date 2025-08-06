@@ -142,6 +142,33 @@ namespace OfficeIMO.Word.Html.Converters {
                 parent.AppendChild(element);
             }
 
+            string? GetListStyle(DocumentTraversal.ListInfo info) {
+                var format = info.NumberFormat;
+                if (format == NumberFormatValues.Decimal) {
+                    return "decimal";
+                }
+                if (format == NumberFormatValues.LowerLetter) {
+                    return "lower-alpha";
+                }
+                if (format == NumberFormatValues.UpperLetter) {
+                    return "upper-alpha";
+                }
+                if (format == NumberFormatValues.LowerRoman) {
+                    return "lower-roman";
+                }
+                if (format == NumberFormatValues.UpperRoman) {
+                    return "upper-roman";
+                }
+                if (format == NumberFormatValues.Bullet) {
+                    return info.LevelText switch {
+                        "o" or "◦" => "circle",
+                        "■" or "§" => "square",
+                        _ => "disc",
+                    };
+                }
+                return null;
+            }
+
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 foreach (var element in section.Elements) {
                     if (element is WordParagraph paragraph) {
@@ -156,8 +183,14 @@ namespace OfficeIMO.Word.Html.Converters {
                                 bool ordered = listInfo.Value.Ordered;
                                 var listTag = ordered ? "ol" : "ul";
                                 var listEl = htmlDoc.CreateElement(listTag);
+                                if (ordered && listInfo.Value.Start > 1) {
+                                    listEl.SetAttribute("start", listInfo.Value.Start.ToString());
+                                }
                                 if (options.IncludeListStyles) {
-                                    listEl.SetAttribute("style", ordered ? "list-style-type:decimal" : "list-style-type:disc");
+                                    var css = GetListStyle(listInfo.Value);
+                                    if (!string.IsNullOrEmpty(css)) {
+                                        listEl.SetAttribute("style", $"list-style-type:{css}");
+                                    }
                                 }
                                 if (itemStack.Count > 0) {
                                     itemStack.Peek().AppendChild(listEl);
