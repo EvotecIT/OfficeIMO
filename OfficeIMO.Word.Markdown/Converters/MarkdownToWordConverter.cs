@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 case HeadingBlock heading:
                     var headingParagraph = document.AddParagraph(string.Empty);
                     ProcessInline(heading.Inline, headingParagraph, options);
-                    headingParagraph.Style = GetHeadingStyleForLevel(heading.Level);
+                    headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(heading.Level);
                     break;
                 case ParagraphBlock paragraphBlock when currentList == null:
                     var paragraph = document.AddParagraph(string.Empty);
@@ -197,17 +197,5 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString().TrimEnd();
         }
 
-        private static WordParagraphStyles GetHeadingStyleForLevel(int level) => level switch {
-            1 => WordParagraphStyles.Heading1,
-            2 => WordParagraphStyles.Heading2,
-            3 => WordParagraphStyles.Heading3,
-            4 => WordParagraphStyles.Heading4,
-            5 => WordParagraphStyles.Heading5,
-            6 => WordParagraphStyles.Heading6,
-            7 => WordParagraphStyles.Heading7,
-            8 => WordParagraphStyles.Heading8,
-            9 => WordParagraphStyles.Heading9,
-            _ => WordParagraphStyles.Heading1
-        };
     }
 }
