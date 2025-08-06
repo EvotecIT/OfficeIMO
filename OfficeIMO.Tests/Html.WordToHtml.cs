@@ -151,6 +151,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<blockquote>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Quoted text", html, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void Test_WordToHtml_HorizontalRule() {
+            using var doc = WordDocument.Create();
+            doc.AddHorizontalLine();
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<hr", html, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 

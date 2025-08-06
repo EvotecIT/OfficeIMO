@@ -116,6 +116,14 @@ namespace OfficeIMO.Word.Html.Converters {
                             currentParagraph.AddBreak();
                             break;
                         }
+                    case "hr": {
+                            if (cell != null) {
+                                cell.AddParagraph("", true).AddHorizontalLine();
+                            } else {
+                                section.AddParagraph("").AddHorizontalLine();
+                            }
+                            break;
+                        }
                     case "strong":
                     case "b": {
                             var fmt = new TextFormatting(true, formatting.Italic, formatting.Underline);

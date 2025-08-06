@@ -235,4 +235,19 @@ public partial class Html {
 
         Assert.Single(doc.Images);
     }
+
+    [Fact]
+    public void Test_Html_HorizontalRule_RoundTrip() {
+        string html = "<p>Before</p><hr><p>After</p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Equal(3, doc.Paragraphs.Count);
+        Assert.NotNull(doc.Paragraphs[1].Borders.BottomStyle);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Contains("<hr", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Before", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("After", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
 }
