@@ -159,6 +159,30 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Merges a rectangular range of cells.
+        /// </summary>
+        /// <param name="rowIndex">Zero-based starting row index.</param>
+        /// <param name="columnIndex">Zero-based starting column index.</param>
+        /// <param name="rowSpan">Number of rows spanned by the merged region.</param>
+        /// <param name="colSpan">Number of columns spanned by the merged region.</param>
+        /// <param name="copyParagraphs">
+        /// If set to <c>true</c>, paragraphs from merged cells are copied into the first cell.
+        /// </param>
+        public void MergeCells(int rowIndex, int columnIndex, int rowSpan, int colSpan, bool copyParagraphs = false) {
+            if (rowSpan < 1 || colSpan < 1) {
+                return;
+            }
+
+            for (int r = rowIndex; r < rowIndex + rowSpan; r++) {
+                Rows[r].Cells[columnIndex].MergeHorizontally(colSpan - 1, copyParagraphs);
+            }
+
+            for (int c = columnIndex; c < columnIndex + colSpan; c++) {
+                Rows[rowIndex].MergeVertically(c, rowSpan - 1, copyParagraphs);
+            }
+        }
+
+        /// <summary>
         /// Sets the table layout with proper AutoFit options
         /// </summary>
         /// <param name="layoutType">Type of layout to apply</param>
