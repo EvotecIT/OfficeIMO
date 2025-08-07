@@ -938,7 +938,24 @@ namespace OfficeIMO.Word {
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
                     var ac = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
                     if (ac != null) {
-                        return new WordTextBox(_document, _paragraph, _run);
+                        var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                        if (choice != null) {
+                            bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
+                            bool choiceHasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
+                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+                            if (choiceHasTextBox) {
+                                return new WordTextBox(_document, _paragraph, _run);
+                            }
+                            if (choiceHasShape) {
+                                return null;
+                            }
+                        }
+                        var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
+                        if (fallback != null) {
+                            if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
+                                return new WordTextBox(_document, _paragraph, _run);
+                            }
+                        }
                     }
 
                     // VML text boxes
@@ -956,6 +973,9 @@ namespace OfficeIMO.Word {
         public WordShape Shape {
             get {
                 if (_run != null) {
+                    if (TextBox != null) {
+                        return null;
+                    }
                     // VML shapes
                     if (_run.Descendants<V.Rectangle>().Any() ||
                         _run.Descendants<V.RoundRectangle>().Any() ||
@@ -968,6 +988,21 @@ namespace OfficeIMO.Word {
 
                     // DrawingML shapes (non-pictures and not text boxes)
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    if (drawing == null) {
+                        var ac = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
+                        if (ac != null) {
+                            var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                            if (choice != null) {
+                                drawing = choice.Descendants<Drawing>().FirstOrDefault();
+                            }
+                            if (drawing == null) {
+                                var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
+                                if (fallback != null) {
+                                    drawing = fallback.Descendants<Drawing>().FirstOrDefault();
+                                }
+                            }
+                        }
+                    }
                     if (drawing != null) {
                         bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
                         bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
@@ -1010,7 +1045,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets a value indicating whether the paragraph contains a VML shape.
+        /// Gets a value indicating whether the paragraph contains a shape.
         /// </summary>
         public bool IsShape {
             get {
