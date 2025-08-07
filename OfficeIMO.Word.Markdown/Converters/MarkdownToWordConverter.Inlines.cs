@@ -1,13 +1,15 @@
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+using Markdig.Extensions.Footnotes;
 using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     internal partial class MarkdownToWordConverter {
-        private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options, WordDocument document) {
+        private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options, WordDocument document, Dictionary<string, string> footnotes) {
             if (inline == null) {
                 return;
             }
@@ -23,7 +25,13 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             var start = inline is ContainerInline container ? container.FirstChild : inline;
             for (var current = start; current != null; current = current.NextSibling) {
-                if (current is LinkInline link) {
+                if (current is FootnoteLink footnoteLink) {
+                    Flush();
+                    var label = footnoteLink.Footnote?.Label ?? footnoteLink.Footnote?.Order.ToString();
+                    if (label != null && footnotes.TryGetValue(label, out var note)) {
+                        paragraph.AddFootNote(note);
+                    }
+                } else if (current is LinkInline link) {
                     Flush();
                     if (link.IsImage) {
                         AddImage(document, paragraph, link);

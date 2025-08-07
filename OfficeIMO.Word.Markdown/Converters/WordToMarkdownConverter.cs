@@ -50,7 +50,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 _output.AppendLine();
                 foreach (var footnote in document.FootNotes.OrderBy(fn => fn.ReferenceId)) {
                     if (footnote.ReferenceId.HasValue) {
-                        _output.AppendLine($"[^{footnote.ReferenceId}]: {RenderFootnote(footnote, options)}");
+                        string id = footnote.ReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        _output.AppendLine($"[^{id}]: {RenderFootnote(footnote, options)}");
                     }
                 }
             }
@@ -77,7 +78,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             sb.Append(RenderRuns(paragraph, options));
 
-            return sb.ToString();
+            return sb.ToString().Trim();
         }
 
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
@@ -148,7 +149,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
                 sb.Append(RenderRuns(paragraphs[i], options));
             }
-            return sb.ToString();
+            return sb.ToString().Trim();
         }
 
         private string RenderImage(WordImage image) {

@@ -5,9 +5,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using JustificationValues = DocumentFormat.OpenXml.Wordprocessing.JustificationValues;
-
-namespace OfficeIMO.Word.Markdown.Converters {
-    internal partial class MarkdownToWordConverter {
+    internal partial class MarkdownToWordConverter {
+        private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options, Dictionary<string, string> footnotes) {
+                        if (cellBlock is ParagraphBlock pb) {
+                            ProcessInline(pb.Inline, paragraph, options, document, footnotes);
+                        }
+
         private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options) {
             int rows = table.Count();
             int cols = table.ColumnDefinitions.Count;
