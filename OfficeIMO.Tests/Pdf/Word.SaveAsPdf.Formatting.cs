@@ -6,8 +6,11 @@ using System.IO.Compression;
 using System.Text;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Word {
+namespace OfficeIMO.Tests {            Assert.Matches(@"0 [0-9.]+ [0-9.]+ \.[0-9]+ re", strikeLine);
+        }
+    }
+}
+
         [Fact]
         public void Test_WordDocument_SaveAsPdf_ParagraphFormatting() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfParagraphFormatting.docx");
