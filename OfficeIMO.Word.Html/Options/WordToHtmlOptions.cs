@@ -20,5 +20,10 @@ namespace OfficeIMO.Word.Html {
         /// When set, includes list style information in generated HTML.
         /// </summary>
         public bool IncludeListStyles { get; set; }
+
+        /// <summary>
+        /// When true, footnotes are exported to HTML. Set to false to omit footnotes.
+        /// </summary>
+        public bool ExportFootnotes { get; set; } = true;
     }
 }

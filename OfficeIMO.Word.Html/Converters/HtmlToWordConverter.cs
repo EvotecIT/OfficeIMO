@@ -23,6 +23,7 @@ namespace OfficeIMO.Word.Html.Converters {
     /// 4. Follow existing patterns in OfficeIMO.Word for consistency
     /// </summary>
     internal partial class HtmlToWordConverter {
+        private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
@@ -33,6 +34,18 @@ namespace OfficeIMO.Word.Html.Converters {
             var document = await parser.ParseDocumentAsync(html);
 
             var wordDoc = WordDocument.Create();
+
+            _footnoteMap.Clear();
+            var footnoteSection = document.QuerySelector("section.footnotes");
+            if (footnoteSection != null) {
+                foreach (var li in footnoteSection.QuerySelectorAll("li")) {
+                    var id = li.GetAttribute("id");
+                    if (!string.IsNullOrEmpty(id)) {
+                        _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
+                    }
+                }
+                footnoteSection.Remove();
+            }
 
             if (options.DefaultPageSize.HasValue) {
                 wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
@@ -200,7 +213,10 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "a": {
                             var href = element.GetAttribute("href");
-                            if (!string.IsNullOrEmpty(href)) {
+                            if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                                currentParagraph.AddFootNote(fnText);
+                            } else if (!string.IsNullOrEmpty(href)) {
                                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                                 var uri = new Uri(href, UriKind.RelativeOrAbsolute);
                                 var linkPara = currentParagraph.AddHyperLink(element.TextContent, uri);
