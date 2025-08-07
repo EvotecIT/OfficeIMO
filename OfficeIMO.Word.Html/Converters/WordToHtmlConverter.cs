@@ -119,6 +119,18 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = u;
                     }
 
+                    if (run.Superscript) {
+                        var sup = htmlDoc.CreateElement("sup");
+                        sup.AppendChild(node);
+                        node = sup;
+                    }
+
+                    if (run.Subscript) {
+                        var sub = htmlDoc.CreateElement("sub");
+                        sub.AppendChild(node);
+                        node = sub;
+                    }
+
                     if (!string.IsNullOrEmpty(run.Hyperlink)) {
                         var a = htmlDoc.CreateElement("a");
                         a.SetAttribute("href", run.Hyperlink);

@@ -150,7 +150,8 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "strong":
                     case "b": {
-                            var fmt = new TextFormatting(true, formatting.Italic, formatting.Underline);
+                            var fmt = formatting;
+                            fmt.Bold = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
@@ -158,14 +159,32 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "em":
                     case "i": {
-                            var fmt = new TextFormatting(formatting.Bold, true, formatting.Underline);
+                            var fmt = formatting;
+                            fmt.Italic = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
                     case "u": {
-                            var fmt = new TextFormatting(formatting.Bold, formatting.Italic, true);
+                            var fmt = formatting;
+                            fmt.Underline = true;
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
+                    case "sup": {
+                            var fmt = formatting;
+                            fmt.Superscript = true;
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
+                    case "sub": {
+                            var fmt = formatting;
+                            fmt.Subscript = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }

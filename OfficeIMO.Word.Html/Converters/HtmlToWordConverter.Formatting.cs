@@ -15,14 +15,18 @@ namespace OfficeIMO.Word.Html.Converters {
             public bool Bold;
             public bool Italic;
             public bool Underline;
+            public bool Superscript;
+            public bool Subscript;
             public string? ColorHex;
             public string? FontFamily;
             public int? FontSize;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                Superscript = superscript;
+                Subscript = subscript;
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
                 FontSize = fontSize;
@@ -153,6 +157,8 @@ namespace OfficeIMO.Word.Html.Converters {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline(UnderlineValues.Single);
+            if (formatting.Superscript) run.SetSuperScript();
+            if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
