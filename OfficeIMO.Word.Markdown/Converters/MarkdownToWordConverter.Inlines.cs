@@ -1,9 +1,11 @@
+using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     internal partial class MarkdownToWordConverter {
@@ -51,10 +53,65 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private static void AddImage(WordDocument document, WordParagraph paragraph, LinkInline link) {
             string url = link.Url?.Trim() ?? string.Empty;
+            string? title = link.Title?.Trim();
+            double? width = null;
+            double? height = null;
+
+            // Check for size hints in URL (e.g. "path =100x200")
+            var matchUrl = Regex.Match(url, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
+            if (matchUrl.Success) {
+                width = double.Parse(matchUrl.Groups[1].Value);
+                if (matchUrl.Groups[2].Success) {
+                    height = double.Parse(matchUrl.Groups[2].Value);
+                }
+                url = url.Substring(0, matchUrl.Index).Trim();
+            }
+
+            // Size hints may also appear after the title
+            if (!string.IsNullOrEmpty(title)) {
+                var matchTitle = Regex.Match(title, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
+                if (matchTitle.Success) {
+                    width ??= double.Parse(matchTitle.Groups[1].Value);
+                    if (matchTitle.Groups[2].Success) {
+                        height ??= double.Parse(matchTitle.Groups[2].Value);
+                    }
+                    title = title.Substring(0, matchTitle.Index).Trim();
+                }
+            }
+
+            // Try to read dimensions from generic attributes
+            var attrs = link.GetAttributes();
+            if (attrs.Properties != null) {
+                if (width == null) {
+                    var wProp = attrs.Properties.Find(p => string.Equals(p.Key, "width", StringComparison.OrdinalIgnoreCase));
+                    if (wProp.Key != null && double.TryParse(wProp.Value, out var w)) {
+                        width = w;
+                    }
+                }
+                if (height == null) {
+                    var hProp = attrs.Properties.Find(p => string.Equals(p.Key, "height", StringComparison.OrdinalIgnoreCase));
+                    if (hProp.Key != null && double.TryParse(hProp.Value, out var h)) {
+                        height = h;
+                    }
+                }
+            }
+
+            if (width == null && height != null) {
+                width = height;
+            } else if (height == null && width != null) {
+                height = width;
+            }
+
+            width ??= 50;
+            height ??= 50;
+
             if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
-                document.AddImageFromUrl(url, 50, 50);
+                var img = document.AddImageFromUrl(url, width, height);
+                if (!string.IsNullOrEmpty(title)) {
+                    img.Description = title;
+                }
             } else {
-                paragraph.AddImage(url);
+                paragraph.AddImage(url, width, height, description: title ?? string.Empty);
             }
         }
 
