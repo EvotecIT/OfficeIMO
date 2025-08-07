@@ -237,6 +237,22 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_ImageAlt_Preserved() {
+        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        byte[] imageBytes = File.ReadAllBytes(assetPath);
+        string base64 = Convert.ToBase64String(imageBytes);
+        string html = $"<p><img src=\"data:image/png;base64,{base64}\" alt=\"Company logo\" /></p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Single(doc.Images);
+        Assert.Equal("Company logo", doc.Images[0].Description);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Contains("alt=\"Company logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Test_Html_HorizontalRule_RoundTrip() {
         string html = "<p>Before</p><hr><p>After</p>";
 

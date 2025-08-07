@@ -71,12 +71,16 @@ namespace OfficeIMO.Tests {
             doc.BuiltinDocumentProperties.Creator = "Tester";
 
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
-            doc.AddParagraph().AddImage(assetPath);
+            var paragraph = doc.AddParagraph();
+            paragraph.AddImage(assetPath, description: "Company logo");
+
+            Assert.Equal("Company logo", paragraph.Image.Description);
 
             string html = doc.ToHtml();
 
             Assert.Contains("data:image/png", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("content=\"Tester\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("alt=\"Company logo\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

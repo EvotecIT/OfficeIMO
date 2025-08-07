@@ -90,6 +90,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             src = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
                         }
                         img!.Source = src;
+                        img.AlternativeText = imgObj.Description ?? string.Empty;
                         parent.AppendChild(img);
                         continue;
                     }
