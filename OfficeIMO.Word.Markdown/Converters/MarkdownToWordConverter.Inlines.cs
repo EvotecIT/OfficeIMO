@@ -21,7 +21,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
             }
 
-            for (var current = inline; current != null; current = current.NextSibling) {
+            var start = inline is ContainerInline container ? container.FirstChild : inline;
+            for (var current = start; current != null; current = current.NextSibling) {
                 if (current is LinkInline link) {
                     Flush();
                     if (link.IsImage) {
@@ -33,6 +34,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             hyperlink.SetFontFamily(options.FontFamily);
                         }
                     }
+                } else if (current is EmphasisInline emphasis && emphasis.DelimiterChar == '~') {
+                    Flush();
+                    string text = BuildMarkdown(emphasis.FirstChild);
+                    var run = paragraph.AddFormattedText(text);
+                    run.SetStrike();
+                    if (!string.IsNullOrEmpty(options.FontFamily)) {
+                        run.SetFontFamily(options.FontFamily);
+                    }
                 } else {
                     buffer.Append(BuildMarkdown(current));
                 }
@@ -41,10 +50,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
         }
 
         private static void AddImage(WordDocument document, WordParagraph paragraph, LinkInline link) {
-            if (File.Exists(link.Url)) {
-                paragraph.AddImage(link.Url);
+            string url = link.Url?.Trim() ?? string.Empty;
+            if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
+                document.AddImageFromUrl(url, 50, 50);
             } else {
-                document.AddImageFromUrl(link.Url, 50, 50);
+                paragraph.AddImage(url);
             }
         }
 
@@ -60,7 +70,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
                         sb.Append(literal.Content.ToString());
                         break;
                     case EmphasisInline emphasis:
-                        string marker = new('*', emphasis.DelimiterCount);
+                        char delimiter = emphasis.DelimiterChar;
+                        string marker = new(delimiter, emphasis.DelimiterCount);
                         sb.Append(marker);
                         sb.Append(BuildMarkdown(emphasis.FirstChild));
                         sb.Append(marker);
