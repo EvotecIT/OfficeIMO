@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
 
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
-            paragraph.AddImage(assetPath, description: "Company logo");
+            paragraph.AddImage(assetPath, 40, 40, description: "Company logo");
 
             Assert.Equal("Company logo", paragraph.Image.Description);
 
@@ -81,6 +81,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains("data:image/png", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("content=\"Tester\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("alt=\"Company logo\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("width=\"40\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("height=\"40\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ImageFilePathOption() {
+            using var doc = WordDocument.Create();
+
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            var paragraph = doc.AddParagraph();
+            paragraph.AddImage(assetPath, 20, 20);
+
+            string html = doc.ToHtml(new WordToHtmlOptions { EmbedImagesAsBase64 = false });
+
+            Assert.DoesNotContain("data:image", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(Path.GetFileName(assetPath), html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

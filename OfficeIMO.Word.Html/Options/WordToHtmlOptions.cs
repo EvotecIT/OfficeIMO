@@ -25,5 +25,11 @@ namespace OfficeIMO.Word.Html {
         /// When true, footnotes are exported to HTML. Set to false to omit footnotes.
         /// </summary>
         public bool ExportFootnotes { get; set; } = true;
+
+        /// <summary>
+        /// When true (default), embeds images as base64 data URIs. When false,
+        /// uses the image file paths instead.
+        /// </summary>
+        public bool EmbedImagesAsBase64 { get; set; } = true;
     }
 }

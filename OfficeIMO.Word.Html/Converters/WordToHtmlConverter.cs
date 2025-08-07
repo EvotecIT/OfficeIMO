@@ -105,13 +105,19 @@ namespace OfficeIMO.Word.Html.Converters {
                         var imgObj = run.Image;
                         if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                             src = imgObj.ExternalUri.ToString();
+                        } else if (!options.EmbedImagesAsBase64) {
+                            src = string.IsNullOrEmpty(imgObj.FilePath) ? imgObj.FileName : imgObj.FilePath;
                         } else {
                             var bytes = imgObj.GetBytes();
                             var mime = MimeFromFileName(imgObj.FileName);
                             src = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
                         }
                         img!.Source = src;
-                        img.AlternativeText = imgObj.Description ?? string.Empty;
+                        if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
+                        if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                        if (!string.IsNullOrEmpty(imgObj.Description)) {
+                            img.AlternativeText = imgObj.Description;
+                        }
                         parent.AppendChild(img);
                         continue;
                     }
