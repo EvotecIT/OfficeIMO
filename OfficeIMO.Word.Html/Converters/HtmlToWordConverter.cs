@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -24,6 +26,17 @@ namespace OfficeIMO.Word.Html.Converters {
     /// </summary>
     internal partial class HtmlToWordConverter {
         private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<CssRule> _cssRules = new();
+
+        private sealed class CssRule {
+            public CssRule(string selector, Dictionary<string, string> declarations) {
+                Selector = selector;
+                Declarations = declarations;
+            }
+
+            public string Selector { get; }
+            public Dictionary<string, string> Declarations { get; }
+        }
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
@@ -36,6 +49,34 @@ namespace OfficeIMO.Word.Html.Converters {
             var wordDoc = WordDocument.Create();
 
             _footnoteMap.Clear();
+            _cssRules.Clear();
+
+            foreach (var path in options.StylesheetPaths) {
+                if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
+                    ParseCss(File.ReadAllText(path));
+                }
+            }
+            foreach (var content in options.StylesheetContents) {
+                if (!string.IsNullOrEmpty(content)) {
+                    ParseCss(content);
+                }
+            }
+
+            if (document.Head != null) {
+                foreach (var style in document.Head.QuerySelectorAll("style")) {
+                    ParseCss(style.TextContent);
+                }
+                foreach (var link in document.Head.QuerySelectorAll("link")) {
+                    var rel = link.GetAttribute("rel");
+                    if (string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                        var href = link.GetAttribute("href");
+                        if (!string.IsNullOrEmpty(href) && File.Exists(href)) {
+                            ParseCss(File.ReadAllText(href));
+                        }
+                    }
+                }
+            }
+
             var footnoteSection = document.QuerySelector("section.footnotes");
             if (footnoteSection != null) {
                 foreach (var li in footnoteSection.QuerySelectorAll("li")) {
@@ -66,6 +107,7 @@ namespace OfficeIMO.Word.Html.Converters {
         private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell) {
             if (node is IElement element) {
+                ApplyCssToElement(element);
                 switch (element.TagName.ToLowerInvariant()) {
                     case "section": {
                             var newSection = doc.AddSection();
@@ -305,6 +347,20 @@ namespace OfficeIMO.Word.Html.Converters {
                             ProcessImage((IHtmlImageElement)element, doc);
                             break;
                         }
+                    case "style": {
+                            ParseCss(element.TextContent);
+                            break;
+                        }
+                    case "link": {
+                            var rel = element.GetAttribute("rel");
+                            if (string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                                var href = element.GetAttribute("href");
+                                if (!string.IsNullOrEmpty(href) && File.Exists(href)) {
+                                    ParseCss(File.ReadAllText(href));
+                                }
+                            }
+                            break;
+                        }
                     default: {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, formatting, cell);
@@ -341,6 +397,83 @@ namespace OfficeIMO.Word.Html.Converters {
                     break;
                 }
             }
+        }
+
+        private void ParseCss(string css) {
+            foreach (Match match in Regex.Matches(css, @"(?<sel>[^{}]+)\{(?<body>[^{}]+)\}")) {
+                var selectors = match.Groups["sel"].Value.Split(',');
+                var declarations = ParseDeclarations(match.Groups["body"].Value);
+                foreach (var selector in selectors) {
+                    var trimmed = selector.Trim();
+                    if (trimmed.Length > 0) {
+                        _cssRules.Add(new CssRule(trimmed, new Dictionary<string, string>(declarations)));
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<string, string> ParseDeclarations(string body) {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var part in body.Split(';', StringSplitOptions.RemoveEmptyEntries)) {
+                var pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length == 2) {
+                    dict[pieces[0].Trim().ToLowerInvariant()] = pieces[1].Trim();
+                }
+            }
+            return dict;
+        }
+
+        private void ApplyCssToElement(IElement element) {
+            if (_cssRules.Count == 0) {
+                return;
+            }
+
+            var accumulated = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rule in _cssRules) {
+                if (SelectorMatches(rule.Selector, element)) {
+                    foreach (var kvp in rule.Declarations) {
+                        accumulated[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+
+            var inline = element.GetAttribute("style");
+            if (!string.IsNullOrEmpty(inline)) {
+                foreach (var kvp in ParseDeclarations(inline)) {
+                    accumulated[kvp.Key] = kvp.Value;
+                }
+            }
+
+            if (accumulated.Count > 0) {
+                var sb = new StringBuilder();
+                foreach (var kvp in accumulated) {
+                    sb.Append(kvp.Key).Append(':').Append(kvp.Value).Append(';');
+                }
+                element.SetAttribute("style", sb.ToString());
+            }
+        }
+
+        private static bool SelectorMatches(string selector, IElement element) {
+            selector = selector.Trim();
+            if (selector.StartsWith('.')) {
+                var cls = selector.Substring(1);
+                var classAttr = element.GetAttribute("class");
+                if (classAttr == null) {
+                    return false;
+                }
+                foreach (var c in classAttr.Split(' ', StringSplitOptions.RemoveEmptyEntries)) {
+                    if (string.Equals(c, cls, StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (selector.StartsWith('#')) {
+                var id = selector.Substring(1);
+                var elemId = element.GetAttribute("id");
+                return string.Equals(elemId, id, StringComparison.OrdinalIgnoreCase);
+            }
+            return string.Equals(element.TagName, selector.ToUpperInvariant(), StringComparison.Ordinal);
         }
     }
 }
