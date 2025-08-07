@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples {
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_HtmlFigureWithCaption(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlInterface(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlLists(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlRoundTrip(folderPath, false);

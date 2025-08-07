@@ -343,6 +343,25 @@ namespace OfficeIMO.Word.Html.Converters {
                             ProcessTable((IHtmlTableElement)element, doc, section, options, listStack, cell, currentParagraph);
                             break;
                         }
+                    case "figure": {
+                            var img = element.QuerySelector("img") as IHtmlImageElement;
+                            if (img != null) {
+                                ProcessImage(img, doc);
+                            }
+                            var caption = element.QuerySelector("figcaption");
+                            if (caption != null) {
+                                ApplyCssToElement(caption);
+                                var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                                paragraph.SetStyleId("Caption");
+                                ApplyParagraphStyleFromCss(paragraph, caption);
+                                ApplyClassStyle(caption, paragraph, options);
+                                AddBookmarkIfPresent(caption, paragraph);
+                                foreach (var child in caption.ChildNodes) {
+                                    ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                }
+                            }
+                            break;
+                        }
                     case "img": {
                             ProcessImage((IHtmlImageElement)element, doc);
                             break;
