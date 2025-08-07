@@ -15,21 +15,25 @@ namespace OfficeIMO.Word.Html.Converters {
             public bool Bold;
             public bool Italic;
             public bool Underline;
+            public bool Strike;
             public bool Superscript;
             public bool Subscript;
             public string? ColorHex;
             public string? FontFamily;
             public int? FontSize;
+            public HighlightColorValues? Highlight;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                Strike = strike;
                 Superscript = superscript;
                 Subscript = subscript;
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
                 FontSize = fontSize;
+                Highlight = highlight;
             }
         }
 
@@ -157,9 +161,11 @@ namespace OfficeIMO.Word.Html.Converters {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline(UnderlineValues.Single);
+            if (formatting.Strike) run.SetStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex);
+            if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 run.SetFontFamily(formatting.FontFamily);
@@ -194,6 +200,27 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "font-size":
                         if (TryParseFontSize(value, out int size)) {
                             formatting.FontSize = size;
+                        }
+                        break;
+                    case "text-decoration":
+                        foreach (var deco in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                            switch (deco.Trim().ToLowerInvariant()) {
+                                case "underline":
+                                    formatting.Underline = true;
+                                    break;
+                                case "line-through":
+                                    formatting.Strike = true;
+                                    break;
+                            }
+                        }
+                        break;
+                    case "background-color":
+                        var bgColor = NormalizeColor(value);
+                        if (bgColor != null) {
+                            var highlight = MapColorToHighlight(bgColor);
+                            if (highlight.HasValue) {
+                                formatting.Highlight = highlight.Value;
+                            }
                         }
                         break;
                 }
