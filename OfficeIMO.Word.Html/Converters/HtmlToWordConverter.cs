@@ -195,6 +195,31 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "s":
+                    case "del": {
+                            var fmt = formatting;
+                            fmt.Strike = true;
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
+                    case "ins": {
+                            var fmt = formatting;
+                            fmt.Underline = true;
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
+                    case "mark": {
+                            var fmt = formatting;
+                            fmt.Highlight = HighlightColorValues.Yellow;
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            break;
+                        }
                     case "sup": {
                             var fmt = formatting;
                             fmt.Superscript = true;
