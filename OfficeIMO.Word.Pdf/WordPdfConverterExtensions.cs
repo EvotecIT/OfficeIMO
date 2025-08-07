@@ -22,6 +22,19 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="path">The output PDF file path.</param>
         /// <param name="options">Optional PDF configuration.</param>
         public static void SaveAsPdf(this WordDocument document, string path, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (path == null) {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            string? directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory)) {
+                Directory.CreateDirectory(directory);
+            }
+
             Document pdf = CreatePdfDocument(document, options);
             pdf.GeneratePdf(path);
         }
@@ -33,6 +46,14 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="stream">The output stream to receive the PDF data.</param>
         /// <param name="options">Optional PDF configuration.</param>
         public static void SaveAsPdf(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
             Document pdf = CreatePdfDocument(document, options);
             pdf.GeneratePdf(stream);
         }
