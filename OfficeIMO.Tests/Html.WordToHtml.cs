@@ -238,6 +238,25 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("<hr", html, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void Test_WordToHtml_AdditionalHeadElements() {
+            using var doc = WordDocument.Create();
+            doc.BuiltinDocumentProperties.Creator = "Tester";
+            doc.AddParagraph("Content");
+
+            var options = new WordToHtmlOptions();
+            options.AdditionalMetaTags.Add(("viewport", "width=device-width"));
+            options.AdditionalLinkTags.Add(("stylesheet", "styles.css"));
+
+            string html = doc.ToHtml(options);
+
+            Assert.Contains("<meta name=\"viewport\" content=\"width=device-width\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<link rel=\"stylesheet\" href=\"styles.css\"", html, StringComparison.OrdinalIgnoreCase);
+            int authorIndex = html.IndexOf("name=\"author\"", StringComparison.OrdinalIgnoreCase);
+            int viewportIndex = html.IndexOf("name=\"viewport\"", StringComparison.OrdinalIgnoreCase);
+            Assert.True(viewportIndex > authorIndex);
+        }
     }
 }
 
