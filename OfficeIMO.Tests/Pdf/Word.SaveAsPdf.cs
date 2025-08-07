@@ -269,6 +269,46 @@ namespace OfficeIMO.Tests;
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_SectionPageSettings() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfSectionPageSettings.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfSectionPageSettings.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
+            document.Sections[0].PageSettings.Orientation = PageOrientationValues.Landscape;
+            document.AddParagraph("Section1");
+
+            WordSection section2 = document.AddSection();
+            section2.PageSettings.PageSize = WordPageSize.A5;
+            section2.PageSettings.Orientation = PageOrientationValues.Portrait;
+            section2.AddParagraph("Section2");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        MatchCollection boxes = Regex.Matches(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
+        Assert.Equal(2, boxes.Count);
+
+        double w1 = double.Parse(boxes[0].Groups["w"].Value, CultureInfo.InvariantCulture);
+        double h1 = double.Parse(boxes[0].Groups["h"].Value, CultureInfo.InvariantCulture);
+        QuestPDF.Helpers.PageSize a4 = PageSizes.A4.Landscape();
+        Assert.True(System.Math.Abs(w1 - a4.Width) < 1);
+        Assert.True(System.Math.Abs(h1 - a4.Height) < 1);
+
+        double w2 = double.Parse(boxes[1].Groups["w"].Value, CultureInfo.InvariantCulture);
+        double h2 = double.Parse(boxes[1].Groups["h"].Value, CultureInfo.InvariantCulture);
+        Assert.True(System.Math.Abs(w2 - PageSizes.A5.Width) < 1);
+        Assert.True(System.Math.Abs(h2 - PageSizes.A5.Height) < 1);
+
+        Assert.True(w1 > h1);
+        Assert.True(h2 > w2);
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_BookmarkLink() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfBookmarkLink.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfBookmarkLink.pdf");
