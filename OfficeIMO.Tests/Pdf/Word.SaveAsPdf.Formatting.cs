@@ -3,7 +3,8 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
+            using StreamReader reader = new StreamReader(ds, Encoding.Latin1);
+
 using Xunit;
 
 namespace OfficeIMO.Tests {            Assert.Matches(@"0 [0-9.]+ [0-9.]+ \.[0-9]+ re", strikeLine);
