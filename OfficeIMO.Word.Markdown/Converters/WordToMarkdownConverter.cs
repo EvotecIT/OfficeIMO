@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
 
                 if (run.IsImage && run.Image != null) {
-                    sb.Append(RenderImage(run.Image));
+                    sb.Append(RenderImage(run.Image, options));
                     continue;
                 }
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString();
         }
 
-        private string RenderImage(WordImage image) {
+        private string RenderImage(WordImage image, WordToMarkdownOptions options) {
             if (image == null) {
                 return string.Empty;
             }
@@ -160,22 +160,38 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 ? image.Description
                 : (string.IsNullOrEmpty(image.FilePath) ? "" : Path.GetFileName(image.FilePath));
 
-            if (!string.IsNullOrEmpty(image.FilePath)) {
-                return $"![{alt}]({image.FilePath})";
+            if (options.ImageExportMode == ImageExportMode.File) {
+                string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
+                Directory.CreateDirectory(directory);
+                string extension = Path.GetExtension(image.FilePath);
+                if (string.IsNullOrEmpty(extension)) {
+                    extension = ".png";
+                }
+                string fileName = string.IsNullOrEmpty(image.FileName)
+                    ? Guid.NewGuid().ToString("N") + extension
+                    : image.FileName;
+                string targetPath = Path.Combine(directory, fileName);
+
+                if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
+                    File.Copy(image.FilePath, targetPath, true);
+                } else {
+                    File.WriteAllBytes(targetPath, image.GetBytes());
+                }
+
+                return $"![{alt}]({fileName})";
+            } else {
+                byte[] bytes = image.GetBytes();
+                string extension = Path.GetExtension(image.FilePath);
+                string mime = extension switch {
+                    ".jpg" => "image/jpeg",
+                    ".jpeg" => "image/jpeg",
+                    ".gif" => "image/gif",
+                    ".bmp" => "image/bmp",
+                    _ => "image/png"
+                };
+                string base64 = System.Convert.ToBase64String(bytes);
+                return $"![{alt}](data:{mime};base64,{base64})";
             }
-
-            byte[] bytes = image.GetBytes();
-            string base64 = System.Convert.ToBase64String(bytes);
-            string extension = string.IsNullOrEmpty(image.FilePath) ? null : Path.GetExtension(image.FilePath).ToLower();
-            string mime = extension switch {
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".bmp" => "image/bmp",
-                _ => "image/png"
-            };
-
-            return $"![{alt}](data:{mime};base64,{base64})";
         }
 
         private string ConvertTable(WordTable table, WordToMarkdownOptions options) {
