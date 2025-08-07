@@ -97,6 +97,27 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "pre":
+                    case "code": {
+                            var textContent = element.TextContent;
+                            var lines = textContent.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+                            int start = 0;
+                            int end = lines.Length;
+                            while (start < end && string.IsNullOrEmpty(lines[start])) start++;
+                            while (end > start && string.IsNullOrEmpty(lines[end - 1])) end--;
+                            var mono = FontResolver.Resolve("monospace");
+                            for (int i = start; i < end; i++) {
+                                var line = lines[i];
+                                var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                                paragraph.SetStyleId("HTMLPreformatted");
+                                if (!string.IsNullOrEmpty(mono)) {
+                                    paragraph.SetFontFamily(mono);
+                                }
+                                var fmt = new TextFormatting(false, false, false, null, mono);
+                                AddTextRun(paragraph, line, fmt, options);
+                            }
+                            break;
+                        }
                     case "div": {
                             var fmt = formatting;
                             var divStyle = element.GetAttribute("style");
