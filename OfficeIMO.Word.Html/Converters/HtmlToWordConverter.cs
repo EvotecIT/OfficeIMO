@@ -85,6 +85,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             paragraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
+                            AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
                             }
@@ -94,6 +95,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
+                            AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
                             }
@@ -105,6 +107,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             paragraph.IndentationBefore = 720;
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
+                            AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
                             }
@@ -119,12 +122,17 @@ namespace OfficeIMO.Word.Html.Converters {
                             while (start < end && string.IsNullOrEmpty(lines[start])) start++;
                             while (end > start && string.IsNullOrEmpty(lines[end - 1])) end--;
                             var mono = FontResolver.Resolve("monospace");
+                            bool bookmarkAdded = false;
                             for (int i = start; i < end; i++) {
                                 var line = lines[i];
                                 var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                                 paragraph.SetStyleId("HTMLPreformatted");
                                 if (!string.IsNullOrEmpty(mono)) {
                                     paragraph.SetFontFamily(mono);
+                                }
+                                if (!bookmarkAdded) {
+                                    AddBookmarkIfPresent(element, paragraph);
+                                    bookmarkAdded = true;
                                 }
                                 var fmt = new TextFormatting(false, false, false, null, mono);
                                 AddTextRun(paragraph, line, fmt, options);
@@ -213,15 +221,44 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "a": {
                             var href = element.GetAttribute("href");
+                            var title = element.GetAttribute("title");
+                            var target = element.GetAttribute("target");
+                            var idAttr = element.GetAttribute("id");
+                            if (!string.IsNullOrEmpty(idAttr)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                                AddBookmarkIfPresent(element, currentParagraph);
+                            }
                             if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
                                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                                 currentParagraph.AddFootNote(fnText);
                             } else if (!string.IsNullOrEmpty(href)) {
                                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                                var uri = new Uri(href, UriKind.RelativeOrAbsolute);
-                                var linkPara = currentParagraph.AddHyperLink(element.TextContent, uri);
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    linkPara.SetFontFamily(options.FontFamily);
+                                if (href.StartsWith("#")) {
+                                    var anchor = href.TrimStart('#');
+                                    var linkPara = currentParagraph.AddHyperLink(element.TextContent, anchor);
+                                    if (!string.IsNullOrEmpty(options.FontFamily)) {
+                                        linkPara.SetFontFamily(options.FontFamily);
+                                    }
+                                    var link = linkPara.Hyperlink;
+                                    if (!string.IsNullOrEmpty(title)) {
+                                        link.Tooltip = title;
+                                    }
+                                    if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
+                                        link.TargetFrame = frame;
+                                    }
+                                } else {
+                                    var uri = new Uri(href, UriKind.RelativeOrAbsolute);
+                                    var linkPara = currentParagraph.AddHyperLink(element.TextContent, uri);
+                                    if (!string.IsNullOrEmpty(options.FontFamily)) {
+                                        linkPara.SetFontFamily(options.FontFamily);
+                                    }
+                                    var link = linkPara.Hyperlink;
+                                    if (!string.IsNullOrEmpty(title)) {
+                                        link.Tooltip = title;
+                                    }
+                                    if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
+                                        link.TargetFrame = frame;
+                                    }
                                 }
                             }
                             break;
@@ -257,6 +294,13 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                 AddTextRun(currentParagraph, text, formatting, options);
+            }
+        }
+
+        private static void AddBookmarkIfPresent(IElement element, WordParagraph paragraph) {
+            var id = element.GetAttribute("id");
+            if (!string.IsNullOrEmpty(id)) {
+                WordBookmark.AddBookmark(paragraph, id);
             }
         }
 
