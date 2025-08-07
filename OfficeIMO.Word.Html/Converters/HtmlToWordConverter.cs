@@ -414,7 +414,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static Dictionary<string, string> ParseDeclarations(string body) {
             var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var part in body.Split(';', StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (var part in body.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var pieces = part.Split(new[] { ':' }, 2);
                 if (pieces.Length == 2) {
                     dict[pieces[0].Trim().ToLowerInvariant()] = pieces[1].Trim();
@@ -455,20 +455,20 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static bool SelectorMatches(string selector, IElement element) {
             selector = selector.Trim();
-            if (selector.StartsWith('.')) {
+            if (selector.StartsWith(".", StringComparison.Ordinal)) {
                 var cls = selector.Substring(1);
                 var classAttr = element.GetAttribute("class");
                 if (classAttr == null) {
                     return false;
                 }
-                foreach (var c in classAttr.Split(' ', StringSplitOptions.RemoveEmptyEntries)) {
+                foreach (var c in classAttr.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                     if (string.Equals(c, cls, StringComparison.OrdinalIgnoreCase)) {
                         return true;
                     }
                 }
                 return false;
             }
-            if (selector.StartsWith('#')) {
+            if (selector.StartsWith("#", StringComparison.Ordinal)) {
                 var id = selector.Substring(1);
                 var elemId = element.GetAttribute("id");
                 return string.Equals(elemId, id, StringComparison.OrdinalIgnoreCase);
