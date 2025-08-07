@@ -1,6 +1,7 @@
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
@@ -251,6 +252,63 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
 
+            string? BuildBorderCss(BorderValues? style, string colorHex, UInt32Value size) {
+                if (style == null) {
+                    return null;
+                }
+
+                string cssStyle = "solid";
+                if (style == BorderValues.Dashed) {
+                    cssStyle = "dashed";
+                } else if (style == BorderValues.Dotted) {
+                    cssStyle = "dotted";
+                } else if (style == BorderValues.Double) {
+                    cssStyle = "double";
+                }
+
+                string color = !string.IsNullOrEmpty(colorHex) ? $"#{colorHex}" : "black";
+                double widthPt = size != null ? size.Value / 8.0 : 1.0;
+                double widthPx = widthPt * 96 / 72;
+                string width = $"{Math.Round(widthPx)}px";
+                return $"{width} {cssStyle} {color}";
+            }
+
+            List<string> GetBorderCss(WordTableCell cell) {
+                List<string> styles = new();
+                var b = cell.Borders;
+                if (b == null) {
+                    return styles;
+                }
+
+                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
+                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
+                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
+                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
+
+                if (left == null && right == null && top == null && bottom == null) {
+                    return styles;
+                }
+
+                if (left == top && top == right && right == bottom && left != null) {
+                    styles.Add($"border:{left}");
+                } else {
+                    if (left != null) {
+                        styles.Add($"border-left:{left}");
+                    }
+                    if (right != null) {
+                        styles.Add($"border-right:{right}");
+                    }
+                    if (top != null) {
+                        styles.Add($"border-top:{top}");
+                    }
+                    if (bottom != null) {
+                        styles.Add($"border-bottom:{bottom}");
+                    }
+                }
+
+                return styles;
+            }
+
             bool CellHasBorder(WordTableCell cell) {
                 var b = cell.Borders;
                 return b != null && (b.LeftStyle != null || b.RightStyle != null || b.TopStyle != null || b.BottomStyle != null);
@@ -416,9 +474,11 @@ namespace OfficeIMO.Word.Html.Converters {
                                 if (!string.IsNullOrEmpty(align)) {
                                     cellStyles.Add($"text-align:{align}");
                                 }
-                                if (CellHasBorder(cell)) {
-                                    cellStyles.Add("border:1px solid black");
+                                var bg = cell.ShadingFillColorHex;
+                                if (!string.IsNullOrEmpty(bg)) {
+                                    cellStyles.Add($"background-color:#{bg}");
                                 }
+                                cellStyles.AddRange(GetBorderCss(cell));
                                 if (cellStyles.Count > 0) {
                                     td.SetAttribute("style", string.Join(";", cellStyles));
                                 }

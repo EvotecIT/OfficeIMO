@@ -191,6 +191,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_TableCellCss() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            var cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+            cell.ShadingFillColorHex = "ff0000";
+            cell.Borders.LeftStyle = BorderValues.Single;
+            cell.Borders.RightStyle = BorderValues.Single;
+            cell.Borders.TopStyle = BorderValues.Single;
+            cell.Borders.BottomStyle = BorderValues.Single;
+            cell.Borders.LeftColorHex = "00ff00";
+            cell.Borders.RightColorHex = "00ff00";
+            cell.Borders.TopColorHex = "00ff00";
+            cell.Borders.BottomColorHex = "00ff00";
+            cell.Borders.LeftSize = 8;
+            cell.Borders.RightSize = 8;
+            cell.Borders.TopSize = 8;
+            cell.Borders.BottomSize = 8;
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-align:right", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border:1px solid #00ff00", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_Blockquote() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Quoted text");
