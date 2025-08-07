@@ -32,5 +32,15 @@ namespace OfficeIMO.Word.Html {
         /// When true, attempts to include list styling information during conversion.
         /// </summary>
         public bool IncludeListStyles { get; set; }
+
+        /// <summary>
+        /// File paths pointing to external stylesheets that should be applied during conversion.
+        /// </summary>
+        public List<string> StylesheetPaths { get; } = new List<string>();
+
+        /// <summary>
+        /// Raw CSS stylesheet contents that should be applied during conversion.
+        /// </summary>
+        public List<string> StylesheetContents { get; } = new List<string>();
     }
 }
