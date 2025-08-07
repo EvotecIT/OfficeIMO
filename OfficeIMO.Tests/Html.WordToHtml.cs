@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
 
-            Assert.Contains("<ol type=\"I\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ol start=\"1\" type=\"I\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -120,6 +120,36 @@ namespace OfficeIMO.Tests {
             string html = doc.ToHtml();
 
             Assert.Contains("<ul type=\"circle\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_LowerLetter() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.ArticleSections);
+            list.Numbering.Levels[0]._level.NumberingFormat.Val = NumberFormatValues.LowerLetter;
+            list.AddItem("alpha");
+            list.AddItem("beta");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+
+            Assert.Contains("<ol start=\"1\" type=\"a\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:lower-alpha", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_DecimalLeadingZero() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.ArticleSections);
+            list.Numbering.Levels[0]._level.NumberingFormat.Val = NumberFormatValues.DecimalZero;
+            list.Numbering.Levels[0].SetStartNumberingValue(3);
+            list.AddItem("three");
+            list.AddItem("four");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+
+            Assert.Contains("<ol", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("start=\"3\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:decimal-leading-zero", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
