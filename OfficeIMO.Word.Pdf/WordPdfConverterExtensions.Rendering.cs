@@ -7,11 +7,12 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options) {
+        static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             if (paragraph == null) {
                 return container;
             }
@@ -35,6 +36,11 @@ namespace OfficeIMO.Word.Pdf {
                 container = container.AlignRight();
             } else if (paragraph.ParagraphAlignment == W.JustificationValues.Both) {
                 container = container.AlignLeft();
+            }
+
+            int? currentFootnoteNumber = null;
+            if (footnoteMap.TryGetValue(paragraph, out int num)) {
+                currentFootnoteNumber = num;
             }
 
             container.Column(col => {
@@ -63,11 +69,17 @@ namespace OfficeIMO.Word.Pdf {
                             row.ConstantItem(indentSize).Text(marker.Value.Marker);
                             row.RelativeItem().Text(text => {
                                 ApplyFormatting(text.Span(content));
+                                if (currentFootnoteNumber != null) {
+                                    text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
+                                }
                             });
                         });
                     } else {
                         col.Item().Text(text => {
                             ApplyFormatting(text.Span(content));
+                            if (currentFootnoteNumber != null) {
+                                text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
+                            }
                         });
                     }
                 }

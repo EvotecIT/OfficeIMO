@@ -8,7 +8,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static IContainer RenderTable(IContainer container, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options) {
+        private static IContainer RenderTable(IContainer container, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             container.Table(tableContainer => {
                 TableLayout layout = TableLayoutCache.GetLayout(table);
                 tableContainer.ColumnsDefinition(columns => {
@@ -28,11 +28,13 @@ namespace OfficeIMO.Word.Pdf {
 
                             cellContainer.Column(cellColumn => {
                                 foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                    cellColumn.Item().Element(e => RenderParagraph(e, paragraph, getMarker(paragraph), options));
+                                    cellColumn.Item().Element(e => {
+                                        return RenderParagraph(e, paragraph, getMarker(paragraph), options, footnoteMap);
+                                    });
                                 }
 
                                 foreach (WordTable nested in cell.NestedTables) {
-                                    cellColumn.Item().Element(e => RenderTable(e, nested, getMarker, options));
+                                    cellColumn.Item().Element(e => RenderTable(e, nested, getMarker, options, footnoteMap));
                                 }
                             });
 
