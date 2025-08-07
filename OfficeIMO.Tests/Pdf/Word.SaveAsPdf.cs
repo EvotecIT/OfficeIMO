@@ -107,6 +107,41 @@ namespace OfficeIMO.Tests;
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_CreatesDirectory() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfCreateDir.docx");
+        string pdfDir = Path.Combine(_directoryWithFiles, "MissingDir");
+        string pdfPath = Path.Combine(pdfDir, "PdfCreateDir.pdf");
+
+        if (Directory.Exists(pdfDir)) {
+            Directory.Delete(pdfDir, true);
+        }
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_NullPath_Throws() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNullPath.docx");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            Assert.Throws<ArgumentNullException>(() => document.SaveAsPdf((string)null!));
+        }
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_NullDocument_Throws() {
+        Assert.Throws<ArgumentNullException>(() => WordPdfConverterExtensions.SaveAsPdf(null!, "file.pdf"));
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_CustomParagraphFont() {
         string font = FontResolver.Resolve("monospace")!;
         string expected = Regex.Replace(font, @"\s+", "");
