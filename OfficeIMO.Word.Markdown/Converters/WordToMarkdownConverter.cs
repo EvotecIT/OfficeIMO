@@ -190,8 +190,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
             sb.AppendLine();
 
             sb.Append('|');
-            for (int i = 0; i < rows[0].CellsCount; i++) {
-                sb.Append("---|");
+            foreach (var cell in rows[0].Cells) {
+                sb.Append(' ').Append(GetAlignmentMarker(cell)).Append(' ').Append('|');
             }
             sb.AppendLine();
 
@@ -213,6 +213,20 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 sb.Append(RenderRuns(p, options));
             }
             return sb.ToString();
+        }
+
+        private static string GetAlignmentMarker(WordTableCell cell) {
+            var alignment = cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment;
+            if (alignment == JustificationValues.Center) {
+                return ":---:";
+            }
+            if (alignment == JustificationValues.Right || alignment == JustificationValues.End) {
+                return "---:";
+            }
+            if (alignment == JustificationValues.Left || alignment == JustificationValues.Start) {
+                return ":---";
+            }
+            return "---";
         }
 
     }
