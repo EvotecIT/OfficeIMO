@@ -137,10 +137,28 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
+            bool IsCodeParagraph(WordParagraph para) {
+                if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+                var runs = FormattingHelper.GetFormattedRuns(para).ToList();
+                return runs.Count > 0 && runs.All(r => r.Code);
+            }
+
             void AppendParagraph(IElement parent, WordParagraph para) {
                 if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text)) {
                     var hr = htmlDoc.CreateElement("hr");
                     parent.AppendChild(hr);
+                    return;
+                }
+
+                if (IsCodeParagraph(para)) {
+                    var pre = htmlDoc.CreateElement("pre");
+                    var code = htmlDoc.CreateElement("code");
+                    code.TextContent = para.Text;
+                    pre.AppendChild(code);
+                    parent.AppendChild(pre);
                     return;
                 }
 
@@ -258,7 +276,9 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
-                foreach (var element in section.Elements) {
+                var elements = section.Elements;
+                for (int idx = 0; idx < elements.Count; idx++) {
+                    var element = elements[idx];
                     if (element is WordParagraph paragraph) {
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
@@ -300,7 +320,21 @@ namespace OfficeIMO.Word.Html.Converters {
                             AppendRuns(li, paragraph);
                         } else {
                             CloseLists();
-                            AppendParagraph(body, paragraph);
+                            if (IsCodeParagraph(paragraph)) {
+                                List<string> lines = new();
+                                lines.Add(paragraph.Text);
+                                while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && DocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
+                                    lines.Add(nextPara.Text);
+                                    idx++;
+                                }
+                                var pre = htmlDoc.CreateElement("pre");
+                                var code = htmlDoc.CreateElement("code");
+                                code.TextContent = string.Join("\n", lines);
+                                pre.AppendChild(code);
+                                body.AppendChild(pre);
+                            } else {
+                                AppendParagraph(body, paragraph);
+                            }
                         }
                     } else if (element is WordTable table) {
                         CloseLists();
@@ -364,8 +398,23 @@ namespace OfficeIMO.Word.Html.Converters {
                                 if (cellStyles.Count > 0) {
                                     td.SetAttribute("style", string.Join(";", cellStyles));
                                 }
-                                foreach (var p in cell.Paragraphs) {
-                                    AppendParagraph(td, p);
+                                for (int pIdx = 0; pIdx < cell.Paragraphs.Count; pIdx++) {
+                                    var p = cell.Paragraphs[pIdx];
+                                    if (IsCodeParagraph(p)) {
+                                        List<string> lines = new();
+                                        lines.Add(p.Text);
+                                        while (pIdx + 1 < cell.Paragraphs.Count && IsCodeParagraph(cell.Paragraphs[pIdx + 1])) {
+                                            lines.Add(cell.Paragraphs[pIdx + 1].Text);
+                                            pIdx++;
+                                        }
+                                        var pre = htmlDoc.CreateElement("pre");
+                                        var code = htmlDoc.CreateElement("code");
+                                        code.TextContent = string.Join("\n", lines);
+                                        pre.AppendChild(code);
+                                        td.AppendChild(pre);
+                                    } else {
+                                        AppendParagraph(td, p);
+                                    }
                                 }
                                 tr.AppendChild(td);
                             }
