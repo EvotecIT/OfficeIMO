@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -16,16 +17,20 @@ namespace OfficeIMO.Word {
             public bool Italic { get; }
             public bool Underline { get; }
             public bool Strike { get; }
+            public bool Superscript { get; }
+            public bool Subscript { get; }
             public bool Code { get; }
             public string? Hyperlink { get; }
 
-            public FormattedRun(string? text, WordImage? image, bool bold, bool italic, bool underline, bool strike, bool code, string? hyperlink) {
+            public FormattedRun(string? text, WordImage? image, bool bold, bool italic, bool underline, bool strike, bool superscript, bool subscript, bool code, string? hyperlink) {
                 Text = text;
                 Image = image;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
                 Strike = strike;
+                Superscript = superscript;
+                Subscript = subscript;
                 Code = code;
                 Hyperlink = hyperlink;
             }
@@ -41,7 +46,7 @@ namespace OfficeIMO.Word {
 
             foreach (WordParagraph run in paragraph.GetRuns()) {
                 if (run.IsImage && run.Image != null) {
-                    yield return new FormattedRun(null, run.Image, false, false, false, false, false, null);
+                    yield return new FormattedRun(null, run.Image, false, false, false, false, false, false, false, null);
                     continue;
                 }
 
@@ -52,9 +57,11 @@ namespace OfficeIMO.Word {
 
                 string? hyperlink = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Uri?.ToString() : null;
                 bool strike = run.Strike;
+                bool superscript = run.VerticalTextAlignment == VerticalPositionValues.Superscript;
+                bool subscript = run.VerticalTextAlignment == VerticalPositionValues.Subscript;
                 string? monospace = FontResolver.Resolve("monospace");
                 bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
-                yield return new FormattedRun(text, null, run.Bold, run.Italic, run.Underline != null, strike, code, hyperlink);
+                yield return new FormattedRun(text, null, run.Bold, run.Italic, run.Underline != null, strike, superscript, subscript, code, hyperlink);
             }
         }
     }
