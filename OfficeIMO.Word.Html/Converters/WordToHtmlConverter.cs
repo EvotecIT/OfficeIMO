@@ -47,6 +47,26 @@ namespace OfficeIMO.Word.Html.Converters {
                 AddMeta("subject", props.Subject);
             }
 
+            foreach (var (name, content) in options.AdditionalMetaTags) {
+                if (!string.IsNullOrEmpty(name)) {
+                    var meta = htmlDoc.CreateElement("meta");
+                    meta.SetAttribute("name", name);
+                    if (!string.IsNullOrEmpty(content)) {
+                        meta.SetAttribute("content", content);
+                    }
+                    head.AppendChild(meta);
+                }
+            }
+
+            foreach (var (rel, href) in options.AdditionalLinkTags) {
+                if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
+                    var link = htmlDoc.CreateElement("link");
+                    link.SetAttribute("rel", rel);
+                    link.SetAttribute("href", href);
+                    head.AppendChild(link);
+                }
+            }
+
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 body.SetAttribute("style", $"font-family:{options.FontFamily}");
             }
