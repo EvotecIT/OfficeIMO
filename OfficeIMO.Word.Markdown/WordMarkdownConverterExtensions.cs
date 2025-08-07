@@ -6,11 +6,16 @@ using System.Text;
 namespace OfficeIMO.Word.Markdown {
     public static class WordMarkdownConverterExtensions {
         public static void SaveAsMarkdown(this WordDocument document, string path, WordToMarkdownOptions? options = null) {
+            options ??= new WordToMarkdownOptions();
+            if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
+                options.ImageDirectory = Path.GetDirectoryName(path);
+            }
             var markdown = document.ToMarkdown(options);
             File.WriteAllText(path, markdown, Encoding.UTF8);
         }
 
         public static void SaveAsMarkdown(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null) {
+            options ??= new WordToMarkdownOptions();
             var markdown = document.ToMarkdown(options);
             var bytes = Encoding.UTF8.GetBytes(markdown);
             stream.Write(bytes, 0, bytes.Length);

@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("- Item 1", markdown);
             Assert.Contains("[OfficeIMO](https://example.com/)", markdown);
             Assert.Contains("| H1 | H2 |", markdown);
-            Assert.Contains("![", markdown);
+            Assert.Contains("data:image/png;base64", markdown);
         }
 
         [Fact]
@@ -61,6 +61,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("World[^2]", markdown);
             Assert.Contains("[^1]: First note", markdown);
             Assert.Contains("[^2]: Second note", markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ExportsImagesToFiles() {
+            using var doc = WordDocument.Create();
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            doc.AddParagraph().AddImage(imagePath);
+
+            string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+
+            var options = new WordToMarkdownOptions {
+                ImageExportMode = ImageExportMode.File,
+                ImageDirectory = tempDir
+            };
+
+            string markdown = doc.ToMarkdown(options);
+
+            string fileName = Path.GetFileName(imagePath);
+            Assert.Contains($"![", markdown);
+            Assert.Contains(fileName, markdown);
+            Assert.True(File.Exists(Path.Combine(tempDir, fileName)));
         }
     }
 }
