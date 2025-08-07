@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests {
                 context.Response.ContentType = "image/png";
                 context.Response.ContentLength64 = bytes.Length;
                 context.Response.OutputStream.Write(bytes, 0, bytes.Length);
-                context.Response.OutputStream.Close();
-                listener.Stop();
+                context.Response.OutputStream.Flush();
+                context.Response.Close();
             });
 
             string md = $"![Local]({imagePath} \"Desc local\"){{width=40 height=30}}\n" +
@@ -39,6 +39,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(20, doc.Images[1].Height);
 
             serverTask.Wait();
+            listener.Stop();
         }
 
         private static int GetAvailablePort() {
