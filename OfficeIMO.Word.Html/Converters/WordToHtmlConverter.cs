@@ -53,6 +53,9 @@ namespace OfficeIMO.Word.Html.Converters {
             Stack<IElement> listStack = new Stack<IElement>();
             Stack<IElement> itemStack = new Stack<IElement>();
 
+            List<(int Number, WordFootNote Note)> footnotes = new();
+            Dictionary<long, int> footnoteMap = new();
+
             void CloseLists() {
                 while (listStack.Count > 0) {
                     listStack.Pop();
@@ -76,9 +79,27 @@ namespace OfficeIMO.Word.Html.Converters {
                 };
             }
 
-            void AppendRuns(IElement parent, WordParagraph para) {
-                foreach (var run in FormattingHelper.GetFormattedRuns(para)) {
-                    if (run.Image != null) {
+            void AppendRuns(IElement parent, WordParagraph para, bool processFootnotes = true) {
+                foreach (var run in para.GetRuns()) {
+                    if (processFootnotes && options.ExportFootnotes && run.FootNote != null) {
+                        var note = run.FootNote;
+                        long id = note.ReferenceId ?? 0;
+                        if (!footnoteMap.TryGetValue(id, out int number)) {
+                            number = footnotes.Count + 1;
+                            footnoteMap[id] = number;
+                            footnotes.Add((number, note));
+                        }
+                        var sup = htmlDoc.CreateElement("sup");
+                        var a = htmlDoc.CreateElement("a");
+                        a.SetAttribute("href", $"#fn{number}");
+                        a.SetAttribute("id", $"fnref{number}");
+                        a.TextContent = number.ToString();
+                        sup.AppendChild(a);
+                        parent.AppendChild(sup);
+                        continue;
+                    }
+
+                    if (run.IsImage && run.Image != null) {
                         var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
                         string src;
                         var imgObj = run.Image;
@@ -113,27 +134,27 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = em;
                     }
 
-                    if (run.Underline) {
+                    if (run.Underline != null) {
                         var u = htmlDoc.CreateElement("u");
                         u.AppendChild(node);
                         node = u;
                     }
 
-                    if (run.Superscript) {
+                    if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
                         var sup = htmlDoc.CreateElement("sup");
                         sup.AppendChild(node);
                         node = sup;
                     }
 
-                    if (run.Subscript) {
+                    if (run.VerticalTextAlignment == VerticalPositionValues.Subscript) {
                         var sub = htmlDoc.CreateElement("sub");
                         sub.AppendChild(node);
                         node = sub;
                     }
 
-                    if (!string.IsNullOrEmpty(run.Hyperlink)) {
+                    if (run.IsHyperLink && run.Hyperlink != null) {
                         var a = htmlDoc.CreateElement("a");
-                        a.SetAttribute("href", run.Hyperlink);
+                        a.SetAttribute("href", run.Hyperlink.Uri.ToString());
                         a.AppendChild(node);
                         node = a;
                     }
@@ -423,6 +444,25 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             CloseLists();
+
+            if (options.ExportFootnotes && footnotes.Count > 0) {
+                var footSection = htmlDoc.CreateElement("section");
+                footSection.SetAttribute("class", "footnotes");
+                var hr = htmlDoc.CreateElement("hr");
+                footSection.AppendChild(hr);
+                var ol = htmlDoc.CreateElement("ol");
+                foreach (var (number, note) in footnotes) {
+                    var li = htmlDoc.CreateElement("li");
+                    li.SetAttribute("id", $"fn{number}");
+                    var p = htmlDoc.CreateElement("p");
+                    string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
+                    p.TextContent = text;
+                    li.AppendChild(p);
+                    ol.AppendChild(li);
+                }
+                footSection.AppendChild(ol);
+                body.AppendChild(footSection);
+            }
 
             return htmlDoc.DocumentElement.OuterHtml;
         }
