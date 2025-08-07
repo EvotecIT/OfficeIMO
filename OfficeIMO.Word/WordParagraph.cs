@@ -936,18 +936,19 @@ namespace OfficeIMO.Word {
                     }
 
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
-                    var ac = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
-                    if (ac != null) {
+                    bool choiceHasOnlyShape = false;
+                    foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
                         var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
                         if (choice != null) {
                             bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
-                            bool choiceHasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
-                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
                             if (choiceHasTextBox) {
                                 return new WordTextBox(_document, _paragraph, _run);
                             }
-                            if (choiceHasShape) {
-                                return null;
+                            bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
+                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+                            if (hasShape) {
+                                choiceHasOnlyShape = true;
+                                continue;
                             }
                         }
                         var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
@@ -956,6 +957,9 @@ namespace OfficeIMO.Word {
                                 return new WordTextBox(_document, _paragraph, _run);
                             }
                         }
+                    }
+                    if (choiceHasOnlyShape) {
+                        return null;
                     }
 
                     // VML text boxes
@@ -989,16 +993,19 @@ namespace OfficeIMO.Word {
                     // DrawingML shapes (non-pictures and not text boxes)
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
                     if (drawing == null) {
-                        var ac = _run.ChildElements.OfType<AlternateContent>().FirstOrDefault();
-                        if (ac != null) {
+                        foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
                             var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
                             if (choice != null) {
                                 drawing = choice.Descendants<Drawing>().FirstOrDefault();
+                                if (drawing != null) {
+                                    break;
+                                }
                             }
-                            if (drawing == null) {
-                                var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                                if (fallback != null) {
-                                    drawing = fallback.Descendants<Drawing>().FirstOrDefault();
+                            var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
+                            if (fallback != null) {
+                                drawing = fallback.Descendants<Drawing>().FirstOrDefault();
+                                if (drawing != null) {
+                                    break;
                                 }
                             }
                         }

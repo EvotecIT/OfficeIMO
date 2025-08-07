@@ -121,5 +121,51 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_MultipleAlternateContentTextBoxPreferred() {
+            string filePath = Path.Combine(_directoryWithFiles, "MultipleAlternateContentTextBoxPreferred.docx");
+            using (WordDocument doc = WordDocument.Create(filePath)) {
+                doc.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
+                doc.AddTextBox("Text");
+                doc.Save(false);
+            }
+            using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
+                var body = wDoc.MainDocumentPart.Document.Body;
+                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
+                var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
+                var shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
+                var textBoxDrawing = (Drawing)textBoxRun.Descendants<Drawing>().First().CloneNode(true);
+
+                var shapeAc = new AlternateContent();
+                var shapeChoice = new AlternateContentChoice() { Requires = "wps" };
+                shapeChoice.Append(shapeDrawing);
+                shapeAc.Append(shapeChoice);
+
+                var textBoxAc = new AlternateContent();
+                var textBoxFallback = new AlternateContentFallback();
+                textBoxFallback.Append(textBoxDrawing);
+                textBoxAc.Append(textBoxFallback);
+
+                var run = new Run();
+                run.Append(shapeAc);
+                run.Append(textBoxAc);
+
+                shapeRun.Parent.InsertBefore(run, shapeRun);
+                shapeRun.Remove();
+                textBoxRun.Remove();
+
+                var document = wDoc.MainDocumentPart.Document;
+                if (document.LookupNamespace("wps") == null) {
+                    document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+                }
+                document.MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "wps" };
+                document.Save();
+            }
+            using (WordDocument doc = WordDocument.Load(filePath)) {
+                Assert.Empty(doc.Shapes);
+                Assert.Single(doc.TextBoxes);
+            }
+        }
+
     }
 }
