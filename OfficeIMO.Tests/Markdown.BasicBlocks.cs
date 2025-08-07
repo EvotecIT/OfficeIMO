@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
         public void MarkdownToWord_ConvertsVariousElements() {
-            string imagePath = Path.GetFullPath(Path.Combine("Assets", "OfficeIMO.png"));
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $@"# Heading 1
 
 Paragraph with **bold** and *italic* and [link](https://example.com).
