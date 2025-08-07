@@ -36,17 +36,20 @@ code
             var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
 
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
-              var quoteParagraph = doc.Paragraphs.First(p => p.Text.Contains("Quote line"));
-              Assert.True(quoteParagraph.IndentationBefore > 0);
+            var quoteParagraph = doc.Paragraphs.First(p => p.Text.Contains("Quote line"));
+            Assert.True(quoteParagraph.IndentationBefore > 0);
+
+            var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("code"));
+            Assert.Equal("CodeLang_c", codeParagraph.StyleId);
 
             using MemoryStream ms = new();
             doc.Save(ms);
             ms.Position = 0;
-              using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
-              var body = docx.MainDocumentPart!.Document.Body!;
+            using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
+            var body = docx.MainDocumentPart!.Document.Body!;
 
-              var codeRun = body.Descendants<Run>().First(r => r.InnerText.Contains("code"));
-              Assert.Equal("Consolas", codeRun.RunProperties!.RunFonts!.Ascii);
+            var codeRun = body.Descendants<Run>().First(r => r.InnerText.Contains("code"));
+            Assert.Equal(FontResolver.Resolve("monospace"), codeRun.RunProperties!.RunFonts!.Ascii);
         }
     }
 }

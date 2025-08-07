@@ -4,6 +4,7 @@ using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
 using System;
+using System.Linq;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -74,7 +75,17 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     var codeParagraph = document.AddParagraph(string.Empty);
                     var codeText = GetCodeBlockText(codeBlock);
                     var run = codeParagraph.AddFormattedText(codeText);
-                    run.SetFontFamily("Consolas");
+                    var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                    run.SetFontFamily(monoFont);
+                    if (codeBlock is FencedCodeBlock fenced && !string.IsNullOrWhiteSpace(fenced.Info)) {
+                        var info = fenced.Info.Split(new[] { ' ', '{' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (info.Length > 0) {
+                            var lang = new string(info[0].Where(char.IsLetterOrDigit).ToArray());
+                            if (!string.IsNullOrEmpty(lang)) {
+                                codeParagraph.SetStyleId($"CodeLang_{lang}");
+                            }
+                        }
+                    }
                     break;
                 case Table table:
                     ProcessTable(table, document, options);
