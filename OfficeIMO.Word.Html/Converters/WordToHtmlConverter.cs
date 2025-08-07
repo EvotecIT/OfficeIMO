@@ -317,10 +317,38 @@ namespace OfficeIMO.Word.Html.Converters {
                             tableEl.SetAttribute("style", string.Join(";", tableStyles));
                         }
 
-                        foreach (var row in table.Rows) {
+                        for (int r = 0; r < table.Rows.Count; r++) {
+                            var row = table.Rows[r];
                             var tr = htmlDoc.CreateElement("tr");
-                            foreach (var cell in row.Cells) {
+                            for (int c = 0; c < row.Cells.Count; c++) {
+                                var cell = row.Cells[c];
+                                if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                                    continue;
+                                }
                                 var td = htmlDoc.CreateElement("td");
+                                int colSpan = 1;
+                                int rowSpan = 1;
+                                if (cell.HorizontalMerge == MergedCellValues.Restart) {
+                                    int cc = c + 1;
+                                    while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == MergedCellValues.Continue) {
+                                        colSpan++;
+                                        cc++;
+                                    }
+                                    if (colSpan > 1) {
+                                        td.SetAttribute("colspan", colSpan.ToString());
+                                    }
+                                }
+                                if (cell.VerticalMerge == MergedCellValues.Restart) {
+                                    int rr = r + 1;
+                                    while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == MergedCellValues.Continue) {
+                                        rowSpan++;
+                                        rr++;
+                                    }
+                                    if (rowSpan > 1) {
+                                        td.SetAttribute("rowspan", rowSpan.ToString());
+                                    }
+                                }
+
                                 var cellStyles = new List<string>();
                                 var width = GetWidthCss(cell.WidthType, cell.Width);
                                 if (!string.IsNullOrEmpty(width)) {

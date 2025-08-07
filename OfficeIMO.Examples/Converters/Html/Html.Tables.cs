@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Html {
     internal static partial class Html {
         public static void Example_HtmlTables(string folderPath, bool openWord) {
             string filePath = Path.Combine(folderPath, "HtmlTables.docx");
-            string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td><table><tr><td>Nested</td></tr></table></td></tr></table>";
+            string html = "<table><tr><td rowspan=\"2\">A</td><td>B</td></tr><tr><td>C</td></tr><tr><td colspan=\"2\">D</td></tr></table>";
 
             // Convert HTML to Word document
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
