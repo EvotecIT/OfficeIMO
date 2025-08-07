@@ -48,28 +48,45 @@ namespace OfficeIMO.Word.Pdf {
                         if (!string.IsNullOrEmpty(options?.FontFamily)) {
                             page.DefaultTextStyle(t => t.FontFamily(options.FontFamily));
                         }
-                        float margin = options?.Margin ?? 1;
-                        Unit unit = options?.MarginUnit ?? Unit.Centimetre;
-                        page.Margin(margin, unit);
 
-                        PageSize size = PageSizes.A4;
-                        PdfPageOrientation? orientation = null;
-                        if (options != null) {
-                            if (options.PageSize != null) {
-                                size = options.PageSize;
-                            } else if (options.DefaultPageSize.HasValue) {
-                                size = MapToPageSize(options.DefaultPageSize.Value);
-                            }
+                        if (options?.Margin != null) {
+                            page.Margin(options.Margin.Value, options.MarginUnit);
+                        } else {
+                            float leftMargin = section.Margins.Left.Value / 20f;
+                            float rightMargin = section.Margins.Right.Value / 20f;
+                            float topMargin = section.Margins.Top.Value / 20f;
+                            float bottomMargin = section.Margins.Bottom.Value / 20f;
+                            page.MarginLeft(leftMargin, Unit.Point);
+                            page.MarginRight(rightMargin, Unit.Point);
+                            page.MarginTop(topMargin, Unit.Point);
+                            page.MarginBottom(bottomMargin, Unit.Point);
+                        }
 
-                            orientation = options.Orientation;
-                            if (orientation == null && options.DefaultOrientation.HasValue) {
-                                orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
-                            }
+                        PageSize size;
+                        if (options?.PageSize != null) {
+                            size = options.PageSize;
+                        } else if (section.PageSettings.PageSize.HasValue) {
+                            size = MapToPageSize(section.PageSettings.PageSize.Value);
+                        } else if (options?.DefaultPageSize.HasValue == true) {
+                            size = MapToPageSize(options.DefaultPageSize.Value);
+                        } else {
+                            size = PageSizes.A4;
+                        }
+
+                        PdfPageOrientation orientation;
+                        if (options?.Orientation != null) {
+                            orientation = options.Orientation.Value;
+                        } else if (section.PageSettings.PageSize.HasValue) {
+                            orientation = section.PageSettings.Orientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+                        } else if (options?.DefaultOrientation != null) {
+                            orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+                        } else {
+                            orientation = PdfPageOrientation.Portrait;
                         }
 
                         if (orientation == PdfPageOrientation.Landscape) {
                             size = size.Landscape();
-                        } else if (orientation == PdfPageOrientation.Portrait) {
+                        } else {
                             size = size.Portrait();
                         }
 
