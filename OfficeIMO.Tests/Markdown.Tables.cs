@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using System.Linq;
 using Xunit;
@@ -21,6 +22,34 @@ namespace OfficeIMO.Tests {
 
             Assert.True(leftParagraph.GetRuns().Any(r => r.Bold));
             Assert.True(centerParagraph.GetRuns().Any(r => r.Italic));
+        }
+
+        [Fact]
+        public void WordToMarkdown_TableAlignmentMarkers() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(2, 3);
+
+            var left = table.Rows[0].Cells[0].Paragraphs[0];
+            left.Text = "Left";
+            left.ParagraphAlignment = JustificationValues.Left;
+
+            var center = table.Rows[0].Cells[1].Paragraphs[0];
+            center.Text = "Center";
+            center.ParagraphAlignment = JustificationValues.Center;
+
+            var right = table.Rows[0].Cells[2].Paragraphs[0];
+            right.Text = "Right";
+            right.ParagraphAlignment = JustificationValues.Right;
+
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "A";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "B";
+            table.Rows[1].Cells[2].Paragraphs[0].Text = "C";
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            var lines = markdown.Split('\n');
+            Assert.Equal("| Left | Center | Right |", lines[0].TrimEnd('\r'));
+            Assert.Equal("| :--- | :---: | ---: |", lines[1].TrimEnd('\r'));
         }
     }
 }
