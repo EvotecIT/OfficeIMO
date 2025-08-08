@@ -105,5 +105,15 @@ namespace OfficeIMO.Word.Pdf {
         /// Optional QuestPDF license type used when generating the PDF.
         /// </summary>
         public LicenseType? QuestPdfLicenseType { get; set; }
+
+        /// <summary>
+        /// Determines whether page numbers are rendered in the PDF footer. Defaults to true.
+        /// </summary>
+        public bool IncludePageNumbers { get; set; } = true;
+
+        /// <summary>
+        /// Optional format for page numbers. Use "{current}" for the current page and "{total}" for total pages.
+        /// </summary>
+        public string? PageNumberFormat { get; set; }
     }
 }

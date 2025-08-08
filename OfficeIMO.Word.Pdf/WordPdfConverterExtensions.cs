@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -269,21 +270,16 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             void RenderFooter(PageDescriptor page, WordSection section, List<PdfFootnote> footnotes, Dictionary<WordParagraph, int> footnoteMap) {
-                if (section.Footer == null && footnotes.Count == 0) {
-                    page.Footer().Layers(layers => {
-                        layers.PrimaryLayer();
-                        layers.Layer().AlignRight().Text(text => {
-                            text.CurrentPageNumber();
-                            text.Span("/");
-                            text.TotalPages();
-                        });
-                    });
+                bool includePageNumbers = options?.IncludePageNumbers ?? true;
+                if (section.Footer == null && footnotes.Count == 0 && !includePageNumbers) {
                     return;
                 }
+
                 bool hasContent =
-                    (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) ||
-                    (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) ||
-                    (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0));
+                    (section.Footer?.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) ||
+                    (section.Footer?.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) ||
+                    (section.Footer?.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0));
+
                 page.Footer().Layers(layers => {
                     bool primaryDefined = false;
                     if (section.Footer != null && hasContent) {
@@ -319,11 +315,27 @@ namespace OfficeIMO.Word.Pdf {
                         });
                     }
 
-                    layers.Layer().AlignRight().Text(text => {
-                        text.CurrentPageNumber();
-                        text.Span("/");
-                        text.TotalPages();
-                    });
+                    if (includePageNumbers) {
+                        layers.Layer().AlignRight().Text(text => {
+                            string? format = options?.PageNumberFormat;
+                            if (!string.IsNullOrWhiteSpace(format)) {
+                                var tokens = Regex.Split(format, "(\\{current\\}|\\{total\\})");
+                                foreach (string token in tokens) {
+                                    if (token == "{current}") {
+                                        text.CurrentPageNumber();
+                                    } else if (token == "{total}") {
+                                        text.TotalPages();
+                                    } else if (token.Length > 0) {
+                                        text.Span(token);
+                                    }
+                                }
+                            } else {
+                                text.CurrentPageNumber();
+                                text.Span("/");
+                                text.TotalPages();
+                            }
+                        });
+                    }
                 });
             }
 
