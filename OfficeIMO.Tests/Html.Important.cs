@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -10,6 +11,8 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("0000ff", run.ColorHex);
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -18,6 +21,8 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("0000ff", run.ColorHex);
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

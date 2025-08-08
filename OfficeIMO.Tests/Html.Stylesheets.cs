@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Word.Html;
 using Xunit;
 using System.Net;
@@ -73,6 +74,8 @@ namespace OfficeIMO.Tests {
             listener.Stop();
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("123456", run.ColorHex);
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
