@@ -30,12 +30,14 @@ namespace OfficeIMO.Word.Html.Converters {
         private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
+        private IBrowsingContext? _context;
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
+            _context = context;
             var document = await context.OpenAsync(req => req.Content(html));
 
             var wordDoc = WordDocument.Create();
@@ -74,28 +76,35 @@ namespace OfficeIMO.Word.Html.Converters {
                 foreach (var style in document.Head.QuerySelectorAll("style")) {
                     ParseCss(style.TextContent);
                 }
+                var baseElement = document.Head.QuerySelector("base[href]") as IHtmlBaseElement;
+                Uri? baseUri = null;
+                if (baseElement != null && Uri.TryCreate(baseElement.Href, UriKind.Absolute, out var bu)) {
+                    baseUri = bu;
+                } else if (document.BaseUrl != null && Uri.TryCreate(document.BaseUrl.Href, UriKind.Absolute, out var du)) {
+                    baseUri = du;
+                }
                 foreach (var link in document.Head.QuerySelectorAll("link")) {
                     var rel = link.GetAttribute("rel");
-                    if (string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                        var href = link.GetAttribute("href");
-                        if (string.IsNullOrEmpty(href)) {
-                            continue;
-                        }
-                        if (Uri.TryCreate(href, UriKind.Absolute, out var abs)) {
-                            if (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps) {
-                                await LoadAndParseCssAsync(context, new Url(abs.ToString()));
-                            } else if (abs.Scheme == Uri.UriSchemeFile && File.Exists(abs.LocalPath)) {
-                                ParseCss(File.ReadAllText(abs.LocalPath));
-                            }
-                        } else if (document.BaseUrl != null) {
-                            var url = new Url(new Url(document.BaseUrl), href);
-                            if (url.Scheme == "http" || url.Scheme == "https") {
-                                await LoadAndParseCssAsync(context, url);
-                            } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                                ParseCss(File.ReadAllText(url.Path));
-                            }
-                        } else if (File.Exists(href)) {
-                            ParseCss(File.ReadAllText(href));
+                    if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    var hrefAttr = link.GetAttribute("href");
+                    if (string.IsNullOrEmpty(hrefAttr)) {
+                        continue;
+                    }
+
+                    if (File.Exists(hrefAttr)) {
+                        ParseCss(File.ReadAllText(hrefAttr));
+                        continue;
+                    }
+
+                    if (baseUri != null) {
+                        var combined = new Uri(baseUri, hrefAttr);
+                        if (combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps) {
+                            await LoadAndParseCssAsync(context, new Url(combined.ToString()));
+                        } else if (combined.Scheme == Uri.UriSchemeFile && File.Exists(combined.LocalPath)) {
+                            ParseCss(File.ReadAllText(combined.LocalPath));
                         }
                     }
                 }
@@ -411,11 +420,32 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "link": {
                             var rel = element.GetAttribute("rel");
-                            if (string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                                var href = element.GetAttribute("href");
-                                if (!string.IsNullOrEmpty(href) && File.Exists(href)) {
-                                    ParseCss(File.ReadAllText(href));
+                            if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                                break;
+                            }
+
+                            var hrefAttr = element.GetAttribute("href");
+                            var href = (element as IHtmlLinkElement)?.Href ?? hrefAttr;
+                            if (string.IsNullOrEmpty(href)) {
+                                break;
+                            }
+
+                            if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
+                                ParseCss(File.ReadAllText(hrefAttr));
+                                break;
+                            }
+
+                            var url = new Url(href);
+                            if (!url.IsAbsolute && element.BaseUrl != null) {
+                                url = new Url(new Url(element.BaseUrl), href);
+                            }
+
+                            if (url.Scheme == "http" || url.Scheme == "https") {
+                                if (_context != null) {
+                                    LoadAndParseCssAsync(_context, url).GetAwaiter().GetResult();
                                 }
+                            } else if (url.Scheme == "file" && File.Exists(url.Path)) {
+                                ParseCss(File.ReadAllText(url.Path));
                             }
                             break;
                         }
