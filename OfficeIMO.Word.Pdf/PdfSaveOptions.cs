@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Measurement unit for the margin value.
         /// </summary>
         public Unit MarginUnit { get; set; } = Unit.Centimetre;
-        
+
         /// <summary>
         /// Optional default page size applied when creating new documents.
         /// </summary>
@@ -40,5 +40,10 @@ namespace OfficeIMO.Word.Pdf {
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
         public DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? DefaultOrientation { get; set; }
+
+        /// <summary>
+        /// Optional QuestPDF license type used when generating the PDF.
+        /// </summary>
+        public LicenseType? QuestPdfLicenseType { get; set; }
     }
 }
