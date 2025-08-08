@@ -10,6 +10,8 @@ using System.Globalization;
 using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
+#nullable enable
+
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
