@@ -23,6 +23,18 @@ namespace OfficeIMO.Examples.Word {
                 bullets.AddItem("Beta - Nested", 1);
                 bullets.AddItem("Gamma");
 
+                WordList roman = document.AddCustomList();
+                var romanLevel = new WordListLevel(WordListLevelKind.UpperRoman).SetStartNumberingValue(4);
+                roman.Numbering.AddLevel(romanLevel);
+                roman.AddItem("Fourth");
+                roman.AddItem("Fifth");
+
+                WordList letters = document.AddCustomList();
+                var letterLevel = new WordListLevel(WordListLevelKind.LowerLetterDot).SetStartNumberingValue(3);
+                letters.Numbering.AddLevel(letterLevel);
+                letters.AddItem("c item");
+                letters.AddItem("d item");
+
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }

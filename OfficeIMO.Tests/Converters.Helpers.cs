@@ -40,7 +40,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(ms)) {
                 var bullet = document.AddList(WordListStyle.Bulleted);
                 var bulletItem = bullet.AddItem("Bullet 1");
-                var ordered = document.AddList(WordListStyle.Headings111);
+                var ordered = document.AddCustomList();
+                var orderedLevel = new WordListLevel(WordListLevelKind.DecimalDot);
+                ordered.Numbering.AddLevel(orderedLevel);
                 var orderedItem = ordered.AddItem("Number 1");
 
                 document.Save();
@@ -53,8 +55,34 @@ namespace OfficeIMO.Tests {
                 Assert.True(orderedInfo.Value.Ordered);
 
                 var markers = DocumentTraversal.BuildListMarkers(document);
-                Assert.Equal("•", markers[bulletItem].Marker);
+                Assert.Equal("·", markers[bulletItem].Marker);
                 Assert.Equal("1.", markers[orderedItem].Marker);
+            }
+        }
+
+        [Fact]
+        public void DocumentTraversal_BuildsVariousNumberFormats() {
+            using MemoryStream ms = new MemoryStream();
+            using (var document = WordDocument.Create(ms)) {
+                var romanList = document.AddCustomList();
+                var romanLevel = new WordListLevel(WordListLevelKind.UpperRomanDot).SetStartNumberingValue(3);
+                romanList.Numbering.AddLevel(romanLevel);
+                var romanItem1 = romanList.AddItem("Roman 1");
+                var romanItem2 = romanList.AddItem("Roman 2");
+
+                var letterList = document.AddCustomList();
+                var letterLevel = new WordListLevel(WordListLevelKind.LowerLetterDot).SetStartNumberingValue(2);
+                letterList.Numbering.AddLevel(letterLevel);
+                var letterItem1 = letterList.AddItem("Letter 1");
+                var letterItem2 = letterList.AddItem("Letter 2");
+
+                document.Save();
+
+                var markers = DocumentTraversal.BuildListMarkers(document);
+                Assert.Equal("III.", markers[romanItem1].Marker);
+                Assert.Equal("IV.", markers[romanItem2].Marker);
+                Assert.Equal("b.", markers[letterItem1].Marker);
+                Assert.Equal("c.", markers[letterItem2].Marker);
             }
         }
     }

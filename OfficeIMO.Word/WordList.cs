@@ -101,9 +101,7 @@ public partial class WordList : WordElement {
     /// </summary>
     public WordListNumbering Numbering {
         get {
-            var abstractNum = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering
-                .ChildElements.OfType<AbstractNum>()
-                .FirstOrDefault(a => a.AbstractNumberId == _abstractId);
+            var abstractNum = GetAbstractNum();
             return new WordListNumbering(abstractNum);
         }
     }

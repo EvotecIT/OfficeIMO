@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Pdf {
                             if (marker.Value.Level > 0) {
                                 row.ConstantItem(indentSize * marker.Value.Level);
                             }
-                            row.ConstantItem(indentSize).Text(marker.Value.Marker);
+                            row.AutoItem().Text(marker.Value.Marker + " ");
                             row.RelativeItem().Text(text => {
                                 ApplyFormatting(text.Span(content));
                                 if (currentFootnoteNumber != null) {
