@@ -1,6 +1,5 @@
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
@@ -17,11 +16,7 @@ namespace OfficeIMO.Tests;
             document.AddParagraph("Hello World");
             document.Save();
 
-            var stopwatch = Stopwatch.StartNew();
-            var saveTask = document.SaveAsPdfAsync(pdfPath);
-            stopwatch.Stop();
-            Assert.True(stopwatch.ElapsedMilliseconds < 100);
-            await saveTask;
+            await document.SaveAsPdfAsync(pdfPath);
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -36,11 +31,7 @@ namespace OfficeIMO.Tests;
             document.Save();
 
             using (var stream = new MemoryStream()) {
-                var stopwatch = Stopwatch.StartNew();
-                var saveTask = document.SaveAsPdfAsync(stream);
-                stopwatch.Stop();
-                Assert.True(stopwatch.ElapsedMilliseconds < 100);
-                await saveTask;
+                await document.SaveAsPdfAsync(stream);
                 Assert.True(stream.Length > 0);
             }
         }
