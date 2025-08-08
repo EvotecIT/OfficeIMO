@@ -1,7 +1,8 @@
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Word;
 
@@ -53,11 +54,7 @@ public partial class WordDocument {
             Text text1 = runs[i].GetFirstChild<Text>();
             Text text2 = runs[i + 1].GetFirstChild<Text>();
             if (text1 != null && text2 != null) {
-                string rPr1 = "";
-                string rPr2 = "";
-                if (runs[i].RunProperties != null) rPr1 = runs[i].RunProperties.OuterXml;
-                if (runs[i + 1].RunProperties != null) rPr2 = runs[i + 1].RunProperties.OuterXml;
-                if (rPr1 == rPr2) {
+                if (AreRunPropertiesEqual(runs[i].RunProperties, runs[i + 1].RunProperties)) {
                     text1.Text += text2.Text;
 
                     // if the text doesn't have space preservation, during merge potential double spaces
@@ -114,5 +111,30 @@ public partial class WordDocument {
 
     private static bool IsParagraphEmpty(Paragraph paragraph) {
         return !paragraph.Elements<Run>().Any() && paragraph.ChildElements.All(e => e is ParagraphProperties);
+    }
+
+    private static bool AreRunPropertiesEqual(RunProperties rPr1, RunProperties rPr2) {
+        if (rPr1 == null && rPr2 == null) {
+            return true;
+        }
+
+        if (rPr1 == null || rPr2 == null) {
+            return false;
+        }
+
+        var x1 = Canonicalize(XElement.Parse(rPr1.OuterXml));
+        var x2 = Canonicalize(XElement.Parse(rPr2.OuterXml));
+        return XNode.DeepEquals(x1, x2);
+    }
+
+    private static XElement Canonicalize(XElement element) {
+        return new XElement(element.Name,
+            element.Attributes()
+                .OrderBy(a => a.Name.NamespaceName)
+                .ThenBy(a => a.Name.LocalName),
+            element.Elements()
+                .Select(Canonicalize)
+                .OrderBy(e => e.Name.NamespaceName)
+                .ThenBy(e => e.Name.LocalName));
     }
 }
