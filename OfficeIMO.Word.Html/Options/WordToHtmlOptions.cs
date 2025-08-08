@@ -23,6 +23,16 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeListStyles { get; set; }
 
         /// <summary>
+        /// When true, paragraph styles are emitted as CSS classes.
+        /// </summary>
+        public bool IncludeParagraphClasses { get; set; }
+
+        /// <summary>
+        /// When true, run character styles are emitted as CSS classes.
+        /// </summary>
+        public bool IncludeRunClasses { get; set; }
+
+        /// <summary>
         /// When true, footnotes are exported to HTML. Set to false to omit footnotes.
         /// </summary>
         public bool ExportFootnotes { get; set; } = true;
