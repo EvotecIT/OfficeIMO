@@ -204,22 +204,8 @@ namespace OfficeIMO.Word.Pdf {
                         RenderHeader(page, section, footnotes, footnoteMap);
 
                         page.Content().Column(column => {
-                            foreach (WordElement element in section.Elements) {
-                                if (element is WordParagraph paragraph) {
-                                    column.Item().Element(e => {
-                                        return RenderParagraph(e, paragraph, GetMarker(paragraph), options, footnoteMap);
-                                    });
-                                } else if (element is WordTable table) {
-                                    column.Item().Element(e => {
-                                        return RenderTable(e, table, GetMarker, options, footnoteMap);
-                                    });
-                                } else if (element is WordImage image) {
-                                    column.Item().Element(e => RenderImage(e, image));
-                                } else if (element is WordHyperLink link) {
-                                    column.Item().Element(e => RenderHyperLink(e, link));
-                                } else if (element is WordShape shape) {
-                                    column.Item().Element(e => RenderShape(e, shape));
-                                }
+                            foreach (WordElement element in section.ElementsByType) {
+                                RenderElement(column, element, GetMarker, options, footnoteMap);
                             }
                         });
 
@@ -244,44 +230,48 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            void RenderElements(ColumnDescriptor column, IEnumerable<WordParagraph> paragraphs, IEnumerable<WordTable> tables, Dictionary<WordParagraph, int> footnoteMap) {
+            void RenderElements(ColumnDescriptor column, IEnumerable<WordParagraph> paragraphs, IEnumerable<WordTable> tables, IEnumerable<WordImage> images, IEnumerable<WordHyperLink> links, Dictionary<WordParagraph, int> footnoteMap) {
                 foreach (WordParagraph paragraph in paragraphs) {
-                    column.Item().Element(e => {
-                        return RenderParagraph(e, paragraph, GetMarker(paragraph), options, footnoteMap);
-                    });
+                    RenderElement(column, paragraph, GetMarker, options, footnoteMap);
                 }
 
                 foreach (WordTable table in tables) {
-                    column.Item().Element(e => {
-                        return RenderTable(e, table, GetMarker, options, footnoteMap);
-                    });
+                    RenderElement(column, table, GetMarker, options, footnoteMap);
+                }
+
+                foreach (WordImage image in images) {
+                    RenderElement(column, image, GetMarker, options, footnoteMap);
+                }
+
+                foreach (WordHyperLink link in links) {
+                    RenderElement(column, link, GetMarker, options, footnoteMap);
                 }
             }
 
             void RenderHeader(PageDescriptor page, WordSection section, List<PdfFootnote> footnotes, Dictionary<WordParagraph, int> footnoteMap) {
                 if (section.Header == null) return;
                 bool hasContent =
-                    (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0)) ||
-                    (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0)) ||
-                    (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0));
+                    (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0 || section.Header.Default.Images.Count > 0 || section.Header.Default.HyperLinks.Count > 0)) ||
+                    (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0 || section.Header.First.Images.Count > 0 || section.Header.First.HyperLinks.Count > 0)) ||
+                    (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0 || section.Header.Even.Images.Count > 0 || section.Header.Even.HyperLinks.Count > 0));
                 if (!hasContent) return;
 
                 page.Header().Layers(layers => {
-                    if (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0)) {
+                    if (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0 || section.Header.Default.Images.Count > 0 || section.Header.Default.HyperLinks.Count > 0)) {
                         layers.PrimaryLayer().ShowIf(x => (section.Header.First == null || x.PageNumber > 1) && (section.Header.Even == null || x.PageNumber % 2 == 1)).Column(col => {
-                            RenderElements(col, section.Header.Default.Paragraphs, section.Header.Default.Tables, footnoteMap);
+                            RenderElements(col, section.Header.Default.Paragraphs, section.Header.Default.Tables, section.Header.Default.Images, section.Header.Default.HyperLinks, footnoteMap);
                         });
                     }
 
-                    if (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0)) {
+                    if (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0 || section.Header.First.Images.Count > 0 || section.Header.First.HyperLinks.Count > 0)) {
                         layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
-                            RenderElements(col, section.Header.First.Paragraphs, section.Header.First.Tables, footnoteMap);
+                            RenderElements(col, section.Header.First.Paragraphs, section.Header.First.Tables, section.Header.First.Images, section.Header.First.HyperLinks, footnoteMap);
                         });
                     }
 
-                    if (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0)) {
+                    if (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0 || section.Header.Even.Images.Count > 0 || section.Header.Even.HyperLinks.Count > 0)) {
                         layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
-                            RenderElements(col, section.Header.Even.Paragraphs, section.Header.Even.Tables, footnoteMap);
+                            RenderElements(col, section.Header.Even.Paragraphs, section.Header.Even.Tables, section.Header.Even.Images, section.Header.Even.HyperLinks, footnoteMap);
                         });
                     }
                 });
@@ -294,29 +284,29 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 bool hasContent =
-                    (section.Footer?.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) ||
-                    (section.Footer?.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) ||
-                    (section.Footer?.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0));
+                    (section.Footer?.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0 || section.Footer.Default.Images.Count > 0 || section.Footer.Default.HyperLinks.Count > 0)) ||
+                    (section.Footer?.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0 || section.Footer.First.Images.Count > 0 || section.Footer.First.HyperLinks.Count > 0)) ||
+                    (section.Footer?.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0 || section.Footer.Even.Images.Count > 0 || section.Footer.Even.HyperLinks.Count > 0));
 
                 page.Footer().Layers(layers => {
                     bool primaryDefined = false;
                     if (section.Footer != null && hasContent) {
-                        if (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0)) {
+                        if (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0 || section.Footer.Default.Images.Count > 0 || section.Footer.Default.HyperLinks.Count > 0)) {
                             layers.PrimaryLayer().ShowIf(x => (section.Footer.First == null || x.PageNumber > 1) && (section.Footer.Even == null || x.PageNumber % 2 == 1)).Column(col => {
-                                RenderElements(col, section.Footer.Default.Paragraphs, section.Footer.Default.Tables, footnoteMap);
+                                RenderElements(col, section.Footer.Default.Paragraphs, section.Footer.Default.Tables, section.Footer.Default.Images, section.Footer.Default.HyperLinks, footnoteMap);
                             });
                             primaryDefined = true;
                         }
 
-                        if (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0)) {
+                        if (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0 || section.Footer.First.Images.Count > 0 || section.Footer.First.HyperLinks.Count > 0)) {
                             layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
-                                RenderElements(col, section.Footer.First.Paragraphs, section.Footer.First.Tables, footnoteMap);
+                                RenderElements(col, section.Footer.First.Paragraphs, section.Footer.First.Tables, section.Footer.First.Images, section.Footer.First.HyperLinks, footnoteMap);
                             });
                         }
 
-                        if (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0)) {
+                        if (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0 || section.Footer.Even.Images.Count > 0 || section.Footer.Even.HyperLinks.Count > 0)) {
                             layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
-                                RenderElements(col, section.Footer.Even.Paragraphs, section.Footer.Even.Tables, footnoteMap);
+                                RenderElements(col, section.Footer.Even.Paragraphs, section.Footer.Even.Tables, section.Footer.Even.Images, section.Footer.Even.HyperLinks, footnoteMap);
                             });
                         }
                     }

@@ -50,7 +50,8 @@ namespace OfficeIMO.Examples.Word {
                 WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
                 nested.Rows[0].Cells[0].Paragraphs[0].Text = "N1";
 
-                document.AddParagraph().AddImage(imagePath, 50, 50);
+                document.AddImage(imagePath, 50, 50);
+                document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
