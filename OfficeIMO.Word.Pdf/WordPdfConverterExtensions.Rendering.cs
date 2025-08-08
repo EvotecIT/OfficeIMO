@@ -184,25 +184,13 @@ namespace OfficeIMO.Word.Pdf {
             var line = lineField?.GetValue(shape) as Line;
 
             if (line != null) {
-                container.Canvas((canvasObj, size) => {
-                    var canvasType = canvasObj.GetType();
-                    var positionType = canvasType.Assembly.GetType("QuestPDF.Infrastructure.Position");
-                    var ctor = positionType!.GetConstructor(new[] { typeof(float), typeof(float) });
-
-                    (float x1, float y1) = ParsePoint(line.From?.Value ?? "0pt,0pt");
-                    (float x2, float y2) = ParsePoint(line.To?.Value ?? "0pt,0pt");
-                    object start = ctor!.Invoke(new object[] { x1, y1 });
-                    object end = ctor.Invoke(new object[] { x2, y2 });
-
-                    var paint = new SKPaint {
-                        Style = SKPaintStyle.Stroke,
-                        Color = SKColor.Parse("#" + (stroke ?? "000000")),
-                        StrokeWidth = strokeWidth
-                    };
-
-                    canvasType.GetMethod("DrawLine")!.Invoke(canvasObj, new object[] { start, end, paint });
-                });
-
+                (float x1, float y1) = ParsePoint(line.From?.Value ?? "0pt,0pt");
+                (float x2, float y2) = ParsePoint(line.To?.Value ?? "0pt,0pt");
+                string color = "#" + (stroke ?? "000000");
+                float svgWidth = Math.Max(width, Math.Max(x1, x2));
+                float svgHeight = Math.Max(height, Math.Max(y1, y2));
+                string svg = $"<svg xmlns='http://www.w3.org/2000/svg' width='{svgWidth}' height='{svgHeight}' viewBox='0 0 {svgWidth} {svgHeight}'><line x1='{x1}' y1='{y1}' x2='{x2}' y2='{y2}' stroke='{color}' stroke-width='{strokeWidth}' /></svg>";
+                container.Svg(svg);
                 return container;
             }
 
