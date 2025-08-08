@@ -48,9 +48,12 @@ namespace OfficeIMO.Tests {
         [Fact(Skip = "Requires network access")]
         public void HtmlToWord_RemoteStylesheet_Applies() {
             int port;
-            using (var tcp = new TcpListener(IPAddress.Loopback, 0)) {
+            var tcp = new TcpListener(IPAddress.Loopback, 0);
+            try {
                 tcp.Start();
                 port = ((IPEndPoint)tcp.LocalEndpoint).Port;
+            } finally {
+                tcp.Stop();
             }
 
             using var listener = new HttpListener();
