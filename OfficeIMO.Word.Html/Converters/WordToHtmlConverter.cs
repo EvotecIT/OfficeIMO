@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html.Converters {
@@ -76,6 +77,9 @@ namespace OfficeIMO.Word.Html.Converters {
 
             List<(int Number, WordFootNote Note)> footnotes = new();
             Dictionary<long, int> footnoteMap = new();
+
+            HashSet<string> paragraphStyles = new();
+            HashSet<string> runStyles = new();
 
             void CloseLists() {
                 while (listStack.Count > 0) {
@@ -193,6 +197,14 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = span;
                     }
 
+                    if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId)) {
+                        var spanClass = htmlDoc.CreateElement("span");
+                        spanClass.SetAttribute("class", run.CharacterStyleId);
+                        spanClass.AppendChild(node);
+                        node = spanClass;
+                        runStyles.Add(run.CharacterStyleId);
+                    }
+
                     parent.AppendChild(node);
                 }
             }
@@ -226,6 +238,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
                     || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
                 var element = htmlDoc.CreateElement(isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
+                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
+                    element.SetAttribute("class", para.StyleId);
+                    paragraphStyles.Add(para.StyleId);
+                }
                 AppendRuns(element, para);
                 parent.AppendChild(element);
             }
@@ -548,6 +564,19 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 footSection.AppendChild(ol);
                 body.AppendChild(footSection);
+            }
+
+            if (paragraphStyles.Count > 0 || runStyles.Count > 0) {
+                var style = htmlDoc.CreateElement("style");
+                var sb = new StringBuilder();
+                foreach (var s in paragraphStyles) {
+                    sb.Append('.').Append(s).Append(" {}\n");
+                }
+                foreach (var s in runStyles) {
+                    sb.Append('.').Append(s).Append(" {}\n");
+                }
+                style.TextContent = sb.ToString();
+                head.AppendChild(style);
             }
 
             return htmlDoc.DocumentElement.OuterHtml;

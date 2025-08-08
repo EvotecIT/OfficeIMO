@@ -257,6 +257,26 @@ namespace OfficeIMO.Tests {
             int viewportIndex = html.IndexOf("name=\"viewport\"", StringComparison.OrdinalIgnoreCase);
             Assert.True(viewportIndex > authorIndex);
         }
+
+        [Fact]
+        public void Test_WordToHtml_StyleClasses() {
+            using var doc = WordDocument.Create();
+            var p = doc.AddParagraph("Heading with style");
+            p.Style = WordParagraphStyles.Heading1;
+            p.AddText(" run").CharacterStyleId = "Heading1Char";
+
+            var options = new WordToHtmlOptions { IncludeParagraphClasses = true, IncludeRunClasses = true };
+            string html = doc.ToHtml(options);
+
+            Assert.Contains("<h1 class=\"Heading1\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<span class=\"Heading1Char\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(".Heading1 {", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(".Heading1Char {", html, StringComparison.OrdinalIgnoreCase);
+
+            string htmlNoClasses = doc.ToHtml(new WordToHtmlOptions());
+            Assert.DoesNotContain("class=\"Heading1\"", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Heading1Char", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 
