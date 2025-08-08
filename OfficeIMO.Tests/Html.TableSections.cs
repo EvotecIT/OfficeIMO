@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ff0000", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal(new List<int> { 1000, 4000 }, table.ColumnWidth);
             Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
-            Assert.Equal("F1", table.Rows[^1].Cells[0].Paragraphs[0]._paragraph.InnerText);
+            Assert.Equal("F1", table.Rows[table.Rows.Count - 1].Cells[0].Paragraphs[0]._paragraph.InnerText);
         }
     }
 }
