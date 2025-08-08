@@ -202,6 +202,36 @@ namespace OfficeIMO.Word.Html.Converters {
                             formatting.FontSize = size;
                         }
                         break;
+                    case "font-weight":
+                        if (int.TryParse(value, out int weight)) {
+                            formatting.Bold = weight >= 600;
+                        } else if (string.Equals(value, "bold", StringComparison.OrdinalIgnoreCase)) {
+                            formatting.Bold = true;
+                        } else if (string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) {
+                            formatting.Bold = false;
+                        }
+                        break;
+                    case "font-style":
+                        var fs = value.ToLowerInvariant();
+                        if (fs == "italic" || fs == "oblique") {
+                            formatting.Italic = true;
+                        } else if (fs == "normal") {
+                            formatting.Italic = false;
+                        }
+                        break;
+                    case "vertical-align":
+                        var va = value.ToLowerInvariant();
+                        if (va == "super" || va == "sup") {
+                            formatting.Superscript = true;
+                            formatting.Subscript = false;
+                        } else if (va == "sub") {
+                            formatting.Subscript = true;
+                            formatting.Superscript = false;
+                        } else if (va == "baseline") {
+                            formatting.Superscript = false;
+                            formatting.Subscript = false;
+                        }
+                        break;
                     case "text-decoration":
                         foreach (var deco in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                             switch (deco.Trim().ToLowerInvariant()) {

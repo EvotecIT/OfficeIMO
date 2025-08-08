@@ -34,5 +34,30 @@ namespace OfficeIMO.Tests {
             var markRun = runs.First(r => r.Text == "mark");
             Assert.Equal(HighlightColorValues.Yellow, markRun.Highlight);
         }
+
+        [Fact]
+        public void HtmlToWord_SpanStyles_FontStyles() {
+            string html = "<p><span style=\"font-weight:bold;font-style:italic\">styled</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.True(run.Bold);
+            Assert.True(run.Italic);
+        }
+
+        [Fact]
+        public void HtmlToWord_SpanStyles_VerticalAlign() {
+            string html = "<p><span style=\"vertical-align:super\">sup</span><span style=\"vertical-align:sub\">sub</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var runs = doc.Paragraphs;
+
+            var supRun = runs.First(r => r.Text == "sup");
+            Assert.Equal(VerticalPositionValues.Superscript, supRun.VerticalTextAlignment);
+
+            var subRun = runs.First(r => r.Text == "sub");
+            Assert.Equal(VerticalPositionValues.Subscript, subRun.VerticalTextAlignment);
+        }
     }
 }
