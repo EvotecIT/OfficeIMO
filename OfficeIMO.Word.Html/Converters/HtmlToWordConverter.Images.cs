@@ -5,9 +5,17 @@ using System.IO;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
-        private void ProcessImage(IHtmlImageElement img, WordDocument doc) {
-            var src = img.Source;
+        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options) {
+            var src = img.GetAttribute("src");
             if (string.IsNullOrEmpty(src)) return;
+
+            if (!src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase) && !Uri.TryCreate(src, UriKind.Absolute, out _)) {
+                if (!string.IsNullOrEmpty(options.BasePath)) {
+                    src = Path.Combine(options.BasePath, src);
+                } else if (img.BaseUrl != null && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri) && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+                    src = new Uri(baseUri, src).ToString();
+                }
+            }
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;

@@ -34,6 +34,11 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeListStyles { get; set; }
 
         /// <summary>
+        /// Base directory used to resolve relative resource paths like images.
+        /// </summary>
+        public string? BasePath { get; set; }
+
+        /// <summary>
         /// File paths pointing to external stylesheets that should be applied during conversion.
         /// </summary>
         public List<string> StylesheetPaths { get; } = new List<string>();
