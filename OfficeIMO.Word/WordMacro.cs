@@ -118,8 +118,25 @@ namespace OfficeIMO.Word {
         /// <param name="name">Module name to remove.</param>
         internal static void RemoveMacro(WordDocument document, string name) {
             if (document == null) throw new ArgumentNullException(nameof(document));
+            if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
             if (!document.HasMacros) return;
-            RemoveMacros(document);
+
+            var vbaPart = document._wordprocessingDocument.MainDocumentPart.VbaProjectPart;
+            using var ms = new MemoryStream();
+            using (var partStream = vbaPart.GetStream()) {
+                partStream.CopyTo(ms);
+            }
+            var data = ms.ToArray();
+            if (Parser.RemoveModule(data, name)) {
+                using var checkStream = new MemoryStream(data);
+                var remaining = Parser.GetModuleNames(checkStream);
+                if (remaining.Count == 0) {
+                    RemoveMacros(document);
+                } else {
+                    using var writeStream = vbaPart.GetStream(FileMode.Create, FileAccess.Write);
+                    writeStream.Write(data, 0, data.Length);
+                }
+            }
         }
 
         /// <summary>
@@ -237,6 +254,65 @@ namespace OfficeIMO.Word {
                     }
                 }
                 return modules;
+            }
+
+            /// <summary>
+            /// Removes a module stream with the given name from the VBA project data.
+            /// </summary>
+            /// <param name="data">Binary VBA project.</param>
+            /// <param name="moduleName">Module name to remove.</param>
+            /// <returns><c>true</c> when the module was removed.</returns>
+            internal static bool RemoveModule(byte[] data, string moduleName) {
+                if (data == null || string.IsNullOrEmpty(moduleName)) return false;
+                using var stream = new MemoryStream(data);
+                using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+                byte[] header = reader.ReadBytes(512);
+                if (header.Length < 512) return false;
+                const ulong Signature = 0xE11AB1A1E011CFD0UL;
+                if (BitConverter.ToUInt64(header, 0) != Signature) return false;
+
+                ushort sectorShift = BitConverter.ToUInt16(header, 0x1E);
+                int sectorSize = 1 << sectorShift;
+                int dirStart = BitConverter.ToInt32(header, 0x30);
+
+                var fatSectors = new List<int>();
+                for (int i = 0; i < 109; i++) {
+                    int s = BitConverter.ToInt32(header, 0x4C + i * 4);
+                    if (s >= 0) fatSectors.Add(s);
+                }
+                var fat = ReadFat(stream, reader, fatSectors, sectorSize);
+                int perSector = sectorSize / 128;
+                int sector = dirStart;
+                while (sector != EndOfChain && sector >= 0 && sector < fat.Count) {
+                    long sectorPos = (long)(sector + 1) * sectorSize;
+                    stream.Position = sectorPos;
+                    byte[] buffer = reader.ReadBytes(sectorSize);
+                    bool modified = false;
+                    for (int i = 0; i < perSector; i++) {
+                        int offset = i * 128;
+                        if (offset + 128 > buffer.Length) break;
+                        ushort nameLen = BitConverter.ToUInt16(buffer, offset + 64);
+                        if (nameLen <= 2) continue;
+                        string name = Encoding.Unicode.GetString(buffer, offset, nameLen - 2);
+                        byte type = buffer[offset + 66];
+                        if (type == 2 && !IsReserved(name) && string.Equals(name, moduleName, StringComparison.OrdinalIgnoreCase)) {
+                            buffer[offset + 66] = 0; // mark as unused
+                            modified = true;
+                            break;
+                        }
+                    }
+                    if (modified) {
+                        stream.Position = sectorPos;
+                        stream.Write(buffer, 0, buffer.Length);
+                        return true;
+                    }
+                    sector = fat[sector];
+                }
+                return false;
+            }
+
+            private static bool IsReserved(string name) {
+                return name == "dir" || name == "_VBA_PROJECT" || name == "PROJECT";
             }
 
             /// <summary>
