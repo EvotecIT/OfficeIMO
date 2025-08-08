@@ -146,8 +146,8 @@ namespace OfficeIMO.Word.Pdf {
                         PdfPageOrientation orientation;
                         if (options?.Orientation != null) {
                             orientation = options.Orientation.Value;
-                        } else if (section.PageSettings.PageSize.HasValue) {
-                            orientation = section.PageSettings.Orientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+                        } else if (section.PageSettings.Orientation == W.PageOrientationValues.Landscape) {
+                            orientation = PdfPageOrientation.Landscape;
                         } else if (options?.DefaultOrientation != null) {
                             orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
                         } else {
