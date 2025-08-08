@@ -119,7 +119,21 @@ namespace OfficeIMO.Word.Pdf {
                             page.DefaultTextStyle(t => t.FontFamily(options.FontFamily));
                         }
 
-                        if (options?.Margin != null) {
+                        if (options?.MarginLeft != null || options?.MarginRight != null || options?.MarginTop != null || options?.MarginBottom != null) {
+                            float left = options.MarginLeft ?? options.Margin ?? (section.Margins.Left.Value / 20f);
+                            Unit leftUnit = options.MarginLeft != null ? options.MarginLeftUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
+                            float right = options.MarginRight ?? options.Margin ?? (section.Margins.Right.Value / 20f);
+                            Unit rightUnit = options.MarginRight != null ? options.MarginRightUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
+                            float top = options.MarginTop ?? options.Margin ?? (section.Margins.Top.Value / 20f);
+                            Unit topUnit = options.MarginTop != null ? options.MarginTopUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
+                            float bottom = options.MarginBottom ?? options.Margin ?? (section.Margins.Bottom.Value / 20f);
+                            Unit bottomUnit = options.MarginBottom != null ? options.MarginBottomUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
+
+                            page.MarginLeft(left, leftUnit);
+                            page.MarginRight(right, rightUnit);
+                            page.MarginTop(top, topUnit);
+                            page.MarginBottom(bottom, bottomUnit);
+                        } else if (options?.Margin != null) {
                             page.Margin(options.Margin.Value, options.MarginUnit);
                         } else {
                             float leftMargin = section.Margins.Left.Value / 20f;

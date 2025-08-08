@@ -57,7 +57,9 @@ namespace OfficeIMO.Examples.Word {
                     PageSize = PageSizes.A4,
                     Orientation = PdfPageOrientation.Landscape,
                     Margin = 2,
-                    MarginUnit = Unit.Centimetre
+                    MarginUnit = Unit.Centimetre,
+                    MarginBottom = 1,
+                    MarginBottomUnit = Unit.Centimetre
                 });
             }
         }
