@@ -315,6 +315,51 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_MixedMargins() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfMixedMargins.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfMixedMargins.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                Margin = 2,
+                MarginUnit = Unit.Centimetre,
+                MarginLeft = 1,
+                MarginLeftUnit = Unit.Centimetre,
+                MarginTop = 3,
+                MarginTopUnit = Unit.Centimetre
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        byte[] startPattern = Encoding.ASCII.GetBytes("stream\n");
+        byte[] endPattern = Encoding.ASCII.GetBytes("\nendstream");
+        int start = IndexOf(bytes, startPattern, 0);
+        Assert.True(start >= 0, "stream marker not found");
+        start += startPattern.Length;
+        int end = IndexOf(bytes, endPattern, start);
+        Assert.True(end >= 0, "endstream marker not found");
+        int length = end - start;
+        int deflateLength = length - 6;
+        byte[] deflateData = new byte[deflateLength];
+        Array.Copy(bytes, start + 2, deflateData, 0, deflateLength);
+        using MemoryStream ms = new MemoryStream(deflateData);
+        using DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
+        using StreamReader reader = new StreamReader(ds, Encoding.GetEncoding("ISO-8859-1"));
+        string content = reader.ReadToEnd();
+
+        Match transform = Regex.Match(content, @"4 0 0 4 (?<x>[0-9\.]+) (?<y>[0-9\.]+) cm");
+        Assert.True(transform.Success, "Margin transform not found");
+        double leftMarginCm = double.Parse(transform.Groups["x"].Value, CultureInfo.InvariantCulture) / 4.0 / 28.3464566929;
+
+        Assert.True(System.Math.Abs(leftMarginCm - 1) < 0.1);
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_Hyperlink() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfHyperlink.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfHyperlink.pdf");

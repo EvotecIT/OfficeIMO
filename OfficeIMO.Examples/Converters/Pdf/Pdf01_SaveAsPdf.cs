@@ -48,7 +48,11 @@ namespace OfficeIMO.Examples.Word.Converters {
             doc.SaveAsPdf(outputPath, new PdfSaveOptions {
                 Orientation = PdfPageOrientation.Portrait,
                 Margin = 2,
-                MarginUnit = QuestPDF.Infrastructure.Unit.Centimetre
+                MarginUnit = QuestPDF.Infrastructure.Unit.Centimetre,
+                MarginTop = 3,
+                MarginTopUnit = QuestPDF.Infrastructure.Unit.Centimetre,
+                MarginLeft = 1,
+                MarginLeftUnit = QuestPDF.Infrastructure.Unit.Centimetre
             });
             
             Console.WriteLine($"✓ Created: {outputPath}");
