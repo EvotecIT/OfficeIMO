@@ -76,7 +76,8 @@ namespace OfficeIMO.Word {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             this._document.Body.Append(newWordParagraph._paragraph);
-            this.Paragraphs.Add(newWordParagraph);
+            var currentSection = this.Sections.LastOrDefault();
+            currentSection?.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
         }
 
