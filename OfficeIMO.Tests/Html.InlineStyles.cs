@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(18d, paragraph.IndentationBeforePoints);
             Assert.Equal(7.5d, paragraph.LineSpacingBeforePoints);
             var run = paragraph.GetRuns().First();
-            Assert.Equal(18, run.FontSize);
+            Assert.Equal(24, run.FontSize);
             Assert.Equal("123456", run.ColorHex);
         }
 
@@ -37,11 +37,11 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
             Assert.Equal("ff0000", runs[0].ColorHex);
-            Assert.Equal(15, runs[0].FontSize);
+            Assert.Equal(20, runs[0].FontSize);
             Assert.Equal("ff0000", runs[1].ColorHex);
-            Assert.Equal(8, runs[1].FontSize);
+            Assert.Equal(10, runs[1].FontSize);
             Assert.Equal("ff0000", runs[2].ColorHex);
-            Assert.Equal(15, runs[2].FontSize);
+            Assert.Equal(20, runs[2].FontSize);
         }
     }
 }

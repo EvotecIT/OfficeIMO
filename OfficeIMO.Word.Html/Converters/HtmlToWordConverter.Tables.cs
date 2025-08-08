@@ -402,14 +402,16 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {
             size = null;
-            var parser = new CssParser();
-            var decl = parser.ParseDeclaration($"x:{token}");
-            if (!TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int twips)) {
-                return false;
+            var raw = token.Trim().ToLowerInvariant();
+            if (raw.EndsWith("px") && double.TryParse(raw[..^2], out double px)) {
+                size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));
+                return true;
             }
-            double points = twips / 20d;
-            size = (UInt32Value)(uint)Math.Max(1, Math.Round(points * 8));
-            return true;
+            if (raw.EndsWith("pt") && double.TryParse(raw[..^2], out double pt)) {
+                size = (UInt32Value)(uint)Math.Max(1, Math.Round(pt * 8));
+                return true;
+            }
+            return false;
         }
     }
 }

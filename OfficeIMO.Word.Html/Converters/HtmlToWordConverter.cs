@@ -239,6 +239,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
                             }
+                            WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
@@ -246,7 +247,10 @@ namespace OfficeIMO.Word.Html.Converters {
                                         childElement.SetAttribute("style", merged);
                                     }
                                 }
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                ProcessNode(child, doc, section, options, para, listStack, fmt, cell);
+                                if (para == null && doc.Paragraphs.Count > 0) {
+                                    para = doc.Paragraphs.Last();
+                                }
                             }
                             break;
                         }

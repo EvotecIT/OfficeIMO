@@ -41,15 +41,21 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static readonly DefaultRenderDevice _renderDevice = new() { FontSize = 16 };
+        private static readonly CssParser _inlineParser = new();
 
-        private static bool TryConvertFontSize(ICssValue? value, out int size) {
+        private static bool TryParseFontSize(string? text, out int size) {
             size = 0;
-            if (value is CssLengthValue length) {
-                try {
-                    double px = length.ToPixel(_renderDevice);
-                    size = (int)Math.Round(px * 0.75);
-                    return size > 0;
-                } catch { }
+            if (string.IsNullOrWhiteSpace(text)) {
+                return false;
+            }
+            text = text.Trim().ToLowerInvariant();
+            if (text.EndsWith("pt") && double.TryParse(text[..^2], out double pt)) {
+                size = (int)Math.Round(pt);
+                return size > 0;
+            }
+            if (text.EndsWith("px") && double.TryParse(text[..^2], out double px)) {
+                size = (int)Math.Round(px);
+                return size > 0;
             }
             return false;
         }
@@ -73,8 +79,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.Style = style.Value;
             }
 
-            var declaration = element.GetStyle();
-            if (declaration == null || declaration.Length == 0) {
+            var styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = _inlineParser.ParseDeclaration(styleText);
+            if (declaration.Length == 0) {
                 return;
             }
 
@@ -95,7 +102,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
-            if (TryConvertFontSize(declaration.GetProperty("font-size")?.RawValue, out int fontSize)) {
+            if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int fontSize)) {
                 paragraph.SetFontSize(fontSize);
             }
 
@@ -178,8 +185,9 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
-            var declaration = element.GetStyle();
-            if (declaration == null || declaration.Length == 0) {
+            var styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = _inlineParser.ParseDeclaration(styleText);
+            if (declaration.Length == 0) {
                 return;
             }
 
@@ -193,7 +201,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 formatting.FontFamily = family.Trim('"', '\'', ' ');
             }
 
-            if (TryConvertFontSize(declaration.GetProperty("font-size")?.RawValue, out int size)) {
+            if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int size)) {
                 formatting.FontSize = size;
             }
 
