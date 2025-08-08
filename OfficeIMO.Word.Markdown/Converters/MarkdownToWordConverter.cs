@@ -1,4 +1,5 @@
 using Markdig;
+using Markdig.Extensions.Footnotes;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -32,7 +33,10 @@ namespace OfficeIMO.Word.Markdown.Converters {
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
 
-            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UseFootnotes()
+                .Build();
             var parsed = Markdig.Markdown.Parse(markdown, pipeline);
 
             foreach (var block in parsed) {
@@ -92,6 +96,9 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     break;
                 case ThematicBreakBlock:
                     document.AddHorizontalLine();
+                    break;
+                case FootnoteGroup:
+                    // Footnote definitions are processed when their links are encountered
                     break;
             }
         }
