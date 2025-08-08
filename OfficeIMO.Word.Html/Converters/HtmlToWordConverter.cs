@@ -1,4 +1,7 @@
 using AngleSharp;
+using AngleSharp.Css;
+using AngleSharp.Css.Dom;
+using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
@@ -9,9 +12,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -26,17 +28,8 @@ namespace OfficeIMO.Word.Html.Converters {
     /// </summary>
     internal partial class HtmlToWordConverter {
         private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
-        private readonly List<CssRule> _cssRules = new();
-
-        private sealed class CssRule {
-            public CssRule(string selector, Dictionary<string, string> declarations) {
-                Selector = selector;
-                Declarations = declarations;
-            }
-
-            public string Selector { get; }
-            public Dictionary<string, string> Declarations { get; }
-        }
+        private readonly List<ICssStyleRule> _cssRules = new();
+        private readonly CssParser _cssParser = new();
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
@@ -419,27 +412,18 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private void ParseCss(string css) {
-            foreach (Match match in Regex.Matches(css, @"(?<sel>[^{}]+)\{(?<body>[^{}]+)\}")) {
-                var selectors = match.Groups["sel"].Value.Split(',');
-                var declarations = ParseDeclarations(match.Groups["body"].Value);
-                foreach (var selector in selectors) {
-                    var trimmed = selector.Trim();
-                    if (trimmed.Length > 0) {
-                        _cssRules.Add(new CssRule(trimmed, new Dictionary<string, string>(declarations)));
-                    }
-                }
+            if (string.IsNullOrWhiteSpace(css)) {
+                return;
             }
-        }
 
-        private static Dictionary<string, string> ParseDeclarations(string body) {
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var part in body.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length == 2) {
-                    dict[pieces[0].Trim().ToLowerInvariant()] = pieces[1].Trim();
+            try {
+                var sheet = _cssParser.ParseStyleSheet(css);
+                foreach (var rule in sheet.Rules.OfType<ICssStyleRule>()) {
+                    _cssRules.Add(rule);
                 }
+            } catch (Exception) {
+                // ignore invalid CSS blocks
             }
-            return dict;
         }
 
         private void ApplyCssToElement(IElement element) {
@@ -447,52 +431,39 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            var accumulated = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var accumulated = new Dictionary<string, (string Value, Priority Specificity)>(StringComparer.OrdinalIgnoreCase);
             foreach (var rule in _cssRules) {
-                if (SelectorMatches(rule.Selector, element)) {
-                    foreach (var kvp in rule.Declarations) {
-                        accumulated[kvp.Key] = kvp.Value;
+                var selector = rule.Selector;
+                if (selector != null && selector.Match(element, null)) {
+                    var specificity = selector.Specificity;
+                    foreach (var property in rule.Style) {
+                        var name = property.Name;
+                        if (!accumulated.TryGetValue(name, out var existing) || specificity >= existing.Specificity) {
+                            accumulated[name] = (property.Value, specificity);
+                        }
                     }
                 }
             }
 
             var inline = element.GetAttribute("style");
             if (!string.IsNullOrEmpty(inline)) {
-                foreach (var kvp in ParseDeclarations(inline)) {
-                    accumulated[kvp.Key] = kvp.Value;
+                try {
+                    var declaration = _cssParser.ParseDeclaration(inline);
+                    foreach (var property in declaration) {
+                        accumulated[property.Name] = (property.Value, Priority.Inline);
+                    }
+                } catch (Exception) {
+                    // ignore invalid inline style
                 }
             }
 
             if (accumulated.Count > 0) {
                 var sb = new StringBuilder();
                 foreach (var kvp in accumulated) {
-                    sb.Append(kvp.Key).Append(':').Append(kvp.Value).Append(';');
+                    sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');
                 }
                 element.SetAttribute("style", sb.ToString());
             }
-        }
-
-        private static bool SelectorMatches(string selector, IElement element) {
-            selector = selector.Trim();
-            if (selector.StartsWith(".", StringComparison.Ordinal)) {
-                var cls = selector.Substring(1);
-                var classAttr = element.GetAttribute("class");
-                if (classAttr == null) {
-                    return false;
-                }
-                foreach (var c in classAttr.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                    if (string.Equals(c, cls, StringComparison.OrdinalIgnoreCase)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-            if (selector.StartsWith("#", StringComparison.Ordinal)) {
-                var id = selector.Substring(1);
-                var elemId = element.GetAttribute("id");
-                return string.Equals(elemId, id, StringComparison.OrdinalIgnoreCase);
-            }
-            return string.Equals(element.TagName, selector.ToUpperInvariant(), StringComparison.Ordinal);
         }
     }
 }
