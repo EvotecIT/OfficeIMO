@@ -12,6 +12,25 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        static void RenderElement(ColumnDescriptor column, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
+            switch (element) {
+                case WordParagraph paragraph:
+                    column.Item().Element(e => RenderParagraph(e, paragraph, getMarker(paragraph), options, footnoteMap));
+                    break;
+                case WordTable table:
+                    column.Item().Element(e => RenderTable(e, table, getMarker, options, footnoteMap));
+                    break;
+                case WordImage image:
+                    column.Item().Element(e => RenderImage(e, image));
+                    break;
+                case WordHyperLink link:
+                    column.Item().Element(e => RenderHyperLink(e, link));
+                    break;
+                case WordShape shape:
+                    column.Item().Element(e => RenderShape(e, shape));
+                    break;
+            }
+        }
         static IContainer RenderParagraph(IContainer container, WordParagraph paragraph, (int Level, string Marker)? marker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             if (paragraph == null) {
                 return container;

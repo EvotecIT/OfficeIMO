@@ -11,8 +11,8 @@ namespace OfficeIMO.Examples.Word {
             string pdfPath = Path.Combine(folderPath, "HyperlinksToPdf.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("Visit ").AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
-                document.AddParagraph("Contact ").AddHyperLink("Email", new Uri("mailto:kontakt@evotec.pl"), addStyle: true);
+                document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
+                document.AddHyperLink("Email", new Uri("mailto:kontakt@evotec.pl"), addStyle: true);
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }
