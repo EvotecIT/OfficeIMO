@@ -1,17 +1,17 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
-    public partial class Word {
+public partial class Word {
     [Fact]
     public void Test_WordDocument_SaveAsPdf() {
         var docPath = Path.Combine(_directoryWithFiles, "PdfSample.docx");
@@ -90,9 +90,9 @@ namespace OfficeIMO.Tests;
     }
 
     [Fact]
-        public void Test_WordDocument_SaveAsPdf_ToFileStream() {
-            string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
-            string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
+    public void Test_WordDocument_SaveAsPdf_ToFileStream() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
@@ -203,6 +203,35 @@ namespace OfficeIMO.Tests;
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
         double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
         if (orientation == PdfPageOrientation.Landscape) {
+            Assert.True(width > height);
+        } else {
+            Assert.True(height > width);
+        }
+    }
+
+    [Theory]
+    [InlineData("Portrait")]
+    [InlineData("Landscape")]
+    public void Test_WordDocument_SaveAsPdf_SectionOrientationWithoutPageSize(string orientationValue) {
+        PageOrientationValues orientation = orientationValue == "Landscape" ? PageOrientationValues.Landscape : PageOrientationValues.Portrait;
+        string docPath = Path.Combine(_directoryWithFiles, $"PdfSectionOrientation{orientationValue}.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, $"PdfSectionOrientation{orientationValue}.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Sections[0].PageSettings.Orientation = orientation;
+            document.AddParagraph("Hello World");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
+        Assert.True(mediaBox.Success, "MediaBox not found");
+        double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
+        double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
+        if (orientation == PageOrientationValues.Landscape) {
             Assert.True(width > height);
         } else {
             Assert.True(height > width);
