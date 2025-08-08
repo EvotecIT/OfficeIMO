@@ -1,4 +1,5 @@
 using AngleSharp.Html.Dom;
+using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -11,9 +12,16 @@ namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
             Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph) {
-            int rows = tableElem.Rows.Length;
+            int headRows = tableElem.Head?.Rows.Length ?? 0;
+            int bodyRows = 0;
+            foreach (var body in tableElem.Bodies) {
+                bodyRows += body.Rows.Length;
+            }
+            int footRows = tableElem.Foot?.Rows.Length ?? 0;
+            int rows = headRows + bodyRows + footRows;
+
             int cols = 0;
-            foreach (var row in tableElem.Rows) {
+            foreach (var row in GetAllRows(tableElem)) {
                 int count = 0;
                 foreach (var cellElem in row.Cells) {
                     int span = 1;
@@ -34,47 +42,140 @@ namespace OfficeIMO.Word.Html.Converters {
                 wordTable = placeholder.AddTableAfter(rows, cols);
             }
             ApplyTableStyles(wordTable, tableElem);
+            ApplyColumnGroup(wordTable, tableElem, cols);
             var occupied = new bool[rows, cols];
-            for (int r = 0; r < rows; r++) {
-                var htmlRow = tableElem.Rows[r];
-                ApplyRowStyles(wordTable.Rows[r], htmlRow);
-                int cIndex = 0;
-                for (int c = 0; c < htmlRow.Cells.Length; c++) {
-                    while (cIndex < cols && occupied[r, cIndex]) {
-                        cIndex++;
-                    }
+            int rIndex = 0;
 
-                    var htmlCell = htmlRow.Cells[c];
-                    var wordCell = wordTable.Rows[r].Cells[cIndex];
-                    ApplyCellStyles(wordCell, htmlCell as IHtmlTableCellElement);
-                    if (wordCell.Paragraphs.Count == 1 && string.IsNullOrEmpty(wordCell.Paragraphs[0].Text)) {
-                        wordCell.Paragraphs[0].Remove();
-                    }
-                    foreach (var child in htmlCell.ChildNodes) {
-                        ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), wordCell);
-                    }
+            void HandleRows(IEnumerable<IHtmlTableRowElement> htmlRows) {
+                foreach (var htmlRow in htmlRows) {
+                    var wordRow = wordTable.Rows[rIndex];
+                    ApplyRowStyles(wordRow, htmlRow);
+                    int cIndex = 0;
+                    for (int c = 0; c < htmlRow.Cells.Length; c++) {
+                        while (cIndex < cols && occupied[rIndex, cIndex]) {
+                            cIndex++;
+                        }
 
-                    int rowSpan = 1;
-                    int colSpan = 1;
-                    if (htmlCell is IHtmlTableCellElement htmlTableCell) {
-                        rowSpan = Math.Max(1, htmlTableCell.RowSpan);
-                        colSpan = Math.Max(1, htmlTableCell.ColumnSpan);
-                    }
+                        var htmlCell = htmlRow.Cells[c];
+                        var wordCell = wordRow.Cells[cIndex];
+                        ApplyCellStyles(wordCell, htmlCell as IHtmlTableCellElement);
+                        if (wordCell.Paragraphs.Count == 1 && string.IsNullOrEmpty(wordCell.Paragraphs[0].Text)) {
+                            wordCell.Paragraphs[0].Remove();
+                        }
+                        foreach (var child in htmlCell.ChildNodes) {
+                            ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), wordCell);
+                        }
 
-                    if (rowSpan > 1 || colSpan > 1) {
-                        wordTable.MergeCells(r, cIndex, rowSpan, colSpan);
-                        for (int rr = r; rr < r + rowSpan; rr++) {
-                            for (int cc = cIndex; cc < cIndex + colSpan; cc++) {
-                                if (rr == r && cc == cIndex) {
-                                    continue;
+                        int rowSpan = 1;
+                        int colSpan = 1;
+                        if (htmlCell is IHtmlTableCellElement htmlTableCell) {
+                            rowSpan = Math.Max(1, htmlTableCell.RowSpan);
+                            colSpan = Math.Max(1, htmlTableCell.ColumnSpan);
+                        }
+
+                        if (rowSpan > 1 || colSpan > 1) {
+                            wordTable.MergeCells(rIndex, cIndex, rowSpan, colSpan);
+                            for (int rr = rIndex; rr < rIndex + rowSpan; rr++) {
+                                for (int cc = cIndex; cc < cIndex + colSpan; cc++) {
+                                    if (rr == rIndex && cc == cIndex) {
+                                        continue;
+                                    }
+                                    occupied[rr, cc] = true;
                                 }
-                                occupied[rr, cc] = true;
                             }
                         }
-                    }
 
-                    cIndex++;
+                        cIndex++;
+                    }
+                    rIndex++;
                 }
+            }
+
+            if (tableElem.Head != null) {
+                HandleRows(tableElem.Head.Rows);
+                if (tableElem.Head.Rows.Length > 0) {
+                    wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
+                }
+            }
+            foreach (var body in tableElem.Bodies) {
+                HandleRows(body.Rows);
+            }
+            if (tableElem.Foot != null) {
+                HandleRows(tableElem.Foot.Rows);
+            }
+        }
+
+        private static IEnumerable<IHtmlTableRowElement> GetAllRows(IHtmlTableElement tableElem) {
+            if (tableElem.Head != null) {
+                foreach (var r in tableElem.Head.Rows) yield return r;
+            }
+            foreach (var body in tableElem.Bodies) {
+                foreach (var r in body.Rows) yield return r;
+            }
+            if (tableElem.Foot != null) {
+                foreach (var r in tableElem.Foot.Rows) yield return r;
+            }
+        }
+
+        private static void ApplyColumnGroup(WordTable wordTable, IHtmlTableElement tableElem, int cols) {
+            var colElements = tableElem.QuerySelectorAll("col");
+            if (colElements.Length == 0) {
+                return;
+            }
+            var widths = new List<int>();
+            TableWidthUnitValues? widthType = null;
+            foreach (var col in colElements) {
+                string width = null;
+                var style = col.GetAttribute("style");
+                if (!string.IsNullOrEmpty(style)) {
+                    foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                        var pieces = part.Split(new[] { ':' }, 2);
+                        if (pieces.Length == 2 && pieces[0].Trim().Equals("width", StringComparison.OrdinalIgnoreCase)) {
+                            width = pieces[1].Trim();
+                            break;
+                        }
+                    }
+                }
+                width ??= col.GetAttribute("width");
+                if (string.IsNullOrEmpty(width)) {
+                    continue;
+                }
+
+                int span = 1;
+                if (int.TryParse(col.GetAttribute("span"), out int sp) && sp > 1) {
+                    span = sp;
+                }
+
+                int size;
+                TableWidthUnitValues thisType;
+                if (width.EndsWith("%", StringComparison.Ordinal)) {
+                    var num = width.TrimEnd('%');
+                    if (!int.TryParse(num, out int pct)) {
+                        continue;
+                    }
+                    size = pct * 50;
+                    thisType = TableWidthUnitValues.Pct;
+                } else if (TryParseSize(width, out int w)) {
+                    size = w;
+                    thisType = TableWidthUnitValues.Dxa;
+                } else {
+                    continue;
+                }
+
+                if (widthType == null) {
+                    widthType = thisType;
+                } else if (widthType != thisType) {
+                    return; // mixed width types not supported
+                }
+
+                for (int i = 0; i < span; i++) {
+                    widths.Add(size);
+                }
+            }
+
+            if (widthType != null && widths.Count == cols) {
+                wordTable.ColumnWidth = widths;
+                wordTable.ColumnWidthType = widthType;
             }
         }
 

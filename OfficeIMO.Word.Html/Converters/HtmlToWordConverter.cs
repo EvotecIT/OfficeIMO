@@ -392,7 +392,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 if (string.IsNullOrWhiteSpace(text)) {
                     return;
                 }
-                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                currentParagraph ??= cell != null ? cell.AddParagraph(paragraph: null, removeExistingParagraphs: true) : section.AddParagraph("");
                 AddTextRun(currentParagraph, text, formatting, options);
             }
         }
