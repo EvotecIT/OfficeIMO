@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -56,6 +57,51 @@ namespace OfficeIMO.Word.Pdf {
 
             Document pdf = CreatePdfDocument(document, options);
             pdf.GeneratePdf(stream);
+        }
+
+        /// <summary>
+        /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/> asynchronously.
+        /// </summary>
+        /// <param name="document">The document to convert.</param>
+        /// <param name="path">The output PDF file path.</param>
+        /// <param name="options">Optional PDF configuration.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public static Task SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (path == null) {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            string? directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory)) {
+                Directory.CreateDirectory(directory);
+            }
+
+            Document pdf = CreatePdfDocument(document, options);
+            return Task.Run(() => pdf.GeneratePdf(path));
+        }
+
+        /// <summary>
+        /// Saves the specified <see cref="WordDocument"/> as a PDF to the provided <paramref name="stream"/> asynchronously.
+        /// </summary>
+        /// <param name="document">The document to convert.</param>
+        /// <param name="stream">The output stream to receive the PDF data.</param>
+        /// <param name="options">Optional PDF configuration.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public static Task SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            Document pdf = CreatePdfDocument(document, options);
+            return Task.Run(() => pdf.GeneratePdf(stream));
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
