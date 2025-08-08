@@ -396,7 +396,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "figure": {
                             var img = element.QuerySelector("img") as IHtmlImageElement;
                             if (img != null) {
-                                ProcessImage(img, doc);
+                                ProcessImage(img, doc, options);
                             }
                             var caption = element.QuerySelector("figcaption");
                             if (caption != null) {
@@ -413,7 +413,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "img": {
-                            ProcessImage((IHtmlImageElement)element, doc);
+                            ProcessImage((IHtmlImageElement)element, doc, options);
                             break;
                         }
                     case "style": {
