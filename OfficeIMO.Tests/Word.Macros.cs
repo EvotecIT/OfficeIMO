@@ -6,12 +6,15 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
-        private static string CreateDummyVba(string path) {
-            var cf = new OpenMcdf.CompoundFile();
+        private static string CreateDummyVba(string path, params string[] modules) {
+            var cf = new CompoundFile();
             var vba = cf.RootStorage.AddStorage("VBA");
             vba.AddStream("dir").SetData(new byte[0]);
             vba.AddStream("_VBA_PROJECT").SetData(new byte[0]);
-            vba.AddStream("Module1").SetData(System.Text.Encoding.UTF8.GetBytes("test"));
+            if (modules == null || modules.Length == 0) modules = new[] { "Module1" };
+            foreach (var module in modules) {
+                vba.AddStream(module).SetData(Encoding.UTF8.GetBytes("test"));
+            }
             cf.RootStorage.AddStream("PROJECT").SetData(new byte[0]);
             cf.SaveAs(path);
             cf.Close();
@@ -89,6 +92,37 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.False(document.HasMacros);
+            }
+
+            File.Delete(filePath);
+            File.Delete(vbaPath);
+        }
+
+        [Fact]
+        public void Test_RemoveOneOfMultipleMacros() {
+            string vbaPath = Path.Combine(_directoryDocuments, "multiVba.bin");
+            CreateDummyVba(vbaPath, "Module1", "Module2");
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithMacroMulti.docm");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddMacro(vbaPath);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Macros.Count);
+                document.RemoveMacro("Module1");
+                Assert.True(document.HasMacros);
+                Assert.Single(document.Macros);
+                Assert.Equal("Module2", document.Macros[0].Name);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.True(document.HasMacros);
+                Assert.Single(document.Macros);
+                Assert.Equal("Module2", document.Macros[0].Name);
             }
 
             File.Delete(filePath);
