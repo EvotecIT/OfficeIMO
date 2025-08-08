@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void Test_AddImageFromUrl() {
+        public async Task Test_AddImageFromUrl() {
             var filePath = Path.Combine(_directoryWithFiles, "ImageFromUrl.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
 
@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
             using var listener = new HttpListener();
             listener.Prefixes.Add($"http://localhost:{port}/");
             listener.Start();
-            var serverTask = Task.Run(() => {
-                var context = listener.GetContext();
+            var serverTask = Task.Run(async () => {
+                var context = await listener.GetContextAsync();
                 var bytes = File.ReadAllBytes(imagePath);
                 context.Response.ContentType = "image/jpeg";
                 context.Response.ContentLength64 = bytes.Length;
-                context.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
                 context.Response.OutputStream.Flush();
                 context.Response.Close();
             });
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            serverTask.Wait();
+            await serverTask;
             listener.Stop();
 
             using (var document = WordDocument.Load(filePath)) {
