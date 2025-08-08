@@ -82,6 +82,26 @@ namespace OfficeIMO.Word.Pdf {
         public DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues? DefaultOrientation { get; set; }
 
         /// <summary>
+        /// Optional PDF title that overrides the Word document title.
+        /// </summary>
+        public string? Title { get; set; }
+
+        /// <summary>
+        /// Optional PDF author that overrides the Word document author.
+        /// </summary>
+        public string? Author { get; set; }
+
+        /// <summary>
+        /// Optional PDF subject that overrides the Word document subject.
+        /// </summary>
+        public string? Subject { get; set; }
+
+        /// <summary>
+        /// Optional PDF keywords that override the Word document keywords.
+        /// </summary>
+        public string? Keywords { get; set; }
+
+        /// <summary>
         /// Optional QuestPDF license type used when generating the PDF.
         /// </summary>
         public LicenseType? QuestPdfLicenseType { get; set; }

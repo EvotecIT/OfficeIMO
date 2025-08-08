@@ -209,10 +209,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
             })
             .WithMetadata(new DocumentMetadata {
-                Title = properties.Title,
-                Author = properties.Creator,
-                Subject = properties.Subject,
-                Keywords = properties.Keywords
+                Title = options?.Title ?? properties.Title,
+                Author = options?.Author ?? properties.Creator,
+                Subject = options?.Subject ?? properties.Subject,
+                Keywords = options?.Keywords ?? properties.Keywords
             });
 
             return pdf;
