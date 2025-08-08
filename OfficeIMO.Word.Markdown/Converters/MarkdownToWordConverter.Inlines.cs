@@ -1,3 +1,4 @@
+using Markdig.Extensions.Footnotes;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -36,6 +37,10 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             hyperlink.SetFontFamily(options.FontFamily);
                         }
                     }
+                } else if (current is FootnoteLink footnoteLink) {
+                    Flush();
+                    string text = BuildFootnoteText(footnoteLink.Footnote);
+                    paragraph.AddFootNote(text);
                 } else if (current is EmphasisInline emphasis && emphasis.DelimiterChar == '~') {
                     Flush();
                     string text = BuildMarkdown(emphasis.FirstChild);
@@ -142,6 +147,21 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
             }
 
+            return sb.ToString();
+        }
+
+        private static string BuildFootnoteText(Footnote footnote) {
+            var sb = new StringBuilder();
+            bool first = true;
+            foreach (var block in footnote) {
+                if (block is ParagraphBlock pb) {
+                    if (!first) {
+                        sb.AppendLine();
+                    }
+                    sb.Append(BuildMarkdown(pb.Inline));
+                    first = false;
+                }
+            }
             return sb.ToString();
         }
 
