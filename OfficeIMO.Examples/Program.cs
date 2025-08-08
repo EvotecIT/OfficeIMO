@@ -238,6 +238,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Pdf.Example_SaveAsPdfInMemory(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_SaveAsPdfRelative(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_SaveAsPdfWithHyperlinks(folderPath, false);
+            OfficeIMO.Examples.Word.Pdf.Example_SaveAsPdfWithMetadata(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_SaveLists(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_TableStyles(folderPath, false);
             // Word/PictureControls

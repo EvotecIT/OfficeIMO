@@ -61,6 +61,7 @@ namespace OfficeIMO.Word.Pdf {
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
             QuestPDF.Settings.License = LicenseType.Community;
 
+            BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
 
             Document pdf = Document.Create(container => {
@@ -144,6 +145,12 @@ namespace OfficeIMO.Word.Pdf {
                         RenderFooter(page, section, footnotes, footnoteMap);
                     });
                 }
+            })
+            .WithMetadata(new DocumentMetadata {
+                Title = properties.Title,
+                Author = properties.Creator,
+                Subject = properties.Subject,
+                Keywords = properties.Keywords
             });
 
             return pdf;
