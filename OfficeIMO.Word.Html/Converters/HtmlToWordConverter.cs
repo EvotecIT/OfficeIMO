@@ -183,11 +183,13 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "p": {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -195,11 +197,13 @@ namespace OfficeIMO.Word.Html.Converters {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
                             paragraph.SetStyleId("Quote");
                             paragraph.IndentationBefore = 720;
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }

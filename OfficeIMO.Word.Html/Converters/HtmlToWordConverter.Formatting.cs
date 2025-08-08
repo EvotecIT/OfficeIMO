@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             var declaration = element.GetStyle();
-            if (declaration.Length == 0) {
+            if (declaration == null || declaration.Length == 0) {
                 return;
             }
 
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.SetFontSize(fontSize);
             }
 
-            var align = declaration.GetPropertyValue("text-align");
+            var align = declaration.GetPropertyValue("text-align")?.Trim();
             if (!string.IsNullOrEmpty(align)) {
                 alignment = align.ToLowerInvariant() switch {
                     "center" => JustificationValues.Center,
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
             var declaration = element.GetStyle();
-            if (declaration.Length == 0) {
+            if (declaration == null || declaration.Length == 0) {
                 return;
             }
 
