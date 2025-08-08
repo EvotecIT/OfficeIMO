@@ -1,8 +1,10 @@
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
@@ -10,6 +12,11 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    private static void RemoveCustomStyle(string styleId) {
+        var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
+        var dict = (IDictionary<string, Style>)field!.GetValue(null);
+        dict.Remove(styleId);
+    }
     [Fact(Skip = "TODO: Implement HTML to Word conversion - currently only stub implementation")]
     public void Test_Html_RoundTrip() {
         string html = "<p>Hello <b>world</b> and <i>universe</i>.</p>";
@@ -168,6 +175,35 @@ public partial class Html {
         string roundTrip = doc.ToHtml();
         Assert.Contains("<blockquote>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Quoted text", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Blockquote_WithoutQuoteStyle() {
+        RemoveCustomStyle("Quote");
+        string html = "<blockquote>Quoted text</blockquote>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.False(doc.StyleExists("Quote"));
+        Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
+        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+        Assert.Null(doc.Paragraphs[0].Style);
+    }
+
+    [Fact]
+    public void Test_Html_Blockquote_WithQuoteStyle() {
+        RemoveCustomStyle("Quote");
+        var quote = WordParagraphStyle.CreateFontStyle("Quote", "Arial");
+        WordParagraphStyle.RegisterCustomStyle("Quote", quote);
+
+        string html = "<blockquote>Quoted text</blockquote>";
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.True(doc.StyleExists("Quote"));
+        Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
+        Assert.Equal(WordParagraphStyles.Custom, doc.Paragraphs[0].Style);
+
+        RemoveCustomStyle("Quote");
     }
 
     [Fact]
