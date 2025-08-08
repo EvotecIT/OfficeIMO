@@ -16,7 +16,9 @@ namespace OfficeIMO.Tests;
             document.AddParagraph("Hello World");
             document.Save();
 
-            await document.SaveAsPdfAsync(pdfPath);
+            var saveTask = document.SaveAsPdfAsync(pdfPath);
+            Assert.False(saveTask.IsCompleted, "SaveAsPdfAsync should not complete synchronously");
+            await saveTask;
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -31,7 +33,9 @@ namespace OfficeIMO.Tests;
             document.Save();
 
             using (var stream = new MemoryStream()) {
-                await document.SaveAsPdfAsync(stream);
+                var saveTask = document.SaveAsPdfAsync(stream);
+                Assert.False(saveTask.IsCompleted, "SaveAsPdfAsync should not complete synchronously");
+                await saveTask;
                 Assert.True(stream.Length > 0);
             }
         }
