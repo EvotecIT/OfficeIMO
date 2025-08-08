@@ -193,7 +193,9 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "blockquote": {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                            paragraph.SetStyleId("Quote");
+                            if (doc.StyleExists("Quote")) {
+                                paragraph.SetStyleId("Quote");
+                            }
                             paragraph.IndentationBefore = 720;
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
