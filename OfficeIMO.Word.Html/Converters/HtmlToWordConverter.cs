@@ -431,15 +431,23 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            var accumulated = new Dictionary<string, (string Value, Priority Specificity)>(StringComparer.OrdinalIgnoreCase);
+            var accumulated = new Dictionary<string, (string Value, Priority Specificity, bool Important)>(
+                StringComparer.OrdinalIgnoreCase);
             foreach (var rule in _cssRules) {
                 var selector = rule.Selector;
                 if (selector != null && selector.Match(element, null)) {
                     var specificity = selector.Specificity;
                     foreach (var property in rule.Style) {
                         var name = property.Name;
-                        if (!accumulated.TryGetValue(name, out var existing) || specificity >= existing.Specificity) {
-                            accumulated[name] = (property.Value, specificity);
+                        var important = property.IsImportant;
+                        if (!accumulated.TryGetValue(name, out var existing)) {
+                            accumulated[name] = (property.Value, specificity, important);
+                        } else if (important) {
+                            if (!existing.Important || specificity >= existing.Specificity) {
+                                accumulated[name] = (property.Value, specificity, true);
+                            }
+                        } else if (!existing.Important && specificity >= existing.Specificity) {
+                            accumulated[name] = (property.Value, specificity, false);
                         }
                     }
                 }
@@ -450,7 +458,17 @@ namespace OfficeIMO.Word.Html.Converters {
                 try {
                     var declaration = _cssParser.ParseDeclaration(inline);
                     foreach (var property in declaration) {
-                        accumulated[property.Name] = (property.Value, Priority.Inline);
+                        var name = property.Name;
+                        var important = property.IsImportant;
+                        if (!accumulated.TryGetValue(name, out var existing)) {
+                            accumulated[name] = (property.Value, Priority.Inline, important);
+                        } else if (important) {
+                            if (!existing.Important || Priority.Inline >= existing.Specificity) {
+                                accumulated[name] = (property.Value, Priority.Inline, true);
+                            }
+                        } else if (!existing.Important && Priority.Inline >= existing.Specificity) {
+                            accumulated[name] = (property.Value, Priority.Inline, false);
+                        }
                     }
                 } catch (Exception) {
                     // ignore invalid inline style
