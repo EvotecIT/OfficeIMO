@@ -90,6 +90,24 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_ToByteArray() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfByteArraySample.docx");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            byte[] bytes = document.SaveAsPdf();
+            Assert.NotNull(bytes);
+            Assert.True(bytes.Length > 100);
+            string header = Encoding.ASCII.GetString(bytes, 0, 4);
+            Assert.Equal("%PDF", header);
+            string trailer = Encoding.ASCII.GetString(bytes, bytes.Length - 5, 5);
+            Assert.Contains("EOF", trailer);
+        }
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_ToFileStream() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfFileStreamSample.pdf");
