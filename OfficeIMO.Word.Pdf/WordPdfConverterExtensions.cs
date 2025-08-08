@@ -105,7 +105,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
-            QuestPDF.Settings.License = LicenseType.Community;
+            if (QuestPDF.Settings.License == null) {
+                QuestPDF.Settings.License = options?.QuestPdfLicenseType ?? LicenseType.Community;
+            }
 
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
