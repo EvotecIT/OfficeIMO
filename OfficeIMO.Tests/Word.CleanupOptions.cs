@@ -1,7 +1,8 @@
-using System.IO;
-using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -17,6 +18,35 @@ namespace OfficeIMO.Tests {
                 document.CleanupDocument();
                 Assert.Single(p._paragraph.Elements<Run>());
                 Assert.Equal("Hello World", p.Text);
+                document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void CleanupDocument_MergesRunsWithDifferentAttributeOrder() {
+            string filePath = Path.Combine(_directoryWithFiles, "CleanupRunsAttributes.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordParagraph p = document.AddParagraph();
+
+                var color1 = new Color();
+                color1.SetAttribute(new OpenXmlAttribute("w", "val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "FF0000"));
+                color1.SetAttribute(new OpenXmlAttribute("w", "themeColor", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "accent1"));
+
+                var color2 = new Color();
+                color2.SetAttribute(new OpenXmlAttribute("w", "themeColor", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "accent1"));
+                color2.SetAttribute(new OpenXmlAttribute("w", "val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "FF0000"));
+
+                var run1 = new Run(new RunProperties(color1), new Text("A"));
+                var run2 = new Run(new RunProperties(color2), new Text("B"));
+
+                p._paragraph.Append(run1, run2);
+
+                Assert.Equal(2, p._paragraph.Elements<Run>().Count());
+
+                document.CleanupDocument(DocumentCleanupOptions.MergeIdenticalRuns);
+
+                Assert.Single(p._paragraph.Elements<Run>());
+                Assert.Equal("AB", p._paragraph.InnerText);
                 document.Save(false);
             }
         }
