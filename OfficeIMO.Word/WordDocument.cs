@@ -23,7 +23,6 @@ namespace OfficeIMO.Word {
         internal int BookmarkId {
             get {
                 List<int> bookmarksList = new List<int>() { 0 };
-                ;
                 foreach (var paragraph in this.ParagraphsBookmarks) {
                     bookmarksList.Add(paragraph.Bookmark.Id);
                 }
