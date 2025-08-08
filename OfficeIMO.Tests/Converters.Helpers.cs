@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 var bullet = document.AddList(WordListStyle.Bulleted);
                 var bulletItem = bullet.AddItem("Bullet 1");
                 var ordered = document.AddCustomList();
-                var orderedLevel = new WordListLevel(WordListLevelKind.Decimal);
+                var orderedLevel = new WordListLevel(WordListLevelKind.DecimalDot);
                 ordered.Numbering.AddLevel(orderedLevel);
                 var orderedItem = ordered.AddItem("Number 1");
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream ms = new MemoryStream();
             using (var document = WordDocument.Create(ms)) {
                 var romanList = document.AddCustomList();
-                var romanLevel = new WordListLevel(WordListLevelKind.UpperRoman).SetStartNumberingValue(3);
+                var romanLevel = new WordListLevel(WordListLevelKind.UpperRomanDot).SetStartNumberingValue(3);
                 romanList.Numbering.AddLevel(romanLevel);
                 var romanItem1 = romanList.AddItem("Roman 1");
                 var romanItem2 = romanList.AddItem("Roman 2");

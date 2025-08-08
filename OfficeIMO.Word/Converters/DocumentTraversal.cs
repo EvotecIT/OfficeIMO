@@ -106,8 +106,8 @@ namespace OfficeIMO.Word {
 
         private sealed class ParagraphReferenceComparer : IEqualityComparer<WordParagraph> {
             public static readonly ParagraphReferenceComparer Instance = new();
-            public bool Equals(WordParagraph? x, WordParagraph? y) => ReferenceEquals(x, y);
-            public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj);
+            public bool Equals(WordParagraph? x, WordParagraph? y) => ReferenceEquals(x?._paragraph, y?._paragraph);
+            public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj._paragraph);
         }
 
         private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, NumberFormatValues?> formats, string? pattern) {
