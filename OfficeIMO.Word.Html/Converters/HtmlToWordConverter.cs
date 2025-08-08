@@ -4,7 +4,7 @@ using AngleSharp.Css.Dom;
 using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using AngleSharp.Html.Parser;
+using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Helpers;
@@ -12,8 +12,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using System.Net;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -36,8 +36,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
-            var parser = context.GetService<IHtmlParser>();
-            var document = await parser.ParseDocumentAsync(html);
+            var document = await context.OpenAsync(req => req.Content(html));
 
             var wordDoc = WordDocument.Create();
 
@@ -45,7 +44,23 @@ namespace OfficeIMO.Word.Html.Converters {
             _cssRules.Clear();
 
             foreach (var path in options.StylesheetPaths) {
-                if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
+                if (string.IsNullOrEmpty(path)) {
+                    continue;
+                }
+                if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
+                    if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
+                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()));
+                    } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
+                        ParseCss(File.ReadAllText(absolute.LocalPath));
+                    }
+                } else if (document.BaseUrl != null) {
+                    var url = new Url(new Url(document.BaseUrl), path);
+                    if (url.Scheme == "http" || url.Scheme == "https") {
+                        await LoadAndParseCssAsync(context, url);
+                    } else if (url.Scheme == "file" && File.Exists(url.Path)) {
+                        ParseCss(File.ReadAllText(url.Path));
+                    }
+                } else if (File.Exists(path)) {
                     ParseCss(File.ReadAllText(path));
                 }
             }
@@ -63,7 +78,23 @@ namespace OfficeIMO.Word.Html.Converters {
                     var rel = link.GetAttribute("rel");
                     if (string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                         var href = link.GetAttribute("href");
-                        if (!string.IsNullOrEmpty(href) && File.Exists(href)) {
+                        if (string.IsNullOrEmpty(href)) {
+                            continue;
+                        }
+                        if (Uri.TryCreate(href, UriKind.Absolute, out var abs)) {
+                            if (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps) {
+                                await LoadAndParseCssAsync(context, new Url(abs.ToString()));
+                            } else if (abs.Scheme == Uri.UriSchemeFile && File.Exists(abs.LocalPath)) {
+                                ParseCss(File.ReadAllText(abs.LocalPath));
+                            }
+                        } else if (document.BaseUrl != null) {
+                            var url = new Url(new Url(document.BaseUrl), href);
+                            if (url.Scheme == "http" || url.Scheme == "https") {
+                                await LoadAndParseCssAsync(context, url);
+                            } else if (url.Scheme == "file" && File.Exists(url.Path)) {
+                                ParseCss(File.ReadAllText(url.Path));
+                            }
+                        } else if (File.Exists(href)) {
                             ParseCss(File.ReadAllText(href));
                         }
                     }
@@ -95,6 +126,21 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             return wordDoc;
+        }
+
+        private async Task LoadAndParseCssAsync(IBrowsingContext context, Url url) {
+            var loader = context.GetService<IResourceLoader>();
+            if (loader == null) {
+                return;
+            }
+            var request = new ResourceRequest(null, url);
+            var download = loader.FetchAsync(request);
+            var response = await download.Task;
+            if (response.StatusCode == HttpStatusCode.OK) {
+                using var reader = new StreamReader(response.Content);
+                var css = await reader.ReadToEndAsync();
+                ParseCss(css);
+            }
         }
 
         private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,

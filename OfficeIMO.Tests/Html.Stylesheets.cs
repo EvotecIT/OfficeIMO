@@ -1,5 +1,9 @@
 using OfficeIMO.Word.Html;
 using Xunit;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests {
     public partial class Html {
@@ -39,6 +43,51 @@ namespace OfficeIMO.Tests {
             var run2 = doc.Paragraphs[1].GetRuns().First();
             Assert.Equal("0000ff", run1.ColorHex);
             Assert.Equal("0000ff", run2.ColorHex);
+        }
+
+        [Fact(Skip = "Requires network access")]
+        public void HtmlToWord_RemoteStylesheet_Applies() {
+            int port;
+            using (var tcp = new TcpListener(IPAddress.Loopback, 0)) {
+                tcp.Start();
+                port = ((IPEndPoint)tcp.LocalEndpoint).Port;
+            }
+
+            using var listener = new HttpListener();
+            listener.Prefixes.Add($"http://localhost:{port}/");
+            listener.Start();
+            var serve = Task.Run(async () => {
+                var ctx = await listener.GetContextAsync();
+                var bytes = Encoding.UTF8.GetBytes("p { color:#123456; }");
+                ctx.Response.ContentType = "text/css";
+                ctx.Response.ContentLength64 = bytes.Length;
+                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                ctx.Response.OutputStream.Close();
+            });
+
+            string html = $"<link rel=\"stylesheet\" href=\"http://localhost:{port}/style.css\" /><p>Test</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            listener.Stop();
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.Equal("123456", run.ColorHex);
+        }
+
+        [Fact]
+        public void HtmlToWord_RelativeStylesheet_UsesBaseUrl() {
+            var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(dir);
+            var cssPath = Path.Combine(dir, "style.css");
+            File.WriteAllText(cssPath, "p { color:#654321; }");
+            try {
+                var baseHref = new Uri(dir + Path.DirectorySeparatorChar).AbsoluteUri;
+                string html = $"<base href=\"{baseHref}\"><link rel=\"stylesheet\" href=\"style.css\" /><p>Test</p>";
+                var doc = html.LoadFromHtml(new HtmlToWordOptions());
+                var run = doc.Paragraphs[0].GetRuns().First();
+                Assert.Equal("654321", run.ColorHex);
+            } finally {
+                File.Delete(cssPath);
+                Directory.Delete(dir);
+            }
         }
     }
 }
