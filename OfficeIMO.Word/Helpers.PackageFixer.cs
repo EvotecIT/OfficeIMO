@@ -66,10 +66,10 @@ namespace OfficeIMO.Word {
                 foreach (var relationship in relationships) {
                     var targetAttribute = relationship.Attribute("Target");
                     if (targetAttribute != null) {
-                        if (removeWordPrefix && targetAttribute.Value.StartsWith("/word/")) {
+                        if (removeWordPrefix && targetAttribute.Value.StartsWith("/word/", StringComparison.Ordinal)) {
                             targetAttribute.Value = targetAttribute.Value.Substring(6); // Remove "/word/"
                             modified = true;
-                        } else if (!removeWordPrefix && targetAttribute.Value.StartsWith("/")) {
+                        } else if (!removeWordPrefix && targetAttribute.Value.StartsWith("/", StringComparison.Ordinal)) {
                             targetAttribute.Value = targetAttribute.Value.TrimStart('/');
                             modified = true;
                         }

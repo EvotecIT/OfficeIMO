@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(hex)) {
                 throw new ArgumentException("Value cannot be null or empty.", nameof(hex));
             }
-            if (!hex.StartsWith("#")) {
+            if (!hex.StartsWith("#", StringComparison.Ordinal)) {
                 hex = "#" + hex;
             }
             return SixLabors.ImageSharp.Color.Parse(hex);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                 var parsed = SixLabors.ImageSharp.Color.Parse(color);
                 return parsed.ToHexColor();
             } catch {
-                if (!color.StartsWith("#")) {
+                if (!color.StartsWith("#", StringComparison.Ordinal)) {
                     var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
                     return parsedHex.ToHexColor();
                 }
