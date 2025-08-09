@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -254,6 +255,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
             }
+        }
+
+        [Fact]
+        public void Test_LoadEmptyDocumentWithoutSections_Throws() {
+            string filePath = Path.Combine(_directoryDocuments, "EmptyDocument.docx");
+            using var document = WordDocument.Load(filePath);
+            document.RemoveSection(0);
+            var ex = Assert.Throws<InvalidOperationException>(() => _ = document.Header);
+            Assert.Equal("The document does not contain any sections.", ex.Message);
         }
         [Fact]
         public void Test_CreatingWordDocumentHeadersAndFootersAndDeletingHeadersAndFooters() {

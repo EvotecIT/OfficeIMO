@@ -26,6 +26,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordHeaders Header {
             get {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
@@ -37,6 +40,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordFooters Footer {
             get {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
@@ -49,12 +55,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentFirstPage {
             get {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
                 return this.Sections[0].DifferentFirstPage;
             }
             set {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 this.Sections[0].DifferentFirstPage = value;
             }
 
@@ -101,12 +113,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
                 return this.Sections[0].DifferentOddAndEvenPages;
             }
             set {
+                if (this.Sections.Count == 0) {
+                    throw new InvalidOperationException("The document does not contain any sections.");
+                }
                 this.Sections[0].DifferentOddAndEvenPages = value;
             }
             //get {
