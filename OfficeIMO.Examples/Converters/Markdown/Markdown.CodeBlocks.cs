@@ -19,5 +19,21 @@ namespace OfficeIMO.Examples.Markdown {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
             }
         }
+
+        public static void Example_WordToMarkdownCodeBlocks(string folderPath, bool openWord) {
+            string filePath = Path.Combine(folderPath, "WordToMarkdownCodeBlock.docx");
+            using var doc = WordDocument.Create();
+            string mono = FontResolver.Resolve("monospace") ?? "Consolas";
+            doc.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("CodeLang_csharp");
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            Console.WriteLine(markdown);
+
+            doc.Save(filePath);
+
+            if (openWord) {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+            }
+        }
     }
 }

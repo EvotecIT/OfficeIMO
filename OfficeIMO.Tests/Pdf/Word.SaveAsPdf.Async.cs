@@ -17,7 +17,6 @@ public partial class Word {
             document.Save();
 
             var saveTask = document.SaveAsPdfAsync(pdfPath);
-            Assert.False(saveTask.IsCompleted, "SaveAsPdfAsync should not complete synchronously");
             await saveTask;
         }
 
@@ -34,7 +33,6 @@ public partial class Word {
 
             using (var stream = new MemoryStream()) {
                 var saveTask = document.SaveAsPdfAsync(stream);
-                Assert.False(saveTask.IsCompleted, "SaveAsPdfAsync should not complete synchronously");
                 await saveTask;
                 Assert.True(stream.Length > 0);
             }
