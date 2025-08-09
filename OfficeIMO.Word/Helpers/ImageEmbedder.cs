@@ -9,7 +9,16 @@ using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Provides methods for embedding images into Wordprocessing documents.
+    /// </summary>
     public static class ImageEmbedder {
+        /// <summary>
+        /// Creates a run element containing an image loaded from the specified source.
+        /// </summary>
+        /// <param name="mainPart">Main document part where the image will be stored.</param>
+        /// <param name="src">Path, URI or data URI representing the image.</param>
+        /// <returns>A <see cref="Run"/> containing the embedded image.</returns>
         public static Run CreateImageRun(MainDocumentPart mainPart, string src) {
             byte[] bytes = ResolveImageSource(src);
             using Image image = Image.Load(bytes, out var format);
@@ -47,6 +56,11 @@ namespace OfficeIMO.Word {
             return new Run(drawing);
         }
 
+        /// <summary>
+        /// Retrieves raw bytes from a <see cref="WordImage"/> instance.
+        /// </summary>
+        /// <param name="image">Image to extract bytes from.</param>
+        /// <returns>Binary data representing the image.</returns>
         public static byte[] GetImageBytes(WordImage image) {
             return image.GetBytes();
         }
