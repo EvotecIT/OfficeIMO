@@ -217,6 +217,7 @@ namespace OfficeIMO.Excel {
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
             _workBookPart.Workbook.Save();
+            cancellationToken.ThrowIfCancellationRequested();
 
             try {
                 if (!string.IsNullOrEmpty(filePath)) {
@@ -232,20 +233,40 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    FileStream fs;
-                    try {
-                        fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                    } catch (UnauthorizedAccessException ex) {
-                        throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    using var memoryStream = new MemoryStream();
+                    using (_spreadSheetDocument.Clone(memoryStream)) {
                     }
 
-                    using (fs) {
-                        using (var clone = _spreadSheetDocument.Clone(fs)) {
-                        }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    FileStream fs = null;
+                    try {
+                        fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                        cancellationToken.ThrowIfCancellationRequested();
+#if NETSTANDARD2_0
+                        await memoryStream.CopyToAsync(fs, 81920, cancellationToken);
+#else
+                        await memoryStream.CopyToAsync(fs, cancellationToken);
+#endif
                         await fs.FlushAsync(cancellationToken);
+                    } catch (UnauthorizedAccessException ex) {
+                        throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
+                    } finally {
+                        if (fs != null) {
+                            fs.Dispose();
+                        }
                     }
+
                     FilePath = filePath;
                 }
+            } catch (OperationCanceledException) {
+                if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+                throw;
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                 throw;
             }
