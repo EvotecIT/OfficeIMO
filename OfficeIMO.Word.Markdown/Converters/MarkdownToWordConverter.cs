@@ -37,9 +37,9 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 .UseAdvancedExtensions()
                 .UseFootnotes()
                 .Build();
-            var parsed = Markdig.Markdown.Parse(markdown, pipeline);
+            MarkdownDocument markdownDocument = Markdig.Markdown.Parse(markdown, pipeline);
 
-            foreach (var block in parsed) {
+            foreach (var block in markdownDocument) {
                 ProcessBlock(block, document, options);
             }
 

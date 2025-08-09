@@ -33,6 +33,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownLists(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownRoundTrip(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownFootNotes(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownHeadingsBoldLinks(folderPath, false);
             // Word/AdvancedDocument
             OfficeIMO.Examples.Word.AdvancedDocument.Example_AdvancedWord(folderPath, false);
             OfficeIMO.Examples.Word.AdvancedDocument.Example_AdvancedWord2(folderPath, false);
