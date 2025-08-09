@@ -13,7 +13,8 @@ namespace OfficeIMO.Tests {
             var dest = Path.Combine(dir, "logo.png");
             File.Copy(source, dest);
             try {
-                var baseHref = new Uri(dir + Path.DirectorySeparatorChar).AbsoluteUri;
+                var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
+                Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><img src=\"logo.png\" alt=\"Logo\" />";
                 var doc = html.LoadFromHtml(new HtmlToWordOptions());
                 Assert.Single(doc.Images);

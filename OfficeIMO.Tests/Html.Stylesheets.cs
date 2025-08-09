@@ -85,7 +85,8 @@ namespace OfficeIMO.Tests {
             var cssPath = Path.Combine(dir, "style.css");
             File.WriteAllText(cssPath, "p { color:#654321; }");
             try {
-                var baseHref = new Uri(dir + Path.DirectorySeparatorChar).AbsoluteUri;
+                var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
+                Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><link rel=\"stylesheet\" href=\"style.css\" /><p>Test</p>";
                 var doc = html.LoadFromHtml(new HtmlToWordOptions());
                 var run = doc.Paragraphs[0].GetRuns().First();
