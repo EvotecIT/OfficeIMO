@@ -576,16 +576,82 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (paragraphStyles.Count > 0 || runStyles.Count > 0) {
-                var style = htmlDoc.CreateElement("style");
+                var stylePart = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+                var styleMap = (stylePart?.Styles?.OfType<Style>() ?? Enumerable.Empty<Style>())
+                    .ToDictionary<Style, string, Style>(s => s.StyleId!, s => s, StringComparer.OrdinalIgnoreCase);
+
+                string BuildCss(string styleId) {
+                    var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                    void Merge(string id) {
+                        if (!visited.Add(id)) {
+                            return;
+                        }
+                        if (!styleMap.TryGetValue(id, out var def)) {
+                            return;
+                        }
+                        var baseId = def.BasedOn?.Val;
+                        if (!string.IsNullOrEmpty(baseId)) {
+                            Merge(baseId);
+                        }
+                        var pPr = def.StyleParagraphProperties;
+                        if (pPr?.Justification?.Val != null) {
+                            var justifyVal = pPr.Justification.Val.Value;
+                            var alignment = "left";
+                            if (justifyVal == JustificationValues.Center) {
+                                alignment = "center";
+                            } else if (justifyVal == JustificationValues.Right) {
+                                alignment = "right";
+                            } else if (justifyVal == JustificationValues.Both) {
+                                alignment = "justify";
+                            }
+                            props["text-align"] = alignment;
+                        }
+                        var rPr = def.StyleRunProperties;
+                        if (rPr != null) {
+                            if (rPr.Bold != null) {
+                                props["font-weight"] = "bold";
+                            }
+                            if (rPr.Italic != null) {
+                                props["font-style"] = "italic";
+                            }
+                            if (rPr.Underline != null && rPr.Underline.Val != UnderlineValues.None) {
+                                props["text-decoration"] = "underline";
+                            }
+                            var colorVal = rPr.Color?.Val?.Value;
+                            if (!string.IsNullOrEmpty(colorVal)) {
+                                props["color"] = "#" + colorVal.ToLowerInvariant();
+                            }
+                            var sizeVal = rPr.FontSize?.Val;
+                            if (!string.IsNullOrEmpty(sizeVal) && int.TryParse(sizeVal, out int sz)) {
+                                props["font-size"] = (sz / 2.0).ToString("0.##") + "pt";
+                            }
+                            var font = rPr.RunFonts?.Ascii;
+                            if (!string.IsNullOrEmpty(font)) {
+                                props["font-family"] = font;
+                            }
+                        }
+                    }
+
+                    Merge(styleId);
+
+                    return string.Join(' ', props.Select(kv => kv.Key + ':' + kv.Value + ';'));
+                }
+
+                var styleElement = htmlDoc.CreateElement("style");
                 var sb = new StringBuilder();
+
                 foreach (var s in paragraphStyles) {
-                    sb.Append('.').Append(s).Append(" {}\n");
+                    var css = BuildCss(s);
+                    sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
                 }
                 foreach (var s in runStyles) {
-                    sb.Append('.').Append(s).Append(" {}\n");
+                    var css = BuildCss(s);
+                    sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
                 }
-                style.TextContent = sb.ToString();
-                head.AppendChild(style);
+                styleElement.TextContent = sb.ToString();
+                head.AppendChild(styleElement);
             }
 
             return htmlDoc.DocumentElement.OuterHtml;

@@ -271,7 +271,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<h1 class=\"Heading1\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<span class=\"Heading1Char\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(".Heading1 {", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("font-size:16pt", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(".Heading1Char {", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("color:#2f5496", html, StringComparison.OrdinalIgnoreCase);
 
             string htmlNoClasses = doc.ToHtml(new WordToHtmlOptions());
             Assert.DoesNotContain("class=\"Heading1\"", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
