@@ -15,6 +15,14 @@ namespace OfficeIMO.Word {
         /// Describes list information for a paragraph.
         /// </summary>
         public readonly struct ListInfo {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ListInfo"/> struct.
+            /// </summary>
+            /// <param name="level">Zero-based numbering level.</param>
+            /// <param name="ordered"><c>true</c> if the list uses numbering; otherwise, <c>false</c>.</param>
+            /// <param name="start">Starting index for the list.</param>
+            /// <param name="format">Numbering format for the list.</param>
+            /// <param name="text">Raw text pattern defining the marker.</param>
             public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text) {
                 Level = level;
                 Ordered = ordered;
@@ -23,10 +31,15 @@ namespace OfficeIMO.Word {
                 LevelText = text;
             }
 
+            /// <summary>Zero-based nesting level.</summary>
             public int Level { get; }
+            /// <summary>Indicates whether numbering is used.</summary>
             public bool Ordered { get; }
+            /// <summary>Starting index for the list.</summary>
             public int Start { get; }
+            /// <summary>Numbering format applied to the list.</summary>
             public NumberFormatValues? NumberFormat { get; }
+            /// <summary>Pattern used to build the list marker.</summary>
             public string? LevelText { get; }
         }
 

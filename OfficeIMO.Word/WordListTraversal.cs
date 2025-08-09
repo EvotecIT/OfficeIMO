@@ -9,6 +9,13 @@ namespace OfficeIMO.Word {
     /// Represents events emitted while traversing document lists.
     /// </summary>
     public readonly struct WordListEvent {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WordListEvent"/> struct.
+        /// </summary>
+        /// <param name="eventType">Type of event being reported.</param>
+        /// <param name="paragraph">Paragraph associated with the event when applicable.</param>
+        /// <param name="ordered"><c>true</c> when the current list is ordered.</param>
+        /// <param name="level">Zero-based nesting level of the list.</param>
         public WordListEvent(WordListEventType eventType, Paragraph? paragraph, bool ordered, int level) {
             EventType = eventType;
             Paragraph = paragraph;
@@ -41,10 +48,15 @@ namespace OfficeIMO.Word {
     /// Types of list traversal events.
     /// </summary>
     public enum WordListEventType {
+        /// <summary>Signals the start of a new list.</summary>
         StartList,
+        /// <summary>Signals the end of the current list.</summary>
         EndList,
+        /// <summary>Signals the start of a new list item.</summary>
         StartItem,
+        /// <summary>Signals the end of the current list item.</summary>
         EndItem,
+        /// <summary>Represents a standalone paragraph outside of lists.</summary>
         Paragraph
     }
 
