@@ -636,7 +636,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                     Merge(styleId);
 
-                    return string.Join(' ', props.Select(kv => kv.Key + ':' + kv.Value + ';'));
+                    return string.Join(" ", props.Select(kv => kv.Key + ':' + kv.Value + ';'));
                 }
 
                 var styleElement = htmlDoc.CreateElement("style");
