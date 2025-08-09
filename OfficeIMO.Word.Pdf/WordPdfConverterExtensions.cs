@@ -32,6 +32,10 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(path));
             }
 
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
+            }
+
             string? directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
@@ -92,6 +96,10 @@ namespace OfficeIMO.Word.Pdf {
 
             if (path == null) {
                 throw new ArgumentNullException(nameof(path));
+            }
+
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
             }
 
             string? directory = Path.GetDirectoryName(path);

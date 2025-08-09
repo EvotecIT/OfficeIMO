@@ -154,6 +154,20 @@ public partial class Word {
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Test_WordDocument_SaveAsPdf_EmptyOrWhitespacePath_Throws(string path) {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfEmptyPath.docx");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            var ex = Assert.Throws<ArgumentException>(() => document.SaveAsPdf(path));
+            Assert.Contains("empty or whitespace", ex.Message);
+        }
+    }
+
     [Fact]
     public void Test_WordDocument_SaveAsPdf_NullDocument_Throws() {
         Assert.Throws<ArgumentNullException>(() => WordPdfConverterExtensions.SaveAsPdf(null!, "file.pdf"));
