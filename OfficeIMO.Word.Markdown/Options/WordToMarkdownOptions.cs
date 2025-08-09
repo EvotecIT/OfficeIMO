@@ -2,11 +2,12 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Markdown {
     /// <summary>
-    /// Options for Word to Markdown conversion.
+    /// Provides settings that control how a Word document is converted to Markdown.
     /// </summary>
     public class WordToMarkdownOptions {
         /// <summary>
-        /// Optional font family applied to created runs during conversion.
+        /// Font family whose runs should be rendered as inline code. When <c>null</c>,
+        /// <see cref="FontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.
         /// </summary>
         public string FontFamily { get; set; }
 
