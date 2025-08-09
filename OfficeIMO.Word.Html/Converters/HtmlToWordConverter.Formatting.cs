@@ -49,11 +49,11 @@ namespace OfficeIMO.Word.Html.Converters {
                 return false;
             }
             text = text.Trim().ToLowerInvariant();
-            if (text.EndsWith("pt") && double.TryParse(text[..^2], out double pt)) {
+            if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), out double pt)) {
                 size = (int)Math.Round(pt);
                 return size > 0;
             }
-            if (text.EndsWith("px") && double.TryParse(text[..^2], out double px)) {
+            if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), out double px)) {
                 size = (int)Math.Round(px);
                 return size > 0;
             }
