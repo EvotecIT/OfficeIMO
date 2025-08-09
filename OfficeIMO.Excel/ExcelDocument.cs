@@ -82,10 +82,12 @@ namespace OfficeIMO.Excel {
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
-            if (filePath != null) {
-                if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-                }
+            if (filePath == null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
@@ -93,8 +95,6 @@ namespace OfficeIMO.Excel {
             var openSettings = new OpenSettings {
                 AutoSave = autoSave
             };
-
-            FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
 
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, openSettings);
 

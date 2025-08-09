@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using OfficeIMO.Excel;
@@ -13,10 +14,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_LoadNullPath_ThrowsArgumentNullException() {
+            var ex = Assert.Throws<ArgumentNullException>(() => ExcelDocument.Load(null));
+            Assert.Equal("Value cannot be null. (Parameter 'filePath')", ex.Message);
+        }
+
+        [Fact]
         public async Task Test_LoadAsyncMissingFile_ThrowsWithPath() {
             string filePath = Path.Combine(_directoryWithFiles, "missingAsync.xlsx");
             var ex = await Assert.ThrowsAsync<FileNotFoundException>(() => ExcelDocument.LoadAsync(filePath));
             Assert.Equal($"File '{filePath}' doesn't exist.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Test_LoadAsyncNullPath_ThrowsArgumentNullException() {
+            var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.LoadAsync(null));
+            Assert.Equal("Value cannot be null. (Parameter 'path')", ex.Message);
         }
     }
 }
