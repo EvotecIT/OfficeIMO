@@ -19,8 +19,8 @@ public static class InlineRunHelper {
     public static void AddInlineRuns(WordParagraph paragraph, string text, string? fontFamily = null) {
         foreach (Match match in _inlineRegex.Matches(text)) {
             string token = match.Value;
-            bool bold = token.StartsWith("**") && token.EndsWith("**");
-            bool italic = !bold && token.StartsWith("*") && token.EndsWith("*");
+            bool bold = token.StartsWith("**", StringComparison.Ordinal) && token.EndsWith("**");
+            bool italic = !bold && token.StartsWith("*", StringComparison.Ordinal) && token.EndsWith("*");
             string value = bold ? token.Substring(2, token.Length - 4) :
                            italic ? token.Substring(1, token.Length - 2) : token;
 

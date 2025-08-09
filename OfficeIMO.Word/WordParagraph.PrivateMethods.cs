@@ -149,11 +149,11 @@ namespace OfficeIMO.Word {
             for (int i = 0; i < textSplit.Length; i++) {
                 // check if there's new line at the beginning of the text
                 // if there is add empty string to the list
-                if (i == 0 && text.StartsWith(Environment.NewLine)) {
+                if (i == 0 && text.StartsWith(Environment.NewLine, StringComparison.Ordinal)) {
                     list.Add("");
-                } else if (i == 0 && text.StartsWith("\r\n")) {
+                } else if (i == 0 && text.StartsWith("\r\n", StringComparison.Ordinal)) {
                     list.Add("");
-                } else if (i == 0 && text.StartsWith("\n")) {
+                } else if (i == 0 && text.StartsWith("\n", StringComparison.Ordinal)) {
                     list.Add("");
                 }
                 // add splitted text to the list

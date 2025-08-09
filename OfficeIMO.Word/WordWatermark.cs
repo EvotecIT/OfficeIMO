@@ -99,7 +99,7 @@ namespace OfficeIMO.Word {
                     //
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var rotation = style.Split(';').FirstOrDefault(c => c.StartsWith("rotation:"));
+                        var rotation = style.Split(';').FirstOrDefault(c => c.StartsWith("rotation:", StringComparison.Ordinal));
                         if (rotation != null) {
                             var rotationValue = rotation.Split(':').LastOrDefault();
                             if (rotationValue != null) {
@@ -115,7 +115,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var rotation = style.Split(';').FirstOrDefault(c => c.StartsWith("rotation:"));
+                        var rotation = style.Split(';').FirstOrDefault(c => c.StartsWith("rotation:", StringComparison.Ordinal));
                         if (rotation != null) {
                             var rotationValue = rotation.Split(':').LastOrDefault();
                             if (rotationValue != null) {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var width = style.Split(';').FirstOrDefault(c => c.StartsWith("width:"));
+                        var width = style.Split(';').FirstOrDefault(c => c.StartsWith("width:", StringComparison.Ordinal));
                         if (width != null) {
                             var widthValue = width.Split(':').LastOrDefault();
                             if (widthValue != null) {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var width = style.Split(';').FirstOrDefault(c => c.StartsWith("width:"));
+                        var width = style.Split(';').FirstOrDefault(c => c.StartsWith("width:", StringComparison.Ordinal));
                         if (width != null) {
                             var widthValue = width.Split(':').LastOrDefault();
                             if (widthValue != null) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var height = style.Split(';').FirstOrDefault(c => c.StartsWith("height:"));
+                        var height = style.Split(';').FirstOrDefault(c => c.StartsWith("height:", StringComparison.Ordinal));
                         if (height != null) {
                             var heightValue = height.Split(':').LastOrDefault();
                             if (heightValue != null) {
@@ -191,7 +191,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var height = style.Split(';').FirstOrDefault(c => c.StartsWith("height:"));
+                        var height = style.Split(';').FirstOrDefault(c => c.StartsWith("height:", StringComparison.Ordinal));
                         if (height != null) {
                             var heightValue = height.Split(':').LastOrDefault();
                             if (heightValue != null) {
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var left = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-left:"));
+                        var left = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-left:", StringComparison.Ordinal));
                         if (left != null) {
                             var value = left.Split(':').LastOrDefault();
                             if (value != null) {
@@ -229,7 +229,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var left = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-left:"));
+                        var left = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-left:", StringComparison.Ordinal));
                         if (left != null) {
                             shape.Style.Value = style.Replace(left, "margin-left:" + value + "pt");
                         }
@@ -247,7 +247,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var top = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-top:"));
+                        var top = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-top:", StringComparison.Ordinal));
                         if (top != null) {
                             var value = top.Split(':').LastOrDefault();
                             if (value != null) {
@@ -264,7 +264,7 @@ namespace OfficeIMO.Word {
                 if (shape != null) {
                     var style = shape.Style.Value;
                     if (style != null) {
-                        var top = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-top:"));
+                        var top = style.Split(';').FirstOrDefault(c => c.StartsWith("margin-top:", StringComparison.Ordinal));
                         if (top != null) {
                             shape.Style.Value = style.Replace(top, "margin-top:" + value + "pt");
                         }
@@ -283,7 +283,7 @@ namespace OfficeIMO.Word {
                     var textPath = shape.GetFirstChild<V.TextPath>();
                     if (textPath != null && textPath.Style != null) {
                         var style = textPath.Style.Value;
-                        var family = style.Split(';').FirstOrDefault(c => c.StartsWith("font-family:"));
+                        var family = style.Split(';').FirstOrDefault(c => c.StartsWith("font-family:", StringComparison.Ordinal));
                         if (family != null) {
                             var value = family.Split(':').LastOrDefault();
                             if (value != null) {
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word {
                     var textPath = shape.GetFirstChild<V.TextPath>();
                     if (textPath != null && textPath.Style != null) {
                         var style = textPath.Style.Value;
-                        var size = style.Split(';').FirstOrDefault(c => c.StartsWith("font-size:"));
+                        var size = style.Split(';').FirstOrDefault(c => c.StartsWith("font-size:", StringComparison.Ordinal));
                         if (size != null) {
                             var value = size.Split(':').LastOrDefault();
                             if (value != null) {

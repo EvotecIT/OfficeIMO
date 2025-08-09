@@ -275,7 +275,7 @@ namespace OfficeIMO.Word {
             get {
                 var hex = FillColorHex;
                 if (string.IsNullOrEmpty(hex)) return SixLabors.ImageSharp.Color.Transparent;
-                if (!hex.StartsWith("#")) hex = "#" + hex;
+                if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 return SixLabors.ImageSharp.Color.Parse(hex);
             }
             set => FillColorHex = value.ToHexColor();
@@ -398,7 +398,7 @@ namespace OfficeIMO.Word {
             get {
                 var hex = StrokeColorHex;
                 if (string.IsNullOrEmpty(hex)) return SixLabors.ImageSharp.Color.Transparent;
-                if (!hex.StartsWith("#")) hex = "#" + hex;
+                if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 return SixLabors.ImageSharp.Color.Parse(hex);
             }
             set => StrokeColorHex = value.ToHexColor();

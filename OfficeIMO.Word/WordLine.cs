@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
         public Color Color {
             get {
                 var color = _line.StrokeColor?.Value ?? "";
-                if (!color.StartsWith("#")) color = "#" + color;
+                if (!color.StartsWith("#", StringComparison.Ordinal)) color = "#" + color;
                 return Color.Parse(color);
             }
             set => _line.StrokeColor = value.ToHexColor();
