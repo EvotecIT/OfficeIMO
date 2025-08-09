@@ -26,9 +26,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordHeaders Header {
             get {
+                if (this.Sections.Count == 0) {
+                    return null;
+                }
+
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
+
                 return this.Sections[0].Header;
             }
         }
@@ -37,9 +42,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordFooters Footer {
             get {
+                if (this.Sections.Count == 0) {
+                    return null;
+                }
+
                 if (this.Sections.Count > 1) {
                     Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
                 }
+
                 return this.Sections[0].Footer;
             }
         }

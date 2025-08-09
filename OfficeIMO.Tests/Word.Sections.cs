@@ -547,5 +547,18 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_HeaderFooterReturnNullWhenNoSections() {
+            string filePath = Path.Combine(_directoryWithFiles, "NoSectionsHeaderFooter.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.RemoveSection(0);
+
+                Assert.Empty(document.Sections);
+                Assert.Null(document.Header);
+                Assert.Null(document.Footer);
+            }
+        }
+
     }
 }
