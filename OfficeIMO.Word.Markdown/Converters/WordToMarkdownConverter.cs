@@ -59,6 +59,17 @@ namespace OfficeIMO.Word.Markdown.Converters {
         }
 
         private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options) {
+            string? styleId = paragraph.StyleId;
+            string? mono = options.FontFamily ?? FontResolver.Resolve("monospace");
+            if (!string.IsNullOrEmpty(styleId) && styleId.StartsWith("CodeLang_", StringComparison.Ordinal) && !string.IsNullOrEmpty(mono)) {
+                var runs = paragraph.GetRuns().ToList();
+                if (runs.Count > 0 && runs.All(r => string.Equals(r.FontFamily, mono, StringComparison.OrdinalIgnoreCase))) {
+                    string language = styleId.Substring("CodeLang_".Length);
+                    string code = string.Concat(runs.Select(r => r.Text));
+                    return $"```{language}\n{code}\n```";
+                }
+            }
+
             var sb = new StringBuilder();
 
             int? headingLevel = paragraph.Style.HasValue
