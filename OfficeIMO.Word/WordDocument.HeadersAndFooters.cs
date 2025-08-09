@@ -1,8 +1,5 @@
-﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -18,8 +15,11 @@ namespace OfficeIMO.Word {
         internal Footer _footerDefault;
         internal Footer _footerEven;
 
-        //public readonly WordFooters Footer = new WordFooters();
-        //public readonly WordHeaders Header = new WordHeaders();
+        private void WarnIfMultipleSections(string componentName) {
+            if (this.Sections.Count > 1) {
+                Debug.WriteLine($"This document contains more than 1 section. Consider using Sections[wantedSection].{componentName}.");
+            }
+        }
 
         /// <summary>
         /// Gets the headers of the first section.
@@ -29,11 +29,7 @@ namespace OfficeIMO.Word {
                 if (this.Sections.Count == 0) {
                     return null;
                 }
-
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                }
-
+                WarnIfMultipleSections(nameof(Header));
                 return this.Sections[0].Header;
             }
         }
@@ -45,11 +41,7 @@ namespace OfficeIMO.Word {
                 if (this.Sections.Count == 0) {
                     return null;
                 }
-
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                }
-
+                WarnIfMultipleSections(nameof(Footer));
                 return this.Sections[0].Footer;
             }
         }
@@ -59,51 +51,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentFirstPage {
             get {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                }
+                WarnIfMultipleSections(nameof(DifferentFirstPage));
                 return this.Sections[0].DifferentFirstPage;
             }
             set {
                 this.Sections[0].DifferentFirstPage = value;
             }
-
-            //get {
-            //    var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-            //    if (sectionProperties != null) {
-            //        var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-            //        if (titlePage != null) {
-            //            return true;
-            //        }
-            //    }
-            //    return false;
-            //}
-            //set {
-            //    var sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-            //    if (sectionProperties == null) {
-            //        if (value == false) {
-            //            // section properties doesn't exists, so we don't do anything
-            //            return;
-            //        } else {
-            //            _document.Body.Append(
-            //               //WordHeadersAndFooters.AddSectionProperties()
-            //            );
-            //        }
-            //    }
-
-            //    sectionProperties = _document.Body.ChildElements.OfType<SectionProperties>().First();
-            //    var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-            //    if (value == false) {
-            //        if (titlePage == null) {
-            //            return;
-            //        } else {
-            //            titlePage.Remove();
-            //        }
-            //    } else {
-            //        sectionProperties.Append(new TitlePage());
-            //    }
-
-            //}
 
         }
         /// <summary>
@@ -111,34 +64,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Headers.");
-                }
+                WarnIfMultipleSections(nameof(DifferentOddAndEvenPages));
                 return this.Sections[0].DifferentOddAndEvenPages;
             }
             set {
                 this.Sections[0].DifferentOddAndEvenPages = value;
             }
-            //get {
-            //    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-            //    if (settings != null) {
-            //        return true;
-            //    } else {
-            //        return false;
-            //    }
-            //}
-            //set {
-            //    var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
-            //    if (value == false) {
-
-            //    } else {
-            //        if (settings == null) {
-            //            _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
-            //        } else {
-            //            // noting to do, already enabled
-            //        }
-            //    }
-            //}
         }
 
     }
