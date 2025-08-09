@@ -76,5 +76,33 @@ namespace OfficeIMO.Tests {
             var dict = (IDictionary<string, Style>)field.GetValue(null)!;
             dict.Clear();
         }
+
+        [Fact]
+        public void Test_LoadDocumentWithExistingCustomStyle_ReadOnly() {
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
+            style.Append(new StyleName { Val = "Original" });
+            WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
+
+            string filePath = Path.Combine(_directoryWithFiles, "CustomStyleReadOnly.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Text").SetStyleId("MyStyle");
+                document.Save();
+            }
+
+            var updated = new Style { Type = StyleValues.Paragraph, StyleId = "MyStyle" };
+            updated.Append(new StyleName { Val = "Updated" });
+            WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true, overrideStyles: true)) {
+                var styles = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles;
+                var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
+                Assert.Equal("Original", loaded.StyleName.Val);
+            }
+
+            // cleanup
+            var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
+            var dict = (IDictionary<string, Style>)field.GetValue(null)!;
+            dict.Clear();
+        }
     }
 }
