@@ -19,6 +19,7 @@ namespace OfficeIMO.Word {
         internal List<int> _listNumbersUsed = new List<int>();
         internal int? _tableOfContentIndex;
         internal TableOfContentStyle? _tableOfContentStyle;
+        private bool _disposed;
 
         internal int BookmarkId {
             get {
@@ -1676,22 +1677,44 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Closes the underlying <see cref="WordprocessingDocument"/> and
-        /// saves the document when <see cref="DocumentFormat.OpenXml.Packaging.OpenXmlPackage.AutoSave"/> is enabled.
+        /// Releases resources associated with this <see cref="WordDocument"/> instance.
         /// </summary>
         public void Dispose() {
-            if (this._wordprocessingDocument.AutoSave) {
-                Save();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases resources associated with this <see cref="WordDocument"/> instance.
+        /// </summary>
+        /// <param name="disposing">Indicates whether the method is called from <see cref="Dispose()"/>.</param>
+        protected virtual void Dispose(bool disposing) {
+            if (this._disposed) {
+                return;
             }
 
-            if (this._wordprocessingDocument != null) {
-                try {
-                    this._wordprocessingDocument.Dispose();
-                } catch {
-                    // ignored
+            if (disposing) {
+                if (this._wordprocessingDocument.AutoSave) {
+                    Save();
+                }
+
+                if (this._wordprocessingDocument != null) {
+                    try {
+                        this._wordprocessingDocument.Dispose();
+                    } catch {
+                        // ignored
+                    }
                 }
             }
 
+            this._disposed = true;
+        }
+
+        /// <summary>
+        /// Finalizes an instance of the <see cref="WordDocument"/> class.
+        /// </summary>
+        ~WordDocument() {
+            Dispose(false);
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
