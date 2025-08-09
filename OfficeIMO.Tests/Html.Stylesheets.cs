@@ -96,6 +96,33 @@ namespace OfficeIMO.Tests {
                 Directory.Delete(dir);
             }
         }
+
+        [Fact]
+        public void HtmlToWord_OptionsStylesheet_ReleasesFileLock() {
+            var cssPath = Path.GetTempFileName();
+            File.WriteAllText(cssPath, "p { color:#00ff00; }");
+            var options = new HtmlToWordOptions();
+            options.StylesheetPaths.Add(cssPath);
+            using (var doc = "<p>Test</p>".LoadFromHtml(options)) {
+                var run = doc.Paragraphs[0].GetRuns().First();
+                Assert.Equal("00ff00", run.ColorHex);
+            }
+            File.Delete(cssPath);
+            Assert.False(File.Exists(cssPath));
+        }
+
+        [Fact]
+        public void HtmlToWord_LinkStylesheet_ReleasesFileLock() {
+            var cssPath = Path.GetTempFileName();
+            File.WriteAllText(cssPath, "p { color:#ff00ff; }");
+            string html = $"<link rel=\"stylesheet\" href=\"{cssPath}\" /><p>Test</p>";
+            using (var doc = html.LoadFromHtml(new HtmlToWordOptions())) {
+                var run = doc.Paragraphs[0].GetRuns().First();
+                Assert.Equal("ff00ff", run.ColorHex);
+            }
+            File.Delete(cssPath);
+            Assert.False(File.Exists(cssPath));
+        }
     }
 }
 
