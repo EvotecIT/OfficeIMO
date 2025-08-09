@@ -1997,7 +1997,7 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create)) {
+                using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create, FileAccess.Write, FileShare.None)) {
                     var stream = _imagePart.GetStream();
                     stream.CopyTo(outputFileStream);
                     stream.Close();
