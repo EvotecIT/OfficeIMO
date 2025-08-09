@@ -22,12 +22,19 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public List<ExcelSheet> Sheets {
             get {
+                // Always rebuild the ID list to avoid duplicate entries when
+                // accessing the Sheets property multiple times
+                id.Clear();
+                id.Add(0);
+
                 List<ExcelSheet> listExcel = new List<ExcelSheet>();
                 if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
                     var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
                     foreach (Sheet s in elements) {
                         ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
-                        id.Add(s.SheetId);
+                        if (!id.Contains(s.SheetId)) {
+                            id.Add(s.SheetId);
+                        }
                         listExcel.Add(excelSheet);
                     }
                 }

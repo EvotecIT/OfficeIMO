@@ -52,4 +52,8 @@
             <PackagePath>\</PackagePath>
         </None>
     </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.Tests" />
+    </ItemGroup>
 </Project>
