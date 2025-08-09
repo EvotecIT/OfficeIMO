@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -16,7 +17,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            var saveTask = document.SaveAsPdfAsync(pdfPath);
+            var saveTask = document.SaveAsPdfAsync(pdfPath, cancellationToken: CancellationToken.None);
             await saveTask;
         }
 
@@ -32,7 +33,7 @@ public partial class Word {
             document.Save();
 
             using (var stream = new MemoryStream()) {
-                var saveTask = document.SaveAsPdfAsync(stream);
+                var saveTask = document.SaveAsPdfAsync(stream, cancellationToken: CancellationToken.None);
                 await saveTask;
                 Assert.True(stream.Length > 0);
             }
@@ -48,8 +49,39 @@ public partial class Word {
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
             document.Save();
-            var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(path));
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(path, cancellationToken: CancellationToken.None));
             Assert.Contains("empty or whitespace", ex.Message);
+        }
+    }
+
+    [Fact]
+    public async Task Test_WordDocument_SaveAsPdfAsync_CanceledToken_Throws() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncCanceled.docx");
+        var pdfPath = Path.Combine(_directoryWithFiles, "PdfAsyncCanceled.pdf");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            using (var cts = new CancellationTokenSource()) {
+                cts.Cancel();
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(pdfPath, cancellationToken: cts.Token));
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Test_WordDocument_SaveAsPdfAsync_ToStream_CanceledToken_Throws() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncStreamCanceled.docx");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            using (var stream = new MemoryStream()) {
+                using (var cts = new CancellationTokenSource()) {
+                    cts.Cancel();
+                    await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(stream, cancellationToken: cts.Token));
+                }
+            }
         }
     }
 }

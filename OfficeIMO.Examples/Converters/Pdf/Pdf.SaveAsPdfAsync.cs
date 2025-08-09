@@ -2,6 +2,7 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello Async PDF");
                 document.Save();
-                await document.SaveAsPdfAsync(pdfPath);
+                await document.SaveAsPdfAsync(pdfPath, cancellationToken: CancellationToken.None);
             }
 
             Console.WriteLine($"✓ Created: {pdfPath}");

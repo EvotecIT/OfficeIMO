@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -88,8 +89,9 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">The document to convert.</param>
         /// <param name="path">The output PDF file path.</param>
         /// <param name="options">Optional PDF configuration.</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public static Task SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null) {
+        public static Task SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -103,12 +105,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? directory = Path.GetDirectoryName(path);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
             }
 
             Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => pdf.GeneratePdf(path));
+            return Task.Run(() => pdf.GeneratePdf(path), cancellationToken);
         }
 
         /// <summary>
@@ -117,8 +120,9 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">The document to convert.</param>
         /// <param name="stream">The output stream to receive the PDF data.</param>
         /// <param name="options">Optional PDF configuration.</param>
+        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public static Task SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+        public static Task SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -127,8 +131,10 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(stream));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => pdf.GeneratePdf(stream));
+            return Task.Run(() => pdf.GeneratePdf(stream), cancellationToken);
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
