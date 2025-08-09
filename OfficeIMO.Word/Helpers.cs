@@ -69,6 +69,10 @@ namespace OfficeIMO.Word {
         /// <param name="open"></param>
         public static void Open(string filePath, bool open) {
             if (open) {
+                if (string.IsNullOrEmpty(filePath)) {
+                    throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+                }
+
                 ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
                     UseShellExecute = true
                 };

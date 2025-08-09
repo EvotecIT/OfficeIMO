@@ -22,4 +22,11 @@ public partial class Word {
         var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream, filename);
         Assert.Equal(expectedType, imageСharacteristics.Type);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Open_WithInvalidFilePath_ThrowsArgumentException(string path) {
+        Assert.Throws<ArgumentException>(() => Helpers.Open(path, true));
+    }
 }
