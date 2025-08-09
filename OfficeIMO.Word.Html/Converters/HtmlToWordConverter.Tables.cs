@@ -1,5 +1,6 @@
 using AngleSharp.Html.Dom;
 using AngleSharp.Dom;
+using AngleSharp.Css.Parser;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -155,11 +156,15 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                     size = pct * 50;
                     thisType = TableWidthUnitValues.Pct;
-                } else if (TryParseSize(width, out int w)) {
-                    size = w;
-                    thisType = TableWidthUnitValues.Dxa;
                 } else {
-                    continue;
+                    var parser = new CssParser();
+                    var decl = parser.ParseDeclaration($"x:{width}");
+                    if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                        size = w;
+                        thisType = TableWidthUnitValues.Dxa;
+                    } else {
+                        continue;
+                    }
                 }
 
                 if (widthType == null) {
@@ -214,26 +219,45 @@ namespace OfficeIMO.Word.Html.Converters {
                                 wordTable.Width = pct * 50;
                                 wordTable.WidthType = TableWidthUnitValues.Pct;
                             }
-                        } else if (TryParseSize(value, out int w)) {
-                            wordTable.Width = w;
-                            wordTable.WidthType = TableWidthUnitValues.Dxa;
+                        } else {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                wordTable.Width = w;
+                                wordTable.WidthType = TableWidthUnitValues.Dxa;
+                            }
                         }
                         break;
-                    case "padding":
-                        if (TryParseSize(value, out int p)) padTop = padRight = padBottom = padLeft = p;
-                        break;
-                    case "padding-top":
-                        if (TryParseSize(value, out int pt)) padTop = pt;
-                        break;
-                    case "padding-right":
-                        if (TryParseSize(value, out int pr)) padRight = pr;
-                        break;
-                    case "padding-bottom":
-                        if (TryParseSize(value, out int pb)) padBottom = pb;
-                        break;
-                    case "padding-left":
-                        if (TryParseSize(value, out int pl)) padLeft = pl;
-                        break;
+                    case "padding": {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
+                            break;
+                        }
+                    case "padding-top": {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pt)) padTop = pt;
+                            break;
+                        }
+                    case "padding-right": {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pr)) padRight = pr;
+                            break;
+                        }
+                    case "padding-bottom": {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pb)) padBottom = pb;
+                            break;
+                        }
+                    case "padding-left": {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pl)) padLeft = pl;
+                            break;
+                        }
                 }
             }
 
@@ -325,9 +349,13 @@ namespace OfficeIMO.Word.Html.Converters {
                                 cell.Width = pct * 50;
                                 cell.WidthType = TableWidthUnitValues.Pct;
                             }
-                        } else if (TryParseSize(value, out int w)) {
-                            cell.Width = w;
-                            cell.WidthType = TableWidthUnitValues.Dxa;
+                        } else {
+                            var parser = new CssParser();
+                            var decl = parser.ParseDeclaration($"x:{value}");
+                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                cell.Width = w;
+                                cell.WidthType = TableWidthUnitValues.Dxa;
+                            }
                         }
                         break;
                     case "border":
@@ -374,12 +402,16 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {
             size = null;
-            if (!TryParseSize(token, out int twips)) {
-                return false;
+            var raw = token.Trim().ToLowerInvariant();
+            if (raw.EndsWith("px") && double.TryParse(raw.Substring(0, raw.Length - 2), out double px)) {
+                size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));
+                return true;
             }
-            double points = twips / 20d;
-            size = (UInt32Value)(uint)Math.Max(1, Math.Round(points * 8));
-            return true;
+            if (raw.EndsWith("pt") && double.TryParse(raw.Substring(0, raw.Length - 2), out double pt)) {
+                size = (UInt32Value)(uint)Math.Max(1, Math.Round(pt * 8));
+                return true;
+            }
+            return false;
         }
     }
 }

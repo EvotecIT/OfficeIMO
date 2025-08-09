@@ -1,11 +1,14 @@
 using AngleSharp.Dom;
+using AngleSharp.Css;
+using AngleSharp.Css.Dom;
+using AngleSharp.Css.Parser;
+using AngleSharp.Css.Values;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -37,6 +40,38 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
+        private static readonly DefaultRenderDevice _renderDevice = new() { FontSize = 16 };
+        private static readonly CssParser _inlineParser = new();
+
+        private static bool TryParseFontSize(string? text, out int size) {
+            size = 0;
+            if (string.IsNullOrWhiteSpace(text)) {
+                return false;
+            }
+            text = text.Trim().ToLowerInvariant();
+            if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), out double pt)) {
+                size = (int)Math.Round(pt);
+                return size > 0;
+            }
+            if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), out double px)) {
+                size = (int)Math.Round(px);
+                return size > 0;
+            }
+            return false;
+        }
+
+        private static bool TryConvertToTwip(ICssValue? value, out int twips) {
+            twips = 0;
+            if (value is CssLengthValue length) {
+                try {
+                    double px = length.ToPixel(_renderDevice);
+                    twips = (int)Math.Round(px * 15);
+                    return twips > 0;
+                } catch { }
+            }
+            return false;
+        }
+
         private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
             string? styleAttribute = element.GetAttribute("style");
             var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
@@ -44,7 +79,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.Style = style.Value;
             }
 
-            if (string.IsNullOrWhiteSpace(styleAttribute)) {
+            var styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = _inlineParser.ParseDeclaration(styleText);
+            if (declaration.Length == 0) {
                 return;
             }
 
@@ -52,69 +89,42 @@ namespace OfficeIMO.Word.Html.Converters {
             int? paddingLeft = null, paddingRight = null, paddingTop = null, paddingBottom = null;
             JustificationValues? alignment = null;
 
-            foreach (var part in styleAttribute.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
-                }
-                var name = pieces[0].Trim().ToLowerInvariant();
-                var value = pieces[1].Trim();
-                switch (name) {
-                    case "color":
-                        var color = NormalizeColor(value);
-                        if (color != null) {
-                            paragraph.SetColorHex(color);
-                        }
-                        break;
-                    case "background-color":
-                        var bgColor = NormalizeColor(value);
-                        if (bgColor != null) {
-                            var highlight = MapColorToHighlight(bgColor);
-                            if (highlight.HasValue) {
-                                paragraph.SetHighlight(highlight.Value);
-                            }
-                        }
-                        break;
-                    case "font-size":
-                        if (TryParseFontSize(value, out int size)) {
-                            paragraph.SetFontSize(size);
-                        }
-                        break;
-                    case "text-align":
-                        alignment = value.ToLowerInvariant() switch {
-                            "center" => JustificationValues.Center,
-                            "right" => JustificationValues.Right,
-                            "justify" => JustificationValues.Both,
-                            "left" => JustificationValues.Left,
-                            _ => alignment
-                        };
-                        break;
-                    case "margin-left":
-                        if (TryParseSize(value, out int ml)) marginLeft = ml;
-                        break;
-                    case "margin-right":
-                        if (TryParseSize(value, out int mr)) marginRight = mr;
-                        break;
-                    case "margin-top":
-                        if (TryParseSize(value, out int mt)) marginTop = mt;
-                        break;
-                    case "margin-bottom":
-                        if (TryParseSize(value, out int mb)) marginBottom = mb;
-                        break;
-                    case "padding-left":
-                        if (TryParseSize(value, out int pl)) paddingLeft = pl;
-                        break;
-                    case "padding-right":
-                        if (TryParseSize(value, out int pr)) paddingRight = pr;
-                        break;
-                    case "padding-top":
-                        if (TryParseSize(value, out int pt)) paddingTop = pt;
-                        break;
-                    case "padding-bottom":
-                        if (TryParseSize(value, out int pb)) paddingBottom = pb;
-                        break;
+            var colorVal = NormalizeColor(declaration.GetPropertyValue("color"));
+            if (colorVal != null) {
+                paragraph.SetColorHex(colorVal);
+            }
+
+            var bgColorVal = NormalizeColor(declaration.GetPropertyValue("background-color"));
+            if (bgColorVal != null) {
+                var highlight = MapColorToHighlight(bgColorVal);
+                if (highlight.HasValue) {
+                    paragraph.SetHighlight(highlight.Value);
                 }
             }
+
+            if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int fontSize)) {
+                paragraph.SetFontSize(fontSize);
+            }
+
+            var align = declaration.GetPropertyValue("text-align")?.Trim();
+            if (!string.IsNullOrEmpty(align)) {
+                alignment = align.ToLowerInvariant() switch {
+                    "center" => JustificationValues.Center,
+                    "right" => JustificationValues.Right,
+                    "justify" => JustificationValues.Both,
+                    "left" => JustificationValues.Left,
+                    _ => alignment
+                };
+            }
+
+            if (TryConvertToTwip(declaration.GetProperty("margin-left")?.RawValue, out int ml)) marginLeft = ml;
+            if (TryConvertToTwip(declaration.GetProperty("margin-right")?.RawValue, out int mr)) marginRight = mr;
+            if (TryConvertToTwip(declaration.GetProperty("margin-top")?.RawValue, out int mt)) marginTop = mt;
+            if (TryConvertToTwip(declaration.GetProperty("margin-bottom")?.RawValue, out int mb)) marginBottom = mb;
+            if (TryConvertToTwip(declaration.GetProperty("padding-left")?.RawValue, out int pl)) paddingLeft = pl;
+            if (TryConvertToTwip(declaration.GetProperty("padding-right")?.RawValue, out int pr)) paddingRight = pr;
+            if (TryConvertToTwip(declaration.GetProperty("padding-top")?.RawValue, out int pt)) paddingTop = pt;
+            if (TryConvertToTwip(declaration.GetProperty("padding-bottom")?.RawValue, out int pb)) paddingBottom = pb;
 
             if (alignment.HasValue) {
                 paragraph.ParagraphAlignment = alignment;
@@ -175,148 +185,89 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
-            var style = element.GetAttribute("style");
-            if (string.IsNullOrWhiteSpace(style)) {
+            var styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = _inlineParser.ParseDeclaration(styleText);
+            if (declaration.Length == 0) {
                 return;
             }
 
-            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
+            var color = NormalizeColor(declaration.GetPropertyValue("color"));
+            if (color != null) {
+                formatting.ColorHex = color;
+            }
+
+            var family = declaration.GetPropertyValue("font-family");
+            if (!string.IsNullOrWhiteSpace(family)) {
+                formatting.FontFamily = family.Trim('"', '\'', ' ');
+            }
+
+            if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int size)) {
+                formatting.FontSize = size;
+            }
+
+            var weight = declaration.GetPropertyValue("font-weight");
+            if (!string.IsNullOrEmpty(weight)) {
+                if (int.TryParse(weight, out int w)) {
+                    formatting.Bold = w >= 600;
+                } else if (string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase)) {
+                    formatting.Bold = true;
+                } else if (string.Equals(weight, "normal", StringComparison.OrdinalIgnoreCase)) {
+                    formatting.Bold = false;
                 }
-                var name = pieces[0].Trim().ToLowerInvariant();
-                var value = pieces[1].Trim();
-                switch (name) {
-                    case "color":
-                        var color = NormalizeColor(value);
-                        if (color != null) {
-                            formatting.ColorHex = color;
-                        }
+            }
+
+            var fontStyle = declaration.GetPropertyValue("font-style").ToLowerInvariant();
+            if (fontStyle == "italic" || fontStyle == "oblique") {
+                formatting.Italic = true;
+            } else if (fontStyle == "normal") {
+                formatting.Italic = false;
+            }
+
+            var va = declaration.GetPropertyValue("vertical-align").ToLowerInvariant();
+            if (va == "super" || va == "sup") {
+                formatting.Superscript = true;
+                formatting.Subscript = false;
+            } else if (va == "sub") {
+                formatting.Subscript = true;
+                formatting.Superscript = false;
+            } else if (va == "baseline") {
+                formatting.Superscript = false;
+                formatting.Subscript = false;
+            }
+
+            var decoValue = declaration.GetPropertyValue("text-decoration");
+            foreach (var deco in decoValue.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                switch (deco.Trim().ToLowerInvariant()) {
+                    case "underline":
+                        formatting.Underline = true;
                         break;
-                    case "font-family":
-                        formatting.FontFamily = value.Trim('"', '\'', ' ');
+                    case "line-through":
+                        formatting.Strike = true;
                         break;
-                    case "font-size":
-                        if (TryParseFontSize(value, out int size)) {
-                            formatting.FontSize = size;
-                        }
-                        break;
-                    case "font-weight":
-                        if (int.TryParse(value, out int weight)) {
-                            formatting.Bold = weight >= 600;
-                        } else if (string.Equals(value, "bold", StringComparison.OrdinalIgnoreCase)) {
-                            formatting.Bold = true;
-                        } else if (string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) {
-                            formatting.Bold = false;
-                        }
-                        break;
-                    case "font-style":
-                        var fs = value.ToLowerInvariant();
-                        if (fs == "italic" || fs == "oblique") {
-                            formatting.Italic = true;
-                        } else if (fs == "normal") {
-                            formatting.Italic = false;
-                        }
-                        break;
-                    case "vertical-align":
-                        var va = value.ToLowerInvariant();
-                        if (va == "super" || va == "sup") {
-                            formatting.Superscript = true;
-                            formatting.Subscript = false;
-                        } else if (va == "sub") {
-                            formatting.Subscript = true;
-                            formatting.Superscript = false;
-                        } else if (va == "baseline") {
-                            formatting.Superscript = false;
-                            formatting.Subscript = false;
-                        }
-                        break;
-                    case "text-decoration":
-                        foreach (var deco in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                            switch (deco.Trim().ToLowerInvariant()) {
-                                case "underline":
-                                    formatting.Underline = true;
-                                    break;
-                                case "line-through":
-                                    formatting.Strike = true;
-                                    break;
-                            }
-                        }
-                        break;
-                    case "background-color":
-                        var bgColor = NormalizeColor(value);
-                        if (bgColor != null) {
-                            var highlight = MapColorToHighlight(bgColor);
-                            if (highlight.HasValue) {
-                                formatting.Highlight = highlight.Value;
-                            }
-                        }
-                        break;
+                }
+            }
+
+            var bgColor = NormalizeColor(declaration.GetPropertyValue("background-color"));
+            if (bgColor != null) {
+                var highlight = MapColorToHighlight(bgColor);
+                if (highlight.HasValue) {
+                    formatting.Highlight = highlight.Value;
                 }
             }
         }
 
         private static string MergeStyles(string parentStyle, string? childStyle) {
-            var parentDict = ParseStyle(parentStyle);
-            var childDict = ParseStyle(childStyle);
-            foreach (var kv in parentDict) {
-                if (!childDict.ContainsKey(kv.Key)) {
-                    childDict[kv.Key] = kv.Value;
+            var parser = new CssParser();
+            var parent = parser.ParseDeclaration(parentStyle);
+            var child = parser.ParseDeclaration(childStyle ?? string.Empty);
+            foreach (var prop in parent) {
+                if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
+                    child.SetProperty(prop.Name, prop.Value);
                 }
             }
-            return string.Join("; ", childDict.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+            return child.CssText;
         }
 
-        private static Dictionary<string, string> ParseStyle(string? style) {
-            Dictionary<string, string> dict = new(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(style)) {
-                return dict;
-            }
-            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length == 2) {
-                    dict[pieces[0].Trim()] = pieces[1].Trim();
-                }
-            }
-            return dict;
-        }
-
-        private static bool TryParseFontSize(string value, out int size) {
-            size = 0;
-            if (string.IsNullOrWhiteSpace(value)) {
-                return false;
-            }
-            value = value.Trim().ToLowerInvariant();
-            string number = new(value.Where(c => char.IsDigit(c) || c == '.').ToArray());
-            if (!double.TryParse(number, NumberStyles.Number, CultureInfo.InvariantCulture, out double result)) {
-                return false;
-            }
-            if (value.EndsWith("em", StringComparison.Ordinal)) {
-                result *= 16;
-            }
-            size = (int)Math.Round(result);
-            return size > 0;
-        }
-
-        private static bool TryParseSize(string value, out int size) {
-            size = 0;
-            if (string.IsNullOrWhiteSpace(value)) {
-                return false;
-            }
-            value = value.Trim().ToLowerInvariant();
-            string number = new(value.Where(c => char.IsDigit(c) || c == '.').ToArray());
-            if (!double.TryParse(number, NumberStyles.Number, CultureInfo.InvariantCulture, out double result)) {
-                return false;
-            }
-            if (value.EndsWith("px", StringComparison.Ordinal)) {
-                result *= 0.75; // convert pixels to points
-            } else if (value.EndsWith("em", StringComparison.Ordinal)) {
-                result *= 16; // approximate em to points
-            }
-            size = (int)Math.Round(result * 20); // points to twips
-            return size > 0;
-        }
 
         private static string? NormalizeColor(string value) {
             if (string.IsNullOrWhiteSpace(value)) {

@@ -183,11 +183,13 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "p": {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -197,11 +199,13 @@ namespace OfficeIMO.Word.Html.Converters {
                                 paragraph.SetStyleId("Quote");
                             }
                             paragraph.IndentationBefore = 720;
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
                             ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -237,6 +241,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
                             }
+                            WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
@@ -244,7 +249,10 @@ namespace OfficeIMO.Word.Html.Converters {
                                         childElement.SetAttribute("style", merged);
                                     }
                                 }
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                ProcessNode(child, doc, section, options, para, listStack, fmt, cell);
+                                if (para == null && doc.Paragraphs.Count > 0) {
+                                    para = doc.Paragraphs.Last();
+                                }
                             }
                             break;
                         }
