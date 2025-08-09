@@ -1,9 +1,9 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -82,6 +82,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
+            string codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
                     long id = run.FootNote.ReferenceId.Value;
@@ -119,8 +120,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"=={text}==";
                 }
 
-                string monospace = FontResolver.Resolve("monospace");
-                bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
+                bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
                 if (code) {
                     text = $"`{text}`";
                 }
