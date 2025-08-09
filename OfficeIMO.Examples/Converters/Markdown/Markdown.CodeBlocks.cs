@@ -35,5 +35,22 @@ namespace OfficeIMO.Examples.Markdown {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
             }
         }
+
+        public static void Example_WordToMarkdownCodeBlocks_CustomFont(string folderPath, bool openWord) {
+            string filePath = Path.Combine(folderPath, "WordToMarkdownCodeBlockCustomFont.docx");
+            using var doc = WordDocument.Create();
+            const string codeFont = "Courier New";
+            doc.AddParagraph("System.out.println(\"Hello\");").SetFontFamily(codeFont).SetStyleId("CodeLang_java");
+
+            var options = new WordToMarkdownOptions { FontFamily = codeFont };
+            string markdown = doc.ToMarkdown(options);
+            Console.WriteLine(markdown);
+
+            doc.Save(filePath);
+
+            if (openWord) {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+            }
+        }
     }
 }
