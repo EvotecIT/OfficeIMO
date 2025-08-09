@@ -1,8 +1,10 @@
 using System;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -46,8 +48,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0000ff", run2.ColorHex);
         }
 
-        [Fact(Skip = "Requires network access")]
-        public void HtmlToWord_RemoteStylesheet_Applies() {
+        [Fact]
+        public async Task HtmlToWord_RemoteStylesheet_Applies() {
             int port;
             var tcp = new TcpListener(IPAddress.Loopback, 0);
             try {
@@ -58,7 +60,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var listener = new HttpListener();
-            listener.Prefixes.Add($"http://localhost:{port}/");
+            listener.Prefixes.Add($"http://127.0.0.1:{port}/");
             listener.Start();
             var serve = Task.Run(async () => {
                 var ctx = await listener.GetContextAsync();
@@ -69,8 +71,14 @@ namespace OfficeIMO.Tests {
                 ctx.Response.OutputStream.Close();
             });
 
-            string html = $"<link rel=\"stylesheet\" href=\"http://localhost:{port}/style.css\" /><p>Test</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            string html = $"<link rel=\"stylesheet\" href=\"http://127.0.0.1:{port}/style.css\" /><p>Test</p>";
+            var assembly = typeof(HtmlToWordOptions).Assembly;
+            var converterType = assembly.GetType("OfficeIMO.Word.Html.Converters.HtmlToWordConverter", true);
+            var converter = Activator.CreateInstance(converterType!, nonPublic: true)!;
+            var method = converterType!.GetMethod("ConvertAsync", BindingFlags.Public | BindingFlags.Instance)!;
+            var task = (Task<WordDocument>)method.Invoke(converter, new object?[] { html, new HtmlToWordOptions() })!;
+            var doc = await task;
+            await serve;
             listener.Stop();
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("123456", run.ColorHex);

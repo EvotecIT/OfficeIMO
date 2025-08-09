@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var section = wordDoc.Sections.First();
             var listStack = new Stack<WordList>();
             foreach (var child in document.Body.ChildNodes) {
-                ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null);
+                await ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null);
             }
 
             return wordDoc;
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
-        private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private async Task ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell) {
             if (node is IElement element) {
                 ApplyCssToElement(element);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "section": {
                             var newSection = doc.AddSection();
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, newSection, options, null, listStack, formatting, null);
+                                await ProcessNode(child, doc, newSection, options, null, listStack, formatting, null);
                             }
                             break;
                         }
@@ -181,7 +181,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                await ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
                             }
                             break;
                         }
@@ -193,7 +193,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -209,7 +209,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -253,7 +253,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                         childElement.SetAttribute("style", merged);
                                     }
                                 }
-                                ProcessNode(child, doc, section, options, para, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, para, listStack, fmt, cell);
                                 if (para == null && doc.Paragraphs.Count > 0) {
                                     para = doc.Paragraphs.Last();
                                 }
@@ -278,7 +278,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Bold = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -287,7 +287,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Italic = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -295,7 +295,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Underline = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -304,7 +304,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Strike = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -312,7 +312,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Underline = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -320,7 +320,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Highlight = HighlightColorValues.Yellow;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -328,7 +328,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Superscript = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             fmt.Subscript = true;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -344,7 +344,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
                             }
                             break;
                         }
@@ -419,7 +419,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 ApplyClassStyle(caption, paragraph, options);
                                 AddBookmarkIfPresent(caption, paragraph);
                                 foreach (var child in caption.ChildNodes) {
-                                    ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                                    await ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
                                 }
                             }
                             break;
@@ -456,7 +456,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                             if (url.Scheme == "http" || url.Scheme == "https") {
                                 if (_context != null) {
-                                    LoadAndParseCssAsync(_context, url).GetAwaiter().GetResult();
+                                    await LoadAndParseCssAsync(_context, url);
                                 }
                             } else if (url.Scheme == "file" && File.Exists(url.Path)) {
                                 ParseCss(File.ReadAllText(url.Path), url.Path);
@@ -465,7 +465,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     default: {
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, formatting, cell);
+                                await ProcessNode(child, doc, section, options, currentParagraph, listStack, formatting, cell);
                             }
                             break;
                         }
