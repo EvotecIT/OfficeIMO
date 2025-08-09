@@ -5,8 +5,11 @@ using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     internal partial class MarkdownToWordConverter {
@@ -90,6 +93,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
             string? title = link.Title?.Trim();
             double? width = null;
             double? height = null;
+            byte[]? imageData = null;
+            string? remoteFileName = null;
 
             // Check for size hints in URL (e.g. "path =100x200")
             var matchUrl = Regex.Match(url, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
@@ -130,6 +135,35 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
             }
 
+            if (width == null && height == null) {
+                try {
+                    if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
+                        using HttpClient client = new();
+                        imageData = client.GetByteArrayAsync(url).GetAwaiter().GetResult();
+                        using var image = Image.Load(imageData, out var format);
+                        width = image.Width;
+                        height = image.Height;
+                        string extension = format.FileExtensions.FirstOrDefault() ?? "png";
+                        try {
+                            remoteFileName = Path.GetFileName(new Uri(url).LocalPath);
+                        } catch {
+                            remoteFileName = null;
+                        }
+                        if (string.IsNullOrEmpty(remoteFileName)) {
+                            remoteFileName = "image." + extension;
+                        } else if (string.IsNullOrEmpty(Path.GetExtension(remoteFileName))) {
+                            remoteFileName += "." + extension;
+                        }
+                    } else if (File.Exists(url)) {
+                        using var image = Image.Load(url, out _);
+                        width = image.Width;
+                        height = image.Height;
+                    }
+                } catch {
+                    // ignore errors when determining natural image size
+                }
+            }
+
             if (width == null && height != null) {
                 width = height;
             } else if (height == null && width != null) {
@@ -140,9 +174,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
             height ??= 50;
 
             if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
-                var img = document.AddImageFromUrl(url, width, height);
-                if (!string.IsNullOrEmpty(title)) {
-                    img.Description = title;
+                if (imageData != null) {
+                    using var ms = new MemoryStream(imageData);
+                    paragraph.AddImage(ms, remoteFileName ?? "image", width, height, description: title ?? string.Empty);
+                } else {
+                    var img = document.AddImageFromUrl(url, width, height);
+                    if (!string.IsNullOrEmpty(title)) {
+                        img.Description = title;
+                    }
                 }
             } else {
                 paragraph.AddImage(url, width, height, description: title ?? string.Empty);

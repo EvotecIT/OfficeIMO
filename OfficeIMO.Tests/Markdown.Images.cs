@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -40,6 +41,19 @@ namespace OfficeIMO.Tests {
 
             serverTask.Wait();
             listener.Stop();
+        }
+
+        [Fact]
+        public void MarkdownToWord_UsesNaturalSizeWhenNoHints() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath})";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            using var image = Image.Load(imagePath, out _);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(image.Width, doc.Images[0].Width);
+            Assert.Equal(image.Height, doc.Images[0].Height);
         }
 
         private static int GetAvailablePort() {
