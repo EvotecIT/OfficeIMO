@@ -186,78 +186,89 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static void ApplyTableStyles(WordTable wordTable, IHtmlTableElement tableElem) {
             var style = tableElem.GetAttribute("style");
-            if (string.IsNullOrWhiteSpace(style)) {
+            var borderAttr = tableElem.GetAttribute("border");
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr)) {
                 return;
             }
 
             string background = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
+            bool borderSet = false;
 
-            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
+            if (!string.IsNullOrWhiteSpace(style)) {
+                foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    var pieces = part.Split(new[] { ':' }, 2);
+                    if (pieces.Length != 2) {
+                        continue;
+                    }
+                    var name = pieces[0].Trim().ToLowerInvariant();
+                    var value = pieces[1].Trim();
+                    switch (name) {
+                        case "border":
+                            if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
+                                wordTable.StyleDetails.SetBordersForAllSides(bStyle, bSize, bColor);
+                                borderSet = true;
+                            }
+                            break;
+                        case "background-color":
+                            var color = NormalizeColor(value);
+                            if (color != null) {
+                                background = color;
+                            }
+                            break;
+                        case "width":
+                            if (value.EndsWith("%", StringComparison.Ordinal)) {
+                                var num = value.TrimEnd('%');
+                                if (int.TryParse(num, out int pct)) {
+                                    wordTable.Width = pct * 50;
+                                    wordTable.WidthType = TableWidthUnitValues.Pct;
+                                }
+                            } else {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                    wordTable.Width = w;
+                                    wordTable.WidthType = TableWidthUnitValues.Dxa;
+                                }
+                            }
+                            break;
+                        case "padding": {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
+                                break;
+                            }
+                        case "padding-top": {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pt)) padTop = pt;
+                                break;
+                            }
+                        case "padding-right": {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pr)) padRight = pr;
+                                break;
+                            }
+                        case "padding-bottom": {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pb)) padBottom = pb;
+                                break;
+                            }
+                        case "padding-left": {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pl)) padLeft = pl;
+                                break;
+                            }
+                    }
                 }
-                var name = pieces[0].Trim().ToLowerInvariant();
-                var value = pieces[1].Trim();
-                switch (name) {
-                    case "border":
-                        if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
-                            wordTable.StyleDetails.SetBordersForAllSides(bStyle, bSize, bColor);
-                        }
-                        break;
-                    case "background-color":
-                        var color = NormalizeColor(value);
-                        if (color != null) {
-                            background = color;
-                        }
-                        break;
-                    case "width":
-                        if (value.EndsWith("%", StringComparison.Ordinal)) {
-                            var num = value.TrimEnd('%');
-                            if (int.TryParse(num, out int pct)) {
-                                wordTable.Width = pct * 50;
-                                wordTable.WidthType = TableWidthUnitValues.Pct;
-                            }
-                        } else {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
-                                wordTable.Width = w;
-                                wordTable.WidthType = TableWidthUnitValues.Dxa;
-                            }
-                        }
-                        break;
-                    case "padding": {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
-                            break;
-                        }
-                    case "padding-top": {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pt)) padTop = pt;
-                            break;
-                        }
-                    case "padding-right": {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pr)) padRight = pr;
-                            break;
-                        }
-                    case "padding-bottom": {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pb)) padBottom = pb;
-                            break;
-                        }
-                    case "padding-left": {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pl)) padLeft = pl;
-                            break;
-                        }
+            }
+
+            if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {
+                if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
+                    wordTable.StyleDetails.SetBordersForAllSides(BorderValues.Single, bSize, SixColor.Black);
                 }
             }
 
@@ -326,46 +337,59 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
             var style = htmlCell.GetAttribute("style");
-            if (string.IsNullOrWhiteSpace(style)) {
+            var borderAttr = htmlCell.GetAttribute("border");
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr)) {
                 return;
             }
 
-            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
+            bool borderSet = false;
+            if (!string.IsNullOrWhiteSpace(style)) {
+                foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    var pieces = part.Split(new[] { ':' }, 2);
+                    if (pieces.Length != 2) {
+                        continue;
+                    }
+                    var name = pieces[0].Trim().ToLowerInvariant();
+                    var value = pieces[1].Trim();
+                    switch (name) {
+                        case "background-color":
+                            var color = NormalizeColor(value);
+                            if (color != null) cell.ShadingFillColorHex = color;
+                            break;
+                        case "width":
+                            if (value.EndsWith("%", StringComparison.Ordinal)) {
+                                var num = value.TrimEnd('%');
+                                if (int.TryParse(num, out int pct)) {
+                                    cell.Width = pct * 50;
+                                    cell.WidthType = TableWidthUnitValues.Pct;
+                                }
+                            } else {
+                                var parser = new CssParser();
+                                var decl = parser.ParseDeclaration($"x:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                    cell.Width = w;
+                                    cell.WidthType = TableWidthUnitValues.Dxa;
+                                }
+                            }
+                            break;
+                        case "border":
+                            if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
+                                cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle;
+                                cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
+                                var hex = bColor.ToHexColor();
+                                cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                                borderSet = true;
+                            }
+                            break;
+                    }
                 }
-                var name = pieces[0].Trim().ToLowerInvariant();
-                var value = pieces[1].Trim();
-                switch (name) {
-                    case "background-color":
-                        var color = NormalizeColor(value);
-                        if (color != null) cell.ShadingFillColorHex = color;
-                        break;
-                    case "width":
-                        if (value.EndsWith("%", StringComparison.Ordinal)) {
-                            var num = value.TrimEnd('%');
-                            if (int.TryParse(num, out int pct)) {
-                                cell.Width = pct * 50;
-                                cell.WidthType = TableWidthUnitValues.Pct;
-                            }
-                        } else {
-                            var parser = new CssParser();
-                            var decl = parser.ParseDeclaration($"x:{value}");
-                            if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
-                                cell.Width = w;
-                                cell.WidthType = TableWidthUnitValues.Dxa;
-                            }
-                        }
-                        break;
-                    case "border":
-                        if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
-                            cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle;
-                            cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
-                            var hex = bColor.ToHexColor();
-                            cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
-                        }
-                        break;
+            }
+
+            if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {
+                if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
+                    cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = BorderValues.Single;
+                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
+                    cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = "000000";
                 }
             }
         }
