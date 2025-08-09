@@ -1,12 +1,12 @@
-using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
-    public partial class Word {
+public partial class Word {
     [Fact]
     public async Task Test_WordDocument_SaveAsPdfAsync() {
         var docPath = Path.Combine(_directoryWithFiles, "PdfAsync.docx");
@@ -40,5 +40,18 @@ namespace OfficeIMO.Tests;
             }
         }
     }
-    }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task Test_WordDocument_SaveAsPdfAsync_EmptyOrWhitespacePath_Throws(string path) {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncEmptyPath.docx");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(path));
+            Assert.Contains("empty or whitespace", ex.Message);
+        }
+    }
+}
