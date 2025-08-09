@@ -63,8 +63,15 @@ namespace OfficeIMO.Word.Html.Converters {
                         if (wordCell.Paragraphs.Count == 1 && string.IsNullOrEmpty(wordCell.Paragraphs[0].Text)) {
                             wordCell.Paragraphs[0].Remove();
                         }
+
+                        WordParagraph? innerParagraph = null;
                         foreach (var child in htmlCell.ChildNodes) {
-                            ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), wordCell);
+                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell);
+                            if (wordCell.Paragraphs.Count > 0) {
+                                innerParagraph = wordCell.Paragraphs[wordCell.Paragraphs.Count - 1];
+                            } else {
+                                innerParagraph = null;
+                            }
                         }
 
                         int rowSpan = 1;

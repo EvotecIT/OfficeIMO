@@ -755,9 +755,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? BottomStyle {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.BottomBorder.Val;
+                var props = _wordParagraph._paragraphProperties;
+                if (props != null) {
+                    var pageBorder = props.GetFirstChild<ParagraphBorders>();
+                    if (pageBorder != null && pageBorder.BottomBorder != null) {
+                        return pageBorder.BottomBorder.Val;
+                    }
                 }
 
                 return null;

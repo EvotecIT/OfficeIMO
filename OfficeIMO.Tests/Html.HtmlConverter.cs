@@ -73,15 +73,25 @@ public partial class Html {
         Assert.Contains("D", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Skip = "TODO: Implement nested table support")]
+    [Fact]
     public void Test_Html_NestedTable_RoundTrip() {
         string html = "<table><tr><td>Outer</td><td><table><tr><td>Inner</td></tr></table></td></tr></table>";
-        
-        var doc = html.LoadFromHtml(new HtmlToWordOptions());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
 
-        int tableCount = roundTrip.Split(new string[] { "<table>" }, StringSplitOptions.None).Length - 1;
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        Assert.Single(doc.Sections[0].Tables);
+        var outer = doc.Sections[0].Tables[0];
+        Assert.Equal(2, outer.Rows[0].Cells.Count);
+        var innerCell = outer.Rows[0].Cells[1];
+        Assert.True(innerCell.HasNestedTables);
+        var inner = innerCell.NestedTables[0];
+        Assert.Equal(1, inner.Rows.Count);
+        Assert.Equal(1, inner.Rows[0].Cells.Count);
+
+        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+        int tableCount = System.Text.RegularExpressions.Regex.Matches(roundTrip, "<table", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
         Assert.True(tableCount >= 2);
+        Assert.Contains("Outer", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Inner", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
