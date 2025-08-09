@@ -9,7 +9,8 @@ namespace OfficeIMO.Examples.Markdown {
             string assets = Path.Combine(AppContext.BaseDirectory, "..", "Assets");
             string localImage = Path.Combine(assets, "OfficeIMO.png");
             string markdown = $"![Local image]({localImage} \"Local description\" =100x100)\n" +
-                               "![Remote image](https://via.placeholder.com/120 \"Remote description\" =120x80)";
+                               "![Remote image](https://via.placeholder.com/120 \"Remote description\" =120x80)\n" +
+                               $"![Native size]({localImage} \"No size hints\")";
 
             var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
             string filePath = Path.Combine(folderPath, "MarkdownImages.docx");

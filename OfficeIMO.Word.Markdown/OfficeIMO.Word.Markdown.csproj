@@ -35,6 +35,10 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Update="Converters/MarkdownToWordConverter.Tables.cs" />
     <Compile Update="Converters/MarkdownToWordConverter.Lists.cs" />
