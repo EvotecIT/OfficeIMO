@@ -363,6 +363,102 @@ namespace OfficeIMO.Word.Html.Converters {
                 return table.Rows.Any(r => r.Cells.Any(CellHasBorder));
             }
 
+            void AppendTable(IElement parent, WordTable table) {
+                var tableEl = htmlDoc.CreateElement("table");
+                var tableStyles = new List<string>();
+                var tableWidth = GetWidthCss(table.WidthType, table.Width);
+                if (!string.IsNullOrEmpty(tableWidth)) {
+                    tableStyles.Add($"width:{tableWidth}");
+                }
+                if (TableHasBorder(table)) {
+                    tableStyles.Add("border:1px solid black;border-collapse:collapse");
+                }
+                if (tableStyles.Count > 0) {
+                    tableEl.SetAttribute("style", string.Join(";", tableStyles));
+                }
+
+                for (int r = 0; r < table.Rows.Count; r++) {
+                    var row = table.Rows[r];
+                    var tr = htmlDoc.CreateElement("tr");
+                    for (int c = 0; c < row.Cells.Count; c++) {
+                        var cell = row.Cells[c];
+                        if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
+                            continue;
+                        }
+                        var td = htmlDoc.CreateElement("td");
+                        int colSpan = 1;
+                        int rowSpan = 1;
+                        if (cell.HorizontalMerge == MergedCellValues.Restart) {
+                            int cc = c + 1;
+                            while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == MergedCellValues.Continue) {
+                                colSpan++;
+                                cc++;
+                            }
+                            if (colSpan > 1) {
+                                td.SetAttribute("colspan", colSpan.ToString());
+                            }
+                        }
+                        if (cell.VerticalMerge == MergedCellValues.Restart) {
+                            int rr = r + 1;
+                            while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == MergedCellValues.Continue) {
+                                rowSpan++;
+                                rr++;
+                            }
+                            if (rowSpan > 1) {
+                                td.SetAttribute("rowspan", rowSpan.ToString());
+                            }
+                        }
+
+                        var cellStyles = new List<string>();
+                        var width = GetWidthCss(cell.WidthType, cell.Width);
+                        if (!string.IsNullOrEmpty(width)) {
+                            cellStyles.Add($"width:{width}");
+                        }
+                        var align = GetTextAlignCss(cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment);
+                        if (!string.IsNullOrEmpty(align)) {
+                            cellStyles.Add($"text-align:{align}");
+                        }
+                        var bg = cell.ShadingFillColorHex;
+                        if (!string.IsNullOrEmpty(bg)) {
+                            cellStyles.Add($"background-color:#{bg}");
+                        }
+                        cellStyles.AddRange(GetBorderCss(cell));
+                        if (cellStyles.Count > 0) {
+                            td.SetAttribute("style", string.Join(";", cellStyles));
+                        }
+
+                        for (int pIdx = 0; pIdx < cell.Paragraphs.Count; pIdx++) {
+                            var p = cell.Paragraphs[pIdx];
+                            if (IsCodeParagraph(p)) {
+                                List<string> lines = new();
+                                lines.Add(p.Text);
+                                while (pIdx + 1 < cell.Paragraphs.Count && IsCodeParagraph(cell.Paragraphs[pIdx + 1])) {
+                                    lines.Add(cell.Paragraphs[pIdx + 1].Text);
+                                    pIdx++;
+                                }
+                                var pre = htmlDoc.CreateElement("pre");
+                                var code = htmlDoc.CreateElement("code");
+                                code.TextContent = string.Join("\n", lines);
+                                pre.AppendChild(code);
+                                td.AppendChild(pre);
+                            } else {
+                                AppendParagraph(td, p);
+                            }
+                        }
+
+                        if (cell.HasNestedTables) {
+                            foreach (var nested in cell.NestedTables) {
+                                AppendTable(td, nested);
+                            }
+                        }
+
+                        tr.AppendChild(td);
+                    }
+                    tableEl.AppendChild(tr);
+                }
+                parent.AppendChild(tableEl);
+            }
+
             var formatMap = new Dictionary<NumberFormatValues, (string? Type, string Css)>{
                 { NumberFormatValues.Decimal, ("1", "decimal") },
                 { NumberFormatValues.DecimalZero, (null, "decimal-leading-zero") },
@@ -465,91 +561,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     } else if (element is WordTable table) {
                         CloseLists();
-                        var tableEl = htmlDoc.CreateElement("table");
-                        var tableStyles = new List<string>();
-                        var tableWidth = GetWidthCss(table.WidthType, table.Width);
-                        if (!string.IsNullOrEmpty(tableWidth)) {
-                            tableStyles.Add($"width:{tableWidth}");
-                        }
-                        if (TableHasBorder(table)) {
-                            tableStyles.Add("border:1px solid black;border-collapse:collapse");
-                        }
-                        if (tableStyles.Count > 0) {
-                            tableEl.SetAttribute("style", string.Join(";", tableStyles));
-                        }
-
-                        for (int r = 0; r < table.Rows.Count; r++) {
-                            var row = table.Rows[r];
-                            var tr = htmlDoc.CreateElement("tr");
-                            for (int c = 0; c < row.Cells.Count; c++) {
-                                var cell = row.Cells[c];
-                                if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
-                                    continue;
-                                }
-                                var td = htmlDoc.CreateElement("td");
-                                int colSpan = 1;
-                                int rowSpan = 1;
-                                if (cell.HorizontalMerge == MergedCellValues.Restart) {
-                                    int cc = c + 1;
-                                    while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == MergedCellValues.Continue) {
-                                        colSpan++;
-                                        cc++;
-                                    }
-                                    if (colSpan > 1) {
-                                        td.SetAttribute("colspan", colSpan.ToString());
-                                    }
-                                }
-                                if (cell.VerticalMerge == MergedCellValues.Restart) {
-                                    int rr = r + 1;
-                                    while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == MergedCellValues.Continue) {
-                                        rowSpan++;
-                                        rr++;
-                                    }
-                                    if (rowSpan > 1) {
-                                        td.SetAttribute("rowspan", rowSpan.ToString());
-                                    }
-                                }
-
-                                var cellStyles = new List<string>();
-                                var width = GetWidthCss(cell.WidthType, cell.Width);
-                                if (!string.IsNullOrEmpty(width)) {
-                                    cellStyles.Add($"width:{width}");
-                                }
-                                var align = GetTextAlignCss(cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment);
-                                if (!string.IsNullOrEmpty(align)) {
-                                    cellStyles.Add($"text-align:{align}");
-                                }
-                                var bg = cell.ShadingFillColorHex;
-                                if (!string.IsNullOrEmpty(bg)) {
-                                    cellStyles.Add($"background-color:#{bg}");
-                                }
-                                cellStyles.AddRange(GetBorderCss(cell));
-                                if (cellStyles.Count > 0) {
-                                    td.SetAttribute("style", string.Join(";", cellStyles));
-                                }
-                                for (int pIdx = 0; pIdx < cell.Paragraphs.Count; pIdx++) {
-                                    var p = cell.Paragraphs[pIdx];
-                                    if (IsCodeParagraph(p)) {
-                                        List<string> lines = new();
-                                        lines.Add(p.Text);
-                                        while (pIdx + 1 < cell.Paragraphs.Count && IsCodeParagraph(cell.Paragraphs[pIdx + 1])) {
-                                            lines.Add(cell.Paragraphs[pIdx + 1].Text);
-                                            pIdx++;
-                                        }
-                                        var pre = htmlDoc.CreateElement("pre");
-                                        var code = htmlDoc.CreateElement("code");
-                                        code.TextContent = string.Join("\n", lines);
-                                        pre.AppendChild(code);
-                                        td.AppendChild(pre);
-                                    } else {
-                                        AppendParagraph(td, p);
-                                    }
-                                }
-                                tr.AppendChild(td);
-                            }
-                            tableEl.AppendChild(tr);
-                        }
-                        body.AppendChild(tableEl);
+                        AppendTable(body, table);
                     }
                 }
             }

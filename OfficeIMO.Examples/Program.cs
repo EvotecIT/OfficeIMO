@@ -28,6 +28,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Html.Html.Example_HtmlLists(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlRoundTrip(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlTables(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_HtmlNestedTables(folderPath, false);
             // Markdown/Markdown
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownInterface(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownLists(folderPath, false);
