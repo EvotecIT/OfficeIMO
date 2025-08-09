@@ -43,5 +43,22 @@ namespace OfficeIMO.Tests {
                 Directory.Delete(dir);
             }
         }
+
+        [Fact]
+        public void HtmlToWord_UnreachableImage_InsertsPlaceholder() {
+            string html = "<img src=\"http://localhost:1/missing.png\" alt=\"Missing\" />";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Missing", doc.Paragraphs[0].Text);
+        }
+
+        [Fact]
+        public void HtmlToWord_UnreachableImage_NoAlt_SkipsImage() {
+            string html = "<img src=\"http://localhost:1/missing.png\" />";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            Assert.Empty(doc.Images);
+            Assert.Empty(doc.Paragraphs);
+        }
     }
 }

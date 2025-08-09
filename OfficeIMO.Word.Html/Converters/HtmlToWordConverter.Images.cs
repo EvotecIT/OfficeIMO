@@ -38,8 +38,15 @@ namespace OfficeIMO.Word.Html.Converters {
             } else if (File.Exists(src)) {
                 doc.AddParagraph().AddImage(src, width, height, description: alt);
             } else {
-                var image = doc.AddImageFromUrl(src, width, height);
-                image.Description = alt;
+                try {
+                    var image = doc.AddImageFromUrl(src, width, height);
+                    image.Description = alt;
+                } catch (Exception ex) {
+                    Console.WriteLine($"Failed to load image from '{src}': {ex.Message}");
+                    if (!string.IsNullOrEmpty(alt)) {
+                        doc.AddParagraph(alt);
+                    }
+                }
             }
         }
     }
