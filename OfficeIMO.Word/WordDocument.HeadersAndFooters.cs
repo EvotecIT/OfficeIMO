@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
 
         private void WarnIfMultipleSections(string componentName) {
             if (this.Sections.Count > 1) {
-                Debug.WriteLine($"This document contains more than 1 section. Consider using Sections[wantedSection].{componentName}.");
+                Trace.TraceWarning($"This document contains more than 1 section. Consider using Sections[wantedSection].{componentName}.");
             }
         }
 
