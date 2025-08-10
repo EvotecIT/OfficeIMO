@@ -33,6 +33,7 @@ pr: none
 
 pool:
   vmImage: 'ubuntu-latest'
+timeoutInMinutes: 20
 
 variables:
   solution: '**/*.sln'
