@@ -43,6 +43,8 @@
     <Compile Update="Converters/MarkdownToWordConverter.Tables.cs" />
     <Compile Update="Converters/MarkdownToWordConverter.Lists.cs" />
     <Compile Update="Converters/MarkdownToWordConverter.Inlines.cs" />
+    <Compile Update="Converters/WordToMarkdownConverter.Paragraphs.cs" />
+    <Compile Update="Converters/WordToMarkdownConverter.Tables.cs" />
   </ItemGroup>
 
   <ItemGroup>

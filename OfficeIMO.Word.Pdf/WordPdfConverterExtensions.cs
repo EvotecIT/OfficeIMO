@@ -383,10 +383,5 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private class PdfFootnote {
-            public int Number { get; set; }
-            public string Text { get; set; } = string.Empty;
-        }
-
     }
 }

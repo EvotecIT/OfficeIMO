@@ -5,17 +5,6 @@ using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
-    internal sealed class TableLayout {
-        internal TableLayout(List<IReadOnlyList<WordTableCell>> rows, float[] columnWidths) {
-            Rows = rows;
-            ColumnWidths = columnWidths;
-        }
-
-        internal List<IReadOnlyList<WordTableCell>> Rows { get; }
-
-        internal float[] ColumnWidths { get; }
-    }
-
     internal static class TableLayoutCache {
         private static readonly ConditionalWeakTable<WordTable, TableLayout> _cache = new();
 
