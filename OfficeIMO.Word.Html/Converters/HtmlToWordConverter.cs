@@ -141,6 +141,21 @@ namespace OfficeIMO.Word.Html.Converters {
                 ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
 
+            if (!wordDoc.Bookmarks.Any(b => string.Equals(b.Name, "_top", StringComparison.OrdinalIgnoreCase))) {
+                var paragraphs = wordDoc.Paragraphs;
+                WordParagraph target;
+                if (paragraphs.Count > 0 && string.IsNullOrWhiteSpace(paragraphs[0].Text) && paragraphs.Count > 1) {
+                    paragraphs[0].Remove();
+                    target = wordDoc.Paragraphs[0];
+                } else if (paragraphs.Count > 0) {
+                    target = paragraphs[0];
+                } else {
+                    var firstSection = wordDoc.Sections.First();
+                    target = firstSection.AddParagraph(string.Empty);
+                }
+                WordBookmark.AddBookmark(target, "_top");
+            }
+
             return wordDoc;
         }
 
@@ -545,18 +560,21 @@ namespace OfficeIMO.Word.Html.Converters {
                             var href = element.GetAttribute("href");
                             var title = element.GetAttribute("title");
                             var target = element.GetAttribute("target");
-                            var idAttr = element.GetAttribute("id");
-                            if (!string.IsNullOrEmpty(idAttr)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                  AddBookmarkIfPresent(element, currentParagraph);
-                              }
-                              if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                  currentParagraph.AddFootNote(fnText);
-                              } else if (!string.IsNullOrEmpty(href)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var hasBookmark = !string.IsNullOrEmpty(element.GetAttribute("id")) || !string.IsNullOrEmpty(element.GetAttribute("name"));
+                            if (hasBookmark) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                AddBookmarkIfPresent(element, currentParagraph);
+                            }
+                            if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph.AddFootNote(fnText);
+                            } else if (!string.IsNullOrEmpty(href)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                 if (href.StartsWith("#")) {
                                     var anchor = href.TrimStart('#');
+                                    if (string.Equals(anchor, "top", StringComparison.OrdinalIgnoreCase) && !doc.Bookmarks.Any(b => string.Equals(b.Name, "top", StringComparison.OrdinalIgnoreCase))) {
+                                        anchor = "_top";
+                                    }
                                     var linkPara = currentParagraph.AddHyperLink(element.TextContent, anchor);
                                     if (!string.IsNullOrEmpty(options.FontFamily)) {
                                         linkPara.SetFontFamily(options.FontFamily);
@@ -677,6 +695,14 @@ namespace OfficeIMO.Word.Html.Converters {
             var id = element.GetAttribute("id");
             if (!string.IsNullOrEmpty(id)) {
                 WordBookmark.AddBookmark(paragraph, id);
+                return;
+            }
+
+            if (element is IHtmlAnchorElement anchor) {
+                var name = anchor.GetAttribute("name");
+                if (!string.IsNullOrEmpty(name)) {
+                    WordBookmark.AddBookmark(paragraph, name);
+                }
             }
         }
 
