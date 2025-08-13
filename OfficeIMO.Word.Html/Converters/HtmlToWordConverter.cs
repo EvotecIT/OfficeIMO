@@ -518,6 +518,14 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "font": {
+                            var fmt = formatting;
+                            ApplyFontStyles(element, ref fmt);
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            break;
+                        }
                     case "span": {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
