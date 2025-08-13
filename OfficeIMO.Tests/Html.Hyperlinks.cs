@@ -1,40 +1,48 @@
-        [Fact]
-        public void Html_Hyperlinks_InternalAnchor_Enabled() {
-            string html = "<p id=\"top\">Top</p><p><a href=\"#top\" title=\"Back\" target=\"_blank\">Back</a></p>";
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+using Xunit;
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions { SupportsAnchorLinks = true });
+namespace OfficeIMO.Tests;
 
-            Assert.Contains(doc.Bookmarks, b => b.Name == "top");
+public partial class Html {
+    [Fact]
+    public void Html_Hyperlinks_Title_And_Target_External() {
+        string html = "<p><a href=\"https://example.com\" title=\"Example\" target=\"_self\">Example</a></p>";
 
-            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
-            Assert.NotNull(hyperlink);
-            Assert.Equal("Back", hyperlink.Tooltip);
-            Assert.Equal(TargetFrame._blank, hyperlink.TargetFrame);
-            Assert.Equal("top", hyperlink.Anchor);
-        }
+        var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
-        [Fact]
-        public void Html_Hyperlinks_InternalAnchor_Disabled() {
-            string html = "<p id=\"top\">Top</p><p><a href=\"#top\" title=\"Back\" target=\"_blank\">Back</a></p>";
-
-            var doc = html.LoadFromHtml(new HtmlToWordOptions { SupportsAnchorLinks = false });
-
-            Assert.Contains(doc.Bookmarks, b => b.Name == "top");
-            Assert.Empty(doc.ParagraphsHyperLinks);
-        }
+        Assert.NotNull(hyperlink);
+        Assert.Equal("Example", hyperlink.Tooltip);
+        Assert.Equal(TargetFrame._self, hyperlink.TargetFrame);
     }
-}
 
-
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
-
-            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
-
-            Assert.NotNull(hyperlink);
-            Assert.Equal("Example", hyperlink.Tooltip);
-            Assert.Equal(TargetFrame._self, hyperlink.TargetFrame);
-        }
+    [Fact]
+    public void Html_Hyperlinks_InternalAnchor_Enabled() {
+        string html = "<p id=\"top\">Top</p><p><a href=\"#top\" title=\"Back\" target=\"_blank\">Back</a></p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions { SupportsAnchorLinks = true });
+
+        Assert.Contains(doc.Bookmarks, b => b.Name == "top");
+
+        var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
+
+        Assert.NotNull(hyperlink);
+        Assert.Equal("Back", hyperlink.Tooltip);
+        Assert.Equal(TargetFrame._blank, hyperlink.TargetFrame);
+        Assert.Equal("top", hyperlink.Anchor);
+    }
+
+    [Fact]
+    public void Html_Hyperlinks_InternalAnchor_Disabled() {
+        string html = "<p id=\"top\">Top</p><p><a href=\"#top\" title=\"Back\" target=\"_blank\">Back</a></p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions { SupportsAnchorLinks = false });
+
+        Assert.Contains(doc.Bookmarks, b => b.Name == "top");
+        Assert.Empty(doc.ParagraphsHyperLinks);
+
 
         [Fact]
         public void Html_Hyperlinks_InternalAnchor() {
