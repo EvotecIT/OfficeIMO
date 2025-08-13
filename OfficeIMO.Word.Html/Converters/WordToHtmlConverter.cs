@@ -114,22 +114,34 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             void AppendRuns(IElement parent, WordParagraph para, bool processFootnotes = true) {
-                foreach (var run in para.GetRuns()) {
+                var runs = para.GetRuns().ToList();
+                List<INode> nodes = new();
+                for (int i = 0; i < runs.Count; i++) {
+                    var run = runs[i];
                     if (processFootnotes && options.ExportFootnotes && run.FootNote != null) {
                         var note = run.FootNote;
-                        long id = note.ReferenceId ?? 0;
-                        if (!footnoteMap.TryGetValue(id, out int number)) {
-                            number = footnotes.Count + 1;
-                            footnoteMap[id] = number;
-                            footnotes.Add((number, note));
+                        if (string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase) && nodes.Count > 0) {
+                            string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
+                            var abbr = htmlDoc.CreateElement("abbr");
+                            abbr.SetAttribute("title", text);
+                            var lastNode = nodes[nodes.Count - 1];
+                            abbr.AppendChild(lastNode);
+                            nodes[nodes.Count - 1] = abbr;
+                        } else {
+                            long id = note.ReferenceId ?? 0;
+                            if (!footnoteMap.TryGetValue(id, out int number)) {
+                                number = footnotes.Count + 1;
+                                footnoteMap[id] = number;
+                                footnotes.Add((number, note));
+                            }
+                            var sup = htmlDoc.CreateElement("sup");
+                            var a = htmlDoc.CreateElement("a");
+                            a.SetAttribute("href", $"#fn{number}");
+                            a.SetAttribute("id", $"fnref{number}");
+                            a.TextContent = number.ToString();
+                            sup.AppendChild(a);
+                            nodes.Add(sup);
                         }
-                        var sup = htmlDoc.CreateElement("sup");
-                        var a = htmlDoc.CreateElement("a");
-                        a.SetAttribute("href", $"#fn{number}");
-                        a.SetAttribute("id", $"fnref{number}");
-                        a.TextContent = number.ToString();
-                        sup.AppendChild(a);
-                        parent.AppendChild(sup);
                         continue;
                     }
 
@@ -152,7 +164,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         if (!string.IsNullOrEmpty(imgObj.Description)) {
                             img.AlternativeText = imgObj.Description;
                         }
-                        parent.AppendChild(img);
+                        nodes.Add(img);
                         continue;
                     }
 
@@ -214,6 +226,9 @@ namespace OfficeIMO.Word.Html.Converters {
                         runStyles.Add(run.CharacterStyleId);
                     }
 
+                    nodes.Add(node);
+                }
+                foreach (var node in nodes) {
                     parent.AppendChild(node);
                 }
             }

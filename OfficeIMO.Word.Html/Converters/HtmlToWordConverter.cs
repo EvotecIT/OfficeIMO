@@ -348,6 +348,21 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "abbr":
+                    case "acronym": {
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            var title = element.GetAttribute("title");
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            if (!string.IsNullOrEmpty(title)) {
+                                var fnRun = currentParagraph.AddFootNote(title);
+                                fnRun.SetCharacterStyleId("HtmlAbbr");
+                            }
+                            break;
+                        }
                     case "a": {
                             var href = element.GetAttribute("href");
                             var title = element.GetAttribute("title");
