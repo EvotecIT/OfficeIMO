@@ -549,17 +549,21 @@ namespace OfficeIMO.Word.Html.Converters {
                               } else if (!string.IsNullOrEmpty(href)) {
                                   currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                 if (href.StartsWith("#")) {
-                                    var anchor = href.TrimStart('#');
-                                    var linkPara = currentParagraph.AddHyperLink(element.TextContent, anchor);
-                                    if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                        linkPara.SetFontFamily(options.FontFamily);
-                                    }
-                                    var link = linkPara.Hyperlink;
-                                    if (!string.IsNullOrEmpty(title)) {
-                                        link.Tooltip = title;
-                                    }
-                                    if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
-                                        link.TargetFrame = frame;
+                                    if (options.SupportsAnchorLinks) {
+                                        var anchor = href.TrimStart('#');
+                                        var linkPara = currentParagraph.AddHyperLink(element.TextContent, anchor);
+                                        if (!string.IsNullOrEmpty(options.FontFamily)) {
+                                            linkPara.SetFontFamily(options.FontFamily);
+                                        }
+                                        var link = linkPara.Hyperlink;
+                                        if (!string.IsNullOrEmpty(title)) {
+                                            link.Tooltip = title;
+                                        }
+                                        if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
+                                            link.TargetFrame = frame;
+                                        }
+                                    } else {
+                                        AddTextRun(currentParagraph, element.TextContent, formatting, options);
                                     }
                                 } else {
                                     var uri = new Uri(href, UriKind.RelativeOrAbsolute);

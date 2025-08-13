@@ -49,6 +49,11 @@ namespace OfficeIMO.Word.Html {
         public bool ContinueNumbering { get; set; }
 
         /// <summary>
+        /// When true, converts hyperlinks with hash anchors to internal links.
+        /// </summary>
+        public bool SupportsAnchorLinks { get; set; }
+
+        /// <summary>
         /// Base directory used to resolve relative resource paths like images.
         /// </summary>
         public string? BasePath { get; set; }
@@ -64,7 +69,7 @@ namespace OfficeIMO.Word.Html {
         public List<string> StylesheetContents { get; } = new List<string>();
 
         /// <summary>
-        /// When true, <pre> elements are rendered inside a single-cell table.
+        /// When true, &lt;pre&gt; elements are rendered inside a single-cell table.
         /// </summary>
         public bool RenderPreAsTable { get; set; }
 
