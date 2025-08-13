@@ -116,6 +116,8 @@ namespace OfficeIMO.Word.Html.Converters {
             void AppendRuns(IElement parent, WordParagraph para, bool processFootnotes = true) {
                 var runs = para.GetRuns().ToList();
                 List<INode> nodes = new();
+                bool inQuote = false;
+                IElement? quote = null;
                 for (int i = 0; i < runs.Count; i++) {
                     var run = runs[i];
                     if (processFootnotes && options.ExportFootnotes && run.FootNote != null) {
@@ -169,6 +171,17 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
 
                     if (string.IsNullOrEmpty(run.Text)) {
+                        continue;
+                    }
+
+                    if (string.Equals(run.CharacterStyleId, "HtmlQuote", StringComparison.OrdinalIgnoreCase)) {
+                        if (!inQuote) {
+                            quote = htmlDoc.CreateElement("q");
+                            nodes.Add(quote);
+                        } else {
+                            quote = null;
+                        }
+                        inQuote = !inQuote;
                         continue;
                     }
 
@@ -226,7 +239,11 @@ namespace OfficeIMO.Word.Html.Converters {
                         runStyles.Add(run.CharacterStyleId);
                     }
 
-                    nodes.Add(node);
+                    if (inQuote && quote != null) {
+                        quote.AppendChild(node);
+                    } else {
+                        nodes.Add(node);
+                    }
                 }
                 foreach (var node in nodes) {
                     parent.AppendChild(node);
