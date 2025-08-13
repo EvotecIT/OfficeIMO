@@ -61,8 +61,16 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(stream));
             }
 
+            if (!stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable.", nameof(stream));
+            }
+
             Document pdf = CreatePdfDocument(document, options);
             pdf.GeneratePdf(stream);
+
+            if (stream.CanSeek) {
+                stream.Position = 0;
+            }
         }
 
         /// <summary>
@@ -133,8 +141,17 @@ namespace OfficeIMO.Word.Pdf {
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (!stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable.", nameof(stream));
+            }
+
             Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => pdf.GeneratePdf(stream), cancellationToken);
+            return Task.Run(() => {
+                pdf.GeneratePdf(stream);
+                if (stream.CanSeek) {
+                    stream.Position = 0;
+                }
+            }, cancellationToken);
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
