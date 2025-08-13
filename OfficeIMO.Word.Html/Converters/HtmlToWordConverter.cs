@@ -343,6 +343,21 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "q": {
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
+                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                            ApplyFormatting(open, fmt, options);
+                            open.SetCharacterStyleId("HtmlQuote");
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell);
+                            }
+                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                            ApplyFormatting(close, fmt, options);
+                            close.SetCharacterStyleId("HtmlQuote");
+                            break;
+                        }
                     case "sup": {
                             var fmt = formatting;
                             fmt.Superscript = true;

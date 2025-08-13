@@ -217,6 +217,33 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_Q_RoundTrip() {
+        string html = "<p>Before <q>quoted</q> after</p>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+        var text = string.Concat(doc.Paragraphs[0].GetRuns().Select(r => r.Text));
+        Assert.Equal($"Before \u201Cquoted\u201D after", text);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Contains("<q>quoted</q>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Test_Html_Q_CustomCharacters() {
+        var options = new HtmlToWordOptions { QuotePrefix = "«", QuoteSuffix = "»" };
+        string html = "<p>Before <q>quoted</q> after</p>";
+
+        var doc = html.LoadFromHtml(options);
+
+        var text = string.Concat(doc.Paragraphs[0].GetRuns().Select(r => r.Text));
+        Assert.Equal("Before «quoted» after", text);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Contains("<q>quoted</q>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Test_Html_Lists_Structure() {
         string html = "<ul><li>Item 1<ul><li>Sub 1</li></ul></li><li>Item 2</li></ul>";
 

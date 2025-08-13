@@ -12,6 +12,16 @@ namespace OfficeIMO.Word.Html {
         /// Optional font family applied to created runs during conversion.
         /// </summary>
         public string FontFamily { get; set; }
+
+        /// <summary>
+        /// Character inserted before inline quoted text. Defaults to left double quotation mark.
+        /// </summary>
+        public string QuotePrefix { get; set; } = "\u201C";
+
+        /// <summary>
+        /// Character inserted after inline quoted text. Defaults to right double quotation mark.
+        /// </summary>
+        public string QuoteSuffix { get; set; } = "\u201D";
         
         /// <summary>
         /// Optional default page size applied when creating new documents.
