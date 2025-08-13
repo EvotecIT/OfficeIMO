@@ -8,10 +8,12 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+            _cancellationToken.ThrowIfCancellationRequested();
             var src = img.GetAttribute("src");
             if (string.IsNullOrEmpty(src)) return;
 
@@ -74,7 +76,7 @@ namespace OfficeIMO.Word.Html.Converters {
             } else {
                 try {
                     using HttpClient client = new HttpClient();
-                    var data = client.GetByteArrayAsync(src).GetAwaiter().GetResult();
+                    var data = client.GetByteArrayAsync(src, _cancellationToken).GetAwaiter().GetResult();
                     using var ms = new MemoryStream(data);
                     string fileName = "image";
                     try {
@@ -101,6 +103,7 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private void ProcessSvgImage(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+            _cancellationToken.ThrowIfCancellationRequested();
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             var alt = img.AlternativeText;
@@ -120,7 +123,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 svgContent = File.ReadAllText(src);
             } else {
                 using HttpClient client = new HttpClient();
-                svgContent = client.GetStringAsync(src).GetAwaiter().GetResult();
+                svgContent = client.GetStringAsync(src, _cancellationToken).GetAwaiter().GetResult();
             }
 
             SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
