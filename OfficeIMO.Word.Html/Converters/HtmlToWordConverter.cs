@@ -198,18 +198,35 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "blockquote": {
-                            var paragraph = cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                            if (doc.StyleExists("Quote")) {
-                                paragraph.SetStyleId("Quote");
-                            }
-                            paragraph.IndentationBefore = 720;
+                            var startIndex = doc.Paragraphs.Count;
+                            var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            ApplyParagraphStyleFromCss(paragraph, element);
-                            ApplyClassStyle(element, paragraph, options);
-                            AddBookmarkIfPresent(element, paragraph);
+                            WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell);
+                                ProcessNode(child, doc, section, options, firstPara, listStack, fmt, cell);
+                                if (firstPara == null && doc.Paragraphs.Count > startIndex) {
+                                    firstPara = doc.Paragraphs[startIndex];
+                                }
+                            }
+                            if (firstPara == null) {
+                                firstPara = cell?.AddParagraph("", true) ?? section.AddParagraph("");
+                            }
+                            var endIndex = doc.Paragraphs.Count;
+                            for (int i = startIndex; i < endIndex; i++) {
+                                var para = doc.Paragraphs[i];
+                                if (doc.StyleExists("Quote")) {
+                                    para.SetStyleId("Quote");
+                                }
+                                para.IndentationBefore = 720;
+                                ApplyParagraphStyleFromCss(para, element);
+                                ApplyClassStyle(element, para, options);
+                                if (para == firstPara) {
+                                    AddBookmarkIfPresent(element, para);
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(cite)) {
+                                firstPara.AddFootNote(cite);
                             }
                             break;
                         }
