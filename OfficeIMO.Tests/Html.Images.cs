@@ -81,9 +81,9 @@ namespace OfficeIMO.Tests {
             var dataUri = $"data:image/png;base64,{base64}";
             string html = $"<p><img src=\"{dataUri}\"/><img src=\"{dataUri}\"/></p>";
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
-            Assert.Equal(2, doc.Images.Count);
+            Assert.Collection(doc.Images, _ => { }, _ => { });
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Equal(1, doc._wordprocessingDocument.MainDocumentPart.ImageParts.Count());
+            Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
         }
     }
 }

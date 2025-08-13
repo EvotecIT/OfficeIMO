@@ -112,6 +112,19 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
+        /// Creates a new document from a Markdown file.
+        /// </summary>
+        /// <param name="path">Path to the Markdown file.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="encoding">Encoding to use when reading the file. If <c>null</c>, the encoding is automatically detected from the file's byte order mark.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadFromMarkdown(string path, MarkdownToWordOptions? options = null, Encoding? encoding = null) {
+            using var reader = new StreamReader(path, encoding ?? Encoding.UTF8, detectEncodingFromByteOrderMarks: encoding == null);
+            string markdown = reader.ReadToEnd();
+            return LoadFromMarkdown(markdown, options);
+        }
+
+        /// <summary>
         /// Asynchronously creates a new document from a Markdown string read from the specified path.
         /// </summary>
         /// <param name="path">Path to the Markdown file.</param>
