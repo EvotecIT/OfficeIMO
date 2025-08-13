@@ -64,6 +64,11 @@ namespace OfficeIMO.Word.Html {
         public List<string> StylesheetContents { get; } = new List<string>();
 
         /// <summary>
+        /// When true, <pre> elements are rendered inside a single-cell table.
+        /// </summary>
+        public bool RenderPreAsTable { get; set; }
+
+        /// <summary>
         /// Specifies where table captions should be inserted relative to the table.
         /// </summary>
         public TableCaptionPosition TableCaptionPosition { get; set; } = TableCaptionPosition.Above;

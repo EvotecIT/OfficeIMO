@@ -350,19 +350,48 @@ namespace OfficeIMO.Word.Html.Converters {
                             while (end > start && string.IsNullOrEmpty(lines[end - 1])) end--;
                             var mono = FontResolver.Resolve("monospace");
                             bool bookmarkAdded = false;
-                            for (int i = start; i < end; i++) {
-                                var line = lines[i];
-                                var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                paragraph.SetStyleId("HTMLPreformatted");
-                                if (!string.IsNullOrEmpty(mono)) {
-                                    paragraph.SetFontFamily(mono);
+                            if (options.RenderPreAsTable) {
+                                WordTable preTable;
+                                if (cell != null) {
+                                    preTable = cell.AddTable(1, 1);
+                                } else if (currentParagraph != null) {
+                                    preTable = currentParagraph.AddTableAfter(1, 1);
+                                } else if (headerFooter != null) {
+                                    preTable = headerFooter.AddTable(1, 1);
+                                } else {
+                                    var placeholder = section.AddParagraph("");
+                                    preTable = placeholder.AddTableAfter(1, 1);
                                 }
-                                if (!bookmarkAdded) {
-                                    AddBookmarkIfPresent(element, paragraph);
-                                    bookmarkAdded = true;
+                                var preCell = preTable.Rows[0].Cells[0];
+                                for (int i = start; i < end; i++) {
+                                    var line = lines[i];
+                                    var paragraph = i == start ? preCell.AddParagraph("", true) : preCell.AddParagraph("");
+                                    paragraph.SetStyleId("HTMLPreformatted");
+                                    if (!string.IsNullOrEmpty(mono)) {
+                                        paragraph.SetFontFamily(mono);
+                                    }
+                                    if (!bookmarkAdded) {
+                                        AddBookmarkIfPresent(element, paragraph);
+                                        bookmarkAdded = true;
+                                    }
+                                    var fmt = new TextFormatting(false, false, false, null, mono);
+                                    AddTextRun(paragraph, line, fmt, options);
                                 }
-                                var fmt = new TextFormatting(false, false, false, null, mono);
-                                AddTextRun(paragraph, line, fmt, options);
+                            } else {
+                                for (int i = start; i < end; i++) {
+                                    var line = lines[i];
+                                    var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                    paragraph.SetStyleId("HTMLPreformatted");
+                                    if (!string.IsNullOrEmpty(mono)) {
+                                        paragraph.SetFontFamily(mono);
+                                    }
+                                    if (!bookmarkAdded) {
+                                        AddBookmarkIfPresent(element, paragraph);
+                                        bookmarkAdded = true;
+                                    }
+                                    var fmt = new TextFormatting(false, false, false, null, mono);
+                                    AddTextRun(paragraph, line, fmt, options);
+                                }
                             }
                             break;
                         }
