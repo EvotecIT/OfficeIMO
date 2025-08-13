@@ -44,11 +44,6 @@ public partial class Html {
         Assert.Empty(doc.ParagraphsHyperLinks);
     }
 }
-            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
-
-            Assert.NotNull(hyperlink);
-            Assert.Equal("Back", hyperlink.Tooltip);
-            Assert.Equal(TargetFrame._blank, hyperlink.TargetFrame);
             Assert.Equal("top", hyperlink.Anchor);
         }
     }
