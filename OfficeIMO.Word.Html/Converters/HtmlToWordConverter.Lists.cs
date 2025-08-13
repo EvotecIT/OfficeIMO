@@ -7,11 +7,11 @@ using System.Collections.Generic;
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting) {
+            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
             WordList list;
             bool ordered = element.TagName.Equals("ol", System.StringComparison.OrdinalIgnoreCase);
             if (ordered) {
-                list = cell != null ? cell.AddList(WordListStyle.Headings111) : doc.AddListNumbered();
+                list = cell != null ? cell.AddList(WordListStyle.Headings111) : headerFooter != null ? headerFooter.AddList(WordListStyle.Headings111) : doc.AddListNumbered();
                 var level = list.Numbering.Levels[0];
                 var start = element.GetAttribute("start");
                 if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     level._level.NumberingFormat = new NumberingFormat { Val = format };
                 }
             } else {
-                list = cell != null ? cell.AddList(WordListStyle.Bulleted) : doc.AddListBulleted();
+                list = cell != null ? cell.AddList(WordListStyle.Bulleted) : headerFooter != null ? headerFooter.AddList(WordListStyle.Bulleted) : doc.AddListBulleted();
                 var type = element.GetAttribute("type")?.ToLowerInvariant();
                 if (!string.IsNullOrEmpty(type)) {
                     var level = list.Numbering.Levels[0];
@@ -46,20 +46,20 @@ namespace OfficeIMO.Word.Html.Converters {
             }
             listStack.Push(list);
             foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {
-                ProcessListItem(li, doc, section, options, listStack, formatting, cell);
+                ProcessListItem(li, doc, section, options, listStack, formatting, cell, headerFooter);
             }
             listStack.Pop();
         }
 
         private void ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell) {
+            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var list = listStack.Peek();
             int level = listStack.Count - 1;
             var paragraph = list.AddItem("", level);
             ApplyClassStyle(element, paragraph, options);
             AddBookmarkIfPresent(element, paragraph);
             foreach (var child in element.ChildNodes) {
-                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell);
+                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
             }
         }
     }

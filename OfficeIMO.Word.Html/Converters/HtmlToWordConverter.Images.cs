@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
-        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph) {
+        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = img.GetAttribute("src");
             if (string.IsNullOrEmpty(src)) return;
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Html.Converters {
             WordParagraph? paragraph = currentParagraph;
 
             if (_imageCache.TryGetValue(src, out var cached)) {
-                paragraph ??= doc.AddParagraph();
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 var drawingField = typeof(WordImage).GetField("_Image", BindingFlags.Instance | BindingFlags.NonPublic);
                 var drawing = (DocumentFormat.OpenXml.Wordprocessing.Drawing)drawingField!.GetValue(cached);
                 var clone = (DocumentFormat.OpenXml.Wordprocessing.Drawing)drawing.CloneNode(true);
@@ -49,18 +49,18 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (parts.Length >= 2) {
                         ext = parts[1];
                     }
-                    paragraph ??= doc.AddParagraph();
+                    paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImageFromBase64(base64, "image." + ext, width, height, description: alt);
                     image = paragraph.Image;
                 } else {
                     return;
                 }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
-                paragraph ??= doc.AddParagraph();
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 paragraph.AddImage(uri.LocalPath, width, height, description: alt);
                 image = paragraph.Image;
             } else if (File.Exists(src)) {
-                paragraph ??= doc.AddParagraph();
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 paragraph.AddImage(src, width, height, description: alt);
                 image = paragraph.Image;
             } else {
@@ -76,13 +76,13 @@ namespace OfficeIMO.Word.Html.Converters {
                     } catch (UriFormatException) {
                         // ignore
                     }
-                    paragraph ??= doc.AddParagraph();
+                    paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(ms, fileName, width, height, description: alt);
                     image = paragraph.Image;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from '{src}': {ex.Message}");
                     if (!string.IsNullOrEmpty(alt)) {
-                        paragraph ??= currentParagraph ?? doc.AddParagraph();
+                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
                         paragraph.AddText(alt);
                     }
                     return;
