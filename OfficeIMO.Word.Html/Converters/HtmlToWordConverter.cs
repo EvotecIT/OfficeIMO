@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -36,14 +37,18 @@ namespace OfficeIMO.Word.Html.Converters {
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
-        public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
+        private CancellationToken _cancellationToken;
+
+        public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            _cancellationToken = cancellationToken;
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
-            var document = await context.OpenAsync(req => req.Content(html));
+            _cancellationToken.ThrowIfCancellationRequested();
+            var document = await context.OpenAsync(req => req.Content(html), _cancellationToken);
 
             var wordDoc = WordDocument.Create();
 
@@ -52,6 +57,7 @@ namespace OfficeIMO.Word.Html.Converters {
             _imageCache.Clear();
 
             foreach (var path in options.StylesheetPaths) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(path)) {
                     continue;
                 }
@@ -73,6 +79,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
             foreach (var content in options.StylesheetContents) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(content)) {
                     ParseCss(content);
                 }
@@ -80,6 +87,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (document.Head != null) {
                 foreach (var style in document.Head.QuerySelectorAll("style")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
                     ParseCss(style.TextContent);
                 }
                 var baseElement = document.Head.QuerySelector("base[href]") as IHtmlBaseElement;
@@ -90,6 +98,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     baseUri = du;
                 }
                 foreach (var link in document.Head.QuerySelectorAll("link")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
                     var rel = link.GetAttribute("rel");
                     if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                         continue;
@@ -144,11 +153,13 @@ namespace OfficeIMO.Word.Html.Converters {
             return wordDoc;
         }
 
-        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options) {
+        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            _cancellationToken = cancellationToken;
             await AddHtmlToHeaderFooterAsync(doc, header, html, options);
         }
 
-        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, string html, HtmlToWordOptions options) {
+        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            _cancellationToken = cancellationToken;
             await AddHtmlToHeaderFooterAsync(doc, footer, html, options);
         }
 
@@ -159,13 +170,15 @@ namespace OfficeIMO.Word.Html.Converters {
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
-            var document = await context.OpenAsync(req => req.Content(html));
+            _cancellationToken.ThrowIfCancellationRequested();
+            var document = await context.OpenAsync(req => req.Content(html), _cancellationToken);
 
             _footnoteMap.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
 
             foreach (var path in options.StylesheetPaths) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(path)) {
                     continue;
                 }
@@ -187,6 +200,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
             foreach (var content in options.StylesheetContents) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(content)) {
                     ParseCss(content);
                 }
@@ -194,6 +208,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (document.Head != null) {
                 foreach (var style in document.Head.QuerySelectorAll("style")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
                     ParseCss(style.TextContent);
                 }
                 var baseElement = document.Head.QuerySelector("base[href]") as IHtmlBaseElement;
@@ -204,6 +219,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     baseUri = du;
                 }
                 foreach (var link in document.Head.QuerySelectorAll("link")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
                     var rel = link.GetAttribute("rel");
                     if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                         continue;
@@ -256,16 +272,24 @@ namespace OfficeIMO.Word.Html.Converters {
             }
             var request = new ResourceRequest(null, url);
             var download = loader.FetchAsync(request);
-            var response = await download.Task;
+            using var registration = _cancellationToken.Register(download.Cancel);
+            var response = await download.Task.ConfigureAwait(false);
+            _cancellationToken.ThrowIfCancellationRequested();
             if (response.StatusCode == HttpStatusCode.OK) {
                 using var reader = new StreamReader(response.Content);
-                var css = await reader.ReadToEndAsync();
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                var css = await reader.ReadToEndAsync(_cancellationToken).ConfigureAwait(false);
+#else
+                var css = await reader.ReadToEndAsync().ConfigureAwait(false);
+                _cancellationToken.ThrowIfCancellationRequested();
+#endif
                 ParseCss(css, url.Href);
             }
         }
 
         private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (node is IElement element) {
                 ApplyCssToElement(element);
                 switch (element.TagName.ToLowerInvariant()) {

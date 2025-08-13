@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -23,12 +24,14 @@ namespace OfficeIMO.Word.Html.Converters {
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Conversion options controlling HTML output.</param>
         /// <returns>HTML representation of the document.</returns>
-        public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options) {
+        public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToHtmlOptions();
 
+            cancellationToken.ThrowIfCancellationRequested();
             var context = BrowsingContext.New(Configuration.Default);
-            var htmlDoc = await context.OpenNewAsync();
+            var htmlDoc = await context.OpenNewAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
             var head = htmlDoc.Head;
             var body = htmlDoc.Body;

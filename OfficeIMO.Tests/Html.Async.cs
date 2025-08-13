@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -71,6 +72,30 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.SaveAsHtmlAsync("foo.html", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync("<p>h</p>", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync("<p>f</p>", cancellationToken: cts.Token));
+        }
+
+        [Fact]
+        public async Task SaveAsHtmlAsync_CancellationDoesNotCreateFile() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("cancel");
+            string path = Path.Combine(AppContext.BaseDirectory, "CancelFile.html");
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.SaveAsHtmlAsync(path, cancellationToken: cts.Token));
+            Assert.False(File.Exists(path));
+        }
+
+        [Fact]
+        public async Task LoadFromHtmlAsync_StreamCancellationLeavesPosition() {
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<p>x</p>"));
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            long pos = stream.Position;
+            await Assert.ThrowsAsync<OperationCanceledException>(() => stream.LoadFromHtmlAsync(cancellationToken: cts.Token));
+            Assert.Equal(pos, stream.Position);
         }
     }
 }
