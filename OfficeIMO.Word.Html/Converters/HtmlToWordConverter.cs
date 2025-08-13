@@ -144,14 +144,14 @@ namespace OfficeIMO.Word.Html.Converters {
             if (!wordDoc.Bookmarks.Any(b => string.Equals(b.Name, "_top", StringComparison.OrdinalIgnoreCase))) {
                 var paragraphs = wordDoc.Paragraphs;
                 WordParagraph target;
-                if (paragraphs.Count > 0 && string.IsNullOrWhiteSpace(paragraphs[0].Text) && paragraphs.Count > 1) {
-                    paragraphs[0].Remove();
-                    target = wordDoc.Paragraphs[0];
-                } else if (paragraphs.Count > 0) {
-                    target = paragraphs[0];
+                if (paragraphs.Count > 0) {
+                    if (string.IsNullOrWhiteSpace(paragraphs[0].Text) && paragraphs[0].Bookmark == null && paragraphs.Count > 1) {
+                        paragraphs[0].Remove();
+                        paragraphs = wordDoc.Paragraphs;
+                    }
+                    target = paragraphs[0].Bookmark == null ? paragraphs[0] : paragraphs[0].AddParagraphBeforeSelf();
                 } else {
-                    var firstSection = wordDoc.Sections.First();
-                    target = firstSection.AddParagraph(string.Empty);
+                    target = wordDoc.Sections.First().AddParagraph(string.Empty);
                 }
                 WordBookmark.AddBookmark(target, "_top");
             }
