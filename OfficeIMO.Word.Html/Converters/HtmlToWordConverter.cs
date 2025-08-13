@@ -336,6 +336,10 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
+                    case "svg": {
+                            ProcessSvgElement(element, doc, section, options, currentParagraph, headerFooter);
+                            break;
+                        }
                     case "pre":
                     case "code": {
                             var textContent = element.TextContent;

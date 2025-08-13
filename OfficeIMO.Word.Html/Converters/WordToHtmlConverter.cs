@@ -1,6 +1,7 @@
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -148,9 +149,38 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
 
                     if (run.IsImage && run.Image != null) {
+                        var imgObj = run.Image;
+                        var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
+                        if (ext == ".svg") {
+                            if (options.EmbedImagesAsBase64) {
+                                var svgXml = Encoding.UTF8.GetString(imgObj.GetBytes());
+                                var parser = new HtmlParser();
+                                var fragment = parser.ParseFragment(svgXml, body);
+                                var svgElement = fragment.OfType<IElement>().FirstOrDefault();
+                                if (svgElement != null) {
+                                    nodes.Add(svgElement);
+                                }
+                            } else {
+                                var imgSvg = htmlDoc.CreateElement("img") as IHtmlImageElement;
+                                string srcSvg;
+                                if (imgObj.IsExternal && imgObj.ExternalUri != null) {
+                                    srcSvg = imgObj.ExternalUri.ToString();
+                                } else {
+                                    srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? imgObj.FileName : imgObj.FilePath;
+                                }
+                                imgSvg!.Source = srcSvg;
+                                if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
+                                if (imgObj.Height.HasValue) imgSvg.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                                if (!string.IsNullOrEmpty(imgObj.Description)) {
+                                    imgSvg.AlternativeText = imgObj.Description;
+                                }
+                                nodes.Add(imgSvg);
+                            }
+                            continue;
+                        }
+
                         var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
                         string src;
-                        var imgObj = run.Image;
                         if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                             src = imgObj.ExternalUri.ToString();
                         } else if (!options.EmbedImagesAsBase64) {

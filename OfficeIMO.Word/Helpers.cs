@@ -125,8 +125,29 @@ namespace OfficeIMO.Word {
                 return new ImageCharacteristics(img.Width, img.Height, type);
             } catch (SixLabors.ImageSharp.UnknownImageFormatException) {
                 imageStream.Position = 0;
-                if (!string.IsNullOrEmpty(fileName) && Path.GetExtension(fileName).Equals(".emf", StringComparison.OrdinalIgnoreCase)) {
-                    return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
+                if (!string.IsNullOrEmpty(fileName)) {
+                    var ext = Path.GetExtension(fileName);
+                    if (ext.Equals(".emf", StringComparison.OrdinalIgnoreCase)) {
+                        return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
+                    }
+                    if (ext.Equals(".svg", StringComparison.OrdinalIgnoreCase)) {
+                        try {
+                            using var reader = new StreamReader(imageStream, leaveOpen: true);
+                            var svg = System.Xml.Linq.XDocument.Load(reader);
+                            var root = svg.Root;
+                            double width = 0;
+                            double height = 0;
+                            var wAttr = root.Attribute("width");
+                            var hAttr = root.Attribute("height");
+                            if (wAttr != null) double.TryParse(wAttr.Value.Replace("px", string.Empty), out width);
+                            if (hAttr != null) double.TryParse(hAttr.Value.Replace("px", string.Empty), out height);
+                            imageStream.Position = 0;
+                            return new ImageCharacteristics(width, height, CustomImagePartType.Svg);
+                        } catch {
+                            imageStream.Position = 0;
+                            throw;
+                        }
+                    }
                 }
                 throw;
             }
