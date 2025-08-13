@@ -21,6 +21,11 @@ namespace OfficeIMO.Word.Html.Converters {
             int footRows = tableElem.Foot?.Rows.Length ?? 0;
             int rows = headRows + bodyRows + footRows;
 
+            var caption = tableElem.Caption;
+            if (caption != null) {
+                ApplyCssToElement(caption);
+            }
+
             int cols = 0;
             foreach (var row in GetAllRows(tableElem)) {
                 int count = 0;
@@ -33,8 +38,25 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 cols = Math.Max(cols, count);
             }
+            WordParagraph? captionParagraph = null;
+            if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
+                captionParagraph = cell != null ? cell.AddParagraph("", true)
+                    : currentParagraph != null ? currentParagraph.AddParagraphAfterSelf()
+                    : headerFooter != null ? headerFooter.AddParagraph("")
+                    : section.AddParagraph("");
+                captionParagraph.SetStyleId("Caption");
+                ApplyParagraphStyleFromCss(captionParagraph, caption);
+                ApplyClassStyle(caption, captionParagraph, options);
+                AddBookmarkIfPresent(caption, captionParagraph);
+                foreach (var child in caption.ChildNodes) {
+                    ProcessNode(child, doc, section, options, captionParagraph, listStack, new TextFormatting(), cell, headerFooter);
+                }
+            }
+
             WordTable wordTable;
-            if (cell != null) {
+            if (captionParagraph != null) {
+                wordTable = captionParagraph.AddTableAfter(rows, cols);
+            } else if (cell != null) {
                 wordTable = cell.AddTable(rows, cols);
             } else if (currentParagraph != null) {
                 wordTable = currentParagraph.AddTableAfter(rows, cols);
@@ -110,6 +132,26 @@ namespace OfficeIMO.Word.Html.Converters {
             }
             if (tableElem.Foot != null) {
                 HandleRows(tableElem.Foot.Rows);
+            }
+
+            if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
+                WordParagraph captionParagraphBelow;
+                if (cell != null) {
+                    captionParagraphBelow = cell.AddParagraph("", true);
+                } else if (headerFooter != null) {
+                    captionParagraphBelow = headerFooter.AddParagraph("");
+                } else {
+                    var lastCellParagraph = wordTable.Rows[wordTable.Rows.Count - 1]
+                        .Cells[wordTable.Rows[0].Cells.Count - 1].Paragraphs.Last();
+                    captionParagraphBelow = lastCellParagraph.AddParagraphAfterSelf(section);
+                }
+                captionParagraphBelow.SetStyleId("Caption");
+                ApplyParagraphStyleFromCss(captionParagraphBelow, caption);
+                ApplyClassStyle(caption, captionParagraphBelow, options);
+                AddBookmarkIfPresent(caption, captionParagraphBelow);
+                foreach (var child in caption.ChildNodes) {
+                    ProcessNode(child, doc, section, options, captionParagraphBelow, listStack, new TextFormatting(), cell, headerFooter);
+                }
             }
         }
 
