@@ -44,6 +44,11 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeListStyles { get; set; }
 
         /// <summary>
+        /// When true, numbered lists will continue numbering across separate lists.
+        /// </summary>
+        public bool ContinueNumbering { get; set; }
+
+        /// <summary>
         /// Base directory used to resolve relative resource paths like images.
         /// </summary>
         public string? BasePath { get; set; }
