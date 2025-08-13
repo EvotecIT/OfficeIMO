@@ -84,4 +84,32 @@ public partial class Word {
             }
         }
     }
+
+    [Fact]
+    public async Task Test_WordDocument_SaveAsPdfAsync_ToByteArray() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncBytes.docx");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            byte[] bytes = await document.SaveAsPdfAsync(cancellationToken: CancellationToken.None);
+            Assert.True(bytes.Length > 0);
+        }
+    }
+
+    [Fact]
+    public async Task Test_WordDocument_SaveAsPdfAsync_ToByteArray_CanceledToken_Throws() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncBytesCanceled.docx");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            using (var cts = new CancellationTokenSource()) {
+                cts.Cancel();
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(cancellationToken: cts.Token));
+            }
+        }
+    }
 }
