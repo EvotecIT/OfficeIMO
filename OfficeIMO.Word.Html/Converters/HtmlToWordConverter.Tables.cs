@@ -12,7 +12,7 @@ using System.Collections.Generic;
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph) {
+            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;
             int bodyRows = 0;
             foreach (var body in tableElem.Bodies) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word.Html.Converters {
             } else if (currentParagraph != null) {
                 wordTable = currentParagraph.AddTableAfter(rows, cols);
             } else {
-                var placeholder = section.AddParagraph("");
+                var placeholder = headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                 wordTable = placeholder.AddTableAfter(rows, cols);
             }
             ApplyTableStyles(wordTable, tableElem);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                         WordParagraph? innerParagraph = null;
                         foreach (var child in htmlCell.ChildNodes) {
-                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell);
+                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell, headerFooter);
                             if (wordCell.Paragraphs.Count > 0) {
                                 innerParagraph = wordCell.Paragraphs[wordCell.Paragraphs.Count - 1];
                             } else {

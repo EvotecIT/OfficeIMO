@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Converters;
 using System.IO;
@@ -65,6 +66,62 @@ namespace OfficeIMO.Word.Html {
             using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
             string html = reader.ReadToEnd();
             return LoadFromHtml(html, options);
+        }
+
+        /// <summary>
+        /// Appends HTML content to the document's header.
+        /// </summary>
+        /// <param name="doc">Document to modify.</param>
+        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="type">Header type to target.</param>
+        /// <param name="options">Optional conversion options.</param>
+        public static void AddHtmlToHeader(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
+            if (html == null) throw new System.ArgumentNullException(nameof(html));
+
+            doc.AddHeadersAndFooters();
+            options ??= new HtmlToWordOptions();
+            type ??= HeaderFooterValues.Default;
+
+            WordHeader header;
+            if (type == HeaderFooterValues.First) {
+                header = doc.Header.First;
+            } else if (type == HeaderFooterValues.Even) {
+                header = doc.Header.Even;
+            } else {
+                header = doc.Header.Default;
+            }
+
+            var converter = new HtmlToWordConverter();
+            converter.AddHtmlToHeaderAsync(doc, header, html, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Appends HTML content to the document's footer.
+        /// </summary>
+        /// <param name="doc">Document to modify.</param>
+        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="type">Footer type to target.</param>
+        /// <param name="options">Optional conversion options.</param>
+        public static void AddHtmlToFooter(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
+            if (html == null) throw new System.ArgumentNullException(nameof(html));
+
+            doc.AddHeadersAndFooters();
+            options ??= new HtmlToWordOptions();
+            type ??= HeaderFooterValues.Default;
+
+            WordFooter footer;
+            if (type == HeaderFooterValues.First) {
+                footer = doc.Footer.First;
+            } else if (type == HeaderFooterValues.Even) {
+                footer = doc.Footer.Even;
+            } else {
+                footer = doc.Footer.Default;
+            }
+
+            var converter = new HtmlToWordConverter();
+            converter.AddHtmlToFooterAsync(doc, footer, html, options).GetAwaiter().GetResult();
         }
     }
 }
