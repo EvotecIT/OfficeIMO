@@ -27,9 +27,10 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(tempDir);
             string mdPath = Path.Combine(tempDir, "LoadFromPathCustom.md");
             string content = "ol\u00e9";
-            File.WriteAllText(mdPath, content, Encoding.Latin1);
+            Encoding latin1 = Encoding.GetEncoding("iso-8859-1");
+            File.WriteAllText(mdPath, content, latin1);
 
-            using var doc = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: Encoding.Latin1);
+            using var doc = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: latin1);
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("ol\u00e9", text);
 
