@@ -33,6 +33,7 @@ namespace OfficeIMO.Word.Html.Converters {
         private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
+        private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
@@ -48,6 +49,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             _footnoteMap.Clear();
             _cssRules.Clear();
+            _imageCache.Clear();
 
             foreach (var path in options.StylesheetPaths) {
                 if (string.IsNullOrEmpty(path)) {
@@ -440,7 +442,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "figure": {
                             var img = element.QuerySelector("img") as IHtmlImageElement;
                             if (img != null) {
-                                ProcessImage(img, doc, options);
+                                ProcessImage(img, doc, options, currentParagraph);
                             }
                             var caption = element.QuerySelector("figcaption");
                             if (caption != null) {
@@ -457,7 +459,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "img": {
-                            ProcessImage((IHtmlImageElement)element, doc, options);
+                            ProcessImage((IHtmlImageElement)element, doc, options, currentParagraph);
                             break;
                         }
                     case "style": {
