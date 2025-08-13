@@ -52,6 +52,11 @@ namespace OfficeIMO.Word.Html {
         /// When true, converts hyperlinks with hash anchors to internal links.
         /// </summary>
         public bool SupportsAnchorLinks { get; set; }
+      
+        /// When true, heading elements are converted into a numbered list using
+        /// <see cref="WordListStyle.Headings111"/> so headings receive automatic numbering.
+        /// </summary>
+        public bool SupportsHeadingNumbering { get; set; }
 
         /// <summary>
         /// Base directory used to resolve relative resource paths like images.
