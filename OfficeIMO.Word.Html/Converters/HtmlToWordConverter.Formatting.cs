@@ -256,6 +256,40 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
+        private static bool TryParseHtmlFontSize(string? value, out int size) {
+            size = 0;
+            if (TryParseFontSize(value, out size)) {
+                return true;
+            }
+            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric)) {
+                size = numeric switch {
+                    1 => 8,
+                    2 => 10,
+                    3 => 12,
+                    4 => 14,
+                    5 => 18,
+                    6 => 24,
+                    7 => 36,
+                    _ => 0
+                };
+                return size > 0;
+            }
+            return false;
+        }
+
+        private static void ApplyFontStyles(IElement element, ref TextFormatting formatting) {
+            ApplySpanStyles(element, ref formatting);
+
+            var colorAttr = NormalizeColor(element.GetAttribute("color"));
+            if (colorAttr != null) {
+                formatting.ColorHex = colorAttr;
+            }
+
+            if (TryParseHtmlFontSize(element.GetAttribute("size"), out int size)) {
+                formatting.FontSize = size;
+            }
+        }
+
         private static string MergeStyles(string parentStyle, string? childStyle) {
             var parser = new CssParser();
             var parent = parser.ParseDeclaration(parentStyle);
