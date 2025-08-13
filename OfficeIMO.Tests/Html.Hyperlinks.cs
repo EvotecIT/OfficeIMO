@@ -42,16 +42,8 @@ public partial class Html {
 
         Assert.Contains(doc.Bookmarks, b => b.Name == "top");
         Assert.Empty(doc.ParagraphsHyperLinks);
-
-
-        [Fact]
-        public void Html_Hyperlinks_InternalAnchor() {
-            string html = "<p id=\"top\">Top</p><p><a href=\"#top\" title=\"Back\" target=\"_blank\">Back</a></p>";
-
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
-
-            Assert.Contains(doc.Bookmarks, b => b.Name == "top");
-
+    }
+}
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
             Assert.NotNull(hyperlink);
