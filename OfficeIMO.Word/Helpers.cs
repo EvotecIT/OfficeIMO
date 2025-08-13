@@ -132,7 +132,7 @@ namespace OfficeIMO.Word {
                     }
                     if (ext.Equals(".svg", StringComparison.OrdinalIgnoreCase)) {
                         try {
-                            using var reader = new StreamReader(imageStream, leaveOpen: true);
+                            using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
                             var svg = System.Xml.Linq.XDocument.Load(reader);
                             var root = svg.Root;
                             double width = 0;
