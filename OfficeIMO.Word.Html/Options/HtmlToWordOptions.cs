@@ -57,5 +57,25 @@ namespace OfficeIMO.Word.Html {
         /// Raw CSS stylesheet contents that should be applied during conversion.
         /// </summary>
         public List<string> StylesheetContents { get; } = new List<string>();
+
+        /// <summary>
+        /// Specifies where table captions should be inserted relative to the table.
+        /// </summary>
+        public TableCaptionPosition TableCaptionPosition { get; set; } = TableCaptionPosition.Above;
+    }
+
+    /// <summary>
+    /// Determines the position of a table caption relative to the table.
+    /// </summary>
+    public enum TableCaptionPosition {
+        /// <summary>
+        /// Caption is placed before the table.
+        /// </summary>
+        Above,
+
+        /// <summary>
+        /// Caption is placed after the table.
+        /// </summary>
+        Below
     }
 }
