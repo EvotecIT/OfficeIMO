@@ -124,8 +124,9 @@ namespace OfficeIMO.Word.Html.Converters {
                             string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
                             var abbr = htmlDoc.CreateElement("abbr");
                             abbr.SetAttribute("title", text);
-                            abbr.AppendChild(nodes[^1]);
-                            nodes[^1] = abbr;
+                            var lastNode = nodes[nodes.Count - 1];
+                            abbr.AppendChild(lastNode);
+                            nodes[nodes.Count - 1] = abbr;
                         } else {
                             long id = note.ReferenceId ?? 0;
                             if (!footnoteMap.TryGetValue(id, out int number)) {
