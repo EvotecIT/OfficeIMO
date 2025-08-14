@@ -79,13 +79,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.Style = style.Value;
             }
 
-            var styleText = element.GetAttribute("style") ?? string.Empty;
-            var declaration = _inlineParser.ParseDeclaration(styleText);
-            if (declaration.Length == 0) {
-                return;
-            }
-
-            int? marginLeft = null, marginRight = null, marginTop = null, marginBottom = null;
+            var parsed = CssStyleMapper.ParseStyles(styleAttribute);
+            var declaration = _inlineParser.ParseDeclaration(styleAttribute ?? string.Empty);
+            int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
             int? paddingLeft = null, paddingRight = null, paddingTop = null, paddingBottom = null;
             JustificationValues? alignment = null;
 
@@ -94,11 +90,17 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.SetColorHex(colorVal);
             }
 
-            var bgColorVal = NormalizeColor(declaration.GetPropertyValue("background-color"));
-            if (bgColorVal != null) {
-                var highlight = MapColorToHighlight(bgColorVal);
+            if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
+                var highlight = MapColorToHighlight(parsed.BackgroundColor);
                 if (highlight.HasValue) {
                     paragraph.SetHighlight(highlight.Value);
+                }
+            }
+
+            if (parsed.LineHeight.HasValue) {
+                paragraph.LineSpacing = parsed.LineHeight.Value;
+                if (parsed.LineHeightRule.HasValue) {
+                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value;
                 }
             }
 
@@ -117,10 +119,6 @@ namespace OfficeIMO.Word.Html.Converters {
                 };
             }
 
-            if (TryConvertToTwip(declaration.GetProperty("margin-left")?.RawValue, out int ml)) marginLeft = ml;
-            if (TryConvertToTwip(declaration.GetProperty("margin-right")?.RawValue, out int mr)) marginRight = mr;
-            if (TryConvertToTwip(declaration.GetProperty("margin-top")?.RawValue, out int mt)) marginTop = mt;
-            if (TryConvertToTwip(declaration.GetProperty("margin-bottom")?.RawValue, out int mb)) marginBottom = mb;
             if (TryConvertToTwip(declaration.GetProperty("padding-left")?.RawValue, out int pl)) paddingLeft = pl;
             if (TryConvertToTwip(declaration.GetProperty("padding-right")?.RawValue, out int pr)) paddingRight = pr;
             if (TryConvertToTwip(declaration.GetProperty("padding-top")?.RawValue, out int pt)) paddingTop = pt;
@@ -186,8 +184,9 @@ namespace OfficeIMO.Word.Html.Converters {
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
             var styleText = element.GetAttribute("style") ?? string.Empty;
+            var parsed = CssStyleMapper.ParseStyles(styleText);
             var declaration = _inlineParser.ParseDeclaration(styleText);
-            if (declaration.Length == 0) {
+            if (declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline && !parsed.Strike) {
                 return;
             }
 
@@ -235,21 +234,14 @@ namespace OfficeIMO.Word.Html.Converters {
                 formatting.Subscript = false;
             }
 
-            var decoValue = declaration.GetPropertyValue("text-decoration");
-            foreach (var deco in decoValue.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                switch (deco.Trim().ToLowerInvariant()) {
-                    case "underline":
-                        formatting.Underline = true;
-                        break;
-                    case "line-through":
-                        formatting.Strike = true;
-                        break;
-                }
+            if (parsed.Underline) {
+                formatting.Underline = true;
             }
-
-            var bgColor = NormalizeColor(declaration.GetPropertyValue("background-color"));
-            if (bgColor != null) {
-                var highlight = MapColorToHighlight(bgColor);
+            if (parsed.Strike) {
+                formatting.Strike = true;
+            }
+            if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
+                var highlight = MapColorToHighlight(parsed.BackgroundColor);
                 if (highlight.HasValue) {
                     formatting.Highlight = highlight.Value;
                 }
