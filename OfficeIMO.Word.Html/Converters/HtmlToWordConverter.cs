@@ -497,9 +497,53 @@ namespace OfficeIMO.Word.Html.Converters {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
-                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
-                            ApplyFormatting(close, fmt, options);
-                            close.SetCharacterStyleId("HtmlQuote");
+                        var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                        ApplyFormatting(close, fmt, options);
+                        close.SetCharacterStyleId("HtmlQuote");
+                        break;
+                    }
+                    case "cite": {
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var fmt = formatting;
+                            fmt.Italic = true;
+                            ApplySpanStyles(element, ref fmt);
+                            int startRuns = currentParagraph.GetRuns().Count();
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            var runs = currentParagraph.GetRuns().ToList();
+                            for (int i = startRuns; i < runs.Count; i++) {
+                                runs[i].SetCharacterStyleId("HtmlCite");
+                            }
+                            break;
+                        }
+                    case "dfn": {
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var fmt = formatting;
+                            fmt.Italic = true;
+                            ApplySpanStyles(element, ref fmt);
+                            int startRuns = currentParagraph.GetRuns().Count();
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            var runs = currentParagraph.GetRuns().ToList();
+                            for (int i = startRuns; i < runs.Count; i++) {
+                                runs[i].SetCharacterStyleId("HtmlDfn");
+                            }
+                            break;
+                        }
+                    case "time": {
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
+                            int startRuns = currentParagraph.GetRuns().Count();
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            var runs = currentParagraph.GetRuns().ToList();
+                            for (int i = startRuns; i < runs.Count; i++) {
+                                runs[i].SetCharacterStyleId("HtmlTime");
+                            }
                             break;
                         }
                     case "sup": {
