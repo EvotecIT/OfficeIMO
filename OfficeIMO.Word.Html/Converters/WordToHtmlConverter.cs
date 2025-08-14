@@ -286,7 +286,8 @@ namespace OfficeIMO.Word.Html.Converters {
                         var font = run.FontFamily ?? options.FontFamily;
                         if (!string.IsNullOrEmpty(font)) {
                             var span = htmlDoc.CreateElement("span");
-                            span.SetAttribute("style", $"font-family:{font}");
+                            var value = font.Contains(' ') ? $"\"{font}\"" : font;
+                            span.SetAttribute("style", $"font-family:{value}");
                             span.AppendChild(node);
                             node = span;
                         }
@@ -738,7 +739,8 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             var font = rPr.RunFonts?.Ascii;
                             if (!string.IsNullOrEmpty(font)) {
-                                props["font-family"] = font;
+                                string value = font;
+                                props["font-family"] = value.Contains(' ') ? $"\"{value}\"" : value;
                             }
                         }
                     }

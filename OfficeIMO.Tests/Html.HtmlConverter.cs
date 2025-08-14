@@ -125,12 +125,16 @@ public partial class Html {
     [Fact]
     public void Test_Html_FontResolver() {
         string html = "<p>Hello</p>";
-        
+
         var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "monospace" });
         string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
-        
-        Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
+
+        string expected = FontResolver.Resolve("monospace")!;
+        Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(expected, roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
+
 
     [Fact]
     public void Test_Html_Urls_CreateHyperlinks() {

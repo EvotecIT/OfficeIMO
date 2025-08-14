@@ -75,14 +75,29 @@ namespace OfficeIMO.Word.Html.Converters {
         private static bool IsGenericFont(string family) =>
             string.Equals(family, "serif", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(family, "sans-serif", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "monospace", StringComparison.OrdinalIgnoreCase);
+            string.Equals(family, "monospace", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "cursive", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "fantasy", StringComparison.OrdinalIgnoreCase);
 
         private static string? ResolveFontFamily(string? family) {
             if (string.IsNullOrWhiteSpace(family)) {
                 return null;
             }
-            var trimmed = family.Trim('"', '\'', ' ');
-            return IsGenericFont(trimmed) ? FontResolver.Resolve(trimmed) : trimmed;
+            foreach (var part in family.Split(',')) {
+                var trimmed = part.Trim('"', '\'', ' ');
+                if (string.IsNullOrEmpty(trimmed)) {
+                    continue;
+                }
+                if (IsGenericFont(trimmed)) {
+                    var resolved = FontResolver.Resolve(trimmed);
+                    if (!string.IsNullOrEmpty(resolved)) {
+                        return resolved;
+                    }
+                } else {
+                    return trimmed;
+                }
+            }
+            return null;
         }
 
         private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
