@@ -188,17 +188,17 @@ namespace OfficeIMO.Word.Html.Helpers {
                 return false;
             }
             value = value.Trim().ToLowerInvariant();
-            if (value.EndsWith("pt") && double.TryParse(value[..^2], NumberStyles.Number, CultureInfo.InvariantCulture, out double pt)) {
+            if (value.EndsWith("pt") && double.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double pt)) {
                 twips = (int)Math.Round(pt * 20);
                 rule = LineSpacingRuleValues.Exact;
                 return true;
             }
-            if (value.EndsWith("px") && double.TryParse(value[..^2], NumberStyles.Number, CultureInfo.InvariantCulture, out double px)) {
+            if (value.EndsWith("px") && double.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double px)) {
                 twips = (int)Math.Round(px * 15);
                 rule = LineSpacingRuleValues.Exact;
                 return true;
             }
-            if (value.EndsWith("%") && double.TryParse(value[..^1], NumberStyles.Number, CultureInfo.InvariantCulture, out double percent)) {
+            if (value.EndsWith("%") && double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Number, CultureInfo.InvariantCulture, out double percent)) {
                 twips = (int)Math.Round(percent / 100d * 240d);
                 rule = LineSpacingRuleValues.Auto;
                 return true;
