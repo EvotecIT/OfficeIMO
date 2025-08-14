@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
@@ -35,8 +36,10 @@ namespace OfficeIMO.Word.Html.Converters {
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
+        private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
@@ -56,6 +59,7 @@ namespace OfficeIMO.Word.Html.Converters {
             _footnoteMap.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _cssClassStyles.Clear();
 
             foreach (var path in options.StylesheetPaths) {
                 if (string.IsNullOrEmpty(path)) {
@@ -848,14 +852,14 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
-        private static void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
+        private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
             string? classAttr = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(classAttr)) {
                 return;
             }
 
             foreach (var cls in classAttr.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (options.ClassStyles.TryGetValue(cls, out var style)) {
+                if (options.ClassStyles.TryGetValue(cls, out var style) || _cssClassStyles.TryGetValue(cls, out style)) {
                     paragraph.Style = style;
                     break;
                 }
@@ -881,6 +885,18 @@ namespace OfficeIMO.Word.Html.Converters {
 
             foreach (var rule in rules) {
                 _cssRules.Add(rule);
+
+                var mapped = CssStyleMapper.MapParagraphStyle(rule.Style?.CssText);
+                if (mapped.HasValue) {
+                    var selectorText = rule.SelectorText;
+                    if (!string.IsNullOrWhiteSpace(selectorText)) {
+                        foreach (var part in selectorText.Split(',')) {
+                            foreach (Match match in _classRegex.Matches(part)) {
+                                _cssClassStyles[match.Groups[1].Value] = mapped.Value;
+                            }
+                        }
+                    }
+                }
             }
         }
 
