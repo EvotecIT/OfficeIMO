@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.Html {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
             cancellationToken.ThrowIfCancellationRequested();
             var converter = new WordToHtmlConverter();
-            return await converter.ConvertAsync(document, options ?? new WordToHtmlOptions()).ConfigureAwait(false);
+            return await converter.ConvertAsync(document, options ?? new WordToHtmlOptions(), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.Html {
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
             var converter = new HtmlToWordConverter();
-            return await converter.ConvertAsync(html, options ?? new HtmlToWordOptions()).ConfigureAwait(false);
+            return await converter.ConvertAsync(html, options ?? new HtmlToWordOptions(), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -101,8 +101,12 @@ namespace OfficeIMO.Word.Html {
             if (htmlStream == null) throw new System.ArgumentNullException(nameof(htmlStream));
             cancellationToken.ThrowIfCancellationRequested();
             using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+#if NET8_0_OR_GREATER
+            string html = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
             string html = await reader.ReadToEndAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+#endif
             return await LoadFromHtmlAsync(html, options, cancellationToken).ConfigureAwait(false);
         }
 
@@ -132,7 +136,7 @@ namespace OfficeIMO.Word.Html {
 
             var section = doc.Sections.Last();
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToBodyAsync(doc, section, html, options).ConfigureAwait(false);
+            await converter.AddHtmlToBodyAsync(doc, section, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -174,7 +178,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToHeaderAsync(doc, header, html, options).ConfigureAwait(false);
+            await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -216,7 +220,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToFooterAsync(doc, footer, html, options).ConfigureAwait(false);
+            await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 

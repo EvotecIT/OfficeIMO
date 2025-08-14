@@ -13,6 +13,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Security.Cryptography;
@@ -36,14 +37,15 @@ namespace OfficeIMO.Word.Html.Converters {
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
-        public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options) {
+        public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
+            cancellationToken.ThrowIfCancellationRequested();
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
-            var document = await context.OpenAsync(req => req.Content(html));
+            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
 
             var wordDoc = WordDocument.Create();
 
@@ -57,14 +59,14 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
                     if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()));
+                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
                     } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
                         ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
                     }
                 } else if (document.BaseUrl != null) {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url);
+                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
                     } else if (url.Scheme == "file" && File.Exists(url.Path)) {
                         ParseCss(File.ReadAllText(url.Path), url.Path);
                     }
@@ -108,7 +110,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (baseUri != null) {
                         var combined = new Uri(baseUri, hrefAttr);
                         if (combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps) {
-                            await LoadAndParseCssAsync(context, new Url(combined.ToString()));
+                            await LoadAndParseCssAsync(context, new Url(combined.ToString()), cancellationToken).ConfigureAwait(false);
                         } else if (combined.Scheme == Uri.UriSchemeFile && File.Exists(combined.LocalPath)) {
                             ParseCss(File.ReadAllText(combined.LocalPath), combined.LocalPath);
                         }
@@ -138,20 +140,23 @@ namespace OfficeIMO.Word.Html.Converters {
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
             foreach (var child in document.Body.ChildNodes) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return wordDoc;
         }
 
-        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, string html, HtmlToWordOptions options) {
+        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
+            cancellationToken.ThrowIfCancellationRequested();
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
-            var document = await context.OpenAsync(req => req.Content(html));
+            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
 
             _footnoteMap.Clear();
             _cssRules.Clear();
@@ -163,14 +168,14 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
                     if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()));
+                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
                     } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
                         ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
                     }
                 } else if (document.BaseUrl != null) {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url);
+                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
                     } else if (url.Scheme == "file" && File.Exists(url.Path)) {
                         ParseCss(File.ReadAllText(url.Path), url.Path);
                     }
@@ -214,7 +219,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (baseUri != null) {
                         var combined = new Uri(baseUri, hrefAttr);
                         if (combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps) {
-                            await LoadAndParseCssAsync(context, new Url(combined.ToString()));
+                            await LoadAndParseCssAsync(context, new Url(combined.ToString()), cancellationToken).ConfigureAwait(false);
                         } else if (combined.Scheme == Uri.UriSchemeFile && File.Exists(combined.LocalPath)) {
                             ParseCss(File.ReadAllText(combined.LocalPath), combined.LocalPath);
                         }
@@ -225,6 +230,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var footnoteSection = document.QuerySelector("section.footnotes");
             if (footnoteSection != null) {
                 foreach (var li in footnoteSection.QuerySelectorAll("li")) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var id = li.GetAttribute("id");
                     if (!string.IsNullOrEmpty(id)) {
                         _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
@@ -236,26 +242,28 @@ namespace OfficeIMO.Word.Html.Converters {
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
             foreach (var child in document.Body.ChildNodes) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
         }
 
-        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options) {
-            await AddHtmlToHeaderFooterAsync(doc, header, html, options);
+        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, string html, HtmlToWordOptions options) {
-            await AddHtmlToHeaderFooterAsync(doc, footer, html, options);
+        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, string html, HtmlToWordOptions options) {
+        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, string html, HtmlToWordOptions options, CancellationToken cancellationToken) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
+            cancellationToken.ThrowIfCancellationRequested();
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
-            var document = await context.OpenAsync(req => req.Content(html));
+            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
 
             _footnoteMap.Clear();
             _cssRules.Clear();
@@ -267,14 +275,14 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
                     if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()));
+                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
                     } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
                         ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
                     }
                 } else if (document.BaseUrl != null) {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url);
+                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
                     } else if (url.Scheme == "file" && File.Exists(url.Path)) {
                         ParseCss(File.ReadAllText(url.Path), url.Path);
                     }
@@ -318,7 +326,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     if (baseUri != null) {
                         var combined = new Uri(baseUri, hrefAttr);
                         if (combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps) {
-                            await LoadAndParseCssAsync(context, new Url(combined.ToString()));
+                            await LoadAndParseCssAsync(context, new Url(combined.ToString()), cancellationToken).ConfigureAwait(false);
                         } else if (combined.Scheme == Uri.UriSchemeFile && File.Exists(combined.LocalPath)) {
                             ParseCss(File.ReadAllText(combined.LocalPath), combined.LocalPath);
                         }
@@ -329,6 +337,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var footnoteSection = document.QuerySelector("section.footnotes");
             if (footnoteSection != null) {
                 foreach (var li in footnoteSection.QuerySelectorAll("li")) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var id = li.GetAttribute("id");
                     if (!string.IsNullOrEmpty(id)) {
                         _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
@@ -341,21 +350,28 @@ namespace OfficeIMO.Word.Html.Converters {
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
             foreach (var child in document.Body.ChildNodes) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
             }
         }
 
-        private async Task LoadAndParseCssAsync(IBrowsingContext context, Url url) {
+        private async Task LoadAndParseCssAsync(IBrowsingContext context, Url url, CancellationToken cancellationToken) {
             var loader = context.GetService<IResourceLoader>();
             if (loader == null) {
                 return;
             }
             var request = new ResourceRequest(null, url);
             var download = loader.FetchAsync(request);
-            var response = await download.Task;
+            var response = await download.Task.ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             if (response.StatusCode == HttpStatusCode.OK) {
                 using var reader = new StreamReader(response.Content);
-                var css = await reader.ReadToEndAsync();
+#if NET8_0_OR_GREATER
+                var css = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
+                var css = await reader.ReadToEndAsync().ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+#endif
                 ParseCss(css, url.Href);
             }
         }
@@ -797,7 +813,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                             if (url.Scheme == "http" || url.Scheme == "https") {
                                 if (_context != null) {
-                                    LoadAndParseCssAsync(_context, url).GetAwaiter().GetResult();
+                                    LoadAndParseCssAsync(_context, url, CancellationToken.None).GetAwaiter().GetResult();
                                 }
                             } else if (url.Scheme == "file" && File.Exists(url.Path)) {
                                 ParseCss(File.ReadAllText(url.Path), url.Path);

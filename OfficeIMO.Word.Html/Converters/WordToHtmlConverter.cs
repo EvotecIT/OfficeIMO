@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html.Converters {
@@ -23,12 +24,14 @@ namespace OfficeIMO.Word.Html.Converters {
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Conversion options controlling HTML output.</param>
         /// <returns>HTML representation of the document.</returns>
-        public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options) {
+        public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToHtmlOptions();
+            cancellationToken.ThrowIfCancellationRequested();
 
             var context = BrowsingContext.New(Configuration.Default);
-            var htmlDoc = await context.OpenNewAsync();
+            var htmlDoc = await context.OpenNewAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
             var head = htmlDoc.Head;
             var body = htmlDoc.Body;
@@ -59,6 +62,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             foreach (var (name, content) in options.AdditionalMetaTags) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(name)) {
                     var meta = htmlDoc.CreateElement("meta");
                     meta.SetAttribute("name", name);
@@ -70,6 +74,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             foreach (var (rel, href) in options.AdditionalLinkTags) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
                     var link = htmlDoc.CreateElement("link");
                     link.SetAttribute("rel", rel);
@@ -299,6 +304,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                 }
                 foreach (var node in nodes) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     parent.AppendChild(node);
                 }
             }
@@ -533,6 +539,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                         if (cell.HasNestedTables) {
                             foreach (var nested in cell.NestedTables) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 AppendTable(td, nested);
                             }
                         }
@@ -584,6 +591,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var elements = section.Elements;
                 for (int idx = 0; idx < elements.Count; idx++) {
                     var element = elements[idx];
@@ -659,8 +667,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 var hr = htmlDoc.CreateElement("hr");
                 footSection.AppendChild(hr);
                 var ol = htmlDoc.CreateElement("ol");
-                foreach (var (number, note) in footnotes) {
-                    var li = htmlDoc.CreateElement("li");
+            foreach (var (number, note) in footnotes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var li = htmlDoc.CreateElement("li");
                     li.SetAttribute("id", $"fn{number}");
                     var p = htmlDoc.CreateElement("p");
                     string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
@@ -740,10 +749,12 @@ namespace OfficeIMO.Word.Html.Converters {
                 var sb = new StringBuilder();
 
                 foreach (var s in paragraphStyles) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var css = BuildCss(s);
                     sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
                 }
                 foreach (var s in runStyles) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var css = BuildCss(s);
                     sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
                 }
