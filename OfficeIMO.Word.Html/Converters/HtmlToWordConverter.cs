@@ -48,6 +48,10 @@ namespace OfficeIMO.Word.Html.Converters {
             var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
 
             var wordDoc = WordDocument.Create();
+            if (!string.IsNullOrEmpty(options.FontFamily)) {
+                var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;
+                wordDoc.Settings.FontFamily = resolved;
+            }
 
             _footnoteMap.Clear();
             _cssRules.Clear();

@@ -282,11 +282,15 @@ namespace OfficeIMO.Word.Html.Converters {
                         handledHtmlStyle = true;
                     }
 
-                    if (options.IncludeFontStyles && !string.IsNullOrEmpty(options.FontFamily)) {
-                        var span = htmlDoc.CreateElement("span");
-                        span.SetAttribute("style", $"font-family:{options.FontFamily}");
-                        span.AppendChild(node);
-                        node = span;
+                    if (options.IncludeFontStyles) {
+                        var font = run.FontFamily ?? options.FontFamily;
+                        if (!string.IsNullOrEmpty(font)) {
+                            var span = htmlDoc.CreateElement("span");
+                            var value = font.Contains(' ') ? $"\"{font}\"" : font;
+                            span.SetAttribute("style", $"font-family:{value}");
+                            span.AppendChild(node);
+                            node = span;
+                        }
                     }
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
@@ -735,7 +739,8 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             var font = rPr.RunFonts?.Ascii;
                             if (!string.IsNullOrEmpty(font)) {
-                                props["font-family"] = font;
+                                string value = font;
+                                props["font-family"] = value.Contains(' ') ? $"\"{value}\"" : value;
                             }
                         }
                     }

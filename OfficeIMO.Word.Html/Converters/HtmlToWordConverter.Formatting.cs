@@ -72,6 +72,34 @@ namespace OfficeIMO.Word.Html.Converters {
             return false;
         }
 
+        private static bool IsGenericFont(string family) =>
+            string.Equals(family, "serif", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "sans-serif", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "monospace", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "cursive", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(family, "fantasy", StringComparison.OrdinalIgnoreCase);
+
+        private static string? ResolveFontFamily(string? family) {
+            if (string.IsNullOrWhiteSpace(family)) {
+                return null;
+            }
+            foreach (var part in family.Split(',')) {
+                var trimmed = part.Trim('"', '\'', ' ');
+                if (string.IsNullOrEmpty(trimmed)) {
+                    continue;
+                }
+                if (IsGenericFont(trimmed)) {
+                    var resolved = FontResolver.Resolve(trimmed);
+                    if (!string.IsNullOrEmpty(resolved)) {
+                        return resolved;
+                    }
+                } else {
+                    return trimmed;
+                }
+            }
+            return null;
+        }
+
         private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
             string? styleAttribute = element.GetAttribute("style");
             var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
@@ -176,9 +204,15 @@ namespace OfficeIMO.Word.Html.Converters {
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
-                run.SetFontFamily(formatting.FontFamily);
+                var font = ResolveFontFamily(formatting.FontFamily);
+                if (!string.IsNullOrEmpty(font)) {
+                    run.SetFontFamily(font);
+                }
             } else if (!string.IsNullOrEmpty(options.FontFamily)) {
-                run.SetFontFamily(options.FontFamily);
+                var font = ResolveFontFamily(options.FontFamily);
+                if (!string.IsNullOrEmpty(font)) {
+                    run.SetFontFamily(font);
+                }
             }
         }
 
@@ -197,7 +231,10 @@ namespace OfficeIMO.Word.Html.Converters {
 
             var family = declaration.GetPropertyValue("font-family");
             if (!string.IsNullOrWhiteSpace(family)) {
-                formatting.FontFamily = family.Trim('"', '\'', ' ');
+                var resolved = ResolveFontFamily(family);
+                if (!string.IsNullOrEmpty(resolved)) {
+                    formatting.FontFamily = resolved;
+                }
             }
 
             if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int size)) {

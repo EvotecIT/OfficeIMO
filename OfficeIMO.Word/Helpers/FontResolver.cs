@@ -12,19 +12,25 @@ public static class FontResolver {
     private static readonly Dictionary<string, string> _windowsFonts = new(StringComparer.OrdinalIgnoreCase) {
         { "serif", "Times New Roman" },
         { "sans-serif", "Calibri" },
-        { "monospace", "Consolas" }
+        { "monospace", "Consolas" },
+        { "cursive", "Comic Sans MS" },
+        { "fantasy", "Impact" }
     };
 
     private static readonly Dictionary<string, string> _linuxFonts = new(StringComparer.OrdinalIgnoreCase) {
         { "serif", "DejaVu Serif" },
         { "sans-serif", "DejaVu Sans" },
-        { "monospace", "DejaVu Sans Mono" }
+        { "monospace", "DejaVu Sans Mono" },
+        { "cursive", "DejaVu Sans" },
+        { "fantasy", "DejaVu Sans" }
     };
 
     private static readonly Dictionary<string, string> _macFonts = new(StringComparer.OrdinalIgnoreCase) {
         { "serif", "Times" },
         { "sans-serif", "Helvetica" },
-        { "monospace", "Menlo" }
+        { "monospace", "Menlo" },
+        { "cursive", "Apple Chancery" },
+        { "fantasy", "Papyrus" }
     };
 
     private static readonly string[] _windowsFallbackFonts = {

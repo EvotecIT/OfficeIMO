@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using OfficeIMO.Word;
 using Xunit;
@@ -29,6 +30,14 @@ public class FontResolverTests {
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
             Assert.Equal("Helvetica", resolved);
         }
+    }
+
+    [Theory]
+    [InlineData("cursive")]
+    [InlineData("fantasy")]
+    public void Resolve_ExtendedGenericFonts(string generic) {
+        string resolved = FontResolver.Resolve(generic)!;
+        Assert.False(string.Equals(resolved, generic, StringComparison.OrdinalIgnoreCase));
     }
 }
 

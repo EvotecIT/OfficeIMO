@@ -122,15 +122,19 @@ public partial class Html {
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Skip = "TODO: Implement font family mapping and CSS font-family support")]
+    [Fact]
     public void Test_Html_FontResolver() {
         string html = "<p>Hello</p>";
-        
+
         var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "monospace" });
         string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
-        
-        Assert.Contains($"font-family:{FontResolver.Resolve("monospace")}", roundTrip, StringComparison.OrdinalIgnoreCase);
+
+        string expected = FontResolver.Resolve("monospace")!;
+        Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(expected, roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
+
 
     [Fact]
     public void Test_Html_Urls_CreateHyperlinks() {
