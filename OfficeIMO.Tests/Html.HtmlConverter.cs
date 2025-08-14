@@ -58,8 +58,8 @@ public partial class Html {
         string html = "<ul><li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li><li>Item 2</li></ul><ol><li>First</li><li>Second</li></ol>";
         
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
-
+        Assert.Single(inner.Rows);
+        Assert.Single(inner.Rows[0].Cells);
         Assert.Contains("<ul", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<ol", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Sub 1", roundTrip, StringComparison.OrdinalIgnoreCase);

@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Converters.Html {
             using var document = html.LoadFromHtml();
             document.Save(filePath);
             Console.WriteLine($"Document saved to: {filePath}");
-            if (openWord) WordDocument.Open(filePath);
+            if (openWord) document.Open();
         }
     }
 }

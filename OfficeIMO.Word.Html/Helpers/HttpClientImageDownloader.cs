@@ -18,9 +18,12 @@ namespace OfficeIMO.Word.Html.Helpers {
                 return bytes;
             }
 
-            var data = await _client.GetByteArrayAsync(uri, cancellationToken).ConfigureAwait(false);
-            _cache[uri] = data;
-            return data;
+            using (var response = await _client.GetAsync(uri, cancellationToken).ConfigureAwait(false)) {
+                response.EnsureSuccessStatusCode();
+                var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                _cache[uri] = data;
+                return data;
+            }
         }
 
         public void Dispose() {
