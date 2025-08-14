@@ -46,26 +46,25 @@ public partial class Html {
         string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
 
         for (int i = 1; i <= 6; i++) {
-            string tag = $"h{i}";
-            Assert.Contains("<" + tag + ">", roundTrip, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains($"Heading {i}", roundTrip, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</" + tag + ">", roundTrip, StringComparison.OrdinalIgnoreCase);
-        }
-    }
+    public void Test_Html_NestedTable_RoundTrip() {
+        string html = "<table><tr><td>Outer</td><td><table><tr><td>Inner</td></tr></table></td></tr></table>";
 
-    [Fact]
-    public void Test_Html_Lists_RoundTrip() {
-        string html = "<ul><li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li><li>Item 2</li></ul><ol><li>First</li><li>Second</li></ol>";
-        
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
-        Assert.Single(inner.Rows);
-        Assert.Single(inner.Rows[0].Cells);
-        Assert.Contains("<ul", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<ol", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Sub 1", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Second", roundTrip, StringComparison.OrdinalIgnoreCase);
-    }
 
+        Assert.Single(doc.Sections[0].Tables);
+        var outer = doc.Sections[0].Tables[0];
+        Assert.Collection(outer.Rows[0].Cells, _ => { }, _ => { });
+
+        var innerTable = outer.Rows[0].Cells[1].NestedTables[0];
+        Assert.Single(innerTable.Rows);
+        Assert.Single(innerTable.Rows[0].Cells);
+
+        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+        int tableCount = roundTrip.Split(new[] { "<table" }, StringSplitOptions.RemoveEmptyEntries).Length;
+        Assert.True(tableCount >= 2);
+        Assert.Contains("Outer", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Inner", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
     [Fact]
     public void Test_Html_Table_RoundTrip() {
         string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
@@ -307,13 +306,13 @@ public partial class Html {
     }
 
     [Fact]
-    public void Test_Html_Image_File_Conversion() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
-        string uri = new Uri(assetPath).AbsoluteUri;
-        string html = $"<p><img src=\"{uri}\" /></p>";
+    public void Test_Html_HorizontalRule_RoundTrip() {
+        string html = "<p>Before</p><hr><p>After</p>";
 
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
+        Assert.Collection(doc.Paragraphs, _ => { }, _ => { }, _ => { });
+        Assert.NotNull(doc.Paragraphs[1].Borders.BottomStyle);
         Assert.Single(doc.Images);
     }
 
