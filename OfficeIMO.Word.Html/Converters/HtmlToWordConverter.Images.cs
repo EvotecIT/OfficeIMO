@@ -76,7 +76,13 @@ namespace OfficeIMO.Word.Html.Converters {
             } else {
                 try {
                     using HttpClient client = new HttpClient();
+#if NETSTANDARD2_0 || NET472
+                    var response = client.GetAsync(src, _cancellationToken).GetAwaiter().GetResult();
+                    response.EnsureSuccessStatusCode();
+                    var data = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+#else
                     var data = client.GetByteArrayAsync(src, _cancellationToken).GetAwaiter().GetResult();
+#endif
                     using var ms = new MemoryStream(data);
                     string fileName = "image";
                     try {
@@ -123,7 +129,13 @@ namespace OfficeIMO.Word.Html.Converters {
                 svgContent = File.ReadAllText(src);
             } else {
                 using HttpClient client = new HttpClient();
+#if NETSTANDARD2_0 || NET472
+                var response = client.GetAsync(src, _cancellationToken).GetAwaiter().GetResult();
+                response.EnsureSuccessStatusCode();
+                svgContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+#else
                 svgContent = client.GetStringAsync(src, _cancellationToken).GetAwaiter().GetResult();
+#endif
             }
 
             SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
