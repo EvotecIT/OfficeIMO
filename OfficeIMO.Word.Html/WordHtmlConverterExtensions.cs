@@ -76,8 +76,9 @@ namespace OfficeIMO.Word.Html {
         public static async Task<WordDocument> LoadFromHtmlAsync(this string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
-            var converter = new HtmlToWordConverter();
-            return await converter.ConvertAsync(html, options ?? new HtmlToWordOptions(), cancellationToken).ConfigureAwait(false);
+            options ??= new HtmlToWordOptions();
+            var converter = new HtmlToWordConverter(options.ImageDownloader);
+            return await converter.ConvertAsync(html, options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -135,7 +136,7 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlToWordOptions();
 
             var section = doc.Sections.Last();
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(options.ImageDownloader);
             await converter.AddHtmlToBodyAsync(doc, section, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -177,7 +178,7 @@ namespace OfficeIMO.Word.Html {
                 header = doc.Header.Default;
             }
 
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(options.ImageDownloader);
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -219,7 +220,7 @@ namespace OfficeIMO.Word.Html {
                 footer = doc.Footer.Default;
             }
 
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(options.ImageDownloader);
             await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }

@@ -8,11 +8,12 @@ using SixLabors.ImageSharp;
 using SixColor = SixLabors.ImageSharp.Color;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+            Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, CancellationToken cancellationToken) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;
             int bodyRows = 0;
             foreach (var body in tableElem.Bodies) {
@@ -49,7 +50,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 ApplyClassStyle(caption, captionParagraph, options);
                 AddBookmarkIfPresent(caption, captionParagraph);
                 foreach (var child in caption.ChildNodes) {
-                    ProcessNode(child, doc, section, options, captionParagraph, listStack, new TextFormatting(), cell, headerFooter);
+                    ProcessNode(child, doc, section, options, captionParagraph, listStack, new TextFormatting(), cell, headerFooter, null, cancellationToken);
                 }
             }
 
@@ -88,7 +89,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
                         WordParagraph? innerParagraph = null;
                         foreach (var child in htmlCell.ChildNodes) {
-                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell, headerFooter);
+                            ProcessNode(child, doc, section, options, innerParagraph, listStack, new TextFormatting(), wordCell, headerFooter, null, cancellationToken);
                             if (wordCell.Paragraphs.Count > 0) {
                                 innerParagraph = wordCell.Paragraphs[wordCell.Paragraphs.Count - 1];
                             } else {
@@ -150,7 +151,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 ApplyClassStyle(caption, captionParagraphBelow, options);
                 AddBookmarkIfPresent(caption, captionParagraphBelow);
                 foreach (var child in caption.ChildNodes) {
-                    ProcessNode(child, doc, section, options, captionParagraphBelow, listStack, new TextFormatting(), cell, headerFooter);
+                    ProcessNode(child, doc, section, options, captionParagraphBelow, listStack, new TextFormatting(), cell, headerFooter, null, cancellationToken);
                 }
             }
         }

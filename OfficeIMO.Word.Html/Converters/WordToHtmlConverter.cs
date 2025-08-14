@@ -240,6 +240,12 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = u;
                     }
 
+                    if (run.Strike || run.DoubleStrike) {
+                        var s = htmlDoc.CreateElement("s");
+                        s.AppendChild(node);
+                        node = s;
+                    }
+
                     if (run.VerticalTextAlignment == VerticalPositionValues.Superscript) {
                         var sup = htmlDoc.CreateElement("sup");
                         sup.AppendChild(node);

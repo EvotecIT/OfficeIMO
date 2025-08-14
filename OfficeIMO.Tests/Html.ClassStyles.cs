@@ -21,5 +21,12 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(options);
             Assert.Equal(WordParagraphStyles.Heading2, doc.Paragraphs[0].Style);
         }
+
+        [Fact]
+        public void HtmlToWord_ClassStyles_FromStylesheet() {
+            string html = "<html><head><style>.title{mso-style-name:Heading1;}</style></head><body><p class=\"title\">Text</p></body></html>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
+        }
     }
 }

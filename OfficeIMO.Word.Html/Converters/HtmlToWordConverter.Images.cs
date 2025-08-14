@@ -5,13 +5,14 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Helpers;
 using System;
 using System.IO;
-using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
-        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private async Task ProcessImageAsync(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, CancellationToken cancellationToken) {
             var src = img.GetAttribute("src");
             if (string.IsNullOrEmpty(src)) return;
 
@@ -24,7 +25,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (src.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter);
+                await ProcessSvgImageAsync(src, img, doc, options, currentParagraph, headerFooter, cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -73,8 +74,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 image = paragraph.Image;
             } else {
                 try {
-                    using HttpClient client = new HttpClient();
-                    var data = client.GetByteArrayAsync(src).GetAwaiter().GetResult();
+                    var data = await _imageDownloader.DownloadAsync(src, cancellationToken).ConfigureAwait(false);
+                    if (data == null) {
+                        throw new Exception("Download failed");
+                    }
                     using var ms = new MemoryStream(data);
                     string fileName = "image";
                     try {
@@ -100,7 +103,7 @@ namespace OfficeIMO.Word.Html.Converters {
             _imageCache[src] = image;
         }
 
-        private void ProcessSvgImage(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private async Task ProcessSvgImageAsync(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, CancellationToken cancellationToken) {
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             var alt = img.AlternativeText;
@@ -119,8 +122,8 @@ namespace OfficeIMO.Word.Html.Converters {
             } else if (File.Exists(src)) {
                 svgContent = File.ReadAllText(src);
             } else {
-                using HttpClient client = new HttpClient();
-                svgContent = client.GetStringAsync(src).GetAwaiter().GetResult();
+                var data = await _imageDownloader.DownloadAsync(src, cancellationToken).ConfigureAwait(false);
+                svgContent = data != null ? Encoding.UTF8.GetString(data) : string.Empty;
             }
 
             SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);

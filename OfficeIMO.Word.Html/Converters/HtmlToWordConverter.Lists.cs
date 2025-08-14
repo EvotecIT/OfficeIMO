@@ -1,11 +1,20 @@
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System.Collections.Generic;
-using System.Reflection;
-
-namespace OfficeIMO.Word.Html.Converters {
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
+        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter, CancellationToken cancellationToken) {
+            foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {
+                ProcessListItem(li, doc, section, options, listStack, formatting, cell, headerFooter, cancellationToken);
+            }
+            listStack.Pop();
+        }
+        private void ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter, CancellationToken cancellationToken) {
+            foreach (var child in element.ChildNodes) {
+                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, null, cancellationToken);
+            }
+        }
+    }
     internal partial class HtmlToWordConverter {
         private int? _orderedListNumberId;
 

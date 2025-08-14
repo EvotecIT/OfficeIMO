@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.Html.Helpers;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -37,6 +38,11 @@ namespace OfficeIMO.Word.Html {
         /// Maps HTML class names to paragraph styles. Example: <code>ClassStyles["title"] = WordParagraphStyles.Heading1;</code>
         /// </summary>
         public Dictionary<string, WordParagraphStyles> ClassStyles { get; } = new Dictionary<string, WordParagraphStyles>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Service used to download external images.
+        /// </summary>
+        public IImageDownloader ImageDownloader { get; set; } = new HttpClientImageDownloader();
 
         /// <summary>
         /// When true, attempts to include list styling information during conversion.

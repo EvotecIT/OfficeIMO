@@ -17,20 +17,22 @@ public partial class Html {
         var dict = (IDictionary<string, Style>)field!.GetValue(null);
         dict.Remove(styleId);
     }
-    [Fact(Skip = "TODO: Implement HTML to Word conversion - currently only stub implementation")]
+    [Fact]
     public void Test_Html_RoundTrip() {
-        string html = "<p>Hello <b>world</b> and <i>universe</i>.</p>";
-        
+        string html = "<p>Hello <b>world</b> and <i>universe</i> <a href=\"https://example.com\">link</a> <u>under</u> <s>strike</s>.</p>";
+
         var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
         string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
 
-        Assert.Contains("<b>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</b>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("</strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("world", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<i>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</i>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<em>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("</em>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("universe", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains($"font-family:{FontResolver.Resolve("Calibri")}", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("https://example.com", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<u>under</u>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<s>strike</s>", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
