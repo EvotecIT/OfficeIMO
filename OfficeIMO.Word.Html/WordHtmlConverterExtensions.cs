@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Converters;
+using OfficeIMO.Word.Html.Helpers;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -62,8 +63,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="html">HTML content to convert.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromHtml(this string html, HtmlToWordOptions? options = null) {
-            return LoadFromHtmlAsync(html, options).GetAwaiter().GetResult();
+        public static WordDocument LoadFromHtml(this string html, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null) {
+            return LoadFromHtmlAsync(html, options, imageDownloader).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -73,10 +74,10 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> LoadFromHtmlAsync(this string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<WordDocument> LoadFromHtmlAsync(this string html, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null, CancellationToken cancellationToken = default) {
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(imageDownloader);
             return await converter.ConvertAsync(html, options ?? new HtmlToWordOptions(), cancellationToken).ConfigureAwait(false);
         }
 
@@ -86,8 +87,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="htmlStream">Stream containing HTML content.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromHtml(this Stream htmlStream, HtmlToWordOptions? options = null) {
-            return LoadFromHtmlAsync(htmlStream, options).GetAwaiter().GetResult();
+        public static WordDocument LoadFromHtml(this Stream htmlStream, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null) {
+            return LoadFromHtmlAsync(htmlStream, options, imageDownloader).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> LoadFromHtmlAsync(this Stream htmlStream, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<WordDocument> LoadFromHtmlAsync(this Stream htmlStream, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null, CancellationToken cancellationToken = default) {
             if (htmlStream == null) throw new System.ArgumentNullException(nameof(htmlStream));
             cancellationToken.ThrowIfCancellationRequested();
             using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
@@ -107,7 +108,7 @@ namespace OfficeIMO.Word.Html {
             string html = await reader.ReadToEndAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 #endif
-            return await LoadFromHtmlAsync(html, options, cancellationToken).ConfigureAwait(false);
+            return await LoadFromHtmlAsync(html, options, imageDownloader, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -116,8 +117,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="doc">Document to modify.</param>
         /// <param name="html">HTML fragment to insert.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToBody(this WordDocument doc, string html, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToBodyAsync(html, options).GetAwaiter().GetResult();
+        public static void AddHtmlToBody(this WordDocument doc, string html, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null) {
+            doc.AddHtmlToBodyAsync(html, options, imageDownloader).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -127,7 +128,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="html">HTML fragment to insert.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToBodyAsync(this WordDocument doc, string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToBodyAsync(this WordDocument doc, string html, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
@@ -135,7 +136,7 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlToWordOptions();
 
             var section = doc.Sections.Last();
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(imageDownloader);
             await converter.AddHtmlToBodyAsync(doc, section, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -147,8 +148,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="html">HTML fragment to insert.</param>
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToHeader(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToHeaderAsync(html, type, options).GetAwaiter().GetResult();
+        public static void AddHtmlToHeader(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null) {
+            doc.AddHtmlToHeaderAsync(html, type, options, imageDownloader).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -159,7 +160,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
@@ -177,7 +178,7 @@ namespace OfficeIMO.Word.Html {
                 header = doc.Header.Default;
             }
 
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(imageDownloader);
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -189,8 +190,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="html">HTML fragment to insert.</param>
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToFooter(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToFooterAsync(html, type, options).GetAwaiter().GetResult();
+        public static void AddHtmlToFooter(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null) {
+            doc.AddHtmlToFooterAsync(html, type, options, imageDownloader).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -201,7 +202,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToFooterAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToFooterAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, IImageDownloader? imageDownloader = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
@@ -219,7 +220,7 @@ namespace OfficeIMO.Word.Html {
                 footer = doc.Footer.Default;
             }
 
-            var converter = new HtmlToWordConverter();
+            var converter = new HtmlToWordConverter(imageDownloader);
             await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }

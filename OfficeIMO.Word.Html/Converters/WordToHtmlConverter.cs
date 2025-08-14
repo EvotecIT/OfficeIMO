@@ -234,6 +234,12 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = em;
                     }
 
+                    if (run.Strike || run.DoubleStrike) {
+                        var s = htmlDoc.CreateElement("s");
+                        s.AppendChild(node);
+                        node = s;
+                    }
+
                     if (run.Underline != null) {
                         var u = htmlDoc.CreateElement("u");
                         u.AppendChild(node);
