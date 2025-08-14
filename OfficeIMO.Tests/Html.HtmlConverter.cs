@@ -19,22 +19,15 @@ public partial class Html {
     }
     [Fact]
     public void Test_Html_RoundTrip() {
-        string html = "<p>Hello <strong>world</strong> and <em>universe</em>. <a href=\"https://example.com\">link</a> <u>under</u> <s>strike</s></p>";
-        
-        var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+        for (int i = 1; i <= 6; i++) {
+            Assert.Contains($"<h{i}>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains($"</h{i}>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains($"Heading {i}", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
 
-        Assert.Contains("<strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("world", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<em>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</em>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("universe", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("https://example.com", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</a>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<u>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("</u>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<s>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    [Fact]
+    public void Test_Html_Table_RoundTrip() {
+
         Assert.Contains("</s>", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -275,19 +268,8 @@ public partial class Html {
 
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
-        Assert.Equal("o", doc.Lists[0].Numbering.Levels[0]._level.LevelText.Val);
-    }
-
     [Fact]
-    public void Test_Html_Table_Structure() {
-        string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
-
-        var doc = html.LoadFromHtml(new HtmlToWordOptions());
-
-        using MemoryStream ms = new MemoryStream();
-        doc.Save(ms);
-        ms.Position = 0;
-        using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
+    public void Test_Html_ImageAlt_Preserved() {
         var cells = docx.MainDocumentPart!.Document.Body!.Descendants<TableCell>().ToArray();
         Assert.Contains("A", cells[0].InnerText);
         Assert.Contains("D", cells[3].InnerText);
