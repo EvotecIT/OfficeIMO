@@ -144,6 +144,102 @@ namespace OfficeIMO.Word.Html.Converters {
             return wordDoc;
         }
 
+        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, string html, HtmlToWordOptions options) {
+            if (html == null) throw new ArgumentNullException(nameof(html));
+            options ??= new HtmlToWordOptions();
+
+            var config = Configuration.Default.WithDefaultLoader();
+            var context = BrowsingContext.New(config);
+            _context = context;
+            var document = await context.OpenAsync(req => req.Content(html));
+
+            _footnoteMap.Clear();
+            _cssRules.Clear();
+            _imageCache.Clear();
+
+            foreach (var path in options.StylesheetPaths) {
+                if (string.IsNullOrEmpty(path)) {
+                    continue;
+                }
+                if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
+                    if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
+                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()));
+                    } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
+                        ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
+                    }
+                } else if (document.BaseUrl != null) {
+                    var url = new Url(new Url(document.BaseUrl), path);
+                    if (url.Scheme == "http" || url.Scheme == "https") {
+                        await LoadAndParseCssAsync(context, url);
+                    } else if (url.Scheme == "file" && File.Exists(url.Path)) {
+                        ParseCss(File.ReadAllText(url.Path), url.Path);
+                    }
+                } else if (File.Exists(path)) {
+                    ParseCss(File.ReadAllText(path), path);
+                }
+            }
+            foreach (var content in options.StylesheetContents) {
+                if (!string.IsNullOrEmpty(content)) {
+                    ParseCss(content);
+                }
+            }
+
+            if (document.Head != null) {
+                foreach (var style in document.Head.QuerySelectorAll("style")) {
+                    ParseCss(style.TextContent);
+                }
+                var baseElement = document.Head.QuerySelector("base[href]") as IHtmlBaseElement;
+                Uri? baseUri = null;
+                if (baseElement != null && Uri.TryCreate(baseElement.Href, UriKind.Absolute, out var bu)) {
+                    baseUri = bu;
+                } else if (document.BaseUrl != null && Uri.TryCreate(document.BaseUrl.Href, UriKind.Absolute, out var du)) {
+                    baseUri = du;
+                }
+                foreach (var link in document.Head.QuerySelectorAll("link")) {
+                    var rel = link.GetAttribute("rel");
+                    if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    var hrefAttr = link.GetAttribute("href");
+                    if (string.IsNullOrEmpty(hrefAttr)) {
+                        continue;
+                    }
+
+                    if (File.Exists(hrefAttr)) {
+                        ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
+                        continue;
+                    }
+
+                    if (baseUri != null) {
+                        var combined = new Uri(baseUri, hrefAttr);
+                        if (combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps) {
+                            await LoadAndParseCssAsync(context, new Url(combined.ToString()));
+                        } else if (combined.Scheme == Uri.UriSchemeFile && File.Exists(combined.LocalPath)) {
+                            ParseCss(File.ReadAllText(combined.LocalPath), combined.LocalPath);
+                        }
+                    }
+                }
+            }
+
+            var footnoteSection = document.QuerySelector("section.footnotes");
+            if (footnoteSection != null) {
+                foreach (var li in footnoteSection.QuerySelectorAll("li")) {
+                    var id = li.GetAttribute("id");
+                    if (!string.IsNullOrEmpty(id)) {
+                        _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
+                    }
+                }
+                footnoteSection.Remove();
+            }
+
+            var listStack = new Stack<WordList>();
+            WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
+            foreach (var child in document.Body.ChildNodes) {
+                ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+            }
+        }
+
         internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options) {
             await AddHtmlToHeaderFooterAsync(doc, header, html, options);
         }

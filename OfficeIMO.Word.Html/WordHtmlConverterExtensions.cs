@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Converters;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,6 +104,36 @@ namespace OfficeIMO.Word.Html {
             string html = await reader.ReadToEndAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return await LoadFromHtmlAsync(html, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Appends HTML content to the document's body.
+        /// </summary>
+        /// <param name="doc">Document to modify.</param>
+        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        public static void AddHtmlToBody(this WordDocument doc, string html, HtmlToWordOptions? options = null) {
+            doc.AddHtmlToBodyAsync(html, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Asynchronously appends HTML content to the document's body.
+        /// </summary>
+        /// <param name="doc">Document to modify.</param>
+        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        public static async Task AddHtmlToBodyAsync(this WordDocument doc, string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
+            if (html == null) throw new System.ArgumentNullException(nameof(html));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            options ??= new HtmlToWordOptions();
+
+            var section = doc.Sections.Last();
+            var converter = new HtmlToWordConverter();
+            await converter.AddHtmlToBodyAsync(doc, section, html, options).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         /// <summary>
