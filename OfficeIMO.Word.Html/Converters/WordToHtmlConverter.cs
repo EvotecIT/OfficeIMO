@@ -254,6 +254,29 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = a;
                     }
 
+                    bool handledHtmlStyle = false;
+                    if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
+                        var cite = htmlDoc.CreateElement("cite");
+                        cite.AppendChild(node);
+                        node = cite;
+                        handledHtmlStyle = true;
+                    } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {
+                        var dfn = htmlDoc.CreateElement("dfn");
+                        dfn.AppendChild(node);
+                        node = dfn;
+                        handledHtmlStyle = true;
+                    } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
+                        var time = htmlDoc.CreateElement("time");
+                        string dt = run.Text;
+                        if (DateTime.TryParse(run.Text, out var parsed)) {
+                            dt = parsed.ToString("o");
+                        }
+                        time.SetAttribute("datetime", dt);
+                        time.AppendChild(node);
+                        node = time;
+                        handledHtmlStyle = true;
+                    }
+
                     if (options.IncludeFontStyles && !string.IsNullOrEmpty(options.FontFamily)) {
                         var span = htmlDoc.CreateElement("span");
                         span.SetAttribute("style", $"font-family:{options.FontFamily}");
@@ -261,7 +284,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         node = span;
                     }
 
-                    if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId)) {
+                    if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = htmlDoc.CreateElement("span");
                         spanClass.SetAttribute("class", run.CharacterStyleId);
                         spanClass.AppendChild(node);
