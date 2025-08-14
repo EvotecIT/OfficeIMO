@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Html {
     internal static partial class Html {
         public static void Example_HtmlRoundTrip(string folderPath, bool openWord) {
             string filePath = Path.Combine(folderPath, "HtmlRoundTrip.docx");
-            string html = "<p>Hello <b>world</b> and <i>universe</i>.</p>";
+            string html = "<p>Hello <b>world</b> and <i>universe</i>. <u>under</u> <s>strike</s> <a href=\"https://example.com\">link</a></p>";
 
             // Convert HTML to Word document
             var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
