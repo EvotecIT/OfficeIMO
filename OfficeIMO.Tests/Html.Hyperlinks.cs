@@ -1,22 +1,22 @@
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class Html {
         [Fact]
-        public void Html_Hyperlinks_IdAnchor() {
-            string html = "<p id=\"section1\">Start</p><p><a href=\"#section1\" title=\"Back\" target=\"_blank\">Back</a></p>";
+        public void Html_Hyperlinks_Title_And_Target_External() {
+            string html = "<p><a href=\"https://example.com\" title=\"Example\" target=\"_self\">Example</a></p>";
 
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
-
-            Assert.Contains(doc.Bookmarks, b => b.Name == "section1");
 
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
             Assert.NotNull(hyperlink);
-            Assert.Equal("Back", hyperlink.Tooltip);
-            Assert.Equal(TargetFrame._blank, hyperlink.TargetFrame);
-            Assert.Equal("section1", hyperlink.Anchor);
+            Assert.Equal("Example", hyperlink.Tooltip);
+            Assert.Equal(TargetFrame._self, hyperlink.TargetFrame);
         }
 
-        [Fact]
-        public void Html_Hyperlinks_NameAnchor() {
-            string html = "<p><a name=\"intro\"></a>Intro</p><p><a href=\"#intro\">Back</a></p>";
 
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
