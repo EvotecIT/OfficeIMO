@@ -282,11 +282,14 @@ namespace OfficeIMO.Word.Html.Converters {
                         handledHtmlStyle = true;
                     }
 
-                    if (options.IncludeFontStyles && !string.IsNullOrEmpty(options.FontFamily)) {
-                        var span = htmlDoc.CreateElement("span");
-                        span.SetAttribute("style", $"font-family:{options.FontFamily}");
-                        span.AppendChild(node);
-                        node = span;
+                    if (options.IncludeFontStyles) {
+                        var font = run.FontFamily ?? options.FontFamily;
+                        if (!string.IsNullOrEmpty(font)) {
+                            var span = htmlDoc.CreateElement("span");
+                            span.SetAttribute("style", $"font-family:{font}");
+                            span.AppendChild(node);
+                            node = span;
+                        }
                     }
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {

@@ -83,7 +83,10 @@ namespace OfficeIMO.Word {
                 bool superscript = run.VerticalTextAlignment == VerticalPositionValues.Superscript;
                 bool subscript = run.VerticalTextAlignment == VerticalPositionValues.Subscript;
                 string? monospace = FontResolver.Resolve("monospace");
-                bool code = !string.IsNullOrEmpty(monospace) && string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase);
+                string? defaultFont = paragraph._document?.Settings.FontFamily;
+                bool code = !string.IsNullOrEmpty(monospace) &&
+                            string.Equals(run.FontFamily, monospace, StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(run.FontFamily, defaultFont, StringComparison.OrdinalIgnoreCase);
                 yield return new FormattedRun(text, null, run.Bold, run.Italic, run.Underline != null, strike, superscript, subscript, code, hyperlink);
             }
         }

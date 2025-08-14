@@ -122,7 +122,7 @@ public partial class Html {
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Skip = "TODO: Implement font family mapping and CSS font-family support")]
+    [Fact]
     public void Test_Html_FontResolver() {
         string html = "<p>Hello</p>";
         
