@@ -27,6 +27,24 @@ namespace OfficeIMO.Tests {
                 QuestPDF.Settings.License = null;
             }
         }
+
+        [Fact]
+        public void SaveAsPdf_EmbedsCustomFont() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Hello World");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    FontFamily = "DejaVu Sans"
+                });
+            }
+
+            string pdfContent = File.ReadAllText(pdfPath);
+            Assert.Contains("DejaVuSans", pdfContent);
+            Assert.Contains("FontFile", pdfContent);
+        }
     }
 }
 
