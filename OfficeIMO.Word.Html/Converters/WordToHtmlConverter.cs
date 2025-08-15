@@ -425,6 +425,21 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
 
+            JustificationValues? GetCellAlignment(WordTableCell cell) {
+                JustificationValues? align = null;
+                foreach (var p in cell.Paragraphs) {
+                    if (p.ParagraphAlignment == null) {
+                        continue;
+                    }
+                    if (align == null) {
+                        align = p.ParagraphAlignment;
+                    } else if (align != p.ParagraphAlignment) {
+                        return null;
+                    }
+                }
+                return align;
+            }
+
             string? BuildBorderCss(BorderValues? style, string colorHex, UInt32Value size) {
                 if (style == null) {
                     return null;
@@ -542,7 +557,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }
-                        var align = GetTextAlignCss(cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment);
+                        var align = GetTextAlignCss(GetCellAlignment(cell));
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
