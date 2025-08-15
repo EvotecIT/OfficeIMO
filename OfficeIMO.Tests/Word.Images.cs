@@ -614,6 +614,26 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ImageStreamPerformance() {
+            var filePath = Path.Combine(_directoryWithFiles, "ImageStreamPerformance.docx");
+            var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath, 100, 100);
+                document.Save();
+            }
+
+            using var loaded = WordDocument.Load(filePath);
+            var image = loaded.Images[0];
+
+            using var stream = image.GetStream();
+            Assert.False(stream is MemoryStream);
+            Assert.Equal(new FileInfo(imagePath).Length, stream.Length);
+            var buffer = new byte[1];
+            stream.Read(buffer, 0, 1);
+        }
+
     }
 
 }
