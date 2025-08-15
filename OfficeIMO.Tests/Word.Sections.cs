@@ -548,6 +548,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CloningSection() {
+            string filePath = Path.Combine(_directoryWithFiles, "CloneSection.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Section0");
+                var section1 = document.AddSection();
+                section1.AddParagraph("Section1");
+                var section2 = document.AddSection();
+                section2.AddParagraph("Section2");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(3, document.Sections.Count);
+                var clone = document.Sections[1].CloneSection();
+                document.Save(false);
+                Assert.Equal(4, document.Sections.Count);
+                Assert.Equal("Section1", document.Sections[1].Paragraphs[0].Text);
+                Assert.Equal("Section1", document.Sections[2].Paragraphs[0].Text);
+                Assert.Equal("Section2", document.Sections[3].Paragraphs[0].Text);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(4, document.Sections.Count);
+                Assert.Equal("Section1", document.Sections[1].Paragraphs[0].Text);
+                Assert.Equal("Section1", document.Sections[2].Paragraphs[0].Text);
+                Assert.Equal("Section2", document.Sections[3].Paragraphs[0].Text);
+            }
+        }
+
+        [Fact]
         public void Test_HeaderFooterReturnNullWhenNoSections() {
             string filePath = Path.Combine(_directoryWithFiles, "NoSectionsHeaderFooter.docx");
 
