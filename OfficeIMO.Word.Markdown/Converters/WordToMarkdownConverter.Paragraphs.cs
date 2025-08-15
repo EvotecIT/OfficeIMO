@@ -69,12 +69,12 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"*{text}*";
                 }
 
-                if (run.Strike) {
-                    text = $"~~{text}~~";
-                }
-
                 if (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != UnderlineValues.None) {
                     text = $"<u>{text}</u>";
+                }
+
+                if (run.Strike) {
+                    text = $"~~{text}~~";
                 }
 
                 if (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != HighlightColorValues.None) {
