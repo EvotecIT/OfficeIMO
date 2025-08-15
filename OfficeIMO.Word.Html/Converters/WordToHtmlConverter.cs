@@ -328,7 +328,34 @@ namespace OfficeIMO.Word.Html.Converters {
                 return runs.Count > 0 && runs.All(r => r.Code);
             }
 
+            bool IsStructuralTag(string tag) {
+                switch (tag) {
+                    case "section":
+                    case "article":
+                    case "aside":
+                    case "nav":
+                    case "header":
+                    case "footer":
+                    case "main":
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+
             void AppendParagraph(IElement parent, WordParagraph para) {
+                if (para.IsBookmark && para.Bookmark != null) {
+                    var name = para.Bookmark.Name;
+                    var parts = name.Split(':', 2);
+                    if (parts.Length == 2 && IsStructuralTag(parts[0])) {
+                        var structEl = htmlDoc.CreateElement(parts[0]);
+                        structEl.SetAttribute("id", parts[1]);
+                        AppendRuns(structEl, para);
+                        parent.AppendChild(structEl);
+                        return;
+                    }
+                }
+
                 if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text)) {
                     var hr = htmlDoc.CreateElement("hr");
                     parent.AppendChild(hr);
