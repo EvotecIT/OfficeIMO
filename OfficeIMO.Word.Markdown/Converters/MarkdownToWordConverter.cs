@@ -4,6 +4,7 @@ using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 using System;
 using System.Linq;
 
@@ -52,6 +53,10 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     var headingParagraph = document.AddParagraph(string.Empty);
                     ProcessInline(heading.Inline, headingParagraph, options, document);
                     headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(heading.Level);
+                    break;
+                case HtmlBlock htmlBlock:
+                    string html = htmlBlock.Lines.ToString();
+                    document.AddHtmlToBody(html);
                     break;
                 case ParagraphBlock paragraphBlock when currentList == null:
                     var paragraph = document.AddParagraph(string.Empty);
