@@ -20,11 +20,23 @@ namespace OfficeIMO.Word.Pdf {
             foreach (IReadOnlyList<WordTableCell> row in rows) {
                 for (int i = 0; i < row.Count; i++) {
                     WordTableCell cell = row[i];
+                    float width = 0f;
                     if (cell.Width.HasValue && cell.WidthType == TableWidthUnitValues.Dxa) {
-                        float width = cell.Width.Value / 20f;
-                        if (width > widths[i]) {
-                            widths[i] = width;
+                        width = cell.Width.Value / 20f;
+                    }
+
+                    if (cell.HasNestedTables) {
+                        foreach (WordTable nested in cell.NestedTables) {
+                            TableLayout nestedLayout = GetLayout(nested);
+                            float nestedWidth = nestedLayout.ColumnWidths.Sum();
+                            if (nestedWidth > width) {
+                                width = nestedWidth;
+                            }
                         }
+                    }
+
+                    if (width > widths[i]) {
+                        widths[i] = width;
                     }
                 }
             }
