@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -29,46 +30,26 @@ namespace OfficeIMO.Word {
         /// <summary>Footer paragraphs containing matches when using the first page footer.</summary>
         public List<WordParagraph> FooterFirst = new List<WordParagraph>();
 
+        /// <summary>
+        /// Searches the provided paragraphs for matches of the supplied regular expression and
+        /// stores the paragraphs containing matches in the specified list.
+        /// </summary>
+        /// <param name="paragraphs">Paragraphs to search.</param>
+        /// <param name="regex">Regular expression pattern.</param>
+        /// <param name="destination">Collection to store paragraphs with matches.</param>
+        internal void FindRegex(IEnumerable<WordParagraph> paragraphs, Regex regex, List<WordParagraph> destination) {
+            if (paragraphs == null || regex == null) {
+                return;
+            }
 
-        //public List<WordParagraph> Paragraphs {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> Tables {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> HeaderDefault {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> HeaderEven {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> HeaderFirst {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> FooterDefault {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> FooterEven {
-        //    get;
-        //    set;
-        //}
-
-        //public List<WordParagraph> FooterFirst {
-        //    get;
-        //    set;
-        //}
+            foreach (var paragraph in paragraphs) {
+                var matches = regex.Matches(paragraph.Text);
+                if (matches.Count > 0) {
+                    Found += matches.Count;
+                    destination.Add(paragraph);
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -89,6 +90,32 @@ namespace OfficeIMO.Tests {
 
 
                 document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void Test_DocumentRegexFind() {
+            string filePath = Path.Combine(_directoryWithFiles, "RegexWordDocument.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Item 123");
+                document.AddParagraph("Item 456");
+                document.AddParagraph("Different 789");
+
+                var regex = new Regex(@"Item \d{3}");
+                var result = document.Find(regex);
+
+                Assert.Equal(2, result.Found);
+                Assert.Equal(2, result.Paragraphs.Count);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var regex = new Regex(@"Item \d{3}");
+                var result = document.Find(regex);
+
+                Assert.Equal(2, result.Found);
+                Assert.Equal(2, result.Paragraphs.Count);
             }
         }
     }
