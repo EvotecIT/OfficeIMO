@@ -1,13 +1,11 @@
 using AngleSharp.Html.Dom;
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Helpers;
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Reflection;
 using System.Text;
 
 namespace OfficeIMO.Word.Html.Converters {
@@ -49,13 +47,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (horizontalAlignment == null && _imageCache.TryGetValue(src, out var cached)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                var drawingField = typeof(WordImage).GetField("_Image", BindingFlags.Instance | BindingFlags.NonPublic);
-                var drawing = (DocumentFormat.OpenXml.Wordprocessing.Drawing)drawingField!.GetValue(cached);
-                var clone = (DocumentFormat.OpenXml.Wordprocessing.Drawing)drawing.CloneNode(true);
-                var run = new Run(clone);
-                var paragraphField = typeof(WordParagraph).GetField("_paragraph", BindingFlags.Instance | BindingFlags.NonPublic);
-                var p = (Paragraph)paragraphField!.GetValue(paragraph);
-                p.Append(run);
+                cached.Clone(paragraph);
                 return;
             }
 
