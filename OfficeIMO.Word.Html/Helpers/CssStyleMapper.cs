@@ -8,6 +8,13 @@ using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace OfficeIMO.Word.Html.Helpers {
+    internal enum WhiteSpaceMode {
+        Normal,
+        Pre,
+        PreWrap,
+        NoWrap,
+    }
+
     internal static class CssStyleMapper {
         internal class CssProperties {
             public int? MarginLeft;
@@ -19,6 +26,7 @@ namespace OfficeIMO.Word.Html.Helpers {
             public string? BackgroundColor;
             public int? LineHeight;
             public LineSpacingRuleValues? LineHeightRule;
+            public WhiteSpaceMode? WhiteSpace;
         }
 
         public static WordParagraphStyles? MapParagraphStyle(string? style) {
@@ -89,6 +97,17 @@ namespace OfficeIMO.Word.Html.Helpers {
             if (properties.TryGetValue("line-height", out string? lh) && TryParseLineHeight(lh, out int line, out LineSpacingRuleValues rule)) {
                 result.LineHeight = line;
                 result.LineHeightRule = rule;
+            }
+
+            if (properties.TryGetValue("white-space", out string? ws)) {
+                ws = ws.Trim().ToLowerInvariant();
+                result.WhiteSpace = ws switch {
+                    "normal" => WhiteSpaceMode.Normal,
+                    "pre" => WhiteSpaceMode.Pre,
+                    "pre-wrap" => WhiteSpaceMode.PreWrap,
+                    "nowrap" => WhiteSpaceMode.NoWrap,
+                    _ => null,
+                };
             }
 
             return result;
