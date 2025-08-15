@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -19,6 +20,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal("00ff00", cell.ShadingFillColorHex);
             Assert.Equal(BorderValues.Dashed, cell.Borders.TopStyle);
             Assert.Equal("0000ff", cell.Borders.TopColorHex);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_TextAlign() {
+            string html = "<table><tr><td style=\"text-align:center\">One</td><td style=\"text-align:right\">Two</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+            var cell1 = table.Rows[0].Cells[0];
+            var cell2 = table.Rows[0].Cells[1];
+            Assert.Equal(JustificationValues.Center, cell1.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(JustificationValues.Right, cell2.Paragraphs[0].ParagraphAlignment);
+            string back = doc.ToHtml();
+            Assert.Contains("text-align:center", back, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-align:right", back, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
