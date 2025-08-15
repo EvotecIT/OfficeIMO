@@ -1,12 +1,26 @@
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System.Collections.Generic;
-using System.Reflection;
-
-namespace OfficeIMO.Word.Html.Converters {
-    internal partial class HtmlToWordConverter {
+        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
+            ApplyDirAttribute(element, ref formatting);
+            WordList list;
+            foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {
+                ProcessListItem(li, doc, section, options, listStack, formatting, cell, headerFooter);
+            }
+        private void ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            ApplyDirAttribute(element, ref formatting);
+            var list = listStack.Peek();
+            int level = listStack.Count - 1;
+            var paragraph = list.AddItem("", level);
+            if (formatting.IsRtl.HasValue) {
+                paragraph.BiDi = formatting.IsRtl.Value;
+            }
+            ApplyClassStyle(element, paragraph, options);
+            AddBookmarkIfPresent(element, paragraph);
+            foreach (var child in element.ChildNodes) {
+                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
+            }
+        }
+
         private int? _orderedListNumberId;
 
         private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,

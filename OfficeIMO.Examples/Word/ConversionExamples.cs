@@ -149,5 +149,20 @@ This is a paragraph with **bold** and *italic* text.
                 }
             }
         }
+
+        public static void Example_HtmlDirectionalText(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Demonstrating HTML with mixed text directions");
+
+            string html = "<p dir='ltr'>Left</p><p dir='rtl'>يمين</p><p style='direction:rtl'>CSS</p><p><bdo dir='ltr'>Override</bdo></p>";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            string docPath = Path.Combine(folderPath, "HtmlDirections.docx");
+            doc.Save(docPath);
+            Console.WriteLine($"✓ Saved document: {docPath}");
+
+            if (openWord) {
+                WordDocument.Open(docPath);
+            }
+        }
     }
 }

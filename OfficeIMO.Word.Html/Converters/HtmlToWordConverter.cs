@@ -389,11 +389,13 @@ namespace OfficeIMO.Word.Html.Converters {
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
             if (node is IElement element) {
                 ApplyCssToElement(element);
+                var currentFormatting = formatting;
+                ApplyDirAttribute(element, ref currentFormatting);
                 switch (element.TagName.ToLowerInvariant()) {
                     case "section": {
                             var newSection = doc.AddSection();
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, newSection, options, null, listStack, formatting, null, headerFooter, headingList);
+                                ProcessNode(child, doc, newSection, options, null, listStack, currentFormatting, null, headerFooter, headingList);
                             }
                             break;
                         }
@@ -412,18 +414,24 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             paragraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
                             ApplyParagraphStyleFromCss(paragraph, element);
+                            if (currentFormatting.IsRtl.HasValue) {
+                                paragraph.BiDi = currentFormatting.IsRtl.Value;
+                            }
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, currentFormatting, cell, headerFooter, headingList);
                             }
                             break;
                         }
                     case "p": {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             ApplyParagraphStyleFromCss(paragraph, element);
+                            if (fmt.IsRtl.HasValue) {
+                                paragraph.BiDi = fmt.IsRtl.Value;
+                            }
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
@@ -434,7 +442,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "blockquote": {
                             var startIndex = doc.Paragraphs.Count;
                             var cite = element.GetAttribute("cite");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
@@ -528,7 +536,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "article":
                     case "aside":
                     case "nav": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
@@ -563,7 +571,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "strong":
                     case "b": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Bold = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -572,7 +580,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "em":
                     case "i": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Italic = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -580,7 +588,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "u": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Underline = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -589,7 +597,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "s":
                     case "del": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Strike = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -597,7 +605,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "ins": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Underline = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -605,7 +613,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "mark": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Highlight = HighlightColorValues.Yellow;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -614,7 +622,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "q": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
                             ApplyFormatting(open, fmt, options);
@@ -629,7 +637,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
                     case "cite": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
                             int startRuns = currentParagraph.GetRuns().Count();
@@ -644,7 +652,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "dfn": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
                             int startRuns = currentParagraph.GetRuns().Count();
@@ -659,7 +667,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "time": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
@@ -672,7 +680,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "sup": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Superscript = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -680,7 +688,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "sub": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             fmt.Subscript = true;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -688,7 +696,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "font": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplyFontStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -696,7 +704,15 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "span": {
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
+                            ApplySpanStyles(element, ref fmt);
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            break;
+                        }
+                    case "bdo": {
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -707,7 +723,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     case "acronym": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                             var title = element.GetAttribute("title");
-                            var fmt = formatting;
+                            var fmt = currentFormatting;
                             ApplySpanStyles(element, ref fmt);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -764,11 +780,11 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     case "ul":
                     case "ol": {
-                            ProcessList(element, doc, section, options, listStack, cell, formatting, headerFooter);
+                            ProcessList(element, doc, section, options, listStack, cell, currentFormatting, headerFooter);
                             break;
                         }
                     case "li": {
-                            ProcessListItem((IHtmlListItemElement)element, doc, section, options, listStack, formatting, cell, headerFooter);
+                            ProcessListItem((IHtmlListItemElement)element, doc, section, options, listStack, currentFormatting, cell, headerFooter);
                             break;
                         }
                     case "table": {
@@ -789,7 +805,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 ApplyClassStyle(caption, paragraph, options);
                                 AddBookmarkIfPresent(caption, paragraph);
                                 foreach (var child in caption.ChildNodes) {
-                                    ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
+                                    ProcessNode(child, doc, section, options, paragraph, listStack, currentFormatting, cell, headerFooter, headingList);
                                 }
                             }
                             break;
@@ -835,7 +851,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                     default: {
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, formatting, cell, headerFooter, headingList);
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, currentFormatting, cell, headerFooter, headingList);
                             }
                             break;
                         }

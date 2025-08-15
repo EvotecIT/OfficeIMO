@@ -35,8 +35,9 @@ namespace OfficeIMO.Word.Html.Converters {
             public CapsStyle? Caps;
             public int? LetterSpacing;
             public TextTransform Transform;
+            public bool? IsRtl;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, bool? isRtl = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -50,6 +51,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 Caps = null;
                 LetterSpacing = letterSpacing;
                 Transform = transform;
+                IsRtl = isRtl;
             }
         }
 
@@ -251,6 +253,30 @@ namespace OfficeIMO.Word.Html.Converters {
             if (right > 0) {
                 paragraph.IndentationAfter = right;
             }
+
+            var dirAttr = element.GetAttribute("dir")?.Trim().ToLowerInvariant();
+            var directionCss = declaration.GetPropertyValue("direction")?.Trim().ToLowerInvariant();
+            var unicodeBidi = declaration.GetPropertyValue("unicode-bidi")?.Trim().ToLowerInvariant();
+            bool? isRtl = null;
+            if (!string.IsNullOrEmpty(directionCss)) {
+                if (directionCss == "rtl") {
+                    isRtl = true;
+                } else if (directionCss == "ltr") {
+                    isRtl = false;
+                }
+            }
+            if (isRtl == null && !string.IsNullOrEmpty(dirAttr)) {
+                if (dirAttr == "rtl") {
+                    isRtl = true;
+                } else if (dirAttr == "ltr") {
+                    isRtl = false;
+                }
+            }
+            if (!string.IsNullOrEmpty(unicodeBidi) && unicodeBidi.Contains("bidi-override") && isRtl.HasValue) {
+                paragraph.BiDi = isRtl.Value;
+            } else if (isRtl.HasValue) {
+                paragraph.BiDi = isRtl.Value;
+            }
         }
 
         private static readonly System.Text.RegularExpressions.Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -299,6 +325,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 if (!string.IsNullOrEmpty(font)) {
                     run.SetFontFamily(font);
                 }
+            }
+            if (formatting.IsRtl.HasValue) {
+                run.BiDi = formatting.IsRtl.Value;
             }
         }
 
@@ -373,6 +402,23 @@ namespace OfficeIMO.Word.Html.Converters {
                 formatting.Transform = transform.Value;
             }
 
+            var direction = declaration.GetPropertyValue("direction")?.Trim().ToLowerInvariant();
+            var unicodeBidi = declaration.GetPropertyValue("unicode-bidi")?.Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(direction)) {
+                if (direction == "rtl") {
+                    formatting.IsRtl = true;
+                } else if (direction == "ltr") {
+                    formatting.IsRtl = false;
+                }
+            }
+            if (!string.IsNullOrEmpty(unicodeBidi) && unicodeBidi.Contains("bidi-override")) {
+                if (direction == "rtl") {
+                    formatting.IsRtl = true;
+                } else if (direction == "ltr") {
+                    formatting.IsRtl = false;
+                }
+            }
+
             if (parsed.Underline) {
                 formatting.Underline = true;
             }
@@ -418,6 +464,15 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (TryParseHtmlFontSize(element.GetAttribute("size"), out int size)) {
                 formatting.FontSize = size;
+            }
+        }
+
+        private static void ApplyDirAttribute(IElement element, ref TextFormatting formatting) {
+            var dir = element.GetAttribute("dir")?.Trim().ToLowerInvariant();
+            if (dir == "rtl") {
+                formatting.IsRtl = true;
+            } else if (dir == "ltr") {
+                formatting.IsRtl = false;
             }
         }
 
