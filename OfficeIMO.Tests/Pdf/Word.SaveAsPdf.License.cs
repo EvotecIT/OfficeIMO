@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using QuestPDF.Infrastructure;
+using System;
 using System.IO;
 using Xunit;
 
@@ -33,16 +34,18 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.pdf");
 
+            string fontFamily = OperatingSystem.IsLinux() ? "DejaVu Sans" : "Arial";
+
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    FontFamily = "DejaVu Sans"
+                    FontFamily = fontFamily
                 });
             }
 
             string pdfContent = File.ReadAllText(pdfPath);
-            Assert.Contains("DejaVuSans", pdfContent);
+            Assert.Contains(fontFamily.Replace(" ", ""), pdfContent, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("FontFile", pdfContent);
         }
     }
