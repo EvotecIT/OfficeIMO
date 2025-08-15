@@ -61,5 +61,21 @@ namespace OfficeIMO.Tests {
             var rel = docx.MainDocumentPart.HyperlinkRelationships.First();
             Assert.StartsWith("http://example.com", rel.Uri.ToString());
         }
+
+        [Fact]
+        public void Test_Markdown_HtmlBlock_RoundTrip() {
+            string md = "<p><strong>Bold</strong> HTML</p>";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+            Assert.Contains("**Bold** HTML", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToMarkdown_PreservesEmbeddedHtml() {
+            using var doc = WordDocument.Create();
+            doc.AddEmbeddedFragment("<div>HTML Block</div>", WordAlternativeFormatImportPartType.Html);
+            string md = doc.ToMarkdown(new WordToMarkdownOptions());
+            Assert.Contains("<div>HTML Block</div>", md, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
