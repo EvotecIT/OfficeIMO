@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.Html.Converters {
             void AppendParagraph(IElement parent, WordParagraph para) {
                 if (para.IsBookmark && para.Bookmark != null) {
                     var name = para.Bookmark.Name;
-                    var parts = name.Split(':', 2);
+                    var parts = name.Split(new[] { ':' }, 2);
                     if (parts.Length == 2 && IsStructuralTag(parts[0])) {
                         var structEl = htmlDoc.CreateElement(parts[0]);
                         structEl.SetAttribute("id", parts[1]);
