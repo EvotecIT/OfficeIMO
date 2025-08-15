@@ -617,7 +617,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 bool ordered = listInfo.Value.Ordered;
                                 var listTag = ordered ? "ol" : "ul";
                                 var listEl = htmlDoc.CreateElement(listTag);
-                                if (ordered) {
+                                if (ordered && listInfo.Value.Start != 1) {
                                     listEl.SetAttribute("start", listInfo.Value.Start.ToString());
                                 }
                                 var typeAttr = GetListType(listInfo.Value);
