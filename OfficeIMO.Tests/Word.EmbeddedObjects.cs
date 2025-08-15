@@ -67,4 +67,29 @@ public partial class Word {
         Assert.Contains("width:32pt", shape.Style);
         Assert.Contains("height:32pt", shape.Style);
     }
+
+    [Fact]
+    public void Test_LoadAndOpenEmbeddedExcelObject() {
+        var filePath = Path.Combine(_directoryWithFiles, "DocumentWithEmbeddedExcel.docx");
+        string excelFilePath = Path.Combine(_directoryDocuments, "SampleFileExcel.xlsx");
+        string imageFilePath = Path.Combine(_directoryDocuments, "SampleExcelIcon.png");
+
+        using (var document = WordDocument.Create(filePath)) {
+            document.AddParagraph("Add excel object");
+            document.AddEmbeddedObject(excelFilePath, imageFilePath);
+            document.Save();
+        }
+
+        using (var word = WordprocessingDocument.Open(filePath, false)) {
+            var embeddedPart = word.MainDocumentPart.EmbeddedPackageParts.FirstOrDefault();
+            Assert.NotNull(embeddedPart);
+            using var stream = embeddedPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            ms.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(ms, false);
+            Assert.NotNull(spreadsheet.WorkbookPart);
+            Assert.True(spreadsheet.WorkbookPart.WorksheetParts.Any());
+        }
+    }
 }
