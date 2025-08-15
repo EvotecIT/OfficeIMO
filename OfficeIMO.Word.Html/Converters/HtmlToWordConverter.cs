@@ -7,6 +7,7 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Html.Helpers;
 using System;
 using System.Collections.Concurrent;
@@ -861,6 +862,16 @@ namespace OfficeIMO.Word.Html.Converters {
             foreach (var cls in classAttr.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (options.ClassStyles.TryGetValue(cls, out var style) || _cssClassStyles.TryGetValue(cls, out style)) {
                     paragraph.Style = style;
+                    break;
+                }
+
+                var args = WordHtmlConverterExtensions.OnStyleMissing(paragraph, cls);
+                if (args.Style.HasValue) {
+                    paragraph.Style = args.Style.Value;
+                    break;
+                }
+                if (!string.IsNullOrEmpty(args.StyleId)) {
+                    paragraph.SetStyleId(args.StyleId);
                     break;
                 }
             }
