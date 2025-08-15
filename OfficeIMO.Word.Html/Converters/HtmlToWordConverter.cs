@@ -522,7 +522,11 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         }
-                    case "div": {
+                    case "div":
+                    case "address":
+                    case "article":
+                    case "aside":
+                    case "nav": {
                             var fmt = formatting;
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
