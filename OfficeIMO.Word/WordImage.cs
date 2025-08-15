@@ -1987,6 +1987,22 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Creates a copy of this image and appends it to the specified paragraph.
+        /// The cloned image shares the same underlying image part.
+        /// </summary>
+        /// <param name="paragraph">The paragraph to append the cloned image to.</param>
+        /// <returns>The newly created <see cref="WordImage"/> instance.</returns>
+        public WordImage Clone(WordParagraph paragraph) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+
+            var drawingClone = (Drawing)_Image.CloneNode(true);
+            var run = new DocumentFormat.OpenXml.Wordprocessing.Run(drawingClone);
+            paragraph._paragraph.Append(run);
+
+            return new WordImage(paragraph._document, drawingClone);
+        }
+
+        /// <summary>
         /// Extract image from Word Document and save it to file
         /// </summary>
         /// <param name="fileToSave"></param>
