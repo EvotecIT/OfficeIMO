@@ -12,6 +12,14 @@ namespace OfficeIMO.Word.Html {
     /// Extension methods enabling HTML conversions for <see cref="WordDocument"/> instances.
     /// </summary>
     public static class WordHtmlConverterExtensions {
+        public static event EventHandler<StyleMissingEventArgs>? StyleMissing;
+
+        internal static StyleMissingEventArgs OnStyleMissing(WordParagraph paragraph, string className) {
+            var args = new StyleMissingEventArgs(paragraph, className);
+            StyleMissing?.Invoke(null, args);
+            return args;
+        }
+
         /// <summary>
         /// Saves the document as an HTML file at the specified path.
         /// </summary>
