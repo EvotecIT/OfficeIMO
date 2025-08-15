@@ -25,8 +25,10 @@ namespace OfficeIMO.Word.Html.Converters {
             public string? FontFamily;
             public int? FontSize;
             public HighlightColorValues? Highlight;
+            public int? LetterSpacing;
+            public TextTransform? Transform;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform? transform = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -37,7 +39,15 @@ namespace OfficeIMO.Word.Html.Converters {
                 FontFamily = fontFamily;
                 FontSize = fontSize;
                 Highlight = highlight;
+                LetterSpacing = letterSpacing;
+                Transform = transform;
             }
+        }
+
+        private enum TextTransform {
+            Uppercase,
+            Lowercase,
+            Capitalize
         }
 
         private static readonly DefaultRenderDevice _renderDevice = new() { FontSize = 16 };
@@ -136,6 +146,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.SetFontSize(fontSize);
             }
 
+            if (TryConvertToTwip(declaration.GetProperty("letter-spacing")?.RawValue, out int lsPara)) {
+                paragraph.SetSpacing(lsPara);
+            }
+
             var align = declaration.GetPropertyValue("text-align")?.Trim();
             if (!string.IsNullOrEmpty(align)) {
                 alignment = align.ToLowerInvariant() switch {
@@ -185,6 +199,7 @@ namespace OfficeIMO.Word.Html.Converters {
         private static readonly System.Text.RegularExpressions.Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         private static void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+            text = ApplyTextTransform(text, formatting.Transform);
             int lastIndex = 0;
             foreach (System.Text.RegularExpressions.Match match in _urlRegex.Matches(text)) {
                 if (match.Index > lastIndex) {
@@ -202,6 +217,18 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
+        private static string ApplyTextTransform(string text, TextTransform? transform) {
+            if (!transform.HasValue) {
+                return text;
+            }
+            return transform.Value switch {
+                TextTransform.Uppercase => text.ToUpperInvariant(),
+                TextTransform.Lowercase => text.ToLowerInvariant(),
+                TextTransform.Capitalize => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.ToLowerInvariant()),
+                _ => text
+            };
+        }
+
         private static void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
@@ -212,6 +239,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
+            if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);
                 if (!string.IsNullOrEmpty(font)) {
@@ -248,6 +276,20 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (TryParseFontSize(declaration.GetPropertyValue("font-size"), out int size)) {
                 formatting.FontSize = size;
+            }
+
+            if (TryConvertToTwip(declaration.GetProperty("letter-spacing")?.RawValue, out int ls)) {
+                formatting.LetterSpacing = ls;
+            }
+
+            var transform = declaration.GetPropertyValue("text-transform").ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(transform)) {
+                formatting.Transform = transform switch {
+                    "uppercase" => TextTransform.Uppercase,
+                    "lowercase" => TextTransform.Lowercase,
+                    "capitalize" => TextTransform.Capitalize,
+                    _ => formatting.Transform
+                };
             }
 
             var weight = declaration.GetPropertyValue("font-weight");
