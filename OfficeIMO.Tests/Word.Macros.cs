@@ -141,5 +141,50 @@ namespace OfficeIMO.Tests {
             File.Delete(vbaPath);
             File.Delete(Path.Combine(_directoryWithFiles, "MacroNames.docm"));
         }
+
+        [Fact]
+        public void Test_ExportImportMacrosBetweenDocuments() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "SourceMacroDoc.docm");
+            string targetPath = Path.Combine(_directoryWithFiles, "TargetMacroDoc.docm");
+            string macroFile = Path.Combine(_directoryWithFiles, "macroSource.bin");
+
+            CreateDummyVba(macroFile);
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+            if (File.Exists(targetPath)) File.Delete(targetPath);
+
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddMacro(macroFile);
+                document.Save();
+            }
+
+            byte[] macroData;
+            using (WordDocument document = WordDocument.Load(sourcePath)) {
+                Assert.True(document.HasMacros);
+                macroData = document.ExtractMacros();
+                Assert.NotNull(macroData);
+                Assert.True(macroData.Length > 0);
+            }
+
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddMacro(macroData);
+                Assert.True(document.HasMacros);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(targetPath)) {
+                Assert.True(document.HasMacros);
+                Assert.Single(document.Macros);
+                document.RemoveMacros();
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(targetPath)) {
+                Assert.False(document.HasMacros);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+            File.Delete(macroFile);
+        }
     }
 }
