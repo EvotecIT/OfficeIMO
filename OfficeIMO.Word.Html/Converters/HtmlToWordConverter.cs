@@ -395,6 +395,41 @@ namespace OfficeIMO.Word.Html.Converters {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, newSection, options, null, listStack, formatting, null, headerFooter, headingList);
                             }
+                            var secId = element.GetAttribute("id");
+                            if (!string.IsNullOrEmpty(secId)) {
+                                var firstPara = newSection.Paragraphs.FirstOrDefault() ?? newSection.AddParagraph("");
+                                WordBookmark.AddBookmark(firstPara, $"section:{secId}");
+                            }
+                            break;
+                        }
+                    case "article":
+                    case "aside":
+                    case "nav":
+                    case "header":
+                    case "footer":
+                    case "main": {
+                            var fmt = formatting;
+                            var divStyle = element.GetAttribute("style");
+                            if (!string.IsNullOrWhiteSpace(divStyle)) {
+                                ApplySpanStyles(element, ref fmt);
+                            }
+                            int startIndex = doc.Paragraphs.Count;
+                            WordParagraph? para = currentParagraph;
+                            foreach (var child in element.ChildNodes) {
+                                if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
+                                    if (!string.IsNullOrEmpty(merged)) {
+                                        childElement.SetAttribute("style", merged);
+                                    }
+                                }
+                                ProcessNode(child, doc, section, options, para, listStack, fmt, cell, headerFooter, headingList);
+                                para = null;
+                            }
+                            var id = element.GetAttribute("id");
+                            if (!string.IsNullOrEmpty(id)) {
+                                var paragraph = doc.Paragraphs.Count > startIndex ? doc.Paragraphs[startIndex] : cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
+                            }
                             break;
                         }
                     case "h1":
@@ -531,10 +566,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "div":
-                    case "address":
-                    case "article":
-                    case "aside":
-                    case "nav": {
+                    case "address": {
                             var fmt = formatting;
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {

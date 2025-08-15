@@ -47,6 +47,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Menu", paragraph.Text);
             Assert.Equal(30d, paragraph.IndentationBeforePoints);
         }
+
+        [Fact]
+        public void HtmlStructuralTags_CreateBookmarks() {
+            string html = "<section id=\"intro\"><p>Intro</p></section><article id=\"art\"><p>Article</p></article>";
+            using var doc = html.LoadFromHtml();
+            Assert.Contains(doc.Bookmarks, b => b.Name == "section:intro");
+            Assert.Contains(doc.Bookmarks, b => b.Name == "article:art");
+
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<section id=\"intro\">", roundTrip);
+            Assert.Contains("<article id=\"art\">", roundTrip);
+        }
     }
 }
 
