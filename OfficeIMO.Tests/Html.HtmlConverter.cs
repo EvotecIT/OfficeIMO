@@ -94,12 +94,12 @@ public partial class Html {
 
         Assert.Single(doc.Sections[0].Tables);
         var outer = doc.Sections[0].Tables[0];
-        Assert.Equal(2, outer.Rows[0].Cells.Count);
+        Assert.Collection(outer.Rows[0].Cells, _ => { }, _ => { });
         var innerCell = outer.Rows[0].Cells[1];
         Assert.True(innerCell.HasNestedTables);
         var inner = innerCell.NestedTables[0];
-        Assert.Equal(1, inner.Rows.Count);
-        Assert.Equal(1, inner.Rows[0].Cells.Count);
+        Assert.Single(inner.Rows);
+        Assert.Single(inner.Rows[0].Cells);
 
         string roundTrip = doc.ToHtml(new WordToHtmlOptions());
         int tableCount = System.Text.RegularExpressions.Regex.Matches(roundTrip, "<table", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;

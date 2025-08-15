@@ -3,6 +3,7 @@ using OfficeIMO.Word.Pdf;
 using QuestPDF.Infrastructure;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -34,7 +35,7 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfFontFamily.pdf");
 
-            string fontFamily = OperatingSystem.IsLinux() ? "DejaVu Sans" : "Arial";
+            string fontFamily = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "DejaVu Sans" : "Arial";
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
