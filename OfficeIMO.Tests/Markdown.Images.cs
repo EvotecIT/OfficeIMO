@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -27,15 +28,15 @@ namespace OfficeIMO.Tests {
                 context.Response.Close();
             });
 
-            string md = $"![Local]({imagePath} \"Desc local\"){{width=40 height=30}}\n" +
-                         $"![Remote](http://localhost:{port}/ \"Desc remote\"){{width=50 height=20}}";
+            string md = $"![Local]({imagePath}){{width=40 height=30}}\n" +
+                         $"![Remote](http://localhost:{port}/){{width=50 height=20}}";
             var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
 
             Assert.Equal(2, doc.Images.Count);
-            Assert.Equal("Desc local", doc.Images[0].Description);
+            Assert.Equal("Local", doc.Images[0].Description);
             Assert.Equal(40, doc.Images[0].Width);
             Assert.Equal(30, doc.Images[0].Height);
-            Assert.Equal("Desc remote", doc.Images[1].Description);
+            Assert.Equal("Remote", doc.Images[1].Description);
             Assert.Equal(50, doc.Images[1].Width);
             Assert.Equal(20, doc.Images[1].Height);
 
@@ -52,8 +53,22 @@ namespace OfficeIMO.Tests {
             using var image = Image.Load(imagePath, out _);
 
             Assert.Single(doc.Images);
+            Assert.Equal("Local", doc.Images[0].Description);
             Assert.Equal(image.Width, doc.Images[0].Width);
             Assert.Equal(image.Height, doc.Images[0].Height);
+
+        }
+
+        [Fact]
+        public void WordToMarkdown_WritesImageDescription() {
+            using var doc = WordDocument.Create();
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            doc.AddParagraph().AddImage(imagePath);
+            doc.Images[0].Description = "Sample";
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            Assert.Contains("![Sample]", markdown);
         }
 
         private static int GetAvailablePort() {

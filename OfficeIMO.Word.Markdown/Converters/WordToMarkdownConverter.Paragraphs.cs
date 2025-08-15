@@ -117,9 +117,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 return string.Empty;
             }
 
-            string alt = !string.IsNullOrEmpty(image.Description)
-                ? image.Description
-                : (string.IsNullOrEmpty(image.FilePath) ? "" : Path.GetFileName(image.FilePath));
+            string alt = image.Description ?? string.Empty;
 
             if (options.ImageExportMode == ImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();

@@ -90,6 +90,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private static void AddImage(WordDocument document, WordParagraph paragraph, LinkInline link) {
             string url = link.Url?.Trim() ?? string.Empty;
+            string altText = GetPlainText(link.FirstChild);
             string? title = link.Title?.Trim();
             double? width = null;
             double? height = null;
@@ -176,15 +177,15 @@ namespace OfficeIMO.Word.Markdown.Converters {
             if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
                 if (imageData != null) {
                     using var ms = new MemoryStream(imageData);
-                    paragraph.AddImage(ms, remoteFileName ?? "image", width, height, description: title ?? string.Empty);
+                    paragraph.AddImage(ms, remoteFileName ?? "image", width, height, description: altText);
                 } else {
                     var img = document.AddImageFromUrl(url, width, height);
-                    if (!string.IsNullOrEmpty(title)) {
-                        img.Description = title;
+                    if (!string.IsNullOrEmpty(altText)) {
+                        img.Description = altText;
                     }
                 }
             } else {
-                paragraph.AddImage(url, width, height, description: title ?? string.Empty);
+                paragraph.AddImage(url, width, height, description: altText);
             }
         }
 
