@@ -242,7 +242,11 @@ namespace OfficeIMO.Word.Html.Converters {
 
             string background = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
-            bool borderSet = false;
+            BorderValues? tableBorderStyle = null;
+            UInt32Value tableBorderSize = null;
+            SixColor tableBorderColor = default;
+            bool borderSpecified = false;
+            bool collapse = true;
 
             if (!string.IsNullOrWhiteSpace(style)) {
                 foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -255,14 +259,21 @@ namespace OfficeIMO.Word.Html.Converters {
                     switch (name) {
                         case "border":
                             if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
-                                wordTable.StyleDetails.SetBordersForAllSides(bStyle, bSize, bColor);
-                                borderSet = true;
+                                tableBorderStyle = bStyle;
+                                tableBorderSize = bSize;
+                                tableBorderColor = bColor;
+                                borderSpecified = true;
                             }
                             break;
                         case "background-color":
                             var color = NormalizeColor(value);
                             if (color != null) {
                                 background = color;
+                            }
+                            break;
+                        case "border-collapse":
+                            if (value.Equals("separate", StringComparison.OrdinalIgnoreCase)) {
+                                collapse = false;
                             }
                             break;
                         case "width":
@@ -315,9 +326,27 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
-            if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {
+            if (!borderSpecified && !string.IsNullOrWhiteSpace(borderAttr)) {
                 if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
-                    wordTable.StyleDetails.SetBordersForAllSides(BorderValues.Single, bSize, SixColor.Black);
+                    tableBorderStyle = BorderValues.Single;
+                    tableBorderSize = bSize;
+                    tableBorderColor = SixColor.Black;
+                    borderSpecified = true;
+                }
+            }
+
+            if (borderSpecified) {
+                if (collapse) {
+                    wordTable.StyleDetails.SetBordersForAllSides(tableBorderStyle.Value, tableBorderSize, tableBorderColor);
+                } else {
+                    var hex = tableBorderColor.ToHexColor();
+                    foreach (var row in wordTable.Rows) {
+                        foreach (var cell in row.Cells) {
+                            cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = tableBorderStyle;
+                            cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = tableBorderSize;
+                            cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                        }
+                    }
                 }
             }
 
