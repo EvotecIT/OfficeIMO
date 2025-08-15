@@ -329,6 +329,58 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Creates a copy of this section and inserts it after the current section.
+        /// </summary>
+        /// <returns>The cloned <see cref="WordSection"/>.</returns>
+        public WordSection CloneSection() {
+            var body = _document._wordprocessingDocument.MainDocumentPart.Document.Body;
+            OpenXmlElement sectionEnd;
+            if (_sectionProperties.Parent is ParagraphProperties pPr && pPr.Parent is Paragraph para) {
+                sectionEnd = para;
+            } else {
+                sectionEnd = _sectionProperties;
+            }
+            var bodyElements = body.ChildElements.ToList();
+            int endIndex = bodyElements.IndexOf(sectionEnd);
+            int startIndex = endIndex;
+
+            while (startIndex > 0) {
+                var previous = bodyElements[startIndex - 1];
+                if (previous is Paragraph p && p.ParagraphProperties?.SectionProperties != null) {
+                    break;
+                }
+                if (previous is SectionProperties) {
+                    break;
+                }
+                startIndex--;
+            }
+
+            OpenXmlElement reference = sectionEnd;
+            for (int i = startIndex; i < endIndex; i++) {
+                var clone = bodyElements[i].CloneNode(true);
+                reference = reference.InsertAfterSelf(clone);
+            }
+
+            WordSection newSection;
+            if (sectionEnd is Paragraph paragraph) {
+                var clonedParagraph = (Paragraph)paragraph.CloneNode(true);
+                reference = reference.InsertAfterSelf(clonedParagraph);
+                var sectPr = clonedParagraph.ParagraphProperties?.SectionProperties;
+                newSection = new WordSection(_document, sectPr, clonedParagraph);
+            } else {
+                var clonedSectionProperties = (SectionProperties)_sectionProperties.CloneNode(true);
+                reference = reference.InsertAfterSelf(clonedSectionProperties);
+                newSection = new WordSection(_document, clonedSectionProperties, null);
+            }
+
+            int index = _document.Sections.IndexOf(this);
+            _document.Sections.Remove(newSection);
+            _document.Sections.Insert(index + 1, newSection);
+
+            return newSection;
+        }
+
+        /// <summary>
         /// Removes this section and all of its content from the document,
         /// cleaning up numbering and any unreferenced header and footer parts.
         /// </summary>

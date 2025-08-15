@@ -269,6 +269,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Sections.Example_SectionsWithHeaders(folderPath, false);
             OfficeIMO.Examples.Word.Sections.Example_SectionsWithHeadersDefault(folderPath, false);
             OfficeIMO.Examples.Word.Sections.Example_SectionsWithParagraphs(folderPath, false);
+            OfficeIMO.Examples.Word.Sections.Example_CloneSection(folderPath, false);
             // Word/Shapes
             OfficeIMO.Examples.Word.Shapes.Example_AddBasicShape(folderPath, false);
             OfficeIMO.Examples.Word.Shapes.Example_AddEllipseAndPolygon(folderPath, false);

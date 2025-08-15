@@ -583,6 +583,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Clones the section at the specified index and inserts the clone after it.
+        /// </summary>
+        /// <param name="index">Zero based index of the section to clone.</param>
+        /// <returns>The cloned <see cref="WordSection"/>.</returns>
+        public WordSection CloneSection(int index) {
+            if (index < 0 || index >= this.Sections.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return this.Sections[index].CloneSection();
+        }
+
+        /// <summary>
         /// Inserts a bookmark in a new paragraph.
         /// </summary>
         /// <param name="bookmarkName">Name of the bookmark.</param>
