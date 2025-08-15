@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -32,6 +34,13 @@ namespace OfficeIMO.Word {
         private readonly AbstractNum _abstractNum;
 
         /// <summary>
+        /// Gets the abstract numbering identifier.
+        /// </summary>
+        public int AbstractNumberId {
+            get { return (int)_abstractNum.AbstractNumberId.Value; }
+        }
+
+        /// <summary>
         /// Gets the index of next level to be able to set it
         /// </summary>
         /// <value>
@@ -56,6 +65,50 @@ namespace OfficeIMO.Word {
         /// <param name="abstractNum">Numbering definition to wrap.</param>
         public WordListNumbering(AbstractNum abstractNum) {
             _abstractNum = abstractNum;
+        }
+
+        /// <summary>
+        /// Creates a new numbering definition within the specified document.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <returns>The created <see cref="WordListNumbering"/>.</returns>
+        public static WordListNumbering CreateNumberingDefinition(WordDocument document) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+            var numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
+            if (numberingPart.Numbering == null) {
+                numberingPart.Numbering = new Numbering();
+            }
+
+            var numbering = numberingPart.Numbering;
+            var newId = numbering.Elements<AbstractNum>()
+                .Select(a => (int)a.AbstractNumberId.Value)
+                .DefaultIfEmpty(0)
+                .Max() + 1;
+
+            var abstractNum = new AbstractNum { AbstractNumberId = newId };
+            numbering.Append(abstractNum);
+            numberingPart.Numbering.Save(numberingPart);
+            return new WordListNumbering(abstractNum);
+        }
+
+        /// <summary>
+        /// Retrieves a numbering definition from the document by its identifier.
+        /// </summary>
+        /// <param name="document">The parent document.</param>
+        /// <param name="abstractNumberId">The abstract numbering identifier.</param>
+        /// <returns>The <see cref="WordListNumbering"/> if found; otherwise, <c>null</c>.</returns>
+        public static WordListNumbering GetNumberingDefinition(WordDocument document, int abstractNumberId) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            var numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+            var abstractNum = numbering?.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == abstractNumberId);
+            return abstractNum != null ? new WordListNumbering(abstractNum) : null;
         }
 
         /// <summary>
