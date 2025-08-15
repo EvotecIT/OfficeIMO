@@ -147,6 +147,15 @@ namespace OfficeIMO.Word.Html.Converters {
                 };
             }
 
+            var floatVal = declaration.GetPropertyValue("float")?.Trim();
+            if (!string.IsNullOrEmpty(floatVal)) {
+                alignment = floatVal.ToLowerInvariant() switch {
+                    "left" => JustificationValues.Left,
+                    "right" => JustificationValues.Right,
+                    _ => alignment
+                };
+            }
+
             if (TryConvertToTwip(declaration.GetProperty("padding-left")?.RawValue, out int pl)) paddingLeft = pl;
             if (TryConvertToTwip(declaration.GetProperty("padding-right")?.RawValue, out int pr)) paddingRight = pr;
             if (TryConvertToTwip(declaration.GetProperty("padding-top")?.RawValue, out int pt)) paddingTop = pt;

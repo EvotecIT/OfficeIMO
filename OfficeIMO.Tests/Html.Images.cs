@@ -1,4 +1,5 @@
 using OfficeIMO.Word.Html;
+using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Linq;
@@ -84,6 +85,32 @@ namespace OfficeIMO.Tests {
             Assert.Collection(doc.Images, _ => { }, _ => { });
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
             Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
+        }
+
+        [Fact]
+        public void ImageFloatLeftWrapsLeft() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:left\"/>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var img = Assert.Single(doc.Images);
+            Assert.Equal(WrapTextImage.Square, img.WrapText);
+            var hPos = img.horizontalPosition;
+            Assert.NotNull(hPos.HorizontalAlignment);
+            Assert.Equal("left", hPos.HorizontalAlignment.Text);
+        }
+
+        [Fact]
+        public void ImageFloatRightWrapsRight() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:right\"/>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var img = Assert.Single(doc.Images);
+            Assert.Equal(WrapTextImage.Square, img.WrapText);
+            var hPos = img.horizontalPosition;
+            Assert.NotNull(hPos.HorizontalAlignment);
+            Assert.Equal("right", hPos.HorizontalAlignment.Text);
         }
     }
 }
