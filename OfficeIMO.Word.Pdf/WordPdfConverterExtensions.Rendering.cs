@@ -1,17 +1,51 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Vml;
 using OfficeIMO.Word;
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        static readonly HashSet<string> _embeddedFonts = new();
+
+        static void EmbedFont(string? fontFamily) {
+            if (string.IsNullOrWhiteSpace(fontFamily)) {
+                return;
+            }
+            if (!_embeddedFonts.Add(fontFamily)) {
+                return;
+            }
+            try {
+                using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
+                using SKStreamAsset? skStream = typeface?.OpenStream();
+                if (skStream == null) {
+                    return;
+                }
+                using MemoryStream ms = new();
+                if (skStream.HasLength) {
+                    byte[] buffer = new byte[skStream.Length];
+                    skStream.Read(buffer, buffer.Length);
+                    ms.Write(buffer, 0, buffer.Length);
+                } else {
+                    byte[] buffer = new byte[4096];
+                    int read;
+                    while ((read = skStream.Read(buffer, buffer.Length)) > 0) {
+                        ms.Write(buffer, 0, read);
+                    }
+                }
+                ms.Position = 0;
+                FontManager.RegisterFontWithCustomName(fontFamily, ms);
+            } catch {
+            }
+        }
         static void RenderElement(ColumnDescriptor column, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             switch (element) {
                 case WordParagraph paragraph:
@@ -108,8 +142,10 @@ namespace OfficeIMO.Word.Pdf {
 
             void ApplyFormatting(TextSpanDescriptor span) {
                 if (!string.IsNullOrEmpty(paragraph.FontFamily)) {
+                    EmbedFont(paragraph.FontFamily);
                     span = span.FontFamily(paragraph.FontFamily);
                 } else if (!string.IsNullOrEmpty(options?.FontFamily)) {
+                    EmbedFont(options.FontFamily);
                     span = span.FontFamily(options.FontFamily);
                 }
                 if (paragraph.Bold) {
