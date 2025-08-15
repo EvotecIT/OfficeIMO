@@ -14,6 +14,13 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
+        private enum TextTransform {
+            None,
+            Uppercase,
+            Lowercase,
+            Capitalize,
+        }
+
         private struct TextFormatting {
             public bool Bold;
             public bool Italic;
@@ -26,8 +33,10 @@ namespace OfficeIMO.Word.Html.Converters {
             public int? FontSize;
             public HighlightColorValues? Highlight;
             public CapsStyle? Caps;
+            public int? LetterSpacing;
+            public TextTransform Transform;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -39,6 +48,8 @@ namespace OfficeIMO.Word.Html.Converters {
                 FontSize = fontSize;
                 Highlight = highlight;
                 Caps = null;
+                LetterSpacing = letterSpacing;
+                Transform = transform;
             }
         }
 
@@ -89,6 +100,38 @@ namespace OfficeIMO.Word.Html.Converters {
                 } catch { }
             }
             return false;
+        }
+
+        private static bool TryConvertToTwipAllowNegative(ICssValue? value, out int twips) {
+            twips = 0;
+            if (value is CssLengthValue length) {
+                try {
+                    double px = length.ToPixel(_renderDevice);
+                    twips = (int)Math.Round(px * 15);
+                    return true;
+                } catch { }
+            }
+            return false;
+        }
+
+        private static TextTransform? ParseTextTransform(string? value) =>
+            value?.Trim().ToLowerInvariant() switch {
+                "uppercase" => TextTransform.Uppercase,
+                "lowercase" => TextTransform.Lowercase,
+                "capitalize" => TextTransform.Capitalize,
+                _ => null,
+            };
+
+        private static string ApplyTextTransform(string text, TextTransform? transform) {
+            if (transform == null || transform == TextTransform.None || string.IsNullOrEmpty(text)) {
+                return text;
+            }
+            return transform.Value switch {
+                TextTransform.Uppercase => text.ToUpperInvariant(),
+                TextTransform.Lowercase => text.ToLowerInvariant(),
+                TextTransform.Capitalize => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.ToLowerInvariant()),
+                _ => text,
+            };
         }
 
         private static bool IsGenericFont(string family) =>
@@ -155,6 +198,15 @@ namespace OfficeIMO.Word.Html.Converters {
                 paragraph.SetFontSize(fontSize);
             }
 
+            if (TryConvertToTwipAllowNegative(declaration.GetProperty("letter-spacing")?.RawValue, out int lsParagraph)) {
+                paragraph.SetSpacing(lsParagraph);
+            }
+
+            var paragraphTransform = ParseTextTransform(declaration.GetPropertyValue("text-transform"));
+            if (paragraphTransform.HasValue && !string.IsNullOrEmpty(paragraph.Text)) {
+                paragraph.SetText(ApplyTextTransform(paragraph.Text, paragraphTransform.Value));
+            }
+
             var align = declaration.GetPropertyValue("text-align")?.Trim();
             if (!string.IsNullOrEmpty(align)) {
                 alignment = align.ToLowerInvariant() switch {
@@ -208,15 +260,19 @@ namespace OfficeIMO.Word.Html.Converters {
             foreach (System.Text.RegularExpressions.Match match in _urlRegex.Matches(text)) {
                 if (match.Index > lastIndex) {
                     var segment = text.Substring(lastIndex, match.Index - lastIndex);
+                    segment = ApplyTextTransform(segment, formatting.Transform);
                     var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
                     ApplyFormatting(run, formatting, options);
                 }
-                var linkRun = paragraph.AddHyperLink(match.Value, new Uri(match.Value));
+                var display = ApplyTextTransform(match.Value, formatting.Transform);
+                var linkRun = paragraph.AddHyperLink(display, new Uri(match.Value));
                 ApplyFormatting(linkRun, formatting, options);
                 lastIndex = match.Index + match.Length;
             }
             if (lastIndex < text.Length) {
-                var run = paragraph.AddFormattedText(text.Substring(lastIndex), formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                var segment = text.Substring(lastIndex);
+                segment = ApplyTextTransform(segment, formatting.Transform);
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
                 ApplyFormatting(run, formatting, options);
             }
         }
@@ -232,6 +288,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
+            if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);
                 if (!string.IsNullOrEmpty(font)) {
@@ -305,6 +362,15 @@ namespace OfficeIMO.Word.Html.Converters {
             } else if (va == "baseline") {
                 formatting.Superscript = false;
                 formatting.Subscript = false;
+            }
+
+            if (TryConvertToTwipAllowNegative(declaration.GetProperty("letter-spacing")?.RawValue, out int ls)) {
+                formatting.LetterSpacing = ls;
+            }
+
+            var transform = ParseTextTransform(declaration.GetPropertyValue("text-transform"));
+            if (transform.HasValue) {
+                formatting.Transform = transform.Value;
             }
 
             if (parsed.Underline) {
