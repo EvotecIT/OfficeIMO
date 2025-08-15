@@ -25,6 +25,7 @@ namespace OfficeIMO.Word.Html.Converters {
             public string? FontFamily;
             public int? FontSize;
             public HighlightColorValues? Highlight;
+            public CapsStyle? Caps;
 
             public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null) {
                 Bold = bold;
@@ -37,11 +38,21 @@ namespace OfficeIMO.Word.Html.Converters {
                 FontFamily = fontFamily;
                 FontSize = fontSize;
                 Highlight = highlight;
+                Caps = null;
             }
         }
 
         private static readonly DefaultRenderDevice _renderDevice = new() { FontSize = 16 };
         private static readonly CssParser _inlineParser = new();
+        private static readonly Dictionary<string, int> _namedFontSizes = new(StringComparer.OrdinalIgnoreCase) {
+            { "xx-small", 9 },
+            { "x-small", 10 },
+            { "small", 13 },
+            { "medium", 16 },
+            { "large", 18 },
+            { "x-large", 24 },
+            { "xx-large", 32 },
+        };
 
         private static bool TryParseFontSize(string? text, out int size) {
             size = 0;
@@ -49,12 +60,20 @@ namespace OfficeIMO.Word.Html.Converters {
                 return false;
             }
             text = text.Trim().ToLowerInvariant();
-            if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), out double pt)) {
+            if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
                 size = (int)Math.Round(pt);
                 return size > 0;
             }
-            if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), out double px)) {
+            if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
                 size = (int)Math.Round(px);
+                return size > 0;
+            }
+            if (_namedFontSizes.TryGetValue(text, out int named)) {
+                size = named;
+                return true;
+            }
+            if (text.EndsWith("%") && double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+                size = (int)Math.Round(_renderDevice.FontSize * (percent / 100d));
                 return size > 0;
             }
             return false;
@@ -212,6 +231,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
+            if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);
                 if (!string.IsNullOrEmpty(font)) {
@@ -266,6 +286,13 @@ namespace OfficeIMO.Word.Html.Converters {
                 formatting.Italic = true;
             } else if (fontStyle == "normal") {
                 formatting.Italic = false;
+            }
+
+            var fontVariant = declaration.GetPropertyValue("font-variant").ToLowerInvariant();
+            if (fontVariant == "small-caps") {
+                formatting.Caps = CapsStyle.SmallCaps;
+            } else if (fontVariant == "normal") {
+                formatting.Caps = CapsStyle.None;
             }
 
             var va = declaration.GetPropertyValue("vertical-align").ToLowerInvariant();

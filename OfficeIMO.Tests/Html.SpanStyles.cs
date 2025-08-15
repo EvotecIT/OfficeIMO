@@ -59,5 +59,35 @@ namespace OfficeIMO.Tests {
             var subRun = runs.First(r => r.Text == "sub");
             Assert.Equal(VerticalPositionValues.Subscript, subRun.VerticalTextAlignment);
         }
+
+        [Fact]
+        public void HtmlToWord_SpanStyles_FontSizeNamed() {
+            string html = "<p><span style=\"font-size:small\">text</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal(13, run.FontSize);
+        }
+
+        [Fact]
+        public void HtmlToWord_SpanStyles_FontSizePercentage() {
+            string html = "<p><span style=\"font-size:200%\">text</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal(32, run.FontSize);
+        }
+
+        [Fact]
+        public void HtmlToWord_SpanStyles_SmallCaps() {
+            string html = "<p><span style=\"font-variant:small-caps\">caps</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal(CapsStyle.SmallCaps, run.CapsStyle);
+        }
     }
 }
