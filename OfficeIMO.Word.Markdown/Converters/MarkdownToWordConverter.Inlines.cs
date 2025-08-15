@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
 using SixLabors.ImageSharp;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     internal partial class MarkdownToWordConverter {
@@ -18,14 +19,15 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 return;
             }
 
-            void Handle(Inline? node, bool bold = false, bool italic = false, bool strike = false) {
-                for (var current = node; current != null; current = current.NextSibling) {
+            void Handle(Inline? node, bool bold = false, bool italic = false, bool strike = false, bool underline = false, Inline? stop = null) {
+                for (var current = node; current != null && current != stop; current = current.NextSibling) {
                     switch (current) {
                         case LiteralInline literal:
                             var run = paragraph.AddText(literal.Content.ToString());
                             if (bold) run.SetBold();
                             if (italic) run.SetItalic();
                             if (strike) run.SetStrike();
+                            if (underline) run.SetUnderline(UnderlineValues.Single);
                             if (!string.IsNullOrEmpty(options.FontFamily)) {
                                 run.SetFontFamily(options.FontFamily);
                             }
@@ -34,6 +36,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             bool eBold = bold;
                             bool eItalic = italic;
                             bool eStrike = strike;
+                            bool eUnderline = underline;
                             if (emphasis.DelimiterChar == '~') {
                                 eStrike = true;
                             } else {
@@ -46,7 +49,36 @@ namespace OfficeIMO.Word.Markdown.Converters {
                                     eItalic = true;
                                 }
                             }
-                            Handle(emphasis.FirstChild, eBold, eItalic, eStrike);
+                            Handle(emphasis.FirstChild, eBold, eItalic, eStrike, eUnderline);
+                            break;
+                        case HtmlInline html:
+                            string tag = html.Tag?.ToLowerInvariant() ?? string.Empty;
+                            if (tag.StartsWith("<u", StringComparison.Ordinal) && !tag.StartsWith("</", StringComparison.Ordinal)) {
+                                char nextChar = tag.Length > 2 ? tag[2] : '\0';
+                                if (nextChar == '>' || char.IsWhiteSpace(nextChar)) {
+                                    int depth = 1;
+                                    var next = html.NextSibling;
+                                    while (next != null) {
+                                        if (next is HtmlInline h) {
+                                            string t = h.Tag?.ToLowerInvariant() ?? string.Empty;
+                                            if (t.StartsWith("<u", StringComparison.Ordinal) && !t.StartsWith("</", StringComparison.Ordinal)) {
+                                                char innerNext = t.Length > 2 ? t[2] : '\0';
+                                                if (innerNext == '>' || char.IsWhiteSpace(innerNext)) {
+                                                    depth++;
+                                                }
+                                            } else if (t.StartsWith("</u", StringComparison.Ordinal)) {
+                                                depth--;
+                                                if (depth == 0) {
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        next = next.NextSibling;
+                                    }
+                                    Handle(html.NextSibling, bold, italic, strike, true, next);
+                                    current = next;
+                                }
+                            }
                             break;
                         case LinkInline link:
                             if (link.IsImage) {
@@ -67,7 +99,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             paragraph.AddBreak();
                             break;
                         case ContainerInline container:
-                            Handle(container.FirstChild, bold, italic, strike);
+                            Handle(container.FirstChild, bold, italic, strike, underline);
                             break;
                         default:
                             if (current is LeafInline leaf) {
@@ -75,6 +107,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                                 if (bold) other.SetBold();
                                 if (italic) other.SetItalic();
                                 if (strike) other.SetStrike();
+                                if (underline) other.SetUnderline(UnderlineValues.Single);
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
                                     other.SetFontFamily(options.FontFamily);
                                 }
@@ -189,7 +222,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
         }
 
-        private static string BuildFootnoteText(Footnote footnote) {
+        private static string BuildFootnoteText(Markdig.Extensions.Footnotes.Footnote footnote) {
             var sb = new StringBuilder();
             bool first = true;
             foreach (var block in footnote) {
