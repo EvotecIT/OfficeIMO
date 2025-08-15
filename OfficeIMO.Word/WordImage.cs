@@ -2025,9 +2025,8 @@ namespace OfficeIMO.Word {
 
             try {
                 using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                    var stream = _imagePart.GetStream();
+                    using var stream = _imagePart.GetStream(FileMode.Open, FileAccess.Read);
                     stream.CopyTo(outputFileStream);
-                    stream.Close();
                 }
             } catch (UnauthorizedAccessException ex) {
                 throw new IOException($"Failed to save to '{fileToSave}'. Access denied or path is read-only.", ex);
@@ -2043,7 +2042,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Image is linked externally and cannot be extracted.");
             }
 
-            return _imagePart.GetStream();
+            return _imagePart.GetStream(FileMode.Open, FileAccess.Read);
         }
 
         /// <summary>
