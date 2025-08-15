@@ -40,8 +40,10 @@ public partial class Html {
         Assert.Contains("https://example.com", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("link", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.True(roundTrip.Contains(FontResolver.Resolve("Calibri")!, StringComparison.OrdinalIgnoreCase) ||
-                    roundTrip.Contains("Calibri", StringComparison.OrdinalIgnoreCase));
+        var resolved = FontResolver.Resolve("Calibri");
+        bool hasFont = (!string.IsNullOrEmpty(resolved) && roundTrip.IndexOf(resolved, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       roundTrip.IndexOf("Calibri", StringComparison.OrdinalIgnoreCase) >= 0;
+        Assert.True(hasFont);
     }
 
     [Fact]

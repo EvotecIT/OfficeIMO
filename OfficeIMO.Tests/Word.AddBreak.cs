@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 document.AddBreak();
                 Assert.Equal(paragraphCount + 1, document.Paragraphs.Count);
                 Assert.Equal(paragraphCount + 1, document.Sections[0].Paragraphs.Count);
-                Assert.Equal(1, document.Breaks.Count);
+                Assert.Single(document.Breaks);
                 document.Save(false);
             }
         }
