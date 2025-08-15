@@ -411,11 +411,15 @@ namespace OfficeIMO.Word.Html.Converters {
                                 paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                             }
                             paragraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
-                            ApplyParagraphStyleFromCss(paragraph, element);
+                            var props = ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
+                            var fmt = formatting;
+                            if (props.WhiteSpace.HasValue) {
+                                fmt.WhiteSpace = props.WhiteSpace.Value;
+                            }
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
+                                ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             break;
                         }
@@ -423,7 +427,10 @@ namespace OfficeIMO.Word.Html.Converters {
                             var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            ApplyParagraphStyleFromCss(paragraph, element);
+                            var props = ApplyParagraphStyleFromCss(paragraph, element);
+                            if (props.WhiteSpace.HasValue) {
+                                fmt.WhiteSpace = props.WhiteSpace.Value;
+                            }
                             ApplyClassStyle(element, paragraph, options);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {

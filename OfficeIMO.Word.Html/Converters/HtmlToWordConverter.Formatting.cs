@@ -9,6 +9,7 @@ using OfficeIMO.Word.Html.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -35,8 +36,9 @@ namespace OfficeIMO.Word.Html.Converters {
             public CapsStyle? Caps;
             public int? LetterSpacing;
             public TextTransform Transform;
+            public WhiteSpaceMode? WhiteSpace;
 
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None) {
+            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -50,6 +52,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 Caps = null;
                 LetterSpacing = letterSpacing;
                 Transform = transform;
+                WhiteSpace = whiteSpace;
             }
         }
 
@@ -162,7 +165,7 @@ namespace OfficeIMO.Word.Html.Converters {
             return null;
         }
 
-        private static void ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
+        private static CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
             string? styleAttribute = element.GetAttribute("style");
             var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
             if (style.HasValue) {
@@ -251,13 +254,15 @@ namespace OfficeIMO.Word.Html.Converters {
             if (right > 0) {
                 paragraph.IndentationAfter = right;
             }
+            return parsed;
         }
 
-        private static readonly System.Text.RegularExpressions.Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
 
         private static void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+            text = ApplyWhiteSpace(text, formatting.WhiteSpace);
             int lastIndex = 0;
-            foreach (System.Text.RegularExpressions.Match match in _urlRegex.Matches(text)) {
+            foreach (Match match in _urlRegex.Matches(text)) {
                 if (match.Index > lastIndex) {
                     var segment = text.Substring(lastIndex, match.Index - lastIndex);
                     segment = ApplyTextTransform(segment, formatting.Transform);
@@ -275,6 +280,27 @@ namespace OfficeIMO.Word.Html.Converters {
                 var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
                 ApplyFormatting(run, formatting, options);
             }
+        }
+
+        private static string ApplyWhiteSpace(string text, WhiteSpaceMode? mode) {
+            if (!mode.HasValue) {
+                return text;
+            }
+            return mode.Value switch {
+                WhiteSpaceMode.Normal => CollapseWhiteSpace(text, false),
+                WhiteSpaceMode.NoWrap => CollapseWhiteSpace(text, true),
+                WhiteSpaceMode.Pre => text.Replace(" ", " "),
+                WhiteSpaceMode.PreWrap => text,
+                _ => text,
+            };
+        }
+
+        private static string CollapseWhiteSpace(string text, bool noWrap) {
+            var collapsed = Regex.Replace(text, "\\s+", " ");
+            if (noWrap) {
+                collapsed = collapsed.Replace(" ", " ");
+            }
+            return collapsed;
         }
 
         private static void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
@@ -384,6 +410,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 if (highlight.HasValue) {
                     formatting.Highlight = highlight.Value;
                 }
+            }
+            if (parsed.WhiteSpace.HasValue) {
+                formatting.WhiteSpace = parsed.WhiteSpace.Value;
             }
         }
 

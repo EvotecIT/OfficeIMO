@@ -45,11 +45,15 @@ namespace OfficeIMO.Word.Html.Converters {
                     : headerFooter != null ? headerFooter.AddParagraph("")
                     : section.AddParagraph("");
                 captionParagraph.SetStyleId("Caption");
-                ApplyParagraphStyleFromCss(captionParagraph, caption);
+                var props = ApplyParagraphStyleFromCss(captionParagraph, caption);
                 ApplyClassStyle(caption, captionParagraph, options);
                 AddBookmarkIfPresent(caption, captionParagraph);
+                var fmt = new TextFormatting();
+                if (props.WhiteSpace.HasValue) {
+                    fmt.WhiteSpace = props.WhiteSpace.Value;
+                }
                 foreach (var child in caption.ChildNodes) {
-                    ProcessNode(child, doc, section, options, captionParagraph, listStack, new TextFormatting(), cell, headerFooter);
+                    ProcessNode(child, doc, section, options, captionParagraph, listStack, fmt, cell, headerFooter);
                 }
             }
 
@@ -146,11 +150,15 @@ namespace OfficeIMO.Word.Html.Converters {
                     captionParagraphBelow = lastCellParagraph.AddParagraphAfterSelf(section);
                 }
                 captionParagraphBelow.SetStyleId("Caption");
-                ApplyParagraphStyleFromCss(captionParagraphBelow, caption);
+                var propsBelow = ApplyParagraphStyleFromCss(captionParagraphBelow, caption);
                 ApplyClassStyle(caption, captionParagraphBelow, options);
                 AddBookmarkIfPresent(caption, captionParagraphBelow);
+                var fmtBelow = new TextFormatting();
+                if (propsBelow.WhiteSpace.HasValue) {
+                    fmtBelow.WhiteSpace = propsBelow.WhiteSpace.Value;
+                }
                 foreach (var child in caption.ChildNodes) {
-                    ProcessNode(child, doc, section, options, captionParagraphBelow, listStack, new TextFormatting(), cell, headerFooter);
+                    ProcessNode(child, doc, section, options, captionParagraphBelow, listStack, fmtBelow, cell, headerFooter);
                 }
             }
         }
