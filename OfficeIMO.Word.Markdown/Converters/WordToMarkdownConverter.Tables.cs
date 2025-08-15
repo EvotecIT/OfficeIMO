@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -16,9 +17,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
             sb.AppendLine();
 
+            var alignments = GetColumnAlignments(rows);
+
             sb.Append('|');
-            foreach (var cell in rows[0].Cells) {
-                sb.Append(' ').Append(GetAlignmentMarker(cell)).Append(' ').Append('|');
+            for (int c = 0; c < alignments.Length; c++) {
+                sb.Append(' ').Append(GetAlignmentMarker(alignments[c])).Append(' ').Append('|');
             }
             sb.AppendLine();
 
@@ -42,8 +45,25 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return sb.ToString();
         }
 
-        private static string GetAlignmentMarker(WordTableCell cell) {
-            var alignment = cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment;
+        private static JustificationValues?[] GetColumnAlignments(IReadOnlyList<WordTableRow> rows) {
+            int columnCount = rows[0].Cells.Count;
+            var result = new JustificationValues?[columnCount];
+
+            for (int c = 0; c < columnCount; c++) {
+                foreach (var row in rows) {
+                    var paragraph = row.Cells[c].Paragraphs.FirstOrDefault();
+                    var alignment = paragraph?.ParagraphAlignment;
+                    if (alignment != null) {
+                        result[c] = alignment;
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static string GetAlignmentMarker(JustificationValues? alignment) {
             if (alignment == JustificationValues.Center) {
                 return ":---:";
             }

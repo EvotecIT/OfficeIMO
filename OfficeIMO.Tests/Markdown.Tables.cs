@@ -51,6 +51,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal("| Left | Center | Right |", lines[0].TrimEnd('\r'));
             Assert.Equal("| :--- | :---: | ---: |", lines[1].TrimEnd('\r'));
         }
+
+        [Fact]
+        public void WordToMarkdown_TableAlignmentMarkersFromAnyRow() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(2, 2);
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
+
+            var center = table.Rows[1].Cells[0].Paragraphs[0];
+            center.Text = "C";
+            center.ParagraphAlignment = JustificationValues.Center;
+
+            var right = table.Rows[1].Cells[1].Paragraphs[0];
+            right.Text = "R";
+            right.ParagraphAlignment = JustificationValues.Right;
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            var lines = markdown.Split('\n');
+            Assert.Equal("| H1 | H2 |", lines[0].TrimEnd('\r'));
+            Assert.Equal("| :---: | ---: |", lines[1].TrimEnd('\r'));
+        }
     }
 }
 

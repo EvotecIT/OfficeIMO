@@ -5,14 +5,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using JustificationValues = DocumentFormat.OpenXml.Wordprocessing.JustificationValues;
-
-namespace OfficeIMO.Word.Markdown.Converters {
-    internal partial class MarkdownToWordConverter {
-        private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options) {
-            int rows = table.Count();
-            int cols = table.ColumnDefinitions.Count;
-            var wordTable = document.AddTable(rows, cols);
-            int r = 0;
+            int rows = table.Count();
+            int cols = table.ColumnDefinitions.Count;
+            var wordTable = document.AddTable(rows, cols);
+
+            var columnAlignments = table.ColumnDefinitions
+                .Select(cd => ToJustification(cd.Alignment))
+                .ToArray();
+
+            int r = 0;
+            foreach (TableRow row in table) {
+                var rowAlignments = GetRowAlignments(row);
+                int c = 0;
+                foreach (TableCell cell in row) {
+                    var wordCell = wordTable.Rows[r].Cells[c];
+                    JustificationValues? justification = null;
+                    if (rowAlignments != null && c < rowAlignments.Length) {
+                        justification = ToJustification(rowAlignments[c]);
+                    }
+                    if (justification == null && c < columnAlignments.Length) {
+                        justification = columnAlignments[c];
+                    }
             foreach (TableRow row in table) {
                 var rowAlignments = GetRowAlignments(row);
                 int c = 0;
