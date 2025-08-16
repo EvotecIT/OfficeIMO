@@ -688,7 +688,19 @@ namespace OfficeIMO.Word.Html.Converters {
                             AppendRuns(li, paragraph);
                         } else {
                             CloseLists();
-                            if (IsCodeParagraph(paragraph)) {
+                            if (paragraph.IsImage && idx + 1 < elements.Count && elements[idx + 1] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.OrdinalIgnoreCase)) {
+                                var figure = htmlDoc.CreateElement("figure");
+                                AppendRuns(figure, paragraph);
+                                var figCap = htmlDoc.CreateElement("figcaption");
+                                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionPara.StyleId)) {
+                                    figCap.SetAttribute("class", captionPara.StyleId);
+                                    paragraphStyles.Add(captionPara.StyleId);
+                                }
+                                AppendRuns(figCap, captionPara);
+                                figure.AppendChild(figCap);
+                                body.AppendChild(figure);
+                                idx++;
+                            } else if (IsCodeParagraph(paragraph)) {
                                 List<string> lines = new();
                                 lines.Add(paragraph.Text);
                                 while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && DocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {

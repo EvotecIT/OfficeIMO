@@ -815,20 +815,23 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                         }
                     case "figure": {
-                            var img = element.QuerySelector("img") as IHtmlImageElement;
-                            if (img != null) {
-                                ProcessImage(img, doc, options, currentParagraph, headerFooter);
-                            }
-                            var caption = element.QuerySelector("figcaption");
-                            if (caption != null) {
-                                ApplyCssToElement(caption);
-                                var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                paragraph.SetStyleId("Caption");
-                                ApplyParagraphStyleFromCss(paragraph, caption);
-                                ApplyClassStyle(caption, paragraph, options);
-                                AddBookmarkIfPresent(caption, paragraph);
-                                foreach (var child in caption.ChildNodes) {
-                                    ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
+                            WordParagraph? figPara = currentParagraph;
+                            foreach (var child in element.ChildNodes) {
+                                if (child is IElement childEl && string.Equals(childEl.TagName, "figcaption", StringComparison.OrdinalIgnoreCase)) {
+                                    ApplyCssToElement(childEl);
+                                    var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                    paragraph.SetStyleId("Caption");
+                                    ApplyParagraphStyleFromCss(paragraph, childEl);
+                                    ApplyClassStyle(childEl, paragraph, options);
+                                    AddBookmarkIfPresent(childEl, paragraph);
+                                    foreach (var captionChild in childEl.ChildNodes) {
+                                        ProcessNode(captionChild, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
+                                    }
+                                } else {
+                                    ProcessNode(child, doc, section, options, figPara, listStack, formatting, cell, headerFooter, headingList);
+                                    if (figPara == null && doc.Paragraphs.Count > 0) {
+                                        figPara = doc.Paragraphs.Last();
+                                    }
                                 }
                             }
                             break;
