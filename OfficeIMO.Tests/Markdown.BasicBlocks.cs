@@ -51,5 +51,15 @@ code
             var codeRun = body.Descendants<Run>().First(r => r.InnerText.Contains("code"));
             Assert.Equal(FontResolver.Resolve("monospace"), codeRun.RunProperties!.RunFonts!.Ascii);
         }
+
+        [Fact]
+        public void Markdown_BlockQuote_Nesting_RoundTrip() {
+            string md = @"> Level 1\n> > Level 2";
+            var doc = md.LoadFromMarkdown();
+
+            string markdown = doc.ToMarkdown();
+            Assert.Contains("> Level 1", markdown);
+            Assert.Contains("> > Level 2", markdown);
+        }
     }
 }
