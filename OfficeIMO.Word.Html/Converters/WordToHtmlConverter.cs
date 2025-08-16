@@ -557,7 +557,8 @@ namespace OfficeIMO.Word.Html.Converters {
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }
-                        var align = GetTextAlignCss(GetCellAlignment(cell));
+                        var cellAlignment = GetCellAlignment(cell);
+                        var align = GetTextAlignCss(cellAlignment);
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
