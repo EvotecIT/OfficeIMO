@@ -22,6 +22,13 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             var sb = new StringBuilder();
 
+            if (paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
+                int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                if (depth > 0) {
+                    sb.Append(string.Join(" ", Enumerable.Repeat(">", depth))).Append(' ');
+                }
+            }
+
             int? headingLevel = paragraph.Style.HasValue
                 ? HeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value)
                 : (int?)null;

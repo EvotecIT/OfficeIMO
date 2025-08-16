@@ -47,10 +47,13 @@ namespace OfficeIMO.Word.Markdown.Converters {
             return document;
         }
 
-        private static void ProcessBlock(Block block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0) {
+        private static void ProcessBlock(Block block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0, int quoteDepth = 0) {
             switch (block) {
                 case HeadingBlock heading:
                     var headingParagraph = document.AddParagraph(string.Empty);
+                    if (quoteDepth > 0) {
+                        headingParagraph.IndentationBefore = 720 * quoteDepth;
+                    }
                     ProcessInline(heading.Inline, headingParagraph, options, document);
                     headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(heading.Level);
                     break;
@@ -60,10 +63,16 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     break;
                 case ParagraphBlock paragraphBlock when currentList == null:
                     var paragraph = document.AddParagraph(string.Empty);
+                    if (quoteDepth > 0) {
+                        paragraph.IndentationBefore = 720 * quoteDepth;
+                    }
                     ProcessInline(paragraphBlock.Inline, paragraph, options, document);
                     break;
                 case ParagraphBlock paragraphBlock:
                     var listItemParagraph = currentList!.AddItem(string.Empty, listLevel);
+                    if (quoteDepth > 0) {
+                        listItemParagraph.IndentationBefore = 720 * quoteDepth;
+                    }
                     ProcessInline(paragraphBlock.Inline, listItemParagraph, options, document);
                     break;
                 case ListBlock listBlock:
@@ -71,17 +80,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     break;
                 case QuoteBlock quote:
                     foreach (var sub in quote) {
-                        if (sub is ParagraphBlock qp) {
-                            var qpParagraph = document.AddParagraph(string.Empty);
-                            qpParagraph.IndentationBefore = 720;
-                            ProcessInline(qp.Inline, qpParagraph, options, document);
-                        } else {
-                            ProcessBlock(sub, document, options);
-                        }
+                        ProcessBlock(sub, document, options, null, 0, quoteDepth + 1);
                     }
                     break;
                 case CodeBlock codeBlock:
                     var codeParagraph = document.AddParagraph(string.Empty);
+                    if (quoteDepth > 0) {
+                        codeParagraph.IndentationBefore = 720 * quoteDepth;
+                    }
                     var codeText = GetCodeBlockText(codeBlock);
                     var run = codeParagraph.AddFormattedText(codeText);
                     var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
