@@ -430,7 +430,8 @@ namespace OfficeIMO.Word.Html.Converters {
             }
             var style = htmlCell.GetAttribute("style");
             var borderAttr = htmlCell.GetAttribute("border");
-            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr)) {
+            var alignAttr = htmlCell.GetAttribute("align");
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr) && string.IsNullOrWhiteSpace(alignAttr)) {
                 return null;
             }
 
@@ -486,6 +487,17 @@ namespace OfficeIMO.Word.Html.Converters {
                             break;
                     }
                 }
+            }
+
+            if (alignment == null && !string.IsNullOrWhiteSpace(alignAttr)) {
+                var align = alignAttr.Trim().ToLowerInvariant();
+                alignment = align switch {
+                    "center" => JustificationValues.Center,
+                    "right" => JustificationValues.Right,
+                    "justify" => JustificationValues.Both,
+                    "left" => JustificationValues.Left,
+                    _ => alignment
+                };
             }
 
             if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {

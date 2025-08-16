@@ -35,5 +35,19 @@ namespace OfficeIMO.Tests {
             Assert.Contains("text-align:center", back, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-align:right", back, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_TextAlign_LeftAndJustify() {
+            string html = "<table><tr><td style=\"text-align:left\">L</td><td style=\"text-align:justify\">J</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+            var cellLeft = table.Rows[0].Cells[0];
+            var cellJustify = table.Rows[0].Cells[1];
+            Assert.Equal(JustificationValues.Left, cellLeft.Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(JustificationValues.Both, cellJustify.Paragraphs[0].ParagraphAlignment);
+            string back = doc.ToHtml();
+            Assert.Contains("text-align:left", back, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-align:justify", back, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
