@@ -1,7 +1,4 @@
 using System.IO;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -21,9 +18,8 @@ public partial class Word {
 
         using (var document = WordDocument.Load(filePath)) {
             Assert.Single(document.EmbeddedDocuments);
-            AlternativeFormatImportPart part = document._document.MainDocumentPart.AlternativeFormatImportParts.First();
-            using var reader = new StreamReader(part.GetStream(), Encoding.UTF8);
-            string content = reader.ReadToEnd();
+            string? content = document.EmbeddedDocuments[0].GetHtml();
+            Assert.NotNull(content);
             Assert.Contains(phrase, content);
         }
     }
