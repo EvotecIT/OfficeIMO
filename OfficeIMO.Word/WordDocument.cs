@@ -1092,7 +1092,6 @@ namespace OfficeIMO.Word {
             WordDocumentStatistics statistics = new WordDocumentStatistics(word);
 
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
 
             return word;
         }
