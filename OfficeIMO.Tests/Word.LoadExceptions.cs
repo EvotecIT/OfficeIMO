@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 using Xunit;
@@ -16,7 +17,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_LoadAsyncMissingFile_ThrowsWithPath() {
             string filePath = Path.Combine(_directoryWithFiles, "missingAsync.docx");
-            var ex = await Assert.ThrowsAsync<FileNotFoundException>(() => WordDocument.LoadAsync(filePath));
+            var ex = await Assert.ThrowsAsync<FileNotFoundException>(() => WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None));
             Assert.Equal($"File '{filePath}' doesn't exist.", ex.Message);
         }
 

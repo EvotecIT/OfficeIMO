@@ -1101,11 +1101,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Destination file path.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Created <see cref="WordDocument"/>.</returns>
-        public static async Task<WordDocument> CreateAsync(string filePath = "", bool autoSave = false) {
+        public static async Task<WordDocument> CreateAsync(string filePath = "", bool autoSave = false, CancellationToken cancellationToken = default) {
             if (!string.IsNullOrEmpty(filePath)) {
                 using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                await fs.FlushAsync();
+                await fs.FlushAsync(cancellationToken);
             }
 
             var documentType = GetDocumentType(filePath);
@@ -1258,9 +1259,10 @@ namespace OfficeIMO.Word {
         /// <param name="readOnly">Open the document in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
+        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, CancellationToken cancellationToken = default) {
             if (filePath != null) {
                 if (!File.Exists(filePath)) {
                     throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -1269,7 +1271,7 @@ namespace OfficeIMO.Word {
 
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream);
+            await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
             var openSettings = new OpenSettings {
