@@ -453,6 +453,9 @@ namespace OfficeIMO.Word.Pdf {
                         kvp.Value.Position = 0;
                     }
                     FontManager.RegisterFontWithCustomName(kvp.Key, kvp.Value);
+                    if (kvp.Value.CanSeek) {
+                        kvp.Value.Position = 0;
+                    }
                 }
             }
         }
