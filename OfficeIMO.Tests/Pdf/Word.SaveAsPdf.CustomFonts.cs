@@ -17,6 +17,10 @@ namespace OfficeIMO.Tests {
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                     ? "/System/Library/Fonts/Supplemental/Arial.ttf"
                     : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+            string expectedFont = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+                                   RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? "Arial"
+                : "DejaVuSans";
             string docPath = Path.Combine(_directoryWithFiles, "PdfFontFile.docx");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
@@ -28,7 +32,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f.Contains("DejaVuSans"));
+                    Assert.Contains(fonts, f => f.Contains(expectedFont));
                 }
             }
         }
@@ -40,6 +44,10 @@ namespace OfficeIMO.Tests {
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                     ? "/System/Library/Fonts/Supplemental/Arial.ttf"
                     : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+            string expectedFont = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+                                   RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? "Arial"
+                : "DejaVuSans";
             string docPath = Path.Combine(_directoryWithFiles, "PdfFontStream.docx");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
@@ -52,7 +60,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f.Contains("DejaVuSans"));
+                    Assert.Contains(fonts, f => f.Contains(expectedFont));
                 }
             }
         }
