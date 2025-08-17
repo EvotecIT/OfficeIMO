@@ -1272,7 +1272,7 @@ namespace OfficeIMO.Word {
 
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream, cancellationToken);
+            await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
             var openSettings = new OpenSettings {
