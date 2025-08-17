@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -179,6 +180,8 @@ namespace OfficeIMO.Word.Pdf {
             if (QuestPDF.Settings.License == null) {
                 QuestPDF.Settings.License = options?.QuestPdfLicenseType ?? LicenseType.Community;
             }
+
+            RegisterFonts(options);
 
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
@@ -416,6 +419,46 @@ namespace OfficeIMO.Word.Pdf {
                                 CollectFootnotes(cell.NestedTables.Cast<WordElement>(), footnotes, footnoteMap, ref footnoteCounter);
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        private static void RegisterFonts(PdfSaveOptions? options) {
+            if (options?.FontFilePaths != null) {
+                foreach (var kvp in options.FontFilePaths) {
+                    if (string.IsNullOrWhiteSpace(kvp.Key) || string.IsNullOrWhiteSpace(kvp.Value)) {
+                        continue;
+                    }
+                    if (!_embeddedFonts.Add(kvp.Key)) {
+                        continue;
+                    }
+                    if (!File.Exists(kvp.Value)) {
+                        continue;
+                    }
+                    using var stream = File.OpenRead(kvp.Value);
+                    FontManager.RegisterFontWithCustomName(kvp.Key, stream);
+                }
+            }
+
+            if (options?.FontStreams != null) {
+                foreach (var kvp in options.FontStreams) {
+                    if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value == null) {
+                        continue;
+                    }
+                    if (!_embeddedFonts.Add(kvp.Key)) {
+                        continue;
+                    }
+                    Stream stream = kvp.Value;
+                    if (stream.CanSeek) {
+                        stream.Position = 0;
+                    }
+                    using MemoryStream ms = new();
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+                    FontManager.RegisterFontWithCustomName(kvp.Key, ms);
+                    if (stream.CanSeek) {
+                        stream.Position = 0;
                     }
                 }
             }

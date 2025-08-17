@@ -1,6 +1,8 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using OfficeIMO.Word;
+using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Word.Pdf {
     /// <summary>
@@ -11,6 +13,15 @@ namespace OfficeIMO.Word.Pdf {
         /// Optional font family applied to created runs during conversion.
         /// </summary>
         public string FontFamily { get; set; }
+        /// <summary>
+        /// Optional mapping of font family names to font file paths.
+        /// </summary>
+        public Dictionary<string, string>? FontFilePaths { get; set; }
+
+        /// <summary>
+        /// Optional mapping of font family names to font data streams.
+        /// </summary>
+        public Dictionary<string, Stream>? FontStreams { get; set; }
         /// <summary>
         /// Optional page size for the generated PDF.
         /// </summary>

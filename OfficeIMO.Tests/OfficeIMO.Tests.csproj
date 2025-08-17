@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
@@ -29,11 +29,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word\\OfficeIMO.Word.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,13 +46,13 @@
     </ItemGroup>
 
   <ItemGroup>
-      <None Update="Documents\**">
+      <None Update="Documents\\**">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Images\**">
+      <None Update="Images\\**">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <EmbeddedResource Include="Images\Kulek.jpg" />
+      <EmbeddedResource Include="Images\\Kulek.jpg" />
   </ItemGroup>
 
 </Project>
