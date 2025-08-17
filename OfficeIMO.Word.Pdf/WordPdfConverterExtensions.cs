@@ -449,12 +449,16 @@ namespace OfficeIMO.Word.Pdf {
                     if (!_embeddedFonts.Add(kvp.Key)) {
                         continue;
                     }
-                    if (kvp.Value.CanSeek) {
-                        kvp.Value.Position = 0;
+                    Stream stream = kvp.Value;
+                    if (stream.CanSeek) {
+                        stream.Position = 0;
                     }
-                    FontManager.RegisterFontWithCustomName(kvp.Key, kvp.Value);
-                    if (kvp.Value.CanSeek) {
-                        kvp.Value.Position = 0;
+                    using MemoryStream ms = new();
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+                    FontManager.RegisterFontWithCustomName(kvp.Key, ms);
+                    if (stream.CanSeek) {
+                        stream.Position = 0;
                     }
                 }
             }
