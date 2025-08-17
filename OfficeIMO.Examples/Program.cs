@@ -245,6 +245,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Pdf.Example_SaveAsPdfWithLicense(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_SaveLists(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_TableStyles(folderPath, false);
+            OfficeIMO.Examples.Word.Pdf.Example_PdfCustomFonts(folderPath, false);
             // Word/PictureControls
             OfficeIMO.Examples.Word.PictureControls.Example_BasicPictureControl(folderPath, false);
             // Word/RepeatingSections
