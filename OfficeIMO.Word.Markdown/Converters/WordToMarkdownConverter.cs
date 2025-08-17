@@ -1,10 +1,8 @@
 using OfficeIMO.Word;
 using System;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
+using System.IO;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -47,14 +45,9 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
 
                 foreach (var embedded in section.EmbeddedDocuments) {
-                    if (string.Equals(embedded.ContentType, "text/html", StringComparison.OrdinalIgnoreCase)) {
-                        var field = typeof(WordEmbeddedDocument).GetField("_altContent", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (field?.GetValue(embedded) is AlternativeFormatImportPart part) {
-                            using var stream = part.GetStream();
-                            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-                            string html = reader.ReadToEnd();
-                            _output.AppendLine(html);
-                        }
+                    var html = embedded.GetHtml();
+                    if (!string.IsNullOrEmpty(html)) {
+                        _output.AppendLine(html);
                     }
                 }
             }

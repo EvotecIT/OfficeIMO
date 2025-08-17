@@ -21,6 +21,21 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
+        /// Retrieves the HTML markup of the embedded document when available.
+        /// </summary>
+        /// <returns>HTML content or <c>null</c> if the embedded document is not HTML.</returns>
+        public string? GetHtml() {
+            if (!string.Equals(ContentType, "text/html", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            using var stream = _altContent.GetStream();
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            return reader.ReadToEnd();
+        }
+
+
+        /// <summary>
         /// Saves the embedded document to the specified file.
         /// </summary>
         /// <param name="fileName">Target file path.</param>

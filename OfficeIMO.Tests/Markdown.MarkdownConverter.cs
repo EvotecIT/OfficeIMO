@@ -74,6 +74,9 @@ namespace OfficeIMO.Tests {
         public void Test_WordToMarkdown_PreservesEmbeddedHtml() {
             using var doc = WordDocument.Create();
             doc.AddEmbeddedFragment("<div>HTML Block</div>", WordAlternativeFormatImportPartType.Html);
+            string? html = doc.EmbeddedDocuments[0].GetHtml();
+            Assert.NotNull(html);
+            Assert.Contains("<div>HTML Block</div>", html, StringComparison.OrdinalIgnoreCase);
             string md = doc.ToMarkdown(new WordToMarkdownOptions());
             Assert.Contains("<div>HTML Block</div>", md, StringComparison.OrdinalIgnoreCase);
         }
