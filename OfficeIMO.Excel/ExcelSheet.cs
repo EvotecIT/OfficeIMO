@@ -344,6 +344,38 @@ namespace OfficeIMO.Excel {
             if (autoFitRows) AutoFitRows();
         }
 
+        public void SetCellValue(int row, int column, DateTimeOffset value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, value.UtcDateTime, autoFitColumns, autoFitRows);
+        }
+
+        public void SetCellValue(int row, int column, TimeSpan value, bool autoFitColumns = false, bool autoFitRows = false) {
+            Cell cell = GetCell(row, column);
+            cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.Number;
+            if (autoFitColumns) AutoFitColumns();
+            if (autoFitRows) AutoFitRows();
+        }
+
+        public void SetCellValue(int row, int column, uint value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, (double)value, autoFitColumns, autoFitRows);
+        }
+
+        public void SetCellValue(int row, int column, ulong value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, (double)value, autoFitColumns, autoFitRows);
+        }
+
+        public void SetCellValue(int row, int column, ushort value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, (double)value, autoFitColumns, autoFitRows);
+        }
+
+        public void SetCellValue(int row, int column, byte value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, (double)value, autoFitColumns, autoFitRows);
+        }
+
+        public void SetCellValue(int row, int column, sbyte value, bool autoFitColumns = false, bool autoFitRows = false) {
+            SetCellValue(row, column, (double)value, autoFitColumns, autoFitRows);
+        }
+
         public void SetCellValue(int row, int column, bool value, bool autoFitColumns = false, bool autoFitRows = false) {
             Cell cell = GetCell(row, column);
             cell.CellValue = new CellValue(value ? "1" : "0");
@@ -357,6 +389,69 @@ namespace OfficeIMO.Excel {
             cell.CellFormula = new CellFormula(formula);
             if (autoFitColumns) AutoFitColumns();
             if (autoFitRows) AutoFitRows();
+        }
+
+        public void SetCellFormat(int row, int column, string numberFormat) {
+            Cell cell = GetCell(row, column);
+
+            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+
+            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+
+            stylesheet.Fills ??= new Fills(new Fill());
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
+
+            stylesheet.Borders ??= new Borders(new Border());
+            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
+
+            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
+            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
+
+            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0) {
+                stylesheet.CellFormats.Count = 1;
+            }
+
+            stylesheet.NumberingFormats ??= new NumberingFormats();
+
+            NumberingFormat existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+                .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
+
+            uint numberFormatId;
+            if (existingFormat != null) {
+                numberFormatId = existingFormat.NumberFormatId.Value;
+            } else {
+                numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
+                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId.Value) + 1
+                    : 164U;
+                NumberingFormat numberingFormat = new NumberingFormat {
+                    NumberFormatId = numberFormatId,
+                    FormatCode = StringValue.FromString(numberFormat)
+                };
+                stylesheet.NumberingFormats.Append(numberingFormat);
+                stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
+            }
+
+            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == numberFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
+            if (formatIndex == -1) {
+                CellFormat cellFormat = new CellFormat {
+                    NumberFormatId = numberFormatId,
+                    ApplyNumberFormat = true
+                };
+                stylesheet.CellFormats.Append(cellFormat);
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                formatIndex = cellFormats.Count;
+            }
+
+            cell.StyleIndex = (uint)formatIndex;
+            stylesPart.Stylesheet.Save();
         }
 
         public void SetCellValue(int row, int column, object value, bool autoFitColumns = false, bool autoFitRows = false) {
@@ -382,8 +477,32 @@ namespace OfficeIMO.Excel {
                 case DateTime dt:
                     SetCellValue(row, column, dt, autoFitColumns, autoFitRows);
                     break;
+                case DateTimeOffset dto:
+                    SetCellValue(row, column, dto, autoFitColumns, autoFitRows);
+                    break;
+                case TimeSpan ts:
+                    SetCellValue(row, column, ts, autoFitColumns, autoFitRows);
+                    break;
                 case bool b:
                     SetCellValue(row, column, b, autoFitColumns, autoFitRows);
+                    break;
+                case uint ui:
+                    SetCellValue(row, column, ui, autoFitColumns, autoFitRows);
+                    break;
+                case ulong ul:
+                    SetCellValue(row, column, ul, autoFitColumns, autoFitRows);
+                    break;
+                case ushort us:
+                    SetCellValue(row, column, us, autoFitColumns, autoFitRows);
+                    break;
+                case byte by:
+                    SetCellValue(row, column, by, autoFitColumns, autoFitRows);
+                    break;
+                case sbyte sb:
+                    SetCellValue(row, column, sb, autoFitColumns, autoFitRows);
+                    break;
+                case short sh:
+                    SetCellValue(row, column, (double)sh, autoFitColumns, autoFitRows);
                     break;
                 default:
                     if (value != null) {
@@ -392,6 +511,14 @@ namespace OfficeIMO.Excel {
                         SetCellValue(row, column, string.Empty, autoFitColumns, autoFitRows);
                     }
                     break;
+            }
+        }
+
+        public void SetCellValue<T>(int row, int column, T? value, bool autoFitColumns = false, bool autoFitRows = false) where T : struct {
+            if (value.HasValue) {
+                SetCellValue(row, column, value.Value, autoFitColumns, autoFitRows);
+            } else {
+                SetCellValue(row, column, string.Empty, autoFitColumns, autoFitRows);
             }
         }
     }
