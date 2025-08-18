@@ -258,6 +258,7 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
+        private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
         private static void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
             text = ApplyWhiteSpace(text, formatting.WhiteSpace);
@@ -296,7 +297,7 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static string CollapseWhiteSpace(string text, bool noWrap) {
-            var collapsed = Regex.Replace(text, "\\s+", " ");
+            var collapsed = _collapseWhitespaceRegex.Replace(text, " ");
             if (noWrap) {
                 collapsed = collapsed.Replace(" ", " ");
             }
