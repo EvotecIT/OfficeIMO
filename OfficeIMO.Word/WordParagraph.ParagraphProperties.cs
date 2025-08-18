@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the identifier of the paragraph style, if any.
         /// </summary>
-        public string StyleId {
+        public string? StyleId {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
                     return _paragraphProperties.ParagraphStyleId.Val;
@@ -35,14 +35,14 @@ namespace OfficeIMO.Word {
             get {
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.Justification != null)
-                        return _paragraphProperties.Justification.Val;
+                        return _paragraphProperties.Justification.Val?.Value;
                 return null;
             }
             set {
                 if (_paragraphProperties == null) {
-                    _paragraph.ParagraphProperties = new ParagraphProperties();
+                _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
-                _paragraphProperties.Justification = new Justification {
+                _paragraph.ParagraphProperties!.Justification = new Justification {
                     Val = value
                 };
             }
@@ -56,16 +56,16 @@ namespace OfficeIMO.Word {
             get {
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.TextAlignment != null)
-                        return _paragraphProperties.TextAlignment.Val;
+                        return _paragraphProperties.TextAlignment.Val?.Value;
                 return null;
             }
             set {
-                DocumentFormat.OpenXml.Wordprocessing.TextAlignment textAlignment = new TextAlignment();
+                var textAlignment = new TextAlignment();
                 textAlignment.Val = value;
                 if (_paragraphProperties == null) {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
-                _paragraphProperties.TextAlignment = textAlignment;
+                _paragraph.ParagraphProperties!.TextAlignment = textAlignment;
             }
         }
         /// <summary>
@@ -73,14 +73,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? IndentationBefore {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Left != "") {
-                        return int.Parse(_paragraphProperties.Indentation.Left);
-                    } else {
-                        return null;
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
+                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Left)) {
+                        if (int.TryParse(_paragraphProperties.Indentation.Left, out var left)) {
+                            return left;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 Indentation indentation;
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word {
                     indentation = _paragraphProperties.Indentation;
                 }
 
-                indentation.Left = value.ToString();
+                indentation.Left = value?.ToString();
                 _paragraphProperties.Indentation = indentation;
             }
         }
@@ -116,14 +116,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? IndentationAfter {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Right != "") {
-                        return int.Parse(_paragraphProperties.Indentation.Right);
-                    } else {
-                        return null;
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
+                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Right)) {
+                        if (int.TryParse(_paragraphProperties.Indentation.Right, out var right)) {
+                            return right;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 Indentation indentation;
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word {
                     indentation = _paragraphProperties.Indentation;
                 }
 
-                indentation.Right = value.ToString();
+                indentation.Right = value?.ToString();
                 _paragraphProperties.Indentation = indentation;
             }
         }
@@ -178,14 +178,13 @@ namespace OfficeIMO.Word {
         public int? IndentationFirstLine {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    if (_paragraphProperties.Indentation.FirstLine != "") {
-                        return int.Parse(_paragraphProperties.Indentation.FirstLine);
-                    } else {
-                        return null;
+                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.FirstLine)) {
+                        if (int.TryParse(_paragraphProperties.Indentation.FirstLine, out var firstLine)) {
+                            return firstLine;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 Indentation indentation;
@@ -195,7 +194,7 @@ namespace OfficeIMO.Word {
                     indentation = _paragraphProperties.Indentation;
                 }
 
-                indentation.FirstLine = value.ToString();
+                indentation.FirstLine = value?.ToString();
                 _paragraphProperties.Indentation = indentation;
             }
         }
@@ -221,14 +220,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? IndentationHanging {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {                    if (_paragraphProperties.Indentation.Hanging != "") {
-                        return int.Parse(_paragraphProperties.Indentation.Hanging);
-                    } else {
-                        return null;
+                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
+                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Hanging)) {
+                        if (int.TryParse(_paragraphProperties.Indentation.Hanging, out var hanging)) {
+                            return hanging;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 Indentation indentation;
@@ -238,7 +237,7 @@ namespace OfficeIMO.Word {
                     indentation = _paragraphProperties.Indentation;
                 }
 
-                indentation.Hanging = value.ToString();
+                indentation.Hanging = value?.ToString();
                 _paragraphProperties.Indentation = indentation;
             }
         }
@@ -265,19 +264,16 @@ namespace OfficeIMO.Word {
         public TextDirectionValues? TextDirection {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    if (_paragraphProperties.TextDirection != null) {
-                        return _paragraphProperties.TextDirection.Val;
-                    } else {
-                        return null;
-                    }
-                } else {
-                    return null;
+                    return _paragraphProperties.TextDirection.Val?.Value;
                 }
+                return null;
             }
             set {
-                TextDirection textDirection = new TextDirection();
-                textDirection.Val = value;
-                _paragraphProperties.TextDirection = textDirection;
+                var textDirection = new TextDirection { Val = value };
+                if (_paragraphProperties == null) {
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
+                }
+                _paragraph.ParagraphProperties!.TextDirection = textDirection;
             }
         }
 
@@ -293,14 +289,12 @@ namespace OfficeIMO.Word {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
 
+                var paragraphProps = _paragraph.ParagraphProperties!;
+
                 if (value) {
-                    if (_paragraphProperties.BiDi == null) {
-                        _paragraphProperties.BiDi = new BiDi();
-                    }
+                    paragraphProps.BiDi ??= new BiDi();
                 } else {
-                    if (_paragraphProperties.BiDi != null) {
-                        _paragraphProperties.BiDi.Remove();
-                    }
+                    paragraphProps.BiDi?.Remove();
                 }
             }
         }
@@ -312,12 +306,9 @@ namespace OfficeIMO.Word {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (_paragraphProperties.SpacingBetweenLines.LineRule != null) {
                         return _paragraphProperties.SpacingBetweenLines.LineRule;
-                    } else {
-                        return null;
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 SpacingBetweenLines spacing;
@@ -336,14 +327,13 @@ namespace OfficeIMO.Word {
         public int? LineSpacing {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (_paragraphProperties.SpacingBetweenLines.Line != "") {
-                        return int.Parse(_paragraphProperties.SpacingBetweenLines.Line);
-                    } else {
-                        return null;
+                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Line)) {
+                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Line, out var line)) {
+                            return line;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 SpacingBetweenLines spacing;
@@ -353,7 +343,7 @@ namespace OfficeIMO.Word {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
 
-                spacing.Line = value.ToString();
+                spacing.Line = value?.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
@@ -379,14 +369,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? LineSpacingBefore {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (_paragraphProperties.SpacingBetweenLines.Before != "") {
-                        return int.Parse(_paragraphProperties.SpacingBetweenLines.Before);
-                    } else {
-                        return null;
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
+                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Before, out var before)) {
+                            return before;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 SpacingBetweenLines spacing;
@@ -396,7 +385,7 @@ namespace OfficeIMO.Word {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
 
-                spacing.Before = value.ToString();
+                spacing.Before = value?.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
@@ -423,14 +412,13 @@ namespace OfficeIMO.Word {
         public int? LineSpacingAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (_paragraphProperties.SpacingBetweenLines.After != "") {
-                        return int.Parse(_paragraphProperties.SpacingBetweenLines.After);
-                    } else {
-                        return null;
+                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.After)) {
+                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.After, out var after)) {
+                            return after;
+                        }
                     }
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 SpacingBetweenLines spacing;
@@ -440,7 +428,7 @@ namespace OfficeIMO.Word {
                     spacing = _paragraphProperties.SpacingBetweenLines;
                 }
 
-                spacing.After = value.ToString();
+                spacing.After = value?.ToString();
                 _paragraphProperties.SpacingBetweenLines = spacing;
             }
         }
@@ -468,7 +456,7 @@ namespace OfficeIMO.Word {
         public VerticalPositionValues? VerticalTextAlignment {
             get {
                 if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
-                    return _runProperties.VerticalTextAlignment.Val;
+                    return _runProperties.VerticalTextAlignment.Val?.Value;
                 }
                 return null;
             }

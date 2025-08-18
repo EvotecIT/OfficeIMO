@@ -10,21 +10,21 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordStructuredDocumentTag : WordElement {
         private WordDocument _document;
-        private Paragraph _paragraph;
-        private SdtRun _stdRun;
-        private SdtBlock _sdtBlock;
+        private Paragraph? _paragraph;
+        private SdtRun? _stdRun;
+        private SdtBlock? _sdtBlock;
 
         /// <summary>
         /// Gets the alias associated with this content control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
                 if (_stdRun != null) {
-                    var sdtAlias = _stdRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
-                    if (sdtAlias != null) {
-                        return sdtAlias.Val;
-                    }
-                } else if (_sdtBlock != null) {
+                    var sdtAlias = _stdRun.SdtProperties?.OfType<SdtAlias>().FirstOrDefault();
+                    return sdtAlias?.Val;
+                }
+
+                if (_sdtBlock != null) {
                     var sdtAlias = _sdtBlock.SdtProperties?.OfType<SdtAlias>().FirstOrDefault();
                     return sdtAlias?.Val;
                 }
@@ -36,34 +36,35 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag value for this content control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
                 if (_stdRun != null) {
-                    var tag = _stdRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                    var tag = _stdRun.SdtProperties?.OfType<Tag>().FirstOrDefault();
                     return tag?.Val;
                 }
+
                 if (_sdtBlock != null) {
                     var tag = _sdtBlock.SdtProperties?.OfType<Tag>().FirstOrDefault();
                     return tag?.Val;
                 }
+
                 return null;
             }
             set {
                 if (_stdRun != null) {
-                    var tag = _stdRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                    var properties = _stdRun.SdtProperties ??= new SdtProperties();
+                    var tag = properties.OfType<Tag>().FirstOrDefault();
                     if (tag == null) {
                         tag = new Tag();
-                        _stdRun.SdtProperties.Append(tag);
+                        properties.Append(tag);
                     }
                     tag.Val = value;
                 } else if (_sdtBlock != null) {
-                    if (_sdtBlock.SdtProperties == null) {
-                        _sdtBlock.SdtProperties = new SdtProperties();
-                    }
-                    var tag = _sdtBlock.SdtProperties.OfType<Tag>().FirstOrDefault();
+                    var properties = _sdtBlock.SdtProperties ??= new SdtProperties();
+                    var tag = properties.OfType<Tag>().FirstOrDefault();
                     if (tag == null) {
                         tag = new Tag();
-                        _sdtBlock.SdtProperties.Append(tag);
+                        properties.Append(tag);
                     }
                     tag.Val = value;
                 }
@@ -73,29 +74,29 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the inner text of the content control.
         /// </summary>
-        public string Text {
+        public string? Text {
             get {
                 if (_stdRun != null) {
-                    var run = _stdRun.SdtContentRun.ChildElements.OfType<Run>().FirstOrDefault();
-                    if (run != null) {
-                        var text = run.OfType<Text>().FirstOrDefault();
-                        if (text != null) {
-                            return text.Text;
-                        }
-                    }
-                } else if (_sdtBlock != null) {
+                    var run = _stdRun.SdtContentRun?.ChildElements.OfType<Run>().FirstOrDefault();
+                    var text = run?.OfType<Text>().FirstOrDefault();
+                    return text?.Text;
+                }
+
+                if (_sdtBlock != null) {
                     var paragraph = _sdtBlock.SdtContentBlock?.ChildElements.OfType<Paragraph>().FirstOrDefault();
                     var run = paragraph?.ChildElements.OfType<Run>().FirstOrDefault();
                     var text = run?.OfType<Text>().FirstOrDefault();
                     return text?.Text;
                 }
+
                 return null;
             }
             set {
                 if (_stdRun != null) {
-                    var run = _stdRun.SdtContentRun.ChildElements.OfType<Run>().FirstOrDefault();
+                    var run = _stdRun.SdtContentRun?.ChildElements.OfType<Run>().FirstOrDefault();
                     if (run == null) {
                         run = new Run();
+                        _stdRun.SdtContentRun ??= new SdtContentRun();
                         _stdRun.SdtContentRun.Append(run);
                     }
 
@@ -105,27 +106,28 @@ namespace OfficeIMO.Word {
                         run.Append(text);
                     }
 
-                    text.Text = value;
+                    text.Text = value ?? string.Empty;
                 } else if (_sdtBlock != null) {
-                    if (_sdtBlock.SdtContentBlock == null) {
-                        _sdtBlock.SdtContentBlock = new SdtContentBlock();
-                    }
+                    _sdtBlock.SdtContentBlock ??= new SdtContentBlock();
                     var paragraph = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>().FirstOrDefault();
                     if (paragraph == null) {
                         paragraph = new Paragraph();
                         _sdtBlock.SdtContentBlock.Append(paragraph);
                     }
+
                     var run = paragraph.ChildElements.OfType<Run>().FirstOrDefault();
                     if (run == null) {
                         run = new Run();
                         paragraph.Append(run);
                     }
+
                     var text = run.OfType<Text>().FirstOrDefault();
                     if (text == null) {
                         text = new Text { Space = SpaceProcessingModeValues.Preserve };
                         run.Append(text);
                     }
-                    text.Text = value;
+
+                    text.Text = value ?? string.Empty;
                 }
             }
         }

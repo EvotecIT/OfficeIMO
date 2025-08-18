@@ -55,27 +55,23 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RepeatAsHeaderRowAtTheTopOfEachPage {
             get {
-                var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
-                if (tableHeader != null) {
-                    return true;
-                }
-
-                return false;
+                var tableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
+                var tableHeader = tableRowProperties?.OfType<TableHeader>().FirstOrDefault();
+                return tableHeader != null;
             }
             set {
                 if (value) {
                     this.Rows[0].AddTableRowProperties();
-                    var tableHeader = this.Rows[0]._tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                    var tableProperties = this.Rows[0]._tableRow.TableRowProperties;
+                    var tableHeader = tableProperties?.OfType<TableHeader>().FirstOrDefault();
                     if (tableHeader == null) {
-                        this.Rows[0]._tableRow.TableRowProperties.InsertAt(new TableHeader(), 0);
+                        tableProperties?.InsertAt(new TableHeader(), 0);
                     }
                 } else {
                     var tableRowTableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
-                    if (tableRowTableRowProperties != null) {
-                        var tableHeader = tableRowTableRowProperties.OfType<TableHeader>().FirstOrDefault();
-                        if (tableHeader != null) {
-                            tableRowTableRowProperties.RemoveChild(tableHeader);
-                        }
+                    var tableHeader = tableRowTableRowProperties?.OfType<TableHeader>().FirstOrDefault();
+                    if (tableHeader != null) {
+                        tableRowTableRowProperties!.RemoveChild(tableHeader);
                     }
                 }
             }
@@ -88,8 +84,10 @@ namespace OfficeIMO.Word {
         public WordTableStyle? Style {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
-                    var style = _tableProperties.TableStyle.Val;
-                    return WordTableStyles.GetStyle(style);
+                    var styleValue = _tableProperties.TableStyle.Val?.Value;
+                    if (!string.IsNullOrEmpty(styleValue)) {
+                        return WordTableStyles.GetStyle(styleValue);
+                    }
                 }
                 return null;
             }
@@ -106,14 +104,14 @@ namespace OfficeIMO.Word {
         public TableRowAlignmentValues? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
-                    return _tableProperties.TableJustification.Val;
+                    return _tableProperties.TableJustification.Val?.Value;
                 }
 
                 return null;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableJustification == null) {
+                if (_tableProperties!.TableJustification == null) {
                     _tableProperties.TableJustification = new TableJustification();
                 }
                 if (value != null) {
@@ -130,31 +128,28 @@ namespace OfficeIMO.Word {
         public TableWidthUnitValues? WidthType {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Type;
+                    return _tableProperties.TableWidth.Type?.Value;
                 }
 
                 return null;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableWidth == null) {
-                    if (value == TableWidthUnitValues.Auto) {
+                if (_tableProperties!.TableWidth == null) {
+                    if (value.HasValue) {
                         _tableProperties.TableWidth = new TableWidth() {
-                            Type = value,
-                            Width = "0"
-                        };
-                    } else {
-                        _tableProperties.TableWidth = new TableWidth() {
-                            Type = value,
-                            Width = "5000"
+                            Type = value.Value,
+                            Width = value.Value == TableWidthUnitValues.Auto ? "0" : "5000"
                         };
                     }
                 } else {
-                    if (value == TableWidthUnitValues.Auto) {
-                        _tableProperties.TableWidth.Type = value;
-                        _tableProperties.TableWidth.Width = "0";
+                    if (value.HasValue) {
+                        _tableProperties.TableWidth.Type = value.Value;
+                        if (value.Value == TableWidthUnitValues.Auto) {
+                            _tableProperties.TableWidth.Width = "0";
+                        }
                     } else {
-                        _tableProperties.TableWidth.Type = value;
+                        _tableProperties.TableWidth.Remove();
                     }
                 }
             }
@@ -166,21 +161,23 @@ namespace OfficeIMO.Word {
         public int? Width {
             get {
                 if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    if (_tableProperties.TableWidth.Width != null) {
-                        return int.Parse(_tableProperties.TableWidth.Width);
+                    if (!string.IsNullOrEmpty(_tableProperties.TableWidth.Width)) {
+                        if (int.TryParse(_tableProperties.TableWidth.Width, out var width)) {
+                            return width;
+                        }
                     }
                 }
                 return null;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableWidth == null) {
+                if (_tableProperties!.TableWidth == null) {
                     _tableProperties.TableWidth = new TableWidth() {
                         Type = TableWidthUnitValues.Pct,
-                        Width = value.ToString()
+                        Width = value?.ToString()
                     };
                 } else {
-                    _tableProperties.TableWidth.Width = value.ToString();
+                    _tableProperties.TableWidth.Width = value?.ToString();
                 }
             }
         }
@@ -191,13 +188,13 @@ namespace OfficeIMO.Word {
         public TableLayoutValues? LayoutType {
             get {
                 if (_tableProperties != null && _tableProperties.TableLayout != null) {
-                    return _tableProperties.TableLayout.Type;
+                    return _tableProperties.TableLayout.Type?.Value;
                 }
                 return TableLayoutValues.Autofit;
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableLayout == null) {
+                if (_tableProperties!.TableLayout == null) {
                     _tableProperties.TableLayout = new TableLayout();
                 }
                 if (value != null) {
@@ -214,15 +211,15 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingFirstRow {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.FirstRow;
+                    return _tableProperties.TableLook.FirstRow?.Value;
                 }
                 return null;
             }
             set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.FirstRow = value;
+                    if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
+                        _tableProperties.TableLook.FirstRow = value;
+                    }
                 }
-            }
         }
         /// <summary>
         /// Specifies that the last row conditional formatting shall be applied to the table.
@@ -230,7 +227,7 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingLastRow {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.LastRow;
+                    return _tableProperties.TableLook.LastRow?.Value;
                 }
                 return null;
             }
@@ -246,7 +243,7 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingFirstColumn {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.FirstColumn;
+                    return _tableProperties.TableLook.FirstColumn?.Value;
                 }
                 return null;
             }
@@ -262,7 +259,7 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingLastColumn {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.LastColumn;
+                    return _tableProperties.TableLook.LastColumn?.Value;
                 }
                 return null;
             }
@@ -278,7 +275,7 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingNoHorizontalBand {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.NoHorizontalBand;
+                    return _tableProperties.TableLook.NoHorizontalBand?.Value;
                 }
                 return null;
             }
@@ -294,7 +291,7 @@ namespace OfficeIMO.Word {
         public bool? ConditionalFormattingNoVerticalBand {
             get {
                 if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.NoVerticalBand;
+                    return _tableProperties.TableLook.NoVerticalBand?.Value;
                 }
                 return null;
             }
@@ -353,7 +350,7 @@ namespace OfficeIMO.Word {
 
         internal Table _table;
 
-        internal TableProperties _tableProperties {
+        internal TableProperties? _tableProperties {
             get {
                 return _table.ChildElements.OfType<TableProperties>().FirstOrDefault();
             }
@@ -363,7 +360,7 @@ namespace OfficeIMO.Word {
         //internal string Text;
         //private WordSection _section;
 
-        private Header _header {
+        private Header? _header {
             get {
                 var parent = _table.Parent;
                 if (parent is Header) {
@@ -374,7 +371,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Footer _footer {
+        private Footer? _footer {
             get {
                 var parent = _table.Parent;
                 if (parent is Footer) {
@@ -393,7 +390,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the table style details. WIP
         /// </summary>
-        public WordTableStyleDetails StyleDetails {
+        public WordTableStyleDetails? StyleDetails {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
                     return new WordTableStyleDetails(this);
@@ -497,7 +494,7 @@ namespace OfficeIMO.Word {
 
             if (insert) {
                 // Append the table to the document.
-                document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_table);
+                    document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Append(_table);
             }
         }
 

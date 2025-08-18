@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">The paragraph after which the item should be inserted. If <c>null</c> the item is appended at the default position.</param>
         /// <param name="level">The zero-based list level for the new item.</param>
         /// <returns>The newly created <see cref="WordParagraph"/> representing the list item.</returns>
-        public WordParagraph AddItem(WordParagraph wordParagraph, int level = 0) {
+        public WordParagraph AddItem(WordParagraph? wordParagraph, int level = 0) {
             return AddItem(null, level, wordParagraph);
         }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
         /// <param name="level">The zero-based list level for the item.</param>
         /// <param name="wordParagraph">The paragraph after which the item is inserted. When <c>null</c> the item is appended in the default position.</param>
         /// <returns>The <see cref="WordParagraph"/> representing the created list item.</returns>
-        public WordParagraph AddItem(string text, int level = 0, WordParagraph wordParagraph = null) {
+        public WordParagraph AddItem(string? text, int level = 0, WordParagraph? wordParagraph = null) {
             var paragraph = new Paragraph();
             var run = new Run();
             run.Append(new RunProperties());
@@ -50,20 +50,19 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
             paragraph.Append(run);
 
-            if (wordParagraph != null) {
+            if (wordParagraph is not null) {
                 wordParagraph._paragraph.InsertAfterSelf(paragraph);
-            } else if (this.ListItems.Count == 0 && _wordParagraph != null) {
+            } else if (this.ListItems.Count == 0 && _wordParagraph is not null) {
                 _wordParagraph._paragraph.InsertAfterSelf(paragraph);
             } else if (_isToc || IsToc) {
                 _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
             } else if (_headerFooter != null) {
-                if (_headerFooter._header != null) {
+                if (_headerFooter._header is not null) {
                     _headerFooter._header.Append(paragraph);
-                } else if (_headerFooter._footer != null) {
+                } else if (_headerFooter._footer is not null) {
                     _headerFooter._footer.Append(paragraph);
                 }
-            } else if (_wordParagraph != null && _wordParagraph._paragraph.Parent is TableCell) {
-                var parent = _wordParagraph._paragraph.Parent;
+            } else if (_wordParagraph is not null && _wordParagraph._paragraph.Parent is TableCell parent) {
                 if (this.ListItems.Count > 0) {
                     var lastItem = this.ListItems.Last();
                     lastItem._paragraph.InsertAfterSelf(paragraph);
@@ -102,24 +101,26 @@ namespace OfficeIMO.Word {
             }
             _listItems.Clear();
 
-            var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+            var numberingPart = _document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
             var numbering = numberingPart?.Numbering;
             if (numbering != null) {
                 bool stillReferenced = _document.EnumerateAllParagraphs()
                     .Any(p => p.IsListItem && p._listNumberId == _numberId);
 
                 if (!stillReferenced) {
-                    var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
-                    abstractNum?.Remove();
+                      var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId?.Value == _abstractId);
+                      abstractNum?.Remove();
 
-                    var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID.Value == _numberId);
-                    numberingInstance?.Remove();
+                      var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID?.Value == _numberId);
+                      numberingInstance?.Remove();
 
-                    if (!numbering.Elements<AbstractNum>().Any() &&
-                        !numbering.Elements<NumberingInstance>().Any() &&
-                        !numbering.Elements<NumberingPictureBullet>().Any()) {
-                        _document._wordprocessingDocument.MainDocumentPart.DeletePart(numberingPart);
-                    }
+                      if (!numbering.Elements<AbstractNum>().Any() &&
+                          !numbering.Elements<NumberingInstance>().Any() &&
+                          !numbering.Elements<NumberingPictureBullet>().Any()) {
+                          if (numberingPart != null) {
+                              _document._wordprocessingDocument!.MainDocumentPart!.DeletePart(numberingPart);
+                          }
+                      }
                 }
             }
         }
@@ -174,7 +175,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional hexadecimal color for the symbol.</param>
         /// <param name="fontSize">Optional font size for the symbol in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontName, string colorHex, int? fontSize = null) {
+        public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontName, string? colorHex, int? fontSize = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             var list = document.AddList(WordListStyle.Custom);
@@ -218,8 +219,8 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
-            string finalColor = color?.ToHexColor() ?? colorHex;
+        public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+            string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
         }
 
@@ -233,9 +234,9 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
-            string finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
         }
 
@@ -264,9 +265,9 @@ namespace OfficeIMO.Word {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
 
-            var numberingPart = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+            var numberingPart = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
             if (numberingPart == null) {
-                numberingPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+                numberingPart = document._wordprocessingDocument!.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
                 numberingPart.Numbering = new Numbering();
             }
             var numbering = numberingPart.Numbering;
@@ -279,7 +280,7 @@ namespace OfficeIMO.Word {
             var relId = numberingPart.GetIdOfPart(imagePart);
 
             int picId = numbering.Elements<NumberingPictureBullet>()
-                .Select(p => (int)p.NumberingPictureBulletId.Value)
+                .Select(p => (int)(p.NumberingPictureBulletId?.Value ?? 0))
                 .DefaultIfEmpty(0)
                 .Max() + 1;
 
@@ -318,7 +319,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Bullet color specified as hex string.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, char symbol, string fontName, string colorHex, int? fontSize = null) {
+        public WordList AddListLevel(int levelIndex, char symbol, string fontName, string? colorHex, int? fontSize = null) {
             if (levelIndex < 1) throw new ArgumentOutOfRangeException(nameof(levelIndex));
 
             var currentCount = this.Numbering.Levels.Count;
@@ -331,14 +332,14 @@ namespace OfficeIMO.Word {
             }
 
             if (currentCount == 0 && levelIndex > 1) {
-                var placeholder = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
+                var placeholder = CreateBulletLevel(symbol, fontName, colorHex ?? string.Empty, fontSize);
                 while (this.Numbering.Levels.Count < levelIndex - 1) {
                     var clone = (Level)placeholder.CloneNode(true);
                     this.Numbering.AddLevel(clone);
                 }
             }
 
-            var newLevel = CreateBulletLevel(symbol, fontName, colorHex, fontSize);
+            var newLevel = CreateBulletLevel(symbol, fontName, colorHex ?? string.Empty, fontSize);
             this.Numbering.AddLevel(newLevel);
             return this;
         }
@@ -353,8 +354,8 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
-            string finalColor = color?.ToHexColor() ?? colorHex;
+        public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+            string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
         }
 
@@ -368,9 +369,9 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
-            string finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);
         }
 

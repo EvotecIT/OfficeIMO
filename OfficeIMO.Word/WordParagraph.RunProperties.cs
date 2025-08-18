@@ -80,10 +80,9 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Underline != null) {
-                    return runProperties.Underline.Val;
-                } else {
-                    return null;
+                    return runProperties.Underline.Val?.Value;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -142,10 +141,9 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Spacing != null) {
-                    return runProperties.Spacing.Val;
-                } else {
-                    return null;
+                    return runProperties.Spacing.Val?.Value;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -230,11 +228,12 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.FontSize != null) {
-                    var fontSizeInHalfPoint = int.Parse(runProperties.FontSize.Val);
-                    return fontSizeInHalfPoint / 2;
-                } else {
-                    return null;
+                    var val = runProperties.FontSize.Val;
+                    if (!string.IsNullOrEmpty(val) && int.TryParse(val, out var fontSizeInHalfPoint)) {
+                        return fontSizeInHalfPoint / 2;
+                    }
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -264,7 +263,6 @@ namespace OfficeIMO.Word {
                     return null;
                 }
                 return Helpers.ParseColor(ColorHex);
-
             }
             set {
                 if (value != null) {
@@ -280,10 +278,9 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Color != null) {
-                    return runProperties.Color.Val;
-                } else {
-                    return "";
+                    return runProperties.Color.Val?.Value ?? "";
                 }
+                return "";
             }
             set {
                 RunProperties runProperties;
@@ -311,10 +308,9 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
-                    return runProperties.Color.ThemeColor.Value;
-                } else {
-                    return null;
+                    return runProperties.Color.ThemeColor?.Value;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -345,10 +341,9 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.Highlight != null) {
-                    return runProperties.Highlight.Val;
-                } else {
-                    return null;
+                    return runProperties.Highlight.Val?.Value;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -410,14 +405,13 @@ namespace OfficeIMO.Word {
         /// please use FontFamilyHighAnsi, FontFamilyEastAsia or FontFamilyComplexScript
         /// in proper order (to overwrite given FontFamily)
         /// </summary>
-        public string FontFamily {
+        public string? FontFamily {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.Ascii;
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -449,14 +443,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the HighAnsi font family.
         /// </summary>
-        public string FontFamilyHighAnsi {
+        public string? FontFamilyHighAnsi {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.HighAnsi;
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -482,14 +475,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the East Asia font family.
         /// </summary>
-        public string FontFamilyEastAsia {
+        public string? FontFamilyEastAsia {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.EastAsia;
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -515,14 +507,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the complex script font family.
         /// </summary>
-        public string FontFamilyComplexScript {
+        public string? FontFamilyComplexScript {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.ComplexScript;
-                } else {
-                    return null;
                 }
+                return null;
             }
             set {
                 RunProperties runProperties;
@@ -552,7 +543,10 @@ namespace OfficeIMO.Word {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 if (runProperties != null && runProperties.RunStyle != null) {
-                    return WordCharacterStyle.GetStyle(runProperties.RunStyle.Val);
+                    var styleId = runProperties.RunStyle.Val;
+                    if (!string.IsNullOrEmpty(styleId)) {
+                        return WordCharacterStyle.GetStyle(styleId!);
+                    }
                 }
                 return null;
             }
@@ -578,7 +572,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the style identifier applied to the run.
         /// </summary>
-        public string CharacterStyleId {
+        public string? CharacterStyleId {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink._runProperties : _runProperties;
                 return runProperties?.RunStyle?.Val;

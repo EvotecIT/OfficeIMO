@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a Title/Caption to a Table
         /// </summary>
-        public string Title {
+        public string? Title {
             get {
                 if (_tableProperties != null && _tableProperties.TableCaption != null)
                     return _tableProperties.TableCaption.Val;
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableCaption == null) _tableProperties.TableCaption = new TableCaption();
+                if (_tableProperties!.TableCaption == null) _tableProperties.TableCaption = new TableCaption();
                 if (value != null)
                     _tableProperties.TableCaption.Val = value;
                 else
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets Description for a Table
         /// </summary>
-        public string Description {
+        public string? Description {
             get {
                 if (_tableProperties != null && _tableProperties.TableDescription != null)
                     return _tableProperties.TableDescription.Val;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 CheckTableProperties();
-                if (_tableProperties.TableDescription == null)
+                if (_tableProperties!.TableDescription == null)
                     _tableProperties.TableDescription = new TableDescription();
                 if (value != null)
                     _tableProperties.TableDescription.Val = value;
@@ -147,25 +147,29 @@ namespace OfficeIMO.Word {
         public List<int> GridColumnWidth {
             get {
                 var listReturn = new List<int>();
-                TableGrid tableGrid = _table.GetFirstChild<TableGrid>();
+                TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
                 if (tableGrid != null) {
                     var list = tableGrid.OfType<GridColumn>();
                     foreach (var column in list) {
-                        listReturn.Add(int.Parse(column.Width.Value));
+                        if (column.Width != null && column.Width.Value != null) {
+                            listReturn.Add(int.Parse(column.Width.Value));
+                        }
                     }
                 }
                 return listReturn;
             }
             set {
-                TableGrid tableGrid = _table.GetFirstChild<TableGrid>();
+                TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
                 if (tableGrid != null) {
                     tableGrid.RemoveAllChildren();
                 } else {
                     _table.InsertAfter(new TableGrid(), _tableProperties);
                     tableGrid = _table.GetFirstChild<TableGrid>();
                 }
-                foreach (var columnWidth in value) {
-                    tableGrid.Append(new GridColumn { Width = columnWidth.ToString() });
+                if (tableGrid != null) {
+                    foreach (var columnWidth in value) {
+                        tableGrid.Append(new GridColumn { Width = columnWidth.ToString() });
+                    }
                 }
             }
         }
@@ -180,7 +184,10 @@ namespace OfficeIMO.Word {
                 var listReturn = new List<int>();
                 // we assume the first row has the same widths as all rows, which may or may not be true
                 for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
-                    listReturn.Add(this.Rows[0].Cells[cellIndex].Width.Value);
+                    var width = this.Rows[0].Cells[cellIndex].Width;
+                    if (width.HasValue) {
+                        listReturn.Add(width.Value);
+                    }
                 }
                 return listReturn;
             }
@@ -222,10 +229,7 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<int>();
                 for (int rowIndex = 0; rowIndex < this.Rows.Count; rowIndex++) {
-                    if (this.Rows[rowIndex].Height.HasValue)
-                        listReturn.Add(this.Rows[rowIndex].Height.Value);
-                    else
-                        listReturn.Add(0);
+                    listReturn.Add(this.Rows[rowIndex].Height ?? 0);
                 }
                 return listReturn;
             }
@@ -299,11 +303,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets nested table parent table if table is nested table
         /// </summary>
-        public WordTable ParentTable {
+        public WordTable? ParentTable {
             get {
                 if (IsNestedTable) {
-                    Table table = (DocumentFormat.OpenXml.Wordprocessing.Table)this._table.Parent.Parent.Parent;
-                    return new WordTable(this._document, table);
+                    if (this._table.Parent?.Parent?.Parent is Table table) {
+                        return new WordTable(this._document, table);
+                    }
                 }
 
                 return null;
