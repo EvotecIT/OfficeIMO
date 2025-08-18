@@ -46,7 +46,7 @@ namespace OfficeIMO.Word {
 
         internal IEnumerable<WordParagraph> FindParagraphs(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             foreach (var paragraph in EnumerateAllParagraphs()) {
-                if (paragraph.Text?.Contains(text, stringComparison) == true) {
+                if (paragraph.Text?.IndexOf(text, stringComparison) >= 0) {
                     yield return paragraph;
                 }
             }
