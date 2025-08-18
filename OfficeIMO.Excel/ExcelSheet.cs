@@ -6,7 +6,13 @@ using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+#if NET472 || NET48 || NETSTANDARD2_0
+using System.Drawing;
+using InternalFont = System.Drawing.Font;
+#else
 using SixLabors.Fonts;
+using InternalFont = SixLabors.Fonts.Font;
+#endif
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -175,7 +181,20 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
-        private static SixLabors.Fonts.Font GetDefaultFont() {
+        private static InternalFont GetDefaultFont() {
+#if NET472 || NET48 || NETSTANDARD2_0
+            string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
+
+            foreach (var name in preferred) {
+                try {
+                    return new InternalFont(name, 11);
+                } catch {
+                    // Try next option
+                }
+            }
+
+            return new InternalFont(FontFamily.GenericSansSerif, 11);
+#else
             string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
 
             foreach (var name in preferred) {
@@ -198,9 +217,11 @@ namespace OfficeIMO.Excel {
 
             // Fallback to first available family without validation
             return SystemFonts.Collection.Families.First().CreateFont(11);
+#endif
         }
 
-        private static bool IsFontUsable(SixLabors.Fonts.Font font) {
+#if !(NET472 || NET48 || NETSTANDARD2_0)
+        private static bool IsFontUsable(InternalFont font) {
             try {
                 TextMeasurer.MeasureSize("0", new TextOptions(font));
                 return true;
@@ -208,6 +229,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
         }
+#endif
 
         public void AutoFitColumns() {
             var worksheet = _worksheetPart.Worksheet;
@@ -219,10 +241,31 @@ namespace OfficeIMO.Excel {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
 
+            Dictionary<int, double> widths = new Dictionary<int, double>();
+#if NET472 || NET48 || NETSTANDARD2_0
+            using var font = GetDefaultFont();
+            using var bmp = new Bitmap(1, 1);
+            using var graphics = Graphics.FromImage(bmp);
+            float zeroWidth = graphics.MeasureString("0", font).Width;
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (cell.CellReference == null) continue;
+                    int columnIndex = GetColumnIndex(cell.CellReference.Value);
+                    string text = GetCellText(cell);
+                    var size = graphics.MeasureString(text ?? string.Empty, font);
+                    double cellWidth = size.Width / zeroWidth + 1;
+                    if (widths.ContainsKey(columnIndex)) {
+                        if (cellWidth > widths[columnIndex]) widths[columnIndex] = cellWidth;
+                    } else {
+                        widths[columnIndex] = cellWidth;
+                    }
+                }
+            }
+#else
             var font = GetDefaultFont();
             var options = new TextOptions(font);
             float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
-            Dictionary<int, double> widths = new Dictionary<int, double>();
 
             foreach (var row in sheetData.Elements<Row>()) {
                 foreach (var cell in row.Elements<Cell>()) {
@@ -238,6 +281,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
             }
+#endif
 
             foreach (var kvp in widths) {
                 Column column = columns.Elements<Column>()
@@ -259,9 +303,29 @@ namespace OfficeIMO.Excel {
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
+            double defaultHeight;
+#if NET472 || NET48 || NETSTANDARD2_0
+            using var font = GetDefaultFont();
+            using var bmp = new Bitmap(1, 1);
+            using var graphics = Graphics.FromImage(bmp);
+            defaultHeight = graphics.MeasureString("0", font).Height + 2;
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                double maxHeight = 0;
+                foreach (var cell in row.Elements<Cell>()) {
+                    string text = GetCellText(cell);
+                    var size = graphics.MeasureString(text ?? string.Empty, font);
+                    if (size.Height > maxHeight) maxHeight = size.Height;
+                }
+                if (maxHeight > 0) {
+                    row.Height = maxHeight + 2;
+                    row.CustomHeight = true;
+                }
+            }
+#else
             var font = GetDefaultFont();
             var options = new TextOptions(font);
-            double defaultHeight = TextMeasurer.MeasureSize("0", options).Height + 2;
+            defaultHeight = TextMeasurer.MeasureSize("0", options).Height + 2;
 
             foreach (var row in sheetData.Elements<Row>()) {
                 double maxHeight = 0;
@@ -275,6 +339,7 @@ namespace OfficeIMO.Excel {
                     row.CustomHeight = true;
                 }
             }
+#endif
 
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
             if (sheetFormat == null) {

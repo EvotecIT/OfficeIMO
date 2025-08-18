@@ -41,13 +41,6 @@ namespace OfficeIMO.Tests {
     }
 }
 
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.FirstOrDefault();
-                Assert.NotNull(tablePart);
-                Table table = tablePart.Table;
-                Assert.Equal("A1:B3", table.Reference.Value);
-                Assert.Equal("MyTable", table.Name.Value);
-                TableStyleInfo styleInfo = table.GetFirstChild<TableStyleInfo>();
                 Assert.NotNull(styleInfo);
                 Assert.Equal("TableStyleMedium2", styleInfo.Name.Value);
             }
