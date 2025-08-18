@@ -12,14 +12,13 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Basic Visio.vsdx");
 
             VisioDocument document = new();
-            VisioPage page = document.AddPage("Page1");
-            VisioShape shape1 = new("Shape1");
-            VisioShape shape2 = new("Shape2");
-            page.Shapes.Add(shape1);
-            page.Shapes.Add(shape2);
-            page.Connectors.Add(new VisioConnector(shape1, shape2));
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Rectangle"));
+            document.Save(filePath);
 
-            // Saving not yet implemented; placeholder for future development.
+            if (openVisio) {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+            }
         }
     }
 }

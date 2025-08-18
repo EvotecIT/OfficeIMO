@@ -38,6 +38,10 @@
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.IO.Compression" />
+    </ItemGroup>
+
     <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Text" />
