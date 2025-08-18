@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             await using var doc = WordDocument.Create();
             doc.AddParagraph("Async stream");
 
-            await using var stream = new MemoryStream();
+            using var stream = new MemoryStream();
             await doc.SaveAsMarkdownAsync(stream);
             Assert.True(stream.CanRead);
             stream.Position = 0;
