@@ -70,7 +70,7 @@ namespace OfficeIMO.Word.Html {
         public List<string> StylesheetContents { get; } = new List<string>();
 
         /// <summary>
-        /// When true, <pre> elements are rendered inside a single-cell table.
+        /// When true, <c>pre</c> elements are rendered inside a single-cell table.
         /// </summary>
         public bool RenderPreAsTable { get; set; }
 
