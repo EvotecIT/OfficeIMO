@@ -1,13 +1,13 @@
 namespace OfficeIMO.PowerPoint.Fluent {
     /// <summary>
-    /// Provides fluent helpers for creating PowerPoint documents.
+    /// Provides fluent helpers for creating PowerPoint presentations.
     /// </summary>
     public static class PowerPointBuilder {
         /// <summary>
-        /// Creates a new PowerPoint document.
+        /// Creates a new PowerPoint presentation at the given path.
         /// </summary>
-        public static PowerPointDocument Create() {
-            return new PowerPointDocument();
+        public static PowerPointPresentation Create(string filePath) {
+            return PowerPointPresentation.Create(filePath);
         }
     }
 }
