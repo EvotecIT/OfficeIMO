@@ -10,8 +10,8 @@ namespace OfficeIMO.Word {
     /// stored in the underlying <see cref="WordprocessingDocument"/>.
     /// </summary>
     public class ApplicationProperties {
-        private readonly WordprocessingDocument _wordprocessingDocument = null;
-        private readonly WordDocument _document = null;
+        private readonly WordprocessingDocument _wordprocessingDocument;
+        private readonly WordDocument _document;
 
         /// <summary>
         /// Gets or sets the application name that created the document.
@@ -27,12 +27,15 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application = new Application();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
+                }
+                if (properties.Application == null) {
+                    properties.Application = new Application();
                 }
 
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Application.Text = value;
+                properties.Application.Text = value;
             }
         }
         /// <summary>
@@ -49,11 +52,14 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion = new ApplicationVersion();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ApplicationVersion.Text = value;
+                if (properties.ApplicationVersion == null) {
+                    properties.ApplicationVersion = new ApplicationVersion();
+                }
+                properties.ApplicationVersion.Text = value;
             }
         }
         /// <summary>
@@ -70,11 +76,14 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs = new Paragraphs();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs.Text = value;
+                if (properties.Paragraphs == null) {
+                    properties.Paragraphs = new Paragraphs();
+                }
+                properties.Paragraphs.Text = value;
             }
         }
         /// <summary>
@@ -91,11 +100,14 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages = new Pages();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Pages.Text = value;
+                if (properties.Pages == null) {
+                    properties.Pages = new Pages();
+                }
+                properties.Pages.Text = value;
             }
         }
         /// <summary>
@@ -112,11 +124,14 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Paragraphs = new Paragraphs();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Characters.Text = value;
+                if (properties.Characters == null) {
+                    properties.Characters = new Characters();
+                }
+                properties.Characters.Text = value;
             }
         }
         /// <summary>
@@ -133,11 +148,14 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces = new CharactersWithSpaces();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.CharactersWithSpaces.Text = value;
+                if (properties.CharactersWithSpaces == null) {
+                    properties.CharactersWithSpaces = new CharactersWithSpaces();
+                }
+                properties.CharactersWithSpaces.Text = value;
             }
         }
         /// <summary>
@@ -154,17 +172,20 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company.Text;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company = new Company();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Company.Text = value;
+                if (properties.Company == null) {
+                    properties.Company = new Company();
+                }
+                properties.Company.Text = value;
             }
         }
         /// <summary>
         /// Gets or sets the digital signature information for the document.
         /// </summary>
-        public DigitalSignature DigitalSignature {
+        public DigitalSignature? DigitalSignature {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -175,17 +196,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = new DigitalSignature();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = value;
+                properties.DigitalSignature = value;
             }
         }
         /// <summary>
         /// Gets or sets the document security information.
         /// </summary>
-        public DocumentSecurity DocumentSecurity {
+        public DocumentSecurity? DocumentSecurity {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -196,17 +217,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity = new DocumentSecurity();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity = value;
+                properties.DocumentSecurity = value;
             }
         }
         /// <summary>
         /// Gets or sets the heading pairs associated with the document.
         /// </summary>
-        public HeadingPairs HeadingPairs {
+        public HeadingPairs? HeadingPairs {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -217,17 +238,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs = new HeadingPairs();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs = value;
+                properties.HeadingPairs = value;
             }
         }
         /// <summary>
         /// Gets or sets the hidden slides information for the document.
         /// </summary>
-        public HiddenSlides HiddenSlides {
+        public HiddenSlides? HiddenSlides {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -238,17 +259,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides = new HiddenSlides();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides = value;
+                properties.HiddenSlides = value;
             }
         }
         /// <summary>
         /// Gets or sets the base address used for resolving hyperlinks.
         /// </summary>
-        public HyperlinkBase HyperlinkBase {
+        public HyperlinkBase? HyperlinkBase {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -259,17 +280,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase = new HyperlinkBase();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase = value;
+                properties.HyperlinkBase = value;
             }
         }
         /// <summary>
         /// Gets or sets the list of hyperlinks in the document.
         /// </summary>
-        public HyperlinkList HyperlinkList {
+        public HyperlinkList? HyperlinkList {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -280,17 +301,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList = new HyperlinkList();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList = value;
+                properties.HyperlinkList = value;
             }
         }
         /// <summary>
         /// Gets or sets the total number of lines in the document.
         /// </summary>
-        public Lines Lines {
+        public Lines? Lines {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -301,17 +322,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines = new Lines();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines = value;
+                properties.Lines = value;
             }
         }
         /// <summary>
         /// Gets or sets the manager associated with the document.
         /// </summary>
-        public Manager Manager {
+        public Manager? Manager {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -322,17 +343,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager = new Manager();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager = value;
+                properties.Manager = value;
             }
         }
         /// <summary>
         /// Gets or sets a value indicating whether hyperlinks have changed.
         /// </summary>
-        public HyperlinksChanged HyperlinksChanged {
+        public HyperlinksChanged? HyperlinksChanged {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -343,17 +364,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged = new HyperlinksChanged();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged = value;
+                properties.HyperlinksChanged = value;
             }
         }
         /// <summary>
         /// Gets or sets the notes information for the document.
         /// </summary>
-        public Notes Notes {
+        public Notes? Notes {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -364,18 +385,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes = new Notes();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes = value;
+                properties.Notes = value;
             }
         }
         /// <summary>
         /// Gets or sets the multimedia clips associated with the document.
         /// </summary>
-        public MultimediaClips MultimediaClips {
+        public MultimediaClips? MultimediaClips {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -386,18 +406,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips = new MultimediaClips();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips = value;
+                properties.MultimediaClips = value;
             }
         }
         /// <summary>
         /// Gets or sets the total editing time for the document.
         /// </summary>
-        public TotalTime TotalTime {
+        public TotalTime? TotalTime {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -408,17 +427,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime = new TotalTime();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime = value;
+                properties.TotalTime = value;
             }
         }
         /// <summary>
         /// Gets or sets the scale crop information for the document.
         /// </summary>
-        public ScaleCrop ScaleCrop {
+        public ScaleCrop? ScaleCrop {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -429,17 +448,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop = new ScaleCrop();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop = value;
+                properties.ScaleCrop = value;
             }
         }
         /// <summary>
         /// Gets or sets the presentation format used by the document.
         /// </summary>
-        public PresentationFormat PresentationFormat {
+        public PresentationFormat? PresentationFormat {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -447,17 +466,17 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat = new PresentationFormat();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat = value;
+                properties.PresentationFormat = value;
             }
         }
         /// <summary>
         /// Gets or sets the template from which the document was created.
         /// </summary>
-        public Template Template {
+        public Template? Template {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -465,18 +484,18 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template = new Template();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template = value;
+                properties.Template = value;
             }
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the document is shared.
         /// </summary>
-        public SharedDocument SharedDocument {
+        public SharedDocument? SharedDocument {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -484,18 +503,18 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument = new SharedDocument();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument = value;
+                properties.SharedDocument = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the total number of words in the document.
         /// </summary>
-        public Words Words {
+        public Words? Words {
             get {
                 if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
                     return null;
@@ -503,11 +522,11 @@ namespace OfficeIMO.Word {
                 return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words;
             }
             set {
-                CreateExtendedFileProperties();
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words == null) {
-                    _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words = new Words();
+                var properties = GetProperties();
+                if (properties == null) {
+                    return;
                 }
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words = value;
+                properties.Words = value;
             }
         }
 
@@ -521,13 +540,19 @@ namespace OfficeIMO.Word {
             _document.ApplicationProperties = this;
         }
 
+        private Properties? GetProperties() {
+            CreateExtendedFileProperties();
+            return _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties;
+        }
+
         private void CreateExtendedFileProperties() {
-            if (_wordprocessingDocument.ExtendedFilePropertiesPart == null) {
-                _wordprocessingDocument.AddExtendedFilePropertiesPart();
+            var part = _wordprocessingDocument.ExtendedFilePropertiesPart;
+            if (part == null) {
+                part = _wordprocessingDocument.AddExtendedFilePropertiesPart();
             }
 
-            if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties = new Properties();
+            if (part.Properties == null) {
+                part.Properties = new Properties();
             }
         }
     }
