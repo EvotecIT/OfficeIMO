@@ -14,6 +14,9 @@ namespace OfficeIMO.Examples {
             string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
+            // Visio/BasicVisioDocument
+            OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
+
             // Excel/BasicExcelFunctionality
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);

@@ -1,0 +1,82 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>An Open Source cross-platform .NET library providing an easy way to create
+            Microsoft Visio documents.</Description>
+        <AssemblyName>OfficeIMO.Visio</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Visio</AssemblyTitle>
+
+        <VersionPrefix>1.0.6</VersionPrefix>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+            netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+            net8.0</TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
+
+        <PackageId>OfficeIMO.Visio</PackageId>
+        <PackageTags>
+            vsdx;visio;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
+        <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <DelaySign>False</DelaySign>
+        <IsPublishable>True</IsPublishable>
+        <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+        <DebugType>portable</DebugType>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <RepositoryType>git</RepositoryType>
+        <SignAssembly>False</SignAssembly>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <LangVersion>Latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>README.md</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
+        <PackageReference Include="System.Drawing.Common" Version="8.0.4" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Text" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Collections" />
+        <Using Include="System.Linq" />
+        <Using Include="System.IO" />
+        <Using Include="DocumentFormat.OpenXml" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.Tests" />
+    </ItemGroup>
+
+</Project>
