@@ -20,6 +20,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example3(false);
             // Excel/BasicExcelFunctionalityAsync
             OfficeIMO.Examples.Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
+            // Excel/AutoFit
+            OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);
