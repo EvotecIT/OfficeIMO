@@ -13,13 +13,24 @@ namespace OfficeIMO.Word.Html.Converters {
             WordList list;
             bool ordered = element.TagName.Equals("ol", System.StringComparison.OrdinalIgnoreCase);
             if (ordered) {
-                if (options.ContinueNumbering && _orderedListNumberId.HasValue && listStack.Count == 0 && cell == null && headerFooter == null) {
+                if (options.ContinueNumbering &&
+                    _orderedListNumberId.HasValue &&
+                    listStack.Count == 0 &&
+                    cell == null &&
+                    headerFooter == null) {
                     list = new WordList(doc);
                     var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
                     field?.SetValue(list, _orderedListNumberId.Value);
                 } else {
-                    list = cell != null ? cell.AddList(WordListStyle.Headings111) : headerFooter != null ? headerFooter.AddList(WordListStyle.Headings111) : doc.AddListNumbered();
-                    if (options.ContinueNumbering && listStack.Count == 0 && cell == null && headerFooter == null) {
+                    list = cell != null
+                        ? cell.AddList(WordListStyle.Headings111)
+                        : headerFooter != null
+                            ? headerFooter.AddList(WordListStyle.Headings111)
+                            : doc.AddListNumbered();
+                    if (options.ContinueNumbering &&
+                        listStack.Count == 0 &&
+                        cell == null &&
+                        headerFooter == null) {
                         var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
                         _orderedListNumberId = (int?)field?.GetValue(list);
                     }
