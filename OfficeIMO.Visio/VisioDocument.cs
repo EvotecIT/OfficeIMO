@@ -61,7 +61,7 @@ namespace OfficeIMO.Visio {
                 string name = pageRef.Attribute("NameU")?.Value ?? pageRef.Attribute("Name")?.Value ?? "Page";
                 VisioPage page = document.AddPage(name);
 
-                string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value ?? pageRef.Attribute("RelId")?.Value;
+                string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
                 if (string.IsNullOrEmpty(relId)) {
                     continue;
                 }
