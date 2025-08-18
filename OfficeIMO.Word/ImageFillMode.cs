@@ -6,6 +6,10 @@ namespace OfficeIMO.Word {
         /// <summary>Stretch the image to fill the area.</summary>
         Stretch,
         /// <summary>Tile the image to fill the area.</summary>
-        Tile
+        Tile,
+        /// <summary>Scale the image uniformly to fit within the area.</summary>
+        Fit,
+        /// <summary>Place the image at the center without scaling.</summary>
+        Center
     }
 }

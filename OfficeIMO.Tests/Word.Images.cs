@@ -501,6 +501,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ImageFillMode_Fit() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeFit.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.Image.FillMode = ImageFillMode.Fit;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Fit, document.Images[0].FillMode);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var stretch = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Stretch>();
+                Assert.NotNull(stretch);
+                Assert.Null(stretch.GetFirstChild<DocumentFormat.OpenXml.Drawing.FillRectangle>());
+                Assert.Null(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
+            }
+        }
+
+        [Fact]
+        public void Test_ImageFillMode_Center() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeCenter.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.Image.FillMode = ImageFillMode.Center;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Center, document.Images[0].FillMode);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var tile = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>();
+                Assert.NotNull(tile);
+                Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value);
+            }
+        }
+
+        [Fact]
         public void Test_AddExternalImage() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentExternalImage.docx");
             using (var document = WordDocument.Create(filePath)) {
