@@ -157,6 +157,12 @@ namespace OfficeIMO.Excel {
             return columnIndex;
         }
 
+        private static (int Column, int Row) GetRowColumn(string cellReference) {
+            int column = GetColumnIndex(cellReference);
+            int row = int.Parse(new string(cellReference.Where(char.IsDigit).ToArray()), CultureInfo.InvariantCulture);
+            return (column, row);
+        }
+
         private string GetCellText(Cell cell) {
             if (cell.CellValue == null) return string.Empty;
             string value = cell.CellValue.InnerText;
@@ -309,6 +315,78 @@ namespace OfficeIMO.Excel {
 
             worksheet.Append(autoFilter);
             worksheet.Save();
+        }
+
+        public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            if (string.IsNullOrEmpty(name)) {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            string[] parts = range.Split(':');
+            if (parts.Length != 2) {
+                throw new ArgumentException("Invalid range", nameof(range));
+            }
+
+            (int startCol, int startRow) = GetRowColumn(parts[0]);
+            (int endCol, _) = GetRowColumn(parts[1]);
+            uint columnCount = (uint)(endCol - startCol + 1);
+
+            TableDefinitionPart tablePart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+            string relId = _worksheetPart.GetIdOfPart(tablePart);
+
+            uint tableId = 1;
+            TableParts existingParts = _worksheetPart.Worksheet.GetFirstChild<TableParts>();
+            if (existingParts != null) {
+                tableId = existingParts.Count != null ? existingParts.Count.Value + 1u : (uint)(existingParts.ChildElements.Count + 1);
+            }
+
+            Table table = new Table {
+                Id = tableId,
+                Name = name,
+                DisplayName = name,
+                Reference = range,
+                TotalsRowShown = false
+            };
+
+            TableColumns columns = new TableColumns { Count = columnCount };
+            for (uint i = 0; i < columnCount; i++) {
+                string columnName = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+                if (hasHeader) {
+                    Cell headerCell = GetCell(startRow, startCol + (int)i);
+                    string text = GetCellText(headerCell);
+                    if (!string.IsNullOrEmpty(text)) {
+                        columnName = text;
+                    }
+                }
+                columns.Append(new TableColumn { Id = i + 1, Name = columnName });
+            }
+            table.Append(columns);
+
+            table.Append(new TableStyleInfo {
+                Name = style.ToString(),
+                ShowFirstColumn = false,
+                ShowLastColumn = false,
+                ShowRowStripes = true,
+                ShowColumnStripes = false
+            });
+
+            tablePart.Table = table;
+            tablePart.Table.Save();
+
+            TableParts partsCollection = existingParts;
+            if (partsCollection == null) {
+                partsCollection = new TableParts { Count = 0 };
+                _worksheetPart.Worksheet.Append(partsCollection);
+            }
+
+            partsCollection.Append(new TablePart { Id = relId });
+            partsCollection.Count = (uint)partsCollection.ChildElements.Count;
+
+            _worksheetPart.Worksheet.Save();
         }
 
         public void SetCellValue(int row, int column, string value, bool autoFitColumns = false, bool autoFitRows = false) {
