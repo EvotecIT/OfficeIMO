@@ -14,7 +14,7 @@ using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace OfficeIMO.Word.Html.Converters {
-    internal partial class HtmlToWordConverter {
+    public partial class HtmlToWordConverter {
         private enum TextTransform {
             None,
             Uppercase,

@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word.Html.Converters {
-    internal partial class HtmlToWordConverter {
+    public partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
             Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;

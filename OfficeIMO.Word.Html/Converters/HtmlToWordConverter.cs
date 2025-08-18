@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html.Converters {
     /// 3. Reuse existing OfficeIMO.Word helper methods and converters
     /// 4. Follow existing patterns in OfficeIMO.Word for consistency
     /// </summary>
-    internal partial class HtmlToWordConverter {
+    public partial class HtmlToWordConverter {
         private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
@@ -41,6 +41,10 @@ namespace OfficeIMO.Word.Html.Converters {
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
+        public WordDocument Convert(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            return ConvertAsync(html, options, cancellationToken).GetAwaiter().GetResult();
+        }
+
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();

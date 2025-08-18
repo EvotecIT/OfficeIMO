@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Html.Converters;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -71,6 +72,26 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.SaveAsHtmlAsync("foo.html", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync("<p>h</p>", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync("<p>f</p>", cancellationToken: cts.Token));
+        }
+
+        [Fact]
+        public async Task WordToHtmlConverter_Convert_EqualsAsync() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Converter test");
+            var converter = new WordToHtmlConverter();
+            string sync = converter.Convert(doc, new WordToHtmlOptions());
+            string asyncResult = await converter.ConvertAsync(doc, new WordToHtmlOptions());
+            Assert.Equal(sync, asyncResult);
+        }
+
+        [Fact]
+        public async Task HtmlToWordConverter_Convert_EqualsAsync() {
+            const string html = "<p>Test</p>";
+            var converter = new HtmlToWordConverter();
+            using var syncDoc = converter.Convert(html, new HtmlToWordOptions());
+            using var asyncDoc = await converter.ConvertAsync(html, new HtmlToWordOptions());
+            Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
+            Assert.Equal(syncDoc.Paragraphs[0].Text, asyncDoc.Paragraphs[0].Text);
         }
     }
 }

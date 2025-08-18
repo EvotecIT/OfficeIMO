@@ -17,12 +17,23 @@ namespace OfficeIMO.Word.Html.Converters {
     /// <summary>
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
-    internal class WordToHtmlConverter {
+    public class WordToHtmlConverter {
         /// <summary>
         /// Converts the specified document to HTML asynchronously using provided options.
         /// </summary>
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Conversion options controlling HTML output.</param>
+        /// <returns>HTML representation of the document.</returns>
+        public string Convert(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
+            return ConvertAsync(document, options, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Converts the specified document to HTML asynchronously using provided options.
+        /// </summary>
+        /// <param name="document">Document to convert.</param>
+        /// <param name="options">Conversion options controlling HTML output.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>HTML representation of the document.</returns>
         public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -193,7 +204,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         } else {
                             var bytes = imgObj.GetBytes();
                             var mime = MimeFromFileName(imgObj.FileName);
-                            src = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                            src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                         }
                         img!.Source = src;
                         if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
