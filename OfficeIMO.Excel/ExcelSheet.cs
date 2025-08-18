@@ -280,6 +280,37 @@ namespace OfficeIMO.Excel {
             worksheet.Save();
         }
 
+        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            Worksheet worksheet = _worksheetPart.Worksheet;
+
+            AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+            if (existing != null) {
+                worksheet.RemoveChild(existing);
+            }
+
+            AutoFilter autoFilter = new AutoFilter { Reference = range };
+
+            if (filterCriteria != null) {
+                foreach (KeyValuePair<uint, IEnumerable<string>> criteria in filterCriteria) {
+                    FilterColumn filterColumn = new FilterColumn { ColumnId = criteria.Key };
+                    Filters filters = new Filters();
+                    foreach (string value in criteria.Value) {
+                        filters.Append(new Filter { Val = value });
+                    }
+
+                    filterColumn.Append(filters);
+                    autoFilter.Append(filterColumn);
+                }
+            }
+
+            worksheet.Append(autoFilter);
+            worksheet.Save();
+        }
+
         public void SetCellValue(int row, int column, string value, bool autoFitColumns = false, bool autoFitRows = false) {
             Cell cell = GetCell(row, column);
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
