@@ -20,6 +20,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string Id { get; }
 
+        public string? NameU { get; set; }
+
         public double PinX { get; set; }
 
         public double PinY { get; set; }

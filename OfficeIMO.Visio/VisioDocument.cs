@@ -6,6 +6,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -27,6 +28,64 @@ namespace OfficeIMO.Visio {
             VisioPage page = new(name);
             _pages.Add(page);
             return page;
+        }
+
+        /// <summary>
+        /// Loads an existing <c>.vsdx</c> file into a <see cref="VisioDocument"/>.
+        /// </summary>
+        /// <param name="filePath">Path to the <c>.vsdx</c> file.</param>
+        public static VisioDocument Load(string filePath) {
+            VisioDocument document = new();
+
+            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
+
+            PackageRelationship documentRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument").Single();
+            Uri documentUri = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), documentRel.TargetUri);
+            PackagePart documentPart = package.GetPart(documentUri);
+
+            PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
+            Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
+            PackagePart pagesPart = package.GetPart(pagesUri);
+
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
+
+            foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
+                string name = pageRef.Attribute("NameU")?.Value ?? pageRef.Attribute("Name")?.Value ?? "Page";
+                VisioPage page = document.AddPage(name);
+
+                string? relId = pageRef.Attribute("RelId")?.Value;
+                if (string.IsNullOrEmpty(relId)) {
+                    continue;
+                }
+
+                PackageRelationship pageRel = pagesPart.GetRelationship(relId);
+                Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
+                PackagePart pagePart = package.GetPart(pageUri);
+                XDocument pageDoc = XDocument.Load(pagePart.GetStream());
+
+                foreach (XElement shapeElement in pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape") ?? Enumerable.Empty<XElement>()) {
+                    string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
+                    VisioShape shape = new(id) {
+                        NameU = shapeElement.Attribute("NameU")?.Value,
+                        Text = shapeElement.Element(ns + "Text")?.Value
+                    };
+
+                    XElement? xform = shapeElement.Element(ns + "XForm");
+                    shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
+                    shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
+                    shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
+                    shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+
+                    page.Shapes.Add(shape);
+                }
+            }
+
+            return document;
+        }
+
+        private static double ParseDouble(string? value) {
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
         /// <summary>
@@ -83,6 +142,9 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Shapes", ns);
                 writer.WriteStartElement("Shape", ns);
                 writer.WriteAttributeString("ID", shape.Id);
+                if (!string.IsNullOrEmpty(shape.NameU)) {
+                    writer.WriteAttributeString("NameU", shape.NameU);
+                }
                 writer.WriteStartElement("XForm", ns);
                 writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
                 writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
