@@ -23,6 +23,8 @@ env:
     8.x
     9.0.x
   BUILD_CONFIGURATION: 'Release'
+  TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
+  SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
   test-windows:
@@ -53,7 +55,41 @@ jobs:
         run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+
+      - name: Summarize failing tests
+        if: failure() && env.SUMMARIZE_FAILURES == 'true'
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Recurse -Filter *.trx
+          if ($trxFiles.Count -eq 0) {
+            Write-Host "No TRX files found for failure analysis"
+            exit 0
+          }
+
+          Write-Host "=== Failed Tests Summary ==="
+          $failureCount = 0
+
+          foreach ($file in $trxFiles) {
+            try {
+              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+                ForEach-Object {
+                  $name = $_.Node.testName
+                  $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
+                  Write-Host "❌ $name"
+                  Write-Host "   $msg"
+                  $failureCount++
+                }
+            } catch {
+              Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
+            }
+          }
+
+          if ($failureCount -eq 0) {
+            Write-Host "No failed tests found in TRX files"
+          } else {
+            Write-Host "=== Total failed tests: $failureCount ==="
+          }
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -101,7 +137,41 @@ jobs:
         run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+
+      - name: Summarize failing tests
+        if: failure() && env.SUMMARIZE_FAILURES == 'true'
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Recurse -Filter *.trx
+          if ($trxFiles.Count -eq 0) {
+            Write-Host "No TRX files found for failure analysis"
+            exit 0
+          }
+
+          Write-Host "=== Failed Tests Summary ==="
+          $failureCount = 0
+
+          foreach ($file in $trxFiles) {
+            try {
+              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+                ForEach-Object {
+                  $name = $_.Node.testName
+                  $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
+                  Write-Host "❌ $name"
+                  Write-Host "   $msg"
+                  $failureCount++
+                }
+            } catch {
+              Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
+            }
+          }
+
+          if ($failureCount -eq 0) {
+            Write-Host "No failed tests found in TRX files"
+          } else {
+            Write-Host "=== Total failed tests: $failureCount ==="
+          }
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -142,7 +212,41 @@ jobs:
         run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+
+      - name: Summarize failing tests
+        if: failure() && env.SUMMARIZE_FAILURES == 'true'
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Recurse -Filter *.trx
+          if ($trxFiles.Count -eq 0) {
+            Write-Host "No TRX files found for failure analysis"
+            exit 0
+          }
+
+          Write-Host "=== Failed Tests Summary ==="
+          $failureCount = 0
+
+          foreach ($file in $trxFiles) {
+            try {
+              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+                ForEach-Object {
+                  $name = $_.Node.testName
+                  $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
+                  Write-Host "❌ $name"
+                  Write-Host "   $msg"
+                  $failureCount++
+                }
+            } catch {
+              Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
+            }
+          }
+
+          if ($failureCount -eq 0) {
+            Write-Host "No failed tests found in TRX files"
+          } else {
+            Write-Host "=== Total failed tests: $failureCount ==="
+          }
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
