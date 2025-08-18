@@ -48,6 +48,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public SpreadsheetDocument _spreadSheetDocument;
         private WorkbookPart _workBookPart;
+        private SharedStringTablePart _sharedStringTablePart;
 
         /// <summary>
         /// Path to the file backing this document.
@@ -58,6 +59,38 @@ namespace OfficeIMO.Excel {
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+
+        internal SharedStringTablePart SharedStringTablePart {
+            get {
+                if (_sharedStringTablePart != null) {
+                    return _sharedStringTablePart;
+                }
+
+                if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                    _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                } else {
+                    _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
+                    _sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                }
+
+                return _sharedStringTablePart;
+            }
+        }
+
+        internal int GetSharedStringIndex(string text) {
+            var sharedStringTable = SharedStringTablePart.SharedStringTable;
+            int index = 0;
+            foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
+                if (item.InnerText == text) {
+                    return index;
+                }
+                index++;
+            }
+
+            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            sharedStringTable.Save();
+            return index;
+        }
 
         /// <summary>
         /// Creates a new Excel document at the specified path.

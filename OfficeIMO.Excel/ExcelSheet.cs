@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
@@ -91,6 +91,132 @@ namespace OfficeIMO.Excel {
             this._worksheetPart = worksheetPart;
 
             excelDocument.id.Add(id);
+        }
+
+        private Cell GetCell(int row, int column) {
+            if (row <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(row));
+            }
+            if (column <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(column));
+            }
+
+            SheetData sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
+            }
+
+            Row rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)row);
+            if (rowElement == null) {
+                rowElement = new Row { RowIndex = (uint)row };
+                sheetData.Append(rowElement);
+            }
+
+            string cellReference = GetColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
+            Cell cell = rowElement.Elements<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == cellReference);
+            if (cell == null) {
+                cell = new Cell { CellReference = cellReference };
+
+                Cell refCell = null;
+                foreach (Cell c in rowElement.Elements<Cell>()) {
+                    if (string.Compare(c.CellReference?.Value, cellReference, StringComparison.Ordinal) > 0) {
+                        refCell = c;
+                        break;
+                    }
+                }
+                if (refCell != null) {
+                    rowElement.InsertBefore(cell, refCell);
+                } else {
+                    rowElement.Append(cell);
+                }
+            }
+
+            return cell;
+        }
+
+        private static string GetColumnName(int columnIndex) {
+            int dividend = columnIndex;
+            StringBuilder columnName = new StringBuilder();
+
+            while (dividend > 0) {
+                int modulo = (dividend - 1) % 26;
+                columnName.Insert(0, Convert.ToChar(65 + modulo));
+                dividend = (dividend - modulo) / 26;
+            }
+
+            return columnName.ToString();
+        }
+
+        public void SetCellValue(int row, int column, string value) {
+            Cell cell = GetCell(row, column);
+            int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
+            cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.SharedString;
+        }
+
+        public void SetCellValue(int row, int column, double value) {
+            Cell cell = GetCell(row, column);
+            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.Number;
+        }
+
+        public void SetCellValue(int row, int column, decimal value) {
+            Cell cell = GetCell(row, column);
+            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.Number;
+        }
+
+        public void SetCellValue(int row, int column, DateTime value) {
+            Cell cell = GetCell(row, column);
+            cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.Number;
+        }
+
+        public void SetCellValue(int row, int column, bool value) {
+            Cell cell = GetCell(row, column);
+            cell.CellValue = new CellValue(value ? "1" : "0");
+            cell.DataType = CellValues.Boolean;
+        }
+
+        public void SetCellFormula(int row, int column, string formula) {
+            Cell cell = GetCell(row, column);
+            cell.CellFormula = new CellFormula(formula);
+        }
+
+        public void SetCellValue(int row, int column, object value) {
+            switch (value) {
+                case string s:
+                    SetCellValue(row, column, s);
+                    break;
+                case double d:
+                    SetCellValue(row, column, d);
+                    break;
+                case float f:
+                    SetCellValue(row, column, Convert.ToDouble(f));
+                    break;
+                case decimal dec:
+                    SetCellValue(row, column, dec);
+                    break;
+                case int i:
+                    SetCellValue(row, column, (double)i);
+                    break;
+                case long l:
+                    SetCellValue(row, column, (double)l);
+                    break;
+                case DateTime dt:
+                    SetCellValue(row, column, dt);
+                    break;
+                case bool b:
+                    SetCellValue(row, column, b);
+                    break;
+                default:
+                    if (value != null) {
+                        SetCellValue(row, column, value.ToString());
+                    } else {
+                        SetCellValue(row, column, string.Empty);
+                    }
+                    break;
+            }
         }
     }
 }
