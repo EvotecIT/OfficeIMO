@@ -34,8 +34,16 @@ namespace OfficeIMO.Examples.Word {
             paragraph1.Image.TintAmount = 50;
             paragraph1.Image.TintHue = 300;
 
-            var paragraph2 = document.AddParagraph("Linked image from web");
-            paragraph2.AddImage(new Uri("http://example.com/logo.png"), 100, 100);
+            var paragraph2 = document.AddParagraph("Fit image");
+            paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
+            paragraph2.Image.FillMode = ImageFillMode.Fit;
+
+            var paragraph3 = document.AddParagraph("Centered image");
+            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
+            paragraph3.Image.FillMode = ImageFillMode.Center;
+
+            var paragraph4 = document.AddParagraph("Linked image from web");
+            paragraph4.AddImage(new Uri("http://example.com/logo.png"), 100, 100);
 
             document.Save(openWord);
         }
