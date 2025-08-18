@@ -38,8 +38,8 @@ namespace OfficeIMO.Word {
     public class WordWatermark : WordElement {
         private WordDocument _document;
         private SdtBlock _sdtBlock;
-        private WordHeader _wordHeader;
-        private WordSection _section;
+        private WordHeader? _wordHeader;
+        private WordSection? _section;
         //private WordParagraph _wordParagraph;
 
         /// <summary>
@@ -516,7 +516,7 @@ namespace OfficeIMO.Word {
         /// <param name="scale">Scale factor for width and height.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
-            this._section = wordSection;
+            this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 
             if (style == WordWatermarkStyle.Text) {
                 this._sdtBlock = GetStyle(style);
@@ -542,7 +542,8 @@ namespace OfficeIMO.Word {
                     lastParagraph._paragraph.Parent.Append(_sdtBlock);
                 }
 
-                var paragraph = this._sdtBlock.SdtContentBlock.GetFirstChild<Paragraph>();
+                var sdtContentBlock = this._sdtBlock.SdtContentBlock ?? throw new InvalidOperationException("Missing content block in watermark");
+                var paragraph = sdtContentBlock.GetFirstChild<Paragraph>() ?? sdtContentBlock.AppendChild(new Paragraph());
                 var wordParagraph = new WordParagraph(wordDocument, paragraph);
                 var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
                 SetWatermarkImageData(imageLocation);
@@ -575,7 +576,7 @@ namespace OfficeIMO.Word {
         /// <param name="scale">Scale factor for width and height.</param>
         public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
-            this._section = wordSection;
+            this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 
             if (wordHeader == null) {
                 // user didn't create headers first, so we do it for the user
@@ -598,7 +599,8 @@ namespace OfficeIMO.Word {
 
                 wordHeader._header.Append(_sdtBlock);
 
-                var paragraph = this._sdtBlock.SdtContentBlock.GetFirstChild<Paragraph>();
+                var sdtContentBlock = this._sdtBlock.SdtContentBlock ?? throw new InvalidOperationException("Missing content block in watermark");
+                var paragraph = sdtContentBlock.GetFirstChild<Paragraph>() ?? sdtContentBlock.AppendChild(new Paragraph());
                 var wordParagraph = new WordParagraph(wordDocument, paragraph);
                 var imageLocation = WordImage.AddImageToLocation(wordDocument, wordParagraph, imageStream, fileName);
                 SetWatermarkImageData(imageLocation);

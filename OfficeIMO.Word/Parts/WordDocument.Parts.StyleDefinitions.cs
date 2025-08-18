@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
         /// <param name="styleDefinitionsPart">The style definitions part to update.</param>
         /// <param name="overrideExisting">When <c>true</c>, existing styles are replaced with the library versions.</param>
         private static void AddStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
-            var styles = styleDefinitionsPart.Styles;
+            var styles = styleDefinitionsPart.Styles ??= new Styles();
             AddTableStyles(styles, overrideExisting);
 
             foreach (var style in WordParagraphStyle.CustomStyles) {

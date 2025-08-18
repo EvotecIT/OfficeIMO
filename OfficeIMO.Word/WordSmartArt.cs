@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
             return (UInt32Value)(uint)id;
         }
 
-        internal Drawing _drawing;
+        internal Drawing _drawing = null!;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
 
