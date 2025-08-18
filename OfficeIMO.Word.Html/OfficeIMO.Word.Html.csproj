@@ -69,4 +69,8 @@
         <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.Tests" />
+    </ItemGroup>
+
 </Project>

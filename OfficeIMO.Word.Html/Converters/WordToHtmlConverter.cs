@@ -18,6 +18,10 @@ namespace OfficeIMO.Word.Html.Converters {
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
     internal class WordToHtmlConverter {
+        public string Convert(WordDocument document, WordToHtmlOptions options) {
+            return ConvertAsync(document, options, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         /// <summary>
         /// Converts the specified document to HTML asynchronously using provided options.
         /// </summary>
@@ -193,7 +197,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         } else {
                             var bytes = imgObj.GetBytes();
                             var mime = MimeFromFileName(imgObj.FileName);
-                            src = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                            src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                         }
                         img!.Source = src;
                         if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);

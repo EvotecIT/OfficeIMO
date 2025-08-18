@@ -41,6 +41,10 @@ namespace OfficeIMO.Word.Html.Converters {
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
+        public WordDocument Convert(string html, HtmlToWordOptions options) {
+            return ConvertAsync(html, options, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
             options ??= new HtmlToWordOptions();
