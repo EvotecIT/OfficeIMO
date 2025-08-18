@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
-        public string FontFamily { get; set; }
+        public string? FontFamily { get; set; }
         
         /// <summary>
         /// Optional default page size applied when creating new documents.

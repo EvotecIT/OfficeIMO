@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Markdown {
         /// Font family whose runs should be rendered as inline code. When <c>null</c>,
         /// <see cref="FontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.
         /// </summary>
-        public string FontFamily { get; set; }
+        public string? FontFamily { get; set; }
 
         /// <summary>
         /// Enables wrapping underlined text with &lt;u&gt; tags.
@@ -31,6 +31,6 @@ namespace OfficeIMO.Word.Markdown {
         /// When <see cref="ImageExportMode"/> is set to <see cref="ImageExportMode.File"/>,
         /// images are written to this directory. If not specified, the current working directory is used.
         /// </summary>
-        public string ImageDirectory { get; set; }
+        public string? ImageDirectory { get; set; }
     }
 }

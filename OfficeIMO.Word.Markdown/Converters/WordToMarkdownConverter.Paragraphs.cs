@@ -50,7 +50,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
-            string codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
+            string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
                     long id = run.FootNote.ReferenceId.Value;
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     continue;
                 }
 
-                string text = run.Text;
+                string? text = run.Text;
                 if (string.IsNullOrEmpty(text)) {
                     continue;
                 }

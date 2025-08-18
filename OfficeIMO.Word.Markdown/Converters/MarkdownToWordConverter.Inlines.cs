@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
 
             void Handle(Inline? node, bool bold = false, bool italic = false, bool strike = false, bool underline = false, Inline? stop = null) {
-                for (var current = node; current != null && current != stop; current = current.NextSibling) {
+                for (var current = node; current != null && current != stop; current = current?.NextSibling) {
                     switch (current) {
                         case LiteralInline literal:
                             var run = paragraph.AddText(literal.Content.ToString());
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                                 AddImage(document, paragraph, link);
                             } else {
                                 string label = GetPlainText(link.FirstChild);
-                                var hyperlink = paragraph.AddHyperLink(label, new Uri(link.Url, UriKind.RelativeOrAbsolute));
+                                var hyperlink = paragraph.AddHyperLink(label, new Uri(link.Url ?? string.Empty, UriKind.RelativeOrAbsolute));
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
                                     hyperlink.SetFontFamily(options.FontFamily);
                                 }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             break;
                         default:
                             if (current is LeafInline leaf) {
-                                var other = paragraph.AddText(leaf.ToString());
+                                var other = paragraph.AddText(leaf.ToString() ?? string.Empty);
                                 if (bold) other.SetBold();
                                 if (italic) other.SetItalic();
                                 if (strike) other.SetStrike();
@@ -142,13 +142,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             // Size hints may also appear after the title
             if (!string.IsNullOrEmpty(title)) {
-                var matchTitle = Regex.Match(title, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
+                var titleText = title;
+                var matchTitle = Regex.Match(titleText, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
                 if (matchTitle.Success) {
                     width ??= double.Parse(matchTitle.Groups[1].Value);
                     if (matchTitle.Groups[2].Success) {
                         height ??= double.Parse(matchTitle.Groups[2].Value);
                     }
-                    title = title.Substring(0, matchTitle.Index).Trim();
+                    title = titleText.Substring(0, matchTitle.Index).Trim();
                 }
             }
 
