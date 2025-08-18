@@ -1,17 +1,27 @@
 using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using ExcelTableStyle = OfficeIMO.Excel.TableStyle;
 using Xunit;
-
-namespace OfficeIMO.Tests {
-    /// <summary>
-    /// Tests for creating tables with styles.
-    /// </summary>
-    public partial class Excel {
-        [Fact]
+            using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            using (var archive = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)) {
+                var tableEntry = archive.GetEntry("xl/tables/table1.xml");
+                Assert.NotNull(tableEntry);
+                using (var reader = new StreamReader(tableEntry.Open())) {
+                    string tableXml = reader.ReadToEnd();
+                    Assert.Contains("tableStyleInfo", tableXml);
+                    Assert.Contains("TableStyleMedium2", tableXml);
+                }
+                var workbookEntry = archive.GetEntry("xl/workbook.xml");
+                Assert.NotNull(workbookEntry);
+                using (var reader = new StreamReader(workbookEntry.Open())) {
+                    string workbookXml = reader.ReadToEnd();
+                    Assert.Contains("tableStyles", workbookXml);
+                    Assert.Contains("defaultTableStyle=\"TableStyleMedium2\"", workbookXml);
+                }
+            }
+        }
+    }
+}
         public void Test_AddTableWithStyle() {
             string filePath = Path.Combine(_directoryWithFiles, "TableStyles.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {

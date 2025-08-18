@@ -335,6 +335,22 @@ namespace OfficeIMO.Excel {
             (int endCol, _) = GetRowColumn(parts[1]);
             uint columnCount = (uint)(endCol - startCol + 1);
 
+            // Ensure the workbook has TableStyles so the style can be applied
+            var workbook = _spreadSheetDocument.WorkbookPart.Workbook;
+            TableStyles tableStyles = workbook.GetFirstChild<TableStyles>();
+            if (tableStyles == null) {
+                tableStyles = new TableStyles {
+                    Count = 0,
+                    DefaultTableStyle = style.ToString(),
+                    DefaultPivotStyle = "PivotStyleLight16"
+                };
+                workbook.Append(tableStyles);
+                workbook.Save();
+            } else if (tableStyles.DefaultTableStyle == null) {
+                tableStyles.DefaultTableStyle = style.ToString();
+                workbook.Save();
+            }
+
             TableDefinitionPart tablePart = _worksheetPart.AddNewPart<TableDefinitionPart>();
             string relId = _worksheetPart.GetIdOfPart(tablePart);
 
