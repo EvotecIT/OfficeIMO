@@ -501,24 +501,18 @@ namespace OfficeIMO.Word {
         public bool? TopShadow {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
-                if (pageBorder != null && pageBorder.TopBorder.Shadow != null) {
-                    return pageBorder.TopBorder.Shadow;
-                }
-
-                return null;
+                var shadow = pageBorder?.TopBorder?.Shadow;
+                return shadow != null ? shadow.Value : (bool?)null;
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(Custom);
-                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                    pageBorder = Custom;
+                    _section._sectionProperties.Append(pageBorder);
                 }
 
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Shadow = value;
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Shadow = value;
             }
         }
 
@@ -528,24 +522,18 @@ namespace OfficeIMO.Word {
         public bool? TopFrame {
             get {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
-                if (pageBorder != null && pageBorder.TopBorder.Frame != null) {
-                    return pageBorder.TopBorder.Frame;
-                }
-
-                return null;
+                var frame = pageBorder?.TopBorder?.Frame;
+                return frame != null ? frame.Value : (bool?)null;
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
-                    _section._sectionProperties.Append(Custom);
-                    pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
+                    pageBorder = Custom;
+                    _section._sectionProperties.Append(pageBorder);
                 }
 
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Frame = value;
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Frame = value;
             }
         }
 

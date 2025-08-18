@@ -235,69 +235,53 @@ namespace OfficeIMO.Word {
             set {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                    pageBorder = Custom;
+                    _wordParagraph._paragraphProperties.Append(pageBorder);
                 }
 
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Frame = value;
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.Frame = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the right border width in points.
         /// </summary>
-        public UInt32Value RightSize {
+        public UInt32Value? RightSize {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.RightBorder.Size;
-                }
-
-                return null;
+                return pageBorder?.RightBorder?.Size;
             }
             set {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                    pageBorder = Custom;
+                    _wordParagraph._paragraphProperties.Append(pageBorder);
                 }
 
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Size = value;
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.Size = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the right border color as a hex value.
         /// </summary>
-        public string RightColorHex {
+        public string? RightColorHex {
             get {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.RightBorder != null && pageBorder.RightBorder.Color != null) {
-                    return (pageBorder.RightBorder.Color).Value.Replace("#", "").ToLowerInvariant();
-                }
-
-                return null;
+                var color = pageBorder?.RightBorder?.Color;
+                return color != null ? color.Value.Replace("#", "").ToLowerInvariant() : null;
             }
             set {
                 var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
                 if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                    pageBorder = Custom;
+                    _wordParagraph._paragraphProperties.Append(pageBorder);
                 }
 
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.Color = value.Replace("#", "").ToLowerInvariant();
             }
         }
 
