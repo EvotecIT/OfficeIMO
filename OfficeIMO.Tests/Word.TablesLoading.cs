@@ -15,15 +15,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryDocuments, "DocumentWithTables.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {
                 // We check for style definition part.
-                StyleDefinitionsPart styleDefinitionsPart = document._document.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
+                StyleDefinitionsPart? styleDefinitionsPart = document._document?.MainDocumentPart?.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
                 // It should exists
                 Assert.True(styleDefinitionsPart != null);
 
                 // we now check if all table styles are available for use
                 List<Style> listTableStyles = new List<Style>();
-                var styles = styleDefinitionsPart.Styles.OfType<Style>().ToList();
+                var styles = styleDefinitionsPart!.Styles?.OfType<Style>()?.ToList() ?? new List<Style>();
                 foreach (var style in styles) {
-                    if (style.Type == StyleValues.Table) {
+                    if (style.Type != null && style.Type == StyleValues.Table) {
                         listTableStyles.Add(style);
                     }
                 }

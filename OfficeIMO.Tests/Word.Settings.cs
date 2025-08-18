@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
         [InlineData("1", true)]
         [InlineData("0", false)]
         [InlineData(null, false)]
-        public void Test_FinalDocument_CustomPropertyValues(string value, bool expected) {
+        public void Test_FinalDocument_CustomPropertyValues(string? value, bool expected) {
             string filePath = Path.Combine(_directoryWithFiles, $"Test_FinalDocument_Value_{expected}.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test FinalDocument values");

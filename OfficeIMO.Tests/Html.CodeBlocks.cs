@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<pre><code>", roundTrip);
             Assert.Contains("var x = 1;", roundTrip);
             Assert.Contains("var y = 2;", roundTrip);
-            Assert.Equal(1, Regex.Matches(roundTrip, "<pre>").Count);
+            Assert.Single(Regex.Matches(roundTrip, "<pre>"));
         }
 
         [Fact]

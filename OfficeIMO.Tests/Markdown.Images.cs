@@ -11,7 +11,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
-        public void MarkdownToWord_ParsesImageHints() {
+        public async Task MarkdownToWord_ParsesImageHints() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             int port = GetAvailablePort();
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(50, doc.Images[1].Width);
             Assert.Equal(20, doc.Images[1].Height);
 
-            serverTask.Wait();
+            await serverTask;
             listener.Stop();
         }
 
