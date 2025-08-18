@@ -3,6 +3,8 @@ using System;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -26,11 +28,18 @@ namespace OfficeIMO.Word.Markdown.Converters {
         private readonly StringBuilder _output = new StringBuilder();
 
         public string Convert(WordDocument document, WordToMarkdownOptions options) {
+            return ConvertAsync(document, options).GetAwaiter().GetResult();
+        }
+
+        public Task<string> ConvertAsync(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToMarkdownOptions();
 
+            _output.Clear();
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var paragraph in section.Paragraphs) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var text = ConvertParagraph(paragraph, options);
                     if (!string.IsNullOrEmpty(text)) {
                         _output.AppendLine(text);
@@ -38,6 +47,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
 
                 foreach (var table in section.Tables) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var tableText = ConvertTable(table, options);
                     if (!string.IsNullOrEmpty(tableText)) {
                         _output.AppendLine(tableText);
@@ -45,6 +55,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
 
                 foreach (var embedded in section.EmbeddedDocuments) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var html = embedded.GetHtml();
                     if (!string.IsNullOrEmpty(html)) {
                         _output.AppendLine(html);
@@ -55,13 +66,14 @@ namespace OfficeIMO.Word.Markdown.Converters {
             if (document.FootNotes.Count > 0) {
                 _output.AppendLine();
                 foreach (var footnote in document.FootNotes.OrderBy(fn => fn.ReferenceId)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (footnote.ReferenceId.HasValue) {
                         _output.AppendLine($"[^{footnote.ReferenceId}]: {RenderFootnote(footnote, options)}");
                     }
                 }
             }
 
-            return _output.ToString().TrimEnd();
+            return Task.FromResult(_output.ToString().TrimEnd());
         }
     }
 }

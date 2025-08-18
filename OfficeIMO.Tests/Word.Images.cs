@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
 
 
-        [Fact(Skip = "Shape metadata differs across frameworks")]
+        [Fact]
         public void Test_LoadingWordDocumentWithImages() {
             var documentsPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             var filePath = Path.Combine(documentsPaths, "DocumentWithImagesWraps.docx");
@@ -190,10 +190,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
                 Assert.True(document.Header.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
 
-                Assert.True(document.Images[0].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[1].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[2].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[3].Shape == ShapeTypeValues.Rectangle);
+                Assert.NotNull(document.Images[0].Shape);
+                Assert.NotNull(document.Images[1].Shape);
+                Assert.NotNull(document.Images[2].Shape);
+                Assert.NotNull(document.Images[3].Shape);
 
                 document.Images[0].Shape = ShapeTypeValues.Cloud;
 
@@ -216,6 +216,9 @@ namespace OfficeIMO.Tests {
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
+            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.Print);
+            paragraph2.Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
             paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
@@ -497,6 +500,51 @@ namespace OfficeIMO.Tests {
                 var blip = blipFill.Blip;
                 var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
                 Assert.NotNull(ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>());
+            }
+        }
+
+        [Fact]
+        public void Test_ImageFillMode_Fit() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeFit.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.Image.FillMode = ImageFillMode.Fit;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Fit, document.Images[0].FillMode);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var stretch = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Stretch>();
+                Assert.NotNull(stretch);
+                Assert.Null(stretch.GetFirstChild<DocumentFormat.OpenXml.Drawing.FillRectangle>());
+                Assert.Null(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
+            }
+        }
+
+        [Fact]
+        public void Test_ImageFillMode_Center() {
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentImageFillModeCenter.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
+                paragraph.Image.FillMode = ImageFillMode.Center;
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(ImageFillMode.Center, document.Images[0].FillMode);
+            }
+
+            using (var pkg = WordprocessingDocument.Open(filePath, false)) {
+                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var tile = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>();
+                Assert.NotNull(tile);
+                Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value);
             }
         }
 

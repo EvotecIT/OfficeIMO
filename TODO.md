@@ -1,160 +1,285 @@
-# OfficeIMO Converters - Master TODO
+﻿# TODO — OfficeIMO: Word / Excel / PowerPoint (normal + fluent APIs)
 
-## ✅ Current Implementation Status
+> Design rule: **one .csproj per product**. Fluent lives inside the same project under the `OfficeIMO.{Product}.Fluent` namespace.
+> Optional: a tiny `OfficeIMO.Core` can be added later; this file notes what could move there.
 
-### Core
-- Project builds and compiles
-- Extension methods work (`string.LoadFromHtml()`, `string.LoadFromMarkdown()`)
-- Converters for HTML, Markdown and PDF share common infrastructure
-- Basic null checking and exception handling
+---
 
-### HTML Converters
-- HTML to Word handles paragraphs, headings (with Word styles), bold/italic/underline, hyperlinks, lists, tables (row/colspan), images (including SVG and base64), line breaks, blockquotes, code blocks, footnotes, CSS classes and inline styles, external stylesheets, and nested structures.
-- Word to HTML exports headings, paragraph formatting, bold/italic/underline/strike, hyperlinks, lists, tables (with spans), images (external or embedded), footnotes, blockquotes, code blocks, metadata and optional base64 images.
+## Goals
 
-### Markdown Converters
-- Markdown to Word uses Markdig and supports headings, bold/italic, links, lists, code blocks, tables, images, blockquotes and footnotes.
-- Word to Markdown exports headings, formatting, links, lists, tables, images and footnotes.
+- Add **OfficeIMO.PowerPoint** with normal + fluent APIs.
+- Add **fluent APIs** for **Word** and **Excel** (no breaking changes).
+- Keep read/write parity and similar ergonomics across W/E/P.
+- Reuse shared helpers; keep tests and docs consistent.
 
-### PDF Converter
-- Partially working: supports paragraphs, tables, lists and headers/footers.
+---
 
-### Known Limitations
-- Advanced CSS layout (float, flex, grid) is not fully mapped.
-- HTML forms, audio/video, canvas and script elements are ignored.
-- Comments, revisions, shapes, charts and other complex Word features are not converted.
-- PDF converter lacks section awareness and advanced element types.
+## Packaging & Structure
 
-## 📁 Project Structure
+- Projects
+  - `OfficeIMO.Word` *(existing)* — add `OfficeIMO.Word.Fluent` namespace.
+  - `OfficeIMO.Excel` *(existing)* — add `OfficeIMO.Excel.Fluent` namespace.
+  - `OfficeIMO.PowerPoint` *(new)* — includes `OfficeIMO.PowerPoint.Fluent`.
+  - `OfficeIMO.Tests`, `OfficeIMO.VerifyTests`, `OfficeIMO.Examples` *(extend)*.
+  - Optional later: `OfficeIMO.Core` (see **What could move to Core** below).
 
-```
-OfficeIMO/
-├── OfficeIMO.Word/              # Core Word library
-├── OfficeIMO.Word.Pdf/          # PDF converter
-├── OfficeIMO.Word.Markdown/     # Markdown converter
-├── OfficeIMO.Word.Html/         # HTML converter
-├── OfficeIMO.Examples/          # Examples
-└── OfficeIMO.Tests/             # Tests
-```
+- Namespaces
+  - Normal: `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`
+  - Fluent: `OfficeIMO.Word.Fluent`, `OfficeIMO.Excel.Fluent`, `OfficeIMO.PowerPoint.Fluent`
 
-## 🔧 Phase 1: HTML Converter Improvements
+- Targets
+  - Align with existing matrix (`netstandard2.0`, `net472`, modern .NET).
 
-### HTML to Word Converter
-#### Currently Implemented
-- AngleSharp HTML parsing
-- Paragraph and heading support with Word styles
-- Bold, italic, underline, strike, superscript, subscript
-- Hyperlinks and bookmarks
-- Ordered and unordered lists with nesting
-- Tables with captions, row/col spans and styles
-- Images (embedded, external, SVG)
-- Line breaks and horizontal rules
-- Blockquotes, code blocks, abbreviations, footnotes and citations
-- Inline and external CSS (with class mapping and basic property support)
-- Page settings from options
+---
 
-#### Remaining Gaps
-- HTML forms (`input`, `select`, `textarea`)
-- Audio, video and canvas elements
-- Advanced CSS layout (float, flexbox, grid, positioning)
-- Style mapping for more CSS properties
-- Performance optimization for large documents
+## What could move to `OfficeIMO.Core` (optional)
 
-### Word to HTML Converter
-#### Currently Implemented
-- Basic HTML document structure and UTF-8 meta
-- Metadata export (title, author, keywords, etc.)
-- Heading detection and `<h1>-<h6>` output
-- Paragraph formatting (bold, italic, underline, strike, superscript, subscript)
-- Hyperlinks and bookmarks
-- Ordered and unordered lists with nesting
-- Tables with row/col spans and captions
-- Images with optional base64 embedding and SVG support
-- Footnotes and citations
-- Blockquotes, code blocks and horizontal rules
-- Optional font-family override
+- **Units/Math**: twips↔pt, emu↔pt↔px, Excel column width↔pixels, basic geometry.
+- **Colors/Themes**: ARGB helpers, theme palette, tint/shade.
+- **OPC/OpenXML helpers**: part creation, rel management, content-type overrides.
+- **Feature SPIs**:
+  - `ITextMeasurer` (used by Excel AutoFit), default heuristic + optional ImageSharp adapter.
+  - `IImageProcessor` (resize/re-encode for Word/PowerPoint), optional.
+- **Diagnostics**: shared exceptions, guards, validation helpers.
+- **File IO**: async load/save helpers; `IAsyncDisposable` pattern; sync wrappers.
 
-#### Remaining Gaps
-- Export comments, revisions and other annotations
-- Shapes, charts, SmartArt and other drawing elements
-- Advanced CSS style generation
-- Form field export
-- Better handling of custom styles and themes
+> If Core isn’t created now, keep these blocks behind internal static helpers in each product so extraction is trivial later.
 
-## 🔧 Phase 2: Markdown Converter Enhancements
+---
 
-### Markdown to Word Converter
-- **Implemented:** Uses Markdig; supports headings, bold, italic, links, lists, tables, images, blockquotes, code blocks, footnotes and horizontal rules.
-- **Next Steps:** Task list items, table alignment options, math support.
+## Milestones (vertical slices)
 
-### Word to Markdown Converter
-- **Implemented:** Exports headings, bold, italic, links, lists, tables, images, footnotes and horizontal rules.
-- **Next Steps:** Preserve custom styles, support comments/revisions, improved image handling.
+### M1 — Scaffolding & Baseline
+- [ ] Create `OfficeIMO.PowerPoint` project.
+- [ ] Add fluent namespaces to Word/Excel projects (`*.Fluent`).
+- [ ] Extend examples and tests projects for W/E/P.
 
-## 📊 Real Progress Tracking
+### M2 — Fluent for Word (additive)
+- [ ] `WordFluentDocument` + `WordDocument.AsFluent()`.
+- [ ] Builders: `Info`, `Section`, `Page`, `Paragraph`, `Run`, `List`, `Table`, `Image`, `Headers`, `Footers`.
+- [ ] Read helpers: `.ForEachParagraph(...)`, `.Find(...)`.
+- [ ] Verify snapshots for fluent samples.
 
-### Markdown Converter
-- [x] Parse with Markdig
-- [x] Headings with styles
-- [x] Bold/Italic
-- [x] Lists
-- [x] Links
-- [x] Code blocks
-- [x] Tables
-- [x] Images
-- [ ] Task list items
-- [ ] Math extension
+### M3 — Excel: normalize + fluent
+- [ ] Normal surface audit (`Workbook`, `Worksheet`, `Cell`, `Range`, `Table`, `Style`).
+- [ ] `ExcelFluentWorkbook` + `.AsFluent()`; chain sheets/rows/columns/ranges/tables/styling.
+- [ ] `AutoFitColumns/AutoFitRows` with options (heuristic by default; precise if measurer available).
 
-### HTML Converter
-- [x] Headings with styles
-- [x] Bold/Italic/Underline/Strike
-- [x] Hyperlinks
-- [x] Lists
-- [x] Tables
-- [x] Images
-- [x] CSS styles (basic)
-- [ ] Forms and media elements
-- [ ] Advanced CSS layout
+### M4 — PowerPoint: core write
+- [ ] Normal API: create/open/save `.pptx`, add slides, text boxes, pictures, tables.
+- [ ] Fluent API: `AsFluent().Slide(s => ...)`.
+- [ ] Slide layouts + masters (basic), slide notes (read/write), basic theme.
 
-### Word to HTML
-- [x] Detect heading styles
-- [x] Export formatting
-- [x] Export hyperlinks
-- [x] Export lists
-- [x] Export tables
-- [x] Export images
-- [ ] Export comments and revisions
-- [ ] Export shapes/charts
+### M5 — PowerPoint read + refinements
+- [ ] Read model: enumerate slides/shapes/text/images/tables.
+- [ ] Simple transitions; per-slide background; per-shape formatting.
+- [ ] Charts MVP via embedded Excel part (write first, read later).
 
-### Word to Markdown
-- [x] Detect heading styles
-- [x] Export formatting
-- [x] Export hyperlinks
-- [x] Export lists
-- [x] Export tables
-- [x] Export images
-- [ ] Export comments and revisions
+### M6 — Docs & stabilization
+- [ ] README and samples showing normal vs fluent for W/E/P.
+- [ ] API docs (XML comments).
+- [ ] Verify tests for generated parts where appropriate.
 
-## 🚀 Next Steps
-1. Extend HTML converters to handle forms, multimedia and advanced CSS layout.
-2. Improve round-trip fidelity for comments, revisions and shapes.
-3. Expand test coverage and add more real-world examples.
-4. Optimize performance for large documents and heavy CSS usage.
+---
 
-## 🏁 Success Criteria
+## API Proposals (Normal + Fluent)
 
-```
-string markdown = "# Heading\n\n**Bold** and *italic* and [link](http://example.com)";
-var doc = markdown.LoadFromMarkdown();
-string html = doc.ToHtml();
-string markdownOut = doc.ToMarkdown();
+> Fluent is a thin, chainable layer; normal API remains the authoritative, complete surface.
 
-// Round trip assertions
-Assert.That(markdownOut.Contains("# Heading"));
-Assert.That(markdownOut.Contains("**Bold**"));
-Assert.That(markdownOut.Contains("*italic*"));
-Assert.That(markdownOut.Contains("[link](http://example.com)"));
+### Word — Normal
+
+```csharp
+using OfficeIMO.Word;
+
+using (var doc = WordDocument.Create("demo.docx")) {
+    doc.Title = "Report";
+    var section = doc.AddSection();
+    section.PageOrientation = DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues.Portrait;
+
+    var p = doc.AddParagraph("Hello Word from OfficeIMO"); p.Bold = true;
+
+    var list = doc.AddList(WordListStyle.Bulleted);
+    list.AddItem("Item 1"); list.AddItem("Item 2");
+
+    doc.AddHeadersAndFooters();
+    doc.Header.Default.AddParagraph("Header text");
+    doc.Save();
+}
+````
+
+**Read**
+
+```csharp
+using var doc = WordDocument.Load("demo.docx");
+foreach (var s in doc.Sections)
+    foreach (var para in s.Paragraphs)
+        Console.WriteLine(para.Text);
 ```
 
-When these round trips preserve formatting and structure across HTML, Markdown and Word documents, the converters can be considered feature-complete for basic scenarios.
+### Word — Fluent
 
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Fluent;
+
+using var doc = WordDocument.Create("fluent.docx")
+    .AsFluent()
+    .Info(i => i.Title("Report").Author("OfficeIMO"))
+    .Section(s => s
+        .Page(p => p.Portrait().A4())
+        .Paragraph(p => p.Text("Hello Word").Bold())
+        .List(l => l.Bulleted().Item("Item 1").Item("Item 2")))
+    .Headers(h => h.Default(hd => hd.Paragraph("Header text")))
+    .End();
+
+doc.Save();
+```
+
+---
+
+### Excel — Normal
+
+```csharp
+using OfficeIMO.Excel;
+
+using (var x = ExcelDocument.Create("data.xlsx")) {
+    var sheet = x.AddWorksheet("Data");
+    sheet.SetCell("A1", "Name"); sheet.SetCell("B1", "Score");
+    sheet.SetCell("A2", "Alice"); sheet.SetCell("B2", 93);
+    sheet.SetCell("A3", "Bob");   sheet.SetCell("B3", 88);
+    sheet.AddTable("A1:B3", hasHeader: true, name: "Scores");
+
+    sheet.AutoFitColumns(); // heuristic; precise if measurer is available
+    sheet.AutoFitRows();
+    x.Save();
+}
+```
+
+**Read**
+
+```csharp
+using var x = ExcelDocument.Load("data.xlsx");
+var sheet = x.Worksheets["Data"];
+foreach (var row in sheet.UsedRange().Rows)
+    Console.WriteLine($"{row["A"]} -> {row["B"]}");
+```
+
+### Excel — Fluent
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Fluent;
+
+using var book = ExcelDocument.Create("fluent.xlsx")
+    .AsFluent()
+    .Sheet("Data", s => s
+        .HeaderRow("Name", "Score")
+        .Row("Alice", 93)
+        .Row("Bob", 88)
+        .Table("Scores")
+        .Columns(c => c.Col(1, w => w.Width(22)))
+        .AutoFit(precise: true))
+    .End();
+
+book.Save();
+```
+
+---
+
+### PowerPoint — Normal
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using (var ppt = PowerPointPresentation.Create("deck.pptx")) {
+    ppt.Title = "Quarterly Review"; ppt.Author = "OfficeIMO";
+
+    var slide = ppt.AddSlide(layout: BuiltInSlideLayout.TitleAndContent);
+    slide.AddTitle("Q3 Results");
+    slide.AddTextBox("Highlights:", left: 50, top: 150, width: 600, height: 40).Bold();
+    slide.AddBullets(new [] { "Revenue +12%", "Churn -1.5%", "NPS 62" }, left: 70, top: 200);
+
+    ppt.Save();
+}
+```
+
+**Read**
+
+```csharp
+using var ppt = PowerPointPresentation.Load("deck.pptx");
+foreach (var slide in ppt.Slides) {
+    Console.WriteLine($"Slide #{slide.Number} — {slide.Title?.Text}");
+    foreach (var shape in slide.Shapes)
+        Console.WriteLine($"  Shape: {shape.Kind} Text: {shape.Text}");
+}
+```
+
+### PowerPoint — Fluent
+
+```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Fluent;
+
+using var deck = PowerPointPresentation.Create("fluent-deck.pptx")
+    .AsFluent()
+    .Info(i => i.Title("Quarterly Review").Author("OfficeIMO"))
+    .Slide(s => s
+        .Layout(BuiltInSlideLayout.TitleAndContent)
+        .Title("Q3 Results")
+        .Text(t => t.Box("Highlights:", 50, 150, 600, 40).Bold())
+        .Bullets(b => b.Items(new [] { "Revenue +12%", "Churn -1.5%", "NPS 62" }, 70, 200)))
+    .End();
+
+deck.Save();
+```
+
+---
+
+## Detailed Work Items
+
+### A. Core / Infrastructure (in each project now; movable to Core later)
+
+* Packaging & Parts helpers (create parts, manage rels, content types).
+* Units & Geometry (twips/emu/px/cm; alignment).
+* Media (image load/resize/re-encode; de-dupe; rel management).
+* Themes & Styles (baseline palette & fonts; simple style intent→OOXML mapping).
+* Errors & Validation (friendly exceptions annotated with location).
+* API Consistency (method names, options).
+
+### B. Word — Fluent Layer (non-breaking)
+
+* `WordFluentDocument` + `.AsFluent()`.
+* Builders: `Info`, `Section`, `Page`, `Paragraph`, `Run`, `List`, `Table`, `Image`, `Headers`, `Footers`.
+* Read helpers: `.ForEachParagraph`, `.Find`, `.Select`.
+* Thin shorthands for existing converters (`.FromHtml(...)`, `.ToPdf(...)`) if desired.
+* Verify snapshots for common docs.
+
+### C. Excel — Normalize + Fluent
+
+* Normal audit: `Workbook`, `Worksheet`, `Cell`, `Range`, `Table`, `Style`.
+* Fluent: `ExcelFluentWorkbook` + chaining for sheets/rows/columns/ranges/tables.
+* Reading helpers: `.UsedRange()`, `.Rows`, `.Columns`, `.Cells(address)`, `.Table(name)`.
+* Writing helpers: `Row(...)`, `Column(...)`, `Range("A1:B10").Values(...)`.
+* Formulas, number/date formats, freeze panes, AutoFit.
+* Named ranges, table creation with header inference.
+* Verify snapshots for samples.
+
+### D. PowerPoint — Normal + Fluent
+
+* Model: `PowerPointPresentation`, `PowerPointSlide`, `PPShape`, `PPTextBox`, `PPPicture`, `PPTable`, `PPNotes`.
+* Write: create pptx; add slide (with layout), text boxes, bullets, pictures, tables.
+* Read: enumerate slides/shapes/text/images/tables; read notes.
+* Layout/Master: pick built-in layout; bind placeholders; minimal theme support.
+* Transitions: simple (Fade, Wipe).
+* Charts: MVP embed (generate embedded xlsx; bind chart).
+* Fluent wrapper: `PowerPointFluentPresentation` + `AsFluent()`; builders for `.Slide()`, `.Title()`, `.Text()`, `.Bullets()`, `.Image()`, `.Table()`, `.Notes()`.
+* Verify snapshots on key parts; golden files opened in Office.
+
+---
+
+## Acceptance Criteria
+
+* **Word Fluent**: README scenarios reproducible with fluent and produce equivalent output.
+* **Excel Fluent**: Create/Load → write/read values → add table → format → AutoFit; parity examples normal vs fluent.
+* **PowerPoint Core**: Create deck; at least Title and Title+Content layouts; title, text box, bullets, picture; Save/Load round-trip.
+* **PowerPoint Read/Advanced**: Enumerate shapes/text; notes read/write; simple transitions; chart MVP (embedded xlsx).

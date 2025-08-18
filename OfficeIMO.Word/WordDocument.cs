@@ -1681,41 +1681,33 @@ namespace OfficeIMO.Word {
         /// Releases resources associated with this <see cref="WordDocument"/> instance.
         /// </summary>
         public void Dispose() {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            DisposeAsync().GetAwaiter().GetResult();
         }
 
-        /// <summary>
-        /// Releases resources associated with this <see cref="WordDocument"/> instance.
-        /// </summary>
-        /// <param name="disposing">Indicates whether the method is called from <see cref="Dispose()"/>.</param>
-        protected virtual void Dispose(bool disposing) {
+        public async ValueTask DisposeAsync() {
             if (this._disposed) {
                 return;
             }
 
-            if (disposing) {
-                if (this._wordprocessingDocument.AutoSave) {
-                    Save();
-                }
-
-                if (this._wordprocessingDocument != null) {
-                    try {
-                        this._wordprocessingDocument.Dispose();
-                    } catch {
-                        // ignored
+            if (this._wordprocessingDocument != null) {
+                try {
+                    if (this._wordprocessingDocument.AutoSave && FileOpenAccess != FileAccess.Read) {
+                        await SaveAsync();
                     }
+
+                    await Task.Run(() => this._wordprocessingDocument.Dispose());
+                } catch {
+                    // ignored
                 }
+                this._wordprocessingDocument = null;
+            }
+
+            if (this.OriginalStream != null) {
+                // Original stream is owned by the caller and should remain open.
             }
 
             this._disposed = true;
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="WordDocument"/> class.
-        /// </summary>
-        ~WordDocument() {
-            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {

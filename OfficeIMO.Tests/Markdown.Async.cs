@@ -14,14 +14,14 @@ namespace OfficeIMO.Tests {
             string mdPath = Path.Combine(tempDir, "AsyncFile.md");
             if (File.Exists(mdPath)) File.Delete(mdPath);
 
-            using (var doc = WordDocument.Create()) {
+            await using (var doc = WordDocument.Create()) {
                 doc.AddParagraph("Async file");
                 await doc.SaveAsMarkdownAsync(mdPath);
             }
 
             Assert.True(File.Exists(mdPath));
 
-            using (var doc = await mdPath.LoadFromMarkdownAsync()) {
+            await using (var doc = await mdPath.LoadFromMarkdownAsync()) {
                 Assert.True(doc.Paragraphs.Count >= 1);
                 Assert.Contains("Async file", string.Join("\n", doc.Paragraphs.Select(p => p.Text)));
             }
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Test_SaveAsMarkdownAsync_StreamAndLoadAsync() {
-            using var doc = WordDocument.Create();
+            await using var doc = WordDocument.Create();
             doc.AddParagraph("Async stream");
 
             using var stream = new MemoryStream();
@@ -39,11 +39,20 @@ namespace OfficeIMO.Tests {
             Assert.True(stream.CanRead);
             stream.Position = 0;
 
-            using var loaded = await stream.LoadFromMarkdownAsync();
+            await using var loaded = await stream.LoadFromMarkdownAsync();
             Assert.True(loaded.Paragraphs.Count >= 1);
             Assert.Contains("Async stream", string.Join("\n", loaded.Paragraphs.Select(p => p.Text)));
 
             Assert.True(stream.CanRead);
+        }
+
+        [Fact]
+        public async Task Test_ToMarkdownAsync_MatchesSync() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Async conversion");
+            string sync = doc.ToMarkdown();
+            string asyncResult = await doc.ToMarkdownAsync();
+            Assert.Equal(sync, asyncResult);
         }
     }
 }

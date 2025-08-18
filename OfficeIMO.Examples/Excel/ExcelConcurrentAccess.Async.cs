@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "AsyncExcelConcurrent.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            using (var document = ExcelDocument.Create(filePath)) {
+            await using (var document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("Sheet1");
                 await document.SaveAsync();
             }
@@ -27,11 +27,10 @@ namespace OfficeIMO.Examples.Excel {
 
             var documents = await Task.WhenAll(loadTask1, loadTask2);
 
-            using (documents[0])
-            using (documents[1]) {
-                Console.WriteLine($"Document1 sheets: {documents[0].Sheets.Count}");
-                Console.WriteLine($"Document2 sheets: {documents[1].Sheets.Count}");
-            }
+            await using var document1 = documents[0];
+            await using var document2 = documents[1];
+            Console.WriteLine($"Document1 sheets: {document1.Sheets.Count}");
+            Console.WriteLine($"Document2 sheets: {document2.Sheets.Count}");
 
             File.Delete(filePath);
         }
