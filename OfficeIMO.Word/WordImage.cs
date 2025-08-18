@@ -62,6 +62,7 @@ namespace OfficeIMO.Word {
         internal V.Shape _vmlShape;
         internal V.ImageData _vmlImageData;
 
+
         /// <summary>
         /// Get or set the Image's horizontal position.
         /// </summary>
@@ -113,40 +114,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BlipCompressionValues? CompressionQuality {
             get {
-                if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    return picture.BlipFill.Blip.CompressionState;
-                } else if (_Image.Anchor != null) {
-                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        return picture.BlipFill.Blip.CompressionState;
-                    }
-                }
-                return null;
+                var picture = GetPicture();
+                return picture?.BlipFill?.Blip?.CompressionState;
             }
             set {
-                if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    if (picture != null) {
-                        if (picture.BlipFill != null) {
-                            if (picture.BlipFill.Blip != null) {
-                                picture.BlipFill.Blip.CompressionState = value;
-                            }
-                        }
-                    }
-                } else if (_Image.Anchor != null) {
-                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        if (picture != null) {
-                            if (picture.BlipFill != null) {
-                                if (picture.BlipFill.Blip != null) {
-                                    picture.BlipFill.Blip.CompressionState = value;
-                                }
-                            }
-                        }
-                    }
+                var picture = GetPicture();
+                if (picture?.BlipFill?.Blip != null) {
+                    picture.BlipFill.Blip.CompressionState = value;
+                    SetPicture(picture);
                 }
             }
         }
@@ -643,6 +618,20 @@ namespace OfficeIMO.Word {
             return null;
         }
 
+        private void SetPicture(Pic.Picture picture) {
+            if (_Image.Inline != null) {
+                var graphicData = _Image.Inline.Graphic.GraphicData;
+                graphicData.RemoveAllChildren<Pic.Picture>();
+                graphicData.AppendChild(picture);
+            } else if (_Image.Anchor != null) {
+                var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                if (anchorGraphic?.GraphicData != null) {
+                    anchorGraphic.GraphicData.RemoveAllChildren<Pic.Picture>();
+                    anchorGraphic.GraphicData.AppendChild(picture);
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the number of EMUs to crop from the top of the image.
         /// </summary>
@@ -885,10 +874,24 @@ namespace OfficeIMO.Word {
             get {
                 var picture = GetPicture();
                 var blipFill = picture?.BlipFill;
-                if (blipFill != null && blipFill.GetFirstChild<Tile>() != null) {
-                    _fillMode = ImageFillMode.Tile;
-                } else {
-                    _fillMode = ImageFillMode.Stretch;
+                if (blipFill != null) {
+                    var tile = blipFill.GetFirstChild<Tile>();
+                    if (tile != null) {
+                        if (tile.Alignment?.Value == RectangleAlignmentValues.Center) {
+                            _fillMode = ImageFillMode.Center;
+                        } else {
+                            _fillMode = ImageFillMode.Tile;
+                        }
+                    } else {
+                        var stretch = blipFill.GetFirstChild<Stretch>();
+                        if (stretch != null) {
+                            _fillMode = stretch.GetFirstChild<FillRectangle>() == null
+                                ? ImageFillMode.Fit
+                                : ImageFillMode.Stretch;
+                        } else {
+                            _fillMode = ImageFillMode.Stretch;
+                        }
+                    }
                 }
                 return _fillMode;
             }
@@ -901,16 +904,42 @@ namespace OfficeIMO.Word {
                 var tile = blipFill.GetFirstChild<Tile>();
                 var stretch = blipFill.GetFirstChild<Stretch>();
 
-                if (value == ImageFillMode.Stretch) {
-                    tile?.Remove();
-                    if (stretch == null) {
-                        blipFill.AppendChild(new Stretch(new FillRectangle()));
-                    }
-                } else {
-                    stretch?.Remove();
-                    if (tile == null) {
-                        blipFill.AppendChild(new Tile());
-                    }
+                switch (value) {
+                    case ImageFillMode.Stretch:
+                        tile?.Remove();
+                        if (stretch == null) {
+                            stretch = new Stretch();
+                            blipFill.AppendChild(stretch);
+                        }
+                        if (stretch.GetFirstChild<FillRectangle>() == null) {
+                            stretch.AppendChild(new FillRectangle());
+                        }
+                        break;
+                    case ImageFillMode.Tile:
+                        stretch?.Remove();
+                        if (tile == null) {
+                            tile = new Tile();
+                            blipFill.AppendChild(tile);
+                        }
+                        tile.Alignment = null;
+                        break;
+                    case ImageFillMode.Fit:
+                        tile?.Remove();
+                        if (stretch == null) {
+                            stretch = new Stretch();
+                            blipFill.AppendChild(stretch);
+                        }
+                        var fillRect = stretch.GetFirstChild<FillRectangle>();
+                        fillRect?.Remove();
+                        break;
+                    case ImageFillMode.Center:
+                        stretch?.Remove();
+                        if (tile == null) {
+                            tile = new Tile();
+                            blipFill.AppendChild(tile);
+                        }
+                        tile.Alignment = RectangleAlignmentValues.Center;
+                        break;
                 }
             }
         }
@@ -1764,12 +1793,19 @@ namespace OfficeIMO.Word {
                 blipFlip.Append(srcRect);
             }
 
-            if (_fillMode == ImageFillMode.Stretch) {
-                blipFlip.Append(new Stretch(new FillRectangle()));
-            } else {
-                if (blipFlip.GetFirstChild<Tile>() == null) {
+            switch (_fillMode) {
+                case ImageFillMode.Stretch:
+                    blipFlip.Append(new Stretch(new FillRectangle()));
+                    break;
+                case ImageFillMode.Tile:
                     blipFlip.AppendChild(new Tile());
-                }
+                    break;
+                case ImageFillMode.Fit:
+                    blipFlip.Append(new Stretch());
+                    break;
+                case ImageFillMode.Center:
+                    blipFlip.AppendChild(new Tile { Alignment = RectangleAlignmentValues.Center });
+                    break;
             }
 
             var picture = new DocumentFormat.OpenXml.Drawing.Pictures.Picture();

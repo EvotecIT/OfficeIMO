@@ -17,12 +17,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="path">Destination file path.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsMarkdown(this WordDocument document, string path, WordToMarkdownOptions? options = null) {
-            options ??= new WordToMarkdownOptions();
-            if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
-                options.ImageDirectory = Path.GetDirectoryName(path);
-            }
-            var markdown = document.ToMarkdown(options);
-            File.WriteAllText(path, markdown, Encoding.UTF8);
+            document.SaveAsMarkdownAsync(path, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -32,10 +27,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="stream">Target stream.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsMarkdown(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null) {
-            options ??= new WordToMarkdownOptions();
-            var markdown = document.ToMarkdown(options);
-            var bytes = Encoding.UTF8.GetBytes(markdown);
-            stream.Write(bytes, 0, bytes.Length);
+            document.SaveAsMarkdownAsync(stream, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -50,7 +42,7 @@ namespace OfficeIMO.Word.Markdown {
             if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
                 options.ImageDirectory = Path.GetDirectoryName(path);
             }
-            var markdown = document.ToMarkdown(options);
+            var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             await File.WriteAllTextAsync(path, markdown, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
 #else
@@ -68,7 +60,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         public static async Task SaveAsMarkdownAsync(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             options ??= new WordToMarkdownOptions();
-            var markdown = document.ToMarkdown(options);
+            var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
             var bytes = Encoding.UTF8.GetBytes(markdown);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -84,8 +76,12 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>Markdown representation of the document.</returns>
         public static string ToMarkdown(this WordDocument document, WordToMarkdownOptions? options = null) {
+            return document.ToMarkdownAsync(options).GetAwaiter().GetResult();
+        }
+
+        public static async Task<string> ToMarkdownAsync(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             var converter = new WordToMarkdownConverter();
-            return converter.Convert(document, options);
+            return await converter.ConvertAsync(document, options ?? new WordToMarkdownOptions(), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -96,7 +92,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static WordDocument LoadFromMarkdown(this string markdown, MarkdownToWordOptions? options = null) {
             var converter = new MarkdownToWordConverter();
-            return converter.Convert(markdown, options);
+            return converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), CancellationToken.None).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -106,9 +102,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static WordDocument LoadFromMarkdown(this Stream markdownStream, MarkdownToWordOptions? options = null) {
-            using var reader = new StreamReader(markdownStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            string markdown = reader.ReadToEnd();
-            return LoadFromMarkdown(markdown, options);
+            return LoadFromMarkdownAsync(markdownStream, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -121,7 +115,8 @@ namespace OfficeIMO.Word.Markdown {
         public static WordDocument LoadFromMarkdown(string path, MarkdownToWordOptions? options = null, Encoding? encoding = null) {
             using var reader = new StreamReader(path, encoding ?? Encoding.UTF8, detectEncodingFromByteOrderMarks: encoding == null);
             string markdown = reader.ReadToEnd();
-            return LoadFromMarkdown(markdown, options);
+            var converter = new MarkdownToWordConverter();
+            return converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), CancellationToken.None).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -137,8 +132,10 @@ namespace OfficeIMO.Word.Markdown {
 #else
             using var reader = new StreamReader(path, Encoding.UTF8);
             var markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 #endif
-            return LoadFromMarkdown(markdown, options);
+            var converter = new MarkdownToWordConverter();
+            return await converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -151,7 +148,8 @@ namespace OfficeIMO.Word.Markdown {
         public static async Task<WordDocument> LoadFromMarkdownAsync(this Stream markdownStream, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
             using var reader = new StreamReader(markdownStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
             string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
-            return LoadFromMarkdown(markdown, options);
+            var converter = new MarkdownToWordConverter();
+            return await converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), cancellationToken).ConfigureAwait(false);
         }
     }
 }

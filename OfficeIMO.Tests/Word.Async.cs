@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "AsyncWord.docx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            using (var document = WordDocument.Create(filePath)) {
+            await using (var document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Async");
                 await document.SaveAsync();
             }
 
             Assert.True(File.Exists(filePath));
 
-            using (var document = await WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None)) {
+            await using (var document = await WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None)) {
                 Assert.Single(document.Paragraphs);
             }
 
@@ -31,14 +31,14 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "AsyncCreate.docx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            using (var document = await WordDocument.CreateAsync(filePath, cancellationToken: CancellationToken.None)) {
+            await using (var document = await WordDocument.CreateAsync(filePath, cancellationToken: CancellationToken.None)) {
                 document.AddParagraph("Created");
                 await document.SaveAsync();
             }
 
             Assert.True(File.Exists(filePath));
 
-            using (var document = await WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None)) {
+            await using (var document = await WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None)) {
                 Assert.Single(document.Paragraphs);
             }
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "AsyncLoadCancelled.docx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            using (var document = WordDocument.Create(filePath)) {
+            await using (var document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Cancelled");
                 document.Save();
             }
