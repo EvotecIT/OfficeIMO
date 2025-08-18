@@ -20,7 +20,9 @@ namespace OfficeIMO.Tests {
                         new Paragraph(new Run(new Text("Body text") { Space = SpaceProcessingModeValues.Preserve }))
                     )
                 );
-                document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(block);
+                var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+                Assert.NotNull(body);
+                body.Append(block);
                 document.Save(false);
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }

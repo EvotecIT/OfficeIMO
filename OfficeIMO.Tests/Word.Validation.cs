@@ -88,7 +88,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
                 Assert.NotNull(numbering.LookupNamespace("w15"));
-                Assert.Contains("w15", numbering.MCAttributes!.Ignorable!.Value.Split(' '));
+                var ignorable = numbering.MCAttributes?.Ignorable?.Value;
+                Assert.NotNull(ignorable);
+                Assert.Contains("w15", ignorable.Split(' '));
                 Assert.DoesNotContain(
                     document.DocumentValidationErrors.Select(e => e.Description),
                     d => d.Contains("restartNumberingAfterBreak"));

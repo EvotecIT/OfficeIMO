@@ -182,7 +182,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.LeftSpace == 24);
 
                 Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightStyle == BorderValues.Single);
-                Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightSize == 4);
+                Assert.NotNull(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightSize);
+                Assert.Equal(4U, document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightSize!.Value);
                 Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightColor == null);
                 Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightShadow == true);
                 Assert.True(document.ParagraphsTextBoxes[0].TextBox.Paragraphs[0].Borders.RightSpace == 24);
@@ -246,7 +247,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftSpace == 24);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftFrame == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightStyle == BorderValues.Single);
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightSize == 4);
+                Assert.NotNull(document.TextBoxes[1].Paragraphs[0].Borders.RightSize);
+                Assert.Equal(4U, document.TextBoxes[1].Paragraphs[0].Borders.RightSize!.Value);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightShadow == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightSpace == 24);

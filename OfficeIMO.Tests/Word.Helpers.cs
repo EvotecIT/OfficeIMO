@@ -26,7 +26,7 @@ public partial class Word {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void Open_WithInvalidFilePath_ThrowsArgumentException(string path) {
-        Assert.Throws<ArgumentException>(() => Helpers.Open(path, true));
-    }
+        public void Open_WithInvalidFilePath_ThrowsArgumentException(string? path) {
+            Assert.Throws<ArgumentException>(() => Helpers.Open(path!, true));
+        }
 }

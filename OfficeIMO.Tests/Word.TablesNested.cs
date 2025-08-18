@@ -88,17 +88,19 @@ namespace OfficeIMO.Tests {
 
                 foreach (var table in document.TablesIncludingNestedTables) {
                     if (table.IsNestedTable) {
+                        Assert.NotNull(table.ParentTable);
                         Assert.True(table.ParentTable.RowsCount > 0);
                     } else {
-                        Assert.True(table.ParentTable == null);
+                        Assert.Null(table.ParentTable);
                     }
                 }
 
                 foreach (var table in document.Sections[0].TablesIncludingNestedTables) {
                     if (table.IsNestedTable) {
+                        Assert.NotNull(table.ParentTable);
                         Assert.True(table.ParentTable.RowsCount > 0);
                     } else {
-                        Assert.True(table.ParentTable == null);
+                        Assert.Null(table.ParentTable);
                     }
                 }
                 Assert.True(document.Sections[0].TablesIncludingNestedTables.Count == 7);

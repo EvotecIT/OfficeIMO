@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
 
                 // lets find a list which has items which suggest it's a TOC attached list
-                WordList wordListToc = null;
+                WordList? wordListToc = null;
                 foreach (var list in document.Lists) {
                     if (list.IsToc) {
                         wordListToc = list;
