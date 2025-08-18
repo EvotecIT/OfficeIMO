@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,6 +35,28 @@ namespace OfficeIMO.Word {
             }
             foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Footer.First)) {
                 yield return paragraph;
+            }
+        }
+
+        internal void ForEachParagraph(Action<WordParagraph> action) {
+            foreach (var paragraph in EnumerateAllParagraphs()) {
+                action(paragraph);
+            }
+        }
+
+        internal IEnumerable<WordParagraph> FindParagraphs(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            foreach (var paragraph in EnumerateAllParagraphs()) {
+                if (paragraph.Text?.Contains(text, stringComparison) == true) {
+                    yield return paragraph;
+                }
+            }
+        }
+
+        internal IEnumerable<WordParagraph> SelectParagraphs(Func<WordParagraph, bool> predicate) {
+            foreach (var paragraph in EnumerateAllParagraphs()) {
+                if (predicate(paragraph)) {
+                    yield return paragraph;
+                }
             }
         }
 
