@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -21,5 +22,23 @@ namespace OfficeIMO.Word.Fluent {
         public ImageBuilder Images => new ImageBuilder(this);
         public HeadersBuilder Headers => new HeadersBuilder(this);
         public FootersBuilder Footers => new FootersBuilder(this);
+
+        public WordFluentDocument ForEachParagraph(Action<ParagraphBuilder> action) {
+            Document.ForEachParagraph(p => action(new ParagraphBuilder(this, p)));
+            return this;
+        }
+
+        public WordFluentDocument Find(string text, Action<ParagraphBuilder> action, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            foreach (var paragraph in Document.FindParagraphs(text, stringComparison)) {
+                action(new ParagraphBuilder(this, paragraph));
+            }
+            return this;
+        }
+
+        public IEnumerable<ParagraphBuilder> Select(Func<ParagraphBuilder, bool> predicate) {
+            foreach (var paragraph in Document.SelectParagraphs(p => predicate(new ParagraphBuilder(this, p)))) {
+                yield return new ParagraphBuilder(this, paragraph);
+            }
+        }
     }
 }
