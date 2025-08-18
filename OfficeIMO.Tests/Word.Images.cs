@@ -68,15 +68,15 @@ namespace OfficeIMO.Tests {
             paragraph4.Image.HorizontalFlip = true;
 
 
-            Assert.Equal(50d, paragraph4.Image.Height.Value, 15);
-            Assert.Equal(50d, paragraph4.Image.Width.Value, 15);
+            Assert.Equal(50d, paragraph4.Image.Height!.Value, 15);
+            Assert.Equal(50d, paragraph4.Image.Width!.Value, 15);
 
             // or we can get any image and overwrite it's size
             document.Images[0].Height = 200;
             document.Images[0].Width = 200;
 
-            Assert.Equal(200d, document.Images[0].Height.Value, 15);
-            Assert.Equal(200d, document.Images[0].Width.Value, 15);
+            Assert.Equal(200d, document.Images[0].Height!.Value, 15);
+            Assert.Equal(200d, document.Images[0].Width!.Value, 15);
 
             var fileToSave = Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
             document.Images[0].SaveToFile(fileToSave);
@@ -294,17 +294,17 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(positionOffsetFail.Text, positionOffsetGood.Text);
 
             document.Paragraphs[1].Image.horizontalPosition = horizontalPosition1;
-            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
-            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
-            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
-            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
+            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.horizontalPosition!.PositionOffset!.Text);
+            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.horizontalPosition!.PositionOffset!.Text);
+            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition!.RelativeFrom!.Value);
+            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition!.RelativeFrom!.Value);
 
 
             document.Paragraphs[1].Image.verticalPosition = verticalPosition1;
-            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
-            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
-            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
-            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
+            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.verticalPosition!.PositionOffset!.Text);
+            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.verticalPosition!.PositionOffset!.Text);
+            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition!.RelativeFrom!.Value);
+            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition!.RelativeFrom!.Value);
 
             document.Save(false);
 
@@ -406,9 +406,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(75000, alpha.Amount.Value);
+                Assert.NotNull(alpha);
+                Assert.NotNull(alpha!.Amount);
+                Assert.Equal(75000, alpha.Amount!.Value);
             }
         }
 
@@ -428,9 +430,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(50000, alpha.Amount.Value);
+                Assert.NotNull(alpha);
+                Assert.NotNull(alpha!.Amount);
+                Assert.Equal(50000, alpha.Amount!.Value);
             }
         }
 
@@ -449,7 +453,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
                 Assert.Null(alpha);
             }
@@ -495,7 +499,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 Assert.NotNull(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
                 var blip = blipFill.Blip;
                 var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
@@ -518,7 +522,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 var stretch = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Stretch>();
                 Assert.NotNull(stretch);
                 Assert.Null(stretch.GetFirstChild<DocumentFormat.OpenXml.Drawing.FillRectangle>());
@@ -541,7 +545,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 var tile = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>();
                 Assert.NotNull(tile);
                 Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value);
@@ -565,7 +569,8 @@ namespace OfficeIMO.Tests {
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
                 // ensure document opens correctly after removing the external image
-                Assert.NotNull(pkg.MainDocumentPart.Document);
+                Assert.NotNull(pkg.MainDocumentPart);
+                Assert.NotNull(pkg.MainDocumentPart!.Document);
             }
         }
 
@@ -584,14 +589,16 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var pic = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                var pic = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
                 var nv = pic.NonVisualPictureProperties;
                 Assert.Equal("MyTitle", nv.NonVisualDrawingProperties.Title);
                 Assert.True(nv.NonVisualDrawingProperties.Hidden);
                 Assert.True(nv.NonVisualPictureDrawingProperties.PreferRelativeResize);
                 Assert.True(nv.NonVisualPictureDrawingProperties.PictureLocks.NoChangeAspect);
                 var ar = pic.BlipFill.Blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
-                Assert.Equal(80000, ar.Alpha.Value);
+                Assert.NotNull(ar);
+                Assert.NotNull(ar!.Alpha);
+                Assert.Equal(80000, ar.Alpha!.Value);
             }
         }
 
@@ -679,7 +686,8 @@ namespace OfficeIMO.Tests {
             Assert.False(stream is MemoryStream);
             Assert.Equal(new FileInfo(imagePath).Length, stream.Length);
             var buffer = new byte[1];
-            stream.Read(buffer, 0, 1);
+            int bytesRead = stream.Read(buffer, 0, 1);
+            Assert.Equal(1, bytesRead);
         }
 
     }

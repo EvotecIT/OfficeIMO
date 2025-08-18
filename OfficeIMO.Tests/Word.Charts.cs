@@ -355,23 +355,27 @@ namespace OfficeIMO.Tests {
                 var chart = part.ChartSpace.GetFirstChild<Chart>();
                 var catAxis = chart.PlotArea.GetFirstChild<CategoryAxis>();
                 var valAxis = chart.PlotArea.GetFirstChild<ValueAxis>();
+                Assert.NotNull(catAxis);
+                Assert.NotNull(valAxis);
 
-                var catTitle = catAxis.GetFirstChild<Title>();
-                var valTitle = valAxis.GetFirstChild<Title>();
+                var catTitle = catAxis!.GetFirstChild<Title>();
+                var valTitle = valAxis!.GetFirstChild<Title>();
+                Assert.NotNull(catTitle);
+                Assert.NotNull(valTitle);
 
                 var catProps = catTitle.Descendants<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>().First();
                 var valProps = valTitle.Descendants<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>().First();
 
-                Assert.Equal(1400, (int)catProps.FontSize.Value);
-                Assert.Equal("Arial", catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>().Typeface);
-                var catColor = catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()
-                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>().Val;
+                Assert.Equal(1400, (int)catProps.FontSize!.Value);
+                Assert.Equal("Arial", catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
+                var catColor = catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val;
                 Assert.Equal(Color.Red.ToHexColor(), catColor);
 
-                Assert.Equal(1400, (int)valProps.FontSize.Value);
-                Assert.Equal("Arial", valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>().Typeface);
-                var valColor = valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()
-                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>().Val;
+                Assert.Equal(1400, (int)valProps.FontSize!.Value);
+                Assert.Equal("Arial", valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
+                var valColor = valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val;
                 Assert.Equal(Color.Red.ToHexColor(), valColor);
 
                 var validation = document.ValidateDocument();
@@ -401,11 +405,11 @@ namespace OfficeIMO.Tests {
                 var line = c.PlotArea.GetFirstChild<LineChart>();
                 Assert.NotNull(bar);
                 Assert.NotNull(line);
-                var barIds = bar.Elements<AxisId>().Select(a => a.Val.Value).ToList();
-                var lineIds = line.Elements<AxisId>().Select(a => a.Val.Value).ToList();
+                var barIds = bar.Elements<AxisId>().Select(a => a.Val!.Value).ToList();
+                var lineIds = line.Elements<AxisId>().Select(a => a.Val!.Value).ToList();
                 Assert.Equal(barIds, lineIds);
-                var seriesIdx = bar.Elements<BarChartSeries>().Select(s => s.Index.Val.Value)
-                    .Concat(line.Elements<LineChartSeries>().Select(s => s.Index.Val.Value))
+                var seriesIdx = bar.Elements<BarChartSeries>().Select(s => s.Index!.Val!.Value)
+                    .Concat(line.Elements<LineChartSeries>().Select(s => s.Index!.Val!.Value))
                     .ToList();
                 Assert.Equal(seriesIdx.Count, seriesIdx.Distinct().Count());
 

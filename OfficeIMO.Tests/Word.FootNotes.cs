@@ -140,26 +140,26 @@ namespace OfficeIMO.Tests {
         public void Test_LoadingWordWithFootNotesAndEndNotes() {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "DocumentWithFootNotes.docx"))) {
 
-                Assert.True(document.EndNotes.Count == 2);
-                Assert.True(document.FootNotes.Count == 3);
-                Assert.True(document.Sections[0].FootNotes.Count == 3);
-                Assert.True(document.Sections[0].EndNotes.Count == 2);
+                Assert.Equal(2, document.EndNotes.Count(en => en.Id > 0));
+                Assert.Equal(3, document.FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(3, document.Sections[0].FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(2, document.Sections[0].EndNotes.Count(en => en.Id > 0));
 
                 document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
 
-                Assert.True(document.EndNotes.Count == 2);
-                Assert.True(document.FootNotes.Count == 5);
-                Assert.True(document.Sections[0].FootNotes.Count == 5);
-                Assert.True(document.Sections[0].EndNotes.Count == 2);
+                Assert.Equal(2, document.EndNotes.Count(en => en.Id > 0));
+                Assert.Equal(5, document.FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(5, document.Sections[0].FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(2, document.Sections[0].EndNotes.Count(en => en.Id > 0));
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "DocumentWithFootNotes.docx"))) {
-                Assert.True(document.EndNotes.Count == 2);
-                Assert.True(document.FootNotes.Count == 5);
-                Assert.True(document.Sections[0].FootNotes.Count == 5);
-                Assert.True(document.Sections[0].EndNotes.Count == 2);
+                Assert.Equal(2, document.EndNotes.Count(en => en.Id > 0));
+                Assert.Equal(5, document.FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(5, document.Sections[0].FootNotes.Count(fn => fn.Id > 0));
+                Assert.Equal(2, document.Sections[0].EndNotes.Count(en => en.Id > 0));
 
             }
         }

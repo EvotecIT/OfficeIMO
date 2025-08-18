@@ -27,9 +27,9 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            InsertedRun ins = word.MainDocumentPart.Document.Body.Descendants<InsertedRun>().FirstOrDefault();
+            InsertedRun? ins = word.MainDocumentPart!.Document.Body!.Descendants<InsertedRun>().FirstOrDefault();
             Assert.NotNull(ins);
-            Assert.Equal(" World", ins.InnerText);
+            Assert.Equal(" World", ins!.InnerText);
         }
 
         [Fact]
@@ -52,9 +52,9 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            DeletedRun del = word.MainDocumentPart.Document.Body.Descendants<DeletedRun>().FirstOrDefault();
+            DeletedRun? del = word.MainDocumentPart!.Document.Body!.Descendants<DeletedRun>().FirstOrDefault();
             Assert.NotNull(del);
-            Assert.Equal(" World", del.InnerText);
+            Assert.Equal(" World", del!.InnerText);
         }
 
         [Fact]
@@ -78,9 +78,10 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            Run run = word.MainDocumentPart.Document.Body.Descendants<Run>().First();
-            Assert.NotNull(run.RunProperties);
-            Assert.NotNull(run.RunProperties.RunPropertiesChange);
+            Run? run = word.MainDocumentPart!.Document.Body!.Descendants<Run>().FirstOrDefault();
+            Assert.NotNull(run);
+            Assert.NotNull(run!.RunProperties);
+            Assert.NotNull(run.RunProperties!.RunPropertiesChange);
         }
 
         [Fact]
@@ -106,7 +107,7 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            InsertedRun ins = word.MainDocumentPart.Document.Body.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "Row2");
+            InsertedRun? ins = word.MainDocumentPart!.Document.Body!.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "Row2");
             Assert.NotNull(ins);
         }
 
@@ -133,7 +134,7 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            DeletedRun del = word.MainDocumentPart.Document.Body.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "Row2");
+            DeletedRun? del = word.MainDocumentPart!.Document.Body!.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "Row2");
             Assert.NotNull(del);
         }
 
@@ -157,8 +158,8 @@ namespace OfficeIMO.Tests {
             }
 
             using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-            InsertedRun ins = word.MainDocumentPart.Document.Body.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
-            DeletedRun del = word.MainDocumentPart.Document.Body.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
+            InsertedRun? ins = word.MainDocumentPart!.Document.Body!.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
+            DeletedRun? del = word.MainDocumentPart!.Document.Body!.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
             Assert.NotNull(ins);
             Assert.NotNull(del);
         }

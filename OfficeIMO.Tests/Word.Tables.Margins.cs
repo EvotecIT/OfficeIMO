@@ -28,16 +28,16 @@ namespace OfficeIMO.Tests {
                 table1.StyleDetails.MarginDefaultRightCentimeters = 0.2;
 
                 // Verify the centimeter values
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightCentimeters.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightCentimeters!.Value - 0.2) < 0.01);
 
                 // Verify the twips values (0.2 cm should be approximately 113.4 twips)
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopWidth.Value - 113) <= 1);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomWidth.Value - 113) <= 1);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftWidth.Value - 113) <= 1);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightWidth.Value - 113) <= 1);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopWidth!.Value - 113) <= 1);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomWidth!.Value - 113) <= 1);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftWidth!.Value - 113) <= 1);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightWidth!.Value - 113) <= 1);
 
                 document.AddParagraph();
 
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
                 table2.StyleDetails.MarginDefaultRightWidth = 170;
 
                 // Verify centimeter values
-                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultTopCentimeters.Value - 0.3) < 0.01);
-                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultBottomCentimeters.Value - 0.3) < 0.01);
+                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultTopCentimeters!.Value - 0.3) < 0.01);
+                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultBottomCentimeters!.Value - 0.3) < 0.01);
 
                 // Verify twips values
                 Assert.True(table2.StyleDetails.MarginDefaultLeftWidth == 170);
@@ -69,10 +69,10 @@ namespace OfficeIMO.Tests {
                 table3.StyleDetails.CellSpacingCentimeters = 0.15;
 
                 // Verify centimeter value
-                Assert.True(Math.Abs(table3.StyleDetails.CellSpacingCentimeters.Value - 0.15) < 0.01);
+                Assert.True(Math.Abs(table3.StyleDetails.CellSpacingCentimeters!.Value - 0.15) < 0.01);
 
                 // Verify twips value (0.15 cm should be approximately 85 twips)
-                Assert.True(Math.Abs(table3.StyleDetails.CellSpacing.Value - 85) <= 1);
+                Assert.True(Math.Abs(table3.StyleDetails.CellSpacing!.Value - 85) <= 1);
 
                 document.AddParagraph();
 
@@ -86,9 +86,9 @@ namespace OfficeIMO.Tests {
                 table4.StyleDetails.CellSpacingCentimeters = 0.1;
 
                 // Verify values are set
-                Assert.True(Math.Abs(table4.StyleDetails.MarginDefaultTopCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table4.StyleDetails.MarginDefaultBottomCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table4.StyleDetails.CellSpacingCentimeters.Value - 0.1) < 0.01);
+                Assert.True(Math.Abs(table4.StyleDetails.MarginDefaultTopCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table4.StyleDetails.MarginDefaultBottomCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table4.StyleDetails.CellSpacingCentimeters!.Value - 0.1) < 0.01);
 
                 // Clear values
                 table4.StyleDetails.MarginDefaultTopCentimeters = null;
@@ -107,21 +107,21 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTableMargins.docx"))) {
                 // Verify table 1 values
                 var table1 = document.Tables[0];
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftCentimeters.Value - 0.2) < 0.01);
-                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightCentimeters.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultTopCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultBottomCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultLeftCentimeters!.Value - 0.2) < 0.01);
+                Assert.True(Math.Abs(table1.StyleDetails.MarginDefaultRightCentimeters!.Value - 0.2) < 0.01);
 
                 // Verify table 2 values
                 var table2 = document.Tables[1];
-                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultTopCentimeters.Value - 0.3) < 0.01);
-                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultBottomCentimeters.Value - 0.3) < 0.01);
+                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultTopCentimeters!.Value - 0.3) < 0.01);
+                Assert.True(Math.Abs(table2.StyleDetails.MarginDefaultBottomCentimeters!.Value - 0.3) < 0.01);
                 Assert.True(table2.StyleDetails.MarginDefaultLeftWidth == 170);
                 Assert.True(table2.StyleDetails.MarginDefaultRightWidth == 170);
 
                 // Verify table 3 values
                 var table3 = document.Tables[2];
-                Assert.True(Math.Abs(table3.StyleDetails.CellSpacingCentimeters.Value - 0.15) < 0.01);
+                Assert.True(Math.Abs(table3.StyleDetails.CellSpacingCentimeters!.Value - 0.15) < 0.01);
 
                 // Verify table 4 values are cleared
                 var table4 = document.Tables[3];
