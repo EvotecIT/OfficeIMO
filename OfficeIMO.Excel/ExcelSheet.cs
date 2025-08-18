@@ -311,6 +311,70 @@ namespace OfficeIMO.Excel {
             worksheet.Save();
         }
 
+        public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            var cells = range.Split(':');
+            if (cells.Length != 2) {
+                throw new ArgumentException("Invalid range format", nameof(range));
+            }
+
+            string startRef = cells[0];
+            string endRef = cells[1];
+
+            int startColumnIndex = GetColumnIndex(startRef);
+            int endColumnIndex = GetColumnIndex(endRef);
+
+            uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
+
+            var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+            uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
+
+            if (string.IsNullOrEmpty(name)) {
+                name = $"Table{tableId}";
+            }
+
+            var table = new Table {
+                Id = tableId,
+                Name = name,
+                DisplayName = name,
+                Reference = range,
+                HeaderRowCount = hasHeader ? (uint)1 : (uint)0,
+                TotalsRowShown = false
+            };
+
+            var tableColumns = new TableColumns { Count = columnsCount };
+            for (uint i = 0; i < columnsCount; i++) {
+                tableColumns.Append(new TableColumn { Id = i + 1, Name = $"Column{i + 1}" });
+            }
+            table.Append(tableColumns);
+
+            table.Append(new TableStyleInfo {
+                Name = style.ToString(),
+                ShowFirstColumn = false,
+                ShowLastColumn = false,
+                ShowRowStripes = true,
+                ShowColumnStripes = false
+            });
+
+            tableDefinitionPart.Table = table;
+
+            var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+            if (tableParts == null) {
+                tableParts = new TableParts { Count = 1 };
+                _worksheetPart.Worksheet.Append(tableParts);
+            } else {
+                tableParts.Count = (tableParts.Count ?? 0) + 1;
+            }
+
+            var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
+            tableParts.Append(new TablePart { Id = relId });
+
+            _worksheetPart.Worksheet.Save();
+        }
+
         public void SetCellValue(int row, int column, string value, bool autoFitColumns = false, bool autoFitRows = false) {
             Cell cell = GetCell(row, column);
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
