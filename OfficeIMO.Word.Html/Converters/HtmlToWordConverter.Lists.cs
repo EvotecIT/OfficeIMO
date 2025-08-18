@@ -1,4 +1,6 @@
-using AngleSharp.Dom;
+        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
+            ArgumentNullException.ThrowIfNull(listStack);
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -24,8 +26,10 @@ namespace OfficeIMO.Word.Html.Converters {
                         var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
                         _orderedListNumberId = (int?)field?.GetValue(list);
                     }
-                }
-                var level = list.Numbering.Levels[0];
+        private void ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            ArgumentNullException.ThrowIfNull(listStack);
+            var list = listStack.Peek();
                 var start = element.GetAttribute("start");
                 if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
                     level.SetStartNumberingValue(startVal);

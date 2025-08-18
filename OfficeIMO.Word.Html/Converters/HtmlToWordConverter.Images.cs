@@ -63,18 +63,18 @@ namespace OfficeIMO.Word.Html.Converters {
                         ext = parts[1];
                     }
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt);
+                    paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt ?? string.Empty);
                     image = paragraph.Image;
                 } else {
                     return;
                 }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
+                paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt ?? string.Empty);
                 image = paragraph.Image;
             } else if (File.Exists(src)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(src, width, height, wrap, description: alt);
+                paragraph.AddImage(src, width, height, wrap, description: alt ?? string.Empty);
                 image = paragraph.Image;
             } else {
                 try {
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         // ignore
                     }
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
+                    paragraph.AddImage(ms, fileName, width, height, wrap, description: alt ?? string.Empty);
                     image = paragraph.Image;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from '{src}': {ex.Message}");
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 svgContent = client.GetStringAsync(src).GetAwaiter().GetResult();
             }
 
-            SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
+            SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
             _imageCache[src] = paragraph.Image;
         }
 

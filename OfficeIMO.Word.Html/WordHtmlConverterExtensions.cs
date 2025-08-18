@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html.Converters;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,9 @@ namespace OfficeIMO.Word.Html {
     /// Extension methods enabling HTML conversions for <see cref="WordDocument"/> instances.
     /// </summary>
     public static class WordHtmlConverterExtensions {
+        /// <summary>
+        /// Occurs when a CSS class referenced in the HTML has no matching style mapping.
+        /// </summary>
         public static event EventHandler<StyleMissingEventArgs>? StyleMissing;
 
         internal static StyleMissingEventArgs OnStyleMissing(WordParagraph paragraph, string className) {

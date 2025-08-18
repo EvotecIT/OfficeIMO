@@ -40,9 +40,9 @@ namespace OfficeIMO.Word.Html.Converters {
             }
             WordParagraph? captionParagraph = null;
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
-                captionParagraph = cell != null ? cell.AddParagraph("", true)
-                    : currentParagraph != null ? currentParagraph.AddParagraphAfterSelf()
-                    : headerFooter != null ? headerFooter.AddParagraph("")
+                captionParagraph = cell is not null ? cell.AddParagraph("", true)
+                    : currentParagraph is not null ? currentParagraph.AddParagraphAfterSelf()
+                    : headerFooter is not null ? headerFooter.AddParagraph("")
                     : section.AddParagraph("");
                 captionParagraph.SetStyleId("Caption");
                 var props = ApplyParagraphStyleFromCss(captionParagraph, caption);
@@ -58,14 +58,14 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             WordTable wordTable;
-            if (captionParagraph != null) {
+            if (captionParagraph is not null) {
                 wordTable = captionParagraph.AddTableAfter(rows, cols);
-            } else if (cell != null) {
+            } else if (cell is not null) {
                 wordTable = cell.AddTable(rows, cols);
-            } else if (currentParagraph != null) {
+            } else if (currentParagraph is not null) {
                 wordTable = currentParagraph.AddTableAfter(rows, cols);
             } else {
-                var placeholder = headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                var placeholder = headerFooter is not null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                 wordTable = placeholder.AddTableAfter(rows, cols);
             }
             ApplyTableStyles(wordTable, tableElem);
@@ -146,9 +146,9 @@ namespace OfficeIMO.Word.Html.Converters {
 
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
                 WordParagraph captionParagraphBelow;
-                if (cell != null) {
+                if (cell is not null) {
                     captionParagraphBelow = cell.AddParagraph("", true);
-                } else if (headerFooter != null) {
+                } else if (headerFooter is not null) {
                     captionParagraphBelow = headerFooter.AddParagraph("");
                 } else {
                     var lastCellParagraph = wordTable.Rows[wordTable.Rows.Count - 1]
@@ -189,7 +189,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var widths = new List<int>();
             TableWidthUnitValues? widthType = null;
             foreach (var col in colElements) {
-                string width = null;
+                string? width = null;
                 var style = col.GetAttribute("style");
                 if (!string.IsNullOrEmpty(style)) {
                     foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -254,10 +254,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            string background = null;
+            string? background = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
             BorderValues? tableBorderStyle = null;
-            UInt32Value tableBorderSize = null;
+            UInt32Value? tableBorderSize = null;
             SixColor tableBorderColor = default;
             bool borderSpecified = false;
             bool collapse = true;
@@ -341,7 +341,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (!borderSpecified && !string.IsNullOrWhiteSpace(borderAttr)) {
-                if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
+                if (TryParseBorderWidth(borderAttr + "px", out var bSize) && bSize != null) {
                     tableBorderStyle = BorderValues.Single;
                     tableBorderSize = bSize;
                     tableBorderColor = SixColor.Black;
@@ -349,7 +349,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
-            if (borderSpecified) {
+            if (borderSpecified && tableBorderStyle.HasValue && tableBorderSize != null) {
                 if (collapse) {
                     wordTable.StyleDetails.SetBordersForAllSides(tableBorderStyle.Value, tableBorderSize, tableBorderColor);
                 } else {
@@ -384,9 +384,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            string background = null;
+            string? background = null;
             BorderValues? borderStyle = null;
-            UInt32Value borderSize = null;
+            UInt32Value? borderSize = null;
             SixColor borderColor = default;
 
             foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -417,7 +417,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
                 if (borderStyle != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
-                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
+                    if (borderSize != null) {
+                        cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
+                    }
                     var hex = borderColor.ToHexColor();
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                 }
@@ -467,7 +469,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             break;
                         case "border":
-                            if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
+                            if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor) && bSize != null) {
                                 cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle;
                                 cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
                                 var hex = bColor.ToHexColor();
@@ -501,7 +503,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {
-                if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
+                if (TryParseBorderWidth(borderAttr + "px", out var bSize) && bSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = BorderValues.Single;
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = "000000";
@@ -510,14 +512,14 @@ namespace OfficeIMO.Word.Html.Converters {
             return alignment;
         }
 
-        private static bool TryParseBorder(string value, out BorderValues style, out UInt32Value size, out SixColor color) {
+        private static bool TryParseBorder(string value, out BorderValues style, out UInt32Value? size, out SixColor color) {
             style = BorderValues.Single;
             size = 4U;
             color = SixColor.Black;
             bool found = false;
             foreach (var part in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var token = part.Trim().ToLowerInvariant();
-                if (TryParseBorderWidth(token, out var s)) {
+                if (TryParseBorderWidth(token, out var s) && s != null) {
                     size = s;
                     found = true;
                 } else if (token == "solid" || token == "dotted" || token == "dashed" || token == "double" || token == "none") {
@@ -540,7 +542,7 @@ namespace OfficeIMO.Word.Html.Converters {
             return found;
         }
 
-        private static bool TryParseBorderWidth(string token, out UInt32Value size) {
+        private static bool TryParseBorderWidth(string token, out UInt32Value? size) {
             size = null;
             var raw = token.Trim().ToLowerInvariant();
             if (raw.EndsWith("px") && double.TryParse(raw.Substring(0, raw.Length - 2), out double px)) {
