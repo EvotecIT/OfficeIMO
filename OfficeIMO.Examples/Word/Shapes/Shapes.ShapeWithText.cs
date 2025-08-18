@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using V = DocumentFormat.OpenXml.Vml;
-using SixLabors.ImageSharp;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Examples.Word {
@@ -17,11 +16,11 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var oval = word.MainDocumentPart.Document.Body.Descendants<V.Oval>().First();
-                var textBox = new V.TextBox();
+                V.Oval oval = word.MainDocumentPart!.Document!.Body!.Descendants<V.Oval>().First();
+                V.TextBox textBox = new V.TextBox();
                 textBox.Append(new TextBoxContent(new Paragraph(new Run(new Text("Text")))));
                 oval.Append(textBox);
-                word.MainDocumentPart.Document.Save();
+                word.MainDocumentPart!.Document!.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");

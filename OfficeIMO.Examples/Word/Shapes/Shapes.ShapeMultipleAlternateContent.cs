@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -19,31 +18,31 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var body = word.MainDocumentPart.Document.Body;
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
-                var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
-                var shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
-                var textBoxDrawing = (Drawing)textBoxRun.Descendants<Drawing>().First().CloneNode(true);
+                Body body = word.MainDocumentPart!.Document!.Body!;
+                Run shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
+                Run textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
+                Drawing shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
+                Drawing textBoxDrawing = (Drawing)textBoxRun.Descendants<Drawing>().First().CloneNode(true);
 
-                var shapeAc = new AlternateContent();
-                var shapeChoice = new AlternateContentChoice() { Requires = "wps" };
+                AlternateContent shapeAc = new AlternateContent();
+                AlternateContentChoice shapeChoice = new AlternateContentChoice() { Requires = "wps" };
                 shapeChoice.Append(shapeDrawing);
                 shapeAc.Append(shapeChoice);
 
-                var textBoxAc = new AlternateContent();
-                var textBoxFallback = new AlternateContentFallback();
+                AlternateContent textBoxAc = new AlternateContent();
+                AlternateContentFallback textBoxFallback = new AlternateContentFallback();
                 textBoxFallback.Append(textBoxDrawing);
                 textBoxAc.Append(textBoxFallback);
 
-                var run = new Run();
+                Run run = new Run();
                 run.Append(shapeAc);
                 run.Append(textBoxAc);
 
-                shapeRun.Parent.InsertBefore(run, shapeRun);
+                shapeRun.Parent!.InsertBefore(run, shapeRun);
                 shapeRun.Remove();
                 textBoxRun.Remove();
 
-                var document = word.MainDocumentPart.Document;
+                Document document = word.MainDocumentPart!.Document!;
                 if (document.LookupNamespace("wps") == null) {
                     document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
                 }

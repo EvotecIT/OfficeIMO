@@ -18,22 +18,22 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var body = word.MainDocumentPart.Document.Body;
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
-                var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
-                var shapeDrawing = shapeRun.Descendants<Drawing>().First();
-                var textBoxDrawing = textBoxRun.Descendants<Drawing>().First();
+                Body body = word.MainDocumentPart!.Document!.Body!;
+                Run shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
+                Run textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
+                Drawing shapeDrawing = shapeRun.Descendants<Drawing>().First();
+                Drawing textBoxDrawing = textBoxRun.Descendants<Drawing>().First();
                 shapeDrawing.Remove();
-                var choice = new AlternateContentChoice() { Requires = "wps" };
+                AlternateContentChoice choice = new AlternateContentChoice() { Requires = "wps" };
                 choice.Append(shapeDrawing);
-                var fallback = new AlternateContentFallback();
+                AlternateContentFallback fallback = new AlternateContentFallback();
                 fallback.Append((Drawing)textBoxDrawing.CloneNode(true));
-                var alt = new AlternateContent();
+                AlternateContent alt = new AlternateContent();
                 alt.Append(choice);
                 alt.Append(fallback);
                 shapeRun.Append(alt);
                 textBoxRun.Remove();
-                word.MainDocumentPart.Document.Save();
+                word.MainDocumentPart!.Document!.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");

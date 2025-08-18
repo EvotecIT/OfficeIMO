@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
@@ -17,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Dots);
+                WordPageNumber pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Dots);
                 //var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 //var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.Dots);
 
@@ -29,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].AddHorizontalLine();
 
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                WordList wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
 
                 wordListToc.AddItem("This is first item");
 
@@ -45,11 +41,11 @@ namespace OfficeIMO.Examples.Word {
 
                 wordListToc.AddItem("Text 2.2", 2);
 
-                var para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
+                WordParagraph para = document.AddParagraph("Let's show everyone how to create a list within already defined list");
                 para.CapsStyle = CapsStyle.Caps;
                 para.Highlight = HighlightColorValues.DarkMagenta;
 
-                var wordList = document.AddList(WordListStyle.Bulleted);
+                WordList wordList = document.AddList(WordListStyle.Bulleted);
 
                 wordList.AddItem("List Item 1");
                 wordList.AddItem("List Item 2");
@@ -73,8 +69,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 // lets find a list which has items which suggest it's a TOC attached list
-                WordList wordListToc = null;
-                foreach (var list in document.Lists) {
+                WordList? wordListToc = null;
+                foreach (WordList list in document.Lists) {
                     if (list.IsToc) {
                         wordListToc = list;
                     }

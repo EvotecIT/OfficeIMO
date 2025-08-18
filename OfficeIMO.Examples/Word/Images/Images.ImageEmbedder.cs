@@ -4,7 +4,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-
+                mainPart.Document!.Body!.Append(p);
+                mainPart.Document!.Save();
 namespace OfficeIMO.Examples.Word {
     internal static partial class Images {
         internal static void Example_ImageEmbedderHelper(string folderPath, bool openWord) {

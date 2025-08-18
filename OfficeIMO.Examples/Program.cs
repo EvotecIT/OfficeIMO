@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples {
             }
         }
 
-        static void Main(string[] args) {
+        static void Main() {
             string templatesPath = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
             string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);

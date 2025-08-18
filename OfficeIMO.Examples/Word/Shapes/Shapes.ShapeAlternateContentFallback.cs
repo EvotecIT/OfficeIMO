@@ -15,19 +15,19 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var run = word.MainDocumentPart.Document.Body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
-                var drawing = run.Descendants<Drawing>().First();
-                var fallbackDrawing = (Drawing)drawing.CloneNode(true);
+                Run run = word.MainDocumentPart!.Document!.Body!.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
+                Drawing drawing = run.Descendants<Drawing>().First();
+                Drawing fallbackDrawing = (Drawing)drawing.CloneNode(true);
                 drawing.Remove();
-                var choice = new AlternateContentChoice() { Requires = "wps" };
+                AlternateContentChoice choice = new AlternateContentChoice() { Requires = "wps" };
                 choice.Append(new Run(new Text("placeholder")));
-                var fallback = new AlternateContentFallback();
+                AlternateContentFallback fallback = new AlternateContentFallback();
                 fallback.Append(fallbackDrawing);
-                var alt = new AlternateContent();
+                AlternateContent alt = new AlternateContent();
                 alt.Append(choice);
                 alt.Append(fallback);
                 run.Append(alt);
-                word.MainDocumentPart.Document.Save();
+                word.MainDocumentPart!.Document!.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");
