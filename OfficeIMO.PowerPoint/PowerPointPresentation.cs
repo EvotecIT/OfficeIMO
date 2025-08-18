@@ -54,14 +54,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Adds a new slide using the first slide layout of the master.
+        /// Adds a new slide using the specified master and layout indexes.
         /// </summary>
-        public PowerPointSlide AddSlide() {
+        /// <param name="masterIndex">Index of the slide master.</param>
+        /// <param name="layoutIndex">Index of the slide layout.</param>
+        public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>();
             slidePart.Slide = new Slide(new CommonSlideData(new ShapeTree()));
 
-            SlideMasterPart masterPart = _presentationPart.SlideMasterParts.First();
-            SlideLayoutPart layoutPart = masterPart.SlideLayoutParts.First();
+            SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
+            if (masterIndex < 0 || masterIndex >= masters.Length) {
+                throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            }
+            SlideMasterPart masterPart = masters[masterIndex];
+
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
+                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
+            }
+            SlideLayoutPart layoutPart = layouts[layoutIndex];
             slidePart.AddPart(layoutPart);
 
             if (_presentationPart.Presentation.SlideIdList == null) {
@@ -100,12 +111,22 @@ namespace OfficeIMO.PowerPoint {
             SlideMasterPart slideMasterPart = _presentationPart.AddNewPart<SlideMasterPart>();
             slideMasterPart.SlideMaster = new SlideMaster(new CommonSlideData(new ShapeTree()));
 
-            SlideLayoutPart slideLayoutPart = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
-            slideMasterPart.SlideMaster.SlideLayoutIdList = new SlideLayoutIdList(new SlideLayoutId {
-                Id = 1U,
-                RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart)
-            });
+            SlideLayoutPart slideLayoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            slideLayoutPart1.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
+
+            SlideLayoutPart slideLayoutPart2 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            slideLayoutPart2.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
+
+            slideMasterPart.SlideMaster.SlideLayoutIdList = new SlideLayoutIdList(
+                new SlideLayoutId {
+                    Id = 1U,
+                    RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1)
+                },
+                new SlideLayoutId {
+                    Id = 2U,
+                    RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2)
+                }
+            );
 
             ThemePart themePart = slideMasterPart.AddNewPart<ThemePart>();
             themePart.Theme = new A.Theme {
@@ -120,6 +141,24 @@ namespace OfficeIMO.PowerPoint {
 
             _presentationPart.Presentation.SlideIdList = new SlideIdList();
             _presentationPart.Presentation.Save();
+        }
+
+        /// <summary>
+        /// Gets or sets the name of the presentation theme.
+        /// </summary>
+        public string ThemeName {
+            get {
+                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                return master.ThemePart?.Theme?.Name ?? string.Empty;
+            }
+            set {
+                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
+                if (themePart.Theme == null) {
+                    themePart.Theme = new A.Theme { ThemeElements = new A.ThemeElements() };
+                }
+                themePart.Theme.Name = value;
+            }
         }
 
         /// <inheritdoc />

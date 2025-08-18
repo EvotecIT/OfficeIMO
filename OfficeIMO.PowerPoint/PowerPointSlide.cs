@@ -31,6 +31,23 @@ namespace OfficeIMO.PowerPoint {
         public PPNotes Notes => _notes ??= new PPNotes(_slidePart);
 
         /// <summary>
+        /// Gets the index of the layout used by this slide.
+        /// </summary>
+        public int LayoutIndex {
+            get {
+                SlideLayoutPart layoutPart = _slidePart.SlideLayoutPart!;
+                SlideMasterPart master = layoutPart.GetParentParts().OfType<SlideMasterPart>().First();
+                SlideLayoutPart[] layouts = master.SlideLayoutParts.ToArray();
+                for (int i = 0; i < layouts.Length; i++) {
+                    if (layouts[i] == layoutPart) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        }
+
+        /// <summary>
         /// Adds a textbox with the specified text.
         /// </summary>
         public PPTextBox AddTextBox(string text) {
