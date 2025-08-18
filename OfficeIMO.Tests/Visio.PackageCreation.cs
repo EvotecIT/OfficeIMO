@@ -21,6 +21,7 @@ namespace OfficeIMO.Tests {
             XDocument pageDoc;
             Uri pageUri;
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/document.xml", UriKind.Relative)));
@@ -29,19 +30,26 @@ namespace OfficeIMO.Tests {
 
                 PackageRelationship rel = package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/document").Single();
                 Assert.Equal("/visio/document.xml", rel.TargetUri.OriginalString);
+                Assert.Equal("rId1", rel.Id);
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
                 PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
+                Assert.Equal("rId2", pagesRel.Id);
                 Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
                 Assert.Equal("/visio/pages/pages.xml", pagesUri.OriginalString);
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();
+                Assert.Equal("rId3", pageRel.Id);
                 pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 Assert.Equal("/visio/pages/page1.xml", pageUri.OriginalString);
 
                 XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
-                Assert.Equal(pageRel.Id, pagesDoc.Root?.Element(ns + "Page")?.Attribute("RelId")?.Value);
+                XElement? pageElement = pagesDoc.Root?.Element(ns + "Page");
+                Assert.Equal("1", pageElement?.Attribute("ID")?.Value);
+                Assert.Null(pageElement?.Attribute("RelId"));
+                string? relId = pageElement?.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                Assert.Equal(pageRel.Id, relId);
 
                 PackagePart pagePart = package.GetPart(pageUri);
                 pageDoc = XDocument.Load(pagePart.GetStream());
