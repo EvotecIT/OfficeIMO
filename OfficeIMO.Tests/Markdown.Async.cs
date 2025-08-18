@@ -45,6 +45,15 @@ namespace OfficeIMO.Tests {
 
             Assert.True(stream.CanRead);
         }
+
+        [Fact]
+        public async Task Test_ToMarkdownAsync_MatchesSync() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Async conversion");
+            string sync = doc.ToMarkdown();
+            string asyncResult = await doc.ToMarkdownAsync();
+            Assert.Equal(sync, asyncResult);
+        }
     }
 }
 

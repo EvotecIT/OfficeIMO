@@ -7,6 +7,8 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Markdown.Converters {
     /// <summary>
@@ -25,6 +27,10 @@ namespace OfficeIMO.Word.Markdown.Converters {
     /// </summary>
     internal partial class MarkdownToWordConverter {
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
+            return ConvertAsync(markdown, options).GetAwaiter().GetResult();
+        }
+
+        public Task<WordDocument> ConvertAsync(string markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -41,10 +47,11 @@ namespace OfficeIMO.Word.Markdown.Converters {
             MarkdownDocument markdownDocument = Markdig.Markdown.Parse(markdown, pipeline);
 
             foreach (var block in markdownDocument) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlock(block, document, options);
             }
 
-            return document;
+            return Task.FromResult(document);
         }
 
         private static void ProcessBlock(Block block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0, int quoteDepth = 0) {
