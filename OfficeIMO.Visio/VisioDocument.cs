@@ -15,6 +15,9 @@ namespace OfficeIMO.Visio {
     public class VisioDocument {
         private readonly List<VisioPage> _pages = new();
 
+        private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
+        private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
+
         /// <summary>
         /// Collection of pages in the document.
         /// </summary>
@@ -39,9 +42,12 @@ namespace OfficeIMO.Visio {
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
 
-            PackageRelationship documentRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument").Single();
+            PackageRelationship documentRel = package.GetRelationshipsByType(DocumentRelationshipType).Single();
             Uri documentUri = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), documentRel.TargetUri);
             PackagePart documentPart = package.GetPart(documentUri);
+            if (documentPart.ContentType != DocumentContentType) {
+                throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
+            }
 
             PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
             Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
@@ -95,8 +101,8 @@ namespace OfficeIMO.Visio {
             using Package package = Package.Open(filePath, FileMode.Create);
 
             Uri documentUri = new("/visio/document.xml", UriKind.Relative);
-            PackagePart documentPart = package.CreatePart(documentUri, "application/vnd.ms-visio.document.main+xml");
-            package.CreateRelationship(documentUri, TargetMode.Internal, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument");
+            PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
+            package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType);
 
             Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
             PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
