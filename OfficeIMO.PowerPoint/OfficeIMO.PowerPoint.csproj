@@ -1,23 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>HTML converter for OfficeIMO.Word - Convert Word documents to/from HTML using AngleSharp</Description>
-        <AssemblyName>OfficeIMO.Word.Html</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Word.Html</AssemblyTitle>
+        <Description>An Open Source cross-platform .NET library providing an easy way to create
+            Microsoft PowerPoint (PPTX) presentations.</Description>
+        <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
+        <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
         <VersionPrefix>1.0.6</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;net472;net8.0;net9.0
         </TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
-            net8.0;net9.0
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+            net8.0
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
 
-        <PackageId>OfficeIMO.Word.Html</PackageId>
-        <PackageTags>html;openxml;office;docx;net472;net8.0;net9.0</PackageTags>
+        <PackageId>OfficeIMO.PowerPoint</PackageId>
+        <PackageTags>
+            pptx;powerpoint;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1;net70
+        </PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>
@@ -27,9 +30,20 @@
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <RepositoryType>git</RepositoryType>
+        <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+        <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
     <ItemGroup>
@@ -37,23 +51,14 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Update="Converters/HtmlToWordConverter.Tables.cs" />
-        <Compile Update="Converters/HtmlToWordConverter.Lists.cs" />
-        <Compile Update="Converters/HtmlToWordConverter.Images.cs" />
-        <Compile Update="Converters/HtmlToWordConverter.Formatting.cs" />
+        <None Include="..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>README.md</PackagePath>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
-        <PackageReference Include="AngleSharp" Version="1.3.0" />
-        <PackageReference Include="AngleSharp.Css" Version="1.0.0-beta.154" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

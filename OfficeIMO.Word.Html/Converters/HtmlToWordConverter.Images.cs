@@ -127,7 +127,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 var commaIndex = src.IndexOf(',');
                 if (commaIndex < 0) return;
                 var base64 = src.Substring(commaIndex + 1);
-                var bytes = Convert.FromBase64String(base64);
+                var bytes = System.Convert.FromBase64String(base64);
                 svgContent = Encoding.UTF8.GetString(bytes);
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
                 svgContent = File.ReadAllText(uri.LocalPath);

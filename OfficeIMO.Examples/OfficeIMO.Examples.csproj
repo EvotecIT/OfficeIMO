@@ -4,6 +4,7 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>Latest</LangVersion>
+        <Nullable>enable</Nullable>
         <VersionPrefix>1.0.6</VersionPrefix>
     </PropertyGroup>
 
@@ -14,6 +15,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
     </ItemGroup>
 
     <ItemGroup>

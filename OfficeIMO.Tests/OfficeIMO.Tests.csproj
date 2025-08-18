@@ -8,6 +8,7 @@
             net8.0;net9.0
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
         <LangVersion>Latest</LangVersion>
     </PropertyGroup>
     <ItemGroup>
@@ -35,6 +36,11 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.IO.Compression" />
     </ItemGroup>
 
     <ItemGroup>

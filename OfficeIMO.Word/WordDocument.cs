@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.Fluent;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -1768,6 +1769,14 @@ namespace OfficeIMO.Word {
                 listErrors.Add(error);
             }
             return listErrors;
+        }
+
+        /// <summary>
+        /// Creates a fluent wrapper for this document.
+        /// </summary>
+        /// <returns>A new <see cref="WordFluentDocument"/> instance.</returns>
+        public WordFluentDocument AsFluent() {
+            return new WordFluentDocument(this);
         }
 
         /// <summary>

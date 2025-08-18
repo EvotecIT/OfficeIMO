@@ -11,19 +11,24 @@ namespace OfficeIMO.Examples.Word.Converters {
 
             using var doc = WordDocument.Create();
             doc.AddParagraph("Async HTML");
-            await doc.AddHtmlToHeaderAsync("<p>Header async</p>");
-            await doc.AddHtmlToFooterAsync("<p>Footer async</p>");
 
-            string outputPath = Path.Combine(folderPath, "HtmlAsync.html");
-            await doc.SaveAsHtmlAsync(outputPath);
+            string syncPath = Path.Combine(folderPath, "HtmlSync.html");
+            doc.SaveAsHtml(syncPath);
 
-            string html = await doc.ToHtmlAsync();
-            using var roundTrip = await html.LoadFromHtmlAsync();
+            string asyncPath = Path.Combine(folderPath, "HtmlAsync.html");
+            await doc.SaveAsHtmlAsync(asyncPath);
 
-            Console.WriteLine($"✓ Created: {outputPath}");
+            string htmlSync = doc.ToHtml();
+            using var roundTripSync = htmlSync.LoadFromHtml();
+
+            string htmlAsync = await doc.ToHtmlAsync();
+            using var roundTripAsync = await htmlAsync.LoadFromHtmlAsync();
+
+            Console.WriteLine($"✓ Created: {syncPath}");
+            Console.WriteLine($"✓ Created: {asyncPath}");
 
             if (openWord) {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(outputPath) { UseShellExecute = true });
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(syncPath) { UseShellExecute = true });
             }
         }
     }
