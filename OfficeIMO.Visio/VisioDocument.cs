@@ -45,7 +45,7 @@ namespace OfficeIMO.Visio {
 
             Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
             PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
-            pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page");
+            PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page");
 
             XmlWriterSettings settings = new() {
                 Encoding = new UTF8Encoding(false),
@@ -68,7 +68,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Page", ns);
                 writer.WriteAttributeString("ID", "0");
                 writer.WriteAttributeString("Name", pageName);
-                writer.WriteAttributeString("RelId", "rId1");
+                writer.WriteAttributeString("RelId", pageRel.Id);
                 writer.WriteEndElement();
                 writer.WriteEndElement();
                 writer.WriteEndDocument();

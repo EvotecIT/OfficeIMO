@@ -20,6 +20,7 @@ namespace OfficeIMO.Tests {
 
             XDocument pageDoc;
             Uri pageUri;
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/document.xml", UriKind.Relative)));
@@ -39,6 +40,9 @@ namespace OfficeIMO.Tests {
                 pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 Assert.Equal("/visio/pages/page1.xml", pageUri.OriginalString);
 
+                XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
+                Assert.Equal(pageRel.Id, pagesDoc.Root?.Element(ns + "Page")?.Attribute("RelId")?.Value);
+
                 PackagePart pagePart = package.GetPart(pageUri);
                 pageDoc = XDocument.Load(pagePart.GetStream());
             }
@@ -56,7 +60,6 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/pages.xml"));
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/page1.xml"));
 
-            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
             Assert.Equal("1", shape?.Attribute("ID")?.Value);
             Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
