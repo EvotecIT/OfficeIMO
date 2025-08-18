@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             var wordTable = document.AddTable(rows, cols);
             int r = 0;
             foreach (TableRow row in table) {
-                var rowAlignments = GetRowAlignments(row);
+                var rowAlignments = GetRowAlignments(row);            object? data = row.GetData("alignment") ?? row.GetData("alignments");
                 int c = 0;
                 foreach (TableCell cell in row) {
                     var wordCell = wordTable.Rows[r].Cells[c];

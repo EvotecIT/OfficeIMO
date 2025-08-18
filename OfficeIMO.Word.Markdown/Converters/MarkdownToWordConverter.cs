@@ -100,7 +100,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                     run.SetFontFamily(monoFont);
                     if (codeBlock is FencedCodeBlock fenced && !string.IsNullOrWhiteSpace(fenced.Info)) {
-                        var info = fenced.Info.Split(new[] { ' ', '{' }, StringSplitOptions.RemoveEmptyEntries);
+                        var info = (fenced.Info ?? string.Empty).Split(new[] { ' ', '{' }, StringSplitOptions.RemoveEmptyEntries);
                         if (info.Length > 0) {
                             var lang = new string(info[0].Where(char.IsLetterOrDigit).ToArray());
                             if (!string.IsNullOrEmpty(lang)) {

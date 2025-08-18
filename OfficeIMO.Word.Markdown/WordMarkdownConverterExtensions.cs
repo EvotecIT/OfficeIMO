@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Markdown {
         public static async Task SaveAsMarkdownAsync(this WordDocument document, string path, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             options ??= new WordToMarkdownOptions();
             if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
-                options.ImageDirectory = Path.GetDirectoryName(path);
+                options.ImageDirectory = Path.GetDirectoryName(path) ?? Directory.GetCurrentDirectory();
             }
             var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -79,6 +79,13 @@ namespace OfficeIMO.Word.Markdown {
             return document.ToMarkdownAsync(options).GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Converts the document to a Markdown string asynchronously.
+        /// </summary>
+        /// <param name="document">Document to convert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>Markdown representation of the document.</returns>
         public static async Task<string> ToMarkdownAsync(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             var converter = new WordToMarkdownConverter();
             return await converter.ConvertAsync(document, options ?? new WordToMarkdownOptions(), cancellationToken).ConfigureAwait(false);
