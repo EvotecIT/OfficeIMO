@@ -13,6 +13,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
     </ItemGroup>
 
     <ItemGroup>
