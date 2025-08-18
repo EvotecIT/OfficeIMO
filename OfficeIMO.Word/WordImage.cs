@@ -62,6 +62,7 @@ namespace OfficeIMO.Word {
         internal V.Shape _vmlShape;
         internal V.ImageData _vmlImageData;
 
+
         /// <summary>
         /// Get or set the Image's horizontal position.
         /// </summary>
@@ -113,40 +114,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BlipCompressionValues? CompressionQuality {
             get {
-                if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    return picture.BlipFill.Blip.CompressionState;
-                } else if (_Image.Anchor != null) {
-                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        return picture.BlipFill.Blip.CompressionState;
-                    }
-                }
-                return null;
+                var picture = GetPicture();
+                return picture?.BlipFill?.Blip?.CompressionState;
             }
             set {
-                if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    if (picture != null) {
-                        if (picture.BlipFill != null) {
-                            if (picture.BlipFill.Blip != null) {
-                                picture.BlipFill.Blip.CompressionState = value;
-                            }
-                        }
-                    }
-                } else if (_Image.Anchor != null) {
-                    var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
-                        var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        if (picture != null) {
-                            if (picture.BlipFill != null) {
-                                if (picture.BlipFill.Blip != null) {
-                                    picture.BlipFill.Blip.CompressionState = value;
-                                }
-                            }
-                        }
-                    }
+                var picture = GetPicture();
+                if (picture?.BlipFill?.Blip != null) {
+                    picture.BlipFill.Blip.CompressionState = value;
+                    SetPicture(picture);
                 }
             }
         }
@@ -641,6 +616,20 @@ namespace OfficeIMO.Word {
             }
 
             return null;
+        }
+
+        private void SetPicture(Pic.Picture picture) {
+            if (_Image.Inline != null) {
+                var graphicData = _Image.Inline.Graphic.GraphicData;
+                graphicData.RemoveAllChildren<Pic.Picture>();
+                graphicData.AppendChild(picture);
+            } else if (_Image.Anchor != null) {
+                var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
+                if (anchorGraphic?.GraphicData != null) {
+                    anchorGraphic.GraphicData.RemoveAllChildren<Pic.Picture>();
+                    anchorGraphic.GraphicData.AppendChild(picture);
+                }
+            }
         }
 
         /// <summary>
