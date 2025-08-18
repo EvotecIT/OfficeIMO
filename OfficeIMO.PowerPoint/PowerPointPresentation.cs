@@ -5,6 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -107,6 +108,13 @@ namespace OfficeIMO.PowerPoint {
             _document.Save();
         }
 
+        /// <summary>
+        /// Creates a fluent wrapper for this presentation.
+        /// </summary>
+        public PowerPointFluentPresentation AsFluent() {
+            return new PowerPointFluentPresentation(this);
+        }
+
         private void InitializeDefaultParts() {
             SlideMasterPart slideMasterPart = _presentationPart.AddNewPart<SlideMasterPart>();
             slideMasterPart.SlideMaster = new SlideMaster(new CommonSlideData(new ShapeTree()));
@@ -167,4 +175,3 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
-
