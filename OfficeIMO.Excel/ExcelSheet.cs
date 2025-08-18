@@ -170,11 +170,36 @@ namespace OfficeIMO.Excel {
         }
 
         private static SixLabors.Fonts.Font GetDefaultFont() {
+            string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
+
+            foreach (var name in preferred) {
+                try {
+                    var font = SystemFonts.CreateFont(name, 11);
+                    if (IsFontUsable(font)) return font;
+                } catch (FontFamilyNotFoundException) {
+                    // Try next option
+                }
+            }
+
+            foreach (var family in SystemFonts.Collection.Families) {
+                try {
+                    var font = family.CreateFont(11);
+                    if (IsFontUsable(font)) return font;
+                } catch {
+                    // Skip fonts that cannot be loaded or measured
+                }
+            }
+
+            // Fallback to first available family without validation
+            return SystemFonts.Collection.Families.First().CreateFont(11);
+        }
+
+        private static bool IsFontUsable(SixLabors.Fonts.Font font) {
             try {
-                return SystemFonts.CreateFont("Calibri", 11);
-            } catch (FontFamilyNotFoundException) {
-                var family = SystemFonts.Collection.Families.First();
-                return family.CreateFont(11);
+                TextMeasurer.MeasureSize("0", new TextOptions(font));
+                return true;
+            } catch {
+                return false;
             }
         }
 
