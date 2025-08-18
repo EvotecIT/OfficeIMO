@@ -28,6 +28,7 @@
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>
         <LangVersion>Latest</LangVersion>
+        <Nullable>enable</Nullable>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     </PropertyGroup>
