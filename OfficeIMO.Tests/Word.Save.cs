@@ -233,12 +233,12 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var openXmlDoc = WordprocessingDocument.Open(stream, false)) {
+            var bytes = stream.ToArray();
+            using (var openXmlDoc = WordprocessingDocument.Open(new MemoryStream(bytes), false)) {
                 Assert.NotNull(openXmlDoc.MainDocumentPart);
             }
-            stream.Seek(0, SeekOrigin.Begin);
 
-            using var loadedDoc = WordDocument.Load(stream);
+            using var loadedDoc = WordDocument.Load(new MemoryStream(bytes));
             var paragraph = Assert.Single(loadedDoc.Paragraphs);
             Assert.Equal("Hello original stream", paragraph.Text);
         }

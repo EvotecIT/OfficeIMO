@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
     /// Represents an Excel document and provides methods for creating,
     /// loading and saving spreadsheets.
     /// </summary>
-    public partial class ExcelDocument : IDisposable {
+    public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
 
         /// <summary>
@@ -315,10 +315,32 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Releases resources used by the document.
         /// </summary>
+        private bool _disposed;
+
         public void Dispose() {
-            if (this._spreadSheetDocument != null) {
-                this._spreadSheetDocument.Dispose();
+            DisposeAsync().GetAwaiter().GetResult();
+        }
+
+        public async ValueTask DisposeAsync() {
+            if (_disposed) {
+                return;
             }
+
+            if (this._spreadSheetDocument != null) {
+                try {
+                    if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                        _workBookPart?.Workbook.Save();
+                    }
+
+                    await Task.Run(() => this._spreadSheetDocument.Dispose());
+                } catch {
+                    // ignored
+                }
+                this._spreadSheetDocument = null;
+            }
+
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }

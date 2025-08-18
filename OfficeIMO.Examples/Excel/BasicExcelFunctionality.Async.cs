@@ -17,12 +17,12 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "AsyncExcel.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            using (var document = ExcelDocument.Create(filePath)) {
+            await using (var document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("Sheet1");
                 await document.SaveAsync();
             }
 
-            using (var document = await ExcelDocument.LoadAsync(filePath)) {
+            await using (var document = await ExcelDocument.LoadAsync(filePath)) {
                 Console.WriteLine($"Sheet count: {document.Sheets.Count}");
             }
 

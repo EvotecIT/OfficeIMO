@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(JustificationValues.Center, centerParagraph.ParagraphAlignment);
             Assert.Equal(JustificationValues.Right, rightParagraph.ParagraphAlignment);
 
-            Assert.True(leftParagraph.GetRuns().Any(r => r.Bold));
-            Assert.True(centerParagraph.GetRuns().Any(r => r.Italic));
+            Assert.Contains(leftParagraph.GetRuns(), r => r.Bold);
+            Assert.Contains(centerParagraph.GetRuns(), r => r.Italic);
         }
 
         [Fact]
