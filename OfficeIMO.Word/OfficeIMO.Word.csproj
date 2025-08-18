@@ -62,6 +62,7 @@
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
         <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
         <PackageReference Include="System.Drawing.Common" Version="8.0.4" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
