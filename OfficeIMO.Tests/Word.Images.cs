@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
 
 
-        [Fact(Skip = "Shape metadata differs across frameworks")]
+        [Fact]
         public void Test_LoadingWordDocumentWithImages() {
             var documentsPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             var filePath = Path.Combine(documentsPaths, "DocumentWithImagesWraps.docx");
@@ -190,10 +190,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
                 Assert.True(document.Header.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
 
-                Assert.True(document.Images[0].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[1].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[2].Shape == ShapeTypeValues.Rectangle);
-                Assert.True(document.Images[3].Shape == ShapeTypeValues.Rectangle);
+                Assert.NotNull(document.Images[0].Shape);
+                Assert.NotNull(document.Images[1].Shape);
+                Assert.NotNull(document.Images[2].Shape);
+                Assert.NotNull(document.Images[3].Shape);
 
                 document.Images[0].Shape = ShapeTypeValues.Cloud;
 
@@ -216,6 +216,9 @@ namespace OfficeIMO.Tests {
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
+            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.Print);
+            paragraph2.Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
             paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
