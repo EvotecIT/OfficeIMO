@@ -23,7 +23,7 @@ namespace OfficeIMO.Visio {
 
         public static IReadOnlyList<string> Validate(string vsdxPath) {
             List<string> issues = new();
-            using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             XDocument ctDoc;
             using (FileStream zipStream = File.OpenRead(vsdxPath))
