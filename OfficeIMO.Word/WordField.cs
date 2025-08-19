@@ -203,7 +203,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly List<Run> _runs = new List<Run>();
-        private readonly SimpleField _simpleField;
+        private readonly SimpleField? _simpleField;
 
         /// <summary>
         /// Gets the type of the current field.
@@ -251,7 +251,7 @@ namespace OfficeIMO.Word {
         public string Field {
             get {
                 if (_simpleField != null) {
-                    return _simpleField.Instruction;
+                    return _simpleField.Instruction?.Value ?? string.Empty;
                 } else {
                     var instruction = "";
                     foreach (var run in _runs) {
@@ -367,13 +367,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal WordField(WordDocument document, Paragraph paragraph, SimpleField simpleField, List<Run> runs) {
+        internal WordField(WordDocument document, Paragraph paragraph, SimpleField? simpleField, List<Run>? runs) {
             this._document = document;
             this._paragraph = paragraph;
             this._simpleField = simpleField;
             if (simpleField != null) {
-                this._runs.Add(simpleField.GetFirstChild<Run>());
-            } else {
+                var run = simpleField.GetFirstChild<Run>();
+                if (run != null) {
+                    this._runs.Add(run);
+                }
+            } else if (runs != null) {
                 this._runs = runs;
             }
         }

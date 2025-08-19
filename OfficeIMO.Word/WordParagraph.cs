@@ -22,8 +22,8 @@ namespace OfficeIMO.Word {
     /// Represents a paragraph within a Word document.
     /// </summary>
     public partial class WordParagraph : WordElement {
-        internal WordDocument _document;
-        internal Paragraph _paragraph;
+        internal WordDocument _document = null!;
+        internal Paragraph _paragraph = null!;
 
         /// <summary>
         /// This allows to know where the paragraph is located. Useful for hyperlinks or other stuff.
@@ -69,8 +69,11 @@ namespace OfficeIMO.Word {
         public bool IsLastRun {
             get {
                 if (_run != null) {
-                    var runs = _run.Parent.ChildElements.OfType<Run>();
-                    return runs.Last() == _run;
+                    var parent = _run.Parent;
+                    if (parent != null) {
+                        var runs = parent.ChildElements.OfType<Run>();
+                        return runs.LastOrDefault() == _run;
+                    }
                 }
                 return false;
             }
@@ -82,14 +85,17 @@ namespace OfficeIMO.Word {
         public bool IsFirstRun {
             get {
                 if (_run != null) {
-                    var runs = _run.Parent.ChildElements.OfType<Run>();
-                    return runs.First() == _run;
+                    var parent = _run.Parent;
+                    if (parent != null) {
+                        var runs = parent.ChildElements.OfType<Run>();
+                        return runs.FirstOrDefault() == _run;
+                    }
                 }
                 return false;
             }
         }
 
-        internal RunProperties _runProperties {
+        internal RunProperties? _runProperties {
             get {
                 if (_run != null) {
                     return _run.RunProperties;
@@ -104,7 +110,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal Text _text {
+        internal Text? _text {
             get {
                 if (_run != null) {
                     return _run.ChildElements.OfType<Text>().FirstOrDefault();
@@ -113,9 +119,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
-        internal Run _run;
+        internal Run? _run;
 
-        internal ParagraphProperties _paragraphProperties {
+        internal ParagraphProperties? _paragraphProperties {
             get {
                 if (_paragraph != null && _paragraph.ParagraphProperties != null) {
                     return _paragraph.ParagraphProperties;
@@ -128,7 +134,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the first image associated with this run, if any.
         /// </summary>
-        public WordImage Image {
+        public WordImage? Image {
             get {
                 if (_run != null) {
                     // DrawingML pictures
@@ -172,7 +178,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the embedded object associated with this run, if any.
         /// </summary>
-        public WordEmbeddedObject EmbeddedObject {
+        public WordEmbeddedObject? EmbeddedObject {
             get {
                 if (_run != null) {
                     var ole = _run.Descendants<Ovml.OleObject>().FirstOrDefault();
@@ -202,17 +208,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? ListItemLevel {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
-                    return _paragraphProperties.NumberingProperties.NumberingLevelReference.Val;
-                } else {
-                    return null;
-                }
+                var val = _paragraphProperties?.NumberingProperties?.NumberingLevelReference?.Val;
+                return val?.Value;
             }
             set {
-                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
-                    if (_paragraphProperties.NumberingProperties.NumberingLevelReference != null) {
-                        _paragraphProperties.NumberingProperties.NumberingLevelReference.Val = value;
-                    }
+                var levelRef = _paragraphProperties?.NumberingProperties?.NumberingLevelReference;
+                if (levelRef != null) {
+                    levelRef.Val = value;
                 } else {
                     // should throw?
                 }
@@ -221,11 +223,8 @@ namespace OfficeIMO.Word {
 
         internal int? _listNumberId {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.NumberingProperties != null) {
-                    return _paragraphProperties.NumberingProperties.NumberingId.Val;
-                } else {
-                    return null;
-                }
+                var val = _paragraphProperties?.NumberingProperties?.NumberingId?.Val;
+                return val?.Value;
             }
         }
 
@@ -257,37 +256,37 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraphStyles? Style {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
-                    return WordParagraphStyle.GetStyle(_paragraphProperties.ParagraphStyleId.Val);
-                }
-
-                return null;
+                var styleId = _paragraphProperties?.ParagraphStyleId?.Val;
+                return styleId != null ? WordParagraphStyle.GetStyle(styleId.Value!) : null;
             }
             set {
                 if (value != null) {
                     if (_paragraphProperties == null) {
                         _paragraph.ParagraphProperties = new ParagraphProperties();
                     }
-                    if (_paragraphProperties.ParagraphStyleId == null) {
-                        _paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
-                    }
-                    _paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
-                    if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
-                        _document?.HeadingModified();
+                    var paragraphProperties = _paragraphProperties;
+                    if (paragraphProperties != null) {
+                        if (paragraphProperties.ParagraphStyleId == null) {
+                            paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
+                        }
+                        paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                        if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
+                            _document?.HeadingModified();
+                        }
                     }
                 }
             }
         }
 
 
-        internal WordList _list;
-        internal List<Run> _runs;
-        internal Hyperlink _hyperlink;
-        internal SimpleField _simpleField;
-        internal BookmarkStart _bookmarkStart;
-        internal readonly OfficeMath _officeMath;
-        internal readonly SdtRun _stdRun;
-        internal readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
+        internal WordList? _list;
+        internal List<Run>? _runs;
+        internal Hyperlink? _hyperlink;
+        internal SimpleField? _simpleField;
+        internal BookmarkStart? _bookmarkStart;
+        internal readonly OfficeMath? _officeMath;
+        internal readonly SdtRun? _stdRun;
+        internal readonly DocumentFormat.OpenXml.Math.Paragraph? _mathParagraph;
 
         /// <summary>
         /// Get or set a text within Paragraph
@@ -301,15 +300,15 @@ namespace OfficeIMO.Word {
                 return _text.Text;
             }
             set {
-                VerifyText();
-                _text.Text = value;
+                var text = VerifyText();
+                text.Text = value;
             }
         }
 
         /// <summary>
         /// Get PageBreaks within Paragraph
         /// </summary>
-        public WordBreak PageBreak {
+        public WordBreak? PageBreak {
             get {
                 if (_run != null) {
                     var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
@@ -325,7 +324,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get Breaks within Paragraph
         /// </summary>
-        public WordBreak Break {
+        public WordBreak? Break {
             get {
                 if (_run != null) {
                     var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
@@ -341,7 +340,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the <see cref="WordTabChar"/> representing a tab character in the current run, or <c>null</c> if none is present.
         /// </summary>
-        public WordTabChar Tab {
+        public WordTabChar? Tab {
             get {
                 if (_run != null) {
                     var tabChar = _run.ChildElements.OfType<TabChar>().FirstOrDefault();
@@ -360,8 +359,8 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document.</param>
         /// <param name="newParagraph">Create a new paragraph element.</param>
         /// <param name="newRun">Create a new run inside the paragraph.</param>
-        public WordParagraph(WordDocument document = null, bool newParagraph = true, bool newRun = true) {
-            this._document = document;
+        public WordParagraph(WordDocument? document = null, bool newParagraph = true, bool newRun = true) {
+            this._document = document!;
 
             if (newParagraph) {
                 this._paragraph = new Paragraph();
@@ -462,7 +461,7 @@ namespace OfficeIMO.Word {
             //  this.Equation = new WordEquation(document, paragraph, mathParagraph);
         }
 
-        internal WordStructuredDocumentTag StructuredDocumentTag {
+        internal WordStructuredDocumentTag? StructuredDocumentTag {
             get {
                 if (_stdRun != null) {
                     return new WordStructuredDocumentTag(_document, _paragraph, _stdRun);
@@ -475,7 +474,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the checkbox contained in this paragraph, if present.
         /// </summary>
-        public WordCheckBox CheckBox {
+        public WordCheckBox? CheckBox {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true) {
                     return new WordCheckBox(_document, _paragraph, _stdRun);
@@ -489,7 +488,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the date picker contained in this paragraph, if present.
         /// </summary>
-        public WordDatePicker DatePicker {
+        public WordDatePicker? DatePicker {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentDate>().Any() == true) {
                     return new WordDatePicker(_document, _paragraph, _stdRun);
@@ -502,7 +501,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the dropdown list contained in this paragraph, if present.
         /// </summary>
-        public WordDropDownList DropDownList {
+        public WordDropDownList? DropDownList {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentDropDownList>().Any() == true) {
                     return new WordDropDownList(_document, _paragraph, _stdRun);
@@ -515,7 +514,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the combo box contained in this paragraph, if present.
         /// </summary>
-        public WordComboBox ComboBox {
+        public WordComboBox? ComboBox {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentComboBox>().Any() == true) {
                     return new WordComboBox(_document, _paragraph, _stdRun);
@@ -528,7 +527,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the picture content control contained in this paragraph, if present.
         /// </summary>
-        public WordPictureControl PictureControl {
+        public WordPictureControl? PictureControl {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true) {
                     return new WordPictureControl(_document, _paragraph, _stdRun);
@@ -541,7 +540,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the repeating section contained in this paragraph, if present.
         /// </summary>
-        public WordRepeatingSection RepeatingSection {
+        public WordRepeatingSection? RepeatingSection {
             get {
                 if (_stdRun != null && _stdRun.SdtProperties?.Elements<W15.SdtRepeatedSection>().Any() == true) {
                     return new WordRepeatingSection(_document, _paragraph, _stdRun);
@@ -553,7 +552,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the bookmark associated with this paragraph, if present.
         /// </summary>
-        public WordBookmark Bookmark {
+        public WordBookmark? Bookmark {
             get {
                 if (_bookmarkStart != null) {
                     return new WordBookmark(_document, _paragraph, _bookmarkStart);
@@ -566,12 +565,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the mathematical equation contained in this paragraph, if any.
         /// </summary>
-        public WordEquation Equation {
+        public WordEquation? Equation {
             get {
-                if (_officeMath != null || _mathParagraph != null) {
+                if (_officeMath != null && _mathParagraph != null) {
                     return new WordEquation(_document, _paragraph, _officeMath, _mathParagraph);
                 }
-
+                if (_officeMath != null) {
+                    return new WordEquation(_document, _paragraph, _officeMath);
+                }
+                if (_mathParagraph != null) {
+                    return new WordEquation(_document, _paragraph, _mathParagraph);
+                }
                 return null;
             }
         }
@@ -579,7 +583,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the field contained in this paragraph, if any.
         /// </summary>
-        public WordField Field {
+        public WordField? Field {
             get {
                 if (_simpleField != null || _runs != null) {
                     return new WordField(_document, _paragraph, _simpleField, _runs);
@@ -592,7 +596,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the chart contained in this paragraph, if present.
         /// </summary>
-        public WordChart Chart {
+        public WordChart? Chart {
             get {
                 if (_run != null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
@@ -616,7 +620,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the SmartArt diagram contained in this paragraph, if present.
         /// </summary>
-        public WordSmartArt SmartArt {
+        public WordSmartArt? SmartArt {
             get {
                 if (_run != null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
@@ -634,7 +638,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the hyperlink contained in this paragraph, if present.
         /// </summary>
-        public WordHyperLink Hyperlink {
+        public WordHyperLink? Hyperlink {
             get {
                 if (_hyperlink != null) {
                     return new WordHyperLink(_document, _paragraph, _hyperlink);
@@ -647,7 +651,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the footnote associated with this paragraph, if any.
         /// </summary>
-        public WordFootNote FootNote {
+        public WordFootNote? FootNote {
             get {
                 if (_run != null && _runProperties != null) {
                     var footReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
@@ -662,7 +666,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the endnote associated with this paragraph, if any.
         /// </summary>
-        public WordEndNote EndNote {
+        public WordEndNote? EndNote {
             get {
                 if (_run != null && _runProperties != null) {
                     var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
@@ -692,7 +696,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsField {
             get {
-                if (this.Field != null && this.Field.Field != null) {
+                var field = Field;
+                if (field != null && field.Field != null) {
                     return true;
                 }
 
@@ -705,7 +710,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsBookmark {
             get {
-                if (this.Bookmark != null && this.Bookmark.Name != null) {
+                var bookmark = Bookmark;
+                if (bookmark != null && bookmark.Name != null) {
                     return true;
                 }
 
@@ -924,7 +930,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the <see cref="WordTextBox"/> contained within the paragraph, if any.
         /// </summary>
-        public WordTextBox TextBox {
+        public WordTextBox? TextBox {
             get {
                 if (_run != null) {
                     // DrawingML text boxes
@@ -974,7 +980,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns a <see cref="WordShape"/> instance when the paragraph contains shapes.
         /// </summary>
-        public WordShape Shape {
+        public WordShape? Shape {
             get {
                 if (_run != null) {
                     if (TextBox != null) {
@@ -1026,7 +1032,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the line shape contained in this paragraph, if present.
         /// </summary>
-        public WordLine Line {
+        public WordLine? Line {
             get {
                 if (_run != null) {
                     var line = _run.Descendants<V.Line>().FirstOrDefault();

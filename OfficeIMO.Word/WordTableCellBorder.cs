@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         public BorderValues? LeftStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.LeftBorder != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Val;
+                    return _tableCellProperties.TableCellBorders.LeftBorder.Val?.Value;
                 }
                 return null;
             }
@@ -44,20 +44,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
                     _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
                 }
-                _tableCellProperties.TableCellBorders.LeftBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.LeftBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set left table cell border color using hex color codes
         /// </summary>
-        public string LeftColorHex {
+        public string? LeftColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.LeftBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -69,7 +67,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
                     _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
                 }
-                _tableCellProperties.TableCellBorders.LeftBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.LeftBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -77,14 +75,17 @@ namespace OfficeIMO.Word {
         /// Get or set left table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color LeftColor {
-            get { return Helpers.ParseColor(LeftColorHex); }
+            get {
+                var hex = LeftColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
+            }
             set { this.LeftColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set left table cell border space
         /// </summary>
-        public UInt32Value LeftSpace {
+        public UInt32Value? LeftSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.LeftBorder != null
@@ -109,7 +110,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set left table cell border size
         /// </summary>
-        public UInt32Value LeftSize {
+        public UInt32Value? LeftSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.LeftBorder != null
@@ -139,7 +140,7 @@ namespace OfficeIMO.Word {
         public BorderValues? RightStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.RightBorder != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Val;
+                    return _tableCellProperties.TableCellBorders.RightBorder.Val?.Value;
                 }
                 return null;
             }
@@ -151,20 +152,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.RightBorder == null) {
                     _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
                 }
-                _tableCellProperties.TableCellBorders.RightBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.RightBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set right table cell border color using hex color codes
         /// </summary>
-        public string RightColorHex {
+        public string? RightColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.RightBorder != null
-                    && _tableCellProperties.TableCellBorders.RightBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.RightBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.RightBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -176,7 +175,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.RightBorder == null) {
                     _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
                 }
-                _tableCellProperties.TableCellBorders.RightBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.RightBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -184,14 +183,17 @@ namespace OfficeIMO.Word {
         /// Get or set right table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color RightColor {
-            get { return Helpers.ParseColor(RightColorHex); }
+            get {
+                var hex = RightColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
+            }
             set { this.RightColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set right table cell border space
         /// </summary>
-        public UInt32Value RightSpace {
+        public UInt32Value? RightSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.RightBorder != null
@@ -216,7 +218,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set right table cell border size
         /// </summary>
-        public UInt32Value RightSize {
+        public UInt32Value? RightSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.RightBorder != null
@@ -248,7 +250,7 @@ namespace OfficeIMO.Word {
         public BorderValues? TopStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Val;
+                    return _tableCellProperties.TableCellBorders.TopBorder.Val?.Value;
                 }
                 return null;
             }
@@ -260,20 +262,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopBorder == null) {
                     _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.TopBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set top table cell border color using hex color codes
         /// </summary>
-        public string TopColorHex {
+        public string? TopColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopBorder != null
-                    && _tableCellProperties.TableCellBorders.TopBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.TopBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.TopBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -285,7 +285,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopBorder == null) {
                     _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.TopBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -293,14 +293,17 @@ namespace OfficeIMO.Word {
         /// Get or set top table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopColor {
-            get { return Helpers.ParseColor(TopColorHex); }
+            get {
+                var hex = TopColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
+            }
             set { this.TopColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set top table cell border space
         /// </summary>
-        public UInt32Value TopSpace {
+        public UInt32Value? TopSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopBorder != null
@@ -325,7 +328,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top table cell border size
         /// </summary>
-        public UInt32Value TopSize {
+        public UInt32Value? TopSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopBorder != null
@@ -360,7 +363,7 @@ namespace OfficeIMO.Word {
         public BorderValues? BottomStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.BottomBorder != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Val;
+                    return _tableCellProperties.TableCellBorders.BottomBorder.Val?.Value;
                 }
                 return null;
             }
@@ -372,20 +375,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
                     _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
                 }
-                _tableCellProperties.TableCellBorders.BottomBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.BottomBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set bottom table cell border color using hex color codes
         /// </summary>
-        public string BottomColorHex {
+        public string? BottomColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.BottomBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -397,7 +398,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
                     _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
                 }
-                _tableCellProperties.TableCellBorders.BottomBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.BottomBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -405,14 +406,17 @@ namespace OfficeIMO.Word {
         /// Get or set bottom table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color BottomColor {
-            get { return Helpers.ParseColor(BottomColorHex); }
+            get {
+                var hex = BottomColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
+            }
             set { this.BottomColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set bottom table cell border space
         /// </summary>
-        public UInt32Value BottomSpace {
+        public UInt32Value? BottomSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.BottomBorder != null
@@ -437,7 +441,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set bottom table cell border size
         /// </summary>
-        public UInt32Value BottomSize {
+        public UInt32Value? BottomSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.BottomBorder != null
@@ -474,7 +478,7 @@ namespace OfficeIMO.Word {
         public BorderValues? InsideHorizontalStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val;
+                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val?.Value;
                 }
                 return null;
             }
@@ -486,20 +490,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set inside horizontal table cell border color using hex color codes
         /// </summary>
-        public string InsideHorizontalColorHex {
+        public string? InsideHorizontalColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.InsideHorizontalBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -511,7 +513,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -519,14 +521,17 @@ namespace OfficeIMO.Word {
         /// Get or set inside horizontal table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color InsideHorizontalColor {
-            get { return Helpers.ParseColor(InsideHorizontalColorHex); }
+            get {
+                var hex = InsideHorizontalColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideHorizontalColorHex is null"));
+            }
             set { this.InsideHorizontalColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set inside horizontal table cell border space
         /// </summary>
-        public UInt32Value InsideHorizontalSpace {
+        public UInt32Value? InsideHorizontalSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
@@ -551,7 +556,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside horizontal table cell border size
         /// </summary>
-        public UInt32Value InsideHorizontalSize {
+        public UInt32Value? InsideHorizontalSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
@@ -588,7 +593,7 @@ namespace OfficeIMO.Word {
         public BorderValues? InsideVerticalStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val;
+                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val?.Value;
                 }
                 return null;
             }
@@ -600,20 +605,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set inside vertical table cell border color using hex color codes
         /// </summary>
-        public string InsideVerticalColorHex {
+        public string? InsideVerticalColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.InsideVerticalBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -625,7 +628,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
                     _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
                 }
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -633,14 +636,17 @@ namespace OfficeIMO.Word {
         /// Get or set inside vertical table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color InsideVerticalColor {
-            get { return Helpers.ParseColor(InsideVerticalColorHex); }
+            get {
+                var hex = InsideVerticalColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideVerticalColorHex is null"));
+            }
             set { this.InsideVerticalColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set inside vertical table cell border space
         /// </summary>
-        public UInt32Value InsideVerticalSpace {
+        public UInt32Value? InsideVerticalSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
@@ -665,7 +671,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside vertical table cell border size
         /// </summary>
-        public UInt32Value InsideVerticalSize {
+        public UInt32Value? InsideVerticalSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
@@ -699,7 +705,7 @@ namespace OfficeIMO.Word {
         public BorderValues? StartStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.StartBorder != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Val;
+                    return _tableCellProperties.TableCellBorders.StartBorder.Val?.Value;
                 }
                 return null;
             }
@@ -711,20 +717,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.StartBorder == null) {
                     _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
                 }
-                _tableCellProperties.TableCellBorders.StartBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.StartBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set start table cell border color using hex color codes
         /// </summary>
-        public string StartColorHex {
+        public string? StartColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.StartBorder != null
-                    && _tableCellProperties.TableCellBorders.StartBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.StartBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.StartBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -736,7 +740,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.StartBorder == null) {
                     _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
                 }
-                _tableCellProperties.TableCellBorders.StartBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.StartBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -744,14 +748,17 @@ namespace OfficeIMO.Word {
         /// Get or set start table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color StartColor {
-            get { return Helpers.ParseColor(StartColorHex); }
+            get {
+                var hex = StartColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("StartColorHex is null"));
+            }
             set { this.StartColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set start table cell border space
         /// </summary>
-        public UInt32Value StartSpace {
+        public UInt32Value? StartSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.StartBorder != null
@@ -776,7 +783,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set start table cell border size
         /// </summary>
-        public UInt32Value StartSize {
+        public UInt32Value? StartSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.StartBorder != null
@@ -810,7 +817,7 @@ namespace OfficeIMO.Word {
         public BorderValues? EndStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.EndBorder != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Val;
+                    return _tableCellProperties.TableCellBorders.EndBorder.Val?.Value;
                 }
                 return null;
             }
@@ -822,20 +829,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.EndBorder == null) {
                     _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
                 }
-                _tableCellProperties.TableCellBorders.EndBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.EndBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set end table cell border color using hex color codes
         /// </summary>
-        public string EndColorHex {
+        public string? EndColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.EndBorder != null
-                    && _tableCellProperties.TableCellBorders.EndBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.EndBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.EndBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -847,7 +852,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.EndBorder == null) {
                     _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
                 }
-                _tableCellProperties.TableCellBorders.EndBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.EndBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -855,14 +860,17 @@ namespace OfficeIMO.Word {
         /// Get or set end table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color EndColor {
-            get { return Helpers.ParseColor(EndColorHex); }
+            get {
+                var hex = EndColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("EndColorHex is null"));
+            }
             set { this.EndColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set end table cell border space
         /// </summary>
-        public UInt32Value EndSpace {
+        public UInt32Value? EndSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.EndBorder != null
@@ -887,7 +895,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set end table cell border size
         /// </summary>
-        public UInt32Value EndSize {
+        public UInt32Value? EndSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.EndBorder != null
@@ -928,7 +936,7 @@ namespace OfficeIMO.Word {
         public BorderValues? TopLeftToBottomRightStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val;
+                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val?.Value;
                 }
                 return null;
             }
@@ -940,20 +948,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set top left to bottom right table cell border color using hex color codes
         /// </summary>
-        public string TopLeftToBottomRightColorHex {
+        public string? TopLeftToBottomRightColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.TopLeftToBottomRightCellBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -965,7 +971,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -973,14 +979,17 @@ namespace OfficeIMO.Word {
         /// Get or set top left to bottom right table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopLeftToBottomRightColor {
-            get { return Helpers.ParseColor(TopLeftToBottomRightColorHex); }
+            get {
+                var hex = TopLeftToBottomRightColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopLeftToBottomRightColorHex is null"));
+            }
             set { this.TopLeftToBottomRightColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set top left to bottom right table cell border space
         /// </summary>
-        public UInt32Value TopLeftToBottomRightSpace {
+        public UInt32Value? TopLeftToBottomRightSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
@@ -1005,7 +1014,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top left to bottom right table cell border size
         /// </summary>
-        public UInt32Value TopLeftToBottomRightSize {
+        public UInt32Value? TopLeftToBottomRightSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
@@ -1037,7 +1046,7 @@ namespace OfficeIMO.Word {
         public BorderValues? TopRightToBottomLeftStyle {
             get {
                 if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val;
+                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val?.Value;
                 }
                 return null;
             }
@@ -1049,20 +1058,18 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val = value;
+
+                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val = value.HasValue ? value.Value : null;
             }
         }
 
         /// <summary>
         /// Get or set top right to bottom left table cell border color using hex color codes
         /// </summary>
-        public string TopRightToBottomLeftColorHex {
+        public string? TopRightToBottomLeftColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color.Value != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color.Value.Replace("#", "").ToLowerInvariant();
+                if (_tableCellProperties.TableCellBorders?.TopRightToBottomLeftCellBorder?.Color?.Value is string color) {
+                    return color.Replace("#", "").ToLowerInvariant();
                 }
                 return null;
             }
@@ -1074,7 +1081,7 @@ namespace OfficeIMO.Word {
                 if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
                     _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
                 }
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -1082,14 +1089,17 @@ namespace OfficeIMO.Word {
         /// Get or set top right to bottom left table cell border color using named colors
         /// </summary>
         public SixLabors.ImageSharp.Color TopRightToBottomLeftColor {
-            get { return Helpers.ParseColor(TopRightToBottomLeftColorHex); }
+            get {
+                var hex = TopRightToBottomLeftColorHex;
+                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopRightToBottomLeftColorHex is null"));
+            }
             set { this.TopRightToBottomLeftColorHex = value.ToHexColor(); }
         }
 
         /// <summary>
         /// Get or set top right to bottom left table cell border space
         /// </summary>
-        public UInt32Value TopRightToBottomLeftSpace {
+        public UInt32Value? TopRightToBottomLeftSpace {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
@@ -1114,7 +1124,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top right to bottom left table cell border size
         /// </summary>
-        public UInt32Value TopRightToBottomLeftSize {
+        public UInt32Value? TopRightToBottomLeftSize {
             get {
                 if (_tableCellProperties.TableCellBorders != null
                     && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
