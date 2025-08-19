@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AsFluent()
                     .Info(i => i.SetTitle("Fluent Document"))
                     .Section(s => s.AddSection())
-                    .Paragraph(p => p.AddParagraph("Hello from fluent API"));
+                    .Paragraph(p => p.Text("Hello from fluent API"));
                 document.Save(false);
             }
             Helpers.Open(filePath, openWord);

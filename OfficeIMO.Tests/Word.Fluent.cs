@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Info(i => i.SetTitle("Fluent"))
                     .Section(s => s.AddSection())
-                    .Paragraph(p => p.AddParagraph("Test"))
+                    .Paragraph(p => p.Text("Test"))
                     .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell"));
                 document.Save(false);
             }
