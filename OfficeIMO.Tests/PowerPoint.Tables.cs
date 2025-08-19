@@ -1,6 +1,9 @@
-using System;
-using System.IO;
-using System.Linq;
+                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTableCell cell = table.GetCell(0, 0);
+                PowerPointTable table = presentation.Slides[0].Tables.First();
+                Assert.Equal(2, table.Rows);
+                Assert.Equal(2, table.Columns);
+                PowerPointTableCell cell = table.GetCell(0, 0);
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.PowerPoint;

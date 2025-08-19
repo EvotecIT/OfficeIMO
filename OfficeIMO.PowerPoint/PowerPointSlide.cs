@@ -14,8 +14,8 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointSlide {
         private readonly SlidePart _slidePart;
-        private readonly List<PPShape> _shapes = new();
-        private PPNotes? _notes;
+        private readonly List<PowerPointShape> _shapes = new();
+        private PowerPointNotes? _notes;
 
         internal PowerPointSlide(SlidePart slidePart) {
             _slidePart = slidePart;
@@ -25,57 +25,57 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Collection of shapes on the slide.
         /// </summary>
-        public IReadOnlyList<PPShape> Shapes => _shapes;
+        public IReadOnlyList<PowerPointShape> Shapes => _shapes;
 
         /// <summary>
         /// Enumerates all textbox shapes on the slide.
         /// </summary>
-        public IEnumerable<PPTextBox> TextBoxes => _shapes.OfType<PPTextBox>();
+        public IEnumerable<PowerPointTextBox> TextBoxes => _shapes.OfType<PowerPointTextBox>();
 
         /// <summary>
         /// Enumerates all picture shapes on the slide.
         /// </summary>
-        public IEnumerable<PPPicture> Pictures => _shapes.OfType<PPPicture>();
+        public IEnumerable<PowerPointPicture> Pictures => _shapes.OfType<PowerPointPicture>();
 
         /// <summary>
         /// Enumerates all table shapes on the slide.
         /// </summary>
-        public IEnumerable<PPTable> Tables => _shapes.OfType<PPTable>();
+        public IEnumerable<PowerPointTable> Tables => _shapes.OfType<PowerPointTable>();
 
         /// <summary>
         /// Enumerates all charts on the slide.
         /// </summary>
-        public IEnumerable<PPChart> Charts => _shapes.OfType<PPChart>();
+        public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
 
         /// <summary>
         /// Retrieves a shape by its name.
         /// </summary>
-        public PPShape? GetShape(string name) => _shapes.FirstOrDefault(s => s.Name == name);
+        public PowerPointShape? GetShape(string name) => _shapes.FirstOrDefault(s => s.Name == name);
 
         /// <summary>
         /// Retrieves a textbox by its name.
         /// </summary>
-        public PPTextBox? GetTextBox(string name) => TextBoxes.FirstOrDefault(tb => tb.Name == name);
+        public PowerPointTextBox? GetTextBox(string name) => TextBoxes.FirstOrDefault(tb => tb.Name == name);
 
         /// <summary>
         /// Retrieves a picture by its name.
         /// </summary>
-        public PPPicture? GetPicture(string name) => Pictures.FirstOrDefault(p => p.Name == name);
+        public PowerPointPicture? GetPicture(string name) => Pictures.FirstOrDefault(p => p.Name == name);
 
         /// <summary>
         /// Retrieves a table by its name.
         /// </summary>
-        public PPTable? GetTable(string name) => Tables.FirstOrDefault(t => t.Name == name);
+        public PowerPointTable? GetTable(string name) => Tables.FirstOrDefault(t => t.Name == name);
 
         /// <summary>
         /// Retrieves a chart by its name.
         /// </summary>
-        public PPChart? GetChart(string name) => Charts.FirstOrDefault(c => c.Name == name);
+        public PowerPointChart? GetChart(string name) => Charts.FirstOrDefault(c => c.Name == name);
 
         /// <summary>
         /// Removes the specified shape from the slide.
         /// </summary>
-        public void RemoveShape(PPShape shape) {
+        public void RemoveShape(PowerPointShape shape) {
             shape.Element.Remove();
             _shapes.Remove(shape);
         }
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Notes associated with the slide.
         /// </summary>
-        public PPNotes Notes => _notes ??= new PPNotes(_slidePart);
+        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
 
         /// <summary>
         /// Gets or sets the slide background color in hex format (e.g. "FF0000").
@@ -183,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a textbox with the specified text.
         /// </summary>
-        public PPTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
+        public PowerPointTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
@@ -205,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PPTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape);
             _shapes.Add(textBox);
             return textBox;
         }
@@ -213,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds an image from the given file path.
         /// </summary>
-        public PPPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
+        public PowerPointPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
             ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
@@ -239,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PPPicture pic = new(picture, _slidePart);
+            PowerPointPicture pic = new(picture, _slidePart);
             _shapes.Add(pic);
             return pic;
         }
@@ -247,7 +247,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a table with the specified rows and columns.
         /// </summary>
-        public PPTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+        public PowerPointTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
             A.Table table = new();
             A.TableProperties props = new();
             props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
@@ -285,7 +285,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PPTable tbl = new(frame);
+            PowerPointTable tbl = new(frame);
             _shapes.Add(tbl);
             return tbl;
         }
@@ -293,7 +293,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a basic clustered column chart with default data.
         /// </summary>
-        public PPChart AddChart() {
+        public PowerPointChart AddChart() {
             ChartPart chartPart = _slidePart.AddNewPart<ChartPart>();
             GenerateDefaultChart(chartPart);
 
@@ -312,7 +312,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PPChart chart = new(frame);
+            PowerPointChart chart = new(frame);
             _shapes.Add(chart);
             return chart;
         }
@@ -386,22 +386,22 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 switch (element) {
                     case Shape s when s.TextBody != null:
-                        _shapes.Add(new PPTextBox(s));
+                        _shapes.Add(new PowerPointTextBox(s));
                         break;
                     case Picture p:
-                        _shapes.Add(new PPPicture(p, _slidePart));
+                        _shapes.Add(new PowerPointPicture(p, _slidePart));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                        _shapes.Add(new PPTable(g));
+                        _shapes.Add(new PowerPointTable(g));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PPChart(g));
+                        _shapes.Add(new PowerPointChart(g));
                         break;
                 }
             }
 
             if (_slidePart.NotesSlidePart != null) {
-                _notes = new PPNotes(_slidePart);
+                _notes = new PowerPointNotes(_slidePart);
             }
         }
     }

@@ -7,8 +7,8 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a textbox shape.
     /// </summary>
-    public class PPTextBox : PPShape {
-        internal PPTextBox(Shape shape) : base(shape) {
+    public class PowerPointTextBox : PowerPointShape {
+        internal PowerPointTextBox(Shape shape) : base(shape) {
         }
 
         private Shape Shape => (Shape)Element;

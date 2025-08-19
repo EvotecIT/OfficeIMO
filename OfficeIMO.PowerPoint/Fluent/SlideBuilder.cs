@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// Adds a bulleted list to the slide.
         /// </summary>
         public SlideBuilder Bullets(params string[] bullets) {
-            PPTextBox box = _slide.AddTextBox(string.Empty);
+            PowerPointTextBox box = _slide.AddTextBox(string.Empty);
             foreach (string bullet in bullets) {
                 box.AddBullet(bullet);
             }

@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPTextBox box1 = slide.AddTextBox("First");
-                PPPicture pic1 = slide.AddPicture(imagePath);
-                PPTextBox box2 = slide.AddTextBox("Second");
-                PPPicture pic2 = slide.AddPicture(imagePath);
+                PowerPointTextBox box1 = slide.AddTextBox("First");
+                PowerPointPicture pic1 = slide.AddPicture(imagePath);
+                PowerPointTextBox box2 = slide.AddTextBox("Second");
+                PowerPointPicture pic2 = slide.AddPicture(imagePath);
 
                 Assert.Equal("TextBox 1", box1.Name);
                 Assert.Equal("TextBox 2", box2.Name);

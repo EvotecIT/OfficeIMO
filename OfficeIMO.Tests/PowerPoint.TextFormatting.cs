@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPTextBox box = slide.AddTextBox("Hello");
+                PowerPointTextBox box = slide.AddTextBox("Hello");
                 box.Bold = true;
                 box.Italic = true;
                 box.FontSize = 24;

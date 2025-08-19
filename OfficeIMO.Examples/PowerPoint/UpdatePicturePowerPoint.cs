@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPPicture picture = slide.AddPicture(imagePath);
+            PowerPointPicture picture = slide.AddPicture(imagePath);
             Console.WriteLine("Original type: " + picture.ContentType);
 
             using FileStream stream = new(newImagePath, FileMode.Open, FileAccess.Read);
