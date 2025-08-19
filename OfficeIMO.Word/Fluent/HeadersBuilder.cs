@@ -1,3 +1,5 @@
+using System;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
@@ -6,23 +8,98 @@ namespace OfficeIMO.Word.Fluent {
     /// </summary>
     public class HeadersBuilder {
         private readonly WordFluentDocument _fluent;
-        private readonly WordParagraph? _paragraph;
 
         internal HeadersBuilder(WordFluentDocument fluent) {
             _fluent = fluent;
         }
 
-        internal HeadersBuilder(WordFluentDocument fluent, WordParagraph? paragraph) {
-            _fluent = fluent;
-            _paragraph = paragraph;
+        private WordHeader GetOrCreate(HeaderFooterValues type) {
+            var document = _fluent.Document;
+            var section = document.Sections[0];
+
+            WordHeader? header;
+            if (type == HeaderFooterValues.First) {
+                header = document.Header?.First;
+            } else if (type == HeaderFooterValues.Even) {
+                header = document.Header?.Even;
+            } else {
+                header = document.Header?.Default;
+            }
+
+            if (header == null) {
+                WordHeadersAndFooters.AddHeaderReference(document, section, type);
+                if (type == HeaderFooterValues.First) {
+                    header = document.Header.First;
+                } else if (type == HeaderFooterValues.Even) {
+                    header = document.Header.Even;
+                } else {
+                    header = document.Header.Default;
+                }
+            }
+
+            return header;
         }
 
-        public WordParagraph? Paragraph => _paragraph;
+        public HeadersBuilder Default(Action<HeaderContentBuilder> action) {
+            var header = GetOrCreate(HeaderFooterValues.Default);
+            action(new HeaderContentBuilder(_fluent, header));
+            return this;
+        }
+
+        public HeadersBuilder First(Action<HeaderContentBuilder> action) {
+            var header = GetOrCreate(HeaderFooterValues.First);
+            action(new HeaderContentBuilder(_fluent, header));
+            return this;
+        }
+
+        public HeadersBuilder Even(Action<HeaderContentBuilder> action) {
+            var header = GetOrCreate(HeaderFooterValues.Even);
+            action(new HeaderContentBuilder(_fluent, header));
+            return this;
+        }
+
+        public HeadersBuilder Odd(Action<HeaderContentBuilder> action) {
+            return Default(action);
+        }
 
         public HeadersBuilder AddHeader(string text) {
-            var header = _fluent.Document.Header;
-            var paragraph = header?.Default?.AddParagraph(text);
-            return new HeadersBuilder(_fluent, paragraph);
+            return Default(h => h.Paragraph(text));
+        }
+    }
+
+    /// <summary>
+    /// Allows adding content to a specific header.
+    /// </summary>
+    public class HeaderContentBuilder {
+        private readonly WordFluentDocument _fluent;
+        private readonly WordHeader _header;
+
+        internal HeaderContentBuilder(WordFluentDocument fluent, WordHeader header) {
+            _fluent = fluent;
+            _header = header;
+        }
+
+        public HeaderContentBuilder Paragraph(string text) {
+            _header.AddParagraph(text);
+            return this;
+        }
+
+        public HeaderContentBuilder Paragraph(Action<ParagraphBuilder> action) {
+            var paragraph = _header.AddParagraph();
+            action(new ParagraphBuilder(_fluent, paragraph));
+            return this;
+        }
+
+        public HeaderContentBuilder Image(string path, double? width = null, double? height = null, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "") {
+            var paragraph = _header.AddParagraph();
+            paragraph.AddImage(path, width, height, wrapImage, description);
+            return this;
+        }
+        public HeaderContentBuilder Table(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, Action<WordTable>? configure = null) {
+            var table = _header.AddTable(rows, columns, tableStyle);
+            configure?.Invoke(table);
+            return this;
         }
     }
 }
+
