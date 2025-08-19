@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
 using System.Net.Http;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using SixLabors.ImageSharp;
@@ -104,13 +101,8 @@ namespace OfficeIMO.Word {
         /// <param name="history">Whether to track link history.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                throw new ArgumentException("Text cannot be null or empty.", nameof(text));
-            }
-
-            if (uri == null) {
-                throw new ArgumentException("Uri cannot be null.", nameof(uri));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+            ArgumentNullException.ThrowIfNull(uri);
 
             return this.AddParagraph().AddHyperLink(text, uri, addStyle, tooltip, history);
         }
@@ -125,13 +117,8 @@ namespace OfficeIMO.Word {
         /// <param name="history">Whether to track link history.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                throw new ArgumentException("Text cannot be null or empty.", nameof(text));
-            }
-
-            if (string.IsNullOrWhiteSpace(anchor)) {
-                throw new ArgumentException("Anchor cannot be null or empty.", nameof(anchor));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+            ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
 
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
@@ -144,9 +131,7 @@ namespace OfficeIMO.Word {
         /// <param name="height">Optional height for the image.</param>
         /// <returns>The created <see cref="WordImage"/>.</returns>
         public WordImage AddImageFromUrl(string url, double? width = null, double? height = null) {
-            if (string.IsNullOrWhiteSpace(url)) {
-                throw new ArgumentException("URL cannot be null or empty.", nameof(url));
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
             using HttpClient client = new HttpClient();
             var data = client.GetByteArrayAsync(url).GetAwaiter().GetResult();
