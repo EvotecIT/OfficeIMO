@@ -70,16 +70,15 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
-            VerifyRun(hyperlink, run);
-            if (run != null) {
-                if (runProperties == null) {
-                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
-                    } else {
-                        run.Append(new RunProperties());
-                    }
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run? run, RunProperties? runProperties) {
+            run = VerifyRun(hyperlink, run);
+            if (runProperties == null) {
+                var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                runProperties = new RunProperties();
+                if (text != null) {
+                    text.InsertBeforeSelf(runProperties);
+                } else {
+                    run.Append(runProperties);
                 }
             }
 
@@ -91,19 +90,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private RunProperties VerifyRunProperties() {
-            VerifyRun();
-            if (this._run != null) {
-                if (this._runProperties == null) {
-                    var text = _run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
-                    } else {
-                        this._run.Append(new RunProperties());
-                    }
+            var run = VerifyRun();
+            if (_runProperties == null && run != null) {
+                var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                _runProperties = new RunProperties();
+                if (text != null) {
+                    text.InsertBeforeSelf(_runProperties);
+                } else {
+                    run.Append(_runProperties);
                 }
             }
 
-            return this._runProperties;
+            return _runProperties!;
         }
 
         /// <summary>
