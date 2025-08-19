@@ -13,18 +13,21 @@ namespace OfficeIMO.Word.Fluent {
 
         public WordParagraph? Paragraph => _paragraph;
 
-        public TextBuilder Bold() {
+        public TextBuilder BoldOn() {
             _paragraph?.SetBold();
             return this;
         }
 
-        public TextBuilder Italic() {
+        public TextBuilder ItalicOn() {
             _paragraph?.SetItalic();
             return this;
         }
 
         public TextBuilder Color(string hex) {
-            _paragraph?.SetColorHex(hex);
+            if (hex.StartsWith("#")) {
+                hex = hex.Substring(1);
+            }
+            _paragraph?.SetColorHex("#" + hex);
             return this;
         }
     }

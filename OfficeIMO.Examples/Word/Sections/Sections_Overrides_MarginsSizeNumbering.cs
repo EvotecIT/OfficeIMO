@@ -5,18 +5,19 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
 namespace OfficeIMO.Examples.Word {
-    internal static partial class FluentDocument {
-        public static void Example_FluentSectionLayout(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Creating document with section specific layout using fluent API");
-            string filePath = Path.Combine(folderPath, "FluentSectionLayout.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
+    internal partial class Sections {
+
+        internal static void Example_Word_Fluent_Sections_Overrides_MarginsSizeNumbering(string folderPath, bool openWord) {
+            Console.WriteLine("[*] Creating document with multiple sections and per-section overrides");
+            string filePath = Path.Combine(folderPath, "Fluent_Sections_Overrides_MarginsSizeNumbering.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .PageSetup(ps => ps.Orientation(PageOrientationValues.Landscape)
-                                         .Size(WordPageSize.A4)
-                                         .Margins(WordMargin.Normal)
-                                         .DifferentFirstPage()
-                                         .DifferentOddAndEvenPages())
-                    .Section(s => s
+                    .PageSetup(ps => ps
+                        .Orientation(PageOrientationValues.Portrait)
+                        .Size(WordPageSize.A4)
+                        .Margins(WordMargin.Normal))
+                    .Section(sec => sec
                         .New(SectionMarkValues.NextPage)
                             .Margins(WordMargin.Narrow)
                             .Size(WordPageSize.Legal)
@@ -30,6 +31,7 @@ namespace OfficeIMO.Examples.Word {
                             .Paragraph(p => p.Text("Section 2"))
                             .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
                     .End();
+
                 document.Save(false);
             }
             Helpers.Open(filePath, openWord);

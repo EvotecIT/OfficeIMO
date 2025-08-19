@@ -3,36 +3,36 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
-    /// Builder for page settings.
+    /// Builder for page setup settings.
     /// </summary>
-    public class PageBuilder {
+    public class PageSetupBuilder {
         private readonly WordFluentDocument _fluent;
 
-        internal PageBuilder(WordFluentDocument fluent) {
+        internal PageSetupBuilder(WordFluentDocument fluent) {
             _fluent = fluent;
         }
 
-        public PageBuilder SetOrientation(PageOrientationValues orientation) {
+        public PageSetupBuilder Orientation(PageOrientationValues orientation) {
             _fluent.Document.PageOrientation = orientation;
             return this;
         }
 
-        public PageBuilder SetPaperSize(WordPageSize pageSize) {
+        public PageSetupBuilder Size(WordPageSize pageSize) {
             _fluent.Document.PageSettings.PageSize = pageSize;
             return this;
         }
 
-        public PageBuilder SetMargins(WordMargin margin) {
+        public PageSetupBuilder Margins(WordMargin margin) {
             _fluent.Document.Sections[0].SetMargins(margin);
             return this;
         }
 
-        public PageBuilder DifferentFirstPage(bool value = true) {
+        public PageSetupBuilder DifferentFirstPage(bool value = true) {
             _fluent.Document.DifferentFirstPage = value;
             return this;
         }
 
-        public PageBuilder DifferentOddAndEvenPages(bool value = true) {
+        public PageSetupBuilder DifferentOddAndEvenPages(bool value = true) {
             _fluent.Document.DifferentOddAndEvenPages = value;
             return this;
         }

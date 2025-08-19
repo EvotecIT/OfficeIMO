@@ -11,8 +11,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Paragraph(p => p.Text("Hello")
-                        .Text(" World", t => t.Bold().Italic().Color("ff0000"))
-                        .Text("!", t => t.Bold()));
+                        .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
+                        .Text("!", t => t.BoldOn()))
+                    .End();
                 document.Save(false);
             }
 
