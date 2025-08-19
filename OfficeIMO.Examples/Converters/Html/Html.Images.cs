@@ -7,7 +7,8 @@ namespace OfficeIMO.Examples.Html {
     internal static partial class Html {
         public static void Example_HtmlImages(string folderPath, bool openWord) {
             string filePath = Path.Combine(folderPath, "HtmlImage.docx");
-            byte[] imageBytes = File.ReadAllBytes(Path.Combine("Assets", "OfficeIMO.png"));
+            var imagePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
+            byte[] imageBytes = File.ReadAllBytes(imagePath);
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
 
