@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
             paragraph1.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
             var paragraph2 = document.AddParagraph();
-            var clone = paragraph1.Image.Clone(paragraph2);
+            var clone = paragraph1.Image!.Clone(paragraph2);
 
             Assert.Equal(paragraph1.Image.RelationshipId, clone.RelationshipId);
             Assert.Equal(2, document.Images.Count);
-            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart);
-            Assert.Single(document._wordprocessingDocument.MainDocumentPart!.ImageParts);
+            Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart);
+            Assert.Single(document._wordprocessingDocument!.MainDocumentPart!.ImageParts);
 
             document.Save(false);
         }

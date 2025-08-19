@@ -100,7 +100,8 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph(wordParagraph);
 
                 var sdt = wordParagraph.StructuredDocumentTag;
-                Assert.Null(sdt.Text);
+                Assert.NotNull(sdt);
+                Assert.Null(sdt!.Text);
 
                 sdt.Text = "New text";
 

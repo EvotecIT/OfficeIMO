@@ -16,14 +16,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Background.SetImage(imagePath, 600, 800);
 
-                var background = document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground;
+                var background = document._wordprocessingDocument!.MainDocumentPart!.Document.DocumentBackground;
                 Assert.NotNull(background);
 
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var background = document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground;
+                var background = document._wordprocessingDocument!.MainDocumentPart!.Document.DocumentBackground;
                 Assert.NotNull(background);
             }
         }

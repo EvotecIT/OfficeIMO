@@ -400,7 +400,7 @@ public partial class Word {
 
         using (var document = WordDocument.Load(filePath)) {
             Assert.Equal(wordListStyles.Length, document.Lists.Count);
-            var abstractNums = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!
+            var abstractNums = document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!
                 .Numbering.ChildElements.OfType<AbstractNum>().ToArray();
             for (var idx = 0; idx < abstractNums.Length; idx++) {
                 var style = WordListStyles.GetStyle(wordListStyles[idx]);
@@ -847,7 +847,7 @@ public partial class Word {
 
             Assert.Single(document.Lists);
             Assert.Equal("Two", document.Lists[0].ListItems[0].Text);
-            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart);
+            Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart?.NumberingDefinitionsPart);
 
             document.Save(false);
         }
