@@ -1607,7 +1607,7 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var lum = blip?.GetFirstChild<LuminanceEffect>();
-                _luminanceContrast = lum != null ? lum.Contrast : null;
+                _luminanceContrast = lum?.Contrast?.Value;
                 if (_luminanceContrast != null) _luminanceContrast /= 1000;
                 return _luminanceContrast;
             }
@@ -1979,11 +1979,11 @@ namespace OfficeIMO.Word {
 
         private Blip? GetBlip() {
             if (_Image.Inline != null) {
-                var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                var picture = _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 return picture?.BlipFill?.Blip;
             } else if (_Image.Anchor != null) {
                 var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                if (anchorGraphic?.GraphicData != null) {
                     var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     return picture?.BlipFill?.Blip;
                 }
@@ -2002,9 +2002,9 @@ namespace OfficeIMO.Word {
             if (initialBlip != null) {
                 if (initialBlip.Link != null) {
                     _externalRelationshipId = initialBlip.Link;
-                } else if (initialBlip.Embed != null) {
+                } else if (!string.IsNullOrEmpty(initialBlip.Embed?.Value)) {
                     var part = GetContainingPart();
-                    _imagePart = part.GetPartById(initialBlip.Embed) as ImagePart;
+                    _imagePart = part.GetPartById(initialBlip.Embed.Value) as ImagePart;
                 }
             }
 
@@ -2012,8 +2012,8 @@ namespace OfficeIMO.Word {
             if (picture != null) {
                 var nv = picture.NonVisualPictureProperties;
                 if (nv != null) {
-                    _title = nv.NonVisualDrawingProperties.Title;
-                    _hidden = nv.NonVisualDrawingProperties.Hidden?.Value;
+                    _title = nv.NonVisualDrawingProperties?.Title;
+                    _hidden = nv.NonVisualDrawingProperties?.Hidden?.Value;
                     var nvPic = nv.NonVisualPictureDrawingProperties;
                     if (nvPic != null) {
                         _preferRelativeResize = nvPic.PreferRelativeResize?.Value;
@@ -2032,13 +2032,13 @@ namespace OfficeIMO.Word {
                 var pictureBlip = picture.BlipFill?.Blip;
                 if (pictureBlip != null) {
                     var ar = pictureBlip.GetFirstChild<AlphaReplace>();
-                    if (ar != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
+                    if (ar?.Alpha != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
                     var ai = pictureBlip.GetFirstChild<AlphaInverse>();
                     _alphaInversionColorHex = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
                     var bi = pictureBlip.GetFirstChild<BiLevel>();
-                    _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                    _blackWhiteThreshold = bi?.Threshold?.Value != null ? (int?)(bi.Threshold.Value / 1000) : null;
                     var blur = pictureBlip.GetFirstChild<Blur>();
-                    if (blur != null) { _blurRadius = blur.Radius != null ? (int?)blur.Radius.Value : null; _blurGrow = blur.Grow; }
+                    if (blur != null) { _blurRadius = (int?)blur.Radius?.Value; _blurGrow = blur.Grow?.Value; }
                     var cc = pictureBlip.GetFirstChild<ColorChange>();
                     if (cc != null) {
                         _colorChangeFromHex = cc.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
@@ -2153,36 +2153,38 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             if (_imagePart != null) {
-                OpenXmlElement parent = _Image.Parent;
+                OpenXmlElement? parent = _Image?.Parent;
                 while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
                     parent = parent.Parent;
                 }
 
-                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                OpenXmlPart? part = _document._wordprocessingDocument.MainDocumentPart;
                 if (parent is Header header) {
                     part = header.HeaderPart;
                 } else if (parent is Footer footer) {
                     part = footer.FooterPart;
                 }
 
-                part.DeletePart(_imagePart);
+                part?.DeletePart(_imagePart);
                 _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
-                OpenXmlElement parent = _Image.Parent;
+                OpenXmlElement? parent = _Image?.Parent;
                 while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
                     parent = parent.Parent;
                 }
 
-                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                OpenXmlPart? part = _document._wordprocessingDocument.MainDocumentPart;
                 if (parent is Header header) {
                     part = header.HeaderPart;
                 } else if (parent is Footer footer) {
                     part = footer.FooterPart;
                 }
 
-                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
-                if (rel != null) {
-                    part.DeleteExternalRelationship(rel);
+                if (part != null) {
+                    var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                    if (rel != null) {
+                        part.DeleteExternalRelationship(rel);
+                    }
                 }
                 _externalRelationshipId = null;
             }
@@ -2244,15 +2246,15 @@ namespace OfficeIMO.Word {
             string relationshipId;
             var location = paragraph.Location();
             if (location.GetType() == typeof(Header)) {
-                var part = ((Header)location).HeaderPart;
+                var part = ((Header)location).HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Footer)) {
-                var part = ((Footer)location).FooterPart;
+                var part = ((Footer)location).FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else if (location.GetType() == typeof(Document)) {
-                var part = document._wordprocessingDocument.MainDocumentPart;
+                var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
                 imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                 relationshipId = part.GetIdOfPart(imagePart);
             } else {
@@ -2276,11 +2278,14 @@ namespace OfficeIMO.Word {
             var location = paragraph.Location();
             ExternalRelationship rel;
             if (location is Header header) {
-                rel = header.HeaderPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+                var part = header.HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
             } else if (location is Footer footer) {
-                rel = footer.FooterPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+                var part = footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
             } else {
-                rel = document._wordprocessingDocument.MainDocumentPart.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+                var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
             }
 
             _externalRelationshipId = rel.Id;
@@ -2301,20 +2306,20 @@ namespace OfficeIMO.Word {
         }
 
         private OpenXmlPart GetContainingPart() {
-            OpenXmlElement parent = _Image.Parent;
+            OpenXmlElement? parent = _Image.Parent;
             while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
                 parent = parent.Parent;
             }
 
             if (parent is Header header) {
-                return header.HeaderPart;
+                return header.HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
             }
 
             if (parent is Footer footer) {
-                return footer.FooterPart;
+                return footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
             }
 
-            return _document._wordprocessingDocument.MainDocumentPart;
+            return _document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
         }
     }
 }

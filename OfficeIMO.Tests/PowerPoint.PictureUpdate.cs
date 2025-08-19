@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPPicture picture = slide.AddPicture(originalImage);
+                PowerPointPicture picture = slide.AddPicture(originalImage);
                 using FileStream stream = new(newImagePath, FileMode.Open, FileAccess.Read);
                 picture.UpdateImage(stream, type);
                 Assert.Equal(expectedContentType, picture.ContentType);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
-                PPPicture picture = slide.Pictures.First();
+                PowerPointPicture picture = slide.Pictures.First();
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
             }

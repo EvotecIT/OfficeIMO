@@ -22,9 +22,12 @@ namespace OfficeIMO.Word {
 
         internal static void InitializeDocPrIdSeed(WordprocessingDocument document) {
             uint max = (uint)_docPrIdSeed;
-            foreach (var prop in document.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
-                if (prop.Id != null && prop.Id > max) {
-                    max = prop.Id;
+            var mainPart = document.MainDocumentPart;
+            if (mainPart?.Document != null) {
+                foreach (var prop in mainPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+                    if (prop.Id != null && prop.Id > max) {
+                        max = prop.Id;
+                    }
                 }
             }
             _docPrIdSeed = (int)max;
@@ -37,7 +40,7 @@ namespace OfficeIMO.Word {
 
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
             uint max = (uint)_axisIdSeed;
-            foreach (var part in document.MainDocumentPart.ChartParts) {
+            foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
                 var chart = part.ChartSpace.GetFirstChild<Chart>();
                 if (chart == null) continue;
                 foreach (var axis in chart.Descendants<AxisId>()) {
@@ -79,10 +82,11 @@ namespace OfficeIMO.Word {
 
         private UInt32Value _index {
             get {
-                if (_chart != null) {
-                    var ids = _chart.PlotArea
+                var plotArea = _chart?.PlotArea;
+                if (plotArea != null) {
+                    var ids = plotArea
                         .Descendants<DocumentFormat.OpenXml.Drawing.Charts.Index>()
-                        .Select(i => i.Val)
+                        .Select(i => i.Val?.Value ?? 0U)
                         .ToList();
 
                     if (ids.Count > 0) {
@@ -205,7 +209,7 @@ namespace OfficeIMO.Word {
         private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
             ChartPart part = CreateChartPart(wordDocument, roundedCorners);
             // _chartPart = part;
-            var id = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part);
+            var id = _document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(part);
 
             Drawing chartDrawing = CreateChartDrawing(id, width, height);
             _drawing = chartDrawing;
@@ -217,7 +221,7 @@ namespace OfficeIMO.Word {
         }
 
         private ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
-            ChartPart part = document._wordprocessingDocument.MainDocumentPart.AddNewPart<ChartPart>(); //("rId1");
+            ChartPart part = document._wordprocessingDocument.MainDocumentPart!.AddNewPart<ChartPart>(); //("rId1");
 
             ChartSpace chartSpace1 = new ChartSpace();
             chartSpace1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
@@ -396,8 +400,8 @@ namespace OfficeIMO.Word {
                         var existing = valAxis.GetFirstChild<Title>();
                         existing?.Remove();
                         if (!string.IsNullOrEmpty(_yAxisTitle)) {
-                            OpenXmlElement refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
-                                ?? valAxis.GetFirstChild<AxisPosition>();
+            OpenXmlElement? refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
+                ?? valAxis.GetFirstChild<AxisPosition>();
                             var title = AddAxisTitle(_yAxisTitle);
                             if (refNode != null) {
                                 valAxis.InsertAfter(title, refNode);

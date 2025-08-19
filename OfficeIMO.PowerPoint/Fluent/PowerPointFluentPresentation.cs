@@ -18,9 +18,9 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// </summary>
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
-        public SlideBuilder Slide(int masterIndex = 0, int layoutIndex = 0) {
+        public PowerPointSlideBuilder Slide(int masterIndex = 0, int layoutIndex = 0) {
             PowerPointSlide slide = Presentation.AddSlide(masterIndex, layoutIndex);
-            return new SlideBuilder(slide);
+            return new PowerPointSlideBuilder(slide);
         }
     }
 }

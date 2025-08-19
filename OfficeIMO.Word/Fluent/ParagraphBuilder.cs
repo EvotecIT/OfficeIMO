@@ -1,5 +1,6 @@
 using System;
 using OfficeIMO.Word;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -45,6 +46,82 @@ namespace OfficeIMO.Word.Fluent {
         public ParagraphBuilder Table(Action<TableBuilder> action) {
             action(new TableBuilder(_fluent));
             return this;
+        }
+      
+        public ParagraphBuilder AlignLeft() {
+            _paragraph.ParagraphAlignment = JustificationValues.Left;
+            return this;
+        }
+
+        public ParagraphBuilder AlignCenter() {
+            _paragraph.ParagraphAlignment = JustificationValues.Center;
+            return this;
+        }
+
+        public ParagraphBuilder AlignRight() {
+            _paragraph.ParagraphAlignment = JustificationValues.Right;
+            return this;
+        }
+
+        public ParagraphBuilder AlignJustified() {
+            _paragraph.ParagraphAlignment = JustificationValues.Both;
+            return this;
+        }
+
+        public ParagraphBuilder SpacingBefore(double points) {
+            _paragraph.LineSpacingBeforePoints = points;
+            return this;
+        }
+
+        public ParagraphBuilder SpacingAfter(double points) {
+            _paragraph.LineSpacingAfterPoints = points;
+            return this;
+        }
+
+        public ParagraphBuilder LineSpacing(double points) {
+            _paragraph.LineSpacingPoints = points;
+            return this;
+        }
+
+        public ParagraphBuilder Indentation(double? left = null, double? firstLine = null, double? right = null) {
+            if (left != null) {
+                _paragraph.IndentationBeforePoints = left.Value;
+            }
+
+            if (firstLine != null) {
+                _paragraph.IndentationFirstLinePoints = firstLine.Value;
+            }
+
+            if (right != null) {
+                _paragraph.IndentationAfterPoints = right.Value;
+            }
+
+            return this;
+        }
+
+        public ParagraphBuilder Style(WordParagraphStyles style) {
+            _paragraph.SetStyle(style);
+            return this;
+        }
+
+        public ParagraphBuilder Style(string styleId) {
+            _paragraph.SetStyleId(styleId);
+            return this;
+        }
+
+        public ListBuilder AddList(WordListStyle style) {
+            var list = _paragraph.AddList(style);
+            return new ListBuilder(_fluent, list);
+        }
+
+        public TableBuilder AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            var table = _paragraph.AddTableAfter(rows, columns, tableStyle);
+            return new TableBuilder(_fluent, table);
+        }
+
+        public TableBuilder AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            var table = _paragraph.AddTableBefore(rows, columns, tableStyle);
+            return new TableBuilder(_fluent, table);
         }
     }
 }

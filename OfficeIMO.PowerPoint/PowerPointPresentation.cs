@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.Fluent;
@@ -10,7 +5,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Represents a PowerPoint presentation providing basic create, open and save operations.
+    ///     Represents a PowerPoint presentation providing basic create, open and save operations.
     /// </summary>
     public sealed class PowerPointPresentation : IDisposable {
         private readonly PresentationDocument _document;
@@ -37,20 +32,45 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Collection of slides in the presentation.
+        ///     Collection of slides in the presentation.
         /// </summary>
         public IReadOnlyList<PowerPointSlide> Slides => _slides;
 
         /// <summary>
-        /// Creates a new PowerPoint presentation at the specified file path.
+        ///     Gets or sets the name of the presentation theme.
+        /// </summary>
+        public string ThemeName {
+            get {
+                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
+            }
+            set {
+                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
+                if (themePart.Theme == null) {
+                    themePart.Theme = new A.Theme { ThemeElements = new A.ThemeElements() };
+                }
+
+                themePart.Theme.Name = value;
+            }
+        }
+
+        /// <inheritdoc />
+        public void Dispose() {
+            _document.Dispose();
+        }
+
+        /// <summary>
+        ///     Creates a new PowerPoint presentation at the specified file path.
         /// </summary>
         public static PowerPointPresentation Create(string filePath) {
-            PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
+            PresentationDocument document =
+                PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
             return new PowerPointPresentation(document);
         }
 
         /// <summary>
-        /// Opens an existing PowerPoint presentation.
+        ///     Opens an existing PowerPoint presentation.
         /// </summary>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
@@ -58,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Adds a new slide using the specified master and layout indexes.
+        ///     Adds a new slide using the specified master and layout indexes.
         /// </summary>
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
@@ -70,12 +90,14 @@ namespace OfficeIMO.PowerPoint {
             if (masterIndex < 0 || masterIndex >= masters.Length) {
                 throw new ArgumentOutOfRangeException(nameof(masterIndex));
             }
+
             SlideMasterPart masterPart = masters[masterIndex];
 
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
                 throw new ArgumentOutOfRangeException(nameof(layoutIndex));
             }
+
             SlideLayoutPart layoutPart = layouts[layoutIndex];
             slidePart.AddPart(layoutPart);
 
@@ -87,10 +109,8 @@ namespace OfficeIMO.PowerPoint {
             if (_presentationPart.Presentation.SlideIdList.Elements<SlideId>().Any()) {
                 maxId = _presentationPart.Presentation.SlideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 0);
             }
-            SlideId slideId = new SlideId {
-                Id = maxId + 1,
-                RelationshipId = _presentationPart.GetIdOfPart(slidePart)
-            };
+
+            SlideId slideId = new() { Id = maxId + 1, RelationshipId = _presentationPart.GetIdOfPart(slidePart) };
             _presentationPart.Presentation.SlideIdList.Append(slideId);
             _presentationPart.Presentation.Save();
 
@@ -100,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Saves all pending changes to the underlying package.
+        ///     Saves all pending changes to the underlying package.
         /// </summary>
         public void Save() {
             foreach (PowerPointSlide slide in _slides) {
@@ -112,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Creates a fluent wrapper for this presentation.
+        ///     Creates a fluent wrapper for this presentation.
         /// </summary>
         public PowerPointFluentPresentation AsFluent() {
             return new PowerPointFluentPresentation(this);
@@ -129,52 +149,19 @@ namespace OfficeIMO.PowerPoint {
             slideLayoutPart2.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
 
             slideMasterPart.SlideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId {
-                    Id = 1U,
-                    RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1)
-                },
-                new SlideLayoutId {
-                    Id = 2U,
-                    RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2)
-                }
+                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
+                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
             );
 
             ThemePart themePart = slideMasterPart.AddNewPart<ThemePart>();
-            themePart.Theme = new A.Theme {
-                Name = "Office Theme",
-                ThemeElements = new A.ThemeElements()
-            };
+            themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
-                Id = 1U,
-                RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
+                Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
             });
 
             _presentationPart.Presentation.SlideIdList = new SlideIdList();
             _presentationPart.Presentation.Save();
-        }
-
-        /// <summary>
-        /// Gets or sets the name of the presentation theme.
-        /// </summary>
-        public string ThemeName {
-            get {
-                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
-                return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
-            }
-            set {
-                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
-                ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
-                if (themePart.Theme == null) {
-                    themePart.Theme = new A.Theme { ThemeElements = new A.ThemeElements() };
-                }
-                themePart.Theme.Name = value;
-            }
-        }
-
-        /// <inheritdoc />
-        public void Dispose() {
-            _document.Dispose();
         }
     }
 }

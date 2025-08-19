@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
                 sheet.SetCellValue(1, 1, "Long piece of text");
                 sheet.SetCellValue(2, 1, "Second line\nwith newline");
                 sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3");
-                sheet.AutoFitAllColumns();
-                sheet.AutoFitAllRows();
+                sheet.AutoFitColumns();
+                sheet.AutoFitRows();
                 document.Save();
             }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.SetCellValue(1, 1, "Content");
                 sheet.SetCellValue(2, 1, " ");
-                sheet.AutoFitAllRows();
+                sheet.AutoFitRows();
                 document.Save();
             }
 
@@ -77,14 +77,14 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.SetCellValue(1, 1, "Content");
-                sheet.AutoFitAllRows();
+                sheet.AutoFitRows();
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
                 sheet.SetCellValue(1, 1, string.Empty);
-                sheet.AutoFitAllRows();
+                sheet.AutoFitRows();
                 document.Save();
             }
 
@@ -102,14 +102,14 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.SetCellValue(1, 1, "Long text");
-                sheet.AutoFitAllColumns();
+                sheet.AutoFitColumns();
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
                 sheet.SetCellValue(1, 1, string.Empty);
-                sheet.AutoFitAllColumns();
+                sheet.AutoFitColumns();
                 document.Save();
             }
 
@@ -117,6 +117,54 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
                 var columns = wsPart.Worksheet.GetFirstChild<Columns>();
                 Assert.True(columns == null || !columns.Elements<Column>().Any(c => c.Min == 1 && c.Max == 1));
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFitSingleColumn_DoesNotAffectOthers() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleColumn.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, "Very long text that should expand the column");
+                sheet.SetCellValue(1, 2, "Short");
+                sheet.AutoFitColumn(1);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>();
+                Assert.NotNull(columns);
+                var column1 = columns.Elements<Column>().FirstOrDefault(c => c.Min == 1 && c.Max == 1);
+                Assert.NotNull(column1);
+                Assert.True(column1!.BestFit?.Value ?? false);
+                Assert.True(column1.Width?.Value > 0);
+
+                var column2 = columns.Elements<Column>().FirstOrDefault(c => c.Min == 2 && c.Max == 2);
+                Assert.Null(column2);
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFitSingleRow_DoesNotAffectOthers() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleRow.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, "Line1\nLine2\nLine3");
+                sheet.SetCellValue(2, 1, "Line1\nLine2\nLine3");
+                sheet.AutoFitRow(1);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var row1 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 1);
+                Assert.True(row1.CustomHeight?.Value ?? false);
+                Assert.True(row1.Height?.Value > 0);
+
+                var row2 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 2);
+                Assert.False(row2.CustomHeight?.Value ?? false);
+                Assert.False(row2.Height?.HasValue ?? false);
             }
         }
     }

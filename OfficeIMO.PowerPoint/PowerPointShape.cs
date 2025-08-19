@@ -1,21 +1,19 @@
-using System;
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Presentation;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Base class for shapes used on PowerPoint slides.
+    ///     Base class for shapes used on PowerPoint slides.
     /// </summary>
-    public abstract class PPShape {
-        internal OpenXmlElement Element { get; }
-
-        internal PPShape(OpenXmlElement element) {
+    public abstract class PowerPointShape {
+        internal PowerPointShape(OpenXmlElement element) {
             Element = element;
         }
 
+        internal OpenXmlElement Element { get; }
+
         /// <summary>
-        /// Name assigned to the shape.
+        ///     Name assigned to the shape.
         /// </summary>
         public string? Name {
             get {
@@ -33,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the fill color of the shape in hex format (e.g. "FF0000").
+        ///     Gets or sets the fill color of the shape in hex format (e.g. "FF0000").
         /// </summary>
         public string? FillColor {
             get {
@@ -41,6 +39,7 @@ namespace OfficeIMO.PowerPoint {
                     A.SolidFill? solid = shape.ShapeProperties?.GetFirstChild<A.SolidFill>();
                     return solid?.RgbColorModelHex?.Val;
                 }
+
                 return null;
             }
             set {
@@ -52,6 +51,38 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
             }
+        }
+
+        /// <summary>
+        ///     Horizontal position of the shape in EMUs.
+        /// </summary>
+        public long Left {
+            get => GetOffset().X?.Value ?? 0L;
+            set => GetOffset().X = value;
+        }
+
+        /// <summary>
+        ///     Vertical position of the shape in EMUs.
+        /// </summary>
+        public long Top {
+            get => GetOffset().Y?.Value ?? 0L;
+            set => GetOffset().Y = value;
+        }
+
+        /// <summary>
+        ///     Width of the shape in EMUs.
+        /// </summary>
+        public long Width {
+            get => GetExtents().Cx?.Value ?? 0L;
+            set => GetExtents().Cx = value;
+        }
+
+        /// <summary>
+        ///     Height of the shape in EMUs.
+        /// </summary>
+        public long Height {
+            get => GetExtents().Cy?.Value ?? 0L;
+            set => GetExtents().Cy = value;
         }
 
         private A.Offset GetOffset() {
@@ -95,38 +126,5 @@ namespace OfficeIMO.PowerPoint {
                     throw new NotSupportedException();
             }
         }
-
-        /// <summary>
-        /// Horizontal position of the shape in EMUs.
-        /// </summary>
-        public long Left {
-            get => GetOffset().X?.Value ?? 0L;
-            set => GetOffset().X = value;
-        }
-
-        /// <summary>
-        /// Vertical position of the shape in EMUs.
-        /// </summary>
-        public long Top {
-            get => GetOffset().Y?.Value ?? 0L;
-            set => GetOffset().Y = value;
-        }
-
-        /// <summary>
-        /// Width of the shape in EMUs.
-        /// </summary>
-        public long Width {
-            get => GetExtents().Cx?.Value ?? 0L;
-            set => GetExtents().Cx = value;
-        }
-
-        /// <summary>
-        /// Height of the shape in EMUs.
-        /// </summary>
-        public long Height {
-            get => GetExtents().Cy?.Value ?? 0L;
-            set => GetExtents().Cy = value;
-        }
     }
 }
-

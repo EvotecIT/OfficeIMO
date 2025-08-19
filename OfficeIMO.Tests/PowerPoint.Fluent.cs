@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.Slides[0];
                 Assert.Equal("Notes text", slide.Notes.Text);
                 Assert.Equal(5, slide.Shapes.Count);
-                var textBoxes = slide.Shapes.OfType<PPTextBox>().ToList();
+                var textBoxes = slide.Shapes.OfType<PowerPointTextBox>().ToList();
                 Assert.Equal(3, textBoxes.Count);
                 Assert.Equal("Fluent Title", textBoxes[0].Text);
                 Assert.Equal("Hello", textBoxes[1].Text);

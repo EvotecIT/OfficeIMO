@@ -12,16 +12,16 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Retrieves the <see cref="AbstractNum"/> associated with this list.
     /// </summary>
-    private AbstractNum GetAbstractNum() {
+    private AbstractNum? GetAbstractNum() {
         var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         if (_abstractId == 0) {
             var instance = numbering.Elements<NumberingInstance>()
-                .FirstOrDefault(n => n.NumberID.Value == _numberId);
+                .FirstOrDefault(n => n.NumberID != null && n.NumberID.Value == _numberId);
             if (instance?.AbstractNumId?.Val != null) {
                 _abstractId = (int)instance.AbstractNumId.Val.Value;
             }
         }
-        return numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+        return numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public partial class WordList : WordElement {
     private static int GetNextAbstractNum(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<AbstractNum>()
-            .Select(element => (int)element.AbstractNumberId)
+            .Select(element => (int)(element.AbstractNumberId?.Value ?? 0))
             .ToList();
         return ids.Count > 0 ? ids.Max() + 1 : 0;
     }
@@ -43,7 +43,7 @@ public partial class WordList : WordElement {
     private static int GetNextNumberingInstance(Numbering numbering) {
         var ids = numbering.ChildElements
             .OfType<NumberingInstance>()
-            .Select(element => (int)element.NumberID)
+            .Select(element => (int)(element.NumberID?.Value ?? 0))
             .ToList();
         return ids.Count > 0 ? ids.Max() + 1 : 1;
     }
@@ -54,7 +54,7 @@ public partial class WordList : WordElement {
     /// <typeparam name="T">The type of the property.</typeparam>
     /// <param name="propertySelector">The selector function to extract the property.</param>
     /// <param name="defaultValue">The default value if the property is not found.</param>
-    private T GetNumberingProperty<T>(Func<NumberingSymbolRunProperties, T> propertySelector, T defaultValue = default) {
+    private T? GetNumberingProperty<T>(Func<NumberingSymbolRunProperties, T?> propertySelector, T? defaultValue = default) {
         var abstractNum = GetAbstractNum();
         var level = abstractNum?.Elements<Level>().FirstOrDefault();
         if (level != null) {
@@ -92,7 +92,7 @@ public partial class WordList : WordElement {
     /// </summary>
     /// <param name="document">The Word document.</param>
     private void CreateNumberingDefinition(WordDocument document) {
-        var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? _wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
+        var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? document._wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
         if (numberingDefinitionsPart.Numbering == null) {
             // the check for null is required even tho Resharper claims it's not
             Numbering numbering1 = new Numbering() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
@@ -131,7 +131,7 @@ public partial class WordList : WordElement {
             numbering1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
 
             numberingDefinitionsPart.Numbering = numbering1;
-            numberingDefinitionsPart.Numbering.Save(_document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
+            numbering1.Save(_document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!);
         }
     }
 
@@ -232,15 +232,15 @@ public partial class WordList : WordElement {
     }
 
     private WordList Clone(OpenXmlElement referenceParagraph, bool after) {
-        var numberingPart = _document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart;
+        var numberingPart = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart;
         if (numberingPart == null) {
             numberingPart = _document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
             numberingPart.Numbering = new Numbering();
         }
         var numbering = numberingPart.Numbering;
 
-        var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId.Value == _abstractId);
-        var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID.Value == _numberId);
+        var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
+        var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID != null && n.NumberID.Value == _numberId);
 
         int newAbstractId = GetNextAbstractNum(numbering);
         int newNumberId = GetNextNumberingInstance(numbering);
@@ -276,17 +276,21 @@ public partial class WordList : WordElement {
         clonedList._numberId = newNumberId;
 
         OpenXmlElement currentRef = referenceParagraph;
-        WordParagraph firstInserted = null;
+        WordParagraph? firstInserted = null;
         foreach (var item in ListItems) {
             var clonedParagraph = (Paragraph)item._paragraph.CloneNode(true);
             var numberingProps = clonedParagraph.GetFirstChild<ParagraphProperties>()?.NumberingProperties;
-            if (numberingProps != null) {
+            if (numberingProps?.NumberingId != null) {
                 numberingProps.NumberingId.Val = newNumberId;
             }
             currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
-            var run = ((Paragraph)currentRef).GetFirstChild<Run>() ?? new Run();
-            if (run.Parent == null) ((Paragraph)currentRef).AppendChild(run);
-            var wp = new WordParagraph(_document, (Paragraph)currentRef, run);
+            var paragraphElement = currentRef as Paragraph;
+            if (paragraphElement == null) {
+                continue;
+            }
+            var run = paragraphElement.GetFirstChild<Run>() ?? new Run();
+            if (run.Parent == null) paragraphElement.AppendChild(run);
+            var wp = new WordParagraph(_document, paragraphElement, run);
             wp.Text = item.Text;
             wp._list = clonedList;
             clonedList._listItems.Add(wp);
@@ -337,7 +341,7 @@ public partial class WordList : WordElement {
         var numberingPart = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!;
         var numbering = numberingPart.Numbering;
 
-        var oldAbstract = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId.Value == _abstractId);
+        var oldAbstract = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
         if (oldAbstract == null) {
             return;
         }
