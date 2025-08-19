@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
 
         /// <summary>
@@ -22,24 +23,29 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public List<ExcelSheet> Sheets {
             get {
-                // Always rebuild the ID list to avoid duplicate entries when
-                // accessing the Sheets property multiple times
-                id.Clear();
-                id.Add(0);
+                _lock.EnterWriteLock();
+                try {
+                    // Always rebuild the ID list to avoid duplicate entries when
+                    // accessing the Sheets property multiple times
+                    id.Clear();
+                    id.Add(0);
 
-                List<ExcelSheet> listExcel = new List<ExcelSheet>();
-                if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                    var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
-                    foreach (Sheet s in elements) {
-                        ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
-                        if (!id.Contains(s.SheetId)) {
-                            id.Add(s.SheetId);
+                    List<ExcelSheet> listExcel = new List<ExcelSheet>();
+                    if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
+                        var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
+                        foreach (Sheet s in elements) {
+                            ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
+                            if (!id.Contains(s.SheetId)) {
+                                id.Add(s.SheetId);
+                            }
+                            listExcel.Add(excelSheet);
                         }
-                        listExcel.Add(excelSheet);
                     }
-                }
 
-                return listExcel;
+                    return listExcel;
+                } finally {
+                    _lock.ExitWriteLock();
+                }
             }
         }
 
@@ -62,34 +68,53 @@ namespace OfficeIMO.Excel {
 
         internal SharedStringTablePart SharedStringTablePart {
             get {
-                if (_sharedStringTablePart != null) {
+                _lock.EnterUpgradeableReadLock();
+                try {
+                    if (_sharedStringTablePart == null) {
+                        _lock.EnterWriteLock();
+                        try {
+                            if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                                _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                            } else {
+                                _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
+                                _sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                            }
+                        } finally {
+                            _lock.ExitWriteLock();
+                        }
+                    }
+
                     return _sharedStringTablePart;
+                } finally {
+                    _lock.ExitUpgradeableReadLock();
                 }
-
-                if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
-                    _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
-                } else {
-                    _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
-                    _sharedStringTablePart.SharedStringTable = new SharedStringTable();
-                }
-
-                return _sharedStringTablePart;
             }
         }
 
         internal int GetSharedStringIndex(string text) {
-            var sharedStringTable = SharedStringTablePart.SharedStringTable;
-            int index = 0;
-            foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
-                if (item.InnerText == text) {
-                    return index;
+            _lock.EnterUpgradeableReadLock();
+            try {
+                var sharedStringTable = SharedStringTablePart.SharedStringTable;
+                int index = 0;
+                foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
+                    if (item.InnerText == text) {
+                        return index;
+                    }
+                    index++;
                 }
-                index++;
-            }
 
-            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-            sharedStringTable.Save();
-            return index;
+                _lock.EnterWriteLock();
+                try {
+                    sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                    sharedStringTable.Save();
+                } finally {
+                    _lock.ExitWriteLock();
+                }
+
+                return index;
+            } finally {
+                _lock.ExitUpgradeableReadLock();
+            }
         }
 
         /// <summary>
@@ -198,9 +223,14 @@ namespace OfficeIMO.Excel {
         /// <param name="workSheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
+            _lock.EnterWriteLock();
+            try {
+                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
 
-            return excelSheet;
+                return excelSheet;
+            } finally {
+                _lock.ExitWriteLock();
+            }
         }
 
         /// <summary>
