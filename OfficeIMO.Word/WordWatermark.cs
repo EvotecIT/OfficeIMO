@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
                             if (shape != null) {
                                 TextPath? textPath = shape.GetFirstChild<V.TextPath>();
                                 if (textPath != null) {
-                                    return textPath.String ?? string.Empty;
+                                    return textPath.String?.Value ?? string.Empty;
                                 }
                             }
                         }
@@ -265,7 +265,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Font family used for text watermark.
         /// </summary>
-        public string FontFamily {
+        public string? FontFamily {
             get {
                 var shape = _shape;
                 if (shape != null) {
@@ -342,22 +342,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? Opacity {
             get {
-                var shape = _shape;
-                if (shape != null) {
-                    var fill = shape.GetFirstChild<V.Fill>();
-                    if (fill != null && fill.Opacity != null) {
-                        return double.Parse(fill.Opacity.Value, CultureInfo.InvariantCulture);
-                    }
+                if (_shape?.GetFirstChild<V.Fill>()?.Opacity?.Value is string opacity) {
+                    return double.Parse(opacity, CultureInfo.InvariantCulture);
                 }
                 return null;
             }
             set {
-                var shape = _shape;
-                if (shape != null) {
-                    var fill = shape.GetFirstChild<V.Fill>();
-                    if (fill != null && value != null) {
-                        fill.Opacity = value.Value.ToString(CultureInfo.InvariantCulture);
-                    }
+                var fill = _shape?.GetFirstChild<V.Fill>();
+                if (fill != null && value != null) {
+                    fill.Opacity = value.Value.ToString(CultureInfo.InvariantCulture);
                 }
             }
         }
@@ -511,10 +504,12 @@ namespace OfficeIMO.Word {
                 this.Text = textOrFilePath;
 
                 if (this._section.Paragraphs.Count == 0) {
-                    this._document._document.Body.Append(_sdtBlock);
+                    var body = this._document._document.Body ?? throw new InvalidOperationException("Document body is missing");
+                    body.Append(_sdtBlock);
                 } else {
                     var lastParagraph = this._section.Paragraphs.Last();
-                    lastParagraph._paragraph.Parent.Append(_sdtBlock);
+                    var parent = lastParagraph._paragraph.Parent ?? throw new InvalidOperationException("Paragraph parent is missing");
+                    parent.Append(_sdtBlock);
                 }
             } else {
                 this._sdtBlock = GetStyle(style);
@@ -523,10 +518,12 @@ namespace OfficeIMO.Word {
                 using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
 
                 if (this._section.Paragraphs.Count == 0) {
-                    this._document._document.Body.Append(_sdtBlock);
+                    var body = this._document._document.Body ?? throw new InvalidOperationException("Document body is missing");
+                    body.Append(_sdtBlock);
                 } else {
                     var lastParagraph = this._section.Paragraphs.Last();
-                    lastParagraph._paragraph.Parent.Append(_sdtBlock);
+                    var parent = lastParagraph._paragraph.Parent ?? throw new InvalidOperationException("Paragraph parent is missing");
+                    parent.Append(_sdtBlock);
                 }
 
                 var sdtContentBlock = this._sdtBlock.SdtContentBlock ?? throw new InvalidOperationException("Missing content block in watermark");
@@ -921,8 +918,8 @@ namespace OfficeIMO.Word {
             run1.Append(runProperties1);
             run1.Append(picture1);
 
-            wordParagraph._paragraphProperties.Remove();
-            wordParagraph._paragraph.Append(paragraphProperties1);
+            wordParagraph._paragraphProperties?.Remove();
+            wordParagraph._paragraph!.Append(paragraphProperties1);
             wordParagraph._paragraph.Append(run1);
         }
 
