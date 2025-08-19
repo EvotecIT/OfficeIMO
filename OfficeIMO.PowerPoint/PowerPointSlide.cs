@@ -239,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PPPicture pic = new(picture);
+            PPPicture pic = new(picture, _slidePart);
             _shapes.Add(pic);
             return pic;
         }
@@ -389,7 +389,7 @@ namespace OfficeIMO.PowerPoint {
                         _shapes.Add(new PPTextBox(s));
                         break;
                     case Picture p:
-                        _shapes.Add(new PPPicture(p));
+                        _shapes.Add(new PPPicture(p, _slidePart));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
                         _shapes.Add(new PPTable(g));
