@@ -362,10 +362,11 @@ namespace OfficeIMO.Visio {
                         if (formula != null) writer.WriteAttributeString("F", formula);
                         writer.WriteEndElement();
                     }
-                    WritePageCell("PageWidth", page.PageWidth);
-                    WritePageCell("PageHeight", page.PageHeight);
-                    WritePageCell("ShdwOffsetX", 0.1181102362204724);
-                    WritePageCell("ShdwOffsetY", -0.1181102362204724);
+                    bool useUnits = page.PageWidth != 8.26771653543307 || page.PageHeight != 11.69291338582677;
+                    WritePageCell("PageWidth", page.PageWidth, useUnits ? "MM" : null);
+                    WritePageCell("PageHeight", page.PageHeight, useUnits ? "MM" : null);
+                    WritePageCell("ShdwOffsetX", 0.1181102362204724, useUnits ? "MM" : null);
+                    WritePageCell("ShdwOffsetY", -0.1181102362204724, useUnits ? "MM" : null);
                     WritePageCell("PageScale", 0.03937007874015748, "MM");
                     WritePageCell("DrawingScale", 0.03937007874015748, "MM");
                     WritePageCell("DrawingSizeType", 0);
