@@ -679,7 +679,8 @@ namespace OfficeIMO.Tests {
             Assert.False(stream is MemoryStream);
             Assert.Equal(new FileInfo(imagePath).Length, stream.Length);
             var buffer = new byte[1];
-            stream.Read(buffer, 0, 1);
+            var bytesRead = stream.Read(buffer, 0, 1);
+            Assert.Equal(1, bytesRead);
         }
 
     }
