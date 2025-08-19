@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var styles = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles;
+                var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 Assert.NotNull(styles.Elements<Style>().FirstOrDefault(s => s.StyleId == "MyStyle"));
             }
 
@@ -60,15 +60,15 @@ namespace OfficeIMO.Tests {
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var styles = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles;
+                var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
-                Assert.Equal("Original", loaded.StyleName.Val);
+                Assert.Equal("Original", loaded.StyleName!.Val);
             }
 
             using (WordDocument document = WordDocument.Load(filePath, overrideStyles: true)) {
-                var styles = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles;
+                var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
-                Assert.Equal("Updated", loaded.StyleName.Val);
+                Assert.Equal("Updated", loaded.StyleName!.Val);
             }
 
             // cleanup
@@ -94,9 +94,9 @@ namespace OfficeIMO.Tests {
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
             using (WordDocument document = WordDocument.Load(filePath, readOnly: true, overrideStyles: true)) {
-                var styles = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles;
+                var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
-                Assert.Equal("Original", loaded.StyleName.Val);
+                Assert.Equal("Original", loaded.StyleName!.Val);
             }
 
             // cleanup
