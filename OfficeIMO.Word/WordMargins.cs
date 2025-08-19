@@ -59,12 +59,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value Left {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin?.Left != null) {
-                    return pageMargin.Left!;
-                }
-
-                return WordMargins.Normal.Left!;
+                var left = _section._sectionProperties.GetFirstChild<PageMargin>()?.Left ?? WordMargins.Normal.Left;
+                return left ?? new UInt32Value();
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -82,12 +78,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value Right {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin?.Right != null) {
-                    return pageMargin.Right!;
-                }
-
-                return WordMargins.Normal.Right!;
+                var right = _section._sectionProperties.GetFirstChild<PageMargin>()?.Right ?? WordMargins.Normal.Right;
+                return right ?? new UInt32Value();
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -105,9 +97,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? Top {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                var top = pageMargin?.Top?.Value;
-                return top ?? WordMargins.Normal.Top!.Value;
+                return _section._sectionProperties.GetFirstChild<PageMargin>()?.Top?.Value
+                       ?? WordMargins.Normal.Top?.Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -125,9 +116,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? Bottom {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                var bottom = pageMargin?.Bottom?.Value;
-                return bottom ?? WordMargins.Normal.Bottom!.Value;
+                return _section._sectionProperties.GetFirstChild<PageMargin>()?.Bottom?.Value
+                       ?? WordMargins.Normal.Bottom?.Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -201,12 +191,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value HeaderDistance {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin?.Header != null) {
-                    return pageMargin.Header!;
-                }
-
-                return WordMargins.Normal.Header!;
+                var header = _section._sectionProperties.GetFirstChild<PageMargin>()?.Header ?? WordMargins.Normal.Header;
+                return header ?? new UInt32Value();
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -224,12 +210,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value FooterDistance {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin?.Footer != null) {
-                    return pageMargin.Footer!;
-                }
-
-                return WordMargins.Normal.Footer!;
+                var footer = _section._sectionProperties.GetFirstChild<PageMargin>()?.Footer ?? WordMargins.Normal.Footer;
+                return footer ?? new UInt32Value();
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -247,12 +229,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value Gutter {
             get {
-                var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin?.Gutter != null) {
-                    return pageMargin.Gutter!;
-                }
-
-                return WordMargins.Normal.Gutter!;
+                var gutter = _section._sectionProperties.GetFirstChild<PageMargin>()?.Gutter ?? WordMargins.Normal.Gutter;
+                return gutter ?? new UInt32Value();
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
