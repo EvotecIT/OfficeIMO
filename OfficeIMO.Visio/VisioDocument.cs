@@ -20,6 +20,8 @@ namespace OfficeIMO.Visio {
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+        private const string ThemeRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/theme";
+        private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
 
         /// <summary>
         /// Collection of pages in the document.
@@ -154,6 +156,10 @@ namespace OfficeIMO.Visio {
                 PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
                 documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
 
+                Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
+                PackagePart themePart = package.CreatePart(themeUri, ThemeContentType);
+                documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId2");
+
                 Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
                 PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
                 PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", "rId1");
@@ -165,25 +171,26 @@ namespace OfficeIMO.Visio {
                 };
                 const string ns = VisioNamespace;
 
-                List<VisioMaster> masters = new();
-                foreach (IGrouping<string, VisioShape> group in _pages.SelectMany(p => p.Shapes).Where(s => !string.IsNullOrEmpty(s.NameU)).GroupBy(s => s.NameU!)) {
-                    if (group.Count() < 2) {
-                        continue;
-                    }
+                using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
+                    writer.WriteAttributeString("name", "Office Theme");
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
 
-                    VisioShape template = group.First();
-                    VisioMaster master = new((masters.Count + 1).ToString(CultureInfo.InvariantCulture), group.Key, template);
+                List<VisioMaster> masters = new();
+                foreach (VisioShape shape in _pages.SelectMany(p => p.Shapes).Where(s => !string.IsNullOrEmpty(s.NameU))) {
+                    VisioMaster master = new((masters.Count + 1).ToString(CultureInfo.InvariantCulture), shape.NameU!, shape);
                     masters.Add(master);
-                    foreach (VisioShape item in group) {
-                        item.Master = master;
-                    }
+                    shape.Master = master;
                 }
 
                 PackagePart? mastersPart = null;
                 if (masters.Count > 0) {
                     Uri mastersUri = new("/visio/masters/masters.xml", UriKind.Relative);
                     mastersPart = package.CreatePart(mastersUri, "application/vnd.ms-visio.masters+xml");
-                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/masters", "rId2");
+                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/masters", "rId3");
 
                     for (int i = 0; i < masters.Count; i++) {
                         VisioMaster master = masters[i];
@@ -395,6 +402,7 @@ namespace OfficeIMO.Visio {
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.windows+xml")));
+            root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
             if (masterCount > 0) {
                 root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/masters/masters.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.masters+xml")));
                 for (int i = 1; i <= masterCount; i++) {
