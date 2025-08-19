@@ -10,12 +10,24 @@ namespace OfficeIMO.Visio {
 
         public VisioPage(string name) {
             Name = name;
+            NameU = name;
+            ViewScale = 1;
         }
+
+        public int Id { get; internal set; }
 
         /// <summary>
         /// Gets the page name.
         /// </summary>
         public string Name { get; }
+
+        public string? NameU { get; set; }
+
+        public double ViewScale { get; set; }
+
+        public double ViewCenterX { get; set; }
+
+        public double ViewCenterY { get; set; }
 
         /// <summary>
         /// Shapes placed on the page.

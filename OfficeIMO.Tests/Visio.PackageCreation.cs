@@ -60,6 +60,17 @@ namespace OfficeIMO.Tests {
                 PackageRelationship windowsRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/windows").Single();
                 Uri windowsUri = PackUriHelper.ResolvePartUri(documentPart.Uri, windowsRel.TargetUri);
                 Assert.Equal("/visio/windows.xml", windowsUri.OriginalString);
+                PackagePart windowsPart = package.GetPart(windowsUri);
+                XDocument windowsDoc = XDocument.Load(windowsPart.GetStream());
+                XElement windowsRoot = windowsDoc.Root!;
+                Assert.NotNull(windowsRoot.Attribute("ClientWidth"));
+                Assert.NotNull(windowsRoot.Attribute("ClientHeight"));
+                XElement? window = windowsRoot.Element(ns + "Window");
+                Assert.NotNull(window);
+                Assert.NotNull(window?.Attribute("WindowType"));
+                Assert.NotNull(window?.Attribute("WindowState"));
+                Assert.NotNull(window?.Attribute("ClientWidth"));
+                Assert.NotNull(window?.Attribute("ClientHeight"));
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();
@@ -69,7 +80,11 @@ namespace OfficeIMO.Tests {
 
                 XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
                 XElement? pageElement = pagesDoc.Root?.Element(ns + "Page");
-                Assert.Equal("1", pageElement?.Attribute("ID")?.Value);
+                Assert.Equal("0", pageElement?.Attribute("ID")?.Value);
+                Assert.Equal("Page-1", pageElement?.Attribute("NameU")?.Value);
+                Assert.NotNull(pageElement?.Attribute("ViewScale"));
+                Assert.NotNull(pageElement?.Attribute("ViewCenterX"));
+                Assert.NotNull(pageElement?.Attribute("ViewCenterY"));
                 Assert.Null(pageElement?.Attribute("RelId"));
                 string? relId = pageElement?.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
                 Assert.Equal(pageRel.Id, relId);
@@ -100,6 +115,10 @@ namespace OfficeIMO.Tests {
 
                 XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
                 Assert.Equal("1", shape?.Attribute("ID")?.Value);
+                Assert.NotNull(shape?.Attribute("Name"));
+                Assert.NotNull(shape?.Attribute("NameU"));
+                Assert.Equal("Shape", shape?.Attribute("Type")?.Value);
+                Assert.NotNull(shape?.Elements(ns + "Cell").FirstOrDefault(e => e.Attribute("N")?.Value == "PinX"));
                 Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
             }
 

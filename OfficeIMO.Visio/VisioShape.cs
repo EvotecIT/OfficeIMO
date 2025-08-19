@@ -20,6 +20,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string Id { get; }
 
+        public string? Name { get; set; }
+
         public string? NameU { get; set; }
 
         public VisioMaster? Master { get; set; }
