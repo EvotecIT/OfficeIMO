@@ -20,13 +20,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name {
             get {
-                return _sheet.Name;
+                return _sheet.Name?.Value ?? string.Empty;
             }
             set {
                 _sheet.Name = value;
             }
         }
-        private readonly UInt32Value Id;
         private readonly WorksheetPart _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
@@ -42,12 +41,19 @@ namespace OfficeIMO.Excel {
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
 
-            var list = _spreadSheetDocument.WorkbookPart.WorksheetParts.ToList();
+            var workbookPart = spreadSheetDocument.WorkbookPart ??
+                throw new InvalidOperationException("WorkbookPart is missing.");
+            var list = workbookPart.WorksheetParts.ToList();
             foreach (var worksheetPart in list) {
-                var id = spreadSheetDocument.WorkbookPart.GetIdOfPart(worksheetPart);
+                var id = workbookPart.GetIdOfPart(worksheetPart);
                 if (id == _sheet.Id) {
                     _worksheetPart = worksheetPart;
+                    break;
                 }
+            }
+
+            if (_worksheetPart == null) {
+                throw new InvalidOperationException("WorksheetPart not found for the provided sheet.");
             }
         }
 
@@ -62,37 +68,37 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
 
-            UInt32Value id = excelDocument.id.Max() + 1;
-            if (name == "") {
+            uint newId = excelDocument.id.Select(v => (uint)v).DefaultIfEmpty().Max() + 1;
+            if (string.IsNullOrEmpty(name)) {
                 name = "Sheet1";
             }
-            
+
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
             worksheetPart.Worksheet = new Worksheet(new SheetData());
 
             // Add Sheets to the Workbook.
-            Sheets sheets = null;
-            if (spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                sheets = spreadSheetDocument.WorkbookPart.Workbook.Sheets;
+            Sheets sheets;
+            var workbook = spreadSheetDocument.WorkbookPart?.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+            if (workbook.Sheets != null) {
+                sheets = workbook.Sheets;
             } else {
-                sheets = spreadSheetDocument.WorkbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+                sheets = workbook.AppendChild(new Sheets());
             }
 
             // Append a new worksheet and associate it with the workbook.
             Sheet sheet = new Sheet() {
-                Id = spreadSheetDocument.WorkbookPart.GetIdOfPart(worksheetPart),
-                SheetId = id,
+                Id = spreadSheetDocument.WorkbookPart!.GetIdOfPart(worksheetPart),
+                SheetId = newId,
                 Name = name
             };
             sheets.Append(sheet);
 
-            this._sheet = sheet;
-            this.Name = name;
-            this.Id = sheet.SheetId;
-            this._worksheetPart = worksheetPart;
+            _sheet = sheet;
+            Name = name;
+            _worksheetPart = worksheetPart;
 
-            excelDocument.id.Add(id);
+            excelDocument.id.Add(sheet.SheetId ?? new UInt32Value(newId));
         }
 
         private Cell GetCell(int row, int column) {
@@ -103,23 +109,21 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column));
             }
 
-            SheetData sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
-            }
+            var worksheet = _worksheetPart.Worksheet ?? (_worksheetPart.Worksheet = new Worksheet());
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>() ?? worksheet.AppendChild(new SheetData());
 
-            Row rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)row);
+            Row? rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)row);
             if (rowElement == null) {
                 rowElement = new Row { RowIndex = (uint)row };
                 sheetData.Append(rowElement);
             }
 
             string cellReference = GetColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
-            Cell cell = rowElement.Elements<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == cellReference);
+            Cell? cell = rowElement.Elements<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == cellReference);
             if (cell == null) {
                 cell = new Cell { CellReference = cellReference };
 
-                Cell refCell = null;
+                Cell? refCell = null;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
                     if (string.Compare(c.CellReference?.Value, cellReference, StringComparison.Ordinal) > 0) {
                         refCell = c;
@@ -205,10 +209,10 @@ namespace OfficeIMO.Excel {
 
         public void AutoFitColumns() {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
-            var columns = worksheet.GetFirstChild<Columns>();
+            Columns? columns = worksheet.GetFirstChild<Columns>();
             if (columns == null) {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
@@ -220,10 +224,11 @@ namespace OfficeIMO.Excel {
 
             foreach (var row in sheetData.Elements<Row>()) {
                 foreach (var cell in row.Elements<Cell>()) {
-                    if (cell.CellReference == null) continue;
-                    int columnIndex = GetColumnIndex(cell.CellReference.Value);
+                    var cellRef = cell.CellReference?.Value;
+                    if (cellRef == null) continue;
+                    int columnIndex = GetColumnIndex(cellRef);
                     string text = GetCellText(cell);
-                    var size = TextMeasurer.MeasureSize(text ?? string.Empty, options);
+                    var size = TextMeasurer.MeasureSize(text, options);
                     double cellWidth = size.Width / zeroWidth + 1;
                     if (widths.ContainsKey(columnIndex)) {
                         if (cellWidth > widths[columnIndex]) widths[columnIndex] = cellWidth;
@@ -234,7 +239,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var kvp in widths) {
-                Column column = columns.Elements<Column>()
+                Column? column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)kvp.Key && c.Max.Value >= (uint)kvp.Key);
                 if (column == null) {
                     column = new Column { Min = (uint)kvp.Key, Max = (uint)kvp.Key };
@@ -250,7 +255,7 @@ namespace OfficeIMO.Excel {
 
         public void AutoFitRows() {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
             var font = GetDefaultFont();
@@ -261,7 +266,7 @@ namespace OfficeIMO.Excel {
                 double maxHeight = 0;
                 foreach (var cell in row.Elements<Cell>()) {
                     string text = GetCellText(cell);
-                    var size = TextMeasurer.MeasureSize(text ?? string.Empty, options);
+                    var size = TextMeasurer.MeasureSize(text, options);
                     if (size.Height > maxHeight) maxHeight = size.Height;
                 }
                 if (maxHeight > 0) {
@@ -270,7 +275,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+            SheetFormatProperties? sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
             if (sheetFormat == null) {
                 sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
             }
@@ -280,14 +285,14 @@ namespace OfficeIMO.Excel {
             worksheet.Save();
         }
 
-        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
+        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
             Worksheet worksheet = _worksheetPart.Worksheet;
 
-            AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+            AutoFilter? existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
             if (existing != null) {
                 worksheet.RemoveChild(existing);
             }
@@ -361,7 +366,7 @@ namespace OfficeIMO.Excel {
 
             tableDefinitionPart.Table = table;
 
-            var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+            TableParts? tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
             if (tableParts == null) {
                 tableParts = new TableParts { Count = 1 };
                 _worksheetPart.Worksheet.Append(tableParts);
@@ -458,10 +463,9 @@ namespace OfficeIMO.Excel {
         public void SetCellFormat(int row, int column, string numberFormat) {
             Cell cell = GetCell(row, column);
 
-            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
-            if (stylesPart == null) {
-                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
-            }
+            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ??
+                throw new InvalidOperationException("WorkbookPart is missing.");
+            WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
 
@@ -484,15 +488,15 @@ namespace OfficeIMO.Excel {
 
             stylesheet.NumberingFormats ??= new NumberingFormats();
 
-            NumberingFormat existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                 .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
 
             uint numberFormatId;
-            if (existingFormat != null) {
+            if (existingFormat?.NumberFormatId != null) {
                 numberFormatId = existingFormat.NumberFormatId.Value;
             } else {
                 numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
-                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId.Value) + 1
+                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId?.Value ?? 0) + 1
                     : 164U;
                 NumberingFormat numberingFormat = new NumberingFormat {
                     NumberFormatId = numberFormatId,
@@ -569,11 +573,8 @@ namespace OfficeIMO.Excel {
                     SetCellValue(row, column, (double)sh, autoFitColumns, autoFitRows);
                     break;
                 default:
-                    if (value != null) {
-                        SetCellValue(row, column, value.ToString(), autoFitColumns, autoFitRows);
-                    } else {
-                        SetCellValue(row, column, string.Empty, autoFitColumns, autoFitRows);
-                    }
+                    string text = value?.ToString() ?? string.Empty;
+                    SetCellValue(row, column, text, autoFitColumns, autoFitRows);
                     break;
             }
         }

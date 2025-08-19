@@ -28,11 +28,13 @@ namespace OfficeIMO.Excel {
                 id.Add(0);
 
                 List<ExcelSheet> listExcel = new List<ExcelSheet>();
-                if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                    var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
+                var workbookPart = _spreadSheetDocument.WorkbookPart;
+                var workbook = workbookPart?.Workbook;
+                if (workbook?.Sheets != null) {
+                    var elements = workbook.Sheets.OfType<Sheet>().ToList();
                     foreach (Sheet s in elements) {
                         ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
-                        if (!id.Contains(s.SheetId)) {
+                        if (s.SheetId != null && !id.Contains(s.SheetId)) {
                             id.Add(s.SheetId);
                         }
                         listExcel.Add(excelSheet);
@@ -46,14 +48,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Underlying Open XML spreadsheet document instance.
         /// </summary>
-        public SpreadsheetDocument _spreadSheetDocument;
-        private WorkbookPart _workBookPart;
-        private SharedStringTablePart _sharedStringTablePart;
+        public SpreadsheetDocument _spreadSheetDocument = null!;
+        private WorkbookPart _workBookPart = null!;
+        private SharedStringTablePart? _sharedStringTablePart;
 
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
-        public string FilePath;
+        public string FilePath = string.Empty;
 
         /// <summary>
         /// FileOpenAccess of the document
@@ -140,8 +142,8 @@ namespace OfficeIMO.Excel {
 
             document._spreadSheetDocument = spreadSheetDocument;
 
-            //// Add a WorkbookPart to the document.
-            document._workBookPart = document._spreadSheetDocument.WorkbookPart;
+            document._workBookPart = document._spreadSheetDocument.WorkbookPart
+                ?? throw new InvalidOperationException("WorkbookPart is missing.");
 
             return document;
         }
@@ -155,10 +157,11 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
-            if (filePath != null) {
-                if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-                }
+            if (filePath == null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, readOnly ? FileShare.Read : FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
@@ -174,7 +177,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument document = new ExcelDocument {
                 FilePath = filePath,
                 _spreadSheetDocument = spreadSheetDocument,
-                _workBookPart = spreadSheetDocument.WorkbookPart
+                _workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.")
             };
 
             return document;
@@ -336,7 +339,7 @@ namespace OfficeIMO.Excel {
                 } catch {
                     // ignored
                 }
-                this._spreadSheetDocument = null;
+                this._spreadSheetDocument = null!;
             }
 
             _disposed = true;
