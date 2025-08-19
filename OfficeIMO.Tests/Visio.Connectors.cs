@@ -21,6 +21,7 @@ namespace OfficeIMO.Tests {
             page.Shapes.Add(start);
             page.Shapes.Add(end);
             VisioConnector connector = new(start, end);
+            Assert.True(int.TryParse(connector.Id, out _));
             page.Connectors.Add(connector);
             document.Save(filePath);
 

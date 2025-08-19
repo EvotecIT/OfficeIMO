@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text;
@@ -123,126 +124,143 @@ namespace OfficeIMO.Visio {
         /// Saves the document to a <c>.vsdx</c> package.
         /// </summary>
         public void Save(string filePath) {
-            using Package package = Package.Open(filePath, FileMode.Create);
+            using (Package package = Package.Open(filePath, FileMode.Create)) {
+                Uri documentUri = new("/visio/document.xml", UriKind.Relative);
+                PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
+                package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
 
-            int relIdCounter = 1;
+                Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
+                PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
+                documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
 
-            Uri documentUri = new("/visio/document.xml", UriKind.Relative);
-            PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
-            package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, $"rId{relIdCounter++}");
+                Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
+                PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
+                PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", "rId1");
 
-            Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
-            PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
-            documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", $"rId{relIdCounter++}");
+                XmlWriterSettings settings = new() {
+                    Encoding = new UTF8Encoding(false),
+                    CloseOutput = true,
+                    Indent = true,
+                };
+                const string ns = VisioNamespace;
 
-            Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
-            PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
-            PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", $"rId{relIdCounter++}");
-
-            XmlWriterSettings settings = new() {
-                Encoding = new UTF8Encoding(false),
-                CloseOutput = true,
-                Indent = true,
-            };
-            const string ns = VisioNamespace;
-
-            using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
-                CreateVisioDocumentXml(_requestRecalcOnOpen).Save(stream);
-            }
-
-            string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
-            using (XmlWriter writer = XmlWriter.Create(pagesPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                writer.WriteStartDocument();
-                writer.WriteStartElement("Pages", ns);
-                writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                writer.WriteStartElement("Page", ns);
-                writer.WriteAttributeString("ID", "1");
-                writer.WriteAttributeString("Name", pageName);
-                writer.WriteStartElement("Rel", ns);
-                writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRel.Id);
-                writer.WriteEndElement();
-                writer.WriteEndElement();
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
-            }
-
-            VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage(pageName);
-
-            using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                writer.WriteStartDocument();
-                writer.WriteStartElement("PageContents", ns);
-                writer.WriteStartElement("Shapes", ns);
-
-                foreach (VisioShape shape in page.Shapes) {
-                    writer.WriteStartElement("Shape", ns);
-                    writer.WriteAttributeString("ID", shape.Id);
-                    if (!string.IsNullOrEmpty(shape.NameU)) {
-                        writer.WriteAttributeString("NameU", shape.NameU);
-                    }
-                    writer.WriteStartElement("XForm", ns);
-                    writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteElementString("Width", ns, shape.Width.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteElementString("Height", ns, shape.Height.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteEndElement();
-                    if (!string.IsNullOrEmpty(shape.Text)) {
-                        writer.WriteElementString("Text", ns, shape.Text);
-                    }
-                    writer.WriteEndElement();
+                using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
+                    CreateVisioDocumentXml(_requestRecalcOnOpen).Save(stream);
                 }
 
-                foreach (VisioConnector connector in page.Connectors) {
-                    VisioShape from = connector.From;
-                    VisioShape to = connector.To;
-                    double startX = from.PinX + from.Width / 2;
-                    double startY = from.PinY;
-                    double endX = to.PinX - to.Width / 2;
-                    double endY = to.PinY;
-
-                    writer.WriteStartElement("Shape", ns);
-                    writer.WriteAttributeString("ID", connector.Id);
-                    writer.WriteAttributeString("NameU", "Connector");
-                    writer.WriteStartElement("Geom", ns);
-                    writer.WriteStartElement("MoveTo", ns);
-                    writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("Y", startY.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteEndElement();
-                    writer.WriteStartElement("LineTo", ns);
-                    writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteEndElement();
-                    writer.WriteStartElement("LineTo", ns);
-                    writer.WriteAttributeString("X", endX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
+                using (XmlWriter writer = XmlWriter.Create(pagesPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("Pages", ns);
+                    writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                    writer.WriteStartElement("Page", ns);
+                    writer.WriteAttributeString("ID", "1");
+                    writer.WriteAttributeString("Name", pageName);
+                    writer.WriteStartElement("Rel", ns);
+                    writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRel.Id);
                     writer.WriteEndElement();
                     writer.WriteEndElement();
                     writer.WriteEndElement();
+                    writer.WriteEndDocument();
                 }
 
-                writer.WriteEndElement(); // Shapes
+                VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage(pageName);
 
-                if (page.Connectors.Count > 0) {
-                    writer.WriteStartElement("Connects", ns);
+                using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("PageContents", ns);
+                    writer.WriteStartElement("Shapes", ns);
+
+                    foreach (VisioShape shape in page.Shapes) {
+                        writer.WriteStartElement("Shape", ns);
+                        writer.WriteAttributeString("ID", shape.Id);
+                        if (!string.IsNullOrEmpty(shape.NameU)) {
+                            writer.WriteAttributeString("NameU", shape.NameU);
+                        }
+                        writer.WriteStartElement("XForm", ns);
+                        writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteElementString("Width", ns, shape.Width.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteElementString("Height", ns, shape.Height.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteEndElement();
+                        if (!string.IsNullOrEmpty(shape.Text)) {
+                            writer.WriteElementString("Text", ns, shape.Text);
+                        }
+                        writer.WriteEndElement();
+                    }
+
                     foreach (VisioConnector connector in page.Connectors) {
-                        writer.WriteStartElement("Connect", ns);
-                        writer.WriteAttributeString("FromSheet", connector.Id);
-                        writer.WriteAttributeString("FromCell", "BeginX");
-                        writer.WriteAttributeString("ToSheet", connector.From.Id);
-                        writer.WriteAttributeString("ToCell", "PinX");
+                        VisioShape from = connector.From;
+                        VisioShape to = connector.To;
+                        double startX = from.PinX + from.Width / 2;
+                        double startY = from.PinY;
+                        double endX = to.PinX - to.Width / 2;
+                        double endY = to.PinY;
+
+                        writer.WriteStartElement("Shape", ns);
+                        writer.WriteAttributeString("ID", connector.Id);
+                        writer.WriteAttributeString("NameU", "Connector");
+                        writer.WriteStartElement("Geom", ns);
+                        writer.WriteStartElement("MoveTo", ns);
+                        writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteAttributeString("Y", startY.ToString(CultureInfo.InvariantCulture));
                         writer.WriteEndElement();
-                        writer.WriteStartElement("Connect", ns);
-                        writer.WriteAttributeString("FromSheet", connector.Id);
-                        writer.WriteAttributeString("FromCell", "EndX");
-                        writer.WriteAttributeString("ToSheet", connector.To.Id);
-                        writer.WriteAttributeString("ToCell", "PinX");
+                        writer.WriteStartElement("LineTo", ns);
+                        writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteEndElement();
+                        writer.WriteStartElement("LineTo", ns);
+                        writer.WriteAttributeString("X", endX.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteEndElement();
+                        writer.WriteEndElement();
                         writer.WriteEndElement();
                     }
-                    writer.WriteEndElement(); // Connects
-                }
 
-                writer.WriteEndElement(); // PageContents
-                writer.WriteEndDocument();
+                    writer.WriteEndElement(); // Shapes
+
+                    if (page.Connectors.Count > 0) {
+                        writer.WriteStartElement("Connects", ns);
+                        foreach (VisioConnector connector in page.Connectors) {
+                            writer.WriteStartElement("Connect", ns);
+                            writer.WriteAttributeString("FromSheet", connector.Id);
+                            writer.WriteAttributeString("FromCell", "BeginX");
+                            writer.WriteAttributeString("ToSheet", connector.From.Id);
+                            writer.WriteAttributeString("ToCell", "PinX");
+                            writer.WriteEndElement();
+                            writer.WriteStartElement("Connect", ns);
+                            writer.WriteAttributeString("FromSheet", connector.Id);
+                            writer.WriteAttributeString("FromCell", "EndX");
+                            writer.WriteAttributeString("ToSheet", connector.To.Id);
+                            writer.WriteAttributeString("ToCell", "PinX");
+                            writer.WriteEndElement();
+                        }
+                        writer.WriteEndElement(); // Connects
+                    }
+
+                    writer.WriteEndElement(); // PageContents
+                    writer.WriteEndDocument();
+                }
             }
+
+            FixContentTypes(filePath);
+        }
+
+        private static void FixContentTypes(string filePath) {
+            using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
+            using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
+            ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
+            entry?.Delete();
+            ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");
+            XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+            XDocument doc = new(new XElement(ct + "Types",
+                new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
+                new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.drawing.main+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.pages+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml"))));
+            using StreamWriter writer = new(newEntry.Open());
+            writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
     }
 }
