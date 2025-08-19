@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text;
@@ -19,6 +18,8 @@ namespace OfficeIMO.Visio {
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
+        private const string PagesContentType = "application/vnd.ms-visio.pages+xml";
+        private const string PageContentType = "application/vnd.ms-visio.page+xml";
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
 
         /// <summary>
@@ -35,6 +36,7 @@ namespace OfficeIMO.Visio {
             _pages.Add(page);
             return page;
         }
+
 
         /// <summary>
         /// Requests Visio to relayout and reroute connectors when the document is opened.
@@ -124,18 +126,23 @@ namespace OfficeIMO.Visio {
         /// Saves the document to a <c>.vsdx</c> package.
         /// </summary>
         public void Save(string filePath) {
-            using (Package package = Package.Open(filePath, FileMode.Create)) {
-                Uri documentUri = new("/visio/document.xml", UriKind.Relative);
-                PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
-                package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
+            using (Package package = Package.Open(filePath, FileMode.Create, FileAccess.ReadWrite)) {
+                Uri placeholderUri = PackUriHelper.CreatePartUri(new Uri("/placeholder.xml", UriKind.Relative));
+                package.CreatePart(placeholderUri, "application/xml", CompressionOption.Maximum);
 
-                Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
-                PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
+                Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
+                PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType, CompressionOption.Maximum);
+                package.CreateRelationship(new Uri("visio/document.xml", UriKind.Relative), TargetMode.Internal, DocumentRelationshipType, "rId1");
+
+                Uri pagesUri = PackUriHelper.CreatePartUri(new Uri("/visio/pages/pages.xml", UriKind.Relative));
+                PackagePart pagesPart = package.CreatePart(pagesUri, PagesContentType, CompressionOption.Maximum);
                 documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
 
-                Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
-                PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
+                Uri page1Uri = PackUriHelper.CreatePartUri(new Uri("/visio/pages/page1.xml", UriKind.Relative));
+                PackagePart page1Part = package.CreatePart(page1Uri, PageContentType, CompressionOption.Maximum);
                 PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", "rId1");
+
+                package.DeletePart(placeholderUri);
 
                 XmlWriterSettings settings = new() {
                     Encoding = new UTF8Encoding(false),
@@ -243,24 +250,6 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            FixContentTypes(filePath);
-        }
-
-        private static void FixContentTypes(string filePath) {
-            using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
-            using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
-            ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
-            entry?.Delete();
-            ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");
-            XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
-            XDocument doc = new(new XElement(ct + "Types",
-                new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
-                new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.drawing.main+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.pages+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml"))));
-            using StreamWriter writer = new(newEntry.Open());
-            writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
     }
 }

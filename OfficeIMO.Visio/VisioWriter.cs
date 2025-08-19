@@ -31,10 +31,10 @@ namespace OfficeIMO.Visio {
             PackagePart pagesPart = package.CreatePart(pagesUri, CT_Pages, CompressionOption.Maximum);
             PackagePart page1Part = package.CreatePart(page1Uri, CT_Page, CompressionOption.Maximum);
 
-            package.CreateRelationship(documentUri, TargetMode.Internal, RT_Document, "rId1");
+            package.CreateRelationship(new Uri("visio/document.xml", UriKind.Relative), TargetMode.Internal, RT_Document, "rId1");
 
-            documentPart.CreateRelationship(pagesUri, TargetMode.Internal, RT_Pages, "rId1");
-            pagesPart.CreateRelationship(page1Uri, TargetMode.Internal, RT_Page, "rId1");
+            documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, RT_Pages, "rId1");
+            pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, RT_Page, "rId1");
 
             WriteDocumentXml(documentPart.GetStream(FileMode.Create, FileAccess.Write));
             WritePagesXml(pagesPart.GetStream(FileMode.Create, FileAccess.Write));

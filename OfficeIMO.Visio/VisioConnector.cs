@@ -12,7 +12,11 @@ namespace OfficeIMO.Visio {
         }
 
         public VisioConnector(string id, VisioShape from, VisioShape to) {
-            Id = id;
+            if (!int.TryParse(id, out int numericId)) {
+                throw new ArgumentException("Connector ID must be numeric.", nameof(id));
+            }
+
+            Id = numericId.ToString(CultureInfo.InvariantCulture);
             From = from;
             To = to;
         }
