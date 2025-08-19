@@ -11,9 +11,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentReadHelpers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Paragraph(p => p.AddParagraph("First"))
-                    .Paragraph(p => p.AddParagraph("Second match"))
-                    .Paragraph(p => p.AddParagraph("Third"));
+                    .Paragraph(p => p.Text("First"))
+                    .Paragraph(p => p.Text("Second match"))
+                    .Paragraph(p => p.Text("Third"));
                 document.Save(false);
             }
 

@@ -44,20 +44,12 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Adds or modifies a paragraph.
+        /// Adds a new paragraph and allows fluent configuration of its contents.
         /// </summary>
         /// <param name="action">Action that receives a <see cref="ParagraphBuilder"/>.</param>
         public WordFluentDocument Paragraph(Action<ParagraphBuilder> action) {
-            action(new ParagraphBuilder(this));
-            return this;
-        }
-
-        /// <summary>
-        /// Adds or modifies a text run.
-        /// </summary>
-        /// <param name="action">Action that receives a <see cref="RunBuilder"/>.</param>
-        public WordFluentDocument Run(Action<RunBuilder> action) {
-            action(new RunBuilder(this));
+            var paragraph = Document.AddParagraph();
+            action(new ParagraphBuilder(this, paragraph));
             return this;
         }
 
