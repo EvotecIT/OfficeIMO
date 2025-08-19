@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class VisioMasters {
         [Fact]
-        public void ReusesMasterForDuplicateShapes() {
+        public void CreatesMasterForEachNamedShape() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = new();
@@ -22,6 +22,7 @@ namespace OfficeIMO.Tests {
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/masters/masters.xml", UriKind.Relative)));
                 Assert.True(package.PartExists(new Uri("/visio/masters/master1.xml", UriKind.Relative)));
+                Assert.True(package.PartExists(new Uri("/visio/masters/master2.xml", UriKind.Relative)));
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
                 PackageRelationship mastersRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/masters").Single();
@@ -29,18 +30,21 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("/visio/masters/masters.xml", mastersUri.OriginalString);
 
                 PackagePart pagePart = package.GetPart(new Uri("/visio/pages/page1.xml", UriKind.Relative));
-                PackageRelationship pageMasterRel = pagePart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/master").Single();
-                Assert.Equal("../masters/master1.xml", pageMasterRel.TargetUri.OriginalString);
+                PackageRelationship[] pageMasterRels = pagePart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/master").ToArray();
+                Assert.Equal(2, pageMasterRels.Length);
+                Assert.Contains(pageMasterRels, r => r.TargetUri.OriginalString == "../masters/master1.xml");
+                Assert.Contains(pageMasterRels, r => r.TargetUri.OriginalString == "../masters/master2.xml");
 
                 XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
                 XDocument mastersDoc = XDocument.Load(package.GetPart(mastersUri).GetStream());
-                XElement master = mastersDoc.Root?.Element(ns + "Master");
-                Assert.Equal("1", master?.Attribute("ID")?.Value);
-                Assert.Equal("Rectangle", master?.Attribute("NameU")?.Value);
+                XElement[] masterElements = mastersDoc.Root?.Elements(ns + "Master").ToArray() ?? Array.Empty<XElement>();
+                Assert.Equal(2, masterElements.Length);
+                Assert.All(masterElements, m => Assert.Equal("Rectangle", m.Attribute("NameU")?.Value));
 
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
-                XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
-                Assert.Equal("1", shape?.Attribute("Master")?.Value);
+                XElement[] shapes = pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape").ToArray() ?? Array.Empty<XElement>();
+                Assert.Equal("1", shapes[0].Attribute("Master")?.Value);
+                Assert.Equal("2", shapes[1].Attribute("Master")?.Value);
             }
 
             using FileStream zipStream = File.OpenRead(filePath);
@@ -51,6 +55,7 @@ namespace OfficeIMO.Tests {
             XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/masters/masters.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.masters+xml"));
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/masters/master1.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.master+xml"));
+            Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/masters/master2.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.master+xml"));
         }
     }
 }
