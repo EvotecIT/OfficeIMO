@@ -386,6 +386,106 @@ namespace OfficeIMO.Excel {
             _worksheetPart.Worksheet.Save();
         }
 
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            Worksheet worksheet = _worksheetPart.Worksheet;
+
+            int priority = 1;
+            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+            if (existingRules.Any()) {
+                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+            }
+
+            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+            };
+
+            ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.CellIs,
+                Operator = @operator,
+                Priority = priority
+            };
+
+            rule.Append(new Formula(formula1));
+            if (formula2 != null) {
+                rule.Append(new Formula(formula2));
+            }
+
+            conditionalFormatting.Append(rule);
+            worksheet.Append(conditionalFormatting);
+            worksheet.Save();
+        }
+
+        public void AddConditionalColorScale(string range, string startColor, string endColor) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            Worksheet worksheet = _worksheetPart.Worksheet;
+
+            int priority = 1;
+            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+            if (existingRules.Any()) {
+                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+            }
+
+            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+            };
+
+            ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.ColorScale,
+                Priority = priority
+            };
+
+            ColorScale colorScale = new ColorScale();
+            colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+            colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
+            colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
+            colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
+            rule.Append(colorScale);
+
+            conditionalFormatting.Append(rule);
+            worksheet.Append(conditionalFormatting);
+            worksheet.Save();
+        }
+
+        public void AddConditionalDataBar(string range, string color) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+
+            Worksheet worksheet = _worksheetPart.Worksheet;
+
+            int priority = 1;
+            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+            if (existingRules.Any()) {
+                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+            }
+
+            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+            };
+
+            ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.DataBar,
+                Priority = priority
+            };
+
+            DataBar dataBar = new DataBar { ShowValue = true };
+            dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+            dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
+            dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
+            rule.Append(dataBar);
+
+            conditionalFormatting.Append(rule);
+            worksheet.Append(conditionalFormatting);
+            worksheet.Save();
+        }
+
         public void SetCellValue(int row, int column, string value, bool autoFitColumns = false, bool autoFitRows = false) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
