@@ -1,13 +1,13 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Globalization;
 using System.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
-using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using A = DocumentFormat.OpenXml.Drawing;
+using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 #nullable enable annotations
 
@@ -23,20 +23,20 @@ namespace OfficeIMO.Word {
         /// <summary>Run that hosts the shape.</summary>
         internal Run _run;
         /// <summary>The rectangle element if present.</summary>
-        internal V.Rectangle _rectangle;
+        internal V.Rectangle? _rectangle;
         /// <summary>The rounded rectangle element if present.</summary>
-        internal V.RoundRectangle _roundRectangle;
+        internal V.RoundRectangle? _roundRectangle;
         /// <summary>The ellipse element if present.</summary>
-        internal V.Oval _ellipse;
+        internal V.Oval? _ellipse;
         /// <summary>The line element if present.</summary>
-        internal V.Line _line;
+        internal V.Line? _line;
         /// <summary>The polygon element if present.</summary>
-        internal V.PolyLine _polygon;
+        internal V.PolyLine? _polygon;
         /// <summary>The generic shape element if present.</summary>
-        internal V.Shape _shape;
+        internal V.Shape? _shape;
         /// <summary>DrawingML shape element if present.</summary>
-        internal Drawing _drawing;
-        internal Wps.WordprocessingShape _wpsShape;
+        internal Drawing? _drawing;
+        internal Wps.WordprocessingShape? _wpsShape;
 
         /// <summary>
         /// Initializes a new rectangle shape and appends it to the paragraph.
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a <see cref="WordShape"/> from existing run content.
         /// </summary>
-        internal WordShape(WordDocument document, Paragraph paragraph, Run run, Drawing drawing = null) {
+        internal WordShape(WordDocument document, Paragraph paragraph, Run run, Drawing? drawing = null) {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
             var run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document, paragraph._paragraph, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
             var run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document, paragraph._paragraph, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word {
             var run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document, paragraph._paragraph, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word {
             var run = paragraph.VerifyRun();
             run.Append(pict);
 
-            return new WordShape(paragraph._document, paragraph._paragraph, run);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
 
         /// <summary>
@@ -188,6 +188,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a DrawingML shape to the given paragraph.
         /// </summary>
+        /// <param name="paragraph">Paragraph to append the shape to.</param>
         /// <param name="shapeType">Type of shape to create.</param>
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
@@ -244,7 +245,7 @@ namespace OfficeIMO.Word {
             var drawing = new Drawing(inline);
             run.Append(drawing);
 
-            return new WordShape(paragraph._document, paragraph._paragraph, run, drawing);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
         }
 
         /// <summary>
@@ -252,11 +253,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string FillColorHex {
             get {
-                if (_rectangle != null) return _rectangle.FillColor?.Value;
-                if (_roundRectangle != null) return _roundRectangle.FillColor?.Value;
-                if (_ellipse != null) return _ellipse.FillColor?.Value;
-                if (_polygon != null) return _polygon.FillColor?.Value;
-                if (_shape != null) return _shape.FillColor?.Value;
+                if (_rectangle?.FillColor?.Value is string rect) return rect;
+                if (_roundRectangle?.FillColor?.Value is string round) return round;
+                if (_ellipse?.FillColor?.Value is string ellipse) return ellipse;
+                if (_polygon?.FillColor?.Value is string poly) return poly;
+                if (_shape?.FillColor?.Value is string shape) return shape;
                 return string.Empty;
             }
             set {
@@ -435,9 +436,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? ArcSize {
             get {
-                if (_roundRectangle?.ArcSize == null) return null;
-                var val = _roundRectangle.ArcSize.Value.TrimEnd('f');
-                if (!double.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num)) return null;
+                var arc = _roundRectangle?.ArcSize;
+                if (arc == null) return null;
+                var val = arc.Value?.TrimEnd('f');
+                if (val == null || !double.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num)) return null;
                 return num / 65536d;
             }
             set {

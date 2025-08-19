@@ -1,7 +1,7 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Collections.Generic;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
@@ -47,7 +47,10 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="sdtBlock"></param>
         /// <returns></returns>
-        internal static WordWatermark ConvertStdBlockToWatermark(WordDocument document, SdtBlock sdtBlock) {
+        internal static WordWatermark? ConvertStdBlockToWatermark(WordDocument document, SdtBlock? sdtBlock) {
+            if (sdtBlock == null) {
+                return null;
+            }
             var sdtContent = sdtBlock.SdtContentBlock;
             if (sdtContent == null) {
                 return null;
@@ -73,9 +76,12 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="sdtBlocks"></param>
         /// <returns></returns>
-        internal static WordCoverPage ConvertStdBlockToCoverPage(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+        internal static WordCoverPage? ConvertStdBlockToCoverPage(WordDocument document, IEnumerable<SdtBlock?> sdtBlocks) {
             foreach (var sdtBlock in sdtBlocks) {
-                var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                if (sdtBlock == null) {
+                    continue;
+                }
+                var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                 var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
                 var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
 
@@ -93,9 +99,12 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="sdtBlocks"></param>
         /// <returns></returns>
-        internal static WordTableOfContent ConvertStdBlockToTableOfContent(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+        internal static WordTableOfContent? ConvertStdBlockToTableOfContent(WordDocument document, IEnumerable<SdtBlock?> sdtBlocks) {
             foreach (var sdtBlock in sdtBlocks) {
-                var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+                if (sdtBlock == null) {
+                    continue;
+                }
+                var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
                 var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
                 var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
 
@@ -112,8 +121,12 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="sdtBlock"></param>
         /// <returns></returns>
-        internal static WordElement ConvertStdBlockToWordElements(WordDocument document, SdtBlock sdtBlock) {
-            var sdtProperties = sdtBlock?.ChildElements.OfType<SdtProperties>().FirstOrDefault();
+        internal static WordElement ConvertStdBlockToWordElements(WordDocument document, SdtBlock? sdtBlock) {
+            if (sdtBlock == null) {
+                return new WordStructuredDocumentTag(document, new SdtBlock());
+            }
+
+            var sdtProperties = sdtBlock.ChildElements.OfType<SdtProperties>().FirstOrDefault();
             var docPartObject = sdtProperties?.ChildElements.OfType<SdtContentDocPartObject>().FirstOrDefault();
             var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
 
@@ -137,7 +150,7 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="sdtBlocks"></param>
         /// <returns></returns>
-        internal static List<WordElement> ConvertStdBlockToWordElements(WordDocument document, IEnumerable<SdtBlock> sdtBlocks) {
+        internal static List<WordElement> ConvertStdBlockToWordElements(WordDocument document, IEnumerable<SdtBlock?> sdtBlocks) {
             var list = new List<WordElement>();
             foreach (var sdtBlock in sdtBlocks) {
                 var element = ConvertStdBlockToWordElements(document, sdtBlock);
@@ -186,7 +199,7 @@ namespace OfficeIMO.Word {
                         var run = (Run)element;
                         var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
                         if (foundField == true) {
-                            if (fieldChar != null && fieldChar.FieldCharType == FieldCharValues.End) {
+                            if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
                                 foundField = false;
                                 runList.Add(run);
                                 wordParagraph = new WordParagraph(document, paragraph, runList);
@@ -196,11 +209,9 @@ namespace OfficeIMO.Word {
                                 runList.Add(run);
                             }
                         } else {
-                            if (fieldChar != null) {
-                                if (fieldChar.FieldCharType == FieldCharValues.Begin) {
-                                    runList.Add(run);
-                                    foundField = true;
-                                }
+                            if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
+                                runList.Add(run);
+                                foundField = true;
                             } else {
                                 wordParagraph = new WordParagraph(document, paragraph, run);
                                 list.Add(wordParagraph);
@@ -250,7 +261,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<Paragraph>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
@@ -293,7 +304,7 @@ namespace OfficeIMO.Word {
             }
 
             return numbering.ChildElements.OfType<NumberingInstance>()
-                .Select(element => new WordList(document, element.NumberID))
+                .Select(element => new WordList(document, element.NumberID!.Value))
                 .ToList();
         }
 
@@ -325,7 +336,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<WordTable>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
@@ -367,7 +378,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<WordEmbeddedDocument>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
@@ -403,7 +414,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<WordEmbeddedObject>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
@@ -442,7 +453,7 @@ namespace OfficeIMO.Word {
         /// <param name="sp1"></param>
         /// <param name="sp2"></param>
         /// <returns></returns>
-        private bool AreSectionPropertiesEqual(SectionProperties sp1, SectionProperties sp2) {
+        private bool AreSectionPropertiesEqual(SectionProperties? sp1, SectionProperties? sp2) {
             if (sp1 == null || sp2 == null) {
                 return sp1 == sp2;
             }
@@ -461,7 +472,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<WordElement>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
@@ -565,7 +576,7 @@ namespace OfficeIMO.Word {
 
             dataSections[count] = new List<SdtBlock>();
             var foundCount = -1;
-            if (_wordprocessingDocument.MainDocumentPart.Document != null) {
+            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
                 if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
                     var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
                     foreach (var element in listElements) {
