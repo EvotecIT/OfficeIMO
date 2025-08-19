@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         public ColumnBuilder AutoFit() {
-            _sheet.AutoFitColumns();
+            _sheet.AutoFitAllColumns();
             return this;
         }
     }
