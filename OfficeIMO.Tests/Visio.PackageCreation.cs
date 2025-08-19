@@ -49,14 +49,17 @@ namespace OfficeIMO.Tests {
                 PackageRelationship thumbRel = package.GetRelationshipsByType("http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail").Single();
                 Assert.Equal("/docProps/thumbnail.emf", thumbRel.TargetUri.OriginalString);
 
-                PackageRelationship windowsRel = package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/windows").Single();
-                Assert.Equal("/visio/windows.xml", windowsRel.TargetUri.OriginalString);
+                Assert.Empty(package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/windows"));
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
                 PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
                 Assert.Equal("rId1", pagesRel.Id);
                 Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
                 Assert.Equal("/visio/pages/pages.xml", pagesUri.OriginalString);
+
+                PackageRelationship windowsRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/windows").Single();
+                Uri windowsUri = PackUriHelper.ResolvePartUri(documentPart.Uri, windowsRel.TargetUri);
+                Assert.Equal("/visio/windows.xml", windowsUri.OriginalString);
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();

@@ -22,6 +22,8 @@ namespace OfficeIMO.Visio {
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
         private const string ThemeRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/theme";
         private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
+        private const string WindowsRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/windows";
+        private const string WindowsContentType = "application/vnd.ms-visio.windows+xml";
 
         /// <summary>
         /// Collection of pages in the document.
@@ -148,17 +150,17 @@ namespace OfficeIMO.Visio {
                 PackagePart thumbPart = package.CreatePart(thumbUri, "image/x-emf");
                 package.CreateRelationship(thumbUri, TargetMode.Internal, "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail", "rId5");
 
-                Uri windowsUri = new("/visio/windows.xml", UriKind.Relative);
-                PackagePart windowsPart = package.CreatePart(windowsUri, "application/vnd.ms-visio.windows+xml");
-                package.CreateRelationship(windowsUri, TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/windows", "rId6");
-
                 Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
                 PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
                 documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
 
+                Uri windowsUri = new("/visio/windows.xml", UriKind.Relative);
+                PackagePart windowsPart = package.CreatePart(windowsUri, WindowsContentType);
+                documentPart.CreateRelationship(new Uri("windows.xml", UriKind.Relative), TargetMode.Internal, WindowsRelationshipType, "rId2");
+
                 Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
                 PackagePart themePart = package.CreatePart(themeUri, ThemeContentType);
-                documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId2");
+                documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId3");
 
                 Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
                 PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
@@ -190,7 +192,7 @@ namespace OfficeIMO.Visio {
                 if (masters.Count > 0) {
                     Uri mastersUri = new("/visio/masters/masters.xml", UriKind.Relative);
                     mastersPart = package.CreatePart(mastersUri, "application/vnd.ms-visio.masters+xml");
-                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/masters", "rId3");
+                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/masters", "rId4");
 
                     for (int i = 0; i < masters.Count; i++) {
                         VisioMaster master = masters[i];
@@ -401,7 +403,7 @@ namespace OfficeIMO.Visio {
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/app.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.windows+xml")));
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", WindowsContentType)));
             root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
             if (masterCount > 0) {
                 root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/masters/masters.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.masters+xml")));
