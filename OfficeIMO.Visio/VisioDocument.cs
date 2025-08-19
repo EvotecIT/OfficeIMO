@@ -129,6 +129,26 @@ namespace OfficeIMO.Visio {
                 PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
                 package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
 
+                Uri coreUri = new("/docProps/core.xml", UriKind.Relative);
+                PackagePart corePart = package.CreatePart(coreUri, "application/vnd.openxmlformats-package.core-properties+xml");
+                package.CreateRelationship(coreUri, TargetMode.Internal, "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties", "rId2");
+
+                Uri appUri = new("/docProps/app.xml", UriKind.Relative);
+                PackagePart appPart = package.CreatePart(appUri, "application/vnd.openxmlformats-officedocument.extended-properties+xml");
+                package.CreateRelationship(appUri, TargetMode.Internal, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties", "rId3");
+
+                Uri customUri = new("/docProps/custom.xml", UriKind.Relative);
+                PackagePart customPart = package.CreatePart(customUri, "application/vnd.openxmlformats-officedocument.custom-properties+xml");
+                package.CreateRelationship(customUri, TargetMode.Internal, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties", "rId4");
+
+                Uri thumbUri = new("/docProps/thumbnail.emf", UriKind.Relative);
+                PackagePart thumbPart = package.CreatePart(thumbUri, "image/x-emf");
+                package.CreateRelationship(thumbUri, TargetMode.Internal, "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail", "rId5");
+
+                Uri windowsUri = new("/visio/windows.xml", UriKind.Relative);
+                PackagePart windowsPart = package.CreatePart(windowsUri, "application/vnd.ms-visio.windows+xml");
+                package.CreateRelationship(windowsUri, TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/windows", "rId6");
+
                 Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
                 PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
                 documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
@@ -146,6 +166,42 @@ namespace OfficeIMO.Visio {
 
                 using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
                     CreateVisioDocumentXml(_requestRecalcOnOpen).Save(stream);
+                }
+
+                using (XmlWriter writer = XmlWriter.Create(corePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("cp", "coreProperties", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties");
+                    writer.WriteAttributeString("xmlns", "dc", null, "http://purl.org/dc/elements/1.1/");
+                    writer.WriteAttributeString("xmlns", "dcterms", null, "http://purl.org/dc/terms/");
+                    writer.WriteAttributeString("xmlns", "dcmitype", null, "http://purl.org/dc/dcmitype/");
+                    writer.WriteAttributeString("xmlns", "xsi", null, "http://www.w3.org/2001/XMLSchema-instance");
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+
+                using (XmlWriter writer = XmlWriter.Create(appPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("ep", "Properties", "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties");
+                    writer.WriteAttributeString("xmlns", "vt", null, "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes");
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+
+                using (XmlWriter writer = XmlWriter.Create(customPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("cp", "Properties", "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties");
+                    writer.WriteAttributeString("xmlns", "vt", null, "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes");
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+
+                using (Stream stream = thumbPart.GetStream(FileMode.Create, FileAccess.Write)) { }
+
+                using (XmlWriter writer = XmlWriter.Create(windowsPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("Windows", ns);
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
                 }
 
                 string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
@@ -256,9 +312,15 @@ namespace OfficeIMO.Visio {
             XDocument doc = new(new XElement(ct + "Types",
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
+                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.drawing.main+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.pages+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml"))));
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/core.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.core-properties+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/app.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.windows+xml"))));
             using StreamWriter writer = new(newEntry.Open());
             writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
