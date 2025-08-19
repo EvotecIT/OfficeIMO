@@ -206,10 +206,15 @@ namespace OfficeIMO.Visio {
                 };
                 const string ns = VisioNamespace;
 
+                string ToVisioString(double value) {
+                    string text = Math.Round(value, 15).ToString("F15", CultureInfo.InvariantCulture);
+                    return text.TrimEnd('0').TrimEnd('.');
+                }
+
                 void WriteCell(XmlWriter writer, string name, double value) {
                     writer.WriteStartElement("Cell", ns);
                     writer.WriteAttributeString("N", name);
-                    writer.WriteAttributeString("V", XmlConvert.ToString(value));
+                    writer.WriteAttributeString("V", ToVisioString(value));
                     writer.WriteEndElement();
                 }
 
@@ -471,16 +476,16 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Type", "Shape");
                             writer.WriteStartElement("Geom", ns);
                             writer.WriteStartElement("MoveTo", ns);
-                            writer.WriteAttributeString("X", XmlConvert.ToString(startX));
-                            writer.WriteAttributeString("Y", XmlConvert.ToString(startY));
+                            writer.WriteAttributeString("X", ToVisioString(startX));
+                            writer.WriteAttributeString("Y", ToVisioString(startY));
                             writer.WriteEndElement();
                             writer.WriteStartElement("LineTo", ns);
-                            writer.WriteAttributeString("X", XmlConvert.ToString(startX));
-                            writer.WriteAttributeString("Y", XmlConvert.ToString(endY));
+                            writer.WriteAttributeString("X", ToVisioString(startX));
+                            writer.WriteAttributeString("Y", ToVisioString(endY));
                             writer.WriteEndElement();
                             writer.WriteStartElement("LineTo", ns);
-                            writer.WriteAttributeString("X", XmlConvert.ToString(endX));
-                            writer.WriteAttributeString("Y", XmlConvert.ToString(endY));
+                            writer.WriteAttributeString("X", ToVisioString(endX));
+                            writer.WriteAttributeString("Y", ToVisioString(endY));
                             writer.WriteEndElement();
                             writer.WriteEndElement();
                             writer.WriteEndElement();
