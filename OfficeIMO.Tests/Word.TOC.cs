@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddTableOfContent();
                 document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
-                document.TableOfContent.Remove();
+                document.TableOfContent!.Remove();
                 Assert.True(document.TableOfContent == null);
                 document.RegenerateTableOfContent();
                 Assert.True(document.TableOfContent != null);
