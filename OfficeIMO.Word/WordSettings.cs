@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
+using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2010.Word;
 using DocumentFormat.OpenXml.Packaging;
@@ -180,7 +179,7 @@ namespace OfficeIMO.Word {
                 if (percent == null) {
                     return null;
                 }
-                return int.Parse(percent!);
+                return int.Parse(percent!, CultureInfo.InvariantCulture);
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
@@ -191,7 +190,7 @@ namespace OfficeIMO.Word {
                 if (settings.Zoom == null) {
                     settings.Zoom = new Zoom();
                 }
-                settings.Zoom.Percent = value?.ToString();
+                settings.Zoom.Percent = value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : null;
             }
         }
 
@@ -288,7 +287,7 @@ namespace OfficeIMO.Word {
                 if (runPropertiesBaseStyle != null) {
                     var fontSize = runPropertiesBaseStyle.FontSize?.Val;
                     if (fontSize != null) {
-                        return int.Parse(fontSize!) / 2;
+                        return int.Parse(fontSize!, CultureInfo.InvariantCulture) / 2;
                     }
                 }
                 return null;
@@ -299,7 +298,7 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.FontSize == null) {
                         runPropertiesBaseStyle.FontSize = new FontSize();
                     }
-                    runPropertiesBaseStyle.FontSize.Val = (value * 2).ToString();
+                    runPropertiesBaseStyle.FontSize.Val = value.HasValue ? (value.Value * 2).ToString(CultureInfo.InvariantCulture) : null;
                 } else {
                     throw new InvalidOperationException("Could not set font size. Styles not found.");
                 }
@@ -315,7 +314,7 @@ namespace OfficeIMO.Word {
                 if (runPropertiesBaseStyle != null) {
                     var fontSize = runPropertiesBaseStyle.FontSizeComplexScript?.Val;
                     if (fontSize != null) {
-                        return int.Parse(fontSize!) / 2;
+                        return int.Parse(fontSize!, CultureInfo.InvariantCulture) / 2;
                     }
                 }
                 return null;
@@ -326,7 +325,7 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.FontSizeComplexScript == null) {
                         runPropertiesBaseStyle.FontSizeComplexScript = new FontSizeComplexScript();
                     }
-                    runPropertiesBaseStyle.FontSizeComplexScript.Val = (value * 2).ToString();
+                    runPropertiesBaseStyle.FontSizeComplexScript.Val = value.HasValue ? (value.Value * 2).ToString(CultureInfo.InvariantCulture) : null;
                 } else {
                     throw new InvalidOperationException("Could not set font size complex script. Styles not found.");
                 }
@@ -558,8 +557,8 @@ namespace OfficeIMO.Word {
         public bool FinalDocument {
             get {
                 if (_document.CustomDocumentProperties.TryGetValue("_MarkAsFinal", out var markFinalProperty)) {
-                    if (markFinalProperty?.Value != null) {
-                        return markFinalProperty.Value.ToString() == "1";
+                    if (markFinalProperty?.Value is string valueString) {
+                        return string.Equals(valueString, "1", StringComparison.Ordinal);
                     }
                 }
                 return false;
