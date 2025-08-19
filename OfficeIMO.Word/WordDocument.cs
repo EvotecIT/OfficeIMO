@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Word {
             WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
-            var mainPart = wordDocument.MainDocumentPart!;
+            var mainPart = wordDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart missing.");
             mainPart.Document = new Document() {
                 MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" }
             };
@@ -1089,7 +1089,7 @@ namespace OfficeIMO.Word {
             WordCompatibilitySettings compatibilitySettings = new WordCompatibilitySettings(word);
             ApplicationProperties applicationProperties = new ApplicationProperties(word);
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
-            WordSection wordSection = new WordSection(word, null!);
+            WordSection wordSection = new WordSection(word, sectionProperties: null, paragraph: null);
             WordBackground wordBackground = new WordBackground(word);
             WordDocumentStatistics statistics = new WordDocumentStatistics(word);
 
@@ -1149,27 +1149,29 @@ namespace OfficeIMO.Word {
             var compatibilitySettings = new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
-            var wordSection = new WordSection(this, null!, null!);
+            var wordSection = new WordSection(this, sectionProperties: null, paragraph: null);
 
-            var list = this._wordprocessingDocument.MainDocumentPart!.Document.Body!.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
-            foreach (var element in list) {
-                if (element is Paragraph) {
-                    Paragraph paragraph = (Paragraph)element;
-                    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                        wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
+            var body = _wordprocessingDocument.MainDocumentPart?.Document?.Body;
+            if (body != null) {
+                var list = body.ChildElements.ToList();
+                foreach (var element in list) {
+                    if (element is Paragraph paragraph) {
+                        if (paragraph.ParagraphProperties?.SectionProperties != null) {
+                            wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
+                        }
+                    } else if (element is Table) {
+                        // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
+                    } else if (element is SectionProperties) {
+                        // we don't do anything as we already created it above - i think
+                    } else if (element is SdtBlock) {
+                        // we don't do anything as we load stuff with get on demand
+                    } else if (element is OpenXmlUnknownElement) {
+                        // this happens when adding dirty element - mainly during TOC Update() function
+                    } else if (element is BookmarkEnd) {
+
+                    } else {
+                        //throw new NotImplementedException("This isn't implemented yet");
                     }
-                } else if (element is Table) {
-                    // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
-                } else if (element is SectionProperties sectionProperties) {
-                    // we don't do anything as we already created it above - i think
-                } else if (element is SdtBlock sdtBlock) {
-                    // we don't do anything as we load stuff with get on demand
-                } else if (element is OpenXmlUnknownElement) {
-                    // this happens when adding dirty element - mainly during TOC Update() function
-                } else if (element is BookmarkEnd) {
-
-                } else {
-                    //throw new NotImplementedException("This isn't implemented yet");
                 }
             }
 
@@ -1244,7 +1246,8 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
-                    word._document = wordDocument.MainDocumentPart!.Document;
+                var mainPart = wordDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart missing.");
+                word._document = mainPart.Document;
                 word.LoadDocument();
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordChart.InitializeDocPrIdSeed(wordDocument);
@@ -1284,10 +1287,11 @@ namespace OfficeIMO.Word {
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
 
+            var mainPart = wordDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart missing.");
             var word = new WordDocument {
                 FilePath = filePath,
                 _wordprocessingDocument = wordDocument,
-                _document = wordDocument.MainDocumentPart!.Document
+                _document = mainPart.Document
             };
 
             bool applyOverrideStyles = overrideStyles && !readOnly;
@@ -1321,7 +1325,8 @@ namespace OfficeIMO.Word {
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
             document._wordprocessingDocument = wordDocument;
-            document._document = wordDocument.MainDocumentPart!.Document;
+            var mainPart = wordDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart missing.");
+            document._document = mainPart.Document;
             document.LoadDocument();
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
@@ -1673,7 +1678,11 @@ namespace OfficeIMO.Word {
         /// Needs more work, but this is what Word does all the time
         /// </summary>
         private void MoveSectionProperties() {
-            var body = this._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            var body = _wordprocessingDocument.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return;
+            }
+
             var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (sectionProperties != null) {
                 body.RemoveChild(sectionProperties);
@@ -1720,16 +1729,16 @@ namespace OfficeIMO.Word {
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
             // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
             if (readOnly == false) {
-            var styleDefinitionsPart = wordDocument.MainDocumentPart!
-                .GetPartsOfType<StyleDefinitionsPart>()
-                .FirstOrDefault();
+                var styleDefinitionsPart = wordDocument.MainDocumentPart?
+                    .GetPartsOfType<StyleDefinitionsPart>()
+                    .FirstOrDefault();
                 if (styleDefinitionsPart != null) {
                     AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
                 } else {
-
-                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>("rId1");
-                    GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
+                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart?.AddNewPart<StyleDefinitionsPart>("rId1");
+                    if (styleDefinitionsPart1 != null) {
+                        GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
+                    }
                 }
             }
         }
@@ -1804,7 +1813,7 @@ namespace OfficeIMO.Word {
                 TableOfContent.Update();
             }
             _ = new WordCustomProperties(this, true);
-            var settingsPart = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart;
+            var settingsPart = _wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
             if (hasVariables || DocumentVariables.Count > 0) {
                 _ = new WordDocumentVariables(this, true);

@@ -206,67 +206,67 @@ public partial class WordTableStyleDetails {
             // Top border
             if (TableBorders.TopBorder != null) {
                 if (TableBorders.TopBorder.Val != null) {
-                    cell.Borders.TopStyle = TableBorders.TopBorder.Val!;
+                    cell.Borders.TopStyle = TableBorders.TopBorder.Val.Value;
                 }
                 if (TableBorders.TopBorder.Size != null)
                     cell.Borders.TopSize = TableBorders.TopBorder.Size;
                 if (TableBorders.TopBorder.Color != null)
-                    cell.Borders.TopColorHex = TableBorders.TopBorder.Color!;
+                    cell.Borders.TopColorHex = TableBorders.TopBorder.Color.Value;
             }
 
             // Bottom border
             if (TableBorders.BottomBorder != null) {
                 if (TableBorders.BottomBorder.Val != null) {
-                    cell.Borders.BottomStyle = TableBorders.BottomBorder.Val!;
+                    cell.Borders.BottomStyle = TableBorders.BottomBorder.Val.Value;
                 }
                 if (TableBorders.BottomBorder.Size != null)
                     cell.Borders.BottomSize = TableBorders.BottomBorder.Size;
                 if (TableBorders.BottomBorder.Color != null)
-                    cell.Borders.BottomColorHex = TableBorders.BottomBorder.Color!;
+                    cell.Borders.BottomColorHex = TableBorders.BottomBorder.Color.Value;
             }
 
             // Left border
             if (TableBorders.LeftBorder != null) {
                 if (TableBorders.LeftBorder.Val != null) {
-                    cell.Borders.LeftStyle = TableBorders.LeftBorder.Val!;
+                    cell.Borders.LeftStyle = TableBorders.LeftBorder.Val.Value;
                 }
                 if (TableBorders.LeftBorder.Size != null)
                     cell.Borders.LeftSize = TableBorders.LeftBorder.Size;
                 if (TableBorders.LeftBorder.Color != null)
-                    cell.Borders.LeftColorHex = TableBorders.LeftBorder.Color!;
+                    cell.Borders.LeftColorHex = TableBorders.LeftBorder.Color.Value;
             }
 
             // Right border
             if (TableBorders.RightBorder != null) {
                 if (TableBorders.RightBorder.Val != null) {
-                    cell.Borders.RightStyle = TableBorders.RightBorder.Val!;
+                    cell.Borders.RightStyle = TableBorders.RightBorder.Val.Value;
                 }
                 if (TableBorders.RightBorder.Size != null)
                     cell.Borders.RightSize = TableBorders.RightBorder.Size;
                 if (TableBorders.RightBorder.Color != null)
-                    cell.Borders.RightColorHex = TableBorders.RightBorder.Color!;
+                    cell.Borders.RightColorHex = TableBorders.RightBorder.Color.Value;
             }
 
             // Inside horizontal border
             if (TableBorders.InsideHorizontalBorder != null) {
                 if (TableBorders.InsideHorizontalBorder.Val != null) {
-                    cell.Borders.InsideHorizontalStyle = TableBorders.InsideHorizontalBorder.Val!;
+                    cell.Borders.InsideHorizontalStyle = TableBorders.InsideHorizontalBorder.Val.Value;
                 }
                 if (TableBorders.InsideHorizontalBorder.Size != null)
                     cell.Borders.InsideHorizontalSize = TableBorders.InsideHorizontalBorder.Size;
                 if (TableBorders.InsideHorizontalBorder.Color != null)
-                    cell.Borders.InsideHorizontalColorHex = TableBorders.InsideHorizontalBorder.Color!;
+                    cell.Borders.InsideHorizontalColorHex = TableBorders.InsideHorizontalBorder.Color.Value;
             }
 
             // Inside vertical border
             if (TableBorders.InsideVerticalBorder != null) {
                 if (TableBorders.InsideVerticalBorder.Val != null) {
-                    cell.Borders.InsideVerticalStyle = TableBorders.InsideVerticalBorder.Val!;
+                    cell.Borders.InsideVerticalStyle = TableBorders.InsideVerticalBorder.Val.Value;
                 }
                 if (TableBorders.InsideVerticalBorder.Size != null)
                     cell.Borders.InsideVerticalSize = TableBorders.InsideVerticalBorder.Size;
                 if (TableBorders.InsideVerticalBorder.Color != null)
-                    cell.Borders.InsideVerticalColorHex = TableBorders.InsideVerticalBorder.Color!;
+                    cell.Borders.InsideVerticalColorHex = TableBorders.InsideVerticalBorder.Color.Value;
             }
         }
     }

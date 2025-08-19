@@ -355,7 +355,7 @@ namespace OfficeIMO.Word {
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddCitation(string sourceTag) {
             var field = new CitationField { SourceTag = sourceTag };
-            WordField.AddField(this, field, null!, null!, false);
+            WordField.AddField(this, field, null, string.Empty, false);
             return this;
         }
 
@@ -371,7 +371,7 @@ namespace OfficeIMO.Word {
         /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
-            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
+            WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat ?? string.Empty, advanced, parameters ?? new List<string>());
             return this;
         }
 
@@ -384,7 +384,7 @@ namespace OfficeIMO.Word {
         /// <param name="advanced">Use advanced field representation.</param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
-            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat!, advanced);
+            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat ?? string.Empty, advanced);
             return this;
         }
 
@@ -946,7 +946,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordDropDownList"/> instance.</returns>
-        public WordDropDownList AddDropDownList(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null) {
+        public WordDropDownList AddDropDownList(System.Collections.Generic.IEnumerable<string>? items, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -983,7 +983,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordComboBox"/> instance.</returns>
-        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null) {
+        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string>? items, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
