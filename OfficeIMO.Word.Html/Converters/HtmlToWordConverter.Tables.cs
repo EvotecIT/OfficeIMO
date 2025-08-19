@@ -189,7 +189,7 @@ namespace OfficeIMO.Word.Html.Converters {
             var widths = new List<int>();
             TableWidthUnitValues? widthType = null;
             foreach (var col in colElements) {
-                string width = null;
+                string? width = null;
                 var style = col.GetAttribute("style");
                 if (!string.IsNullOrEmpty(style)) {
                     foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -254,10 +254,10 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            string background = null;
+            string? background = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
             BorderValues? tableBorderStyle = null;
-            UInt32Value tableBorderSize = null;
+            UInt32Value? tableBorderSize = null;
             SixColor tableBorderColor = default;
             bool borderSpecified = false;
             bool collapse = true;
@@ -349,9 +349,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
-            if (borderSpecified) {
+            if (borderSpecified && tableBorderStyle.HasValue && tableBorderSize != null) {
                 if (collapse) {
-                    wordTable.StyleDetails.SetBordersForAllSides(tableBorderStyle.Value, tableBorderSize, tableBorderColor);
+                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value, tableBorderSize, tableBorderColor);
                 } else {
                     var hex = tableBorderColor.ToHexColor();
                     foreach (var row in wordTable.Rows) {
@@ -372,10 +372,13 @@ namespace OfficeIMO.Word.Html.Converters {
                 }
             }
 
-            if (padTop != null) wordTable.StyleDetails.MarginDefaultTopWidth = (short)padTop.Value;
-            if (padBottom != null) wordTable.StyleDetails.MarginDefaultBottomWidth = (short)padBottom.Value;
-            if (padLeft != null) wordTable.StyleDetails.MarginDefaultLeftWidth = (short)padLeft.Value;
-            if (padRight != null) wordTable.StyleDetails.MarginDefaultRightWidth = (short)padRight.Value;
+            var styleDetails = wordTable.StyleDetails;
+            if (styleDetails != null) {
+                if (padTop != null) styleDetails.MarginDefaultTopWidth = (short)padTop.Value;
+                if (padBottom != null) styleDetails.MarginDefaultBottomWidth = (short)padBottom.Value;
+                if (padLeft != null) styleDetails.MarginDefaultLeftWidth = (short)padLeft.Value;
+                if (padRight != null) styleDetails.MarginDefaultRightWidth = (short)padRight.Value;
+            }
         }
 
         private static void ApplyRowStyles(WordTableRow row, IHtmlTableRowElement htmlRow) {
@@ -384,9 +387,9 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            string background = null;
+            string? background = null;
             BorderValues? borderStyle = null;
-            UInt32Value borderSize = null;
+            UInt32Value? borderSize = null;
             SixColor borderColor = default;
 
             foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -415,7 +418,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 if (background != null) {
                     cell.ShadingFillColorHex = background;
                 }
-                if (borderStyle != null) {
+                if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
                     var hex = borderColor.ToHexColor();
@@ -541,7 +544,7 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {
-            size = null;
+            size = 0;
             var raw = token.Trim().ToLowerInvariant();
             if (raw.EndsWith("px") && double.TryParse(raw.Substring(0, raw.Length - 2), out double px)) {
                 size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));

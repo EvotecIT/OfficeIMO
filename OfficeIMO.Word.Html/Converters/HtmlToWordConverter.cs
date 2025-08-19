@@ -152,9 +152,11 @@ namespace OfficeIMO.Word.Html.Converters {
             var section = wordDoc.Sections.First();
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
-            foreach (var child in document.Body.ChildNodes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+            if (document.Body != null) {
+                foreach (var child in document.Body.ChildNodes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                }
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -254,9 +256,11 @@ namespace OfficeIMO.Word.Html.Converters {
 
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
-            foreach (var child in document.Body.ChildNodes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+            if (document.Body != null) {
+                foreach (var child in document.Body.ChildNodes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
+                }
             }
         }
 
@@ -362,9 +366,11 @@ namespace OfficeIMO.Word.Html.Converters {
             var section = doc.Sections.First();
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
-            foreach (var child in document.Body.ChildNodes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
+            if (document.Body != null) {
+                foreach (var child in document.Body.ChildNodes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
+                }
             }
         }
 
@@ -373,7 +379,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (loader == null) {
                 return;
             }
-            var request = new ResourceRequest(null, url);
+            var request = new ResourceRequest(null!, url);
             var download = loader.FetchAsync(request);
             var response = await download.Task.ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -782,11 +788,13 @@ namespace OfficeIMO.Word.Html.Converters {
                                         linkPara.SetFontFamily(options.FontFamily);
                                     }
                                     var link = linkPara.Hyperlink;
-                                    if (!string.IsNullOrEmpty(title)) {
-                                        link.Tooltip = title;
-                                    }
-                                    if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
-                                        link.TargetFrame = frame;
+                                    if (link != null) {
+                                        if (!string.IsNullOrEmpty(title)) {
+                                            link.Tooltip = title;
+                                        }
+                                        if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
+                                            link.TargetFrame = frame;
+                                        }
                                     }
                                 } else {
                                     var uri = new Uri(href, UriKind.RelativeOrAbsolute);
@@ -795,11 +803,13 @@ namespace OfficeIMO.Word.Html.Converters {
                                         linkPara.SetFontFamily(options.FontFamily);
                                     }
                                     var link = linkPara.Hyperlink;
-                                    if (!string.IsNullOrEmpty(title)) {
-                                        link.Tooltip = title;
-                                    }
-                                    if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
-                                        link.TargetFrame = frame;
+                                    if (link != null) {
+                                        if (!string.IsNullOrEmpty(title)) {
+                                            link.Tooltip = title;
+                                        }
+                                        if (!string.IsNullOrEmpty(target) && Enum.TryParse<TargetFrame>(target, true, out var frame)) {
+                                            link.TargetFrame = frame;
+                                        }
                                     }
                                 }
                             }
