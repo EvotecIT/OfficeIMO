@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, count);
                 Assert.Single(document.EmbeddedDocuments);
                 Assert.DoesNotContain("replaceTarget", document.Paragraphs[0].Text);
-                var body = document._document.Body;
+                var body = document._document.Body!;
                 Assert.IsType<SectionProperties>(body.ChildElements[0]);
                 Assert.IsType<Paragraph>(body.ChildElements[1]);
                 Assert.IsType<AltChunk>(body.ChildElements[2]);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.EmbeddedDocuments);
                 Assert.Equal("Intro ", document.Paragraphs[0].Text);
                 Assert.Equal(" end", document.Paragraphs[1].Text);
-                var body = document._document.Body;
+                var body = document._document.Body!;
                 Assert.IsType<SectionProperties>(body.ChildElements[0]);
                 Assert.IsType<Paragraph>(body.ChildElements[1]);
                 Assert.IsType<AltChunk>(body.ChildElements[2]);

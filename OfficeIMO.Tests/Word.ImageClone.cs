@@ -17,7 +17,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(paragraph1.Image.RelationshipId, clone.RelationshipId);
             Assert.Equal(2, document.Images.Count);
-            Assert.Single(document._wordprocessingDocument.MainDocumentPart.ImageParts);
+            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart);
+            Assert.Single(document._wordprocessingDocument.MainDocumentPart!.ImageParts);
 
             document.Save(false);
         }

@@ -62,10 +62,10 @@ public partial class Word {
         }
 
         using var word = WordprocessingDocument.Open(filePath, false);
-        var shape = word.MainDocumentPart.Document.Descendants<V.Shape>().FirstOrDefault();
+        var shape = word.MainDocumentPart?.Document?.Descendants<V.Shape>().FirstOrDefault();
         Assert.NotNull(shape);
-        Assert.Contains("width:32pt", shape.Style);
-        Assert.Contains("height:32pt", shape.Style);
+        Assert.Contains("width:32pt", shape!.Style);
+        Assert.Contains("height:32pt", shape!.Style);
     }
 
     [Fact]
@@ -81,9 +81,9 @@ public partial class Word {
         }
 
         using (var word = WordprocessingDocument.Open(filePath, false)) {
-            var embeddedPart = word.MainDocumentPart.EmbeddedPackageParts.FirstOrDefault();
+            var embeddedPart = word.MainDocumentPart?.EmbeddedPackageParts.FirstOrDefault();
             Assert.NotNull(embeddedPart);
-            using var stream = embeddedPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = embeddedPart!.GetStream(FileMode.Open, FileAccess.Read);
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             ms.Position = 0;
