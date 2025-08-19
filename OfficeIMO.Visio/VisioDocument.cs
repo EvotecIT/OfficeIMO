@@ -14,6 +14,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public class VisioDocument {
         private readonly List<VisioPage> _pages = new();
+        private bool _requestRecalcOnOpen;
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
@@ -32,6 +33,13 @@ namespace OfficeIMO.Visio {
             VisioPage page = new(name);
             _pages.Add(page);
             return page;
+        }
+
+        /// <summary>
+        /// Requests Visio to relayout and reroute connectors when the document is opened.
+        /// </summary>
+        public void RequestRecalcOnOpen() {
+            _requestRecalcOnOpen = true;
         }
 
         /// <summary>
@@ -96,11 +104,16 @@ namespace OfficeIMO.Visio {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
-        private static XDocument CreateVisioDocumentXml() {
+        private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
             XNamespace ns = VisioNamespace;
+            XElement settings = new(ns + "DocumentSettings");
+            if (requestRecalcOnOpen) {
+                settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
+            }
+
             return new XDocument(
                 new XElement(ns + "VisioDocument",
-                    new XElement(ns + "DocumentSettings"),
+                    settings,
                     new XElement(ns + "Colors"),
                     new XElement(ns + "FaceNames"),
                     new XElement(ns + "StyleSheets")));
@@ -134,7 +147,7 @@ namespace OfficeIMO.Visio {
             const string ns = VisioNamespace;
 
             using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
-                CreateVisioDocumentXml().Save(stream);
+                CreateVisioDocumentXml(_requestRecalcOnOpen).Save(stream);
             }
 
             string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
@@ -154,29 +167,80 @@ namespace OfficeIMO.Visio {
             }
 
             VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage(pageName);
-            VisioShape shape = page.Shapes.Count > 0 ? page.Shapes[0] : new VisioShape("1", 1, 1, 2, 1, "Rectangle");
 
             using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                 writer.WriteStartDocument();
                 writer.WriteStartElement("PageContents", ns);
                 writer.WriteStartElement("Shapes", ns);
-                writer.WriteStartElement("Shape", ns);
-                writer.WriteAttributeString("ID", shape.Id);
-                if (!string.IsNullOrEmpty(shape.NameU)) {
-                    writer.WriteAttributeString("NameU", shape.NameU);
+
+                foreach (VisioShape shape in page.Shapes) {
+                    writer.WriteStartElement("Shape", ns);
+                    writer.WriteAttributeString("ID", shape.Id);
+                    if (!string.IsNullOrEmpty(shape.NameU)) {
+                        writer.WriteAttributeString("NameU", shape.NameU);
+                    }
+                    writer.WriteStartElement("XForm", ns);
+                    writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteElementString("Width", ns, shape.Width.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteElementString("Height", ns, shape.Height.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteEndElement();
+                    if (!string.IsNullOrEmpty(shape.Text)) {
+                        writer.WriteElementString("Text", ns, shape.Text);
+                    }
+                    writer.WriteEndElement();
                 }
-                writer.WriteStartElement("XForm", ns);
-                writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
-                writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
-                writer.WriteElementString("Width", ns, shape.Width.ToString(CultureInfo.InvariantCulture));
-                writer.WriteElementString("Height", ns, shape.Height.ToString(CultureInfo.InvariantCulture));
-                writer.WriteEndElement();
-                if (!string.IsNullOrEmpty(shape.Text)) {
-                    writer.WriteElementString("Text", ns, shape.Text);
+
+                foreach (VisioConnector connector in page.Connectors) {
+                    VisioShape from = connector.From;
+                    VisioShape to = connector.To;
+                    double startX = from.PinX + from.Width / 2;
+                    double startY = from.PinY;
+                    double endX = to.PinX - to.Width / 2;
+                    double endY = to.PinY;
+
+                    writer.WriteStartElement("Shape", ns);
+                    writer.WriteAttributeString("ID", connector.Id);
+                    writer.WriteAttributeString("NameU", "Connector");
+                    writer.WriteStartElement("Geom", ns);
+                    writer.WriteStartElement("MoveTo", ns);
+                    writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Y", startY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", endX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
                 }
-                writer.WriteEndElement();
-                writer.WriteEndElement();
-                writer.WriteEndElement();
+
+                writer.WriteEndElement(); // Shapes
+
+                if (page.Connectors.Count > 0) {
+                    writer.WriteStartElement("Connects", ns);
+                    foreach (VisioConnector connector in page.Connectors) {
+                        writer.WriteStartElement("Connect", ns);
+                        writer.WriteAttributeString("FromSheet", connector.Id);
+                        writer.WriteAttributeString("FromCell", "BeginX");
+                        writer.WriteAttributeString("ToSheet", connector.From.Id);
+                        writer.WriteAttributeString("ToCell", "PinX");
+                        writer.WriteEndElement();
+                        writer.WriteStartElement("Connect", ns);
+                        writer.WriteAttributeString("FromSheet", connector.Id);
+                        writer.WriteAttributeString("FromCell", "EndX");
+                        writer.WriteAttributeString("ToSheet", connector.To.Id);
+                        writer.WriteAttributeString("ToCell", "PinX");
+                        writer.WriteEndElement();
+                    }
+                    writer.WriteEndElement(); // Connects
+                }
+
+                writer.WriteEndElement(); // PageContents
                 writer.WriteEndDocument();
             }
         }
