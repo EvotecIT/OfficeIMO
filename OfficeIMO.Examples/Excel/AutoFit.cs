@@ -12,11 +12,13 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "This is a very long piece of text", autoFitColumns: true, autoFitRows: true);
-                sheet.SetCellValue(2, 1, "Second line\nwith newline", autoFitColumns: true, autoFitRows: true);
-                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3", autoFitColumns: true, autoFitRows: true);
-                sheet.SetCellValue(4, 1, "Temporary", autoFitColumns: true, autoFitRows: true);
-                sheet.SetCellValue(4, 1, string.Empty, autoFitColumns: true, autoFitRows: true);
+                sheet.SetCellValue(1, 1, "This is a very long piece of text");
+                sheet.SetCellValue(2, 1, "Second line\nwith newline");
+                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3");
+                sheet.SetCellValue(4, 1, "Temporary");
+                sheet.SetCellValue(4, 1, string.Empty);
+                sheet.AutoFitAllColumns();
+                sheet.AutoFitAllRows();
                 document.Save(openExcel);
             }
         }
