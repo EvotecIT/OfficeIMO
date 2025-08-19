@@ -136,14 +136,20 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a textbox with the specified text.
         /// </summary>
-        public PPTextBox AddTextBox(string text) {
+        public PPTextBox AddTextBox(string text, long? left = null, long? top = null, long? width = null, long? height = null) {
             Shape shape = new(
                 new NonVisualShapeProperties(
                     new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = "TextBox" + (_shapes.Count + 1) },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                 ),
-                new ShapeProperties(),
+                new ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = left ?? 0L, Y = top ?? 0L },
+                        new A.Extents { Cx = width ?? 914400L, Cy = height ?? 914400L }
+                    ),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                ),
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
@@ -160,7 +166,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds an image from the given file path.
         /// </summary>
-        public PPPicture AddPicture(string imagePath) {
+        public PPPicture AddPicture(string imagePath, long? left = null, long? top = null, long? width = null, long? height = null) {
             ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
@@ -176,8 +182,13 @@ namespace OfficeIMO.PowerPoint {
                     new A.Blip { Embed = relationshipId },
                     new A.Stretch(new A.FillRectangle())
                 ),
-                new ShapeProperties(new A.Transform2D(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = 914400L, Cy = 914400L }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })
+                new ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = left ?? 0L, Y = top ?? 0L },
+                        new A.Extents { Cx = width ?? 914400L, Cy = height ?? 914400L }
+                    ),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                )
             );
 
             _slidePart.Slide.CommonSlideData!.ShapeTree.AppendChild(picture);
@@ -189,7 +200,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a table with the specified rows and columns.
         /// </summary>
-        public PPTable AddTable(int rows, int columns) {
+        public PPTable AddTable(int rows, int columns, long? left = null, long? top = null, long? width = null, long? height = null) {
             A.Table table = new();
             A.TableProperties props = new();
             props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
@@ -219,7 +230,10 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
-                new Transform(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 5000000L, Cy = 3000000L }),
+                new Transform(
+                    new A.Offset { X = left ?? 0L, Y = top ?? 0L },
+                    new A.Extents { Cx = width ?? 5000000L, Cy = height ?? 3000000L }
+                ),
                 new A.Graphic(new A.GraphicData(table) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" })
             );
 
