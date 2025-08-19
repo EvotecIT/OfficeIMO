@@ -4,9 +4,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word.Sections {
-    internal static class Sections_Overrides_MarginsSizeNumbering {
-        public static void Example_Word_Fluent_Sections_Overrides_MarginsSizeNumbering(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word {
+    internal partial class Sections {
+
+        internal static void Example_Word_Fluent_Sections_Overrides_MarginsSizeNumbering(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document with multiple sections and per-section overrides");
             string filePath = Path.Combine(folderPath, "Fluent_Sections_Overrides_MarginsSizeNumbering.docx");
 

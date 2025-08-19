@@ -4,9 +4,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word.Sections {
-    internal static class Sections_PageSetup_Defaults {
-        public static void Example_Word_Fluent_Sections_PageSetup_Defaults(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word {
+    internal partial class Sections {
+
+        internal static void Example_Word_Fluent_Sections_PageSetup_Defaults(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document with document-wide page setup defaults via fluent API");
             string filePath = Path.Combine(folderPath, "Fluent_Sections_PageSetup_Defaults.docx");
 
