@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples.Word {
                             { "Q1", "1.1M", "2.1%" },
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
+                    .Table(t => t.AddTable(2, 2).Table!.Rows[0].Cells[0].AddParagraph("TopLeft"))
                     .End();
                 document.Save(false);
             }

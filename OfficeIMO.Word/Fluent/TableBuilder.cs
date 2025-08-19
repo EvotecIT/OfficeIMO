@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using System.Linq;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -23,6 +24,25 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         public WordTable? Table => _table;
+
+        /// <summary>
+        /// Creates the table with the specified size.
+        /// </summary>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="columns">Number of columns.</param>
+        /// <returns>The current <see cref="TableBuilder"/>.</returns>
+        public TableBuilder AddTable(int rows, int columns) {
+            _columns = columns;
+            _table = _fluent.Document.AddTable(rows, columns);
+            if (_preferredWidthPct.HasValue) {
+                _table.WidthType = TableWidthUnitValues.Pct;
+                _table.Width = _preferredWidthPct.Value * 50;
+            } else if (_preferredWidthDxa.HasValue) {
+                _table.WidthType = TableWidthUnitValues.Dxa;
+                _table.Width = _preferredWidthDxa.Value;
+            }
+            return this;
+        }
 
         /// <summary>
         /// Sets the number of columns for the table.
@@ -93,7 +113,7 @@ namespace OfficeIMO.Word.Fluent {
             }
             EnsureTable(1);
             WordTableRow row;
-            if (_table!.Rows.Count == 0) {
+            if (_table!.Rows.Count == 1 && _table.Rows[0].Cells.All(c => c.Paragraphs.Count == 0 || string.IsNullOrEmpty(c.Paragraphs[0].Text))) {
                 row = _table.Rows[0];
             } else {
                 row = _table.AddRow(_columns);

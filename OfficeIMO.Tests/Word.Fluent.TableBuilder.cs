@@ -46,6 +46,24 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Q1", table2.Rows[1].Cells[0].Paragraphs[0].Text);
             }
         }
+
+        [Fact]
+        public void Test_FluentTableBuilder_AddTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentAddTable.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Table(t => t.AddTable(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
+                    .End();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Single(document.Tables);
+                var table = document.Tables[0];
+                Assert.Equal(2, table.Rows.Count);
+                Assert.Equal("B", table.Rows[1].Cells[1].Paragraphs[1].Text);
+            }
+        }
     }
 }
 
