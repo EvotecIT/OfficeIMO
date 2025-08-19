@@ -209,7 +209,7 @@ namespace OfficeIMO.Visio {
                 void WriteCell(XmlWriter writer, string name, double value) {
                     writer.WriteStartElement("Cell", ns);
                     writer.WriteAttributeString("N", name);
-                    writer.WriteAttributeString("V", value.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("V", XmlConvert.ToString(value));
                     writer.WriteEndElement();
                 }
 
@@ -225,7 +225,7 @@ namespace OfficeIMO.Visio {
 
                 List<VisioMaster> masters = new();
                 foreach (VisioShape shape in _pages.SelectMany(p => p.Shapes).Where(s => !string.IsNullOrEmpty(s.NameU))) {
-                    VisioMaster master = new((masters.Count + 2).ToString(CultureInfo.InvariantCulture), shape.NameU!, shape);
+                    VisioMaster master = new(XmlConvert.ToString(masters.Count + 2), shape.NameU!, shape);
                     masters.Add(master);
                     shape.Master = master;
                 }
@@ -344,12 +344,12 @@ namespace OfficeIMO.Visio {
                     writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                     writer.WriteAttributeString("xml", "space", null, "preserve");
                     writer.WriteStartElement("Page", ns);
-                    writer.WriteAttributeString("ID", page.Id.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
                     writer.WriteAttributeString("Name", page.Name);
                     writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
-                    writer.WriteAttributeString("ViewScale", page.ViewScale.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterX", page.ViewCenterX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterY", page.ViewCenterY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewScale", XmlConvert.ToString(page.ViewScale));
+                    writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
+                    writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
                     writer.WriteStartElement("PageSheet", ns);
                     writer.WriteAttributeString("LineStyle", "0");
                     writer.WriteAttributeString("FillStyle", "0");
@@ -357,7 +357,7 @@ namespace OfficeIMO.Visio {
                     void WritePageCell(string name, double value, string? unit = null, string? formula = null) {
                         writer.WriteStartElement("Cell", ns);
                         writer.WriteAttributeString("N", name);
-                        writer.WriteAttributeString("V", value.ToString(CultureInfo.InvariantCulture));
+                        writer.WriteAttributeString("V", XmlConvert.ToString(value));
                         if (unit != null) writer.WriteAttributeString("U", unit);
                         if (formula != null) writer.WriteAttributeString("F", formula);
                         writer.WriteEndElement();
@@ -471,16 +471,16 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Type", "Shape");
                             writer.WriteStartElement("Geom", ns);
                             writer.WriteStartElement("MoveTo", ns);
-                            writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteAttributeString("Y", startY.ToString(CultureInfo.InvariantCulture));
+                            writer.WriteAttributeString("X", XmlConvert.ToString(startX));
+                            writer.WriteAttributeString("Y", XmlConvert.ToString(startY));
                             writer.WriteEndElement();
                             writer.WriteStartElement("LineTo", ns);
-                            writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                            writer.WriteAttributeString("X", XmlConvert.ToString(startX));
+                            writer.WriteAttributeString("Y", XmlConvert.ToString(endY));
                             writer.WriteEndElement();
                             writer.WriteStartElement("LineTo", ns);
-                            writer.WriteAttributeString("X", endX.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
+                            writer.WriteAttributeString("X", XmlConvert.ToString(endX));
+                            writer.WriteAttributeString("Y", XmlConvert.ToString(endY));
                             writer.WriteEndElement();
                             writer.WriteEndElement();
                             writer.WriteEndElement();

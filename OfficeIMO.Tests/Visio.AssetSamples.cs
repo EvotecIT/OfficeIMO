@@ -25,6 +25,7 @@ namespace OfficeIMO.Tests {
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
             using FileStream actualStream = File.OpenRead(target);
             using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
+            AssertXmlEqual(expected, actual, "visio/pages/pages.xml");
             AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
         }
 
@@ -49,6 +50,7 @@ namespace OfficeIMO.Tests {
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
             using FileStream actualStream = File.OpenRead(target);
             using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
+            AssertXmlEqual(expected, actual, "visio/pages/pages.xml");
             AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
         }
 
