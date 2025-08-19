@@ -21,11 +21,11 @@ namespace OfficeIMO.PowerPoint {
             get {
                 switch (Element) {
                     case Shape s:
-                        return s.NonVisualShapeProperties?.NonVisualDrawingProperties.Name?.Value;
+                        return s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value;
                     case Picture p:
-                        return p.NonVisualPictureProperties?.NonVisualDrawingProperties.Name?.Value;
+                        return p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value;
                     case GraphicFrame g:
-                        return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties.Name?.Value;
+                        return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value;
                     default:
                         return null;
                 }
