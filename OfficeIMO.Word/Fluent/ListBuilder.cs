@@ -13,6 +13,12 @@ namespace OfficeIMO.Word.Fluent {
             _fluent = fluent;
         }
 
+        internal ListBuilder(WordFluentDocument fluent, WordList list) {
+            _fluent = fluent;
+            _list = list;
+            _level = 0;
+        }
+
         /// <summary>
         /// Starts a bulleted list using the specified style.
         /// </summary>
