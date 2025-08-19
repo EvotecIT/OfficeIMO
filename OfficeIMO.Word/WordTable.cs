@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                if (_tableProperties != null && _tableProperties.TableStyle != null && value != null) {
+                if (_tableProperties?.TableStyle != null && value != null) {
                     _tableProperties.TableStyle = WordTableStyles.GetStyle(value.Value);
                 }
             }
