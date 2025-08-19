@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                var body = document._document.Body;
+                var body = document._document.Body!;
                 Assert.Equal("Paragraph 1", body.Elements<Paragraph>().ElementAt(0).InnerText);
                 Assert.Equal("Inserted", body.Elements<Paragraph>().ElementAt(1).InnerText);
                 Assert.Equal("Paragraph 2", body.Elements<Paragraph>().ElementAt(2).InnerText);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Tables);
                 Assert.Equal("Test", document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
 
-                var body = document._document.Body;
+                var body = document._document.Body!;
                 Assert.IsType<Paragraph>(body.ChildElements[0]);
                 Assert.IsType<Table>(body.ChildElements[1]);
                 Assert.IsType<Paragraph>(body.ChildElements[2]);

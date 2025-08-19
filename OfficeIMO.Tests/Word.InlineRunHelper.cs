@@ -34,7 +34,7 @@ public partial class Word {
         var hyperlink = paragraph._paragraph.Elements<Hyperlink>().FirstOrDefault();
         Assert.NotNull(hyperlink);
         Assert.Equal("http://example.com", hyperlink.InnerText);
-        var rel = document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships.First();
+        var rel = document._wordprocessingDocument.MainDocumentPart!.HyperlinkRelationships.First();
         Assert.StartsWith("http://example.com", rel.Uri.ToString());
     }
 }

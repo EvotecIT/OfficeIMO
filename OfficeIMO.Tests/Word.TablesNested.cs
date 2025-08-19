@@ -69,8 +69,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TablesIncludingNestedTables.Count == 7);
                 Assert.True(document.Sections[0].TablesIncludingNestedTables.Count == 7);
 
-                Assert.True(table1.ParentTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
-                Assert.True(table3.ParentTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2.2");
+                Assert.NotNull(table1.ParentTable);
+                Assert.True(table1.ParentTable!.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
+                Assert.NotNull(table3.ParentTable);
+                Assert.True(table3.ParentTable!.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2.2");
                 document.Save(false);
             }
 
@@ -86,23 +88,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables.Count == 3);
                 Assert.True(document.TablesIncludingNestedTables.Count == 7);
 
-                foreach (var table in document.TablesIncludingNestedTables) {
-                    if (table.IsNestedTable) {
-                        Assert.NotNull(table.ParentTable);
-                        Assert.True(table.ParentTable.RowsCount > 0);
-                    } else {
-                        Assert.Null(table.ParentTable);
+                    foreach (var table in document.TablesIncludingNestedTables) {
+                        if (table.IsNestedTable) {
+                            var parentTable = table.ParentTable;
+                            Assert.NotNull(parentTable);
+                            Assert.True(parentTable!.RowsCount > 0);
+                        } else {
+                            Assert.Null(table.ParentTable);
+                        }
                     }
-                }
 
-                foreach (var table in document.Sections[0].TablesIncludingNestedTables) {
-                    if (table.IsNestedTable) {
-                        Assert.NotNull(table.ParentTable);
-                        Assert.True(table.ParentTable.RowsCount > 0);
-                    } else {
-                        Assert.Null(table.ParentTable);
+                    foreach (var table in document.Sections[0].TablesIncludingNestedTables) {
+                        if (table.IsNestedTable) {
+                            var parentTable = table.ParentTable;
+                            Assert.NotNull(parentTable);
+                            Assert.True(parentTable!.RowsCount > 0);
+                        } else {
+                            Assert.Null(table.ParentTable);
+                        }
                     }
-                }
                 Assert.True(document.Sections[0].TablesIncludingNestedTables.Count == 7);
 
                 document.Save();

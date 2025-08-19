@@ -13,6 +13,7 @@ public partial class Word {
         string missingPath = Path.Combine(_directoryWithFiles, "does-not-exist.rtf");
 
         Assert.Throws<FileNotFoundException>(() => document.AddEmbeddedDocument(missingPath));
-        Assert.Empty(document._document.MainDocumentPart.AlternativeFormatImportParts);
+        Assert.NotNull(document._document.MainDocumentPart);
+        Assert.Empty(document._document.MainDocumentPart!.AlternativeFormatImportParts);
     }
 }

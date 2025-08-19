@@ -18,9 +18,12 @@ public partial class Word {
         var emus = Helpers.ConvertCentimetersToEmus(centimeters);
         var emus64 = Helpers.ConvertCentimetersToEmusInt64(centimeters);
 
+        Assert.True(emus.HasValue);
         Assert.Equal(expectedEmus, emus);
         Assert.Equal(expectedEmus64, emus64);
-        Assert.Equal(centimeters, Helpers.ConvertEmusToCentimeters(emus.Value).Value, 5);
+        var cm = Helpers.ConvertEmusToCentimeters(emus.Value);
+        Assert.True(cm.HasValue);
+        Assert.Equal(centimeters, cm.Value, 5);
         Assert.Equal(centimeters, Helpers.ConvertEmusToCentimeters(emus64), 5);
     }
 

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 document.AddEmbeddedFragmentAfter(p1, "<html><p>frag</p></html>");
 
                 Assert.Single(document.EmbeddedDocuments);
-                var body = document._document.Body;
+                var body = document._document.Body!;
                 Assert.IsType<SectionProperties>(body.ChildElements[0]);
                 Assert.IsType<Paragraph>(body.ChildElements[1]);
                 Assert.IsType<AltChunk>(body.ChildElements[2]);

@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 );
                 var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
                 Assert.NotNull(body);
-                body.Append(block);
+                body!.Append(block);
                 document.Save(false);
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
