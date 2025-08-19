@@ -239,24 +239,12 @@ namespace OfficeIMO.Word.Pdf {
             var line = lineField?.GetValue(shape) as Line;
 
             if (line != null) {
-                container.Canvas((canvasObj, size) => {
-                    var canvasType = canvasObj.GetType();
-                    var positionType = canvasType.Assembly.GetType("QuestPDF.Infrastructure.Position");
-                    var ctor = positionType!.GetConstructor(new[] { typeof(float), typeof(float) });
+                (float x1, float y1) = ParsePoint(line.From?.Value ?? "0pt,0pt");
+                (float x2, float y2) = ParsePoint(line.To?.Value ?? "0pt,0pt");
 
-                    (float x1, float y1) = ParsePoint(line.From?.Value ?? "0pt,0pt");
-                    (float x2, float y2) = ParsePoint(line.To?.Value ?? "0pt,0pt");
-                    object start = ctor!.Invoke(new object[] { x1, y1 });
-                    object end = ctor.Invoke(new object[] { x2, y2 });
+                string svg = $"<svg xmlns='http://www.w3.org/2000/svg' width='{width.ToString(CultureInfo.InvariantCulture)}' height='{height.ToString(CultureInfo.InvariantCulture)}' viewBox='0 0 {width.ToString(CultureInfo.InvariantCulture)} {height.ToString(CultureInfo.InvariantCulture)}'><line x1='{x1.ToString(CultureInfo.InvariantCulture)}' y1='{y1.ToString(CultureInfo.InvariantCulture)}' x2='{x2.ToString(CultureInfo.InvariantCulture)}' y2='{y2.ToString(CultureInfo.InvariantCulture)}' stroke='#{stroke ?? "000000"}' stroke-width='{strokeWidth.ToString(CultureInfo.InvariantCulture)}' /></svg>";
 
-                    var paint = new SKPaint {
-                        Style = SKPaintStyle.Stroke,
-                        Color = SKColor.Parse("#" + (stroke ?? "000000")),
-                        StrokeWidth = strokeWidth
-                    };
-
-                    canvasType.GetMethod("DrawLine")!.Invoke(canvasObj, new object[] { start, end, paint });
-                });
+                container.Svg(svg);
 
                 return container;
             }
