@@ -34,13 +34,13 @@ namespace OfficeIMO.Tests {
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
                 PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
-                Assert.Equal("rId2", pagesRel.Id);
+                Assert.Equal("rId1", pagesRel.Id);
                 Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
                 Assert.Equal("/visio/pages/pages.xml", pagesUri.OriginalString);
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();
-                Assert.Equal("rId3", pageRel.Id);
+                Assert.Equal("rId1", pageRel.Id);
                 pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 Assert.Equal("/visio/pages/page1.xml", pageUri.OriginalString);
 
@@ -52,25 +52,30 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(pageRel.Id, relId);
 
                 PackagePart pagePart = package.GetPart(pageUri);
-                pageDoc = XDocument.Load(pagePart.GetStream());
+                using (Stream pageStream = pagePart.GetStream()) {
+                    pageDoc = XDocument.Load(pageStream);
+                }
             }
 
-            using FileStream zipStream = File.OpenRead(filePath);
-            using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
-            ZipArchiveEntry entry = archive.GetEntry("[Content_Types].xml");
-            Assert.NotNull(entry);
-            using Stream entryStream = entry.Open();
-            XDocument contentTypes = XDocument.Load(entryStream);
-            XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
-            bool hasDocOverride = contentTypes.Root?.Elements(ct + "Override").Any(e => e.Attribute("PartName")?.Value == "/visio/document.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.drawing.main+xml") == true;
-            bool hasDocDefault = contentTypes.Root?.Elements(ct + "Default").Any(e => e.Attribute("Extension")?.Value == "xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.drawing.main+xml") == true;
-            Assert.True(hasDocOverride || hasDocDefault);
-            Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/pages.xml"));
-            Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/page1.xml"));
+            using (FileStream zipStream = File.OpenRead(filePath))
+            using (ZipArchive archive = new(zipStream, ZipArchiveMode.Read)) {
+                ZipArchiveEntry entry = archive.GetEntry("[Content_Types].xml");
+                Assert.NotNull(entry);
+                using Stream entryStream = entry.Open();
+                XDocument contentTypes = XDocument.Load(entryStream);
+                XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+                Assert.NotNull(contentTypes.Root?.Elements(ct + "Default").FirstOrDefault(e => e.Attribute("Extension")?.Value == "xml" && e.Attribute("ContentType")?.Value == "application/xml"));
+                Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/document.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.drawing.main+xml"));
+                Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/pages.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.pages+xml"));
+                Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/page1.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.page+xml"));
 
-            XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
-            Assert.Equal("1", shape?.Attribute("ID")?.Value);
-            Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
+                XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+                Assert.Equal("1", shape?.Attribute("ID")?.Value);
+                Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
+            }
+
+            var issues = VisioValidator.Validate(filePath);
+            Assert.Empty(issues);
         }
     }
 }
