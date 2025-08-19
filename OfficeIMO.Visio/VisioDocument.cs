@@ -17,6 +17,7 @@ namespace OfficeIMO.Visio {
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
+        private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
 
         /// <summary>
         /// Collection of pages in the document.
@@ -53,7 +54,7 @@ namespace OfficeIMO.Visio {
             Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
             PackagePart pagesPart = package.GetPart(pagesUri);
 
-            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XNamespace ns = VisioNamespace;
             XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
             XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
 
@@ -95,6 +96,17 @@ namespace OfficeIMO.Visio {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
+        private static void WriteVisioDocumentRoot(XmlWriter writer) {
+            writer.WriteStartDocument();
+            writer.WriteStartElement("VisioDocument", VisioNamespace);
+            writer.WriteElementString("DocumentSettings", VisioNamespace, string.Empty);
+            writer.WriteElementString("Colors", VisioNamespace, string.Empty);
+            writer.WriteElementString("FaceNames", VisioNamespace, string.Empty);
+            writer.WriteElementString("StyleSheets", VisioNamespace, string.Empty);
+            writer.WriteEndElement();
+            writer.WriteEndDocument();
+        }
+
         /// <summary>
         /// Saves the document to a <c>.vsdx</c> package.
         /// </summary>
@@ -120,13 +132,10 @@ namespace OfficeIMO.Visio {
                 CloseOutput = true,
                 Indent = true,
             };
-            const string ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            const string ns = VisioNamespace;
 
             using (XmlWriter writer = XmlWriter.Create(documentPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                writer.WriteStartDocument();
-                writer.WriteStartElement("VisioDocument", ns);
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
+                WriteVisioDocumentRoot(writer);
             }
 
             string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
