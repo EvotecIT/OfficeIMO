@@ -20,7 +20,9 @@ namespace OfficeIMO.Examples.Visio {
             page.Shapes.Add(new VisioShape("1") {
                 NameU = "Rectangle",
                 PinX = 2.047244040636296,
-                PinY = 6.73228320203895
+                PinY = 6.73228320203895,
+                Width = 1.574803149606299,
+                Height = 1.181102362204724
             });
             document.Save(filePath);
 
