@@ -529,33 +529,33 @@ namespace OfficeIMO.Word {
             foreach (var element in listElements) {
                 if (element is WordParagraph wordParagraph) {
                     if (wordParagraph.IsBookmark) {
-                        additionalElements.Add(wordParagraph.Bookmark);
+                        additionalElements.Add(wordParagraph.Bookmark!);
                     } else if (wordParagraph.IsBreak) {
-                        additionalElements.Add(wordParagraph.Break);
+                        additionalElements.Add(wordParagraph.Break!);
                     } else if (wordParagraph.IsChart) {
-                        additionalElements.Add(wordParagraph.Chart);
+                        additionalElements.Add(wordParagraph.Chart!);
                     } else if (wordParagraph.IsEndNote) {
-                        additionalElements.Add(wordParagraph.EndNote);
+                        additionalElements.Add(wordParagraph.EndNote!);
                     } else if (wordParagraph.IsEquation) {
-                        additionalElements.Add(wordParagraph.Equation);
+                        additionalElements.Add(wordParagraph.Equation!);
                     } else if (wordParagraph.IsField) {
-                        additionalElements.Add(wordParagraph.Field);
+                        additionalElements.Add(wordParagraph.Field!);
                     } else if (wordParagraph.IsFootNote) {
-                        additionalElements.Add(wordParagraph.FootNote);
+                        additionalElements.Add(wordParagraph.FootNote!);
                     } else if (wordParagraph.IsImage) {
-                        additionalElements.Add(wordParagraph.Image);
+                        additionalElements.Add(wordParagraph.Image!);
                     } else if (wordParagraph.IsListItem) {
                         additionalElements.Add(wordParagraph);
                     } else if (wordParagraph.IsPageBreak) {
-                        additionalElements.Add(wordParagraph.PageBreak);
+                        additionalElements.Add(wordParagraph.PageBreak!);
                     } else if (wordParagraph.IsStructuredDocumentTag) {
-                        additionalElements.Add(wordParagraph.StructuredDocumentTag);
+                        additionalElements.Add(wordParagraph.StructuredDocumentTag!);
                     } else if (wordParagraph.IsTab) {
-                        additionalElements.Add(wordParagraph.Tab);
+                        additionalElements.Add(wordParagraph.Tab!);
                     } else if (wordParagraph.IsTextBox) {
-                        additionalElements.Add(wordParagraph.TextBox);
+                        additionalElements.Add(wordParagraph.TextBox!);
                     } else if (wordParagraph.IsHyperLink) {
-                        additionalElements.Add(wordParagraph.Hyperlink);
+                        additionalElements.Add(wordParagraph.Hyperlink!);
                     } else {
                         additionalElements.Add(wordParagraph);
                     }

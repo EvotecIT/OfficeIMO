@@ -26,7 +26,9 @@ namespace OfficeIMO.Word {
             get {
                 List<int> bookmarksList = new List<int>() { 0 };
                 foreach (var paragraph in this.ParagraphsBookmarks) {
-                    bookmarksList.Add(paragraph.Bookmark.Id);
+                    if (paragraph.Bookmark != null) {
+                        bookmarksList.Add(paragraph.Bookmark.Id);
+                    }
                 }
 
                 return bookmarksList.Max() + 1;
@@ -36,7 +38,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the table of contents defined in the document.
         /// </summary>
-        public WordTableOfContent TableOfContent {
+        public WordTableOfContent? TableOfContent {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
                 return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
@@ -46,7 +48,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the cover page if one is defined in the document.
         /// </summary>
-        public WordCoverPage CoverPage {
+        public WordCoverPage? CoverPage {
             get {
                 var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
                 return WordSection.ConvertStdBlockToCoverPage(this, sdtBlocks);
