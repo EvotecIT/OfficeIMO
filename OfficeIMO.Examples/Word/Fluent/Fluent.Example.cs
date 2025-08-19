@@ -10,7 +10,12 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "FluentDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Info(i => i.SetTitle("Fluent Document"))
+                    .Info(i => i.SetTitle("Fluent Document")
+                        .SetAuthor("Fluent Author")
+                        .SetSubject("Fluent Subject")
+                        .SetKeywords("fluent, api")
+                        .SetComments("Created via fluent API")
+                        .SetCustomProperty("Reviewed", true))
                     .Section(s => s.AddSection())
                     .Paragraph(p => p.Text("Hello from fluent API"));
                 document.Save(false);
