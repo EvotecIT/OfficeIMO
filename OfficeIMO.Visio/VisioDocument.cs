@@ -34,8 +34,9 @@ namespace OfficeIMO.Visio {
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
-        public VisioPage AddPage(string name) {
-            VisioPage page = new(name);
+        /// <param name="id">Optional page identifier. If not specified, uses zero-based index.</param>
+        public VisioPage AddPage(string name, int? id = null) {
+            VisioPage page = new(name) { Id = id ?? _pages.Count };
             _pages.Add(page);
             return page;
         }
@@ -72,8 +73,13 @@ namespace OfficeIMO.Visio {
             XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
 
             foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
-                string name = pageRef.Attribute("NameU")?.Value ?? pageRef.Attribute("Name")?.Value ?? "Page";
-                VisioPage page = document.AddPage(name);
+                string name = pageRef.Attribute("Name")?.Value ?? "Page";
+                int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
+                VisioPage page = document.AddPage(name, pageId);
+                page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
+                page.ViewScale = ParseDouble(pageRef.Attribute("ViewScale")?.Value);
+                page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
+                page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
                 string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
                 if (string.IsNullOrEmpty(relId)) {
@@ -88,15 +94,38 @@ namespace OfficeIMO.Visio {
                 foreach (XElement shapeElement in pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape") ?? Enumerable.Empty<XElement>()) {
                     string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
                     VisioShape shape = new(id) {
+                        Name = shapeElement.Attribute("Name")?.Value,
                         NameU = shapeElement.Attribute("NameU")?.Value,
                         Text = shapeElement.Element(ns + "Text")?.Value
                     };
 
-                    XElement? xform = shapeElement.Element(ns + "XForm");
-                    shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
-                    shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
-                    shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
-                    shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+                    var cellElements = shapeElement.Elements(ns + "Cell").ToList();
+                    if (cellElements.Count > 0) {
+                        foreach (XElement cell in cellElements) {
+                            string? n = cell.Attribute("N")?.Value;
+                            string? v = cell.Attribute("V")?.Value;
+                            switch (n) {
+                                case "PinX":
+                                    shape.PinX = ParseDouble(v);
+                                    break;
+                                case "PinY":
+                                    shape.PinY = ParseDouble(v);
+                                    break;
+                                case "Width":
+                                    shape.Width = ParseDouble(v);
+                                    break;
+                                case "Height":
+                                    shape.Height = ParseDouble(v);
+                                    break;
+                            }
+                        }
+                    } else {
+                        XElement? xform = shapeElement.Element(ns + "XForm");
+                        shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
+                        shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
+                        shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
+                        shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+                    }
 
                     page.Shapes.Add(shape);
                 }
@@ -173,6 +202,13 @@ namespace OfficeIMO.Visio {
                 };
                 const string ns = VisioNamespace;
 
+                void WriteCell(XmlWriter writer, string name, double value) {
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", name);
+                    writer.WriteAttributeString("V", value.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteEndElement();
+                }
+
                 using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
@@ -208,13 +244,14 @@ namespace OfficeIMO.Visio {
                             VisioShape s = master.Shape;
                             writer.WriteStartElement("Shape", ns);
                             writer.WriteAttributeString("ID", "1");
+                            string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
+                            writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
-                            writer.WriteStartElement("XForm", ns);
-                            writer.WriteElementString("PinX", ns, s.PinX.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteElementString("PinY", ns, s.PinY.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteElementString("Width", ns, s.Width.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteElementString("Height", ns, s.Height.ToString(CultureInfo.InvariantCulture));
-                            writer.WriteEndElement();
+                            writer.WriteAttributeString("Type", "Shape");
+                            WriteCell(writer, "PinX", s.PinX);
+                            WriteCell(writer, "PinY", s.PinY);
+                            WriteCell(writer, "Width", s.Width);
+                            WriteCell(writer, "Height", s.Height);
                             if (!string.IsNullOrEmpty(s.Text)) {
                                 writer.WriteElementString("Text", ns, s.Text);
                             }
@@ -279,18 +316,33 @@ namespace OfficeIMO.Visio {
                 using (XmlWriter writer = XmlWriter.Create(windowsPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("Windows", ns);
+                    writer.WriteAttributeString("ClientWidth", "1000");
+                    writer.WriteAttributeString("ClientHeight", "1000");
+                    writer.WriteStartElement("Window", ns);
+                    writer.WriteAttributeString("WindowType", "1");
+                    writer.WriteAttributeString("WindowState", "0");
+                    writer.WriteAttributeString("ClientLeft", "0");
+                    writer.WriteAttributeString("ClientTop", "0");
+                    writer.WriteAttributeString("ClientWidth", "1000");
+                    writer.WriteAttributeString("ClientHeight", "1000");
+                    writer.WriteEndElement();
                     writer.WriteEndElement();
                     writer.WriteEndDocument();
                 }
 
-                string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";
+                VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage("Page-1");
+
                 using (XmlWriter writer = XmlWriter.Create(pagesPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("Pages", ns);
                     writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                     writer.WriteStartElement("Page", ns);
-                    writer.WriteAttributeString("ID", "1");
-                    writer.WriteAttributeString("Name", pageName);
+                    writer.WriteAttributeString("ID", page.Id.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Name", page.Name);
+                    writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
+                    writer.WriteAttributeString("ViewScale", page.ViewScale.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewCenterX", page.ViewCenterX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewCenterY", page.ViewCenterY.ToString(CultureInfo.InvariantCulture));
                     writer.WriteStartElement("Rel", ns);
                     writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRel.Id);
                     writer.WriteEndElement();
@@ -299,28 +351,31 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndDocument();
                 }
 
-                VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage(pageName);
-
                 using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("PageContents", ns);
+                    writer.WriteAttributeString("ID", page.Id.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Name", page.Name);
+                    writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
+                    writer.WriteAttributeString("ViewScale", page.ViewScale.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewCenterX", page.ViewCenterX.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewCenterY", page.ViewCenterY.ToString(CultureInfo.InvariantCulture));
                     writer.WriteStartElement("Shapes", ns);
 
                     foreach (VisioShape shape in page.Shapes) {
                         writer.WriteStartElement("Shape", ns);
                         writer.WriteAttributeString("ID", shape.Id);
-                        if (!string.IsNullOrEmpty(shape.NameU)) {
-                            writer.WriteAttributeString("NameU", shape.NameU);
-                        }
+                        string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
+                        writer.WriteAttributeString("Name", shapeName);
+                        writer.WriteAttributeString("NameU", shape.NameU ?? shapeName);
+                        writer.WriteAttributeString("Type", "Shape");
                         if (shape.Master != null) {
                             writer.WriteAttributeString("Master", shape.Master.Id);
                         }
-                        writer.WriteStartElement("XForm", ns);
-                        writer.WriteElementString("PinX", ns, shape.PinX.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteElementString("PinY", ns, shape.PinY.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteElementString("Width", ns, shape.Width.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteElementString("Height", ns, shape.Height.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteEndElement();
+                        WriteCell(writer, "PinX", shape.PinX);
+                        WriteCell(writer, "PinY", shape.PinY);
+                        WriteCell(writer, "Width", shape.Width);
+                        WriteCell(writer, "Height", shape.Height);
                         if (!string.IsNullOrEmpty(shape.Text)) {
                             writer.WriteElementString("Text", ns, shape.Text);
                         }
@@ -337,7 +392,9 @@ namespace OfficeIMO.Visio {
 
                         writer.WriteStartElement("Shape", ns);
                         writer.WriteAttributeString("ID", connector.Id);
+                        writer.WriteAttributeString("Name", "Connector");
                         writer.WriteAttributeString("NameU", "Connector");
+                        writer.WriteAttributeString("Type", "Shape");
                         writer.WriteStartElement("Geom", ns);
                         writer.WriteStartElement("MoveTo", ns);
                         writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));

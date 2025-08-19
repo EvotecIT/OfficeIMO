@@ -45,6 +45,15 @@ namespace OfficeIMO.Tests {
                 XElement[] shapes = pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape").ToArray() ?? Array.Empty<XElement>();
                 Assert.Equal("1", shapes[0].Attribute("Master")?.Value);
                 Assert.Equal("2", shapes[1].Attribute("Master")?.Value);
+
+                PackagePart masterPart1 = package.GetPart(new Uri("/visio/masters/master1.xml", UriKind.Relative));
+                XDocument master1Doc = XDocument.Load(masterPart1.GetStream());
+                XElement? masterShape = master1Doc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+                Assert.NotNull(masterShape);
+                Assert.NotNull(masterShape?.Attribute("Name"));
+                Assert.NotNull(masterShape?.Attribute("NameU"));
+                Assert.Equal("Shape", masterShape?.Attribute("Type")?.Value);
+                Assert.NotNull(masterShape?.Elements(ns + "Cell").FirstOrDefault(e => e.Attribute("N")?.Value == "PinX"));
             }
 
             using FileStream zipStream = File.OpenRead(filePath);

@@ -71,8 +71,8 @@ namespace OfficeIMO.Visio {
             if (page == null) {
                 issues.Add("pages.xml must contain a Page element.");
             } else {
-                if (!int.TryParse((string?)page.Attribute("ID"), out int pageId) || pageId < 1) {
-                    issues.Add("Page/@ID must be numeric and 1-based (e.g., 1).");
+                if (!int.TryParse((string?)page.Attribute("ID"), out int pageId) || pageId < 0) {
+                    issues.Add("Page/@ID must be numeric and zero-based (e.g., 0).");
                 }
 
                 XElement? relChild = page.Element(v + "Rel");
