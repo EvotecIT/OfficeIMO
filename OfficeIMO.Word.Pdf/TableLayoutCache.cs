@@ -9,8 +9,8 @@ namespace OfficeIMO.Word.Pdf {
         private static readonly ConditionalWeakTable<WordTable, TableLayout> _cache = new();
 
         internal static TableLayout GetLayout(WordTable table) {
-            if (_cache.TryGetValue(table, out TableLayout layout)) {
-                return layout;
+            if (_cache.TryGetValue(table, out TableLayout? existingLayout) && existingLayout != null) {
+                return existingLayout;
             }
 
             List<IReadOnlyList<WordTableCell>> rows = TableBuilder.Map(table).ToList();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            layout = new TableLayout(rows, widths);
+            TableLayout layout = new(rows, widths);
             _cache.Add(table, layout);
             return layout;
         }

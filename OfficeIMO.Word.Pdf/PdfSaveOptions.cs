@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
-        public string FontFamily { get; set; }
+        public string? FontFamily { get; set; }
         /// <summary>
         /// Optional mapping of font family names to font file paths.
         /// </summary>
