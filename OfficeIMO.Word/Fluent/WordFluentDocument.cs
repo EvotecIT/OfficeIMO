@@ -12,16 +12,55 @@ namespace OfficeIMO.Word.Fluent {
             Document = document ?? throw new ArgumentNullException(nameof(document));
         }
 
-        public InfoBuilder Info => new InfoBuilder(this);
-        public SectionBuilder Sections => new SectionBuilder(this);
-        public PageBuilder Pages => new PageBuilder(this);
-        public ParagraphBuilder Paragraphs => new ParagraphBuilder(this);
-        public RunBuilder Runs => new RunBuilder(this);
-        public ListBuilder Lists => new ListBuilder(this);
-        public TableBuilder Tables => new TableBuilder(this);
-        public ImageBuilder Images => new ImageBuilder(this);
-        public HeadersBuilder Headers => new HeadersBuilder(this);
-        public FootersBuilder Footers => new FootersBuilder(this);
+        public WordFluentDocument Info(Action<InfoBuilder> action) {
+            action(new InfoBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Section(Action<SectionBuilder> action) {
+            action(new SectionBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Page(Action<PageBuilder> action) {
+            action(new PageBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Paragraph(Action<ParagraphBuilder> action) {
+            action(new ParagraphBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Run(Action<RunBuilder> action) {
+            action(new RunBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument List(Action<ListBuilder> action) {
+            action(new ListBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Table(Action<TableBuilder> action) {
+            action(new TableBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Image(Action<ImageBuilder> action) {
+            action(new ImageBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Header(Action<HeadersBuilder> action) {
+            action(new HeadersBuilder(this));
+            return this;
+        }
+
+        public WordFluentDocument Footer(Action<FootersBuilder> action) {
+            action(new FootersBuilder(this));
+            return this;
+        }
 
         public WordFluentDocument ForEachParagraph(Action<ParagraphBuilder> action) {
             Document.ForEachParagraph(p => action(new ParagraphBuilder(this, p)));

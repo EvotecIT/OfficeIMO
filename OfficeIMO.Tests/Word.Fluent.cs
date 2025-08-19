@@ -10,9 +10,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentTest.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Info.SetTitle("Fluent")
-                    .Sections.AddSection()
-                    .Paragraphs.AddParagraph("Test");
+                    .Info(i => i.SetTitle("Fluent"))
+                    .Section(s => s.AddSection())
+                    .Paragraph(p => p.AddParagraph("Test"))
+                    .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell"));
                 document.Save(false);
             }
 
@@ -21,6 +22,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Sections.Count);
                 Assert.Single(document.Paragraphs);
                 Assert.Equal("Test", document.Paragraphs[0].Text);
+                Assert.Single(document.Tables);
+                Assert.Equal("Cell", document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
             }
         }
     }

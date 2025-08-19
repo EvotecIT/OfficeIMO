@@ -10,9 +10,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "FluentDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Info.SetTitle("Fluent Document")
-                    .Sections.AddSection()
-                    .Paragraphs.AddParagraph("Hello from fluent API");
+                    .Info(i => i.SetTitle("Fluent Document"))
+                    .Section(s => s.AddSection())
+                    .Paragraph(p => p.AddParagraph("Hello from fluent API"));
                 document.Save(false);
             }
             Helpers.Open(filePath, openWord);
