@@ -22,8 +22,8 @@ namespace OfficeIMO.Word {
                 return id != null ? (ChartPart?)_document._wordprocessingDocument.MainDocumentPart!.GetPartById(id) : null;
             }
         }
-        private Drawing _drawing;
-        private Chart _chart;
+        private Drawing? _drawing;
+        private Chart? _chart;
         /// <summary>
         /// The current index for values
         /// </summary>
@@ -32,8 +32,8 @@ namespace OfficeIMO.Word {
         /// The current index for categories
         /// </summary>
         private UInt32Value _currentIndexCategory = 0;
-        private string _xAxisTitle;
-        private string _yAxisTitle;
+        private string? _xAxisTitle;
+        private string? _yAxisTitle;
         private string _axisTitleFontName = "Calibri";
         private int _axisTitleFontSize = 11;
         private SixLabors.ImageSharp.Color _axisTitleColor = SixLabors.ImageSharp.Color.Black;
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private List<string> Categories { get; set; }
+        private List<string> Categories { get; set; } = new();
 
         /// <summary>
         /// Holds the title of the chart until we can add it to the chart
@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
         /// we need to wait until then to add the title
         /// This is why we have a separate property for the title, but the method to add the title is in the WordChart class
         /// </summary>
-        private string PrivateTitle { get; set; }
+        private string PrivateTitle { get; set; } = string.Empty;
 
         /// <summary>
         /// Get or set the title of the chart
@@ -135,16 +135,16 @@ namespace OfficeIMO.Word {
                         return text.Text;
                     }
                 }
-                if (PrivateTitle != null) {
+                if (!string.IsNullOrEmpty(PrivateTitle)) {
                     return PrivateTitle;
                 }
                 return null;
             }
             set {
-                if (_chart != null) {
-                    SetTitle(value!);
+                if (_chart != null && value != null) {
+                    SetTitle(value);
                 }
-                PrivateTitle = value;
+                PrivateTitle = value ?? string.Empty;
             }
         }
     }
