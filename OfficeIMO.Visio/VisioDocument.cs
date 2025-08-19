@@ -202,14 +202,19 @@ namespace OfficeIMO.Visio {
                 XmlWriterSettings settings = new() {
                     Encoding = new UTF8Encoding(false),
                     CloseOutput = true,
-                    Indent = true,
+                    Indent = false,
                 };
                 const string ns = VisioNamespace;
+
+                string ToVisioString(double value) {
+                    string text = Math.Round(value, 15).ToString("F15", CultureInfo.InvariantCulture);
+                    return text.TrimEnd('0').TrimEnd('.');
+                }
 
                 void WriteCell(XmlWriter writer, string name, double value) {
                     writer.WriteStartElement("Cell", ns);
                     writer.WriteAttributeString("N", name);
-                    writer.WriteAttributeString("V", value.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("V", ToVisioString(value));
                     writer.WriteEndElement();
                 }
 
@@ -225,7 +230,7 @@ namespace OfficeIMO.Visio {
 
                 List<VisioMaster> masters = new();
                 foreach (VisioShape shape in _pages.SelectMany(p => p.Shapes).Where(s => !string.IsNullOrEmpty(s.NameU))) {
-                    VisioMaster master = new((masters.Count + 1).ToString(CultureInfo.InvariantCulture), shape.NameU!, shape);
+                    VisioMaster master = new(XmlConvert.ToString(masters.Count + 2), shape.NameU!, shape);
                     masters.Add(master);
                     shape.Master = master;
                 }
@@ -342,13 +347,72 @@ namespace OfficeIMO.Visio {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("Pages", ns);
                     writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                    writer.WriteAttributeString("xml", "space", null, "preserve");
                     writer.WriteStartElement("Page", ns);
-                    writer.WriteAttributeString("ID", page.Id.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
                     writer.WriteAttributeString("Name", page.Name);
                     writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
-                    writer.WriteAttributeString("ViewScale", page.ViewScale.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterX", page.ViewCenterX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterY", page.ViewCenterY.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("ViewScale", XmlConvert.ToString(page.ViewScale));
+                    writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
+                    writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
+                    writer.WriteStartElement("PageSheet", ns);
+                    writer.WriteAttributeString("LineStyle", "0");
+                    writer.WriteAttributeString("FillStyle", "0");
+                    writer.WriteAttributeString("TextStyle", "0");
+                    void WritePageCell(string name, double value, string? unit = null, string? formula = null) {
+                        writer.WriteStartElement("Cell", ns);
+                        writer.WriteAttributeString("N", name);
+                        writer.WriteAttributeString("V", XmlConvert.ToString(value));
+                        if (unit != null) writer.WriteAttributeString("U", unit);
+                        if (formula != null) writer.WriteAttributeString("F", formula);
+                        writer.WriteEndElement();
+                    }
+                    bool useUnits = page.PageWidth != 8.26771653543307 || page.PageHeight != 11.69291338582677;
+                    WritePageCell("PageWidth", page.PageWidth, useUnits ? "MM" : null);
+                    WritePageCell("PageHeight", page.PageHeight, useUnits ? "MM" : null);
+                    WritePageCell("ShdwOffsetX", 0.1181102362204724, useUnits ? "MM" : null);
+                    WritePageCell("ShdwOffsetY", -0.1181102362204724, useUnits ? "MM" : null);
+                    WritePageCell("PageScale", 0.03937007874015748, "MM");
+                    WritePageCell("DrawingScale", 0.03937007874015748, "MM");
+                    WritePageCell("DrawingSizeType", 0);
+                    WritePageCell("DrawingScaleType", 0);
+                    WritePageCell("InhibitSnap", 0);
+                    WritePageCell("PageLockReplace", 0, "BOOL");
+                    WritePageCell("PageLockDuplicate", 0, "BOOL");
+                    WritePageCell("UIVisibility", 0);
+                    WritePageCell("ShdwType", 0);
+                    WritePageCell("ShdwObliqueAngle", 0);
+                    WritePageCell("ShdwScaleFactor", 1);
+                    WritePageCell("DrawingResizeType", 1);
+                    WritePageCell("PageShapeSplit", 1);
+                    if (includeTheme) {
+                        WritePageCell("ColorSchemeIndex", 60);
+                        WritePageCell("EffectSchemeIndex", 60);
+                        WritePageCell("ConnectorSchemeIndex", 60);
+                        WritePageCell("FontSchemeIndex", 60);
+                        WritePageCell("ThemeIndex", 60);
+                        WritePageCell("PageLeftMargin", 0.25, "MM");
+                        WritePageCell("PageRightMargin", 0.25, "MM");
+                        WritePageCell("PageTopMargin", 0.25, "MM");
+                        WritePageCell("PageBottomMargin", 0.25, "MM");
+                        WritePageCell("PrintPageOrientation", 2);
+                        writer.WriteStartElement("Section", ns);
+                        writer.WriteAttributeString("N", "User");
+                        writer.WriteStartElement("Row", ns);
+                        writer.WriteAttributeString("N", "msvThemeOrder");
+                        writer.WriteStartElement("Cell", ns);
+                        writer.WriteAttributeString("N", "Value");
+                        writer.WriteAttributeString("V", "0");
+                        writer.WriteEndElement();
+                        writer.WriteStartElement("Cell", ns);
+                        writer.WriteAttributeString("N", "Prompt");
+                        writer.WriteAttributeString("V", "");
+                        writer.WriteAttributeString("F", "No Formula");
+                        writer.WriteEndElement();
+                        writer.WriteEndElement();
+                        writer.WriteEndElement();
+                    }
+                    writer.WriteEndElement();
                     writer.WriteStartElement("Rel", ns);
                     writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRel.Id);
                     writer.WriteEndElement();
@@ -360,83 +424,93 @@ namespace OfficeIMO.Visio {
                 using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("PageContents", ns);
-                    writer.WriteAttributeString("ID", page.Id.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("Name", page.Name);
-                    writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
-                    writer.WriteAttributeString("ViewScale", page.ViewScale.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterX", page.ViewCenterX.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("ViewCenterY", page.ViewCenterY.ToString(CultureInfo.InvariantCulture));
-                    writer.WriteStartElement("Shapes", ns);
+                    writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                    writer.WriteAttributeString("xml", "space", null, "preserve");
+                    if (page.Shapes.Count > 0 || page.Connectors.Count > 0) {
+                        writer.WriteStartElement("Shapes", ns);
 
-                    foreach (VisioShape shape in page.Shapes) {
-                        writer.WriteStartElement("Shape", ns);
-                        writer.WriteAttributeString("ID", shape.Id);
-                        string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
-                        writer.WriteAttributeString("Name", shapeName);
-                        writer.WriteAttributeString("NameU", shape.NameU ?? shapeName);
-                        writer.WriteAttributeString("Type", "Shape");
-                        if (shape.Master != null) {
-                            writer.WriteAttributeString("Master", shape.Master.Id);
+                        foreach (VisioShape shape in page.Shapes) {
+                            writer.WriteStartElement("Shape", ns);
+                            writer.WriteAttributeString("ID", shape.Id);
+                            string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
+                            writer.WriteAttributeString("Name", shapeName);
+                            writer.WriteAttributeString("NameU", shape.NameU ?? shapeName);
+                            writer.WriteAttributeString("Type", "Shape");
+                            if (shape.Master != null) {
+                                writer.WriteAttributeString("Master", shape.Master.Id);
+                                WriteCell(writer, "PinX", shape.PinX);
+                                WriteCell(writer, "PinY", shape.PinY);
+                                writer.WriteStartElement("Cell", ns);
+                                writer.WriteAttributeString("N", "LineWeight");
+                                writer.WriteAttributeString("V", "0.003472222222222222");
+                                writer.WriteAttributeString("U", "PT");
+                                writer.WriteAttributeString("F", "Inh");
+                                writer.WriteEndElement();
+                                if (!string.IsNullOrEmpty(shape.Text)) {
+                                    writer.WriteElementString("Text", ns, shape.Text);
+                                }
+                            } else {
+                                WriteCell(writer, "PinX", shape.PinX);
+                                WriteCell(writer, "PinY", shape.PinY);
+                                WriteCell(writer, "Width", shape.Width);
+                                WriteCell(writer, "Height", shape.Height);
+                                if (!string.IsNullOrEmpty(shape.Text)) {
+                                    writer.WriteElementString("Text", ns, shape.Text);
+                                }
+                            }
+                            writer.WriteEndElement();
                         }
-                        WriteCell(writer, "PinX", shape.PinX);
-                        WriteCell(writer, "PinY", shape.PinY);
-                        WriteCell(writer, "Width", shape.Width);
-                        WriteCell(writer, "Height", shape.Height);
-                        if (!string.IsNullOrEmpty(shape.Text)) {
-                            writer.WriteElementString("Text", ns, shape.Text);
-                        }
-                        writer.WriteEndElement();
-                    }
 
-                    foreach (VisioConnector connector in page.Connectors) {
-                        VisioShape from = connector.From;
-                        VisioShape to = connector.To;
-                        double startX = from.PinX + from.Width / 2;
-                        double startY = from.PinY;
-                        double endX = to.PinX - to.Width / 2;
-                        double endY = to.PinY;
-
-                        writer.WriteStartElement("Shape", ns);
-                        writer.WriteAttributeString("ID", connector.Id);
-                        writer.WriteAttributeString("Name", "Connector");
-                        writer.WriteAttributeString("NameU", "Connector");
-                        writer.WriteAttributeString("Type", "Shape");
-                        writer.WriteStartElement("Geom", ns);
-                        writer.WriteStartElement("MoveTo", ns);
-                        writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteAttributeString("Y", startY.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteEndElement();
-                        writer.WriteStartElement("LineTo", ns);
-                        writer.WriteAttributeString("X", startX.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteEndElement();
-                        writer.WriteStartElement("LineTo", ns);
-                        writer.WriteAttributeString("X", endX.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteAttributeString("Y", endY.ToString(CultureInfo.InvariantCulture));
-                        writer.WriteEndElement();
-                        writer.WriteEndElement();
-                        writer.WriteEndElement();
-                    }
-
-                    writer.WriteEndElement(); // Shapes
-
-                    if (page.Connectors.Count > 0) {
-                        writer.WriteStartElement("Connects", ns);
                         foreach (VisioConnector connector in page.Connectors) {
-                            writer.WriteStartElement("Connect", ns);
-                            writer.WriteAttributeString("FromSheet", connector.Id);
-                            writer.WriteAttributeString("FromCell", "BeginX");
-                            writer.WriteAttributeString("ToSheet", connector.From.Id);
-                            writer.WriteAttributeString("ToCell", "PinX");
+                            VisioShape from = connector.From;
+                            VisioShape to = connector.To;
+                            double startX = from.PinX + from.Width / 2;
+                            double startY = from.PinY;
+                            double endX = to.PinX - to.Width / 2;
+                            double endY = to.PinY;
+
+                            writer.WriteStartElement("Shape", ns);
+                            writer.WriteAttributeString("ID", connector.Id);
+                            writer.WriteAttributeString("Name", "Connector");
+                            writer.WriteAttributeString("NameU", "Connector");
+                            writer.WriteAttributeString("Type", "Shape");
+                            writer.WriteStartElement("Geom", ns);
+                            writer.WriteStartElement("MoveTo", ns);
+                            writer.WriteAttributeString("X", ToVisioString(startX));
+                            writer.WriteAttributeString("Y", ToVisioString(startY));
                             writer.WriteEndElement();
-                            writer.WriteStartElement("Connect", ns);
-                            writer.WriteAttributeString("FromSheet", connector.Id);
-                            writer.WriteAttributeString("FromCell", "EndX");
-                            writer.WriteAttributeString("ToSheet", connector.To.Id);
-                            writer.WriteAttributeString("ToCell", "PinX");
+                            writer.WriteStartElement("LineTo", ns);
+                            writer.WriteAttributeString("X", ToVisioString(startX));
+                            writer.WriteAttributeString("Y", ToVisioString(endY));
+                            writer.WriteEndElement();
+                            writer.WriteStartElement("LineTo", ns);
+                            writer.WriteAttributeString("X", ToVisioString(endX));
+                            writer.WriteAttributeString("Y", ToVisioString(endY));
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
                             writer.WriteEndElement();
                         }
-                        writer.WriteEndElement(); // Connects
+
+                        writer.WriteEndElement(); // Shapes
+
+                        if (page.Connectors.Count > 0) {
+                            writer.WriteStartElement("Connects", ns);
+                            foreach (VisioConnector connector in page.Connectors) {
+                                writer.WriteStartElement("Connect", ns);
+                                writer.WriteAttributeString("FromSheet", connector.Id);
+                                writer.WriteAttributeString("FromCell", "BeginX");
+                                writer.WriteAttributeString("ToSheet", connector.From.Id);
+                                writer.WriteAttributeString("ToCell", "PinX");
+                                writer.WriteEndElement();
+                                writer.WriteStartElement("Connect", ns);
+                                writer.WriteAttributeString("FromSheet", connector.Id);
+                                writer.WriteAttributeString("FromCell", "EndX");
+                                writer.WriteAttributeString("ToSheet", connector.To.Id);
+                                writer.WriteAttributeString("ToCell", "PinX");
+                                writer.WriteEndElement();
+                            }
+                            writer.WriteEndElement(); // Connects
+                        }
                     }
 
                     writer.WriteEndElement(); // PageContents

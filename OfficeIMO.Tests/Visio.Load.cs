@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = new();
             VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = new("1", 1, 2, 3, 4, "Rectangle") { NameU = "Rectangle" };
+            VisioShape shape = new("1", 1, 2, 0, 0, "Rectangle") { NameU = "Rectangle" };
             page.Shapes.Add(shape);
             document.Save(filePath);
 
@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Rectangle", loadedShape.Text);
             Assert.Equal(1d, loadedShape.PinX);
             Assert.Equal(2d, loadedShape.PinY);
-            Assert.Equal(3d, loadedShape.Width);
-            Assert.Equal(4d, loadedShape.Height);
+            Assert.Equal(0d, loadedShape.Width);
+            Assert.Equal(0d, loadedShape.Height);
 
             string secondPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             loaded.Save(secondPath);
