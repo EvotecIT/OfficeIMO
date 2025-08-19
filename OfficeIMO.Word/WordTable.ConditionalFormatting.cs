@@ -18,18 +18,18 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Additional columns to apply the formatting to.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when the condition is met.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when the condition is not met.</param>
-        public void ConditionalFormatting(string columnName, string matchText, TextMatchType matchType,
-            string matchFillColorHex = null, string matchFontColorHex = null,
-            string noMatchFillColorHex = null, string noMatchFontColorHex = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+        public void ConditionalFormatting(string columnName, string? matchText, TextMatchType matchType,
+            string? matchFillColorHex = null, string? matchFontColorHex = null,
+            string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             if (string.IsNullOrEmpty(columnName)) throw new ArgumentException("Column name can't be empty", nameof(columnName));
             if (matchText == null) matchText = string.Empty;
 
-            matchFillColorHex = Helpers.NormalizeColor(matchFillColorHex);
-            matchFontColorHex = Helpers.NormalizeColor(matchFontColorHex);
-            noMatchFillColorHex = Helpers.NormalizeColor(noMatchFillColorHex);
-            noMatchFontColorHex = Helpers.NormalizeColor(noMatchFontColorHex);
+            matchFillColorHex = matchFillColorHex != null ? Helpers.NormalizeColor(matchFillColorHex) : null;
+            matchFontColorHex = matchFontColorHex != null ? Helpers.NormalizeColor(matchFontColorHex) : null;
+            noMatchFillColorHex = noMatchFillColorHex != null ? Helpers.NormalizeColor(noMatchFillColorHex) : null;
+            noMatchFontColorHex = noMatchFontColorHex != null ? Helpers.NormalizeColor(noMatchFontColorHex) : null;
 
             int headerIndex = -1;
             System.Collections.Generic.Dictionary<string, int> headerMap = new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
@@ -111,11 +111,11 @@ namespace OfficeIMO.Word {
         /// <param name="highlightColumns">Additional columns to apply the formatting to.</param>
         /// <param name="matchTextFormat">Optional action applied to paragraphs when the condition is met.</param>
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when the condition is not met.</param>
-        public void ConditionalFormatting(string columnName, string matchText, TextMatchType matchType,
+        public void ConditionalFormatting(string columnName, string? matchText, TextMatchType matchType,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) =>
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) =>
             ConditionalFormatting(columnName, matchText, matchType,
                 matchFillColorHex: matchFillColor.ToHexColor(),
                 matchFontColorHex: matchFontColor?.ToHexColor(),
@@ -139,19 +139,19 @@ namespace OfficeIMO.Word {
         /// <param name="noMatchTextFormat">Optional action applied to paragraphs when conditions do not match.</param>
         public void ConditionalFormatting(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
             bool matchAll,
-            string matchFillColorHex = null, string matchFontColorHex = null,
-            string noMatchFillColorHex = null, string noMatchFontColorHex = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+            string? matchFillColorHex = null, string? matchFontColorHex = null,
+            string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             if (conditions == null) throw new ArgumentNullException(nameof(conditions));
 
             var conditionList = conditions.ToList();
             if (conditionList.Count == 0) throw new ArgumentException("At least one condition is required", nameof(conditions));
 
-            matchFillColorHex = Helpers.NormalizeColor(matchFillColorHex);
-            matchFontColorHex = Helpers.NormalizeColor(matchFontColorHex);
-            noMatchFillColorHex = Helpers.NormalizeColor(noMatchFillColorHex);
-            noMatchFontColorHex = Helpers.NormalizeColor(noMatchFontColorHex);
+            matchFillColorHex = matchFillColorHex != null ? Helpers.NormalizeColor(matchFillColorHex) : null;
+            matchFontColorHex = matchFontColorHex != null ? Helpers.NormalizeColor(matchFontColorHex) : null;
+            noMatchFillColorHex = noMatchFillColorHex != null ? Helpers.NormalizeColor(noMatchFillColorHex) : null;
+            noMatchFontColorHex = noMatchFontColorHex != null ? Helpers.NormalizeColor(noMatchFontColorHex) : null;
 
             var headerMap = new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
             if (Rows.Count > 0) {
@@ -253,8 +253,8 @@ namespace OfficeIMO.Word {
             bool matchAll,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) =>
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) =>
             ConditionalFormatting(conditions, matchAll,
                 matchFillColorHex: matchFillColor.ToHexColor(),
                 matchFontColorHex: matchFontColor?.ToHexColor(),
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word {
         /// <param name="predicate">Condition evaluated for each data row.</param>
         /// <param name="matchAction">Action executed when predicate is true.</param>
         /// <param name="noMatchAction">Action executed when predicate is false.</param>
-        public void ConditionalFormatting(Func<WordTableRow, bool> predicate, Action<WordTableRow> matchAction, Action<WordTableRow> noMatchAction = null) {
+        public void ConditionalFormatting(Func<WordTableRow, bool> predicate, Action<WordTableRow> matchAction, Action<WordTableRow>? noMatchAction = null) {
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
             if (matchAction == null) throw new ArgumentNullException(nameof(matchAction));
 
@@ -304,11 +304,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule based on a column value.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(string columnName, string matchText, TextMatchType matchType,
-            string matchFillColorHex = null, string matchFontColorHex = null,
-            string noMatchFillColorHex = null, string noMatchFontColorHex = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, TextMatchType matchType,
+            string? matchFillColorHex = null, string? matchFontColorHex = null,
+            string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             _rules.Add(() => _table.ConditionalFormatting(columnName, matchText, matchType,
                 matchFillColorHex, matchFontColorHex, noMatchFillColorHex, noMatchFontColorHex,
                 ignoreCase, highlightColumns,
@@ -319,11 +319,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule using <see cref="Color"/> parameters.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(string columnName, string matchText, TextMatchType matchType,
+        public WordTableConditionalFormattingBuilder AddRule(string columnName, string? matchText, TextMatchType matchType,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             _rules.Add(() => _table.ConditionalFormatting(columnName, matchText, matchType,
                 matchFillColor, matchFontColor, noMatchFillColor, noMatchFontColor,
                 ignoreCase, highlightColumns,
@@ -336,10 +336,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTableConditionalFormattingBuilder AddRule(System.Collections.Generic.IEnumerable<(string ColumnName, string MatchText, TextMatchType MatchType)> conditions,
             bool matchAll,
-            string matchFillColorHex = null, string matchFontColorHex = null,
-            string noMatchFillColorHex = null, string noMatchFontColorHex = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+            string? matchFillColorHex = null, string? matchFontColorHex = null,
+            string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             _rules.Add(() => _table.ConditionalFormatting(conditions, matchAll,
                 matchFillColorHex, matchFontColorHex, noMatchFillColorHex, noMatchFontColorHex,
                 ignoreCase, highlightColumns,
@@ -354,8 +354,8 @@ namespace OfficeIMO.Word {
             bool matchAll,
             Color matchFillColor, Color? matchFontColor = null,
             Color? noMatchFillColor = null, Color? noMatchFontColor = null,
-            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string> highlightColumns = null,
-            Action<WordParagraph> matchTextFormat = null, Action<WordParagraph> noMatchTextFormat = null) {
+            bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
+            Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
             _rules.Add(() => _table.ConditionalFormatting(conditions, matchAll,
                 matchFillColor, matchFontColor, noMatchFillColor, noMatchFontColor,
                 ignoreCase, highlightColumns,
@@ -366,7 +366,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a conditional formatting rule using a predicate.
         /// </summary>
-        public WordTableConditionalFormattingBuilder AddRule(System.Func<WordTableRow, bool> predicate, System.Action<WordTableRow> matchAction, System.Action<WordTableRow> noMatchAction = null) {
+        public WordTableConditionalFormattingBuilder AddRule(System.Func<WordTableRow, bool> predicate, System.Action<WordTableRow> matchAction, System.Action<WordTableRow>? noMatchAction = null) {
             _rules.Add(() => _table.ConditionalFormatting(predicate, matchAction, noMatchAction));
             return this;
         }
