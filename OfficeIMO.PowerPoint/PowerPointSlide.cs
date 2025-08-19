@@ -48,6 +48,39 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PPChart> Charts => _shapes.OfType<PPChart>();
 
         /// <summary>
+        /// Retrieves a shape by its name.
+        /// </summary>
+        public PPShape? GetShape(string name) => _shapes.FirstOrDefault(s => s.Name == name);
+
+        /// <summary>
+        /// Retrieves a textbox by its name.
+        /// </summary>
+        public PPTextBox? GetTextBox(string name) => TextBoxes.FirstOrDefault(tb => tb.Name == name);
+
+        /// <summary>
+        /// Retrieves a picture by its name.
+        /// </summary>
+        public PPPicture? GetPicture(string name) => Pictures.FirstOrDefault(p => p.Name == name);
+
+        /// <summary>
+        /// Retrieves a table by its name.
+        /// </summary>
+        public PPTable? GetTable(string name) => Tables.FirstOrDefault(t => t.Name == name);
+
+        /// <summary>
+        /// Retrieves a chart by its name.
+        /// </summary>
+        public PPChart? GetChart(string name) => Charts.FirstOrDefault(c => c.Name == name);
+
+        /// <summary>
+        /// Removes the specified shape from the slide.
+        /// </summary>
+        public void RemoveShape(PPShape shape) {
+            shape.Element.Remove();
+            _shapes.Remove(shape);
+        }
+
+        /// <summary>
         /// Notes associated with the slide.
         /// </summary>
         public PPNotes Notes => _notes ??= new PPNotes(_slidePart);
@@ -133,13 +166,23 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private string GenerateUniqueName(string baseName) {
+            int index = 1;
+            string name;
+            do {
+                name = baseName + " " + index++;
+            } while (_shapes.Any(s => s.Name == name));
+            return name;
+        }
+
         /// <summary>
         /// Adds a textbox with the specified text.
         /// </summary>
         public PPTextBox AddTextBox(string text) {
+            string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = "TextBox" + (_shapes.Count + 1) },
+                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                 ),
@@ -166,9 +209,10 @@ namespace OfficeIMO.PowerPoint {
             imagePart.FeedData(stream);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
+            string name = GenerateUniqueName("Picture");
             Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = Path.GetFileName(imagePath) },
+                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -213,9 +257,10 @@ namespace OfficeIMO.PowerPoint {
                 table.Append(row);
             }
 
+            string name = GenerateUniqueName("Table");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = "Table" + (_shapes.Count + 1) },
+                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -237,9 +282,10 @@ namespace OfficeIMO.PowerPoint {
             GenerateDefaultChart(chartPart);
 
             string relId = _slidePart.GetIdOfPart(chartPart);
+            string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = "Chart" + (_shapes.Count + 1) },
+                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
