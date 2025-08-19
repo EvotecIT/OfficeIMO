@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -40,7 +39,7 @@ namespace OfficeIMO.Word {
             var sectionProperties = section._sectionProperties;
 
             foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
-                if (element.Type == headerFooterValue) {
+                if (element.Type?.Value == headerFooterValue) {
                     // we found the header reference already exists; we do nothing;
                     return true;
                 }
@@ -59,7 +58,7 @@ namespace OfficeIMO.Word {
         internal static bool GetFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
             foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
-                if (element.Type == headerFooterValue) {
+                if (element.Type?.Value == headerFooterValue) {
                     return true;
                 }
             }
@@ -76,19 +75,19 @@ namespace OfficeIMO.Word {
             var sectionProperties = section._sectionProperties;
 
             foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
-                if (element.Type == headerFooterValue) {
+                if (element.Type?.Value == headerFooterValue) {
                     // we found the header reference already exists; we do nothing;
                     return;
                 }
             }
 
-            var headerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<HeaderPart>();
+            var headerPart = document._wordprocessingDocument.MainDocumentPart!.AddNewPart<HeaderPart>();
 
             var header = new Header();
             header.Save(headerPart);
 
             if (headerPart != null) {
-                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
+                var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(headerPart);
                 //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
 
                 if (id != null) {
@@ -121,22 +120,19 @@ namespace OfficeIMO.Word {
         internal static void AddFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
             var sectionProperties = section._sectionProperties;
             foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
-                if (element.Type == headerFooterValue) {
+                if (element.Type?.Value == headerFooterValue) {
                     // we found the footer reference already exists; we do nothing;
                     return;
                 }
             }
 
-            var footerPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FooterPart>();
-
-            MainDocumentPart part = document._wordprocessingDocument.MainDocumentPart;
-            Body body = document._wordprocessingDocument.MainDocumentPart.Document.Body;
+            var footerPart = document._wordprocessingDocument.MainDocumentPart!.AddNewPart<FooterPart>();
 
             var footer = new Footer();
             footer.Save(footerPart);
 
             if (footerPart != null) {
-                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(footerPart);
+                var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(footerPart);
                 if (id != null) {
                     var footerReference = new FooterReference() {
                         Type = headerFooterValue,
@@ -165,7 +161,7 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         internal static SectionProperties AddSectionProperties(this WordprocessingDocument wordDocument) {
             var sectionProperties = CreateSectionProperties();
-            wordDocument.MainDocumentPart.Document.Body.Append(sectionProperties);
+            wordDocument.MainDocumentPart!.Document!.Body!.Append(sectionProperties);
             return sectionProperties;
         }
 
