@@ -1,0 +1,26 @@
+using System;
+using System.IO;
+using OfficeIMO.PowerPoint;
+
+namespace OfficeIMO.Examples.PowerPoint {
+    /// <summary>
+    /// Demonstrates retrieving and removing shapes.
+    /// </summary>
+    public static class ShapesPowerPoint {
+        public static void Example_PowerPointShapes(string folderPath, bool openPowerPoint) {
+            Console.WriteLine("[*] PowerPoint - Shape operations");
+            string filePath = Path.Combine(folderPath, "Shape Operations.pptx");
+            string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            PowerPointSlide slide = presentation.AddSlide();
+            PPTextBox textBox = slide.AddTextBox("Hello");
+            PPPicture picture = slide.AddPicture(imagePath);
+
+            PPShape? shape = slide.GetShape("TextBox 1");
+            Console.WriteLine("Found shape: " + shape?.Name);
+            slide.RemoveShape(picture);
+            presentation.Save();
+        }
+    }
+}

@@ -14,6 +14,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Name assigned to the shape.
+        /// </summary>
+        public string? Name {
+            get {
+                switch (Element) {
+                    case Shape s:
+                        return s.NonVisualShapeProperties?.NonVisualDrawingProperties.Name?.Value;
+                    case Picture p:
+                        return p.NonVisualPictureProperties?.NonVisualDrawingProperties.Name?.Value;
+                    case GraphicFrame g:
+                        return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties.Name?.Value;
+                    default:
+                        return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the fill color of the shape in hex format (e.g. "FF0000").
         /// </summary>
         public string? FillColor {
