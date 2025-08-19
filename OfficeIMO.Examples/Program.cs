@@ -17,6 +17,7 @@ namespace OfficeIMO.Examples {
             // Visio/BasicVisioDocument
             OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
+            OfficeIMO.Examples.Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
 
             // Excel/BasicExcelFunctionality
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
