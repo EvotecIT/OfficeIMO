@@ -158,6 +158,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public void Save(string filePath) {
             int masterCount = 0;
+            bool includeTheme = _pages.Any(p => p.Shapes.Any());
             using (Package package = Package.Open(filePath, FileMode.Create)) {
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
                 PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
@@ -187,9 +188,12 @@ namespace OfficeIMO.Visio {
                 PackagePart windowsPart = package.CreatePart(windowsUri, WindowsContentType);
                 documentPart.CreateRelationship(new Uri("windows.xml", UriKind.Relative), TargetMode.Internal, WindowsRelationshipType, "rId2");
 
-                Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
-                PackagePart themePart = package.CreatePart(themeUri, ThemeContentType);
-                documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId3");
+                PackagePart? themePart = null;
+                if (includeTheme) {
+                    Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
+                    themePart = package.CreatePart(themeUri, ThemeContentType);
+                    documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId3");
+                }
 
                 Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
                 PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
@@ -209,12 +213,14 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
-                using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
-                    writer.WriteAttributeString("name", "Office Theme");
-                    writer.WriteEndElement();
-                    writer.WriteEndDocument();
+                if (themePart != null) {
+                    using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                        writer.WriteStartDocument();
+                        writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
+                        writer.WriteAttributeString("name", "Office Theme");
+                        writer.WriteEndElement();
+                        writer.WriteEndDocument();
+                    }
                 }
 
                 List<VisioMaster> masters = new();
@@ -439,10 +445,10 @@ namespace OfficeIMO.Visio {
                 masterCount = masters.Count;
             }
 
-            FixContentTypes(filePath, masterCount);
+            FixContentTypes(filePath, masterCount, includeTheme);
         }
 
-        private static void FixContentTypes(string filePath, int masterCount) {
+        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme) {
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
@@ -461,7 +467,9 @@ namespace OfficeIMO.Visio {
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", WindowsContentType)));
-            root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
+            if (includeTheme) {
+                root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
+            }
             if (masterCount > 0) {
                 root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/masters/masters.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.masters+xml")));
                 for (int i = 1; i <= masterCount; i++) {
@@ -473,4 +481,4 @@ namespace OfficeIMO.Visio {
             writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
     }
-}
+}
