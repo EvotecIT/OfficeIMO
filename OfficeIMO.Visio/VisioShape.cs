@@ -22,6 +22,8 @@ namespace OfficeIMO.Visio {
 
         public string? NameU { get; set; }
 
+        public VisioMaster? Master { get; set; }
+
         public double PinX { get; set; }
 
         public double PinY { get; set; }
@@ -33,4 +35,3 @@ namespace OfficeIMO.Visio {
         public string? Text { get; set; }
     }
 }
-
