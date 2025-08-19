@@ -9,10 +9,10 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents an image placed on a slide.
     /// </summary>
-    public class PPPicture : PPShape {
+    public class PowerPointPicture : PowerPointShape {
         private readonly SlidePart _slidePart;
 
-        internal PPPicture(Picture picture, SlidePart slidePart) : base(picture) {
+        internal PowerPointPicture(Picture picture, SlidePart slidePart) : base(picture) {
             _slidePart = slidePart;
         }
 

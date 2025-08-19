@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPTextBox text = slide.AddTextBox("Test");
+                PowerPointTextBox text = slide.AddTextBox("Test");
                 slide.AddPicture(imagePath);
                 slide.AddTable(2, 2);
                 slide.AddChart();

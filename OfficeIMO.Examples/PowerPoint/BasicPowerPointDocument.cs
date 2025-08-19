@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPTextBox text = slide.AddTextBox("Hello World");
+            PowerPointTextBox text = slide.AddTextBox("Hello World");
             text.AddBullet("Bullet 1");
             slide.Notes.Text = "Example notes";
             presentation.Save();

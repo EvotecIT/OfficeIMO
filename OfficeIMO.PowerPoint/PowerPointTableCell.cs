@@ -1,5 +1,9 @@
-using DocumentFormat.OpenXml.Drawing;
-
+    public class PowerPointTableCell {
+        internal TableCell Cell { get; }
+
+        internal PowerPointTableCell(TableCell cell) {
+            Cell = cell;
+        }
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a cell within a PowerPoint table.

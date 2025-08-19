@@ -18,9 +18,9 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPTextBox textBox = slide.AddTextBox("Hello", left, top, width, height);
-                PPPicture picture = slide.AddPicture(imagePath, left, top, width, height);
-                PPTable table = slide.AddTable(2, 2, left, top, width, height);
+                PowerPointTextBox textBox = slide.AddTextBox("Hello", left, top, width, height);
+                PowerPointPicture picture = slide.AddPicture(imagePath, left, top, width, height);
+                PowerPointTable table = slide.AddTable(2, 2, left, top, width, height);
 
                 Assert.Equal(left, textBox.Left);
                 Assert.Equal(top, textBox.Top);
@@ -36,9 +36,9 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
-                PPTextBox textBox = slide.TextBoxes.First();
-                PPPicture picture = slide.Pictures.First();
-                PPTable table = slide.Tables.First();
+                PowerPointTextBox textBox = slide.TextBoxes.First();
+                PowerPointPicture picture = slide.Pictures.First();
+                PowerPointTable table = slide.Tables.First();
 
                 Assert.Equal(left + 1000, textBox.Left);
                 Assert.Equal(top, textBox.Top);

@@ -6,8 +6,8 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a table on a slide.
     /// </summary>
-    public class PPTable : PPShape {
-        internal PPTable(GraphicFrame frame) : base(frame) {
+    public class PowerPointTable : PowerPointShape {
+        internal PowerPointTable(GraphicFrame frame) : base(frame) {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -27,11 +27,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="row">Zero-based row index.</param>
         /// <param name="column">Zero-based column index.</param>
-        public PPTableCell GetCell(int row, int column) {
+        public PowerPointTableCell GetCell(int row, int column) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
-            return new PPTableCell(cell);
+            return new PowerPointTableCell(cell);
         }
 
         /// <summary>

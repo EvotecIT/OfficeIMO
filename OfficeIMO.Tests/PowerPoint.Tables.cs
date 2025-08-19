@@ -1,5 +1,7 @@
-using System;
-using System.IO;
+                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTableCell cell = table.GetCell(0, 0);
+                PowerPointTable table = presentation.Slides[0].Tables.First();
+                PowerPointTableCell cell = table.GetCell(0, 0);
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;

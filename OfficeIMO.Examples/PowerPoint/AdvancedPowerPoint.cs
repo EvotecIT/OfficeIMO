@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPTextBox text = slide.AddTextBox("Sample text");
+            PowerPointTextBox text = slide.AddTextBox("Sample text");
             slide.AddChart();
             slide.BackgroundColor = "FFFF00";
             text.FillColor = "FF0000";
