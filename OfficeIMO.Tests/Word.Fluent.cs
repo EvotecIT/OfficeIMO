@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                     .Info(i => i.Title("Fluent"))
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Test"))
-                    .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell"))
+                    .Table(t => t.Columns(1).Row("Cell"))
                     .End();
                 document.Save(false);
             }
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Paragraphs);
                 Assert.Equal("Test", document.Paragraphs[0].Text);
                 Assert.Single(document.Tables);
-                Assert.Equal("Cell", document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("Cell", document.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         }
     }

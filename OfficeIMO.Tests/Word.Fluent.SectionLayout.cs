@@ -23,13 +23,13 @@ namespace OfficeIMO.Tests {
                             .Size(WordPageSize.Legal)
                             .PageNumbering(restart: true)
                             .Paragraph(p => p.Text("Section 1"))
-                            .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 1"))
+                            .Table(t => t.Columns(1).Row("Cell 1"))
                         .New(SectionMarkValues.NextPage)
                             .Margins(WordMargin.Wide)
                             .Size(WordPageSize.A3)
                             .PageNumbering(restart: false)
                             .Paragraph(p => p.Text("Section 2"))
-                            .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
+                            .Table(t => t.Columns(1).Row("Cell 2")))
                     .End();
                 document.Save(false);
             }
@@ -38,9 +38,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, document.Sections.Count);
                 Assert.Equal("Section 1", document.Sections[1].Paragraphs[0].Text);
-                Assert.Equal("Cell 1", document.Sections[1].Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("Cell 1", document.Sections[1].Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("Section 2", document.Sections[2].Paragraphs[0].Text);
-                Assert.Equal("Cell 2", document.Sections[2].Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("Cell 2", document.Sections[2].Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         }
     }
