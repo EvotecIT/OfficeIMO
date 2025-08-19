@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentTest.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Info(i => i.SetTitle("Fluent"))
+                    .Info(i => i.Title("Fluent"))
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Test"))
                     .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell"))

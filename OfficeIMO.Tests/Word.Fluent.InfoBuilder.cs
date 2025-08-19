@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FluentInfoBuilder.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Info(i => i.SetTitle("Title")
-                        .SetAuthor("Author")
-                        .SetSubject("Subject")
-                        .SetKeywords("k1, k2")
-                        .SetComments("Some comments")
-                        .SetCustomProperty("Custom1", "Value1"))
+                    .Info(i => i.Title("Title")
+                        .Author("Author")
+                        .Subject("Subject")
+                        .Keywords("k1, k2")
+                        .Comments("Some comments")
+                        .Custom("Custom1", "Value1"))
                     .Paragraph(p => p.Text("Test"));
                 document.Save(false);
             }

@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Fluent {
 
         public TextBuilder Color(string hex) {
             if (hex.StartsWith("#")) {
-                hex = hex[1..];
+                hex = hex.Substring(1);
             }
             _paragraph?.SetColorHex("#" + hex);
             return this;
