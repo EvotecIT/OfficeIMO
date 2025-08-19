@@ -4,7 +4,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Represents notes for a slide.
+    ///     Represents notes for a slide.
     /// </summary>
     public class PowerPointNotes {
         private readonly SlidePart _slidePart;
@@ -26,7 +26,8 @@ namespace OfficeIMO.PowerPoint {
                                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                                 ),
                                 new ShapeProperties(),
-                                new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text())))
+                                new TextBody(new A.BodyProperties(), new A.ListStyle(),
+                                    new A.Paragraph(new A.Run(new A.Text())))
                             )
                         )),
                         new ColorMapOverride(new A.MasterColorMapping()));
@@ -37,7 +38,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the notes text.
+        ///     Gets or sets the notes text.
         /// </summary>
         public string Text {
             get {
@@ -63,4 +64,3 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
-

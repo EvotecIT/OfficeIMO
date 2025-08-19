@@ -1,11 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Represents a textbox shape.
+    ///     Represents a textbox shape.
     /// </summary>
     public class PowerPointTextBox : PowerPointShape {
         internal PowerPointTextBox(Shape shape) : base(shape) {
@@ -16,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
         private IEnumerable<A.Run> Runs => Shape.TextBody!.Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
 
         /// <summary>
-        /// Text contained in the textbox.
+        ///     Text contained in the textbox.
         /// </summary>
         public string Text {
             get {
@@ -32,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the text is bold.
+        ///     Gets or sets a value indicating whether the text is bold.
         /// </summary>
         public bool Bold {
             get {
@@ -48,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the text is italic.
+        ///     Gets or sets a value indicating whether the text is italic.
         /// </summary>
         public bool Italic {
             get {
@@ -64,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
+        ///     Gets or sets the font size in points.
         /// </summary>
         public int? FontSize {
             get {
@@ -81,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font name.
+        ///     Gets or sets the font name.
         /// </summary>
         public string? FontName {
             get {
@@ -100,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").
+        ///     Gets or sets the text color in hexadecimal format (e.g. "FF0000").
         /// </summary>
         public string? Color {
             get {
@@ -119,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Adds a new bulleted paragraph to the textbox.
+        ///     Adds a new bulleted paragraph to the textbox.
         /// </summary>
         public void AddBullet(string text) {
             A.Run run = new(new A.Text(text));
@@ -136,4 +134,3 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
-

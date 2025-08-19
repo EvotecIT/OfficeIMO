@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -7,7 +5,7 @@ using ImagePartType = DocumentFormat.OpenXml.Packaging.PartTypeInfo;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Represents an image placed on a slide.
+    ///     Represents an image placed on a slide.
     /// </summary>
     public class PowerPointPicture : PowerPointShape {
         private readonly SlidePart _slidePart;
@@ -17,12 +15,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets the MIME content type of the underlying image.
+        ///     Gets the MIME content type of the underlying image.
         /// </summary>
         public string? ContentType => GetImagePart()?.ContentType;
 
         /// <summary>
-        /// Gets the MIME content type of the underlying image.
+        ///     Gets the MIME content type of the underlying image.
         /// </summary>
         public string? MimeType => ContentType;
 
@@ -33,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Replaces the picture's underlying image with the provided stream.
+        ///     Replaces the picture's underlying image with the provided stream.
         /// </summary>
         /// <param name="newImage">Stream containing the new image data.</param>
         /// <param name="type">Image format of the new image.</param>
@@ -67,4 +65,3 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
-

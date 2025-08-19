@@ -1,20 +1,20 @@
 namespace OfficeIMO.PowerPoint.Fluent {
     /// <summary>
-    /// Provides a fluent API wrapper around <see cref="PowerPointPresentation"/>.
+    ///     Provides a fluent API wrapper around <see cref="PowerPointPresentation" />.
     /// </summary>
     public class PowerPointFluentPresentation {
-        internal PowerPointPresentation Presentation { get; }
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="PowerPointFluentPresentation"/> class.
+        ///     Initializes a new instance of the <see cref="PowerPointFluentPresentation" /> class.
         /// </summary>
         /// <param name="presentation">Presentation to wrap.</param>
         public PowerPointFluentPresentation(PowerPointPresentation presentation) {
-            Presentation = presentation ?? throw new System.ArgumentNullException(nameof(presentation));
+            Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
         }
 
+        internal PowerPointPresentation Presentation { get; }
+
         /// <summary>
-        /// Adds a new slide to the presentation.
+        ///     Adds a new slide to the presentation.
         /// </summary>
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
