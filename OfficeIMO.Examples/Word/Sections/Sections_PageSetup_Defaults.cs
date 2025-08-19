@@ -19,9 +19,8 @@ namespace OfficeIMO.Examples.Word {
                         .Margins(WordMargin.Normal)
                         .DifferentFirstPage()
                         .DifferentOddAndEvenPages())
-                    .End();
-
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

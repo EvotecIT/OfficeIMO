@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
                         .Even(ev => ev.Paragraph("Even footer")))
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Body"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using var loaded = WordDocument.Load(filePath);

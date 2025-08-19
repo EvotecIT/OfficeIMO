@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Hello")
                         .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                         .Text("!", t => t.BoldOn()))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {

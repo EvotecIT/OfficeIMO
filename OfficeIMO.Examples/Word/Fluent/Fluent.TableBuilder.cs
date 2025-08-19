@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Word {
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
                     .Table(t => t.AddTable(2, 2).Table!.Rows[0].Cells[0].AddParagraph("TopLeft"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

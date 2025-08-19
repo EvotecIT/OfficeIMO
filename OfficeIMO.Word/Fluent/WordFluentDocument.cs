@@ -101,6 +101,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Ends fluent configuration and returns the underlying <see cref="WordDocument"/>.
         /// </summary>
+        /// <returns>The wrapped <see cref="WordDocument"/> for further processing.</returns>
         public WordDocument End() {
             return Document;
         }

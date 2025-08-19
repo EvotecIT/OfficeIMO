@@ -15,9 +15,8 @@ internal static partial class Paragraphs {
                     .Text("Hello")
                     .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                     .Text("!", t => t.BoldOn()))
-                .End();
-
-            document.Save(false);
+                .End()
+                .Save(false);
         }
         Helpers.Open(filePath, openWord);
     }

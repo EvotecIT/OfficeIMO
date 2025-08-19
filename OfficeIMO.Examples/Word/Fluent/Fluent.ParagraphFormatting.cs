@@ -22,8 +22,8 @@ namespace OfficeIMO.Examples.Word {
                         .Style(WordParagraphStyles.Heading2))
                     .Paragraph(p => p.Text("Bullet list item").AddList(WordListStyle.Bulleted))
                     .Paragraph(p => p.Text("Table below").AddTableAfter(2, 2))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

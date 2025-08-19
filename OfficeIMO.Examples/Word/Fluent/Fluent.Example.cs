@@ -18,8 +18,8 @@ namespace OfficeIMO.Examples.Word {
                         .Custom("Reviewed", true))
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Hello from fluent API"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

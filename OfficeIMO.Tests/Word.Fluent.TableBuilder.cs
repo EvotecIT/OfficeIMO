@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
                             { "Q1", "1.1M", "2.1%" },
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Table(t => t.AddTable(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {

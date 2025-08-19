@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
                             .PageNumbering(restart: false)
                             .Paragraph(p => p.Text("Section 2"))
                             .Table(t => t.Columns(1).Row("Cell 2")))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

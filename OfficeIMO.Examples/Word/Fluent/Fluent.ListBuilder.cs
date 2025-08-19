@@ -18,8 +18,8 @@ namespace OfficeIMO.Examples.Word {
                                  .Item("Alpha")
                                  .Item("Beta").Indent().Item("Beta.Child").Outdent()
                                  .Item("Gamma"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }
