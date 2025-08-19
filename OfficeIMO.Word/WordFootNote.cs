@@ -30,27 +30,23 @@ namespace OfficeIMO.Word {
         /// Zero based object should be skipped, as it's FootnoteReference
         /// However for sake of completion and potential ability to modify it we expose it as well
         /// </summary>
-        public List<WordParagraph> Paragraphs {
+        public List<WordParagraph>? Paragraphs {
             get {
-                if (_paragraph != null && _run != null) {
-                    long referenceId = 0;
-                    var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-                    if (footNoteReference != null) {
-                        referenceId = footNoteReference.Id;
-                    }
+                var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
+                var referenceId = footNoteReference?.Id?.Value ?? 0;
 
-                    if (referenceId != 0) {
-                        FootnotesPart footnotesPart = _document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
-                        var footNotes = footnotesPart.Footnotes.ChildElements.OfType<Footnote>().ToList();
+                if (referenceId != 0) {
+                    var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
+                    var footNotes = footnotesPart?.Footnotes?.ChildElements.OfType<Footnote>().ToList();
+                    if (footNotes != null) {
                         foreach (var footNote in footNotes) {
-                            if (footNote != null) {
-                                if (footNote.Id == referenceId.ToString()) {
-                                    return WordSection.ConvertParagraphsToWordParagraphs(_document, footNote.OfType<Paragraph>());
-                                }
+                            if (footNote?.Id?.Value == referenceId) {
+                                return WordSection.ConvertParagraphsToWordParagraphs(_document, footNote.OfType<Paragraph>());
                             }
                         }
                     }
                 }
+
                 return null;
             }
         }
@@ -59,7 +55,7 @@ namespace OfficeIMO.Word {
         /// Parent Paragraph is Paragraph/Run that has FootNote attached to it.
         /// This provides ability to find proper Run that has FootNote
         /// </summary>
-        public WordParagraph ParentParagraph {
+        public WordParagraph? ParentParagraph {
             get {
                 var previousRun = _run.PreviousSibling<Run>();
                 if (previousRun != null) {
@@ -74,13 +70,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public long? ReferenceId {
             get {
-                if (_paragraph != null && _run != null) {
-                    var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-                    if (footNoteReference != null) {
-                        return footNoteReference.Id;
-                    }
-                }
-                return null;
+                var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
+                return footNoteReference?.Id?.Value;
             }
         }
 
@@ -88,21 +79,20 @@ namespace OfficeIMO.Word {
         /// Remove FootNote from document
         /// </summary>
         public void Remove() {
-            long referenceId = 0;
             var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-            if (footNoteReference != null) {
-                referenceId = footNoteReference.Id;
-            }
-            FootnotesPart footnotesPart = _document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
-            var footNotes = footnotesPart.Footnotes.ChildElements.OfType<Footnote>().ToList();
-            foreach (var footNote in footNotes) {
-                if (footNote != null) {
-                    if (footNote.Id == referenceId.ToString()) {
+            var referenceId = footNoteReference?.Id?.Value ?? 0;
+
+            var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
+            var footNotes = footnotesPart?.Footnotes?.ChildElements.OfType<Footnote>().ToList();
+            if (footNotes != null) {
+                foreach (var footNote in footNotes) {
+                    if (footNote?.Id?.Value == referenceId) {
                         footNote.Remove();
                     }
                 }
             }
-            this._run.Remove();
+
+            _run.Remove();
         }
 
         internal static WordParagraph AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
@@ -120,35 +110,28 @@ namespace OfficeIMO.Word {
 
             var footNote = GenerateFootNote(footerReferenceId, footerWordParagraph);
 
-            var footNotesPart = document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
+            var footNotesPart = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
             if (footNotesPart == null) {
-                footNotesPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<FootnotesPart>();
+                footNotesPart = document._wordprocessingDocument.MainDocumentPart!.AddNewPart<FootnotesPart>();
                 WordDocument.GenerateFootNotesPart1Content(footNotesPart);
             }
-            footNotesPart.Footnotes.Append(footNote);
+            footNotesPart.Footnotes!.Append(footNote);
 
             return newWordParagraph;
         }
 
         internal static long GetNextFootNotesReferenceId(WordDocument document) {
             long highestId = 0;
-            var footnotesPart = document._wordprocessingDocument.MainDocumentPart.FootnotesPart;
-
+            var footnotesPart = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
 
             if (footnotesPart?.Footnotes != null) {
                 var footNote = footnotesPart.Footnotes.Descendants<Footnote>();
 
-                if (footNote != null && footNote.Any()) {
-                    highestId = footNote.Max(en => {
-                        if (en.Id != null) {
-                            return en.Id.Value;
-                        }
-                        return 0;
-                    });
+                if (footNote.Any()) {
+                    highestId = footNote.Max(en => en.Id?.Value ?? 0);
                 } else {
                     highestId = 1;
                 }
-
             }
             return (highestId <= 0) ? 1 : highestId + 1;
         }
@@ -175,7 +158,7 @@ namespace OfficeIMO.Word {
             wordParagraph._paragraph.ParagraphProperties = paragraphProperties1;
 
             var run = wordParagraph._paragraph.GetFirstChild<Run>();
-            run.InsertBeforeSelf(run1);
+            run?.InsertBeforeSelf(run1);
 
             footnote1.Append(wordParagraph._paragraph);
             return footnote1;
