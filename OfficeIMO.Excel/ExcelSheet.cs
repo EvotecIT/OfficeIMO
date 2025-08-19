@@ -215,109 +215,69 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        public void AutoFitAllColumns() {
+        /// <summary>
+        /// Automatically fits all columns based on their content.
+        /// </summary>
+        public void AutoFitColumns() {
             var worksheet = _worksheetPart.Worksheet;
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
             var columns = worksheet.GetFirstChild<Columns>();
-            if (columns == null) {
-                columns = worksheet.InsertAt(new Columns(), 0);
-            }
-
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
-            float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
-            Dictionary<int, double> widths = new Dictionary<int, double>();
+            HashSet<int> columnIndexes = new HashSet<int>();
 
             foreach (var row in sheetData.Elements<Row>()) {
                 foreach (var cell in row.Elements<Cell>()) {
                     if (cell.CellReference == null) continue;
-                    int columnIndex = GetColumnIndex(cell.CellReference.Value);
-                    string text = GetCellText(cell);
-                    if (string.IsNullOrWhiteSpace(text)) continue;
-                    var size = TextMeasurer.MeasureSize(text ?? string.Empty, options);
-                    double cellWidth = size.Width / zeroWidth + 1;
-                    if (widths.ContainsKey(columnIndex)) {
-                        if (cellWidth > widths[columnIndex]) widths[columnIndex] = cellWidth;
-                    } else {
-                        widths[columnIndex] = cellWidth;
+                    columnIndexes.Add(GetColumnIndex(cell.CellReference.Value));
+                }
+            }
+
+            if (columns != null) {
+                foreach (var column in columns.Elements<Column>()) {
+                    uint min = column.Min?.Value ?? 0;
+                    uint max = column.Max?.Value ?? 0;
+                    for (uint i = min; i <= max; i++) {
+                        columnIndexes.Add((int)i);
                     }
                 }
             }
 
-            var existingColumns = columns.Elements<Column>().ToList();
-            foreach (var column in existingColumns) {
-                bool hasContent = false;
-                for (uint i = column.Min?.Value ?? 0; i <= (column.Max?.Value ?? 0); i++) {
-                    if (widths.ContainsKey((int)i)) {
-                        hasContent = true;
-                        break;
-                    }
-                }
-                if (!hasContent) {
-                    column.Remove();
-                }
-            }
-
-            foreach (var kvp in widths) {
-                Column column = columns.Elements<Column>()
-                    .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)kvp.Key && c.Max.Value >= (uint)kvp.Key);
-                if (column == null) {
-                    column = new Column { Min = (uint)kvp.Key, Max = (uint)kvp.Key };
-                    columns.Append(column);
-                }
-                column.Width = kvp.Value;
-                column.CustomWidth = true;
-                column.BestFit = true;
+            foreach (int index in columnIndexes.OrderBy(i => i)) {
+                AutoFitColumn(index);
             }
 
             worksheet.Save();
         }
 
-        public void AutoFitAllRows() {
+        /// <summary>
+        /// Automatically fits all rows based on their content.
+        /// </summary>
+        public void AutoFitRows() {
             var worksheet = _worksheetPart.Worksheet;
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
+            var rowIndexes = sheetData.Elements<Row>()
+                .Select(r => (int)r.RowIndex!.Value)
+                .ToList();
 
-            double defaultHeight = 15;
-            bool hasVisibleContent = false;
-
-            double ToPoints(double height) {
-                return height * 72.0 / options.Dpi;
+            foreach (int rowIndex in rowIndexes) {
+                AutoFitRow(rowIndex);
             }
 
-            foreach (var row in sheetData.Elements<Row>()) {
-                double maxHeight = 0;
-                foreach (var cell in row.Elements<Cell>()) {
-                    string text = GetCellText(cell);
-                    if (string.IsNullOrWhiteSpace(text)) continue;
+            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+            bool anyCustom = sheetData.Elements<Row>()
+                .Any(r => r.CustomHeight != null && r.CustomHeight.Value);
 
-                    var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                    double lineHeight = lines.Max(line => ToPoints(TextMeasurer.MeasureSize(line, options).Height));
-                    double cellHeight = lineHeight * lines.Length;
-                    if (cellHeight > maxHeight) maxHeight = cellHeight;
-                }
-                if (maxHeight > 0) {
-                    row.Height = maxHeight + 2;
-                    row.CustomHeight = true;
-                    hasVisibleContent = true;
-                } else {
-                    row.Height = null;
-                    row.CustomHeight = null;
-                }
-            }
-
-            if (hasVisibleContent) {
-                var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+            if (anyCustom) {
                 if (sheetFormat == null) {
                     sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
                 }
-                sheetFormat.DefaultRowHeight = defaultHeight;
+                sheetFormat.DefaultRowHeight = 15;
                 sheetFormat.CustomHeight = true;
+            } else if (sheetFormat != null) {
+                sheetFormat.Remove();
             }
 
             worksheet.Save();
