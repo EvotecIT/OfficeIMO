@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -16,20 +14,25 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the background color as a hex string.
         /// </summary>
-        public string Color {
+        public string? Color {
             get {
-                if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground != null) {
-                    return _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color;
+                var mainPart = _document._wordprocessingDocument.MainDocumentPart;
+                if (mainPart?.Document?.DocumentBackground != null) {
+                    return mainPart.Document.DocumentBackground.Color;
                 }
 
                 return null;
             }
             set {
-                _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.DisplayBackgroundShape = new DisplayBackgroundShape();
-                if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground == null) {
-                    _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground = new DocumentBackground();
+                var mainPart = _document._wordprocessingDocument.MainDocumentPart;
+                var settings = mainPart?.DocumentSettingsPart?.Settings;
+                if (settings != null) {
+                    settings.DisplayBackgroundShape = new DisplayBackgroundShape();
                 }
-                _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground.Color = value;
+                if (mainPart?.Document?.DocumentBackground == null) {
+                    mainPart!.Document!.DocumentBackground = new DocumentBackground();
+                }
+                mainPart!.Document!.DocumentBackground!.Color = value;
             }
         }
 
@@ -53,7 +56,7 @@ namespace OfficeIMO.Word {
 
             DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToHexColor() };
 
-            document._document.Body.Append(documentBackground);
+            document._document.Body!.Append(documentBackground);
 
             //DocumentBackground documentBackground2 = new DocumentBackground() { Color = "BF8F00", ThemeColor = ThemeColorValues.Accent4, ThemeShade = "BF" };
         }
@@ -101,17 +104,17 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
 
             var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
-            _document._document.Body.Append(paragraph);
+            _document._document.Body!.Append(paragraph);
             var wordParagraph = new WordParagraph(_document, paragraph);
             var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WrapTextImage.BehindText);
             paragraph.Remove();
 
-            _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.DisplayBackgroundShape = new DisplayBackgroundShape();
-            if (_document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground == null) {
-                _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground = new DocumentBackground();
+            _document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.DisplayBackgroundShape = new DisplayBackgroundShape();
+            if (_document._wordprocessingDocument.MainDocumentPart!.Document!.DocumentBackground == null) {
+                _document._wordprocessingDocument.MainDocumentPart!.Document!.DocumentBackground = new DocumentBackground();
             }
 
-            var background = _document._wordprocessingDocument.MainDocumentPart.Document.DocumentBackground;
+            var background = _document._wordprocessingDocument.MainDocumentPart!.Document!.DocumentBackground!;
             background.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Drawing>();
             background.Color = null;
             background.Append((DocumentFormat.OpenXml.Wordprocessing.Drawing)wordImage._Image.CloneNode(true));

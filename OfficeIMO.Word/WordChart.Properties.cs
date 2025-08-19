@@ -11,15 +11,15 @@ namespace OfficeIMO.Word {
         private const long EnglishMetricUnitsPerInch = 914400;
         private const long PixelsPerInch = 96;
         private readonly WordDocument _document;
-        private WordParagraph _paragraph;
-        private ChartPart _chartPart {
+        private WordParagraph? _paragraph;
+        private ChartPart? _chartPart {
             get {
                 if (_drawing == null) {
                     return null;
-                } else {
-                    var id = _drawing.Inline.Graphic.GraphicData.GetFirstChild<ChartReference>().Id;
-                    return (ChartPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
                 }
+                var chartRef = _drawing.Inline?.Graphic?.GraphicData?.GetFirstChild<ChartReference>();
+                var id = chartRef?.Id;
+                return id != null ? (ChartPart?)_document._wordprocessingDocument.MainDocumentPart!.GetPartById(id) : null;
             }
         }
         private Drawing _drawing;
@@ -46,11 +46,9 @@ namespace OfficeIMO.Word {
             get {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
-                    if (chart != null) {
-                        var barChart = chart.PlotArea.GetFirstChild<BarChart>();
-                        if (barChart != null) {
-                            return barChart.BarGrouping.Val;
-                        }
+                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
+                    if (barChart?.BarGrouping != null) {
+                        return barChart.BarGrouping.Val;
                     }
                 }
 
@@ -59,13 +57,9 @@ namespace OfficeIMO.Word {
             set {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
-                    if (chart != null) {
-                        var barChart = chart.PlotArea.GetFirstChild<BarChart>();
-                        if (barChart != null) {
-                            if (barChart.BarGrouping != null) {
-                                barChart.BarGrouping.Val = value;
-                            }
-                        }
+                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
+                    if (barChart?.BarGrouping != null) {
+                        barChart.BarGrouping.Val = value;
                     }
                 }
             }
@@ -77,11 +71,9 @@ namespace OfficeIMO.Word {
             get {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
-                    if (chart != null) {
-                        var barChart = chart.PlotArea.GetFirstChild<BarChart>();
-                        if (barChart != null) {
-                            return barChart.BarDirection.Val;
-                        }
+                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
+                    if (barChart?.BarDirection != null) {
+                        return barChart.BarDirection.Val;
                     }
                 }
 
@@ -90,15 +82,9 @@ namespace OfficeIMO.Word {
             set {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
-                    if (chart != null) {
-                        if (chart.PlotArea != null) {
-                            var barChart = chart.PlotArea.GetFirstChild<BarChart>();
-                            if (barChart != null) {
-                                if (barChart.BarDirection != null) {
-                                    barChart.BarDirection.Val = value;
-                                }
-                            }
-                        }
+                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
+                    if (barChart?.BarDirection != null) {
+                        barChart.BarDirection.Val = value;
                     }
                 }
             }
@@ -108,14 +94,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RoundedCorners {
             get {
-                var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();
-                if (roundedCorners != null) {
+                var roundedCorners = _chartPart?.ChartSpace.GetFirstChild<RoundedCorners>();
+                if (roundedCorners?.Val != null) {
                     return roundedCorners.Val;
                 }
 
                 return true;
             }
             set {
+                if (_chartPart == null) return;
                 var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();
                 if (roundedCorners == null) {
                     roundedCorners = new RoundedCorners() { Val = value };
@@ -140,9 +127,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set the title of the chart
         /// </summary>
-        public string Title {
+        public string? Title {
             get {
-                if (_chart != null && _chart.Title != null) {
+                if (_chart?.Title != null) {
                     var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
                     if (text != null) {
                         return text.Text;
@@ -155,7 +142,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_chart != null) {
-                    SetTitle(value);
+                    SetTitle(value!);
                 }
                 PrivateTitle = value;
             }

@@ -56,12 +56,10 @@ namespace OfficeIMO.Word {
         /// <param name="color">Line color.</param>
         public void AddChartLine<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine();
-            if (_chart != null) {
-                var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
-                if (lineChart != null) {
-                    LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
-                    InsertSeries(lineChart, lineChartSeries);
-                }
+            var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
+            if (lineChart != null) {
+                LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values.ToList());
+                InsertSeries(lineChart, lineChartSeries);
             }
         }
 
@@ -76,7 +74,7 @@ namespace OfficeIMO.Word {
         /// <param name="color"></param>
         public void AddLine<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine();
-            var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+            var lineChart = _chart?.PlotArea?.GetFirstChild<LineChart>();
             if (lineChart != null) {
                 LineChartSeries lineChartSeries = AddLineChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(lineChart, lineChartSeries);
@@ -100,7 +98,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AddBar(string name, int values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
-            var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+            var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, new List<int>() { values });
                 InsertSeries(barChart, barChartSeries);
@@ -114,7 +112,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AddBar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
-            var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+            var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values);
                 InsertSeries(barChart, barChartSeries);
@@ -197,12 +195,10 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color of the series.</param>
         public void AddRadar<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsRadar();
-            if (_chart != null) {
-                var radarChart = _chart.PlotArea.GetFirstChild<RadarChart>();
-                if (radarChart != null) {
-                    var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
-                    InsertSeries(radarChart, series);
-                }
+            var radarChart = _chart?.PlotArea?.GetFirstChild<RadarChart>();
+            if (radarChart != null) {
+                var series = AddRadarChartSeries(this._index, name, color, this.Categories, values);
+                InsertSeries(radarChart, series);
             }
         }
         /// <summary>
@@ -214,26 +210,24 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color of the bars.</param>
         public void AddBar3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar3D();
-            if (_chart != null) {
-                var chart3d = _chart.PlotArea.GetFirstChild<Bar3DChart>();
-                if (chart3d != null) {
-                    var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
+            var chart3d = _chart?.PlotArea?.GetFirstChild<Bar3DChart>();
+            if (chart3d != null) {
+                var series = AddBar3DChartSeries(this._index, name, color, this.Categories, values);
 
-                    // For Bar3DChart, we need special handling to maintain correct element order:
-                    // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
-                    var axis = chart3d.Elements<AxisId>().FirstOrDefault();
-                    if (axis != null) {
-                        chart3d.InsertBefore(series, axis);
+                // For Bar3DChart, we need special handling to maintain correct element order:
+                // barDir, grouping, varyColors, ser, dLbls, gapWidth, gapDepth, shape, axId, extLst
+                var axis = chart3d.Elements<AxisId>().FirstOrDefault();
+                if (axis != null) {
+                    chart3d.InsertBefore(series, axis);
 
-                        // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
-                        var gapWidth = chart3d.GetFirstChild<GapWidth>();
-                        if (gapWidth == null) {
-                            gapWidth = new GapWidth() { Val = (UInt16Value)150U };
-                            chart3d.InsertBefore(gapWidth, axis);
-                        }
-                    } else {
-                        chart3d.Append(series);
+                    // Ensure gapWidth is present and in correct position (after all ser elements, before axId)
+                    var gapWidth = chart3d.GetFirstChild<GapWidth>();
+                    if (gapWidth == null) {
+                        gapWidth = new GapWidth() { Val = (UInt16Value)150U };
+                        chart3d.InsertBefore(gapWidth, axis);
                     }
+                } else {
+                    chart3d.Append(series);
                 }
             }
         }
@@ -255,13 +249,11 @@ namespace OfficeIMO.Word {
         /// </remarks>
         public void AddLine3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsLine3D();
-            if (_chart != null) {
-                var line3d = _chart.PlotArea.GetFirstChild<Line3DChart>();
-                if (line3d != null) {
-                    var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
-                    // Insert series in the correct schema position (after varyColors, before dLbls)
-                    InsertSeries(line3d, series);
-                }
+            var line3d = _chart?.PlotArea?.GetFirstChild<Line3DChart>();
+            if (line3d != null) {
+                var series = AddLine3DChartSeries(this._index, name, color, this.Categories, values);
+                // Insert series in the correct schema position (after varyColors, before dLbls)
+                InsertSeries(line3d, series);
             }
         }
 
@@ -274,12 +266,10 @@ namespace OfficeIMO.Word {
         /// <param name="color">Series color.</param>
         public void AddArea3D<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea3D();
-            if (_chart != null) {
-                var area3d = _chart.PlotArea.GetFirstChild<Area3DChart>();
-                if (area3d != null) {
-                    var series = AddArea3DChartSeries(this._index, name, color, this.Categories, values);
-                    InsertSeries(area3d, series);
-                }
+            var area3d = _chart?.PlotArea?.GetFirstChild<Area3DChart>();
+            if (area3d != null) {
+                var series = AddArea3DChartSeries(this._index, name, color, this.Categories, values);
+                InsertSeries(area3d, series);
             }
         }
 

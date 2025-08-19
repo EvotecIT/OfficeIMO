@@ -48,7 +48,9 @@ namespace OfficeIMO.Word {
                 var listNumbers = new List<int>();
                 var listItems = Paragraphs.Where(p => p.IsListItem).ToList();
                 foreach (var item in listItems) {
-                    listNumbers.Add(item._listNumberId.Value);
+                    if (item._listNumberId != null) {
+                        listNumbers.Add(item._listNumberId.Value);
+                    }
                 }
 
                 return listNumbers.Distinct().ToList();
@@ -541,17 +543,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to page border settings for this section.
         /// </summary>
-        public WordBorders Borders;
+        public WordBorders Borders { get; internal set; } = null!;
 
         /// <summary>
         /// Provides access to page margin settings for this section.
         /// </summary>
-        public WordMargins Margins;
+        public WordMargins Margins { get; internal set; } = null!;
 
         /// <summary>
         /// Provides access to page size and orientation settings for this section.
         /// </summary>
-        public WordPageSizes PageSettings;
+        public WordPageSizes PageSettings { get; internal set; } = null!;
 
         /// <summary>
         /// Provides a list of all lists within the section
@@ -603,10 +605,10 @@ namespace OfficeIMO.Word {
         }
 
 
-        internal WordDocument _document;
-        internal SectionProperties _sectionProperties;
-        private WordprocessingDocument _wordprocessingDocument;
-        private readonly Paragraph _paragraph;
+        internal WordDocument _document = null!;
+        internal SectionProperties _sectionProperties = null!;
+        private WordprocessingDocument _wordprocessingDocument = null!;
+        private readonly Paragraph? _paragraph;
 
 
         /// <summary>
@@ -616,14 +618,14 @@ namespace OfficeIMO.Word {
         /// <param name="sectionProperties"></param>
         /// <param name="paragraph"></param>
         /// <exception cref="NotImplementedException"></exception>
-        internal WordSection(WordDocument wordDocument, SectionProperties sectionProperties = null, Paragraph paragraph = null) {
+        internal WordSection(WordDocument wordDocument, SectionProperties? sectionProperties = null, Paragraph? paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
             if (sectionProperties != null) {
                 this._sectionProperties = sectionProperties.MakeSureSectionIsValid();
             } else {
-                sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart!.Document!.Body!.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
                     // most likely not necessary during load - but lets see
                     // would require a broken document created by some app
@@ -665,20 +667,20 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument"></param>
         /// <param name="paragraph"></param>
-        internal WordSection(WordDocument wordDocument, Paragraph paragraph = null) {
+        internal WordSection(WordDocument wordDocument, Paragraph? paragraph = null) {
             this._document = wordDocument;
             this._wordprocessingDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
 
             if (paragraph != null) {
-                var sectionProperties = paragraph.ParagraphProperties.SectionProperties;
+                var sectionProperties = paragraph.ParagraphProperties?.SectionProperties;
                 if (sectionProperties == null) {
-                    return;
+                    throw new InvalidOperationException("Paragraph does not contain section properties.");
                 }
 
                 this._sectionProperties = sectionProperties;
             } else {
-                var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
+                var sectionProperties = wordDocument._wordprocessingDocument.MainDocumentPart!.Document!.Body!.ChildElements.OfType<SectionProperties>().FirstOrDefault();
                 if (sectionProperties == null) {
                     sectionProperties = wordDocument._wordprocessingDocument.AddSectionProperties();
                 }
@@ -752,10 +754,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-                var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
-                var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
+            var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
+            var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
 
-                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+            var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                 if (headerReference == true && footerReference == true && settings != null) {
                     return true;
                 }
@@ -764,11 +766,11 @@ namespace OfficeIMO.Word {
 
             }
             set {
-                var sectionProperties = _sectionProperties;
-                WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
-                WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
+            var sectionProperties = _sectionProperties;
+            WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
+            WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
-                var settings = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+            var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                 if (value != false) {
                     if (settings == null) {
                         _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
@@ -782,14 +784,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RtlGutter {
             get {
-                var sectionProperties = _sectionProperties;
-                if (sectionProperties != null) {
-                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                    if (rtlGutter != null) {
-                        return rtlGutter.Val;
-                    }
+            var sectionProperties = _sectionProperties;
+            if (sectionProperties != null) {
+                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                if (rtlGutter?.Val != null) {
+                    return rtlGutter.Val;
                 }
-                return false;
+            }
+            return false;
             }
             set {
                 var sectionProperties = _sectionProperties;

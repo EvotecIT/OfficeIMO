@@ -22,8 +22,8 @@ public partial class WordList : WordElement {
     /// </summary>
     private readonly bool _isToc;
 
-    private WordParagraph _wordParagraph;
-    private readonly WordHeaderFooter _headerFooter;
+    private WordParagraph? _wordParagraph;
+    private readonly WordHeaderFooter? _headerFooter;
 
     private readonly List<WordParagraph> _listItems = new();
 
@@ -33,7 +33,7 @@ public partial class WordList : WordElement {
     public bool IsToc {
         get {
             return ListItems
-                .Select(paragraph => paragraph.Style.ToString())
+                .Select(paragraph => paragraph.Style?.ToString() ?? string.Empty)
                 .Any(style => style.StartsWith("Heading", StringComparison.Ordinal));
         }
     }
@@ -73,22 +73,22 @@ public partial class WordList : WordElement {
     /// </summary>
     public bool RestartNumberingAfterBreak {
         get {
-            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
             var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
             foreach (var abstractInstance in listAbstracts) {
-                if (abstractInstance.AbstractNumberId == _abstractId) {
+                if (abstractInstance.AbstractNumberId?.Value == _abstractId) {
                     var currentValue = abstractInstance.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
-                    return currentValue.Value != "0";
+                    return currentValue.Value != null && currentValue.Value != "0";
                 }
             }
             return false;
         }
         set {
-            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
             EnsureW15Namespace(numbering);
             var listAbstracts = numbering.ChildElements.OfType<AbstractNum>();
             foreach (var abstractInstance in listAbstracts) {
-                if (abstractInstance.AbstractNumberId == _abstractId) {
+                if (abstractInstance.AbstractNumberId?.Value == _abstractId) {
                     var setValue = value ? "1" : "0";
                     abstractInstance.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", setValue));
                 }
@@ -102,7 +102,7 @@ public partial class WordList : WordElement {
     public WordListNumbering Numbering {
         get {
             var abstractNum = GetAbstractNum();
-            return new WordListNumbering(abstractNum);
+            return new WordListNumbering(abstractNum!);
         }
     }
 
@@ -130,8 +130,10 @@ public partial class WordList : WordElement {
         get {
             return GetNumberingProperty<int?>(props => {
                 var fontSize = props.Elements<FontSize>().FirstOrDefault();
-                // Convert from half-points to points
-                return fontSize?.Val != null ? int.Parse(fontSize.Val) / 2 : null;
+                if (fontSize?.Val != null && int.TryParse(fontSize.Val, out var size)) {
+                    return size / 2;
+                }
+                return null;
             });
         }
         set {
@@ -174,7 +176,7 @@ public partial class WordList : WordElement {
         get {
             return GetNumberingProperty<string>(props => {
                 var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
-                return color?.Val ?? "";
+                return color?.Val ?? string.Empty;
             });
         }
         set {
