@@ -72,12 +72,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph4.IsChart == false);
 
                 Assert.True(document.Paragraphs[7].IsChart == true);
-                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == false);
+                  Assert.True(document.Paragraphs[7].Chart!.RoundedCorners == false);
                 lineChart4.RoundedCorners = true;
-                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == true);
+                  Assert.True(document.Paragraphs[7].Chart!.RoundedCorners == true);
 
-                document.Paragraphs[7].Chart.RoundedCorners = false;
-                Assert.True(document.Paragraphs[7].Chart.RoundedCorners == false);
+                  document.Paragraphs[7].Chart!.RoundedCorners = false;
+                  Assert.True(document.Paragraphs[7].Chart!.RoundedCorners == false);
 
                 Assert.True(lineChart4.RoundedCorners == false);
 
@@ -106,29 +106,29 @@ namespace OfficeIMO.Tests {
 
                 var scatter = document.AddChart();
                 scatter.AddScatter("data", new List<double> { 1, 2 }, new List<double> { 2, 1 }, Color.Red);
-                var scatterPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
-                var scatterXml = scatterPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<ScatterChart>();
+                  var scatterPart = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Last();
+                  var scatterXml = scatterPart.ChartSpace.GetFirstChild<Chart>()!.PlotArea!.GetFirstChild<ScatterChart>();
                 Assert.NotNull(scatterXml);
 
                 var radar = document.AddChart();
                 radar.AddCategories(categories);
                 radar.AddRadar("USA", new List<int> { 1, 2, 3, 4 }, Color.Green);
-                var radarPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
-                var radarXml = radarPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<RadarChart>();
+                  var radarPart = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Last();
+                  var radarXml = radarPart.ChartSpace.GetFirstChild<Chart>()!.PlotArea!.GetFirstChild<RadarChart>();
                 Assert.NotNull(radarXml);
 
                 var bar3d = document.AddChart();
                 bar3d.AddCategories(categories);
                 bar3d.AddBar3D("USA", new List<int> { 1, 2, 3, 4 }, Color.Blue);
-                var bar3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
-                var bar3dXml = bar3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Bar3DChart>();
+                  var bar3dPart = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Last();
+                  var bar3dXml = bar3dPart.ChartSpace.GetFirstChild<Chart>()!.PlotArea!.GetFirstChild<Bar3DChart>();
                 Assert.NotNull(bar3dXml);
 
                 var pie3d = document.AddChart();
                 pie3d.AddPie3D("Poland", 10);
                 pie3d.AddPie3D("USA", 20);
-                var pie3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
-                var pie3dXml = pie3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Pie3DChart>();
+                  var pie3dPart = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Last();
+                  var pie3dXml = pie3dPart.ChartSpace.GetFirstChild<Chart>()!.PlotArea!.GetFirstChild<Pie3DChart>();
                 Assert.NotNull(pie3dXml);
 
                 // TODO: Line3DChart temporarily commented out due to OpenXML schema validation issue
@@ -157,18 +157,18 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var maxId = document._wordprocessingDocument.MainDocumentPart
-                    .ChartParts.SelectMany(p => p.ChartSpace.GetFirstChild<Chart>()
-                    .Descendants<AxisId>())
+                  var maxId = document._wordprocessingDocument.MainDocumentPart!
+                      .ChartParts.SelectMany(p => p.ChartSpace.GetFirstChild<Chart>()!
+                      .Descendants<AxisId>())
                     .Max(a => a.Val!.Value);
 
-                var chart = document.AddChart();
+                  var chart = document.AddChart();
                 chart.AddCategories(new List<string> { "A", "B" });
                 chart.AddBar("T", new List<int> { 1, 2 }, Color.Blue);
 
-                var newIds = document._wordprocessingDocument.MainDocumentPart
-                    .ChartParts.Last().ChartSpace.GetFirstChild<Chart>()
-                    .Descendants<AxisId>().Select(a => a.Val!.Value);
+                  var newIds = document._wordprocessingDocument.MainDocumentPart!
+                      .ChartParts.Last().ChartSpace.GetFirstChild<Chart>()!
+                      .Descendants<AxisId>().Select(a => a.Val!.Value);
 
                 Assert.True(newIds.Min() > maxId);
                 var validation = document.ValidateDocument();

@@ -28,35 +28,35 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart.SharedStringTablePart;
-                Assert.NotNull(shared);
-                Assert.Equal("Hello", shared.SharedStringTable.ElementAt(0).InnerText);
+                  WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                  var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
+                  SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                  Assert.NotNull(shared);
+                  Assert.Equal("Hello", shared.SharedStringTable!.ElementAt(0).InnerText);
 
                 Cell cellString = cells.First(c => c.CellReference == "A1");
-                Assert.Equal(CellValues.SharedString, cellString.DataType.Value);
-                Assert.Equal("0", cellString.CellValue.Text);
+                  Assert.Equal(CellValues.SharedString, cellString.DataType!.Value);
+                  Assert.Equal("0", cellString.CellValue!.Text);
 
                 Cell cellDouble = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(CellValues.Number, cellDouble.DataType.Value);
-                Assert.Equal("123.45", cellDouble.CellValue.Text);
+                  Assert.Equal(CellValues.Number, cellDouble.DataType!.Value);
+                  Assert.Equal("123.45", cellDouble.CellValue!.Text);
 
                 Cell cellDecimal = cells.First(c => c.CellReference == "A3");
-                Assert.Equal(CellValues.Number, cellDecimal.DataType.Value);
-                Assert.Equal("678.90", cellDecimal.CellValue.Text);
+                  Assert.Equal(CellValues.Number, cellDecimal.DataType!.Value);
+                  Assert.Equal("678.90", cellDecimal.CellValue!.Text);
 
                 Cell cellDate = cells.First(c => c.CellReference == "A4");
-                Assert.Equal(CellValues.Number, cellDate.DataType.Value);
-                Assert.Equal(date.ToOADate().ToString(CultureInfo.InvariantCulture), cellDate.CellValue.Text);
+                  Assert.Equal(CellValues.Number, cellDate.DataType!.Value);
+                  Assert.Equal(date.ToOADate().ToString(CultureInfo.InvariantCulture), cellDate.CellValue!.Text);
 
                 Cell cellBool = cells.First(c => c.CellReference == "A5");
-                Assert.Equal(CellValues.Boolean, cellBool.DataType.Value);
-                Assert.Equal("1", cellBool.CellValue.Text);
+                  Assert.Equal(CellValues.Boolean, cellBool.DataType!.Value);
+                  Assert.Equal("1", cellBool.CellValue!.Text);
 
                 Cell cellFormula = cells.First(c => c.CellReference == "A6");
-                Assert.NotNull(cellFormula.CellFormula);
-                Assert.Equal("SUM(A2:A3)", cellFormula.CellFormula.Text);
+                  Assert.NotNull(cellFormula.CellFormula);
+                  Assert.Equal("SUM(A2:A3)", cellFormula.CellFormula!.Text);
             }
         }
     }
