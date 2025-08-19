@@ -9,9 +9,9 @@ namespace OfficeIMO.Word.Fluent {
             _fluent = fluent;
         }
 
-        public WordFluentDocument SetTitle(string title) {
+        public InfoBuilder SetTitle(string title) {
             _fluent.Document.BuiltinDocumentProperties.Title = title;
-            return _fluent;
+            return this;
         }
     }
 }

@@ -19,9 +19,9 @@ namespace OfficeIMO.Word.Fluent {
 
         public WordParagraph? Paragraph => _paragraph;
 
-        public WordFluentDocument AddParagraph(string text) {
-            _fluent.Document.AddParagraph(text);
-            return _fluent;
+        public ParagraphBuilder AddParagraph(string text) {
+            var paragraph = _fluent.Document.AddParagraph(text);
+            return new ParagraphBuilder(_fluent, paragraph);
         }
     }
 }
