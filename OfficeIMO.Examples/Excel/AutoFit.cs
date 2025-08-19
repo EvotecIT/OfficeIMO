@@ -14,6 +14,8 @@ namespace OfficeIMO.Examples.Excel {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.SetCellValue(1, 1, "This is a very long piece of text", autoFitColumns: true, autoFitRows: true);
                 sheet.SetCellValue(2, 1, "Second line\nwith newline", autoFitColumns: true, autoFitRows: true);
+                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3", autoFitColumns: true, autoFitRows: true);
+                sheet.SetCellValue(4, 1, string.Empty, autoFitColumns: true, autoFitRows: true);
                 document.Save(openExcel);
             }
         }
