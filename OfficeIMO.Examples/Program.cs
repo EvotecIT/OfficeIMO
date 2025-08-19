@@ -123,14 +123,14 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.CustomAndBuiltinProperties.Example_ValidateDocument(folderPath);
             OfficeIMO.Examples.Word.CustomAndBuiltinProperties.Example_ValidateDocument_BeforeSave();
             // Word/DatePickers
-            OfficeIMO.Examples.Word.DatePickers.Example_AdvancedDatePicker(folderPath, false);
             OfficeIMO.Examples.Word.DatePickers.Example_BasicDatePicker(folderPath, false);
+            OfficeIMO.Examples.Word.DatePickers.Example_AdvancedDatePicker(folderPath, false);
             // Word/DocumentVariablesExamples
             OfficeIMO.Examples.Word.DocumentVariablesExamples.Example_AdvancedDocumentVariables(folderPath, false);
             OfficeIMO.Examples.Word.DocumentVariablesExamples.Example_BasicDocumentVariables(folderPath, false);
             // Word/DropDownLists
-            OfficeIMO.Examples.Word.DropDownLists.Example_AdvancedDropDownList(folderPath, false);
             OfficeIMO.Examples.Word.DropDownLists.Example_BasicDropDownList(folderPath, false);
+            OfficeIMO.Examples.Word.DropDownLists.Example_AdvancedDropDownList(folderPath, false);
             // Word/Embed
             OfficeIMO.Examples.Word.Embed.Example_EmbedFileExcel(folderPath, templatesPath, false);
             OfficeIMO.Examples.Word.Embed.Example_EmbedFileHTML(folderPath, templatesPath, false);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Fields.Example_DocumentWithFields(folderPath, false);
             OfficeIMO.Examples.Word.Fields.Example_DocumentWithFields02(folderPath, false);
             OfficeIMO.Examples.Word.Fields.Example_FieldBuilderNested(folderPath, false);
-            OfficeIMO.Examples.Word.Fields.Example_FieldBuilderSimple(folderPath, false);
+            //OfficeIMO.Examples.Word.Fields.Example_FieldBuilderSimple(folderPath, false);
             OfficeIMO.Examples.Word.Fields.Example_FieldFormatAdvanced(folderPath, false);
             OfficeIMO.Examples.Word.Fields.Example_FieldFormatRoman(folderPath, false);
             OfficeIMO.Examples.Word.Fields.Example_FieldWithMultipleSwitches(folderPath, false);
@@ -298,7 +298,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Tables.Example_BasicTables8_StylesModification(folderPath, false);
             OfficeIMO.Examples.Word.Tables.Example_BasicTablesLoad1(folderPath, false);
             OfficeIMO.Examples.Word.Tables.Example_BasicTablesLoad2(templatesPath, folderPath, false);
-            OfficeIMO.Examples.Word.Tables.Example_BasicTablesLoad3(folderPath, false);
+            OfficeIMO.Examples.Word.Tables.Example_BasicTablesLoad3(templatesPath, false);
             OfficeIMO.Examples.Word.Tables.Example_CloneTable(folderPath, false);
             OfficeIMO.Examples.Word.Tables.Example_ConditionalFormattingAdvanced(folderPath, false);
             OfficeIMO.Examples.Word.Tables.Example_ConditionalFormattingValues(folderPath, false);

@@ -14,6 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 var section1 = document.AddSection();
                 section1.AddParagraph("Section1 - Paragraph0");
                 document.AddParagraph("Section2 - Paragraph0");
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
                 document.Save(false);
             }
 
@@ -23,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 0 P0: " + document.Sections[0].Paragraphs[0].Text);
                 Console.WriteLine("Section 1 P0: " + document.Sections[1].Paragraphs[0].Text);
                 Console.WriteLine("Section 2 P0: " + document.Sections[2].Paragraphs[0].Text);
-                Console.WriteLine("Section 3 P0: " + document.Sections[3].Paragraphs[0].Text);
+                Console.WriteLine("+ Sections: " + document.Sections.Count);
                 document.Save(openWord);
             }
         }

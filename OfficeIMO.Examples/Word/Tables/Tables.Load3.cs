@@ -8,9 +8,9 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
-        internal static void Example_BasicTablesLoad3(string folderPath, bool openWord) {
+        internal static void Example_BasicTablesLoad3(string templatesPath, bool openWord) {
             Console.WriteLine("[*] Loading standard document with multiple tables");
-            string filePath = System.IO.Path.Combine(folderPath, "TableExamples.docx");
+            string filePath = System.IO.Path.Combine(templatesPath, "TableExamples.docx");
             using (WordDocument document = WordDocument.Load(filePath)) {
 
 
