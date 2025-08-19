@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -165,6 +166,41 @@ namespace OfficeIMO.Tests {
                 var row2 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 2);
                 Assert.False(row2.CustomHeight?.Value ?? false);
                 Assert.False(row2.Height?.HasValue ?? false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_AutoFitConcurrentOperations_AreThreadSafe() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ConcurrentOperations.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, "Long piece of text");
+                sheet.SetCellValue(2, 1, "Second line\nwith newline");
+                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3");
+
+                var tasks = Enumerable.Range(0, 10)
+                    .SelectMany(_ => new[] {
+                        Task.Run(() => sheet.AutoFitColumns()),
+                        Task.Run(() => sheet.AutoFitRows())
+                    })
+                    .ToArray();
+                await Task.WhenAll(tasks);
+
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>();
+                Assert.NotNull(columns);
+                var column = columns.Elements<Column>().First();
+                Assert.True(column.BestFit.Value);
+                Assert.True(column.Width.HasValue && column.Width.Value > 0);
+
+                var sheetFormat = wsPart.Worksheet.GetFirstChild<SheetFormatProperties>();
+                Assert.NotNull(sheetFormat);
+                Assert.True(sheetFormat.CustomHeight);
+                Assert.True(sheetFormat.DefaultRowHeight > 0);
             }
         }
     }
