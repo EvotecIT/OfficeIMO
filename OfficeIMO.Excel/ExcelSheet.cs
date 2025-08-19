@@ -235,6 +235,7 @@ namespace OfficeIMO.Excel {
                     if (cell.CellReference == null) continue;
                     int columnIndex = GetColumnIndex(cell.CellReference.Value);
                     string text = GetCellText(cell);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
                     var size = TextMeasurer.MeasureSize(text ?? string.Empty, options);
                     double cellWidth = size.Width / zeroWidth + 1;
                     if (widths.ContainsKey(columnIndex)) {
@@ -242,6 +243,20 @@ namespace OfficeIMO.Excel {
                     } else {
                         widths[columnIndex] = cellWidth;
                     }
+                }
+            }
+
+            var existingColumns = columns.Elements<Column>().ToList();
+            foreach (var column in existingColumns) {
+                bool hasContent = false;
+                for (uint i = column.Min?.Value ?? 0; i <= (column.Max?.Value ?? 0); i++) {
+                    if (widths.ContainsKey((int)i)) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+                if (!hasContent) {
+                    column.Remove();
                 }
             }
 
@@ -290,6 +305,9 @@ namespace OfficeIMO.Excel {
                     row.Height = maxHeight + 2;
                     row.CustomHeight = true;
                     hasVisibleContent = true;
+                } else {
+                    row.Height = null;
+                    row.CustomHeight = null;
                 }
             }
 

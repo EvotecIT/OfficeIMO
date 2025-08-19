@@ -67,5 +67,50 @@ namespace OfficeIMO.Tests {
                 Assert.False(row2.Height?.HasValue ?? false);
             }
         }
+
+        [Fact]
+        public void Test_AutoFitRows_RemovesCustomHeightWhenCleared() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearRow.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, "Content", autoFitRows: true);
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                sheet.SetCellValue(1, 1, string.Empty, autoFitRows: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var row1 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 1);
+                Assert.False(row1.CustomHeight?.Value ?? false);
+                Assert.False(row1.Height?.HasValue ?? false);
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFitColumns_RemovesCustomWidthWhenCleared() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearColumn.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, "Long text", autoFitColumns: true);
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                sheet.SetCellValue(1, 1, string.Empty, autoFitColumns: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>();
+                Assert.True(columns == null || !columns.Elements<Column>().Any(c => c.Min == 1 && c.Max == 1));
+            }
+        }
     }
 }
