@@ -16,6 +16,12 @@ namespace OfficeIMO.Word.Fluent {
             _fluent = fluent;
         }
 
+        internal TableBuilder(WordFluentDocument fluent, WordTable table) {
+            _fluent = fluent;
+            _table = table;
+            _columns = table.Rows.Count > 0 ? table.Rows[0].Cells.Count : 0;
+        }
+
         public WordTable? Table => _table;
 
         /// <summary>
