@@ -267,27 +267,40 @@ namespace OfficeIMO.Excel {
 
             var font = GetDefaultFont();
             var options = new TextOptions(font);
-            double defaultHeight = TextMeasurer.MeasureSize("0", options).Height + 2;
+
+            double defaultHeight = 15;
+            bool hasVisibleContent = false;
+
+            double ToPoints(double height) {
+                return height * 72.0 / options.Dpi;
+            }
 
             foreach (var row in sheetData.Elements<Row>()) {
                 double maxHeight = 0;
                 foreach (var cell in row.Elements<Cell>()) {
                     string text = GetCellText(cell);
-                    var size = TextMeasurer.MeasureSize(text ?? string.Empty, options);
-                    if (size.Height > maxHeight) maxHeight = size.Height;
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+
+                    var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                    double lineHeight = lines.Max(line => ToPoints(TextMeasurer.MeasureSize(line, options).Height));
+                    double cellHeight = lineHeight * lines.Length;
+                    if (cellHeight > maxHeight) maxHeight = cellHeight;
                 }
                 if (maxHeight > 0) {
                     row.Height = maxHeight + 2;
                     row.CustomHeight = true;
+                    hasVisibleContent = true;
                 }
             }
 
-            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
-            if (sheetFormat == null) {
-                sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+            if (hasVisibleContent) {
+                var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+                if (sheetFormat == null) {
+                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                }
+                sheetFormat.DefaultRowHeight = defaultHeight;
+                sheetFormat.CustomHeight = true;
             }
-            sheetFormat.DefaultRowHeight = defaultHeight;
-            sheetFormat.CustomHeight = true;
 
             worksheet.Save();
         }
