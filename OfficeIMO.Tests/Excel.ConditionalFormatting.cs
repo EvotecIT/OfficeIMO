@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -79,6 +80,33 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(dataBar);
                 var color = dataBar.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
                 Assert.Equal("FF0000FF", color.Rgb.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ConditionalFormattingConcurrent() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConditionalConcurrent.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, 1d);
+                sheet.SetCellValue(2, 1, 2d);
+                sheet.SetCellValue(3, 1, 3d);
+
+                var tasks = new Task[] {
+                    Task.Run(() => sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "2")),
+                    Task.Run(() => sheet.AddConditionalColorScale("A1:A3", SixLaborsColor.Red, SixLaborsColor.Blue)),
+                    Task.Run(() => sheet.AddConditionalDataBar("A1:A3", SixLaborsColor.Green))
+                };
+                Task.WaitAll(tasks);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var formats = wsPart.Worksheet.Elements<ConditionalFormatting>().ToList();
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.CellIs));
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.ColorScale));
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.DataBar));
             }
         }
     }

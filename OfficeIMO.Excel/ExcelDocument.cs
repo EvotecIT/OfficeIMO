@@ -23,28 +23,35 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public List<ExcelSheet> Sheets {
             get {
-                _lock.EnterWriteLock();
+                _lock.EnterUpgradeableReadLock();
                 try {
-                    // Always rebuild the ID list to avoid duplicate entries when
-                    // accessing the Sheets property multiple times
-                    id.Clear();
-                    id.Add(0);
-
                     List<ExcelSheet> listExcel = new List<ExcelSheet>();
+                    List<Sheet>? elements = null;
                     if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                        var elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
+                        elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
                         foreach (Sheet s in elements) {
-                            ExcelSheet excelSheet = new ExcelSheet(this, _spreadSheetDocument, s);
-                            if (!id.Contains(s.SheetId)) {
-                                id.Add(s.SheetId);
-                            }
-                            listExcel.Add(excelSheet);
+                            listExcel.Add(new ExcelSheet(this, _spreadSheetDocument, s));
                         }
+                    }
+
+                    _lock.EnterWriteLock();
+                    try {
+                        id.Clear();
+                        id.Add(0);
+                        if (elements != null) {
+                            foreach (Sheet s in elements) {
+                                if (!id.Contains(s.SheetId)) {
+                                    id.Add(s.SheetId);
+                                }
+                            }
+                        }
+                    } finally {
+                        _lock.ExitWriteLock();
                     }
 
                     return listExcel;
                 } finally {
-                    _lock.ExitWriteLock();
+                    _lock.ExitUpgradeableReadLock();
                 }
             }
         }
