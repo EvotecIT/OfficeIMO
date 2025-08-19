@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Provides settings that control how a Word document is converted to Markdown.
     /// </summary>
-    public class WordToMarkdownOptions {
+    public sealed class WordToMarkdownOptions {
         /// <summary>
         /// Font family whose runs should be rendered as inline code. When <c>null</c>,
         /// <see cref="FontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.

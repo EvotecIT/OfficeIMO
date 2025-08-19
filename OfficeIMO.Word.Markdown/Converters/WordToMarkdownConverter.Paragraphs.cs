@@ -129,7 +129,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
             if (options.ImageExportMode == ImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
                 Directory.CreateDirectory(directory);
-                string extension = Path.GetExtension(image.FilePath);
+                string extension = Path.GetExtension(image.FilePath ?? string.Empty);
                 if (string.IsNullOrEmpty(extension)) {
                     extension = ".png";
                 }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 return $"![{alt}]({fileName})";
             } else {
                 byte[] bytes = image.GetBytes();
-                string extension = Path.GetExtension(image.FilePath);
+                string extension = Path.GetExtension(image.FilePath ?? string.Empty);
                 string mime = extension switch {
                     ".jpg" => "image/jpeg",
                     ".jpeg" => "image/jpeg",

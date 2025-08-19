@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public class MarkdownToWordOptions {
+    public sealed class MarkdownToWordOptions {
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
@@ -26,9 +26,7 @@ namespace OfficeIMO.Word.Markdown {
         /// Applies default page settings to the provided document instance.
         /// </summary>
         public void ApplyDefaults(WordDocument document) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
             
             if (DefaultPageSize.HasValue) {
                 document.PageSettings.PageSize = DefaultPageSize.Value;

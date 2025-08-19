@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             // Try to read dimensions from generic attributes
             var attrs = link.GetAttributes();
-            if (attrs.Properties != null) {
+            if (attrs?.Properties != null) {
                 if (width == null) {
                     var wProp = attrs.Properties.Find(p => string.Equals(p.Key, "width", StringComparison.OrdinalIgnoreCase));
                     if (wProp.Key != null && double.TryParse(wProp.Value, out var w)) {

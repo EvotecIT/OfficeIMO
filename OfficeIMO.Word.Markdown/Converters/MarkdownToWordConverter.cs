@@ -31,9 +31,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
         }
 
         public Task<WordDocument> ConvertAsync(string markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
             options ??= new MarkdownToWordOptions();
 
