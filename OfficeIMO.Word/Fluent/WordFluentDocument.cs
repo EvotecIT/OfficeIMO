@@ -35,11 +35,11 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Configures page settings.
+        /// Configures document-wide page setup defaults.
         /// </summary>
-        /// <param name="action">Action that receives a <see cref="PageBuilder"/>.</param>
-        public WordFluentDocument Page(Action<PageBuilder> action) {
-            action(new PageBuilder(this));
+        /// <param name="action">Action that receives a <see cref="PageSetupBuilder"/>.</param>
+        public WordFluentDocument PageSetup(Action<PageSetupBuilder> action) {
+            action(new PageSetupBuilder(this));
             return this;
         }
 
@@ -96,6 +96,13 @@ namespace OfficeIMO.Word.Fluent {
         public WordFluentDocument Footer(Action<FootersBuilder> action) {
             action(new FootersBuilder(this));
             return this;
+        }
+
+        /// <summary>
+        /// Ends fluent configuration and returns the underlying <see cref="WordDocument"/>.
+        /// </summary>
+        public WordDocument End() {
+            return Document;
         }
 
         /// <summary>

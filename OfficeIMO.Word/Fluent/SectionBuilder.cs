@@ -21,12 +21,12 @@ namespace OfficeIMO.Word.Fluent {
 
         public WordSection? Section => _section;
 
-        public SectionBuilder AddSection(SectionMarkValues? mark = null) {
+        public SectionBuilder New(SectionMarkValues? mark = null) {
             var section = _fluent.Document.AddSection(mark);
             return new SectionBuilder(_fluent, section);
         }
 
-        public SectionBuilder SetSectionBreak(SectionMarkValues mark) {
+        public SectionBuilder SectionBreak(SectionMarkValues mark) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
-        public SectionBuilder SetPageNumbering(NumberFormatValues? format = null, bool restart = false, int startNumber = 1) {
+        public SectionBuilder PageNumbering(NumberFormatValues? format = null, bool restart = false, int startNumber = 1) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
@@ -50,7 +50,7 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
-        public SectionBuilder SetMargins(WordMargin margins) {
+        public SectionBuilder Margins(WordMargin margins) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
@@ -59,12 +59,23 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
-        public SectionBuilder SetPageSize(WordPageSize pageSize) {
+        public SectionBuilder Size(WordPageSize pageSize) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
 
             _section.PageSettings.PageSize = pageSize;
+            return this;
+        }
+
+        public SectionBuilder Paragraph(Action<ParagraphBuilder> action) {
+            var paragraph = _fluent.Document.AddParagraph();
+            action(new ParagraphBuilder(_fluent, paragraph));
+            return this;
+        }
+
+        public SectionBuilder Table(Action<TableBuilder> action) {
+            action(new TableBuilder(_fluent));
             return this;
         }
     }

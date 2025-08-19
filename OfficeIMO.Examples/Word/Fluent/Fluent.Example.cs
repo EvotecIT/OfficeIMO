@@ -16,8 +16,9 @@ namespace OfficeIMO.Examples.Word {
                         .SetKeywords("fluent, api")
                         .SetComments("Created via fluent API")
                         .SetCustomProperty("Reviewed", true))
-                    .Section(s => s.AddSection())
-                    .Paragraph(p => p.Text("Hello from fluent API"));
+                    .Section(s => s.New())
+                    .Paragraph(p => p.Text("Hello from fluent API"))
+                    .End();
                 document.Save(false);
             }
             Helpers.Open(filePath, openWord);
