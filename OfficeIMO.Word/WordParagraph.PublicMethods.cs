@@ -226,8 +226,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">Optional WordParagraph to insert after the
         /// given WordParagraph instead of at the end of the document.</param>
         /// <returns>The inserted WordParagraph.</returns>
-        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
-            if (wordParagraph == null) {
+        public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+            if (wordParagraph is null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false);
             }
@@ -265,8 +265,8 @@ namespace OfficeIMO.Word {
         /// <param name="section">The section to add the paragraph to. When paragraph is given this has no effect.</param>
         /// <param name="paragraph">The optional paragraph to add the paragraph to.</param>
         /// <returns>The new WordParagraph</returns>
-        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph paragraph = null) {
-            if (paragraph == null) {
+        public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph? paragraph = null) {
+            if (paragraph is null) {
                 paragraph = new WordParagraph(section._document, true, false);
             }
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
@@ -355,7 +355,7 @@ namespace OfficeIMO.Word {
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddCitation(string sourceTag) {
             var field = new CitationField { SourceTag = sourceTag };
-            WordField.AddField(this, field, null, null, false);
+            WordField.AddField(this, field, null!, null!, false);
             return this;
         }
 
@@ -370,8 +370,8 @@ namespace OfficeIMO.Word {
         /// Also see available List of switches per field code:
         /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
         /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
-            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat, advanced, parameters);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
             return this;
         }
 
@@ -383,8 +383,8 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Use advanced field representation.</param>
         /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
-            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat, advanced);
+        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
+            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat!, advanced);
             return this;
         }
 
@@ -476,26 +476,26 @@ namespace OfficeIMO.Word {
         public void RemoveHyperLink(bool includingParagraph = false) {
             if (_hyperlink != null) {
                 if (!string.IsNullOrEmpty(_hyperlink.Id)) {
-                    OpenXmlElement parent = _paragraph.Parent;
-                    while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
+                    OpenXmlElement? parent = _paragraph.Parent;
+                    while (parent != null && parent is not Body and not Header and not Footer) {
                         parent = parent.Parent;
                     }
 
-                    OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
+                    OpenXmlPart? part = _document._wordprocessingDocument.MainDocumentPart;
                     if (parent is Header header) {
                         part = header.HeaderPart;
                     } else if (parent is Footer footer) {
                         part = footer.FooterPart;
                     }
 
-                    var rel = part.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
-                    if (rel != null) {
+                    var rel = part?.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                    if (rel != null && part != null) {
                         part.DeleteReferenceRelationship(rel);
                     }
                 }
 
                 _hyperlink.Remove();
-                _hyperlink = null;
+                _hyperlink = null!;
 
                 if (includingParagraph) {
                     if (this._paragraph.ChildElements.Count == 0) {
@@ -701,7 +701,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraph AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var run = this.VerifyRun();
-            var mainPart = _document._wordprocessingDocument.MainDocumentPart;
+            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart!;
 
             var imagePart = mainPart.AddImagePart(ImagePartType.Png);
             using (var fs = File.OpenRead(filePathImage)) {
@@ -829,7 +829,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the content control.</param>
         /// <param name="tag">Optional tag for the content control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/> instance.</returns>
-        public WordStructuredDocumentTag AddStructuredDocumentTag(string text = "", string alias = null, string tag = null) {
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text = "", string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var sdtProperties = new SdtProperties();
@@ -861,7 +861,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordCheckBox"/> instance.</returns>
-        public WordCheckBox AddCheckBox(bool isChecked = false, string alias = null, string tag = null) {
+        public WordCheckBox AddCheckBox(bool isChecked = false, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -911,7 +911,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordDatePicker"/> instance.</returns>
-        public WordDatePicker AddDatePicker(System.DateTime? date = null, string alias = null, string tag = null) {
+        public WordDatePicker AddDatePicker(System.DateTime? date = null, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -946,7 +946,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordDropDownList"/> instance.</returns>
-        public WordDropDownList AddDropDownList(System.Collections.Generic.IEnumerable<string> items, string alias = null, string tag = null) {
+        public WordDropDownList AddDropDownList(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -983,7 +983,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordComboBox"/> instance.</returns>
-        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string> items, string alias = null, string tag = null) {
+        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -1022,7 +1022,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordPictureControl"/> instance.</returns>
-        public WordPictureControl AddPictureControl(string filePath, double? width = null, double? height = null, string alias = null, string tag = null) {
+        public WordPictureControl AddPictureControl(string filePath, double? width = null, double? height = null, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -1059,7 +1059,7 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordRepeatingSection"/> instance.</returns>
-        public WordRepeatingSection AddRepeatingSection(string sectionTitle = null, string alias = null, string tag = null) {
+        public WordRepeatingSection AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
