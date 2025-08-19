@@ -55,15 +55,17 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument rootRels = GetRels(pkg, "/_rels/.rels");
-            XElement? docRel = rootRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Target") == "/visio/document.xml");
+            XElement? docRel = rootRels.Root!.Elements(pr + "Relationship")
+                .FirstOrDefault(r => (string?)r.Attribute("Target") == "/visio/document.xml" || (string?)r.Attribute("Target") == "visio/document.xml");
             if (docRel == null || (string?)docRel.Attribute("Type") != RT_Document) {
-                issues.Add("Root relationship must target /visio/document.xml with Visio document type.");
+                issues.Add("Package → /visio/document.xml must use Visio document rel type.");
             }
 
             XDocument docRels = GetRels(pkg, "/visio/_rels/document.xml.rels");
-            XElement? pagesRel = docRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Target") == "pages/pages.xml");
+            XElement? pagesRel = docRels.Root!.Elements(pr + "Relationship")
+                .FirstOrDefault(r => (string?)r.Attribute("Target") == "pages/pages.xml" || (string?)r.Attribute("Target") == "/visio/pages/pages.xml");
             if (pagesRel == null || (string?)pagesRel.Attribute("Type") != RT_Pages) {
-                issues.Add("document.xml must relate to pages/pages.xml with visio/2010/relationships/pages.");
+                issues.Add("document.xml → pages/pages.xml must use Visio pages rel type.");
             }
 
             XDocument pagesXml = LoadXml(pkg, "/visio/pages/pages.xml");
@@ -83,9 +85,10 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument pagesRels = GetRels(pkg, "/visio/pages/_rels/pages.xml.rels");
-            XElement? pageRel = pagesRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Type") == RT_Page);
-            if (pageRel == null) {
-                issues.Add("pages.xml.rels must have a relationship of type visio/2010/relationships/page.");
+            XElement? pageRel = pagesRels.Root!.Elements(pr + "Relationship")
+                .FirstOrDefault(r => ((string?)r.Attribute("Target"))?.EndsWith("page1.xml", StringComparison.OrdinalIgnoreCase) == true);
+            if (pageRel == null || (string?)pageRel.Attribute("Type") != RT_Page) {
+                issues.Add("pages.xml → page1.xml must use Visio page rel type.");
             }
 
             XDocument page1Xml = LoadXml(pkg, "/visio/pages/page1.xml");

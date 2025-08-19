@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(package.PartExists(new Uri("/visio/pages/page1.xml", UriKind.Relative)));
 
                 PackageRelationship rel = package.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/document").Single();
-                Assert.Equal("/visio/document.xml", rel.TargetUri.OriginalString);
+                Assert.Equal("visio/document.xml", rel.TargetUri.OriginalString);
                 Assert.Equal("rId1", rel.Id);
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));

@@ -1,9 +1,14 @@
+using System;
+
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
         public VisioShape(string id) {
+            if (!int.TryParse(id, out _)) {
+                throw new ArgumentException("Shape ID must be numeric.", nameof(id));
+            }
             Id = id;
         }
 
