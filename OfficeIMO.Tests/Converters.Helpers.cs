@@ -52,6 +52,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(bulletInfo.Value.Ordered);
 
                 var orderedInfo = DocumentTraversal.GetListInfo(orderedItem);
+                Assert.NotNull(orderedInfo);
                 Assert.True(orderedInfo.Value.Ordered);
 
                 var markers = DocumentTraversal.BuildListMarkers(document);

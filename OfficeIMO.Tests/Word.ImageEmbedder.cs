@@ -17,7 +17,9 @@ namespace OfficeIMO.Tests {
 
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
             Run run = ImageEmbedder.CreateImageRun(mainPart, assetPath);
-            mainPart.Document.Body.Append(new Paragraph(run));
+            Assert.NotNull(mainPart.Document);
+            Assert.NotNull(mainPart.Document.Body);
+            mainPart.Document.Body!.Append(new Paragraph(run));
             mainPart.Document.Save();
 
             Assert.NotEmpty(mainPart.ImageParts);

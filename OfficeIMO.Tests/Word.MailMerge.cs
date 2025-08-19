@@ -19,7 +19,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                string xml = document._document.MainDocumentPart.Document.InnerText;
+                var mainPart = document._document.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var xml = mainPart!.Document?.InnerText;
+                Assert.NotNull(xml);
                 Assert.Contains("Alice", xml);
                 Assert.DoesNotContain("MERGEFIELD", xml);
             }

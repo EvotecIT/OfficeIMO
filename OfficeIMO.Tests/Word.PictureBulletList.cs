@@ -18,8 +18,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                var numbering = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                Assert.NotNull(numbering.Elements<NumberingPictureBullet>().FirstOrDefault());
+                var numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+                Assert.NotNull(numbering);
+                Assert.NotNull(numbering!.Elements<NumberingPictureBullet>().FirstOrDefault());
                 Assert.Single(document.Lists);
             }
         }
@@ -36,8 +37,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                var numbering = document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering;
-                Assert.NotNull(numbering.Elements<NumberingPictureBullet>().FirstOrDefault());
+                var numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+                Assert.NotNull(numbering);
+                Assert.NotNull(numbering!.Elements<NumberingPictureBullet>().FirstOrDefault());
                 Assert.Single(document.Lists);
             }
         }

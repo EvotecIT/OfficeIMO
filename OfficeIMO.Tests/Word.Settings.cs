@@ -78,10 +78,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontFamilyEastAsia == "Times New Roman");
                 Assert.True(document.Settings.FontFamilyComplexScript == "Times New Roman");
 
-                document.Settings.FontFamilyEastAsia = null;
+                document.Settings.FontFamilyEastAsia = null!;
                 Assert.True(document.Settings.FontFamilyEastAsia == null);
 
-                document.Settings.FontFamilyComplexScript = null;
+                document.Settings.FontFamilyComplexScript = null!;
                 Assert.True(document.Settings.FontFamilyComplexScript == null);
 
                 document.CompatibilitySettings.CompatibilityMode = CompatibilityMode.Word2003;
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("1", true)]
         [InlineData("0", false)]
-        [InlineData(null, false)]
+        [InlineData(null!, false)]
         public void Test_FinalDocument_CustomPropertyValues(string? value, bool expected) {
             string filePath = Path.Combine(_directoryWithFiles, $"Test_FinalDocument_Value_{expected}.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

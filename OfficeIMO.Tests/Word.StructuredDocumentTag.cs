@@ -105,8 +105,9 @@ namespace OfficeIMO.Tests {
                 sdt.Text = "New text";
 
                 Assert.Equal("New text", sdt.Text);
-                Assert.NotNull(sdtRun.SdtContentRun.GetFirstChild<Run>());
-                Assert.Equal("New text", sdtRun.SdtContentRun.GetFirstChild<Run>().GetFirstChild<Text>().Text);
+                var run = sdtRun.SdtContentRun?.GetFirstChild<Run>();
+                Assert.NotNull(run);
+                Assert.Equal("New text", run!.GetFirstChild<Text>()?.Text);
 
                 document.Save(false);
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");

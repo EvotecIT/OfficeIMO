@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         /// <param name="advanced">Whether to use advanced field representation.</param>
         /// <param name="parameters">Additional switch parameters.</param>
         /// <returns>The <see cref="WordParagraph"/> containing the field.</returns>
-        public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
+        public static WordParagraph AddField(WordParagraph paragraph, WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
             if (advanced) {
                 var runStart = AddFieldStart();
                 var runField = AddAdvancedField(wordFieldType: wordFieldType, wordFieldFormat: wordFieldFormat, customFormat: customFormat, parameters: parameters);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced field representation.</param>
         /// <returns>The <see cref="WordParagraph"/> containing the field.</returns>
-        public static WordParagraph AddField(WordParagraph paragraph, WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+        public static WordParagraph AddField(WordParagraph paragraph, WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
             if (fieldCode == null) throw new ArgumentNullException(nameof(fieldCode));
 
             var parameters = fieldCode.GetParameters();

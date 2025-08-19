@@ -238,20 +238,23 @@ namespace OfficeIMO.Word {
         public void RemoveHyperLink(bool includingParagraph = true) {
             if (!string.IsNullOrEmpty(_hyperlink.Id)) {
                 OpenXmlElement? parent = _paragraph.Parent;
-                while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
+                while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
                     parent = parent.Parent;
                 }
 
-                OpenXmlPart part = _document._wordprocessingDocument!.MainDocumentPart!;
-                if (parent is Header header && header.HeaderPart != null) {
-                    part = header.HeaderPart;
-                } else if (parent is Footer footer && footer.FooterPart != null) {
-                    part = footer.FooterPart;
+                OpenXmlPart? part = _document._wordprocessingDocument?.MainDocumentPart;
+                var headerPart = (parent as Header)?.HeaderPart;
+                var footerPart = (parent as Footer)?.FooterPart;
+
+                if (headerPart != null) {
+                    part = headerPart;
+                } else if (footerPart != null) {
+                    part = footerPart;
                 }
 
-                var rel = part.HyperlinkRelationships?.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                var rel = part?.HyperlinkRelationships?.FirstOrDefault(r => r.Id == _hyperlink.Id);
                 if (rel != null) {
-                    part.DeleteReferenceRelationship(rel);
+                    part!.DeleteReferenceRelationship(rel);
                 }
             }
 
@@ -308,13 +311,13 @@ namespace OfficeIMO.Word {
             HyperlinkRelationship rel;
 
             // Determine if the paragraph belongs to a header or footer by checking the ancestors.
-            var header = paragraph._paragraph.Ancestors<Header>().FirstOrDefault();
-            var footer = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault();
+            var headerPart = paragraph._paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
+            var footerPart = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
 
-            if (header?.HeaderPart != null) {
-                rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
-            } else if (footer?.FooterPart != null) {
-                rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
+            if (headerPart != null) {
+                rel = headerPart.AddHyperlinkRelationship(uri, true);
+            } else if (footerPart != null) {
+                rel = footerPart.AddHyperlinkRelationship(uri, true);
             } else {
                 // Default to the main document part for paragraphs that are
                 // located in the body or in elements such as text boxes or tables.
@@ -376,13 +379,13 @@ namespace OfficeIMO.Word {
             if (newUri == null) throw new ArgumentNullException(nameof(newUri));
 
             HyperlinkRelationship rel;
-            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
-            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
+            var headerPart = _paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
+            var footerPart = _paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
 
-            if (header?.HeaderPart != null) {
-                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footer?.FooterPart != null) {
-                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            if (headerPart != null) {
+                rel = headerPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footerPart != null) {
+                rel = footerPart.AddHyperlinkRelationship(newUri, true);
             } else {
                 rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
             }
@@ -418,13 +421,13 @@ namespace OfficeIMO.Word {
             if (newUri == null) throw new ArgumentNullException(nameof(newUri));
 
             HyperlinkRelationship rel;
-            var header = _paragraph.Ancestors<Header>().FirstOrDefault();
-            var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
+            var headerPart = _paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
+            var footerPart = _paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
 
-            if (header?.HeaderPart != null) {
-                rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footer?.FooterPart != null) {
-                rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
+            if (headerPart != null) {
+                rel = headerPart.AddHyperlinkRelationship(newUri, true);
+            } else if (footerPart != null) {
+                rel = footerPart.AddHyperlinkRelationship(newUri, true);
             } else {
                 rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
             }

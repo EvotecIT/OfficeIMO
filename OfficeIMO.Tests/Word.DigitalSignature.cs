@@ -19,7 +19,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(tempFile)) {
                 document.ApplicationProperties.DigitalSignature = new DigitalSignature();
                 Assert.True(document.ApplicationProperties.DigitalSignature != null);
-                document._wordprocessingDocument.DeletePart(document._wordprocessingDocument.ExtendedFilePropertiesPart);
+                var extendedPart = document._wordprocessingDocument.ExtendedFilePropertiesPart;
+                Assert.NotNull(extendedPart);
+                document._wordprocessingDocument.DeletePart(extendedPart);
                 Assert.True(document.ApplicationProperties.DigitalSignature == null);
             }
         }

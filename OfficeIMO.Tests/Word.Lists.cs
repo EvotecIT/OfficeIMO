@@ -847,14 +847,14 @@ public partial class Word {
 
             Assert.Single(document.Lists);
             Assert.Equal("Two", document.Lists[0].ListItems[0].Text);
-            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart);
+            Assert.NotNull(document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart);
 
             document.Save(false);
         }
 
         using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {
-            Assert.NotNull(wordDoc.MainDocumentPart.NumberingDefinitionsPart);
-            Assert.Single(wordDoc.MainDocumentPart.NumberingDefinitionsPart.Numbering.Elements<NumberingInstance>());
+            Assert.NotNull(wordDoc.MainDocumentPart?.NumberingDefinitionsPart);
+            Assert.Single(wordDoc.MainDocumentPart!.NumberingDefinitionsPart!.Numbering.Elements<NumberingInstance>());
         }
     }
 }

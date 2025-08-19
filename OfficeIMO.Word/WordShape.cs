@@ -17,11 +17,11 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordShape : WordElement {
         /// <summary>Parent document.</summary>
-        internal WordDocument _document;
+        internal WordDocument _document = null!;
         /// <summary>Parent paragraph.</summary>
-        internal WordParagraph _wordParagraph;
+        internal WordParagraph _wordParagraph = null!;
         /// <summary>Run that hosts the shape.</summary>
-        internal Run _run;
+        internal Run _run = null!;
         /// <summary>The rectangle element if present.</summary>
         internal V.Rectangle? _rectangle;
         /// <summary>The rounded rectangle element if present.</summary>
