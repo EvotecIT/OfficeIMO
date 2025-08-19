@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPTable table = slide.AddTable(2, 2);
-            PPTableCell cell = table.GetCell(0, 0);
+            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Hello";
             cell.FillColor = "FFFF00";
             cell.Merge = (1, 2);

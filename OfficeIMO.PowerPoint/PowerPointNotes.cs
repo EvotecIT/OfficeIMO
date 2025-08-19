@@ -6,10 +6,10 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents notes for a slide.
     /// </summary>
-    public class PPNotes {
+    public class PowerPointNotes {
         private readonly SlidePart _slidePart;
 
-        internal PPNotes(SlidePart slidePart) {
+        internal PowerPointNotes(SlidePart slidePart) {
             _slidePart = slidePart;
         }
 

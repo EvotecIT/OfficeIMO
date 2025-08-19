@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -10,12 +6,12 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// Represents a single slide in a presentation.
+    ///     Represents a single slide in a presentation.
     /// </summary>
     public class PowerPointSlide {
+        private readonly List<PowerPointShape> _shapes = new();
         private readonly SlidePart _slidePart;
-        private readonly List<PPShape> _shapes = new();
-        private PPNotes? _notes;
+        private PowerPointNotes? _notes;
 
         internal PowerPointSlide(SlidePart slidePart) {
             _slidePart = slidePart;
@@ -23,70 +19,37 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Collection of shapes on the slide.
+        ///     Collection of shapes on the slide.
         /// </summary>
-        public IReadOnlyList<PPShape> Shapes => _shapes;
+        public IReadOnlyList<PowerPointShape> Shapes => _shapes;
 
         /// <summary>
-        /// Enumerates all textbox shapes on the slide.
+        ///     Enumerates all textbox shapes on the slide.
         /// </summary>
-        public IEnumerable<PPTextBox> TextBoxes => _shapes.OfType<PPTextBox>();
+        public IEnumerable<PowerPointTextBox> TextBoxes => _shapes.OfType<PowerPointTextBox>();
 
         /// <summary>
-        /// Enumerates all picture shapes on the slide.
+        ///     Enumerates all picture shapes on the slide.
         /// </summary>
-        public IEnumerable<PPPicture> Pictures => _shapes.OfType<PPPicture>();
+        public IEnumerable<PowerPointPicture> Pictures => _shapes.OfType<PowerPointPicture>();
 
         /// <summary>
-        /// Enumerates all table shapes on the slide.
+        ///     Enumerates all table shapes on the slide.
         /// </summary>
-        public IEnumerable<PPTable> Tables => _shapes.OfType<PPTable>();
+        public IEnumerable<PowerPointTable> Tables => _shapes.OfType<PowerPointTable>();
 
         /// <summary>
-        /// Enumerates all charts on the slide.
+        ///     Enumerates all charts on the slide.
         /// </summary>
-        public IEnumerable<PPChart> Charts => _shapes.OfType<PPChart>();
+        public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
 
         /// <summary>
-        /// Retrieves a shape by its name.
+        ///     Notes associated with the slide.
         /// </summary>
-        public PPShape? GetShape(string name) => _shapes.FirstOrDefault(s => s.Name == name);
+        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
 
         /// <summary>
-        /// Retrieves a textbox by its name.
-        /// </summary>
-        public PPTextBox? GetTextBox(string name) => TextBoxes.FirstOrDefault(tb => tb.Name == name);
-
-        /// <summary>
-        /// Retrieves a picture by its name.
-        /// </summary>
-        public PPPicture? GetPicture(string name) => Pictures.FirstOrDefault(p => p.Name == name);
-
-        /// <summary>
-        /// Retrieves a table by its name.
-        /// </summary>
-        public PPTable? GetTable(string name) => Tables.FirstOrDefault(t => t.Name == name);
-
-        /// <summary>
-        /// Retrieves a chart by its name.
-        /// </summary>
-        public PPChart? GetChart(string name) => Charts.FirstOrDefault(c => c.Name == name);
-
-        /// <summary>
-        /// Removes the specified shape from the slide.
-        /// </summary>
-        public void RemoveShape(PPShape shape) {
-            shape.Element.Remove();
-            _shapes.Remove(shape);
-        }
-
-        /// <summary>
-        /// Notes associated with the slide.
-        /// </summary>
-        public PPNotes Notes => _notes ??= new PPNotes(_slidePart);
-
-        /// <summary>
-        /// Gets or sets the slide background color in hex format (e.g. "FF0000").
+        ///     Gets or sets the slide background color in hex format (e.g. "FF0000").
         /// </summary>
         public string? BackgroundColor {
             get {
@@ -112,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Transition applied when moving to this slide.
+        ///     Transition applied when moving to this slide.
         /// </summary>
         public SlideTransition Transition {
             get {
@@ -137,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                Transition transition = new Transition();
+                Transition transition = new();
                 switch (value) {
                     case SlideTransition.Fade:
                         transition.Append(new FadeTransition());
@@ -152,7 +115,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets the index of the layout used by this slide.
+        ///     Gets the index of the layout used by this slide.
         /// </summary>
         public int LayoutIndex {
             get {
@@ -160,6 +123,7 @@ namespace OfficeIMO.PowerPoint {
                 if (layoutPart == null) {
                     return -1;
                 }
+
                 SlideMasterPart master = layoutPart.GetParentParts().OfType<SlideMasterPart>().First();
                 SlideLayoutPart[] layouts = master.SlideLayoutParts.ToArray();
                 for (int i = 0; i < layouts.Length; i++) {
@@ -167,8 +131,52 @@ namespace OfficeIMO.PowerPoint {
                         return i;
                     }
                 }
+
                 return -1;
             }
+        }
+
+        /// <summary>
+        ///     Retrieves a shape by its name.
+        /// </summary>
+        public PowerPointShape? GetShape(string name) {
+            return _shapes.FirstOrDefault(s => s.Name == name);
+        }
+
+        /// <summary>
+        ///     Retrieves a textbox by its name.
+        /// </summary>
+        public PowerPointTextBox? GetTextBox(string name) {
+            return TextBoxes.FirstOrDefault(tb => tb.Name == name);
+        }
+
+        /// <summary>
+        ///     Retrieves a picture by its name.
+        /// </summary>
+        public PowerPointPicture? GetPicture(string name) {
+            return Pictures.FirstOrDefault(p => p.Name == name);
+        }
+
+        /// <summary>
+        ///     Retrieves a table by its name.
+        /// </summary>
+        public PowerPointTable? GetTable(string name) {
+            return Tables.FirstOrDefault(t => t.Name == name);
+        }
+
+        /// <summary>
+        ///     Retrieves a chart by its name.
+        /// </summary>
+        public PowerPointChart? GetChart(string name) {
+            return Charts.FirstOrDefault(c => c.Name == name);
+        }
+
+        /// <summary>
+        ///     Removes the specified shape from the slide.
+        /// </summary>
+        public void RemoveShape(PowerPointShape shape) {
+            shape.Element.Remove();
+            _shapes.Remove(shape);
         }
 
         private string GenerateUniqueName(string baseName) {
@@ -177,13 +185,15 @@ namespace OfficeIMO.PowerPoint {
             do {
                 name = baseName + " " + index++;
             } while (_shapes.Any(s => s.Name == name));
+
             return name;
         }
 
         /// <summary>
-        /// Adds a textbox with the specified text.
+        ///     Adds a textbox with the specified text.
         /// </summary>
-        public PPTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
+        public PowerPointTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L,
+            long height = 914400L) {
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
@@ -205,15 +215,16 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PPTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape);
             _shapes.Add(textBox);
             return textBox;
         }
 
         /// <summary>
-        /// Adds an image from the given file path.
+        ///     Adds an image from the given file path.
         /// </summary>
-        public PPPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
+        public PowerPointPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L,
+            long height = 914400L) {
             ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
@@ -239,15 +250,16 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PPPicture pic = new(picture, _slidePart);
+            PowerPointPicture pic = new(picture, _slidePart);
             _shapes.Add(pic);
             return pic;
         }
 
         /// <summary>
-        /// Adds a table with the specified rows and columns.
+        ///     Adds a table with the specified rows and columns.
         /// </summary>
-        public PPTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+        public PowerPointTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L,
+            long height = 3000000L) {
             A.Table table = new();
             A.TableProperties props = new();
             props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
@@ -257,17 +269,20 @@ namespace OfficeIMO.PowerPoint {
             for (int c = 0; c < columns; c++) {
                 grid.Append(new A.GridColumn { Width = 3708400L });
             }
+
             table.Append(grid);
 
             for (int r = 0; r < rows; r++) {
                 A.TableRow row = new() { Height = 370840L };
                 for (int c = 0; c < columns; c++) {
                     A.TableCell cell = new(
-                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
+                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
+                            new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
                         new A.TableCellProperties()
                     );
                     row.Append(cell);
                 }
+
                 table.Append(row);
             }
 
@@ -279,21 +294,23 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()
                 ),
                 new Transform(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                new A.Graphic(new A.GraphicData(table) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" })
+                new A.Graphic(new A.GraphicData(table) {
+                    Uri = "http://schemas.openxmlformats.org/drawingml/2006/table"
+                })
             );
 
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PPTable tbl = new(frame);
+            PowerPointTable tbl = new(frame);
             _shapes.Add(tbl);
             return tbl;
         }
 
         /// <summary>
-        /// Adds a basic clustered column chart with default data.
+        ///     Adds a basic clustered column chart with default data.
         /// </summary>
-        public PPChart AddChart() {
+        public PowerPointChart AddChart() {
             ChartPart chartPart = _slidePart.AddNewPart<ChartPart>();
             GenerateDefaultChart(chartPart);
 
@@ -306,40 +323,64 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()
                 ),
                 new Transform(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 5486400L, Cy = 3200400L }),
-                new A.Graphic(new A.GraphicData(new C.ChartReference { Id = relId }) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart" })
+                new A.Graphic(new A.GraphicData(new C.ChartReference { Id = relId }) {
+                    Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+                })
             );
 
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PPChart chart = new(frame);
+            PowerPointChart chart = new(frame);
             _shapes.Add(chart);
             return chart;
         }
 
         private static void GenerateDefaultChart(ChartPart chartPart) {
-            C.ChartSpace chartSpace = new(new C.EditingLanguage { Val = "en-US" }, new C.RoundedCorners { Val = false });
+            C.ChartSpace chartSpace =
+                new(new C.EditingLanguage { Val = "en-US" }, new C.RoundedCorners { Val = false });
             C.Chart chart = new();
             C.PlotArea plotArea = new();
-            C.BarChart barChart = new(new C.BarDirection { Val = C.BarDirectionValues.Column }, new C.BarGrouping { Val = C.BarGroupingValues.Clustered });
+            C.BarChart barChart = new(new C.BarDirection { Val = C.BarDirectionValues.Column },
+                new C.BarGrouping { Val = C.BarGroupingValues.Clustered });
 
-            C.BarChartSeries series = new(new C.Index { Val = 0U }, new C.Order { Val = 0U }, new C.SeriesText(new C.NumericValue { Text = "Series 1" }));
+            C.BarChartSeries series = new(new C.Index { Val = 0U }, new C.Order { Val = 0U },
+                new C.SeriesText(new C.NumericValue { Text = "Series 1" }));
 
-            C.CategoryAxisData catData = new(new C.StringLiteral(new C.PointCount { Val = 2U }, new C.StringPoint { Index = 0U, NumericValue = new C.NumericValue("A") }, new C.StringPoint { Index = 1U, NumericValue = new C.NumericValue("B") }));
-            C.Values values = new(new C.NumberLiteral(new C.PointCount { Val = 2U }, new C.NumericPoint { Index = 0U, NumericValue = new C.NumericValue("4") }, new C.NumericPoint { Index = 1U, NumericValue = new C.NumericValue("5") }));
+            C.CategoryAxisData catData = new(new C.StringLiteral(new C.PointCount { Val = 2U },
+                new C.StringPoint { Index = 0U, NumericValue = new C.NumericValue("A") },
+                new C.StringPoint { Index = 1U, NumericValue = new C.NumericValue("B") }));
+            C.Values values = new(new C.NumberLiteral(new C.PointCount { Val = 2U },
+                new C.NumericPoint { Index = 0U, NumericValue = new C.NumericValue("4") },
+                new C.NumericPoint { Index = 1U, NumericValue = new C.NumericValue("5") }));
 
             series.Append(catData, values);
             barChart.Append(series, new C.AxisId { Val = 48650112U }, new C.AxisId { Val = 48672768U });
 
-            C.CategoryAxis catAxis = new(new C.AxisId { Val = 48650112U }, new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }), new C.AxisPosition { Val = C.AxisPositionValues.Bottom }, new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo }, new C.CrossingAxis { Val = 48672768U }, new C.Crosses { Val = C.CrossesValues.AutoZero }, new C.AutoLabeled { Val = true }, new C.LabelAlignment { Val = C.LabelAlignmentValues.Center }, new C.LabelOffset { Val = (UInt16Value)100U });
+            C.CategoryAxis catAxis = new(new C.AxisId { Val = 48650112U },
+                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
+                new C.AxisPosition { Val = C.AxisPositionValues.Bottom },
+                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
+                new C.CrossingAxis { Val = 48672768U }, new C.Crosses { Val = C.CrossesValues.AutoZero },
+                new C.AutoLabeled { Val = true }, new C.LabelAlignment { Val = C.LabelAlignmentValues.Center },
+                new C.LabelOffset { Val = (UInt16Value)100U });
 
-            C.ValueAxis valAxis = new(new C.AxisId { Val = 48672768U }, new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }), new C.AxisPosition { Val = C.AxisPositionValues.Left }, new C.MajorGridlines(), new C.NumberingFormat { FormatCode = "General", SourceLinked = true }, new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo }, new C.CrossingAxis { Val = 48650112U }, new C.Crosses { Val = C.CrossesValues.AutoZero }, new C.CrossBetween { Val = C.CrossBetweenValues.Between });
+            C.ValueAxis valAxis = new(new C.AxisId { Val = 48672768U },
+                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
+                new C.AxisPosition { Val = C.AxisPositionValues.Left }, new C.MajorGridlines(),
+                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
+                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
+                new C.CrossingAxis { Val = 48650112U }, new C.Crosses { Val = C.CrossesValues.AutoZero },
+                new C.CrossBetween { Val = C.CrossBetweenValues.Between });
 
             plotArea.Append(barChart, catAxis, valAxis);
             chart.Append(plotArea, new C.PlotVisibleOnly { Val = true });
-            chartSpace.Append(chart, new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap }, new C.ShowDataLabelsOverMaximum { Val = false });
+            chartSpace.Append(chart, new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap },
+                new C.ShowDataLabelsOverMaximum { Val = false });
 
-            EmbeddedPackagePart excelPart = chartPart.AddNewPart<EmbeddedPackagePart>("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            EmbeddedPackagePart excelPart =
+                chartPart.AddNewPart<EmbeddedPackagePart>(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             using (MemoryStream ms = new()) {
                 using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
                     WorkbookPart wbPart = doc.AddWorkbookPart();
@@ -360,9 +401,12 @@ namespace OfficeIMO.PowerPoint {
                         )
                     );
                     wsPart.Worksheet = new S.Worksheet(sheetData);
-                    wbPart.Workbook.Append(new S.Sheets(new S.Sheet { Id = wbPart.GetIdOfPart(wsPart), SheetId = 1U, Name = "Sheet1" }));
+                    wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
+                        Id = wbPart.GetIdOfPart(wsPart), SheetId = 1U, Name = "Sheet1"
+                    }));
                     wbPart.Workbook.Save();
                 }
+
                 ms.Position = 0;
                 excelPart.FeedData(ms);
             }
@@ -383,27 +427,27 @@ namespace OfficeIMO.PowerPoint {
             if (tree == null) {
                 return;
             }
+
             foreach (OpenXmlElement element in tree.ChildElements) {
                 switch (element) {
                     case Shape s when s.TextBody != null:
-                        _shapes.Add(new PPTextBox(s));
+                        _shapes.Add(new PowerPointTextBox(s));
                         break;
                     case Picture p:
-                        _shapes.Add(new PPPicture(p, _slidePart));
+                        _shapes.Add(new PowerPointPicture(p, _slidePart));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                        _shapes.Add(new PPTable(g));
+                        _shapes.Add(new PowerPointTable(g));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PPChart(g));
+                        _shapes.Add(new PowerPointChart(g));
                         break;
                 }
             }
 
             if (_slidePart.NotesSlidePart != null) {
-                _notes = new PPNotes(_slidePart);
+                _notes = new PowerPointNotes(_slidePart);
             }
         }
     }
 }
-

@@ -14,13 +14,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPTextBox textBox = slide.AddTextBox("Hello", left: 914400, top: 914400, width: 1828800, height: 914400);
-            PPPicture picture = slide.AddPicture(imagePath, left: 2743200, top: 914400, width: 1828800, height: 1828800);
+            PowerPointTextBox textBox = slide.AddTextBox("Hello", left: 914400, top: 914400, width: 1828800, height: 914400);
+            PowerPointPicture picture = slide.AddPicture(imagePath, left: 2743200, top: 914400, width: 1828800, height: 1828800);
 
             // Move the textbox 1 inch to the right
             textBox.Left += 914400;
 
-            PPShape? shape = slide.GetShape("TextBox 1");
+            PowerPointShape? shape = slide.GetShape("TextBox 1");
             Console.WriteLine("Found shape: " + shape?.Name);
             slide.RemoveShape(picture);
             presentation.Save();

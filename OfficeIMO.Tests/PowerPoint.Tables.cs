@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PPTable table = slide.AddTable(2, 2);
-                PPTableCell cell = table.GetCell(0, 0);
+                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.Text = "Test";
                 cell.FillColor = "FF0000";
                 cell.Merge = (1, 2);
@@ -27,10 +27,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
-                PPTable table = presentation.Slides[0].Tables.First();
+                PowerPointTable table = presentation.Slides[0].Tables.First();
                 Assert.Equal(2, table.Rows);
                 Assert.Equal(2, table.Columns);
-                PPTableCell cell = table.GetCell(0, 0);
+                PowerPointTableCell cell = table.GetCell(0, 0);
                 Assert.Equal("Test", cell.Text);
                 Assert.Equal((1, 2), cell.Merge);
             }
