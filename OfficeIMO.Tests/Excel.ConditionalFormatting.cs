@@ -3,6 +3,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using SixLaborsColor = SixLabors.ImageSharp.Color;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -38,7 +39,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetCellValue(1, 1, 1d);
                 sheet.SetCellValue(2, 1, 2d);
                 sheet.SetCellValue(3, 1, 3d);
-                sheet.AddConditionalColorScale("A1:A3", "FFFF0000", "FF00FF00");
+                sheet.AddConditionalColorScale("A1:A3", SixLaborsColor.Red, SixLaborsColor.Lime);
                 document.Save();
             }
 
@@ -53,6 +54,31 @@ namespace OfficeIMO.Tests {
                 var colors = colorScale.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList();
                 Assert.Equal("FFFF0000", colors[0].Rgb.Value);
                 Assert.Equal("FF00FF00", colors[1].Rgb.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_AddConditionalDataBar() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConditionalDataBar.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetCellValue(1, 1, 1d);
+                sheet.SetCellValue(2, 1, 2d);
+                sheet.SetCellValue(3, 1, 3d);
+                sheet.AddConditionalDataBar("A1:A3", SixLaborsColor.Blue);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                ConditionalFormatting cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                Assert.NotNull(cf);
+                ConditionalFormattingRule rule = cf.Elements<ConditionalFormattingRule>().First();
+                Assert.Equal(ConditionalFormatValues.DataBar, rule.Type.Value);
+                DataBar dataBar = rule.GetFirstChild<DataBar>();
+                Assert.NotNull(dataBar);
+                var color = dataBar.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
+                Assert.Equal("FF0000FF", color.Rgb.Value);
             }
         }
     }

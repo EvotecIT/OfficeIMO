@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
+using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -419,6 +420,14 @@ namespace OfficeIMO.Excel {
             worksheet.Save();
         }
 
+        private static string ConvertColor(SixLaborsColor color) {
+            return "FF" + color.ToHexColor();
+        }
+
+        public void AddConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
+            AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
+        }
+
         public void AddConditionalColorScale(string range, string startColor, string endColor) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -451,6 +460,10 @@ namespace OfficeIMO.Excel {
             conditionalFormatting.Append(rule);
             worksheet.Append(conditionalFormatting);
             worksheet.Save();
+        }
+
+        public void AddConditionalDataBar(string range, SixLaborsColor color) {
+            AddConditionalDataBar(range, ConvertColor(color));
         }
 
         public void AddConditionalDataBar(string range, string color) {

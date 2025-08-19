@@ -1,5 +1,6 @@
 using System;
 using OfficeIMO.Excel;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Excel {
     public static class ConditionalFormatting {
@@ -12,7 +13,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.SetCellValue(1, 1, 10d);
                 sheet.SetCellValue(2, 1, 20d);
                 sheet.SetCellValue(3, 1, 30d);
-                sheet.AddConditionalColorScale("A1:A3", "FFFF0000", "FF00FF00");
+                sheet.AddConditionalColorScale("A1:A3", Color.Red, Color.Green);
                 document.Save(openExcel);
             }
         }
