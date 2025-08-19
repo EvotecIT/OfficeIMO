@@ -20,13 +20,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordParagraph">Optional paragraph to append. When <c>null</c> a new paragraph is created.</param>
         /// <returns>The added <see cref="WordParagraph"/> instance.</returns>
-        public WordParagraph AddParagraph(WordParagraph wordParagraph = null) {
-            if (wordParagraph == null) {
+        public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+            if (wordParagraph is null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
             }
 
-            this._wordprocessingDocument.MainDocumentPart.Document.Body.AppendChild(wordParagraph._paragraph);
+            this._wordprocessingDocument!.MainDocumentPart!.Document!.Body!.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            this._document.Body.Append(newWordParagraph._paragraph);
+            this._document!.Body!.Append(newWordParagraph._paragraph);
             return newWordParagraph;
         }
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            this._document.Body.Append(newWordParagraph._paragraph);
+            this._document!.Body!.Append(newWordParagraph._paragraph);
             var currentSection = this.Sections.LastOrDefault();
             currentSection?.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
@@ -260,7 +260,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
@@ -273,7 +273,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
         }
 
@@ -362,8 +362,8 @@ namespace OfficeIMO.Word {
         /// <param name="table">Table instance to insert.</param>
         /// <returns>The inserted <see cref="WordTable"/>.</returns>
         public WordTable InsertTableAfter(WordParagraph anchor, WordTable table) {
-            if (anchor == null) throw new ArgumentNullException(nameof(anchor));
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (anchor is null) throw new ArgumentNullException(nameof(anchor));
+            if (table is null) throw new ArgumentNullException(nameof(table));
 
             anchor._paragraph.InsertAfterSelf(table._table);
             return table;
@@ -375,12 +375,12 @@ namespace OfficeIMO.Word {
         /// <param name="index">Zero-based position at which to insert the paragraph.</param>
         /// <param name="paragraph">Optional paragraph to insert. When <c>null</c> a new paragraph is created.</param>
         /// <returns>The inserted <see cref="WordParagraph"/>.</returns>
-        public WordParagraph InsertParagraphAt(int index, WordParagraph paragraph = null) {
-            if (paragraph == null) {
+        public WordParagraph InsertParagraphAt(int index, WordParagraph? paragraph = null) {
+            if (paragraph is null) {
                 paragraph = new WordParagraph(this, true, false);
             }
 
-            var body = _document.Body;
+            var body = _document!.Body!;
             var paragraphs = body.Elements<Paragraph>().ToList();
             if (index < 0 || index > paragraphs.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
@@ -431,7 +431,7 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
-            _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+            _tableOfContentIndex = _document!.Body!.ChildElements.Count - 1;
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
@@ -441,7 +441,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void RemoveTableOfContent() {
             var toc = TableOfContent;
-            if (toc != null) {
+            if (toc is not null) {
                 toc.SdtBlock.Remove();
                 _tableOfContentIndex = null;
             }
@@ -454,16 +454,16 @@ namespace OfficeIMO.Word {
         public WordTableOfContent RegenerateTableOfContent() {
             var toc = TableOfContent;
             var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
-            int index = _tableOfContentIndex ?? (toc != null ? _document.Body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
+            int index = _tableOfContentIndex ?? (toc != null ? _document!.Body!.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
             RemoveTableOfContent();
             var newToc = new WordTableOfContent(this, style);
-            if (index >= 0 && index < _document.Body.ChildElements.Count - 1) {
+            if (index >= 0 && index < _document!.Body!.ChildElements.Count - 1) {
                 var block = newToc.SdtBlock;
                 block.Remove();
-                _document.Body.InsertAt(block, index);
+                _document!.Body!.InsertAt(block, index);
                 _tableOfContentIndex = index;
             } else {
-                _tableOfContentIndex = _document.Body.ChildElements.Count - 1;
+                _tableOfContentIndex = _document!.Body!.ChildElements.Count - 1;
             }
             return newToc;
         }
@@ -579,7 +579,7 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
 
 
-            this._document.MainDocumentPart.Document.Body.Append(paragraph);
+            this._document!.MainDocumentPart!.Document!.Body!.Append(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);
@@ -640,8 +640,8 @@ namespace OfficeIMO.Word {
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <param name="parameters">Additional switch parameters.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false, List<String> parameters = null) {
-            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat, advanced, parameters);
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+            return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
         }
 
         /// <summary>
@@ -652,8 +652,8 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
-            return this.AddParagraph().AddField(fieldCode, wordFieldFormat, customFormat, advanced);
+        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
+            return this.AddParagraph().AddField(fieldCode, wordFieldFormat, customFormat!, advanced);
         }
 
         /// <summary>
@@ -703,8 +703,8 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordStructuredDocumentTag"/>.</returns>
-        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string alias = null, string tag = null) {
-            return this.AddParagraph().AddStructuredDocumentTag(text, alias, tag);
+        public WordStructuredDocumentTag AddStructuredDocumentTag(string text, string? alias = null, string? tag = null) {
+            return this.AddParagraph().AddStructuredDocumentTag(text, alias!, tag!);
         }
 
         /// <summary>
@@ -714,8 +714,8 @@ namespace OfficeIMO.Word {
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordRepeatingSection"/>.</returns>
-        public WordRepeatingSection AddRepeatingSection(string sectionTitle = null, string alias = null, string tag = null) {
-            return this.AddParagraph().AddRepeatingSection(sectionTitle, alias, tag);
+        public WordRepeatingSection AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) {
+            return this.AddParagraph().AddRepeatingSection(sectionTitle!, alias!, tag!);
         }
 
         /// <summary>
@@ -743,7 +743,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="tag">Tag value of the control.</param>
         /// <returns>The matching <see cref="WordStructuredDocumentTag"/> or <c>null</c>.</returns>
-        public WordStructuredDocumentTag GetStructuredDocumentTagByTag(string tag) {
+        public WordStructuredDocumentTag? GetStructuredDocumentTagByTag(string tag) {
             return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Tag == tag);
         }
 
@@ -752,7 +752,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alias">Alias of the control.</param>
         /// <returns>The matching <see cref="WordStructuredDocumentTag"/> or <c>null</c>.</returns>
-        public WordStructuredDocumentTag GetStructuredDocumentTagByAlias(string alias) {
+        public WordStructuredDocumentTag? GetStructuredDocumentTagByAlias(string alias) {
             return this.StructuredDocumentTags.FirstOrDefault(sdt => sdt.Alias == alias);
         }
 
@@ -761,7 +761,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="tag">Tag value of the checkbox.</param>
         /// <returns>The matching <see cref="WordCheckBox"/> or <c>null</c>.</returns>
-        public WordCheckBox GetCheckBoxByTag(string tag) {
+        public WordCheckBox? GetCheckBoxByTag(string tag) {
             return this.CheckBoxes.FirstOrDefault(cb => cb.Tag == tag);
         }
 
@@ -770,7 +770,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alias">Alias of the checkbox.</param>
         /// <returns>The matching <see cref="WordCheckBox"/> or <c>null</c>.</returns>
-        public WordCheckBox GetCheckBoxByAlias(string alias) {
+        public WordCheckBox? GetCheckBoxByAlias(string alias) {
             return this.CheckBoxes.FirstOrDefault(cb => cb.Alias == alias);
         }
 
@@ -779,7 +779,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="tag">Tag value of the date picker.</param>
         /// <returns>The matching <see cref="WordDatePicker"/> or <c>null</c>.</returns>
-        public WordDatePicker GetDatePickerByTag(string tag) {
+        public WordDatePicker? GetDatePickerByTag(string tag) {
             return this.DatePickers.FirstOrDefault(dp => dp.Tag == tag);
         }
 
@@ -788,7 +788,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alias">Alias of the date picker.</param>
         /// <returns>The matching <see cref="WordDatePicker"/> or <c>null</c>.</returns>
-        public WordDatePicker GetDatePickerByAlias(string alias) {
+        public WordDatePicker? GetDatePickerByAlias(string alias) {
             return this.DatePickers.FirstOrDefault(dp => dp.Alias == alias);
         }
 
@@ -797,7 +797,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="tag">Tag value of the dropdown list.</param>
         /// <returns>The matching <see cref="WordDropDownList"/> or <c>null</c>.</returns>
-        public WordDropDownList GetDropDownListByTag(string tag) {
+        public WordDropDownList? GetDropDownListByTag(string tag) {
             return this.DropDownLists.FirstOrDefault(dl => dl.Tag == tag);
         }
 
@@ -806,49 +806,49 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="alias">Alias of the dropdown list.</param>
         /// <returns>The matching <see cref="WordDropDownList"/> or <c>null</c>.</returns>
-        public WordDropDownList GetDropDownListByAlias(string alias) {
+        public WordDropDownList? GetDropDownListByAlias(string alias) {
             return this.DropDownLists.FirstOrDefault(dl => dl.Alias == alias);
         }
 
         /// <summary>
         /// Retrieves a combo box control by its tag value.
         /// </summary>
-        public WordComboBox GetComboBoxByTag(string tag) {
+        public WordComboBox? GetComboBoxByTag(string tag) {
             return this.ComboBoxes.FirstOrDefault(cb => cb.Tag == tag);
         }
 
         /// <summary>
         /// Retrieves a combo box control by its alias.
         /// </summary>
-        public WordComboBox GetComboBoxByAlias(string alias) {
+        public WordComboBox? GetComboBoxByAlias(string alias) {
             return this.ComboBoxes.FirstOrDefault(cb => cb.Alias == alias);
         }
 
         /// <summary>
         /// Retrieves a picture control by its tag value.
         /// </summary>
-        public WordPictureControl GetPictureControlByTag(string tag) {
+        public WordPictureControl? GetPictureControlByTag(string tag) {
             return this.PictureControls.FirstOrDefault(pc => pc.Tag == tag);
         }
 
         /// <summary>
         /// Retrieves a picture control by its alias.
         /// </summary>
-        public WordPictureControl GetPictureControlByAlias(string alias) {
+        public WordPictureControl? GetPictureControlByAlias(string alias) {
             return this.PictureControls.FirstOrDefault(pc => pc.Alias == alias);
         }
 
         /// <summary>
         /// Retrieves a repeating section control by its tag value.
         /// </summary>
-        public WordRepeatingSection GetRepeatingSectionByTag(string tag) {
+        public WordRepeatingSection? GetRepeatingSectionByTag(string tag) {
             return this.RepeatingSections.FirstOrDefault(rs => rs.Tag == tag);
         }
 
         /// <summary>
         /// Retrieves a repeating section control by its alias.
         /// </summary>
-        public WordRepeatingSection GetRepeatingSectionByAlias(string alias) {
+        public WordRepeatingSection? GetRepeatingSectionByAlias(string alias) {
             return this.RepeatingSections.FirstOrDefault(rs => rs.Alias == alias);
         }
         /// <summary>
@@ -985,11 +985,11 @@ namespace OfficeIMO.Word {
             if (foundList?.Count > 0) {
                 count += foundList.Count;
                 foreach (var ts in foundList) {
-                    if (!IsSegmentValid(paragraphs, ts))
-                        continue;
-                    if (ts.BeginIndex == ts.EndIndex) {
-                        var p = paragraphs[ts.BeginIndex];
-                        if (p != null) {
+                      if (!IsSegmentValid(paragraphs, ts))
+                          continue;
+                      if (ts.BeginIndex == ts.EndIndex) {
+                          var p = paragraphs[ts.BeginIndex];
+                          if (p is not null) {
                             if (replace) {
                                 int replaceCount = 0;
                                 p.Text = p.Text.FindAndReplace(oldText, newText, stringComparison, ref replaceCount);
@@ -1002,7 +1002,7 @@ namespace OfficeIMO.Word {
                         if (replace) {
                             var beginPara = paragraphs[ts.BeginIndex];
                             var endPara = paragraphs[ts.EndIndex];
-                            if (beginPara != null && endPara != null) {
+                              if (beginPara is not null && endPara is not null) {
                                 beginPara.Text = beginPara.Text.Replace(beginPara.Text.Substring(ts.BeginChar), newText);
                                 endPara.Text = endPara.Text.Replace(endPara.Text.Substring(0, ts.EndChar + 1), "");
                                 if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, beginPara._paragraph))) {
@@ -1139,7 +1139,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsSegmentValid(List<WordParagraph> paragraphs, WordTextSegment ts) {
-            if (paragraphs == null || ts == null) {
+            if (paragraphs is null || ts is null) {
                 return false;
             }
 
@@ -1150,7 +1150,7 @@ namespace OfficeIMO.Word {
             var beginPara = paragraphs[ts.BeginIndex];
             var endPara = paragraphs[ts.EndIndex];
 
-            if (beginPara == null || endPara == null) {
+            if (beginPara is null || endPara is null) {
                 return false;
             }
 
