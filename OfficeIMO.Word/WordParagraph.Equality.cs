@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="other">The paragraph to compare with the current instance.</param>
         /// <returns><c>true</c> if the paragraphs are equal; otherwise, <c>false</c>.</returns>
-        public bool Equals(WordParagraph other) {
+        public bool Equals(WordParagraph? other) {
             if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
             if (ReferenceEquals(_paragraph, other._paragraph)) return true;
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="obj">The object to compare with the current instance.</param>
         /// <returns><c>true</c> if the objects are equal; otherwise, <c>false</c>.</returns>
-        public override bool Equals(object obj) {
+        public override bool Equals(object? obj) {
             return obj is WordParagraph other && Equals(other);
         }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
         /// <param name="left">The left-hand instance.</param>
         /// <param name="right">The right-hand instance.</param>
         /// <returns><c>true</c> if the instances are equal; otherwise, <c>false</c>.</returns>
-        public static bool operator ==(WordParagraph left, WordParagraph right) {
+        public static bool operator ==(WordParagraph? left, WordParagraph? right) {
             if (left is null) return right is null;
             return left.Equals(right);
         }
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
         /// <param name="left">The left-hand instance.</param>
         /// <param name="right">The right-hand instance.</param>
         /// <returns><c>true</c> if the instances are not equal; otherwise, <c>false</c>.</returns>
-        public static bool operator !=(WordParagraph left, WordParagraph right) {
+        public static bool operator !=(WordParagraph? left, WordParagraph? right) {
             return !(left == right);
         }
     }

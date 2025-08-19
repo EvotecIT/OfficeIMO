@@ -93,7 +93,7 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <returns>The created <see cref="WordParagraph"/> instance.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat, advanced);
         }
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <returns>The created <see cref="WordParagraph"/> instance.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = false) {
+        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(fieldCode, wordFieldFormat, customFormat, advanced);
         }
 

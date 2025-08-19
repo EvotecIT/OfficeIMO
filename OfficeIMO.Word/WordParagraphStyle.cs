@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontName">Font family to apply to runs.</param>
         /// <param name="styleName">Optional friendly style name.</param>
         /// <returns>The created style.</returns>
-        public static Style CreateFontStyle(string styleId, string fontName, string styleName = null) {
+        public static Style CreateFontStyle(string styleId, string fontName, string? styleName = null) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (string.IsNullOrWhiteSpace(fontName)) throw new ArgumentException("Font name cannot be empty", nameof(fontName));
 
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Registers a paragraph style that applies the specified font to all runs.
         /// </summary>
-        public static void RegisterFontStyle(string styleId, string fontName, string styleName = null) {
+        public static void RegisterFontStyle(string styleId, string fontName, string? styleName = null) {
             var style = CreateFontStyle(styleId, fontName, styleName);
             RegisterCustomStyle(styleId, style);
         }
@@ -116,25 +116,24 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns the Open XML style definition for the specified style.
         /// </summary>
-        public static Style GetStyleDefinition(WordParagraphStyles style) {
-            if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style) overrideStyle.CloneNode(true);
-            if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style) customStyle.CloneNode(true);
-            switch (style) {
-                case WordParagraphStyles.Normal: return StyleNormal;
-                case WordParagraphStyles.Heading1: return StyleHeading1;
-                case WordParagraphStyles.Heading2: return StyleHeading2;
-                case WordParagraphStyles.Heading3: return StyleHeading3;
-                case WordParagraphStyles.Heading4: return StyleHeading4;
-                case WordParagraphStyles.Heading5: return StyleHeading5;
-                case WordParagraphStyles.Heading6: return StyleHeading6;
-                case WordParagraphStyles.Heading7: return StyleHeading7;
-                case WordParagraphStyles.Heading8: return StyleHeading8;
-                case WordParagraphStyles.Heading9: return StyleHeading9;
-                case WordParagraphStyles.ListParagraph: return StyleListParagraph;
-                case WordParagraphStyles.Custom: return null;
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(style));
+        public static Style? GetStyleDefinition(WordParagraphStyles style) {
+            if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style)overrideStyle.CloneNode(true);
+            if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style)customStyle.CloneNode(true);
+            return style switch {
+                WordParagraphStyles.Normal => StyleNormal,
+                WordParagraphStyles.Heading1 => StyleHeading1,
+                WordParagraphStyles.Heading2 => StyleHeading2,
+                WordParagraphStyles.Heading3 => StyleHeading3,
+                WordParagraphStyles.Heading4 => StyleHeading4,
+                WordParagraphStyles.Heading5 => StyleHeading5,
+                WordParagraphStyles.Heading6 => StyleHeading6,
+                WordParagraphStyles.Heading7 => StyleHeading7,
+                WordParagraphStyles.Heading8 => StyleHeading8,
+                WordParagraphStyles.Heading9 => StyleHeading9,
+                WordParagraphStyles.ListParagraph => StyleListParagraph,
+                WordParagraphStyles.Custom => null,
+                _ => throw new ArgumentOutOfRangeException(nameof(style)),
+            };
         }
 
         /// <summary>
@@ -162,21 +161,21 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Converts a style name string to its enumeration value.
         /// </summary>
-        public static WordParagraphStyles GetStyle(string style) {
-            switch (style) {
-                case "Normal": return WordParagraphStyles.Normal;
-                case "Heading1": return WordParagraphStyles.Heading1;
-                case "Heading2": return WordParagraphStyles.Heading2;
-                case "Heading3": return WordParagraphStyles.Heading3;
-                case "Heading4": return WordParagraphStyles.Heading4;
-                case "Heading5": return WordParagraphStyles.Heading5;
-                case "Heading6": return WordParagraphStyles.Heading6;
-                case "Heading7": return WordParagraphStyles.Heading7;
-                case "Heading8": return WordParagraphStyles.Heading8;
-                case "Heading9": return WordParagraphStyles.Heading9;
-                case "ListParagraph": return WordParagraphStyles.ListParagraph;
-                default: return WordParagraphStyles.Custom;
-            }
+        public static WordParagraphStyles GetStyle(string? style) {
+            return style switch {
+                "Normal" => WordParagraphStyles.Normal,
+                "Heading1" => WordParagraphStyles.Heading1,
+                "Heading2" => WordParagraphStyles.Heading2,
+                "Heading3" => WordParagraphStyles.Heading3,
+                "Heading4" => WordParagraphStyles.Heading4,
+                "Heading5" => WordParagraphStyles.Heading5,
+                "Heading6" => WordParagraphStyles.Heading6,
+                "Heading7" => WordParagraphStyles.Heading7,
+                "Heading8" => WordParagraphStyles.Heading8,
+                "Heading9" => WordParagraphStyles.Heading9,
+                "ListParagraph" => WordParagraphStyles.ListParagraph,
+                _ => WordParagraphStyles.Custom,
+            };
         }
         /// <summary>
         /// This method is used to simplify creating TOC List with Headings
