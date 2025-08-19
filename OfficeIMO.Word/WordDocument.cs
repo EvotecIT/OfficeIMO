@@ -490,8 +490,8 @@ namespace OfficeIMO.Word {
         /// Gets the value of a document variable or <c>null</c> if the variable does not exist.
         /// </summary>
         /// <param name="name">Variable name.</param>
-        public string GetDocumentVariable(string name) {
-            return DocumentVariables.ContainsKey(name) ? DocumentVariables[name] : null;
+        public string? GetDocumentVariable(string name) {
+            return DocumentVariables.TryGetValue(name, out var value) ? value : null;
         }
 
         /// <summary>
@@ -886,27 +886,27 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
-        public string FilePath { get; set; }
+        public string FilePath { get; set; } = null!;
 
         /// <summary>
         /// Original stream where this document was created / loaded from.
         /// </summary>
-        internal Stream OriginalStream { get; set; }
+        internal Stream OriginalStream { get; set; } = null!;
 
         /// <summary>
         /// Provides access to document settings.
         /// </summary>
-        public WordSettings Settings;
+        public WordSettings Settings = null!;
 
         /// <summary>
         /// Manages application related properties.
         /// </summary>
-        public ApplicationProperties ApplicationProperties;
+        public ApplicationProperties ApplicationProperties = null!;
 
         /// <summary>
         /// Provides access to built-in document properties.
         /// </summary>
-        public BuiltinDocumentProperties BuiltinDocumentProperties;
+        public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
 
         /// <summary>
         /// Collection of custom document properties.
@@ -925,7 +925,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides basic statistics for the document.
         /// </summary>
-        public WordDocumentStatistics Statistics { get; internal set; }
+        public WordDocumentStatistics Statistics { get; internal set; } = null!;
 
         /// <summary>
         /// Indicates whether the document is saved automatically.
@@ -942,12 +942,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Underlying Open XML word processing document.
         /// </summary>
-        public WordprocessingDocument _wordprocessingDocument;
+        public WordprocessingDocument _wordprocessingDocument = null!;
 
         /// <summary>
         /// Root document element.
         /// </summary>
-        public Document _document;
+        public Document _document = null!;
         //public WordCustomProperties _customDocumentProperties;
 
 
@@ -958,7 +958,7 @@ namespace OfficeIMO.Word {
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
-                string folderPath = Path.GetDirectoryName(filePath);
+                string folderPath = Path.GetDirectoryName(filePath)!;
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
                 string fileExtension = Path.GetExtension(filePath);
                 int number = 1;
@@ -972,8 +972,8 @@ namespace OfficeIMO.Word {
 
                 do {
                     number++;
-                    string newFileName = $"{fileName} ({number}){fileExtension}";
-                    filePath = Path.Combine(folderPath, newFileName);
+                      string newFileName = $"{fileName} ({number}){fileExtension}";
+                      filePath = Path.Combine(folderPath, newFileName);
                 } while (File.Exists(filePath));
             }
 
@@ -1020,75 +1020,76 @@ namespace OfficeIMO.Word {
             WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
-            wordDocument.MainDocumentPart.Document = new Document() {
+            var mainPart = wordDocument.MainDocumentPart!;
+            mainPart.Document = new Document() {
                 MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" }
             };
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
-            wordDocument.MainDocumentPart.Document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+            mainPart.Document.AddNamespaceDeclaration("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas");
+            mainPart.Document.AddNamespaceDeclaration("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex");
+            mainPart.Document.AddNamespaceDeclaration("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex");
+            mainPart.Document.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+            mainPart.Document.AddNamespaceDeclaration("aink", "http://schemas.microsoft.com/office/drawing/2016/ink");
+            mainPart.Document.AddNamespaceDeclaration("am3d", "http://schemas.microsoft.com/office/drawing/2017/model3d");
+            mainPart.Document.AddNamespaceDeclaration("o", "urn:schemas-microsoft-com:office:office");
+            mainPart.Document.AddNamespaceDeclaration("oel", "http://schemas.microsoft.com/office/2019/extlst");
+            mainPart.Document.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            mainPart.Document.AddNamespaceDeclaration("m", "http://schemas.openxmlformats.org/officeDocument/2006/math");
+            mainPart.Document.AddNamespaceDeclaration("v", "urn:schemas-microsoft-com:vml");
+            mainPart.Document.AddNamespaceDeclaration("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing");
+            mainPart.Document.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
+            mainPart.Document.AddNamespaceDeclaration("w10", "urn:schemas-microsoft-com:office:word");
+            mainPart.Document.AddNamespaceDeclaration("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+            mainPart.Document.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+            mainPart.Document.AddNamespaceDeclaration("w15", "http://schemas.microsoft.com/office/word/2012/wordml");
+            mainPart.Document.AddNamespaceDeclaration("w16cex", "http://schemas.microsoft.com/office/word/2018/wordml/cex");
+            mainPart.Document.AddNamespaceDeclaration("w16cid", "http://schemas.microsoft.com/office/word/2016/wordml/cid");
+            mainPart.Document.AddNamespaceDeclaration("w16", "http://schemas.microsoft.com/office/word/2018/wordml");
+            mainPart.Document.AddNamespaceDeclaration("w16sdtdh", "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash");
+            mainPart.Document.AddNamespaceDeclaration("w16se", "http://schemas.microsoft.com/office/word/2015/wordml/symex");
+            mainPart.Document.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+            mainPart.Document.AddNamespaceDeclaration("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk");
+            mainPart.Document.AddNamespaceDeclaration("wne", "http://schemas.microsoft.com/office/word/2006/wordml");
+            mainPart.Document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
 
-            wordDocument.MainDocumentPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
+            mainPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
 
             word.FilePath = filePath ?? string.Empty;
             word._wordprocessingDocument = wordDocument;
-            word._document = wordDocument.MainDocumentPart.Document;
+            word._document = mainPart.Document;
 
-            StyleDefinitionsPart styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+            StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
 
-            WebSettingsPart webSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<WebSettingsPart>("rId3");
+            WebSettingsPart webSettingsPart1 = mainPart.AddNewPart<WebSettingsPart>("rId3");
             GenerateWebSettingsPart1Content(webSettingsPart1);
 
-            DocumentSettingsPart documentSettingsPart1 = wordDocument.MainDocumentPart.AddNewPart<DocumentSettingsPart>("rId2");
+            DocumentSettingsPart documentSettingsPart1 = mainPart.AddNewPart<DocumentSettingsPart>("rId2");
             GenerateDocumentSettingsPart1Content(documentSettingsPart1);
 
-            EndnotesPart endnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<EndnotesPart>("rId4");
+            EndnotesPart endnotesPart1 = mainPart.AddNewPart<EndnotesPart>("rId4");
             GenerateEndNotesPart1Content(endnotesPart1);
 
-            FootnotesPart footnotesPart1 = wordDocument.MainDocumentPart.AddNewPart<FootnotesPart>("rId5");
+            FootnotesPart footnotesPart1 = mainPart.AddNewPart<FootnotesPart>("rId5");
             GenerateFootNotesPart1Content(footnotesPart1);
 
-            FontTablePart fontTablePart1 = wordDocument.MainDocumentPart.AddNewPart<FontTablePart>("rId6");
+            FontTablePart fontTablePart1 = mainPart.AddNewPart<FontTablePart>("rId6");
             GenerateFontTablePart1Content(fontTablePart1);
 
-            ThemePart themePart1 = wordDocument.MainDocumentPart.AddNewPart<ThemePart>("rId7");
+            ThemePart themePart1 = mainPart.AddNewPart<ThemePart>("rId7");
             GenerateThemePart1Content(themePart1);
 
             WordSettings wordSettings = new WordSettings(word);
             WordCompatibilitySettings compatibilitySettings = new WordCompatibilitySettings(word);
             ApplicationProperties applicationProperties = new ApplicationProperties(word);
             BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
-            WordSection wordSection = new WordSection(word, null);
+            WordSection wordSection = new WordSection(word, null!);
             WordBackground wordBackground = new WordBackground(word);
             WordDocumentStatistics statistics = new WordDocumentStatistics(word);
 
@@ -1148,9 +1149,9 @@ namespace OfficeIMO.Word {
             var compatibilitySettings = new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
-            var wordSection = new WordSection(this, null, null);
+            var wordSection = new WordSection(this, null!, null!);
 
-            var list = this._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
+            var list = this._wordprocessingDocument.MainDocumentPart!.Document.Body!.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
@@ -1218,10 +1219,11 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
-            if (filePath != null) {
-                if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-                }
+            if (filePath is null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
             var word = new WordDocument();
@@ -1230,7 +1232,7 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-            using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
+                using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
@@ -1242,7 +1244,7 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
-                word._document = wordDocument.MainDocumentPart.Document;
+                    word._document = wordDocument.MainDocumentPart!.Document;
                 word.LoadDocument();
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordChart.InitializeDocPrIdSeed(wordDocument);
@@ -1264,10 +1266,11 @@ namespace OfficeIMO.Word {
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, CancellationToken cancellationToken = default) {
-            if (filePath != null) {
-                if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-                }
+            if (filePath is null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
@@ -1284,7 +1287,7 @@ namespace OfficeIMO.Word {
             var word = new WordDocument {
                 FilePath = filePath,
                 _wordprocessingDocument = wordDocument,
-                _document = wordDocument.MainDocumentPart.Document
+                _document = wordDocument.MainDocumentPart!.Document
             };
 
             bool applyOverrideStyles = overrideStyles && !readOnly;
@@ -1318,7 +1321,7 @@ namespace OfficeIMO.Word {
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
             document._wordprocessingDocument = wordDocument;
-            document._document = wordDocument.MainDocumentPart.Document;
+            document._document = wordDocument.MainDocumentPart!.Document;
             document.LoadDocument();
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
@@ -1356,7 +1359,7 @@ namespace OfficeIMO.Word {
         /// <param name="dest"></param>
         // IPackageProperties is currently marked as experimental (OOXML0001).
         // There is no non-experimental alternative available yet.
-        #pragma warning disable 0618
+        #pragma warning disable OOXML0001
         private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
@@ -1375,7 +1378,7 @@ namespace OfficeIMO.Word {
             dest.Title = src.Title;
             dest.Version = src.Version;
         }
-        #pragma warning restore 0618
+        #pragma warning restore OOXML0001
 
         /// <summary>
         /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
@@ -1670,7 +1673,7 @@ namespace OfficeIMO.Word {
         /// Needs more work, but this is what Word does all the time
         /// </summary>
         private void MoveSectionProperties() {
-            var body = this._wordprocessingDocument.MainDocumentPart.Document.Body;
+            var body = this._wordprocessingDocument.MainDocumentPart!.Document.Body!;
             var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (sectionProperties != null) {
                 body.RemoveChild(sectionProperties);
@@ -1685,6 +1688,9 @@ namespace OfficeIMO.Word {
             DisposeAsync().GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Releases resources associated with the document asynchronously.
+        /// </summary>
         public async ValueTask DisposeAsync() {
             if (this._disposed) {
                 return;
@@ -1700,7 +1706,7 @@ namespace OfficeIMO.Word {
                 } catch {
                     // ignored
                 }
-                this._wordprocessingDocument = null;
+                this._wordprocessingDocument = null!;
             }
 
             if (this.OriginalStream != null) {
@@ -1714,13 +1720,14 @@ namespace OfficeIMO.Word {
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
             // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
             if (readOnly == false) {
-                var styleDefinitionsPart = wordDocument.MainDocumentPart.GetPartsOfType<StyleDefinitionsPart>()
-                    .FirstOrDefault();
+            var styleDefinitionsPart = wordDocument.MainDocumentPart!
+                .GetPartsOfType<StyleDefinitionsPart>()
+                .FirstOrDefault();
                 if (styleDefinitionsPart != null) {
                     AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
                 } else {
 
-                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>("rId1");
                     GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
 
                 }
@@ -1733,7 +1740,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to the document background settings.
         /// </summary>
-        public WordBackground Background { get; set; }
+        public WordBackground Background { get; set; } = null!;
 
         /// <summary>
         /// Indicates whether the document passes Open XML validation.
@@ -1782,7 +1789,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets compatibility settings for the document.
         /// </summary>
-        public WordCompatibilitySettings CompatibilitySettings { get; set; }
+        public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
         internal void HeadingModified() {
             if (TableOfContent != null) {
@@ -1797,7 +1804,7 @@ namespace OfficeIMO.Word {
                 TableOfContent.Update();
             }
             _ = new WordCustomProperties(this, true);
-            var settingsPart = _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart;
+            var settingsPart = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
             if (hasVariables || DocumentVariables.Count > 0) {
                 _ = new WordDocumentVariables(this, true);
