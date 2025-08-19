@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var numbering = document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+                var numbering = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
                 Assert.NotNull(numbering);
                 Assert.NotNull(numbering!.LookupNamespace("w15"));
                 var ignorable = numbering.MCAttributes?.Ignorable?.Value;
