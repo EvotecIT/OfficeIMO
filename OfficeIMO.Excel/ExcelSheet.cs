@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -30,6 +31,7 @@ namespace OfficeIMO.Excel {
         private readonly WorksheetPart _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -167,6 +169,15 @@ namespace OfficeIMO.Excel {
                 }
             }
             return value;
+        }
+
+        private void WriteLock(Action action) {
+            _lock.EnterWriteLock();
+            try {
+                action();
+            } finally {
+                _lock.ExitWriteLock();
+            }
         }
 
         private static SixLabors.Fonts.Font GetDefaultFont() {
@@ -376,36 +387,44 @@ namespace OfficeIMO.Excel {
         }
 
         public void SetCellValue(int row, int column, string value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
-            cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
-            cell.DataType = CellValues.SharedString;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
+                cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.SharedString;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellValue(int row, int column, double value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
-            cell.DataType = CellValues.Number;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.Number;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellValue(int row, int column, decimal value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
-            cell.DataType = CellValues.Number;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.Number;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellValue(int row, int column, DateTime value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
-            cell.DataType = CellValues.Number;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.Number;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellValue(int row, int column, DateTimeOffset value, bool autoFitColumns = false, bool autoFitRows = false) {
@@ -413,11 +432,13 @@ namespace OfficeIMO.Excel {
         }
 
         public void SetCellValue(int row, int column, TimeSpan value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
-            cell.DataType = CellValues.Number;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.Number;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellValue(int row, int column, uint value, bool autoFitColumns = false, bool autoFitRows = false) {
@@ -441,18 +462,22 @@ namespace OfficeIMO.Excel {
         }
 
         public void SetCellValue(int row, int column, bool value, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value ? "1" : "0");
-            cell.DataType = CellValues.Boolean;
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellValue = new CellValue(value ? "1" : "0");
+                cell.DataType = CellValues.Boolean;
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellFormula(int row, int column, string formula, bool autoFitColumns = false, bool autoFitRows = false) {
-            Cell cell = GetCell(row, column);
-            cell.CellFormula = new CellFormula(formula);
-            if (autoFitColumns) AutoFitColumns();
-            if (autoFitRows) AutoFitRows();
+            WriteLock(() => {
+                Cell cell = GetCell(row, column);
+                cell.CellFormula = new CellFormula(formula);
+                if (autoFitColumns) AutoFitColumns();
+                if (autoFitRows) AutoFitRows();
+            });
         }
 
         public void SetCellFormat(int row, int column, string numberFormat) {
@@ -519,63 +544,65 @@ namespace OfficeIMO.Excel {
         }
 
         public void SetCellValue(int row, int column, object value, bool autoFitColumns = false, bool autoFitRows = false) {
-            switch (value) {
-                case string s:
-                    SetCellValue(row, column, s, autoFitColumns, autoFitRows);
-                    break;
-                case double d:
-                    SetCellValue(row, column, d, autoFitColumns, autoFitRows);
-                    break;
-                case float f:
-                    SetCellValue(row, column, Convert.ToDouble(f), autoFitColumns, autoFitRows);
-                    break;
-                case decimal dec:
-                    SetCellValue(row, column, dec, autoFitColumns, autoFitRows);
-                    break;
-                case int i:
-                    SetCellValue(row, column, (double)i, autoFitColumns, autoFitRows);
-                    break;
-                case long l:
-                    SetCellValue(row, column, (double)l, autoFitColumns, autoFitRows);
-                    break;
-                case DateTime dt:
-                    SetCellValue(row, column, dt, autoFitColumns, autoFitRows);
-                    break;
-                case DateTimeOffset dto:
-                    SetCellValue(row, column, dto, autoFitColumns, autoFitRows);
-                    break;
-                case TimeSpan ts:
-                    SetCellValue(row, column, ts, autoFitColumns, autoFitRows);
-                    break;
-                case bool b:
-                    SetCellValue(row, column, b, autoFitColumns, autoFitRows);
-                    break;
-                case uint ui:
-                    SetCellValue(row, column, ui, autoFitColumns, autoFitRows);
-                    break;
-                case ulong ul:
-                    SetCellValue(row, column, ul, autoFitColumns, autoFitRows);
-                    break;
-                case ushort us:
-                    SetCellValue(row, column, us, autoFitColumns, autoFitRows);
-                    break;
-                case byte by:
-                    SetCellValue(row, column, by, autoFitColumns, autoFitRows);
-                    break;
-                case sbyte sb:
-                    SetCellValue(row, column, sb, autoFitColumns, autoFitRows);
-                    break;
-                case short sh:
-                    SetCellValue(row, column, (double)sh, autoFitColumns, autoFitRows);
-                    break;
-                default:
-                    if (value != null) {
-                        SetCellValue(row, column, value.ToString(), autoFitColumns, autoFitRows);
-                    } else {
-                        SetCellValue(row, column, string.Empty, autoFitColumns, autoFitRows);
-                    }
-                    break;
-            }
+            WriteLock(() => {
+                switch (value) {
+                    case string s:
+                        SetCellValue(row, column, s, autoFitColumns, autoFitRows);
+                        break;
+                    case double d:
+                        SetCellValue(row, column, d, autoFitColumns, autoFitRows);
+                        break;
+                    case float f:
+                        SetCellValue(row, column, Convert.ToDouble(f), autoFitColumns, autoFitRows);
+                        break;
+                    case decimal dec:
+                        SetCellValue(row, column, dec, autoFitColumns, autoFitRows);
+                        break;
+                    case int i:
+                        SetCellValue(row, column, (double)i, autoFitColumns, autoFitRows);
+                        break;
+                    case long l:
+                        SetCellValue(row, column, (double)l, autoFitColumns, autoFitRows);
+                        break;
+                    case DateTime dt:
+                        SetCellValue(row, column, dt, autoFitColumns, autoFitRows);
+                        break;
+                    case DateTimeOffset dto:
+                        SetCellValue(row, column, dto, autoFitColumns, autoFitRows);
+                        break;
+                    case TimeSpan ts:
+                        SetCellValue(row, column, ts, autoFitColumns, autoFitRows);
+                        break;
+                    case bool b:
+                        SetCellValue(row, column, b, autoFitColumns, autoFitRows);
+                        break;
+                    case uint ui:
+                        SetCellValue(row, column, ui, autoFitColumns, autoFitRows);
+                        break;
+                    case ulong ul:
+                        SetCellValue(row, column, ul, autoFitColumns, autoFitRows);
+                        break;
+                    case ushort us:
+                        SetCellValue(row, column, us, autoFitColumns, autoFitRows);
+                        break;
+                    case byte by:
+                        SetCellValue(row, column, by, autoFitColumns, autoFitRows);
+                        break;
+                    case sbyte sb:
+                        SetCellValue(row, column, sb, autoFitColumns, autoFitRows);
+                        break;
+                    case short sh:
+                        SetCellValue(row, column, (double)sh, autoFitColumns, autoFitRows);
+                        break;
+                    default:
+                        if (value != null) {
+                            SetCellValue(row, column, value.ToString(), autoFitColumns, autoFitRows);
+                        } else {
+                            SetCellValue(row, column, string.Empty, autoFitColumns, autoFitRows);
+                        }
+                        break;
+                }
+            });
         }
 
         public void SetCellValue<T>(int row, int column, T? value, bool autoFitColumns = false, bool autoFitRows = false) where T : struct {
