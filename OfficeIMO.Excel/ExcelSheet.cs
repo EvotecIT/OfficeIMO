@@ -219,68 +219,72 @@ namespace OfficeIMO.Excel {
         /// Automatically fits all columns based on their content.
         /// </summary>
         public void AutoFitColumns() {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var columns = worksheet.GetFirstChild<Columns>();
-            HashSet<int> columnIndexes = new HashSet<int>();
+                var columns = worksheet.GetFirstChild<Columns>();
+                HashSet<int> columnIndexes = new HashSet<int>();
 
-            foreach (var row in sheetData.Elements<Row>()) {
-                foreach (var cell in row.Elements<Cell>()) {
-                    if (cell.CellReference == null) continue;
-                    columnIndexes.Add(GetColumnIndex(cell.CellReference.Value));
-                }
-            }
-
-            if (columns != null) {
-                foreach (var column in columns.Elements<Column>()) {
-                    uint min = column.Min?.Value ?? 0;
-                    uint max = column.Max?.Value ?? 0;
-                    for (uint i = min; i <= max; i++) {
-                        columnIndexes.Add((int)i);
+                foreach (var row in sheetData.Elements<Row>()) {
+                    foreach (var cell in row.Elements<Cell>()) {
+                        if (cell.CellReference == null) continue;
+                        columnIndexes.Add(GetColumnIndex(cell.CellReference.Value));
                     }
                 }
-            }
 
-            foreach (int index in columnIndexes.OrderBy(i => i)) {
-                AutoFitColumn(index);
-            }
+                if (columns != null) {
+                    foreach (var column in columns.Elements<Column>()) {
+                        uint min = column.Min?.Value ?? 0;
+                        uint max = column.Max?.Value ?? 0;
+                        for (uint i = min; i <= max; i++) {
+                            columnIndexes.Add((int)i);
+                        }
+                    }
+                }
 
-            worksheet.Save();
+                foreach (int index in columnIndexes.OrderBy(i => i)) {
+                    AutoFitColumn(index);
+                }
+
+                worksheet.Save();
+            });
         }
 
         /// <summary>
         /// Automatically fits all rows based on their content.
         /// </summary>
         public void AutoFitRows() {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var rowIndexes = sheetData.Elements<Row>()
-                .Select(r => (int)r.RowIndex!.Value)
-                .ToList();
+                var rowIndexes = sheetData.Elements<Row>()
+                    .Select(r => (int)r.RowIndex!.Value)
+                    .ToList();
 
-            foreach (int rowIndex in rowIndexes) {
-                AutoFitRow(rowIndex);
-            }
-
-            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
-            bool anyCustom = sheetData.Elements<Row>()
-                .Any(r => r.CustomHeight != null && r.CustomHeight.Value);
-
-            if (anyCustom) {
-                if (sheetFormat == null) {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                foreach (int rowIndex in rowIndexes) {
+                    AutoFitRow(rowIndex);
                 }
-                sheetFormat.DefaultRowHeight = 15;
-                sheetFormat.CustomHeight = true;
-            } else if (sheetFormat != null) {
-                sheetFormat.Remove();
-            }
 
-            worksheet.Save();
+                var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+                bool anyCustom = sheetData.Elements<Row>()
+                    .Any(r => r.CustomHeight != null && r.CustomHeight.Value);
+
+                if (anyCustom) {
+                    if (sheetFormat == null) {
+                        sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                    }
+                    sheetFormat.DefaultRowHeight = 15;
+                    sheetFormat.CustomHeight = true;
+                } else if (sheetFormat != null) {
+                    sheetFormat.Remove();
+                }
+
+                worksheet.Save();
+            });
         }
 
         public void AutoFitColumn(int columnIndex) {
