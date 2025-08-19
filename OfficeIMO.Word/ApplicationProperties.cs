@@ -155,15 +155,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the document security information.
         /// </summary>
         public DocumentSecurity? DocumentSecurity {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DocumentSecurity;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DocumentSecurity;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -176,15 +168,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the heading pairs associated with the document.
         /// </summary>
         public HeadingPairs? HeadingPairs {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HeadingPairs;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.HeadingPairs;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -197,15 +181,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the hidden slides information for the document.
         /// </summary>
         public HiddenSlides? HiddenSlides {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HiddenSlides;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.HiddenSlides;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -218,15 +194,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the base address used for resolving hyperlinks.
         /// </summary>
         public HyperlinkBase? HyperlinkBase {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkBase;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.HyperlinkBase;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -239,15 +207,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the list of hyperlinks in the document.
         /// </summary>
         public HyperlinkList? HyperlinkList {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinkList;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.HyperlinkList;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -260,15 +220,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the total number of lines in the document.
         /// </summary>
         public Lines? Lines {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Lines;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.Lines;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -281,15 +233,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the manager associated with the document.
         /// </summary>
         public Manager? Manager {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Manager;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.Manager;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -302,15 +246,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether hyperlinks have changed.
         /// </summary>
         public HyperlinksChanged? HyperlinksChanged {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.HyperlinksChanged;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.HyperlinksChanged;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -323,15 +259,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the notes information for the document.
         /// </summary>
         public Notes? Notes {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Notes;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.Notes;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -344,15 +272,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the multimedia clips associated with the document.
         /// </summary>
         public MultimediaClips? MultimediaClips {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.MultimediaClips;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.MultimediaClips;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -365,15 +285,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the total editing time for the document.
         /// </summary>
         public TotalTime? TotalTime {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.TotalTime;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.TotalTime;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -386,15 +298,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the scale crop information for the document.
         /// </summary>
         public ScaleCrop? ScaleCrop {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.ScaleCrop;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.ScaleCrop;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -407,12 +311,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the presentation format used by the document.
         /// </summary>
         public PresentationFormat? PresentationFormat {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.PresentationFormat;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.PresentationFormat;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -425,12 +324,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the template from which the document was created.
         /// </summary>
         public Template? Template {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Template;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.Template;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -444,12 +338,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the document is shared.
         /// </summary>
         public SharedDocument? SharedDocument {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.SharedDocument;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.SharedDocument;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
@@ -463,12 +352,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the total number of words in the document.
         /// </summary>
         public Words? Words {
-            get {
-                if (_wordprocessingDocument.ExtendedFilePropertiesPart == null || _wordprocessingDocument.ExtendedFilePropertiesPart.Properties == null) {
-                    return null;
-                }
-                return _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Words;
-            }
+            get => _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.Words;
             set {
                 var properties = GetProperties();
                 if (properties == null) {
