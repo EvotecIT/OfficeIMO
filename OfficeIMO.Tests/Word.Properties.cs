@@ -209,8 +209,8 @@ namespace OfficeIMO.Tests {
                 p1.Text = "Chapter1";
                 p1.SetStyleId(WordParagraphStyles.Heading1.ToString());
                 var p2 = document.AddParagraph("Chatper2").SetStyle(WordParagraphStyles.Heading1);
-                var style1= p1.Style.Value;
-                var style2= p2.Style.Value;
+                var style1= p1.Style!.Value;
+                var style2= p2.Style!.Value;
                 Assert.True(style1 == style2);
                 document.Save(tempFile);    
                
@@ -218,8 +218,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(tempFile)) {
                 var p3 = document.Paragraphs[0];
                 var p4 = document.Paragraphs[1];
-                var style3 = p3.Style.Value;
-                var style4 = p4.Style.Value;
+                var style3 = p3.Style!.Value;
+                var style4 = p4.Style!.Value;
                 Assert.True(style3 == style4);
             }
         }

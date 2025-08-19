@@ -19,9 +19,9 @@ namespace OfficeIMO.Tests {
             }
 
             using var word = WordprocessingDocument.Open(filePath, false);
-            var fontTablePart = word.MainDocumentPart.FontTablePart;
+            var fontTablePart = word.MainDocumentPart!.FontTablePart;
             Assert.NotNull(fontTablePart);
-            Assert.True(fontTablePart.FontParts.Any());
+            Assert.True(fontTablePart!.FontParts.Any());
             File.Delete(fontPath);
         }
 
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var word = WordprocessingDocument.Open(filePath, false);
-            var styles = word.MainDocumentPart.StyleDefinitionsPart!.Styles;
+            var styles = word.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Assert.NotNull(styles.Elements<Style>().FirstOrDefault(s => s.StyleId == "DejaVuStyle"));
             File.Delete(fontPath);
         }

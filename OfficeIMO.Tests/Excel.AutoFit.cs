@@ -21,21 +21,21 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var columns = wsPart.Worksheet.GetFirstChild<Columns>();
                 Assert.NotNull(columns);
-                var column = columns.Elements<Column>().First();
-                Assert.True(column.BestFit.Value);
-                Assert.True(column.Width.HasValue && column.Width.Value > 0);
+                var column = columns!.Elements<Column>().First();
+                Assert.True(column.BestFit?.Value ?? false);
+                Assert.True(column.Width is { } w && w.Value > 0);
 
                 var sheetFormat = wsPart.Worksheet.GetFirstChild<SheetFormatProperties>();
                 Assert.NotNull(sheetFormat);
-                Assert.True(sheetFormat.CustomHeight);
-                Assert.True(sheetFormat.DefaultRowHeight > 0);
+                Assert.True(sheetFormat.CustomHeight!.Value);
+                Assert.True(sheetFormat.DefaultRowHeight!.Value > 0);
 
-                var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 1);
-                Assert.True(row.CustomHeight);
-                Assert.True(row.Height.HasValue && row.Height.Value > 0);
+                var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 1)!;
+                Assert.True(row.CustomHeight!.Value);
+                Assert.True(row.Height is { } h && h.Value > 0);
             }
         }
     }

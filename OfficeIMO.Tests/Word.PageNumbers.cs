@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].PageNumberType.Format.Value);
+                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].PageNumberType!.Format!.Value);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var headerPart = document._wordprocessingDocument.MainDocumentPart.HeaderParts.First();
+                var headerPart = document._wordprocessingDocument!.MainDocumentPart!.HeaderParts.First();
                 string text = headerPart.Header.InnerText;
                 Assert.Contains("custom", text);
                 var errors = document.ValidateDocument();
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                var footerPart = document._wordprocessingDocument!.MainDocumentPart!.FooterParts.First();
                 string text = footerPart.Footer.InnerText;
                 Assert.Contains(" of ", text);
                 var errors = document.ValidateDocument();
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Sections.Count);
                 Assert.NotNull(document.Sections[1].PageNumberType);
-                Assert.Equal(1, document.Sections[1].PageNumberType.Start.Value);
+                Assert.Equal(1, document.Sections[1].PageNumberType!.Start!.Value);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -155,8 +155,8 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.UpperRoman, document.Sections[0].PageNumberType.Format.Value);
-                Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
+                Assert.Equal(NumberFormatValues.UpperRoman, document.Sections[0].PageNumberType!.Format!.Value);
+                Assert.Contains(document.Sections[0].Footer!.Default!.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                var footerPart = document._wordprocessingDocument!.MainDocumentPart!.FooterParts.First();
                 string xml = footerPart.Footer.InnerXml;
                 Assert.Contains($"\\@ \"{format}\"", xml);
                 var errors = document.ValidateDocument();

@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 list.AddItem("Two");
                 indent = list.Numbering.Levels.First().IndentationLeft;
                 list.ConvertToNumbered();
-                Assert.Equal(NumberFormatValues.Decimal, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.Equal(NumberFormatValues.Decimal, list.Numbering.Levels.First()._level!.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
                 document.Save(false);
             }
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var list = document.Lists.First();
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
-                Assert.Equal(NumberFormatValues.Decimal, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.Equal(NumberFormatValues.Decimal, list.Numbering.Levels.First()._level!.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
             }
         }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 list.AddItem("Two");
                 indent = list.Numbering.Levels.First().IndentationLeft;
                 list.ConvertToBulleted();
-                Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level!.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
                 document.Save(false);
             }
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var list = document.Lists.First();
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
-                Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level!.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
             }
         }

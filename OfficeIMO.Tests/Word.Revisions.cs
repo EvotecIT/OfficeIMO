@@ -23,13 +23,13 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Contains(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.Contains(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.Contains(document._document!.Body!.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.Contains(document._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
 
                 document.AcceptRevisions();
 
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.DoesNotContain(document._document!.Body!.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(document._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Before");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Added");
             }
@@ -49,8 +49,8 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.RejectRevisions();
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.DoesNotContain(document._document!.Body!.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(document._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Removed");
             }
         }
@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.ConvertRevisionsToMarkup();
 
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), r => r.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), r => r.InnerText == "Removed");
+                Assert.DoesNotContain(document._document!.Body!.Descendants<InsertedRun>(), r => r.InnerText == "Added");
+                Assert.DoesNotContain(document._document.Body!.Descendants<DeletedRun>(), r => r.InnerText == "Removed");
 
                 var insertedRun = document._document.Body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Added");
                 Assert.NotNull(insertedRun);

@@ -33,10 +33,10 @@ namespace OfficeIMO.Tests {
 
             using (var merged = WordDocument.Load(filePath1)) {
                 Assert.Equal(2, merged.Lists.Count);
-                var numbering = merged._wordprocessingDocument.MainDocumentPart
+                var numbering = merged._wordprocessingDocument!.MainDocumentPart!
                     .NumberingDefinitionsPart!.Numbering;
                 var ids = numbering.Elements<NumberingInstance>()
-                    .Select(n => n.NumberID.Value).Distinct().ToList();
+                    .Select(n => n.NumberID!.Value).Distinct().ToList();
                 Assert.Equal(2, ids.Count);
             }
         }
@@ -68,10 +68,10 @@ namespace OfficeIMO.Tests {
 
         using (var merged = WordDocument.Load(filePath1)) {
             Assert.Equal(2, merged.Lists.Count);
-            var numbering = merged._wordprocessingDocument.MainDocumentPart
+            var numbering = merged._wordprocessingDocument!.MainDocumentPart!
                 .NumberingDefinitionsPart!.Numbering;
             var ids = numbering.Elements<NumberingInstance>()
-                .Select(n => n.NumberID.Value).Distinct().ToList();
+                .Select(n => n.NumberID!.Value).Distinct().ToList();
             Assert.Equal(2, ids.Count);
             Assert.Equal(4, merged.Paragraphs.Count(p => p.IsListItem));
         }
@@ -110,10 +110,10 @@ namespace OfficeIMO.Tests {
         }
 
         using (var merged = WordDocument.Load(filePath1)) {
-            var numbering = merged._wordprocessingDocument.MainDocumentPart
+            var numbering = merged._wordprocessingDocument!.MainDocumentPart!
                 .NumberingDefinitionsPart!.Numbering;
             var ids = numbering.Elements<NumberingInstance>()
-                .Select(n => n.NumberID.Value).Distinct().ToList();
+                .Select(n => n.NumberID!.Value).Distinct().ToList();
             Assert.Equal(3, ids.Count);
         }
     }

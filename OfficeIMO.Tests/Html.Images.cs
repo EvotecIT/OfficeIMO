@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             Assert.Collection(doc.Images, _ => { }, _ => { });
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
+            Assert.Single(doc._wordprocessingDocument!.MainDocumentPart!.ImageParts);
         }
 
         [Fact]
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
+            Assert.Single(doc._wordprocessingDocument!.MainDocumentPart!.ImageParts);
         }
 
         [Fact]

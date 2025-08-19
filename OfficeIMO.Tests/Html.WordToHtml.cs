@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.AddParagraph();
             paragraph.AddImage(assetPath, 40, 40, description: "Company logo");
 
-            Assert.Equal("Company logo", paragraph.Image.Description);
+            Assert.Equal("Company logo", paragraph.Image!.Description);
 
             string html = doc.ToHtml();
 
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_BulletType() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);
-            list.Numbering.Levels[0]._level.LevelText.Val = "o";
+            list.Numbering.Levels[0]._level.LevelText!.Val = "o";
             list.AddItem("One");
             list.AddItem("Two");
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_LowerLetter() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.ArticleSections);
-            list.Numbering.Levels[0]._level.NumberingFormat.Val = NumberFormatValues.LowerLetter;
+            list.Numbering.Levels[0]._level.NumberingFormat!.Val = NumberFormatValues.LowerLetter;
             list.AddItem("alpha");
             list.AddItem("beta");
 
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_DecimalLeadingZero() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.ArticleSections);
-            list.Numbering.Levels[0]._level.NumberingFormat.Val = NumberFormatValues.DecimalZero;
+            list.Numbering.Levels[0]._level.NumberingFormat!.Val = NumberFormatValues.DecimalZero;
             list.Numbering.Levels[0].SetStartNumberingValue(3);
             list.AddItem("three");
             list.AddItem("four");

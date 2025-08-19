@@ -57,9 +57,9 @@ namespace OfficeIMO.Tests {
 
             using FileStream zipStream = File.OpenRead(filePath);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
-            ZipArchiveEntry entry = archive.GetEntry("[Content_Types].xml");
+            ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
             Assert.NotNull(entry);
-            using Stream entryStream = entry.Open();
+            using Stream entryStream = entry!.Open();
             XDocument contentTypes = XDocument.Load(entryStream);
             XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
             bool hasDocOverride = contentTypes.Root?.Elements(ct + "Override").Any(e => e.Attribute("PartName")?.Value == "/visio/document.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.drawing.main+xml") == true;
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/pages.xml"));
             Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/pages/page1.xml"));
 
-            XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+            XElement? shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
             Assert.Equal("1", shape?.Attribute("ID")?.Value);
             Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
         }

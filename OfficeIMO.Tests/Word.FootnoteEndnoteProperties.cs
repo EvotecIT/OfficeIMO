@@ -27,15 +27,15 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].FootnoteProperties.NumberingFormat.Val.Value);
-                Assert.Equal(FootnotePositionValues.PageBottom, document.Sections[0].FootnoteProperties.FootnotePosition.Val.Value);
-                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].FootnoteProperties.NumberingRestart.Val.Value);
-                Assert.Equal(5, document.Sections[0].FootnoteProperties.NumberingStart.Val.Value);
+                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].FootnoteProperties!.NumberingFormat!.Val!.Value);
+                Assert.Equal(FootnotePositionValues.PageBottom, document.Sections[0].FootnoteProperties.FootnotePosition!.Val!.Value);
+                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].FootnoteProperties.NumberingRestart!.Val!.Value);
+                Assert.Equal(5, document.Sections[0].FootnoteProperties.NumberingStart!.Val!.Value);
 
-                Assert.Equal(NumberFormatValues.Decimal, document.Sections[0].EndnoteProperties.NumberingFormat.Val.Value);
-                Assert.Equal(EndnotePositionValues.SectionEnd, document.Sections[0].EndnoteProperties.EndnotePosition.Val.Value);
-                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].EndnoteProperties.NumberingRestart.Val.Value);
-                Assert.Equal(5, document.Sections[0].EndnoteProperties.NumberingStart.Val.Value);
+                Assert.Equal(NumberFormatValues.Decimal, document.Sections[0].EndnoteProperties!.NumberingFormat!.Val!.Value);
+                Assert.Equal(EndnotePositionValues.SectionEnd, document.Sections[0].EndnoteProperties.EndnotePosition!.Val!.Value);
+                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].EndnoteProperties.NumberingRestart!.Val!.Value);
+                Assert.Equal(5, document.Sections[0].EndnoteProperties.NumberingStart!.Val!.Value);
             }
         }
     }
