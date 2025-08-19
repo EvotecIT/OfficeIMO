@@ -66,8 +66,8 @@ namespace OfficeIMO.Word {
         /// <returns>The WordParagraph that AddImage was called on.</returns>
         public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
-            VerifyRun();
-            _run.Append(wordImage._Image);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
             return this;
         }
         /// <summary>
@@ -83,8 +83,8 @@ namespace OfficeIMO.Word {
         /// <returns>The WordParagraph that AddImage was called on.</returns>
         public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
-            VerifyRun();
-            _run.Append(wordImage._Image);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
             return this;
         }
 
@@ -93,8 +93,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraph AddImage(Uri imageUri, double width, double height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
-            VerifyRun();
-            _run.Append(wordImage._Image);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
             return this;
         }
 
@@ -103,8 +103,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
             var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
-            VerifyRun();
-            _run.Append(wordImage._Image);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
             return this;
         }
 
@@ -127,8 +127,8 @@ namespace OfficeIMO.Word {
             using (stream) {
                 var fileName = Path.GetFileName(resourceName);
                 var wordImage = new WordImage(_document, this, stream, fileName, width, height, wrapImageText, description);
-                VerifyRun();
-                _run.Append(wordImage._Image);
+                var run = VerifyRun();
+                run.Append(wordImage._Image);
             }
             return this;
         }
@@ -157,11 +157,11 @@ namespace OfficeIMO.Word {
             if (_paragraph != null) {
                 if (this._paragraph.Parent != null) {
                     if (this.IsBookmark) {
-                        this.Bookmark.Remove();
+                        this.Bookmark!.Remove();
                     }
 
                     if (this.IsBreak) {
-                        this.Break.Remove();
+                        this.Break!.Remove();
                         // Removing a break can also remove the entire paragraph.
                         // When that happens there's nothing else to clean up.
                         if (this._paragraph.Parent == null) {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word {
                     //}
 
                     if (this.IsEquation) {
-                        this.Equation.Remove();
+                        this.Equation!.Remove();
                     }
 
                     if (this.IsHyperLink) {
@@ -187,15 +187,15 @@ namespace OfficeIMO.Word {
                     }
 
                     if (this.IsImage) {
-                        this.Image.Remove();
+                        this.Image!.Remove();
                     }
 
                     if (this.IsStructuredDocumentTag) {
-                        this.StructuredDocumentTag.Remove();
+                        this.StructuredDocumentTag!.Remove();
                     }
 
                     if (this.IsField) {
-                        this.Field.Remove();
+                        this.Field!.Remove();
                     }
 
                     var runs = this._paragraph.ChildElements.OfType<Run>().ToList();
@@ -206,7 +206,7 @@ namespace OfficeIMO.Word {
                     } else {
                         foreach (var run in runs) {
                             if (run == _run) {
-                                this._run.Remove();
+                                run.Remove();
                             }
                         }
                     }
@@ -316,7 +316,8 @@ namespace OfficeIMO.Word {
         /// <returns>The new Paragraph after the line.</returns>
         public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
-            this._paragraphProperties.ParagraphBorders = new ParagraphBorders {
+            var paragraphProperties = _paragraph!.ParagraphProperties ??= new ParagraphProperties();
+            paragraphProperties.ParagraphBorders = new ParagraphBorders {
                 BottomBorder = new BottomBorder() {
                     Val = lineType.Value,
                     Size = size,
@@ -851,7 +852,7 @@ namespace OfficeIMO.Word {
             this._paragraph.Append(sdtRun);
 
             var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
-            return paragraph.StructuredDocumentTag;
+            return paragraph.StructuredDocumentTag!;
         }
 
         /// <summary>
@@ -885,7 +886,7 @@ namespace OfficeIMO.Word {
             this._paragraph.Append(sdtRun);
 
             var paragraph = new WordParagraph(this._document, this._paragraph, sdtRun);
-            return paragraph.CheckBox;
+            return paragraph.CheckBox!;
         }
 
         /// <summary>
