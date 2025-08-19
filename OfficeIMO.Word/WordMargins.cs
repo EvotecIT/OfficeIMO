@@ -1,12 +1,12 @@
-using System;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
 
 namespace OfficeIMO.Word {
     /// <summary>
     /// Predefined margin configurations available for a document section.
     /// </summary>
-public enum WordMargin {
+    public enum WordMargin {
         /// <summary>
         /// Standard one inch margins on all sides.
         /// </summary>
@@ -60,11 +60,11 @@ public enum WordMargin {
         public UInt32Value Left {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Left;
+                if (pageMargin?.Left != null) {
+                    return pageMargin.Left!;
                 }
 
-                return WordMargins.Normal.Left;
+                return WordMargins.Normal.Left!;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -73,7 +73,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Left = value;
+                pageMargin!.Left = value;
             }
         }
 
@@ -83,11 +83,11 @@ public enum WordMargin {
         public UInt32Value Right {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Right;
+                if (pageMargin?.Right != null) {
+                    return pageMargin.Right!;
                 }
 
-                return WordMargins.Normal.Right;
+                return WordMargins.Normal.Right!;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -96,7 +96,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Right = value;
+                pageMargin!.Right = value;
             }
         }
 
@@ -106,11 +106,8 @@ public enum WordMargin {
         public int? Top {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Top;
-                }
-
-                return WordMargins.Normal.Top;
+                var top = pageMargin?.Top?.Value;
+                return top ?? WordMargins.Normal.Top!.Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -119,7 +116,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Top = value;
+                pageMargin!.Top = value;
             }
         }
 
@@ -129,11 +126,8 @@ public enum WordMargin {
         public int? Bottom {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Bottom;
-                }
-
-                return WordMargins.Normal.Bottom;
+                var bottom = pageMargin?.Bottom?.Value;
+                return bottom ?? WordMargins.Normal.Bottom!.Value;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -142,7 +136,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Bottom = value;
+                pageMargin!.Bottom = value;
             }
         }
 
@@ -151,12 +145,12 @@ public enum WordMargin {
         /// </summary>
         public double? TopCentimeters {
             get {
-                if (Top != null) {
-                    return Helpers.ConvertTwipsToCentimeters(Top.Value);
-                }
-                return null;
+                var top = Top;
+                return top.HasValue ? Helpers.ConvertTwipsToCentimeters(top.Value) : (double?)null;
             }
-            set => Top = Helpers.ConvertCentimetersToTwips(value.Value);
+            set {
+                Top = value.HasValue ? Helpers.ConvertCentimetersToTwips(value.Value) : (int?)null;
+            }
         }
 
         /// <summary>
@@ -164,13 +158,12 @@ public enum WordMargin {
         /// </summary>
         public double? BottomCentimeters {
             get {
-                if (Bottom != null) {
-                    return Helpers.ConvertTwipsToCentimeters(Bottom.Value);
-
-                }
-                return null;
+                var bottom = Bottom;
+                return bottom.HasValue ? Helpers.ConvertTwipsToCentimeters(bottom.Value) : (double?)null;
             }
-            set => Bottom = Helpers.ConvertCentimetersToTwips(value.Value);
+            set {
+                Bottom = value.HasValue ? Helpers.ConvertCentimetersToTwips(value.Value) : (int?)null;
+            }
         }
 
         /// <summary>
@@ -178,12 +171,14 @@ public enum WordMargin {
         /// </summary>
         public double? LeftCentimeters {
             get {
-                if (Left != null) {
-                    return Helpers.ConvertTwipsToCentimeters(Left.Value);
-                }
-                return null;
+                var left = Left;
+                return left != null ? Helpers.ConvertTwipsToCentimeters(left.Value) : (double?)null;
             }
-            set => Left = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+            set {
+                if (value.HasValue) {
+                    Left = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+                }
+            }
         }
 
         /// <summary>
@@ -191,12 +186,14 @@ public enum WordMargin {
         /// </summary>
         public double? RightCentimeters {
             get {
-                if (Right != null) {
-                    return Helpers.ConvertTwipsToCentimeters(Right.Value);
-                }
-                return null;
+                var right = Right;
+                return right != null ? Helpers.ConvertTwipsToCentimeters(right.Value) : (double?)null;
             }
-            set => Right = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+            set {
+                if (value.HasValue) {
+                    Right = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
+                }
+            }
         }
 
         /// <summary>
@@ -205,11 +202,11 @@ public enum WordMargin {
         public UInt32Value HeaderDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Header;
+                if (pageMargin?.Header != null) {
+                    return pageMargin.Header!;
                 }
 
-                return WordMargins.Normal.Header;
+                return WordMargins.Normal.Header!;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -218,7 +215,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Header = value;
+                pageMargin!.Header = value;
             }
         }
 
@@ -228,11 +225,11 @@ public enum WordMargin {
         public UInt32Value FooterDistance {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Footer;
+                if (pageMargin?.Footer != null) {
+                    return pageMargin.Footer!;
                 }
 
-                return WordMargins.Normal.Footer;
+                return WordMargins.Normal.Footer!;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -241,7 +238,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Footer = value;
+                pageMargin!.Footer = value;
             }
         }
 
@@ -251,11 +248,11 @@ public enum WordMargin {
         public UInt32Value Gutter {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
-                if (pageMargin != null) {
-                    return pageMargin.Gutter;
+                if (pageMargin?.Gutter != null) {
+                    return pageMargin.Gutter!;
                 }
 
-                return WordMargins.Normal.Gutter;
+                return WordMargins.Normal.Gutter!;
             }
             set {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
@@ -264,7 +261,7 @@ public enum WordMargin {
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin.Gutter = value;
+                pageMargin!.Gutter = value;
             }
         }
 

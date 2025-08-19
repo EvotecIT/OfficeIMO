@@ -1,8 +1,8 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
+using System.Linq;
 
 namespace OfficeIMO.Word {
 
@@ -41,9 +41,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the URI of the hyperlink.
         /// </summary>
-        public System.Uri Uri {
+        public System.Uri? Uri {
             get {
-                var list = _document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships;
+                var list = _document._wordprocessingDocument!.MainDocumentPart!.HyperlinkRelationships;
                 foreach (var l in list) {
                     if (l.Id == _hyperlink.Id) {
                         return l.Uri;
@@ -53,8 +53,8 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                var rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(value, true);
-                if (rel != null) {
+                if (value != null) {
+                    var rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(value, true);
                     _hyperlink.Id = rel.Id;
                 }
             }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies a location in the target of the hyperlink, in the case in which the link is an external link.
         /// </summary>
-        public string Id {
+        public string? Id {
             get {
                 return _hyperlink.Id;
             }
@@ -72,13 +72,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal Run _run {
+        internal Run? _run {
             get {
                 return _hyperlink.Descendants<Run>().FirstOrDefault();
             }
         }
 
-        internal RunProperties _runProperties {
+        internal RunProperties? _runProperties {
             get {
                 return _hyperlink.Descendants<RunProperties>().FirstOrDefault();
             }
@@ -87,18 +87,19 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Indicates whether the hyperlink uses the mailto scheme.
         /// </summary>
-        public bool IsEmail => Uri.Scheme == Uri.UriSchemeMailto;
+        public bool IsEmail => Uri?.Scheme == Uri.UriSchemeMailto;
 
         /// <summary>
         /// Gets the email address if the hyperlink is a mailto link.
         /// </summary>
         public string EmailAddress {
             get {
-                if (IsEmail) {
-                    return Uri.AbsoluteUri.Replace(Uri.PathAndQuery, "").Replace("mailto:", "");
+                var uri = Uri;
+                if (uri != null && IsEmail) {
+                    return uri.AbsoluteUri.Replace(uri.PathAndQuery, "").Replace("mailto:", "");
                 }
 
-                return "";
+                return string.Empty;
             }
         }
 
@@ -107,7 +108,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool History {
             get {
-                return _hyperlink.History;
+                return _hyperlink.History?.Value ?? false;
             }
             set {
                 _hyperlink.History = value;
@@ -117,7 +118,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Specifies a location in the target of the hyperlink, in the case in which the link is an external link.
         /// </summary>
-        public string DocLocation {
+        public string? DocLocation {
             get {
                 return _hyperlink.DocLocation;
             }
@@ -131,7 +132,7 @@ namespace OfficeIMO.Word {
         /// See Bookmark. If the attribute is omitted, then the default behavior is to navigate to the start of the document.
         /// If the r:id attribute is specified, then the anchor attribute is ignored.
         /// </summary>
-        public string Anchor {
+        public string? Anchor {
             get {
                 return _hyperlink.Anchor;
             }
@@ -143,7 +144,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tooltip displayed when hovering over the hyperlink.
         /// </summary>
-        public string Tooltip {
+        public string? Tooltip {
             get {
                 return _hyperlink.Tooltip;
             }
@@ -157,30 +158,28 @@ namespace OfficeIMO.Word {
         /// </summary>
         public TargetFrame? TargetFrame {
             get {
-                if (_hyperlink != null) {
-                    string target = _hyperlink.TargetFrame;
-                    if (target != null) {
-                        var targetFrame = (TargetFrame)Enum.Parse(typeof(TargetFrame), target, true);
-                        return targetFrame;
-                    }
+                string? target = _hyperlink.TargetFrame;
+                if (!string.IsNullOrEmpty(target)) {
+                    var targetFrame = (TargetFrame)Enum.Parse(typeof(TargetFrame), target, true);
+                    return targetFrame;
                 }
 
                 return null;
             }
             set {
-                _hyperlink.TargetFrame = value.ToString();
+                _hyperlink.TargetFrame = value?.ToString();
             }
         }
 
         /// <summary>
         /// Gets a value indicating whether the hyperlink uses the HTTP or HTTPS scheme.
         /// </summary>
-        public bool IsHttp => Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp;
+        public bool IsHttp => Uri != null && (Uri.Scheme == Uri.UriSchemeHttps || Uri.Scheme == Uri.UriSchemeHttp);
 
         /// <summary>
         /// Gets the scheme component of the hyperlink URI.
         /// </summary>
-        public string Scheme => Uri.Scheme;
+        public string? Scheme => Uri?.Scheme;
 
         /// <summary>
         /// Gets or sets the display text for the hyperlink.
@@ -238,19 +237,19 @@ namespace OfficeIMO.Word {
         /// <param name="includingParagraph"></param>
         public void RemoveHyperLink(bool includingParagraph = true) {
             if (!string.IsNullOrEmpty(_hyperlink.Id)) {
-                OpenXmlElement parent = _paragraph.Parent;
+                OpenXmlElement? parent = _paragraph.Parent;
                 while (parent != null && !(parent is Body) && !(parent is Header) && !(parent is Footer)) {
                     parent = parent.Parent;
                 }
 
-                OpenXmlPart part = _document._wordprocessingDocument.MainDocumentPart;
-                if (parent is Header header) {
+                OpenXmlPart part = _document._wordprocessingDocument!.MainDocumentPart!;
+                if (parent is Header header && header.HeaderPart != null) {
                     part = header.HeaderPart;
-                } else if (parent is Footer footer) {
+                } else if (parent is Footer footer && footer.FooterPart != null) {
                     part = footer.FooterPart;
                 }
 
-                var rel = part.HyperlinkRelationships.FirstOrDefault(r => r.Id == _hyperlink.Id);
+                var rel = part.HyperlinkRelationships?.FirstOrDefault(r => r.Id == _hyperlink.Id);
                 if (rel != null) {
                     part.DeleteReferenceRelationship(rel);
                 }
@@ -312,14 +311,14 @@ namespace OfficeIMO.Word {
             var header = paragraph._paragraph.Ancestors<Header>().FirstOrDefault();
             var footer = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault();
 
-            if (header != null) {
+            if (header?.HeaderPart != null) {
                 rel = header.HeaderPart.AddHyperlinkRelationship(uri, true);
-            } else if (footer != null) {
+            } else if (footer?.FooterPart != null) {
                 rel = footer.FooterPart.AddHyperlinkRelationship(uri, true);
             } else {
                 // Default to the main document part for paragraphs that are
                 // located in the body or in elements such as text boxes or tables.
-                rel = paragraph._document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(uri, true);
+                rel = paragraph._document._wordprocessingDocument.MainDocumentPart!.AddHyperlinkRelationship(uri, true);
             }
 
             Hyperlink hyperlink = new Hyperlink() {
@@ -380,12 +379,12 @@ namespace OfficeIMO.Word {
             var header = _paragraph.Ancestors<Header>().FirstOrDefault();
             var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
 
-            if (header != null) {
+            if (header?.HeaderPart != null) {
                 rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footer != null) {
+            } else if (footer?.FooterPart != null) {
                 rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
             } else {
-                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+                rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
             }
 
             Hyperlink hyperlink = new Hyperlink() {
@@ -422,12 +421,12 @@ namespace OfficeIMO.Word {
             var header = _paragraph.Ancestors<Header>().FirstOrDefault();
             var footer = _paragraph.Ancestors<Footer>().FirstOrDefault();
 
-            if (header != null) {
+            if (header?.HeaderPart != null) {
                 rel = header.HeaderPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footer != null) {
+            } else if (footer?.FooterPart != null) {
                 rel = footer.FooterPart.AddHyperlinkRelationship(newUri, true);
             } else {
-                rel = _document._wordprocessingDocument.MainDocumentPart.AddHyperlinkRelationship(newUri, true);
+                rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
             }
 
             Hyperlink hyperlink = new Hyperlink() {
@@ -471,9 +470,8 @@ namespace OfficeIMO.Word {
         public void CopyFormattingFrom(WordHyperLink reference) {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
 
-            Run run = _run;
-            if (run == null) {
-                run = new Run();
+            Run run = _run ?? new Run();
+            if (_run == null) {
                 _hyperlink.Append(run);
             }
 
