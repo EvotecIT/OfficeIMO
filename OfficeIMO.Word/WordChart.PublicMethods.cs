@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
-            var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+            var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
                 InsertSeries(barChart, barChartSeries);

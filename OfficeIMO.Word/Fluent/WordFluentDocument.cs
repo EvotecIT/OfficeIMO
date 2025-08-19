@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives an <see cref="InfoBuilder"/>.</param>
         public WordFluentDocument Info(Action<InfoBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new InfoBuilder(this));
             return this;
         }
@@ -30,6 +31,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="SectionBuilder"/>.</param>
         public WordFluentDocument Section(Action<SectionBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new SectionBuilder(this));
             return this;
         }
@@ -39,6 +41,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="PageSetupBuilder"/>.</param>
         public WordFluentDocument PageSetup(Action<PageSetupBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new PageSetupBuilder(this));
             return this;
         }
@@ -49,6 +52,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="action">Action that receives a <see cref="ParagraphBuilder"/>.</param>
         public WordFluentDocument Paragraph(Action<ParagraphBuilder> action) {
             var paragraph = Document.AddParagraph();
+            ArgumentNullException.ThrowIfNull(action);
             action(new ParagraphBuilder(this, paragraph));
             return this;
         }
@@ -58,6 +62,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="ListBuilder"/>.</param>
         public WordFluentDocument List(Action<ListBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new ListBuilder(this));
             return this;
         }
@@ -67,6 +72,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="TableBuilder"/>.</param>
         public WordFluentDocument Table(Action<TableBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new TableBuilder(this));
             return this;
         }
@@ -76,6 +82,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives an <see cref="ImageBuilder"/>.</param>
         public WordFluentDocument Image(Action<ImageBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new ImageBuilder(this));
             return this;
         }
@@ -85,6 +92,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="HeadersBuilder"/>.</param>
         public WordFluentDocument Header(Action<HeadersBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new HeadersBuilder(this));
             return this;
         }
@@ -94,6 +102,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action that receives a <see cref="FootersBuilder"/>.</param>
         public WordFluentDocument Footer(Action<FootersBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             action(new FootersBuilder(this));
             return this;
         }
@@ -110,6 +119,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Action to execute for every paragraph.</param>
         public WordFluentDocument ForEachParagraph(Action<ParagraphBuilder> action) {
+            ArgumentNullException.ThrowIfNull(action);
             Document.ForEachParagraph(p => action(new ParagraphBuilder(this, p)));
             return this;
         }
@@ -121,6 +131,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="action">Action executed for each matching paragraph.</param>
         /// <param name="stringComparison">String comparison option.</param>
         public WordFluentDocument Find(string text, Action<ParagraphBuilder> action, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            ArgumentNullException.ThrowIfNull(action);
             foreach (var paragraph in Document.FindParagraphs(text, stringComparison)) {
                 action(new ParagraphBuilder(this, paragraph));
             }
@@ -132,6 +143,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="predicate">Filter predicate.</param>
         public IEnumerable<ParagraphBuilder> Select(Func<ParagraphBuilder, bool> predicate) {
+            ArgumentNullException.ThrowIfNull(predicate);
             foreach (var paragraph in Document.SelectParagraphs(p => predicate(new ParagraphBuilder(this, p)))) {
                 yield return new ParagraphBuilder(this, paragraph);
             }

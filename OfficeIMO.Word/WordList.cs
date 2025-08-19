@@ -176,7 +176,7 @@ public partial class WordList : WordElement {
         get {
             return GetNumberingProperty<string>(props => {
                 var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
-                return color?.Val ?? string.Empty;
+                return color?.Val?.Value ?? string.Empty;
             });
         }
         set {
@@ -211,7 +211,7 @@ public partial class WordList : WordElement {
     /// </summary>
     public UnderlineValues? Underline {
         get => GetNumberingProperty<UnderlineValues?>(props =>
-            props.Elements<Underline>().FirstOrDefault()?.Val);
+            props.Elements<Underline>().FirstOrDefault()?.Val?.Value);
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<Underline>();
             if (value.HasValue) {
@@ -251,7 +251,7 @@ public partial class WordList : WordElement {
     /// </summary>
     public string FontName {
         get => GetNumberingProperty<string>(props =>
-            props.Elements<RunFonts>().FirstOrDefault()?.Ascii);
+            props.Elements<RunFonts>().FirstOrDefault()?.Ascii?.Value ?? string.Empty);
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<RunFonts>();
             if (!string.IsNullOrEmpty(value)) {

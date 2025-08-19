@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
                 var chartRef = _drawing.Inline?.Graphic?.GraphicData?.GetFirstChild<ChartReference>();
-                var id = chartRef?.Id;
+                var id = chartRef?.Id?.Value;
                 return id != null ? (ChartPart?)_document._wordprocessingDocument.MainDocumentPart!.GetPartById(id) : null;
             }
         }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarGrouping != null) {
-                        return barChart.BarGrouping.Val;
+                        return barChart.BarGrouping.Val?.Value;
                     }
                 }
 
@@ -58,8 +58,8 @@ namespace OfficeIMO.Word {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart?.BarGrouping != null) {
-                        barChart.BarGrouping.Val = value;
+                    if (barChart?.BarGrouping != null && value.HasValue) {
+                        barChart.BarGrouping.Val = value.Value;
                     }
                 }
             }
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarDirection != null) {
-                        return barChart.BarDirection.Val;
+                        return barChart.BarDirection.Val?.Value;
                     }
                 }
 
@@ -83,8 +83,8 @@ namespace OfficeIMO.Word {
                 if (_chartPart != null) {
                     var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart?.BarDirection != null) {
-                        barChart.BarDirection.Val = value;
+                    if (barChart?.BarDirection != null && value.HasValue) {
+                        barChart.BarDirection.Val = value.Value;
                     }
                 }
             }

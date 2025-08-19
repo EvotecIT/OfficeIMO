@@ -104,8 +104,8 @@ namespace OfficeIMO.Word {
                 RunStyle = runStyle
             };
             FootnoteReference footnoteReference = new FootnoteReference() { Id = footerReferenceId };
-            newWordParagraph._run.Append(runProperties);
-            newWordParagraph._run.Append(footnoteReference);
+            newWordParagraph._run?.Append(runProperties);
+            newWordParagraph._run?.Append(footnoteReference);
 
             var footNote = GenerateFootNote(footerReferenceId, footerWordParagraph);
 

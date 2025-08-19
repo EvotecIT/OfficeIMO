@@ -9,9 +9,9 @@ namespace OfficeIMO.Word {
     /// Represents an embedded document within a <see cref="WordDocument"/>.
     /// </summary>
     public class WordEmbeddedDocument : WordElement {
-        private string _id;
-        private AltChunk _altChunk;
-        private readonly AlternativeFormatImportPart _altContent;
+        private string _id = string.Empty;
+        private AltChunk _altChunk = null!;
+        private readonly AlternativeFormatImportPart _altContent = null!;
         private readonly WordDocument _document;
 
         /// <summary>
@@ -52,11 +52,15 @@ namespace OfficeIMO.Word {
         public void Remove() {
             _altChunk.Remove();
 
-            var list = _document._document.MainDocumentPart.AlternativeFormatImportParts;
-            foreach (var item in list) {
-                var relationshipId = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(item);
+            var mainDocPart = _document._wordprocessingDocument.MainDocumentPart;
+            if (mainDocPart == null) {
+                return;
+            }
+
+            foreach (var item in mainDocPart.AlternativeFormatImportParts) {
+                var relationshipId = mainDocPart.GetIdOfPart(item);
                 if (relationshipId == _id) {
-                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(item);
+                    mainDocPart.DeletePart(item);
                     break;
                 }
             }
@@ -73,12 +77,17 @@ namespace OfficeIMO.Word {
             _altChunk = altChunk;
             _document = wordDocument;
 
-            var list = wordDocument._document.MainDocumentPart.AlternativeFormatImportParts;
-            foreach (var item in list) {
-                var relationshipId = wordDocument._wordprocessingDocument.MainDocumentPart.GetIdOfPart(item);
+            var mainDocPart = wordDocument._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("Document missing MainDocumentPart");
+            foreach (var item in mainDocPart.AlternativeFormatImportParts) {
+                var relationshipId = mainDocPart.GetIdOfPart(item);
                 if (relationshipId == _id) {
                     _altContent = item;
+                    break;
                 }
+            }
+
+            if (_altContent == null) {
+                throw new InvalidOperationException("Embedded content not found.");
             }
         }
 
@@ -107,7 +116,7 @@ namespace OfficeIMO.Word {
                 partType = alternativeFormatImportPartType.Value;
             }
 
-            MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
+            MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart ?? throw new InvalidOperationException("Document missing MainDocumentPart");
 
             PartTypeInfo partTypeInfo = partType switch {
                 WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
