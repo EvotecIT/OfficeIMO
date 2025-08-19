@@ -96,15 +96,14 @@ namespace OfficeIMO.Visio {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
-        private static void WriteVisioDocumentRoot(XmlWriter writer) {
-            writer.WriteStartDocument();
-            writer.WriteStartElement("VisioDocument", VisioNamespace);
-            writer.WriteElementString("DocumentSettings", VisioNamespace, string.Empty);
-            writer.WriteElementString("Colors", VisioNamespace, string.Empty);
-            writer.WriteElementString("FaceNames", VisioNamespace, string.Empty);
-            writer.WriteElementString("StyleSheets", VisioNamespace, string.Empty);
-            writer.WriteEndElement();
-            writer.WriteEndDocument();
+        private static XDocument CreateVisioDocumentXml() {
+            XNamespace ns = VisioNamespace;
+            return new XDocument(
+                new XElement(ns + "VisioDocument",
+                    new XElement(ns + "DocumentSettings"),
+                    new XElement(ns + "Colors"),
+                    new XElement(ns + "FaceNames"),
+                    new XElement(ns + "StyleSheets")));
         }
 
         /// <summary>
@@ -134,8 +133,8 @@ namespace OfficeIMO.Visio {
             };
             const string ns = VisioNamespace;
 
-            using (XmlWriter writer = XmlWriter.Create(documentPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                WriteVisioDocumentRoot(writer);
+            using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
+                CreateVisioDocumentXml().Save(stream);
             }
 
             string pageName = _pages.Count > 0 ? _pages[0].Name : "Page-1";

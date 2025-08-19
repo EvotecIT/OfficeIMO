@@ -27,8 +27,11 @@ namespace OfficeIMO.PowerPoint {
 
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(slideId.RelationshipId);
-                    _slides.Add(new PowerPointSlide(slidePart));
+                    string? relId = slideId.RelationshipId;
+                    if (!string.IsNullOrEmpty(relId)) {
+                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId);
+                        _slides.Add(new PowerPointSlide(slidePart));
+                    }
                 }
             }
         }
@@ -82,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
 
             uint maxId = 255;
             if (_presentationPart.Presentation.SlideIdList.Elements<SlideId>().Any()) {
-                maxId = _presentationPart.Presentation.SlideIdList.Elements<SlideId>().Max(s => s.Id!.Value);
+                maxId = _presentationPart.Presentation.SlideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 0);
             }
             SlideId slideId = new SlideId {
                 Id = maxId + 1,
@@ -157,7 +160,7 @@ namespace OfficeIMO.PowerPoint {
         public string ThemeName {
             get {
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();
-                return master.ThemePart?.Theme?.Name ?? string.Empty;
+                return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
             }
             set {
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();

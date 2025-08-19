@@ -5,6 +5,10 @@ namespace OfficeIMO.PowerPoint.Fluent {
     public class PowerPointFluentPresentation {
         internal PowerPointPresentation Presentation { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PowerPointFluentPresentation"/> class.
+        /// </summary>
+        /// <param name="presentation">Presentation to wrap.</param>
         public PowerPointFluentPresentation(PowerPointPresentation presentation) {
             Presentation = presentation ?? throw new System.ArgumentNullException(nameof(presentation));
         }

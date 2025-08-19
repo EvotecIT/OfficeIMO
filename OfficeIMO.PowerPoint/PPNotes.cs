@@ -41,18 +41,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
-                A.Run run = NotesSlide.CommonSlideData!.ShapeTree.GetFirstChild<Shape>()!
-                    .TextBody!.GetFirstChild<A.Paragraph>()!
-                    .GetFirstChild<A.Run>()!;
-                A.Text text = run.GetFirstChild<A.Text>()!;
-                return text.Text ?? string.Empty;
+                Shape? shape = NotesSlide.CommonSlideData?.ShapeTree?.GetFirstChild<Shape>();
+                A.Paragraph? paragraph = shape?.TextBody?.GetFirstChild<A.Paragraph>();
+                A.Run? run = paragraph?.GetFirstChild<A.Run>();
+                A.Text? text = run?.GetFirstChild<A.Text>();
+                return text?.Text ?? string.Empty;
             }
             set {
-                A.Run run = NotesSlide.CommonSlideData!.ShapeTree.GetFirstChild<Shape>()!
-                    .TextBody!.GetFirstChild<A.Paragraph>()!
-                    .GetFirstChild<A.Run>()!;
-                A.Text text = run.GetFirstChild<A.Text>()!;
-                text.Text = value;
+                Shape? shape = NotesSlide.CommonSlideData?.ShapeTree?.GetFirstChild<Shape>();
+                A.Paragraph? paragraph = shape?.TextBody?.GetFirstChild<A.Paragraph>();
+                A.Run? run = paragraph?.GetFirstChild<A.Run>();
+                A.Text? text = run?.GetFirstChild<A.Text>();
+                if (text != null) {
+                    text.Text = value;
+                }
             }
         }
 

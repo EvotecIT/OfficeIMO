@@ -90,22 +90,24 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? BackgroundColor {
             get {
-                Background? bg = _slidePart.Slide.CommonSlideData!.Background;
+                CommonSlideData? common = _slidePart.Slide.CommonSlideData;
+                Background? bg = common?.Background;
                 A.SolidFill? solid = bg?.BackgroundProperties?.GetFirstChild<A.SolidFill>();
                 return solid?.RgbColorModelHex?.Val;
             }
             set {
+                CommonSlideData common = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
                 if (value == null) {
-                    _slidePart.Slide.CommonSlideData!.Background = null;
+                    common.Background = null;
                     return;
                 }
 
-                Background bg = _slidePart.Slide.CommonSlideData!.Background ?? new Background();
+                Background bg = common.Background ?? new Background();
                 BackgroundProperties props = bg.BackgroundProperties ?? new BackgroundProperties();
                 props.RemoveAllChildren<A.SolidFill>();
                 props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                 bg.BackgroundProperties = props;
-                _slidePart.Slide.CommonSlideData!.Background = bg;
+                common.Background = bg;
             }
         }
 
@@ -154,7 +156,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int LayoutIndex {
             get {
-                SlideLayoutPart layoutPart = _slidePart.SlideLayoutPart!;
+                SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+                if (layoutPart == null) {
+                    return -1;
+                }
                 SlideMasterPart master = layoutPart.GetParentParts().OfType<SlideMasterPart>().First();
                 SlideLayoutPart[] layouts = master.SlideLayoutParts.ToArray();
                 for (int i = 0; i < layouts.Length; i++) {
@@ -178,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a textbox with the specified text.
         /// </summary>
-        public PPTextBox AddTextBox(string text) {
+        public PPTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
@@ -186,7 +191,10 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                 ),
-                new ShapeProperties(),
+                new ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                ),
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
@@ -194,7 +202,9 @@ namespace OfficeIMO.PowerPoint {
                 )
             );
 
-            _slidePart.Slide.CommonSlideData!.ShapeTree.AppendChild(shape);
+            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.AppendChild(shape);
             PPTextBox textBox = new(shape);
             _shapes.Add(textBox);
             return textBox;
@@ -203,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds an image from the given file path.
         /// </summary>
-        public PPPicture AddPicture(string imagePath) {
+        public PPPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L, long height = 914400L) {
             ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
@@ -220,11 +230,15 @@ namespace OfficeIMO.PowerPoint {
                     new A.Blip { Embed = relationshipId },
                     new A.Stretch(new A.FillRectangle())
                 ),
-                new ShapeProperties(new A.Transform2D(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = 914400L, Cy = 914400L }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })
+                new ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                )
             );
 
-            _slidePart.Slide.CommonSlideData!.ShapeTree.AppendChild(picture);
+            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.AppendChild(picture);
             PPPicture pic = new(picture);
             _shapes.Add(pic);
             return pic;
@@ -233,7 +247,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Adds a table with the specified rows and columns.
         /// </summary>
-        public PPTable AddTable(int rows, int columns) {
+        public PPTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
             A.Table table = new();
             A.TableProperties props = new();
             props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
@@ -264,11 +278,13 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
-                new Transform(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 5000000L, Cy = 3000000L }),
+                new Transform(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
                 new A.Graphic(new A.GraphicData(table) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" })
             );
 
-            _slidePart.Slide.CommonSlideData!.ShapeTree.AppendChild(frame);
+            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.AppendChild(frame);
             PPTable tbl = new(frame);
             _shapes.Add(tbl);
             return tbl;
@@ -293,7 +309,9 @@ namespace OfficeIMO.PowerPoint {
                 new A.Graphic(new A.GraphicData(new C.ChartReference { Id = relId }) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart" })
             );
 
-            _slidePart.Slide.CommonSlideData!.ShapeTree.AppendChild(frame);
+            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.AppendChild(frame);
             PPChart chart = new(frame);
             _shapes.Add(chart);
             return chart;
@@ -361,7 +379,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void LoadExistingShapes() {
-            ShapeTree tree = _slidePart.Slide.CommonSlideData!.ShapeTree;
+            ShapeTree? tree = _slidePart.Slide.CommonSlideData?.ShapeTree;
+            if (tree == null) {
+                return;
+            }
             foreach (OpenXmlElement element in tree.ChildElements) {
                 switch (element) {
                     case Shape s when s.TextBody != null:

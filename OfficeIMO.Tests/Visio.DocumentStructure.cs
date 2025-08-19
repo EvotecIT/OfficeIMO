@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Packaging;
 using System.Xml.Linq;
+using System.Linq;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -23,6 +24,27 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(xml.Root?.Element(ns + "Colors"));
             Assert.NotNull(xml.Root?.Element(ns + "FaceNames"));
             Assert.NotNull(xml.Root?.Element(ns + "StyleSheets"));
+        }
+
+        [Fact]
+        public void VisioDocumentRootHasExpectedChildrenInOrder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = new();
+            document.Save(filePath);
+
+            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
+            PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
+            XDocument xml = XDocument.Load(documentPart.GetStream());
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+
+            Assert.Equal(ns + "VisioDocument", xml.Root?.Name);
+            XElement[] children = xml.Root?.Elements().ToArray() ?? Array.Empty<XElement>();
+            Assert.Collection(children,
+                e => Assert.Equal(ns + "DocumentSettings", e.Name),
+                e => Assert.Equal(ns + "Colors", e.Name),
+                e => Assert.Equal(ns + "FaceNames", e.Name),
+                e => Assert.Equal(ns + "StyleSheets", e.Name));
         }
     }
 }
