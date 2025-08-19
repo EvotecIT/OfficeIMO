@@ -125,19 +125,17 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public void Save(string filePath) {
             using (Package package = Package.Open(filePath, FileMode.Create)) {
-                int relIdCounter = 1;
-
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
                 PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
-                package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, $"rId{relIdCounter++}");
+                package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
 
                 Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
                 PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
-                documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", $"rId{relIdCounter++}");
+                documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
 
                 Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
                 PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
-                PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", $"rId{relIdCounter++}");
+                PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", "rId1");
 
                 XmlWriterSettings settings = new() {
                     Encoding = new UTF8Encoding(false),

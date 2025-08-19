@@ -34,13 +34,13 @@ namespace OfficeIMO.Tests {
 
                 PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
                 PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
-                Assert.Equal("rId2", pagesRel.Id);
+                Assert.Equal("rId1", pagesRel.Id);
                 Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
                 Assert.Equal("/visio/pages/pages.xml", pagesUri.OriginalString);
 
                 PackagePart pagesPart = package.GetPart(pagesUri);
                 PackageRelationship pageRel = pagesPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/page").Single();
-                Assert.Equal("rId3", pageRel.Id);
+                Assert.Equal("rId1", pageRel.Id);
                 pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 Assert.Equal("/visio/pages/page1.xml", pageUri.OriginalString);
 
@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
             }
 
-            // Additional validation can be performed via VisioValidator.Validate(filePath)
-            // but is omitted here to avoid file access conflicts during testing.
+            var issues = VisioValidator.Validate(filePath);
+            Assert.Empty(issues);
         }
     }
 }
