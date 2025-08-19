@@ -38,9 +38,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, document.Sections.Count);
                 Assert.Equal("Section 1", document.Sections[1].Paragraphs[0].Text);
-                Assert.Equal("Cell 1", document.Sections[1].Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("Cell 1", document.Sections[1].Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("Section 2", document.Sections[2].Paragraphs[0].Text);
-                Assert.Equal("Cell 2", document.Sections[2].Tables[0].Rows[0].Cells[0].Paragraphs[1].Text);
+                Assert.Equal("Cell 2", document.Sections[2].Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         }
     }
