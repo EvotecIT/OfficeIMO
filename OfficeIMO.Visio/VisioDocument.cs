@@ -251,7 +251,7 @@ namespace OfficeIMO.Visio {
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
             entry?.Delete();
-            entry = archive.CreateEntry("[Content_Types].xml");
+            ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");
             XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
             XDocument doc = new(new XElement(ct + "Types",
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
@@ -259,7 +259,7 @@ namespace OfficeIMO.Visio {
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.drawing.main+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.pages+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml"))));
-            using StreamWriter writer = new(entry.Open());
+            using StreamWriter writer = new(newEntry.Open());
             writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
     }
