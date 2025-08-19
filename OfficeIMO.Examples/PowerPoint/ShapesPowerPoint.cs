@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {
     /// <summary>
-    /// Demonstrates retrieving and removing shapes.
+    /// Demonstrates retrieving, positioning, and removing shapes.
     /// </summary>
     public static class ShapesPowerPoint {
         public static void Example_PowerPointShapes(string folderPath, bool openPowerPoint) {
@@ -14,8 +14,11 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PPTextBox textBox = slide.AddTextBox("Hello");
-            PPPicture picture = slide.AddPicture(imagePath);
+            PPTextBox textBox = slide.AddTextBox("Hello", left: 914400, top: 914400, width: 1828800, height: 914400);
+            PPPicture picture = slide.AddPicture(imagePath, left: 2743200, top: 914400, width: 1828800, height: 1828800);
+
+            // Move the textbox 1 inch to the right
+            textBox.Left += 914400;
 
             PPShape? shape = slide.GetShape("TextBox 1");
             Console.WriteLine("Found shape: " + shape?.Name);

@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Presentation;
@@ -51,6 +52,80 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
             }
+        }
+
+        private A.Offset GetOffset() {
+            switch (Element) {
+                case Shape s:
+                    s.ShapeProperties ??= new ShapeProperties();
+                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    s.ShapeProperties.Transform2D.Offset ??= new A.Offset();
+                    return s.ShapeProperties.Transform2D.Offset;
+                case Picture p:
+                    p.ShapeProperties ??= new ShapeProperties();
+                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    p.ShapeProperties.Transform2D.Offset ??= new A.Offset();
+                    return p.ShapeProperties.Transform2D.Offset;
+                case GraphicFrame g:
+                    g.Transform ??= new Transform();
+                    g.Transform.Offset ??= new A.Offset();
+                    return g.Transform.Offset;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        private A.Extents GetExtents() {
+            switch (Element) {
+                case Shape s:
+                    s.ShapeProperties ??= new ShapeProperties();
+                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    s.ShapeProperties.Transform2D.Extents ??= new A.Extents();
+                    return s.ShapeProperties.Transform2D.Extents;
+                case Picture p:
+                    p.ShapeProperties ??= new ShapeProperties();
+                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    p.ShapeProperties.Transform2D.Extents ??= new A.Extents();
+                    return p.ShapeProperties.Transform2D.Extents;
+                case GraphicFrame g:
+                    g.Transform ??= new Transform();
+                    g.Transform.Extents ??= new A.Extents();
+                    return g.Transform.Extents;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Horizontal position of the shape in EMUs.
+        /// </summary>
+        public long Left {
+            get => GetOffset().X?.Value ?? 0L;
+            set => GetOffset().X = value;
+        }
+
+        /// <summary>
+        /// Vertical position of the shape in EMUs.
+        /// </summary>
+        public long Top {
+            get => GetOffset().Y?.Value ?? 0L;
+            set => GetOffset().Y = value;
+        }
+
+        /// <summary>
+        /// Width of the shape in EMUs.
+        /// </summary>
+        public long Width {
+            get => GetExtents().Cx?.Value ?? 0L;
+            set => GetExtents().Cx = value;
+        }
+
+        /// <summary>
+        /// Height of the shape in EMUs.
+        /// </summary>
+        public long Height {
+            get => GetExtents().Cy?.Value ?? 0L;
+            set => GetExtents().Cy = value;
         }
     }
 }
