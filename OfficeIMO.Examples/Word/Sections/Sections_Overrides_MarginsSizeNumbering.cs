@@ -23,13 +23,13 @@ namespace OfficeIMO.Examples.Word {
                             .Size(WordPageSize.Legal)
                             .PageNumbering(restart: true)
                             .Paragraph(p => p.Text("Section 1"))
-                            .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 1"))
+                            .Table(t => t.Create(1, 1).Cell(1, 1).Text("Cell 1"))
                         .New(SectionMarkValues.NextPage)
                             .Margins(WordMargin.Wide)
                             .Size(WordPageSize.A3)
                             .PageNumbering(restart: false)
                             .Paragraph(p => p.Text("Section 2"))
-                            .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
+                            .Table(t => t.Create(1, 1).Cell(1, 1).Text("Cell 2")))
                     .End();
 
                 document.Save(false);
