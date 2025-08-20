@@ -41,6 +41,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("RGB(255,255,255)", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
             Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "OneD").Attribute("V")?.Value);
             Assert.Equal("13", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndArrow").Attribute("V")?.Value);
+            Assert.Equal("2", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "BeginX").Attribute("V")?.Value);
+            Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "BeginY").Attribute("V")?.Value);
+            Assert.Equal("3", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndX").Attribute("V")?.Value);
+            Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndY").Attribute("V")?.Value);
 
             var badCells = pageXml.Descendants(ns + "Cell")
                 .Where(c => (c.Attribute("N")?.Value == "NoLine" || c.Attribute("N")?.Value == "NoFill") && c.Attribute("V")?.Value == "1");
