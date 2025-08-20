@@ -37,7 +37,12 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].PageNumberType.Format.Value);
+                var section = document.Sections[0];
+                var pageNumberType = section.PageNumberType;
+                Assert.NotNull(pageNumberType);
+                var format = pageNumberType.Format;
+                Assert.NotNull(format);
+                Assert.Equal(NumberFormatValues.LowerRoman, format.Value);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -89,7 +94,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var headerPart = document._wordprocessingDocument.MainDocumentPart.HeaderParts.First();
+                var mainPart = document._wordprocessingDocument.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var headerPart = mainPart.HeaderParts.First();
                 string text = headerPart.Header.InnerText;
                 Assert.Contains("custom", text);
                 var errors = document.ValidateDocument();
@@ -110,7 +117,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                var mainPart = document._wordprocessingDocument.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var footerPart = mainPart.FooterParts.First();
                 string text = footerPart.Footer.InnerText;
                 Assert.Contains(" of ", text);
                 var errors = document.ValidateDocument();
@@ -137,7 +146,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Sections.Count);
                 Assert.NotNull(document.Sections[1].PageNumberType);
-                Assert.Equal(1, document.Sections[1].PageNumberType.Start.Value);
+                var section1 = document.Sections[1];
+                var pageNumberType1 = section1.PageNumberType;
+                Assert.NotNull(pageNumberType1);
+                var start = pageNumberType1.Start;
+                Assert.NotNull(start);
+                Assert.Equal(1, start.Value);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -155,7 +169,12 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.UpperRoman, document.Sections[0].PageNumberType.Format.Value);
+                var sectionA = document.Sections[0];
+                var pageNumberTypeA = sectionA.PageNumberType;
+                Assert.NotNull(pageNumberTypeA);
+                var formatA = pageNumberTypeA.Format;
+                Assert.NotNull(formatA);
+                Assert.Equal(NumberFormatValues.UpperRoman, formatA.Value);
                 Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
@@ -189,7 +208,9 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var footerPart = document._wordprocessingDocument.MainDocumentPart.FooterParts.First();
+                var mainPart2 = document._wordprocessingDocument.MainDocumentPart;
+                Assert.NotNull(mainPart2);
+                var footerPart = mainPart2.FooterParts.First();
                 string xml = footerPart.Footer.InnerXml;
                 Assert.Contains($"\\@ \"{format}\"", xml);
                 var errors = document.ValidateDocument();
