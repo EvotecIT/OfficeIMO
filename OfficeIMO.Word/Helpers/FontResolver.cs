@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace OfficeIMO.Word;
 
@@ -101,11 +102,40 @@ public static class FontResolver {
 
     private static bool IsFontInstalled(string fontFamily) {
         try {
-            using var fonts = new System.Drawing.Text.InstalledFontCollection();
-            return fonts.Families.Any(f => string.Equals(f.Name, fontFamily, StringComparison.OrdinalIgnoreCase));
+            return GetFontFiles().Any(file =>
+                Path.GetFileNameWithoutExtension(file)
+                    .IndexOf(fontFamily, StringComparison.OrdinalIgnoreCase) >= 0);
         } catch {
             return false;
         }
+    }
+
+    private static IEnumerable<string> GetFontFiles() {
+        IEnumerable<string> paths;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            string? fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            paths = Directory.Exists(fontsDir) ? new[] { fontsDir } : Array.Empty<string>();
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            paths = new[] {
+                "/usr/share/fonts",
+                "/usr/local/share/fonts",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts")
+            }.Where(Directory.Exists);
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            paths = new[] {
+                "/System/Library/Fonts",
+                "/Library/Fonts",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library/Fonts")
+            }.Where(Directory.Exists);
+        } else {
+            paths = Array.Empty<string>();
+        }
+
+        string[] extensions = { "*.ttf", "*.ttc", "*.otf", "*.otc" };
+        return paths.SelectMany(p =>
+            extensions.SelectMany(ext =>
+                Directory.EnumerateFiles(p, ext, SearchOption.AllDirectories)));
     }
 }
 

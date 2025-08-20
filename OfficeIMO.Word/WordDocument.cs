@@ -1693,7 +1693,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Releases resources associated with the document asynchronously.
         /// </summary>
-        public async ValueTask DisposeAsync() {
+        public async Task DisposeAsync() {
             if (this._disposed) {
                 return;
             }
