@@ -373,10 +373,3 @@ packages-microsoft-prod.deb
 CLAUDE.md
 .claude/*
 nul
-Documents/*
-Assets/extracted_good/*
-test_*/*
-test_*.cs
-TestVisio.cs
-OfficeIMO.Examples/Documents/*
-OfficeIMO.Examples/Templates/*
