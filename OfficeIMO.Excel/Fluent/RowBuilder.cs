@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        public RowBuilder Values(params object[] values) {
+        public RowBuilder Values(params object?[] values) {
             for (int i = 0; i < values.Length; i++) {
                 _sheet.SetCellValue(_rowIndex, i + 1, values[i]);
             }
