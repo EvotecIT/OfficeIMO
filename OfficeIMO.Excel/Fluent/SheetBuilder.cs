@@ -33,6 +33,42 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        public SheetBuilder Cell(int row, int column, object value) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+            Sheet.SetCellValue(row, column, value);
+            return this;
+        }
+
+        public SheetBuilder Range(int fromRow, int fromCol, int toRow, int toCol, object[,]? values = null) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (fromRow <= 0) throw new ArgumentOutOfRangeException(nameof(fromRow));
+            if (fromCol <= 0) throw new ArgumentOutOfRangeException(nameof(fromCol));
+            if (toRow <= 0) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toCol <= 0) throw new ArgumentOutOfRangeException(nameof(toCol));
+            if (toRow < fromRow) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toCol < fromCol) throw new ArgumentOutOfRangeException(nameof(toCol));
+
+            int rowCount = toRow - fromRow + 1;
+            int colCount = toCol - fromCol + 1;
+
+            if (values != null && (values.GetLength(0) != rowCount || values.GetLength(1) != colCount)) {
+                throw new ArgumentException("Values array dimensions must match the specified range.", nameof(values));
+            }
+
+            var cells = new List<(int Row, int Column, object Value)>();
+            for (int r = 0; r < rowCount; r++) {
+                for (int c = 0; c < colCount; c++) {
+                    object cellValue = values != null ? values[r, c] : string.Empty;
+                    cells.Add((fromRow + r, fromCol + c, cellValue));
+                }
+            }
+
+            Sheet.SetCellValuesParallel(cells);
+            return this;
+        }
+
         public SheetBuilder Column(Action<ColumnBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new ColumnBuilder(Sheet);
