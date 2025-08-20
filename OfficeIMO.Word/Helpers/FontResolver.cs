@@ -111,30 +111,31 @@ public static class FontResolver {
     }
 
     private static IEnumerable<string> GetFontFiles() {
+        IEnumerable<string> paths;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             string? fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-            if (Directory.Exists(fontsDir)) {
-                return Directory.EnumerateFiles(fontsDir, "*.ttf", SearchOption.TopDirectoryOnly);
-            }
+            paths = Directory.Exists(fontsDir) ? new[] { fontsDir } : Array.Empty<string>();
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            var paths = new[] {
+            paths = new[] {
                 "/usr/share/fonts",
                 "/usr/local/share/fonts",
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts")
-            };
-            return paths.Where(Directory.Exists)
-                .SelectMany(p => Directory.EnumerateFiles(p, "*.ttf", SearchOption.AllDirectories));
+            }.Where(Directory.Exists);
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            var paths = new[] {
+            paths = new[] {
                 "/System/Library/Fonts",
                 "/Library/Fonts",
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library/Fonts")
-            };
-            return paths.Where(Directory.Exists)
-                .SelectMany(p => Directory.EnumerateFiles(p, "*.ttf", SearchOption.AllDirectories));
+            }.Where(Directory.Exists);
+        } else {
+            paths = Array.Empty<string>();
         }
 
-        return Array.Empty<string>();
+        string[] extensions = { "*.ttf", "*.ttc", "*.otf", "*.otc" };
+        return paths.SelectMany(p =>
+            extensions.SelectMany(ext =>
+                Directory.EnumerateFiles(p, ext, SearchOption.AllDirectories)));
     }
 }
 
