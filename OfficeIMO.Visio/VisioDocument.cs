@@ -332,7 +332,21 @@ namespace OfficeIMO.Visio {
 
         private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
             XNamespace ns = VisioNamespace;
-            XElement settings = new(ns + "DocumentSettings");
+            XElement settings = new(ns + "DocumentSettings",
+                new XAttribute("TopPage", 0),
+                new XAttribute("DefaultTextStyle", 3),
+                new XAttribute("DefaultLineStyle", 3),
+                new XAttribute("DefaultFillStyle", 3),
+                new XAttribute("DefaultGuideStyle", 4),
+                new XElement(ns + "GlueSettings", 9),
+                new XElement(ns + "SnapSettings", 295),
+                new XElement(ns + "SnapExtensions", 34),
+                new XElement(ns + "SnapAngles"),
+                new XElement(ns + "DynamicGridEnabled", 1),
+                new XElement(ns + "ProtectStyles", 0),
+                new XElement(ns + "ProtectShapes", 0),
+                new XElement(ns + "ProtectMasters", 0),
+                new XElement(ns + "ProtectBkgnds", 0));
             if (requestRecalcOnOpen) {
                 settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
             }
