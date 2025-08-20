@@ -120,6 +120,74 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Removes the slide at the specified index.
+        /// </summary>
+        /// <param name="index">Index of the slide to remove.</param>
+        public void RemoveSlide(int index) {
+            if (index < 0 || index >= _slides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
+            if (slideIdList == null) {
+                throw new InvalidOperationException("Presentation has no slides.");
+            }
+
+            SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
+            string? relId = slideId.RelationshipId;
+
+            _slides.RemoveAt(index);
+            slideId.Remove();
+
+            if (!string.IsNullOrEmpty(relId)) {
+                OpenXmlPart part = _presentationPart.GetPartById(relId);
+                _presentationPart.DeletePart(part);
+            }
+
+            _presentationPart.Presentation.Save();
+        }
+
+        /// <summary>
+        ///     Moves a slide from one index to another.
+        /// </summary>
+        /// <param name="fromIndex">Current index of the slide.</param>
+        /// <param name="toIndex">Destination index of the slide.</param>
+        public void MoveSlide(int fromIndex, int toIndex) {
+            if (fromIndex < 0 || fromIndex >= _slides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(fromIndex));
+            }
+
+            if (toIndex < 0 || toIndex >= _slides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(toIndex));
+            }
+
+            if (fromIndex == toIndex) {
+                return;
+            }
+
+            SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
+            if (slideIdList == null) {
+                throw new InvalidOperationException("Presentation has no slides.");
+            }
+
+            PowerPointSlide slide = _slides[fromIndex];
+            _slides.RemoveAt(fromIndex);
+            _slides.Insert(toIndex, slide);
+
+            List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
+            SlideId movingId = ids[fromIndex];
+            ids.RemoveAt(fromIndex);
+            ids.Insert(toIndex, movingId);
+
+            slideIdList.RemoveAllChildren();
+            foreach (SlideId id in ids) {
+                slideIdList.Append(id);
+            }
+
+            _presentationPart.Presentation.Save();
+        }
+
+        /// <summary>
         ///     Saves all pending changes to the underlying package.
         /// </summary>
         public void Save() {
