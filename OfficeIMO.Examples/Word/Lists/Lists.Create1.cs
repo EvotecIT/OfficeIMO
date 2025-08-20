@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("This is 1st list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList1 = document.AddList(WordListStyle.Headings111);
+                WordList wordList1 = document.AddList(WordListStyle.Numbered);
                 wordList1.AddItem("Text 1 - List1");
                 wordList1.AddItem("Text 2 - List1", 1);
                 wordList1.AddItem("Text 3 - List1", 2);
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is 2nd list");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Text 1");
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);

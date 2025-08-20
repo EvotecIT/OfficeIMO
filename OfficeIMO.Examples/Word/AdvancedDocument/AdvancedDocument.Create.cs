@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 // lets create a list that will be binded to TOC
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
                 var elements = document.Elements;
                 Console.WriteLine("Elements count: " + elements.Count);

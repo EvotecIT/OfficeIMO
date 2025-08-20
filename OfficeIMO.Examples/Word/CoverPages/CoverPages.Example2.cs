@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddPageBreak();
 
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
                 wordListToc.AddItem("Prepare document");
 

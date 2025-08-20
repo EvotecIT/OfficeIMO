@@ -10,53 +10,57 @@ public enum WordListStyle {
     /// <summary>
     /// Regular bulleted list.
     /// </summary>
-    Bulleted,
+    Bulleted = 0,
     /// <summary>
     /// Numbered style used for article sections.
     /// </summary>
-    ArticleSections,
+    ArticleSections = 1,
     /// <summary>
     /// Three-level heading numbering (1.1.1).
     /// </summary>
-    Headings111,
+    Headings111 = 2,
     /// <summary>
     /// Multi-level heading style starting with Roman numerals.
     /// </summary>
-    HeadingIA1,
+    HeadingIA1 = 3,
     /// <summary>
     /// Chapter numbering style.
     /// </summary>
-    Chapters,
+    Chapters = 4,
     /// <summary>
     /// Bulleted list using Wingdings characters.
     /// </summary>
-    BulletedChars,
+    BulletedChars = 5,
     /// <summary>
     /// Heading style using A.i numbering.
     /// </summary>
-    Heading1ai,
+    Heading1ai = 6,
     /// <summary>
     /// Variation of Headings111 with shifted levels.
     /// </summary>
-    Headings111Shifted,
+    Headings111Shifted = 7,
     /// <summary>
     /// Lowercase letters followed by a bracket.
     /// </summary>
-    LowerLetterWithBracket,
+    LowerLetterWithBracket = 8,
     /// <summary>
     /// Lowercase letters followed by a dot.
     /// </summary>
-    LowerLetterWithDot,
+    LowerLetterWithDot = 9,
     /// <summary>
     /// Uppercase letters followed by a dot.
     /// </summary>
-    UpperLetterWithDot,
+    UpperLetterWithDot = 10,
     /// <summary>
     /// Uppercase letters followed by a bracket.
     /// </summary>
-    UpperLetterWithBracket,
+    UpperLetterWithBracket = 11,
     /// <summary>
     /// Custom numbering defined by the user.
     /// </summary>
-    Custom
+    Custom = 12,
+    /// <summary>
+    /// Standard numbered list.
+    /// </summary>
+    Numbered = 13
 }

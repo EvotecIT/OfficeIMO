@@ -33,7 +33,7 @@ namespace OfficeIMO.Word.Fluent {
         /// Starts a numbered list using the specified style.
         /// </summary>
         /// <param name="style">Optional numbered list style.</param>
-        public ListBuilder Numbered(WordListStyle style = WordListStyle.Headings111) {
+        public ListBuilder Numbered(WordListStyle style = WordListStyle.Numbered) {
             _list = _fluent.Document.AddList(style);
             _level = 0;
             return this;
@@ -54,6 +54,15 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="text">Item text.</param>
         public ListBuilder Item(string text) {
             _list?.AddItem(text, _level);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the nesting level for subsequent items.
+        /// </summary>
+        /// <param name="level">The explicit level to apply.</param>
+        public ListBuilder Level(int level) {
+            _level = level < 0 ? 0 : level;
             return this;
         }
 

@@ -379,7 +379,7 @@ namespace OfficeIMO.Word {
         /// Converts this list to a numbered style while preserving existing list items.
         /// </summary>
         public void ConvertToNumbered() {
-            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Headings111));
+            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Numbered));
         }
 
         /// <summary>

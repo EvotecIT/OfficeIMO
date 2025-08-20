@@ -65,7 +65,7 @@ public partial class Word {
                 .SetColor(Color.DeepPink)
                 .SetUnderline(UnderlineValues.Double);
 
-            var wordList4 = document.AddList(WordListStyle.Headings111);
+            var wordList4 = document.AddList(WordListStyle.Numbered);
             wordList4.AddItem("Text 4");
             wordList4.AddItem("Text 2", 1);
             wordList4.AddItem("Text 3", 2);
@@ -147,7 +147,7 @@ public partial class Word {
                 .SetColor(Color.ForestGreen)
                 .SetUnderline(UnderlineValues.Double);
 
-            var wordList2 = document.AddList(WordListStyle.Headings111);
+            var wordList2 = document.AddList(WordListStyle.Numbered);
             wordList2.AddItem("Temp 10");
             wordList2.AddItem("Text 10.1", 1);
 
@@ -162,7 +162,7 @@ public partial class Word {
                 .AddParagraph("This is 10th list")
                 .SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
-            var wordList3 = document.AddList(WordListStyle.Headings111);
+            var wordList3 = document.AddList(WordListStyle.Numbered);
             wordList3.AddItem("Temp 11");
             wordList3.AddItem("Text 11.1", 1);
 
@@ -215,7 +215,7 @@ public partial class Word {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
             paragraph.ParagraphAlignment = JustificationValues.Center;
 
-            var wordList = document.AddList(WordListStyle.Headings111);
+            var wordList = document.AddList(WordListStyle.Numbered);
             wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
             wordList.AddItem("Text 2.1", 1).SetColor(Color.Brown);
             wordList.AddItem("Text 2.2", 1).SetColor(Color.Brown);
@@ -329,7 +329,7 @@ public partial class Word {
 
             Assert.Empty(document.Sections[1].Lists);
 
-            var wordList5 = document.AddList(WordListStyle.Headings111);
+            var wordList5 = document.AddList(WordListStyle.Numbered);
             wordList5.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
             wordList5.AddItem("Section 2.1", 1).SetColor(Color.Brown);
             wordList5.AddItem("Section 2.2", 1).SetColor(Color.Brown);
@@ -348,7 +348,7 @@ public partial class Word {
             Assert.Equal(5, document.Sections[0].Lists.Count);
             Assert.Single(document.Sections[1].Lists);
 
-            var wordList6 = document.AddList(WordListStyle.Headings111);
+            var wordList6 = document.AddList(WordListStyle.Numbered);
             wordList6.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
             wordList6.AddItem("Section 2.1", 1).SetColor(Color.Brown);
             wordList6.AddItem("Section 2.2", 1).SetColor(Color.Brown);
@@ -415,7 +415,7 @@ public partial class Word {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithListsInTables.docx");
         using (var document = WordDocument.Create(filePath)) {
             Assert.True(document.Lists.Count == 0);
-            WordList wordList1 = document.AddList(WordListStyle.Headings111);
+            WordList wordList1 = document.AddList(WordListStyle.Numbered);
             Assert.True(wordList1.ListItems.Count == 0);
             Assert.True(document.Lists[0].ListItems.Count == 0);
             wordList1.AddItem("Text 1 - First List");
@@ -444,7 +444,7 @@ public partial class Word {
             Assert.True(document.Lists[1].ListItems.Count == 2);
             Assert.True(document.Lists.Count == 2);
 
-            WordList wordList2 = document.AddList(WordListStyle.Headings111);
+            WordList wordList2 = document.AddList(WordListStyle.Numbered);
 
             wordList2.AddItem("Section 2");
             wordList2.AddItem("Section 2.1", 1);
@@ -454,21 +454,21 @@ public partial class Word {
             Assert.True(document.Lists.Count == 3);
 
 
-            WordList wordList3 = document.AddList(WordListStyle.Headings111);
+            WordList wordList3 = document.AddList(WordListStyle.Numbered);
 
             wordList3.AddItem("Section 1");
             wordList3.AddItem("Section 1.1", 1);
             Assert.True(wordList3.ListItems.Count == 2);
 
-            WordList wordList4 = document.AddList(WordListStyle.Headings111);
+            WordList wordList4 = document.AddList(WordListStyle.Numbered);
             wordList4.AddItem("Section 2");
             wordList4.AddItem("Section 2.1", 1);
 
-            WordList wordList5 = document.AddList(WordListStyle.Headings111);
+            WordList wordList5 = document.AddList(WordListStyle.Numbered);
             wordList5.AddItem("Section 3");
             wordList5.AddItem("Section 3.1", 1);
 
-            WordList wordList6 = document.AddList(WordListStyle.Headings111);
+            WordList wordList6 = document.AddList(WordListStyle.Numbered);
             wordList1.AddItem("Text 4");
             wordList1.AddItem("Text 4.1", 1);
 
@@ -564,7 +564,7 @@ public partial class Word {
 
             listInHeader.AddItem("Test Header 2");
 
-            var listInFooter = document.Footer.Default.AddList(WordListStyle.Headings111);
+            var listInFooter = document.Footer.Default.AddList(WordListStyle.Numbered);
 
             Assert.True(document.Lists.Count == 13);
 

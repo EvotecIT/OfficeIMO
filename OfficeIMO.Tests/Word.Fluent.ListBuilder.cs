@@ -12,7 +12,9 @@ namespace OfficeIMO.Tests {
                     .List(l => l.Numbered().StartAt(3)
                                  .Item("First")
                                  .Item("Second")
-                                 .Indent().Item("Second.Child"))
+                                 .Level(1).Item("Second.Child")
+                                 .Level(2).Item("Second.Child.Grandchild")
+                                 .Level(0).Item("Third"))
                     .List(l => l.Bulleted()
                                  .Item("Alpha")
                                  .Item("Beta").Indent().Item("Beta.Child").Outdent()
@@ -26,10 +28,12 @@ namespace OfficeIMO.Tests {
 
                 var numbered = document.Lists[0];
                 Assert.Equal(3, numbered.Numbering.Levels[0].StartNumberingValue);
-                Assert.Equal(3, numbered.ListItems.Count);
+                Assert.Equal(5, numbered.ListItems.Count);
                 Assert.Equal(0, numbered.ListItems[0].ListItemLevel);
                 Assert.Equal(0, numbered.ListItems[1].ListItemLevel);
                 Assert.Equal(1, numbered.ListItems[2].ListItemLevel);
+                Assert.Equal(2, numbered.ListItems[3].ListItemLevel);
+                Assert.Equal(0, numbered.ListItems[4].ListItemLevel);
 
                 var bulleted = document.Lists[1];
                 Assert.Equal(4, bulleted.ListItems.Count);

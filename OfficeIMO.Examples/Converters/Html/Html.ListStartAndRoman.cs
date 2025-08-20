@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Html {
             string filePath = Path.Combine(folderPath, "HtmlListStartAndRoman.docx");
 
             using var doc = WordDocument.Create();
-            var list = doc.AddList(WordListStyle.Headings111);
+            var list = doc.AddList(WordListStyle.Numbered);
             list.Numbering.Levels[0].SetStartNumberingValue(3);
             list.AddItem("Third");
             list.AddItem("Fourth");

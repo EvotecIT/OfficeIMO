@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ConvertNumberedToBullet.docx");
             int indent;
             using (var document = WordDocument.Create(filePath)) {
-                var list = document.AddList(WordListStyle.Headings111);
+                var list = document.AddList(WordListStyle.Numbered);
                 list.AddItem("One");
                 list.AddItem("Two");
                 indent = list.Numbering.Levels.First().IndentationLeft;

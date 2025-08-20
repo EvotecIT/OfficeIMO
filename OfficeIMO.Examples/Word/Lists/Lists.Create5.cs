@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList = document.AddList(WordListStyle.Headings111);
+                WordList wordList = document.AddList(WordListStyle.Numbered);
                 wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList.AddItem("Text 1.1", 1).SetColor(Color.Brown);
                 wordList.AddItem("Text 1.2", 1).SetColor(Color.Brown);

@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             string pdfPath = Path.Combine(folderPath, "ExportListsToPdf.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                WordList numbered = document.AddList(WordListStyle.Headings111);
+                WordList numbered = document.AddList(WordListStyle.Numbered);
                 numbered.AddItem("First");
                 numbered.AddItem("Second");
                 numbered.AddItem("Second - Nested", 1);

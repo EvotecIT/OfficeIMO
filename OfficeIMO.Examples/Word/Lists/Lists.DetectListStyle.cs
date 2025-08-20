@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 bulletList.AddItem("Bullet item");
                 Console.WriteLine($"Bullet list uses style: {bulletList.Style}");
 
-                var numberedList = document.AddList(WordListStyle.Headings111);
+                var numberedList = document.AddList(WordListStyle.Numbered);
                 numberedList.AddItem("Numbered item");
                 Console.WriteLine($"Numbered list uses style: {numberedList.Style}");
 

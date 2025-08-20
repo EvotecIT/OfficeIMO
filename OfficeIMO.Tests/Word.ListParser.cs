@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(ms)) {
                 var bullet = document.AddList(WordListStyle.Bulleted);
                 bullet.AddItem("Bullet 1");
-                var ordered = document.AddList(WordListStyle.Headings111);
+                var ordered = document.AddList(WordListStyle.Numbered);
                 ordered.AddItem("Number 1");
                 document.Save();
             }

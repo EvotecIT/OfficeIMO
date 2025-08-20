@@ -41,7 +41,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         document.AddPageBreak();
 
         // lets create a list that will be binded to TOC
-        var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+        var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
         wordListToc.AddItem("How to add a table to document?");
 

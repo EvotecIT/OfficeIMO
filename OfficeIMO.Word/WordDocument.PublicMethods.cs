@@ -232,11 +232,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a numbered list using the default heading style.
+        /// Adds a numbered list using the default numbering style.
         /// </summary>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddListNumbered() {
-            return AddList(WordListStyle.Headings111);
+            return AddList(WordListStyle.Numbered);
         }
 
         /// <summary>

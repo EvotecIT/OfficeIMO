@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
             var filePath2 = Path.Combine(_directoryWithFiles, "MergeDoc2.docx");
 
             using (var doc1 = WordDocument.Create(filePath1)) {
-                var list1 = doc1.AddList(WordListStyle.Headings111);
+                var list1 = doc1.AddList(WordListStyle.Numbered);
                 list1.AddItem("Item 1");
                 list1.AddItem("Item 2");
                 doc1.Save();
             }
 
             using (var doc2 = WordDocument.Create(filePath2)) {
-                var list2 = doc2.AddList(WordListStyle.Headings111);
+                var list2 = doc2.AddList(WordListStyle.Numbered);
                 list2.AddItem("Second 1");
                 list2.AddItem("Second 2");
                 doc2.Save();
@@ -52,14 +52,14 @@ namespace OfficeIMO.Tests {
         var filePath2 = Path.Combine(_directoryWithFiles, "MergeDocNested2.docx");
 
         using (var doc1 = WordDocument.Create(filePath1)) {
-            var list1 = doc1.AddList(WordListStyle.Headings111);
+            var list1 = doc1.AddList(WordListStyle.Numbered);
             list1.AddItem("Item 1");
             list1.AddItem("Item 1.1", 1);
             doc1.Save();
         }
 
         using (var doc2 = WordDocument.Create(filePath2)) {
-            var list2 = doc2.AddList(WordListStyle.Headings111);
+            var list2 = doc2.AddList(WordListStyle.Numbered);
             list2.AddItem("Item 2");
             list2.AddItem("Item 2.1", 1);
             doc2.Save();
@@ -94,19 +94,19 @@ namespace OfficeIMO.Tests {
         var filePath3 = Path.Combine(_directoryWithFiles, "MergeDocMulti3.docx");
 
         using (var doc = WordDocument.Create(filePath1)) {
-            var list = doc.AddList(WordListStyle.Headings111);
+            var list = doc.AddList(WordListStyle.Numbered);
             list.AddItem("Item 1");
             doc.Save();
         }
 
         using (var doc = WordDocument.Create(filePath2)) {
-            var list = doc.AddList(WordListStyle.Headings111);
+            var list = doc.AddList(WordListStyle.Numbered);
             list.AddItem("Item 2");
             doc.Save();
         }
 
         using (var doc = WordDocument.Create(filePath3)) {
-            var list = doc.AddList(WordListStyle.Headings111);
+            var list = doc.AddList(WordListStyle.Numbered);
             list.AddItem("Item 3");
             doc.Save();
         }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
         var filePath2 = Path.Combine(_directoryWithFiles, "MergeDocNoLists2.docx");
 
         using (var doc1 = WordDocument.Create(filePath1)) {
-            var list = doc1.AddList(WordListStyle.Headings111);
+            var list = doc1.AddList(WordListStyle.Numbered);
             list.AddItem("Item 1");
             doc1.Save();
         }
