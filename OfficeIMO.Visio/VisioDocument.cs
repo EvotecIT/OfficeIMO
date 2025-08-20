@@ -447,6 +447,26 @@ namespace OfficeIMO.Visio {
 
                 void WriteRectangleGeometry(XmlWriter writer, double width, double height) {
                     writer.WriteStartElement("Geom", ns);
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", "NoFill");
+                    writer.WriteAttributeString("V", "0");
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", "NoLine");
+                    writer.WriteAttributeString("V", "0");
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", "NoShow");
+                    writer.WriteAttributeString("V", "0");
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", "NoSnap");
+                    writer.WriteAttributeString("V", "0");
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", "NoQuickDrag");
+                    writer.WriteAttributeString("V", "0");
+                    writer.WriteEndElement();
                     writer.WriteStartElement("MoveTo", ns);
                     writer.WriteAttributeString("X", ToVisioString(0));
                     writer.WriteAttributeString("Y", ToVisioString(0));
