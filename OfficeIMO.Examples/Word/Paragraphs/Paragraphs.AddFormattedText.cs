@@ -2,6 +2,8 @@ using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
 
     internal static void Example_AddFormattedText(string folderPath, bool openWord) {

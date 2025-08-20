@@ -5,6 +5,8 @@ using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 using WColor = DocumentFormat.OpenXml.Wordprocessing.Color;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
     internal static void Example_RegisterCustomParagraphStyle(string folderPath, bool openWord) {
         Console.WriteLine("[*] Creating document with custom style");

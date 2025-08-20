@@ -3,6 +3,8 @@ using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
         internal static void Example_InsertParagraphAt(string folderPath, bool openWord) {
             Console.WriteLine("[*] Inserting paragraph at a specific index");

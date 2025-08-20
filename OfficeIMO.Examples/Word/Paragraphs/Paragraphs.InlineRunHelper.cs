@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
     internal static void Example_InlineRunHelper(string folderPath, bool openWord) {
         Console.WriteLine("[*] Creating document with inline runs");

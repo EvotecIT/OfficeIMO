@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class PageSettings {
     internal static void Example_BasicSettings(string folderPath, bool openWord) {
         string filePath = System.IO.Path.Combine(folderPath, "Document with PageSettings.docx");
