@@ -8,12 +8,13 @@ using OfficeIMO.Visio;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class VisioTheme {
+    public class VisioThemeTests {
         [Fact]
         public void AddsThemePart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = new();
+            document.Theme = new VisioTheme { Name = "Office Theme" };
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
             document.Save(filePath);
@@ -27,6 +28,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("/visio/theme/theme1.xml", themeUri.OriginalString);
             }
 
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal("Office Theme", loaded.Theme?.Name);
+
             using FileStream zipStream = File.OpenRead(filePath);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
             ZipArchiveEntry entry = archive.GetEntry("[Content_Types].xml")!;
@@ -37,11 +41,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DoesNotAddThemeWhenNoShapes() {
+        public void DoesNotAddThemeWhenAbsent() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = new();
-            document.AddPage("Page-1");
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
             document.Save(filePath);
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {

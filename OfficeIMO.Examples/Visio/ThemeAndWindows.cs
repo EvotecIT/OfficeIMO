@@ -13,6 +13,7 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Theme and Windows.vsdx");
 
             VisioDocument document = new();
+            document.Theme = new VisioTheme { Name = "Office Theme" };
             document.AddPage("Page-1");
             document.Save(filePath);
 
