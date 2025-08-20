@@ -33,10 +33,10 @@ namespace OfficeIMO.Tests {
                     .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WrapTextImage.Square).Align(HorizontalAlignment.Center))
                     .Image(i => {
                         using var stream = File.OpenRead(imagePath);
-                        i.Add(stream, "stream.jpg").Size(60, 60);
+                        i.Add(stream, "stream.jpg").Size(60, 60).Align(HorizontalAlignment.Right);
                     })
-                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70))
-                    .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80))
+                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left))
+                    .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80).Align(HorizontalAlignment.Justified))
                     .End();
                 document.Save(false);
             }
@@ -50,8 +50,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WrapTextImage.Square, document.Images[0].WrapText);
                 Assert.Equal(JustificationValues.Center, document.Paragraphs[0].ParagraphAlignment);
                 Assert.Equal(60, document.Images[1].Width);
+                Assert.Equal(JustificationValues.Right, document.Paragraphs[1].ParagraphAlignment);
                 Assert.Equal(70, document.Images[2].Width);
+                Assert.Equal(JustificationValues.Left, document.Paragraphs[2].ParagraphAlignment);
                 Assert.Equal(80, document.Images[3].Width);
+                Assert.Equal(JustificationValues.Both, document.Paragraphs[3].ParagraphAlignment);
             }
         }
     }

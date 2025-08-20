@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
