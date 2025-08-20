@@ -424,6 +424,13 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
+                void WriteCellValue(XmlWriter writer, string name, string value) {
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", name);
+                    writer.WriteAttributeString("V", value);
+                    writer.WriteEndElement();
+                }
+
                 void WriteXForm(XmlWriter writer, VisioShape shape, double width, double height) {
                     writer.WriteStartElement("XForm", ns);
                     writer.WriteElementString("PinX", ns, ToVisioString(shape.PinX));
@@ -600,6 +607,10 @@ namespace OfficeIMO.Visio {
                             WriteXForm(writer, s, masterWidth, masterHeight);
                             // Always specify line weight so that shapes are visible
                             WriteCell(writer, "LineWeight", s.LineWeight);
+                            WriteCell(writer, "LinePattern", 1);
+                            WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
+                            WriteCell(writer, "FillPattern", 1);
+                            WriteCellValue(writer, "FillForegnd", "RGB(255,255,255)");
                             WriteRectangleGeometry(writer, masterWidth, masterHeight);
                             WriteConnectionSection(writer, s.ConnectionPoints);
                             WriteDataSection(writer, s.Data);
@@ -801,6 +812,10 @@ namespace OfficeIMO.Visio {
                                 WriteXForm(writer, shape, width, height);
                                 // Always include line weight to avoid invisible shapes
                                 WriteCell(writer, "LineWeight", shape.LineWeight);
+                                WriteCell(writer, "LinePattern", 1);
+                                WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
+                                WriteCell(writer, "FillPattern", 1);
+                                WriteCellValue(writer, "FillForegnd", "RGB(255,255,255)");
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 WriteDataSection(writer, shape.Data);
                                 WriteTextElement(writer, shape.Text);
@@ -821,6 +836,10 @@ namespace OfficeIMO.Visio {
                                 WriteXForm(writer, shape, width, height);
                                 // Always include line weight to avoid invisible shapes
                                 WriteCell(writer, "LineWeight", shape.LineWeight);
+                                WriteCell(writer, "LinePattern", 1);
+                                WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
+                                WriteCell(writer, "FillPattern", 1);
+                                WriteCellValue(writer, "FillForegnd", "RGB(255,255,255)");
                                 WriteRectangleGeometry(writer, width, height);
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 WriteDataSection(writer, shape.Data);
@@ -862,6 +881,14 @@ namespace OfficeIMO.Visio {
                               writer.WriteAttributeString("FillStyle", "3");
                               writer.WriteAttributeString("TextStyle", "3");
                               WriteCell(writer, "LineWeight", 0.0138889);
+                              WriteCell(writer, "LinePattern", 1);
+                              WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
+                              WriteCell(writer, "FillPattern", 1);
+                              WriteCellValue(writer, "FillForegnd", "RGB(255,255,255)");
+                              WriteCell(writer, "OneD", 1);
+                              if (connector.EndArrow.HasValue) {
+                                  WriteCell(writer, "EndArrow", connector.EndArrow.Value);
+                              }
                               writer.WriteStartElement("Geom", ns);
                             writer.WriteStartElement("MoveTo", ns);
                             writer.WriteAttributeString("X", ToVisioString(startX));

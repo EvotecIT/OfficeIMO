@@ -58,6 +58,11 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public ConnectorKind Kind { get; set; } = ConnectorKind.Straight;
 
+        /// <summary>
+        /// Gets or sets the end arrow style.
+        /// </summary>
+        public int? EndArrow { get; set; }
+
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
             int toId = int.TryParse(to.Id, out int ti) ? ti : 0;
