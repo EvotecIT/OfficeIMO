@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp;
+
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Represents a shape on a Visio page.
@@ -7,6 +9,10 @@ namespace OfficeIMO.Visio {
             Id = id;
             LineWeight = 0.0138889;
             Angle = 0;
+            LineColor = Color.Black;
+            FillColor = Color.White;
+            LinePattern = 1; // Solid line
+            FillPattern = 1; // Solid fill
         }
 
         public VisioShape(string id, double pinX, double pinY, double width, double height, string text) : this(id) {
@@ -49,6 +55,26 @@ namespace OfficeIMO.Visio {
         public double Angle { get; set; }
 
         public string? Text { get; set; }
+        
+        /// <summary>
+        /// Line (border) color of the shape.
+        /// </summary>
+        public Color LineColor { get; set; }
+        
+        /// <summary>
+        /// Fill color of the shape.
+        /// </summary>
+        public Color FillColor { get; set; }
+        
+        /// <summary>
+        /// Line pattern (0=None, 1=Solid, 2=Dashed, etc.).
+        /// </summary>
+        public int LinePattern { get; set; }
+        
+        /// <summary>
+        /// Fill pattern (0=None, 1=Solid, etc.).
+        /// </summary>
+        public int FillPattern { get; set; }
 
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
 

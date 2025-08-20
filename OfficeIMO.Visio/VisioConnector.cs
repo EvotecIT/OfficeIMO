@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -26,6 +27,9 @@ namespace OfficeIMO.Visio {
             Id = id;
             From = from;
             To = to;
+            LineColor = Color.Black;
+            LineWeight = 0.0138889;
+            LinePattern = 1; // Solid line
         }
 
         /// <summary>
@@ -62,6 +66,21 @@ namespace OfficeIMO.Visio {
         /// Gets or sets the end arrow style.
         /// </summary>
         public int? EndArrow { get; set; }
+        
+        /// <summary>
+        /// Line color of the connector.
+        /// </summary>
+        public Color LineColor { get; set; }
+        
+        /// <summary>
+        /// Line weight (thickness) of the connector.
+        /// </summary>
+        public double LineWeight { get; set; }
+        
+        /// <summary>
+        /// Line pattern (0=None, 1=Solid, 2=Dashed, etc.).
+        /// </summary>
+        public int LinePattern { get; set; }
 
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
