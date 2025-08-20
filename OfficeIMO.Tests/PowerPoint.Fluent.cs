@@ -14,13 +14,14 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 presentation.AsFluent()
-                    .Slide()
+                    .Slide(s => s
+                        .Layout(0, 1)
                         .Title("Fluent Title")
-                        .Text("Hello")
+                        .TextBox("Hello")
                         .Bullets("One", "Two")
                         .Image(imagePath)
                         .Table(2, 2)
-                        .Notes("Notes text");
+                        .Notes("Notes text"));
                 presentation.Save();
             }
 
@@ -33,6 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, textBoxes.Count);
                 Assert.Equal("Fluent Title", textBoxes[0].Text);
                 Assert.Equal("Hello", textBoxes[1].Text);
+                Assert.Equal(1, slide.LayoutIndex);
             }
 
             File.Delete(filePath);

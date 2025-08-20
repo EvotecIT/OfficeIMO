@@ -13,15 +13,23 @@ namespace OfficeIMO.PowerPoint.Fluent {
         ///     Adds a title textbox to the slide.
         /// </summary>
         public PowerPointSlideBuilder Title(string text) {
-            _slide.AddTextBox(text);
+            _slide.AddTitle(text);
             return this;
         }
 
         /// <summary>
         ///     Adds a textbox with the specified text.
         /// </summary>
-        public PowerPointSlideBuilder Text(string text) {
+        public PowerPointSlideBuilder TextBox(string text) {
             _slide.AddTextBox(text);
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the slide layout.
+        /// </summary>
+        public PowerPointSlideBuilder Layout(int masterIndex, int layoutIndex) {
+            _slide.SetLayout(masterIndex, layoutIndex);
             return this;
         }
 
