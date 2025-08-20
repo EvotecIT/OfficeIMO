@@ -888,8 +888,9 @@ namespace OfficeIMO.Word {
                 var blip = GetBlip();
                 if (blip != null) {
                     var alpha = blip.GetFirstChild<AlphaModulationFixed>();
-                    if (alpha != null) {
-                        return (int)((100000 - alpha.Amount.Value) / 1000);
+                    var amount = alpha?.Amount?.Value;
+                    if (amount != null) {
+                        return (int)((100000 - amount.Value) / 1000);
                     }
                 }
                 return null;
@@ -919,8 +920,27 @@ namespace OfficeIMO.Word {
         /// Gets or sets the image's wrap text.
         /// </summary>
         public WrapTextImage? WrapText {
-            get => WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline);
-            set => WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline, value);
+            get {
+                if (_Image.Anchor != null) {
+                    return WordWrapTextImage.GetWrapTextImage(_Image.Anchor, _Image.Inline ?? new Inline());
+                }
+                if (_Image.Inline != null) {
+                    return WrapTextImage.InLineWithText;
+                }
+                return null;
+            }
+            set {
+                if (_Image.Anchor != null) {
+                    WordWrapTextImage.SetWrapTextImage(_Image, _Image.Anchor, _Image.Inline ?? new Inline(), value);
+                } else if (_Image.Inline != null && value != null) {
+                    if (value == WrapTextImage.InLineWithText) {
+                        return;
+                    }
+                    var convertedAnchor = WordTextBox.ConvertInlineToAnchor(_Image.Inline, value.Value);
+                    _Image.Append(convertedAnchor);
+                    _Image.OfType<Inline>().FirstOrDefault()?.Remove();
+                }
+            }
         }
 
         /// <summary>
@@ -957,6 +977,7 @@ namespace OfficeIMO.Word {
                 if (picture == null) return;
 
                 var blipFill = picture.BlipFill;
+                if (blipFill == null) return;
                 var tile = blipFill.GetFirstChild<Tile>();
                 var stretch = blipFill.GetFirstChild<Stretch>();
 
@@ -1011,7 +1032,7 @@ namespace OfficeIMO.Word {
                     .OfType<BlipExtension>()
                     .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}")?
                     .GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
-                _useLocalDpi = useLocalDpi?.Val;
+                _useLocalDpi = useLocalDpi?.Val?.Value;
                 return _useLocalDpi;
             }
             set {
@@ -1060,11 +1081,13 @@ namespace OfficeIMO.Word {
                     var vPos = _Image.Anchor.VerticalPosition;
                     int x = 0;
                     int y = 0;
-                    if (hPos?.PositionOffset != null) {
-                        int.TryParse(hPos.PositionOffset.Text, out x);
+                    var hOffset = hPos?.PositionOffset;
+                    if (hOffset?.Text != null) {
+                        int.TryParse(hOffset.Text, out x);
                     }
-                    if (vPos?.PositionOffset != null) {
-                        int.TryParse(vPos.PositionOffset.Text, out y);
+                    var vOffset = vPos?.PositionOffset;
+                    if (vOffset?.Text != null) {
+                        int.TryParse(vOffset.Text, out y);
                     }
                     return (x, y);
                 }
@@ -1080,17 +1103,18 @@ namespace OfficeIMO.Word {
             get {
                 var pic = GetPicture();
                 var nv = pic?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties;
-                _preferRelativeResize = nv?.PreferRelativeResize;
+                _preferRelativeResize = nv?.PreferRelativeResize?.Value;
                 return _preferRelativeResize;
             }
             set {
                 _preferRelativeResize = value;
                 var pic = GetPicture();
                 if (pic == null) return;
-                var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+                var nvp = pic.NonVisualPictureProperties ?? (pic.NonVisualPictureProperties = new Pic.NonVisualPictureProperties());
+                var nv = nvp.NonVisualPictureDrawingProperties;
                 if (nv == null && value != null) {
                     nv = new Pic.NonVisualPictureDrawingProperties();
-                    pic.NonVisualPictureProperties.Append(nv);
+                    nvp.Append(nv);
                 }
                 if (nv != null) {
                     nv.PreferRelativeResize = value;
@@ -1104,7 +1128,7 @@ namespace OfficeIMO.Word {
         public bool? NoChangeAspect {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noChangeAspect = locks?.NoChangeAspect;
+                _noChangeAspect = locks?.NoChangeAspect?.Value;
                 return _noChangeAspect;
             }
             set {
@@ -1119,7 +1143,7 @@ namespace OfficeIMO.Word {
         public bool? NoCrop {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noCrop = locks?.NoCrop;
+                _noCrop = locks?.NoCrop?.Value;
                 return _noCrop;
             }
             set {
@@ -1134,7 +1158,7 @@ namespace OfficeIMO.Word {
         public bool? NoMove {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noMove = locks?.NoMove;
+                _noMove = locks?.NoMove?.Value;
                 return _noMove;
             }
             set {
@@ -1149,7 +1173,7 @@ namespace OfficeIMO.Word {
         public bool? NoResize {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noResize = locks?.NoResize;
+                _noResize = locks?.NoResize?.Value;
                 return _noResize;
             }
             set {
@@ -1164,7 +1188,7 @@ namespace OfficeIMO.Word {
         public bool? NoRot {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noRotation = locks?.NoRotation;
+                _noRotation = locks?.NoRotation?.Value;
                 return _noRotation;
             }
             set {
@@ -1179,7 +1203,7 @@ namespace OfficeIMO.Word {
         public bool? NoSelect {
             get {
                 var locks = GetPicture()?.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.PictureLocks;
-                _noSelection = locks?.NoSelection;
+                _noSelection = locks?.NoSelection?.Value;
                 return _noSelection;
             }
             set {
@@ -1194,10 +1218,11 @@ namespace OfficeIMO.Word {
         private void SetPictureLock(Action<A.PictureLocks> setter) {
             var pic = GetPicture();
             if (pic == null) return;
-            var nv = pic.NonVisualPictureProperties.NonVisualPictureDrawingProperties;
+            var nvp = pic.NonVisualPictureProperties ?? (pic.NonVisualPictureProperties = new Pic.NonVisualPictureProperties());
+            var nv = nvp.NonVisualPictureDrawingProperties;
             if (nv == null) {
                 nv = new Pic.NonVisualPictureDrawingProperties();
-                pic.NonVisualPictureProperties.Append(nv);
+                nvp.Append(nv);
             }
             var locks = nv.PictureLocks;
             if (locks == null) {
@@ -1214,7 +1239,8 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var ar = blip?.GetFirstChild<AlphaReplace>();
-                _fixedOpacity = ar != null ? (int?)(ar.Alpha.Value / 1000) : null;
+                var alpha = ar?.Alpha?.Value;
+                _fixedOpacity = alpha != null ? (int?)(alpha / 1000) : null;
                 return _fixedOpacity;
             }
             set {
@@ -1240,7 +1266,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the alpha inversion color in hex.
         /// </summary>
-        public string AlphaInversionColorHex {
+        public string? AlphaInversionColorHex {
             get {
                 var blip = GetBlip();
                 var ai = blip?.GetFirstChild<AlphaInverse>();
@@ -1288,7 +1314,8 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var bi = blip?.GetFirstChild<BiLevel>();
-                _blackWhiteThreshold = bi != null ? (int?)(bi.Threshold.Value / 1000) : null;
+                var threshold = bi?.Threshold?.Value;
+                _blackWhiteThreshold = threshold != null ? (int?)(threshold / 1000) : null;
                 return _blackWhiteThreshold;
             }
             set {
@@ -1317,7 +1344,8 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var blur = blip?.GetFirstChild<Blur>();
-                _blurRadius = blur?.Radius != null ? (int?)blur.Radius.Value : null;
+                var radius = blur?.Radius?.Value;
+                _blurRadius = radius != null ? (int?)radius : null;
                 return _blurRadius;
             }
             set {
@@ -1345,7 +1373,7 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var blur = blip?.GetFirstChild<Blur>();
-                _blurGrow = blur?.Grow;
+                _blurGrow = blur?.Grow?.Value;
                 return _blurGrow;
             }
             set {
@@ -1369,7 +1397,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the source color to change from in hex.
         /// </summary>
-        public string ColorChangeFromHex {
+        public string? ColorChangeFromHex {
             get {
                 var blip = GetBlip();
                 var cc = blip?.GetFirstChild<ColorChange>();
@@ -1385,7 +1413,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the target color to change to in hex.
         /// </summary>
-        public string ColorChangeToHex {
+        public string? ColorChangeToHex {
             get {
                 var blip = GetBlip();
                 var cc = blip?.GetFirstChild<ColorChange>();
@@ -1449,7 +1477,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a color replacement hex value.
         /// </summary>
-        public string ColorReplacementHex {
+        public string? ColorReplacementHex {
             get {
                 var blip = GetBlip();
                 var cr = blip?.GetFirstChild<ColorReplacement>();
@@ -1492,7 +1520,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the first duotone color in hex.
         /// </summary>
-        public string DuotoneColor1Hex {
+        public string? DuotoneColor1Hex {
             get {
                 var blip = GetBlip();
                 var duo = blip?.GetFirstChild<Duotone>();
@@ -1508,7 +1536,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the second duotone color in hex.
         /// </summary>
-        public string DuotoneColor2Hex {
+        public string? DuotoneColor2Hex {
             get {
                 var blip = GetBlip();
                 var duo = blip?.GetFirstChild<Duotone>();
@@ -1590,7 +1618,8 @@ namespace OfficeIMO.Word {
             get {
                 var blip = GetBlip();
                 var lum = blip?.GetFirstChild<LuminanceEffect>();
-                _luminanceBrightness = lum != null ? lum.Brightness : null;
+                var brightness = lum?.Brightness?.Value;
+                _luminanceBrightness = brightness != null ? (int?)brightness : null;
                 if (_luminanceBrightness != null) _luminanceBrightness /= 1000;
                 return _luminanceBrightness;
             }
