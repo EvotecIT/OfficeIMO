@@ -332,7 +332,21 @@ namespace OfficeIMO.Visio {
 
         private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
             XNamespace ns = VisioNamespace;
-            XElement settings = new(ns + "DocumentSettings");
+            XElement settings = new(ns + "DocumentSettings",
+                new XAttribute("TopPage", 0),
+                new XAttribute("DefaultTextStyle", 3),
+                new XAttribute("DefaultLineStyle", 3),
+                new XAttribute("DefaultFillStyle", 3),
+                new XAttribute("DefaultGuideStyle", 4),
+                new XElement(ns + "GlueSettings", 9),
+                new XElement(ns + "SnapSettings", 295),
+                new XElement(ns + "SnapExtensions", 34),
+                new XElement(ns + "SnapAngles"),
+                new XElement(ns + "DynamicGridEnabled", 1),
+                new XElement(ns + "ProtectStyles", 0),
+                new XElement(ns + "ProtectShapes", 0),
+                new XElement(ns + "ProtectMasters", 0),
+                new XElement(ns + "ProtectBkgnds", 0));
             if (requestRecalcOnOpen) {
                 settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
             }
@@ -561,9 +575,8 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
                             WriteXForm(writer, s, masterWidth, masterHeight);
-                            if (Math.Abs(s.LineWeight - 0.0138889) > 0) {
-                                WriteCell(writer, "LineWeight", s.LineWeight);
-                            }
+                            // Always specify line weight so that shapes are visible
+                            WriteCell(writer, "LineWeight", s.LineWeight);
                             WriteRectangleGeometry(writer, masterWidth, masterHeight);
                             WriteConnectionSection(writer, s.ConnectionPoints);
                             WriteDataSection(writer, s.Data);
@@ -763,9 +776,8 @@ namespace OfficeIMO.Visio {
                                     shape.LocPinY = height / 2;
                                 }
                                 WriteXForm(writer, shape, width, height);
-                                if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
-                                    WriteCell(writer, "LineWeight", shape.LineWeight);
-                                }
+                                // Always include line weight to avoid invisible shapes
+                                WriteCell(writer, "LineWeight", shape.LineWeight);
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 WriteDataSection(writer, shape.Data);
                                 WriteTextElement(writer, shape.Text);
@@ -781,9 +793,8 @@ namespace OfficeIMO.Visio {
                                     shape.LocPinY = height / 2;
                                 }
                                 WriteXForm(writer, shape, width, height);
-                                if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
-                                    WriteCell(writer, "LineWeight", shape.LineWeight);
-                                }
+                                // Always include line weight to avoid invisible shapes
+                                WriteCell(writer, "LineWeight", shape.LineWeight);
                                 WriteRectangleGeometry(writer, width, height);
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 WriteDataSection(writer, shape.Data);
