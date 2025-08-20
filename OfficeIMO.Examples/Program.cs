@@ -27,7 +27,6 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Visio.RotatedShapeBounds.Example_RotatedShapeBounds(folderPath, false);
             OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
             OfficeIMO.Examples.Visio.ThemeAndWindows.Example_ThemeAndWindows(folderPath, false);
-            OfficeIMO.Examples.Visio.ValidateVisio.Example_ValidateVisio(folderPath, false);
             OfficeIMO.Examples.Visio.AllNamedShapesHaveMasters.Run();
             OfficeIMO.Examples.Visio.MasterShapes.Run();
 

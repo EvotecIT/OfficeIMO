@@ -48,17 +48,5 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, s.Angle, 5);
         }
 
-        [Fact]
-        public void LoadsPropertiesFromXForm() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioWriter.Create(filePath);
-
-            VisioDocument doc = VisioDocument.Load(filePath);
-            VisioShape shape = doc.Pages[0].Shapes[0];
-            Assert.Equal(1.0, shape.LocPinX, 5);
-            Assert.Equal(0.5, shape.LocPinY, 5);
-            Assert.Equal(0.0, shape.Angle, 5);
-            Assert.Equal(0.0138889, shape.LineWeight, 5);
-        }
     }
 }

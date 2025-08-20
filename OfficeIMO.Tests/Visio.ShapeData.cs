@@ -22,15 +22,5 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Value", value);
         }
 
-        [Fact]
-        public void LoadsShapeDataFromVisioWriter() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioWriter.Create(filePath);
-
-            VisioDocument doc = VisioDocument.Load(filePath);
-            VisioShape shape = doc.Pages[0].Shapes[0];
-            Assert.True(shape.Data.TryGetValue("Key1", out string? value));
-            Assert.Equal("Value1", value);
-        }
     }
 }

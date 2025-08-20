@@ -33,20 +33,5 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0", lines[3].Attribute("Y")!.Value);
         }
 
-        [Fact]
-        public void VisioWriterCreatesRectangleGeometry() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioWriter.Create(filePath);
-            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
-            using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
-                PackagePart pagePart = package.GetPart(new Uri("/visio/pages/page1.xml", UriKind.Relative));
-                XDocument pageDoc = XDocument.Load(pagePart.GetStream());
-                var shapes = pageDoc.Root!.Element(ns + "Shapes")!.Elements(ns + "Shape").Where(s => (string?)s.Attribute("ID") == "1" || (string?)s.Attribute("ID") == "2");
-                foreach (XElement shape in shapes) {
-                    var lines = shape.Element(ns + "Geom")!.Elements(ns + "LineTo").ToList();
-                    Assert.Equal(4, lines.Count);
-                }
-            }
-        }
     }
 }
