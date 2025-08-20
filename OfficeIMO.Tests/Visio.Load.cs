@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Rectangle", loadedShape.Text);
             Assert.Equal(1d, loadedShape.PinX);
             Assert.Equal(2d, loadedShape.PinY);
-            Assert.Equal(0d, loadedShape.Width);
-            Assert.Equal(0d, loadedShape.Height);
+            Assert.Equal(1d, loadedShape.Width);
+            Assert.Equal(1d, loadedShape.Height);
             Assert.NotNull(loadedShape.Master);
 
             string secondPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -36,7 +36,8 @@ namespace OfficeIMO.Tests {
             VisioDocument roundTrip = VisioDocument.Load(secondPath);
             VisioShape roundTripShape = roundTrip.Pages[0].Shapes[0];
             Assert.Equal(loadedShape.Text, roundTripShape.Text);
-            Assert.Equal(0d, roundTripShape.Width);
+            Assert.Equal(1d, roundTripShape.Width);
+            Assert.Equal(1d, roundTripShape.Height);
         }
     }
 }

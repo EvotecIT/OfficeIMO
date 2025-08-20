@@ -136,6 +136,21 @@ namespace OfficeIMO.Visio {
                     string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
                     if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
                         shape.Master = master;
+                        if (shape.Width == 0 || shape.Height == 0) {
+                            VisioShape masterShape = shape.Master.Shape;
+                            if (shape.Width == 0) {
+                                shape.Width = masterShape.Width;
+                            }
+                            if (shape.Height == 0) {
+                                shape.Height = masterShape.Height;
+                            }
+                            if (shape.LocPinX == 0) {
+                                shape.LocPinX = masterShape.LocPinX;
+                            }
+                            if (shape.LocPinY == 0) {
+                                shape.LocPinY = masterShape.LocPinY;
+                            }
+                        }
                     }
 
                     page.Shapes.Add(shape);
