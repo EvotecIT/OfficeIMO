@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Examples.Excel {
     public static class RowsFromObjects {
@@ -29,8 +30,15 @@ namespace OfficeIMO.Examples.Excel {
             using (var document = ExcelDocument.Create(filePath)) {
                 document.AsFluent()
                     .Sheet("People", s => s
-                        .RowsFrom(data, o => o.ExpandProperties.Add(nameof(Person.Address)))
-                        .AutoFit(columns: true, rows: true))
+                        .RowsFrom(data, o => {
+                            o.ExpandProperties.Add(nameof(Person.Address));
+                            o.HeaderPrefixTrimPaths = new[] { "Address." };
+                            o.HeaderCase = HeaderCase.Title;
+                            o.NullPolicy = NullPolicy.EmptyString;
+                            o.Formatters["Age"] = v => $"{v} years";
+                        })
+                        .Table("People", t => t.Style(TableStyle.TableStyleMedium9))
+                        .AutoFit(columns: true, rows: false))
                     .End()
                     .Save(openExcel);
             }

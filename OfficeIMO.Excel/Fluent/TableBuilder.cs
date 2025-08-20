@@ -2,9 +2,25 @@ using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     public class TableBuilder {
         private readonly ExcelSheet _sheet;
+        private TableStyle _style = TableStyle.TableStyleLight9;
+        private bool _hasHeader = true;
 
         internal TableBuilder(ExcelSheet sheet) {
             _sheet = sheet;
+        }
+
+        public TableBuilder Style(TableStyle style) {
+            _style = style;
+            return this;
+        }
+
+        public TableBuilder HasHeader(bool hasHeader = true) {
+            _hasHeader = hasHeader;
+            return this;
+        }
+
+        internal void Build(string range, string name) {
+            _sheet.AddTable(range, _hasHeader, name, _style);
         }
 
         public TableBuilder Add(string range, bool hasHeader = true, string name = "", TableStyle style = TableStyle.TableStyleLight9) {
