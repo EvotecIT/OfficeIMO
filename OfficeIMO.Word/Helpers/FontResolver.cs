@@ -104,7 +104,7 @@ public static class FontResolver {
         try {
             return GetFontFiles().Any(file =>
                 Path.GetFileNameWithoutExtension(file)
-                    .Contains(fontFamily, StringComparison.OrdinalIgnoreCase));
+                    .IndexOf(fontFamily, StringComparison.OrdinalIgnoreCase) >= 0);
         } catch {
             return false;
         }
