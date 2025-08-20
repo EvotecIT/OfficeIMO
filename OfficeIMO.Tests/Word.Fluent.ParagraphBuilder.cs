@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -35,6 +36,29 @@ namespace OfficeIMO.Tests {
             }
 
             RemoveCustomStyle(customStyleId);
+        }
+
+        [Fact]
+        public void Test_FluentParagraphBuilderNewMethods() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentParagraphBuilderNewMethods.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Paragraph(p => p.Text("Before").Tab().Text("After"))
+                    .Paragraph(p => p.Link("https://example.com", "Example", true))
+                    .Paragraph(p => p.Text("Line1").Break().Text("Line2"))
+                    .Paragraph(p => p.Align(HorizontalAlignment.Right).Text("Aligned"))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs[1].IsTab);
+                Assert.True(document.Paragraphs[3].IsHyperLink);
+                Assert.Equal("https://example.com/", document.Paragraphs[3].Hyperlink?.Uri?.ToString());
+                Assert.True(document.Paragraphs[5].IsBreak);
+                Assert.Equal(JustificationValues.Right, document.Paragraphs.Last().ParagraphAlignment);
+            }
         }
     }
 }
