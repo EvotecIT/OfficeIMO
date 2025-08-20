@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddAutoFilterConcurrent() {
+        public async Task Test_AddAutoFilterConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.Concurrent.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 var tasks = Enumerable.Range(0, 5)
                     .Select(_ => Task.Run(() => sheet.AddAutoFilter("A1:B3")))
                     .ToArray();
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 document.Save();
             }
 

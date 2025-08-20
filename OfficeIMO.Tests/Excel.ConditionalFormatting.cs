@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ConditionalFormattingConcurrent() {
+        public async Task Test_ConditionalFormattingConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalConcurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                     Task.Run(() => sheet.AddConditionalColorScale("A1:A3", SixLaborsColor.Red, SixLaborsColor.Blue)),
                     Task.Run(() => sheet.AddConditionalDataBar("A1:A3", SixLaborsColor.Green))
                 };
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 document.Save();
             }
 
