@@ -334,9 +334,9 @@ namespace OfficeIMO.Visio {
             XNamespace ns = VisioNamespace;
             XElement settings = new(ns + "DocumentSettings",
                 new XAttribute("TopPage", 0),
-                new XAttribute("DefaultTextStyle", 3),
-                new XAttribute("DefaultLineStyle", 3),
-                new XAttribute("DefaultFillStyle", 3),
+                new XAttribute("DefaultTextStyle", 1),
+                new XAttribute("DefaultLineStyle", 1),
+                new XAttribute("DefaultFillStyle", 1),
                 new XAttribute("DefaultGuideStyle", 4),
                 new XElement(ns + "GlueSettings", 9),
                 new XElement(ns + "SnapSettings", 295),
@@ -350,13 +350,34 @@ namespace OfficeIMO.Visio {
             if (requestRecalcOnOpen) {
                 settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
             }
+            XElement styleSheets = new(ns + "StyleSheets",
+                new XElement(ns + "StyleSheet",
+                    new XAttribute("ID", 1),
+                    new XAttribute("Name", "Normal"),
+                    new XAttribute("NameU", "Normal"),
+                    new XAttribute("LineStyle", 0),
+                    new XAttribute("FillStyle", 0),
+                    new XAttribute("TextStyle", 0),
+                    new XElement(ns + "Cell", new XAttribute("N", "LinePattern"), new XAttribute("V", 1)),
+                    new XElement(ns + "Cell", new XAttribute("N", "LineColor"), new XAttribute("V", "RGB(0,0,0)")),
+                    new XElement(ns + "Cell", new XAttribute("N", "FillPattern"), new XAttribute("V", 1)),
+                    new XElement(ns + "Cell", new XAttribute("N", "FillForegnd"), new XAttribute("V", "RGB(255,255,255)"))),
+                new XElement(ns + "StyleSheet",
+                    new XAttribute("ID", 2),
+                    new XAttribute("Name", "Connector"),
+                    new XAttribute("NameU", "Connector"),
+                    new XAttribute("BasedOn", 1),
+                    new XAttribute("LineStyle", 0),
+                    new XAttribute("FillStyle", 0),
+                    new XAttribute("TextStyle", 0),
+                    new XElement(ns + "Cell", new XAttribute("N", "EndArrow"), new XAttribute("V", 0))));
 
             return new XDocument(
                 new XElement(ns + "VisioDocument",
                     settings,
                     new XElement(ns + "Colors"),
                     new XElement(ns + "FaceNames"),
-                    new XElement(ns + "StyleSheets")));
+                    styleSheets));
         }
 
         /// <summary>
@@ -601,9 +622,9 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
-                            writer.WriteAttributeString("LineStyle", "3");
-                            writer.WriteAttributeString("FillStyle", "3");
-                            writer.WriteAttributeString("TextStyle", "3");
+                            writer.WriteAttributeString("LineStyle", "1");
+                            writer.WriteAttributeString("FillStyle", "1");
+                            writer.WriteAttributeString("TextStyle", "1");
                             WriteXForm(writer, s, masterWidth, masterHeight);
                             // Always specify line weight so that shapes are visible
                             WriteCell(writer, "LineWeight", s.LineWeight);
@@ -785,6 +806,9 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Name", shapeName);
                             writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
                             writer.WriteAttributeString("Type", "Shape");
+                            writer.WriteAttributeString("LineStyle", "1");
+                            writer.WriteAttributeString("FillStyle", "1");
+                            writer.WriteAttributeString("TextStyle", "1");
                             if (shape.Master != null) {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
                                 double width = shape.Width;
@@ -820,9 +844,6 @@ namespace OfficeIMO.Visio {
                                 WriteDataSection(writer, shape.Data);
                                 WriteTextElement(writer, shape.Text);
                             } else {
-                                writer.WriteAttributeString("LineStyle", "3");
-                                writer.WriteAttributeString("FillStyle", "3");
-                                writer.WriteAttributeString("TextStyle", "3");
                                 double width = shape.Width > 0 ? shape.Width : 1;
                                 double height = shape.Height > 0 ? shape.Height : 1;
                                 shape.Width = width;
@@ -877,9 +898,9 @@ namespace OfficeIMO.Visio {
                               writer.WriteAttributeString("Name", "Connector");
                               writer.WriteAttributeString("NameU", "Connector");
                               writer.WriteAttributeString("Type", "Shape");
-                              writer.WriteAttributeString("LineStyle", "3");
-                              writer.WriteAttributeString("FillStyle", "3");
-                              writer.WriteAttributeString("TextStyle", "3");
+                              writer.WriteAttributeString("LineStyle", "2");
+                              writer.WriteAttributeString("FillStyle", "2");
+                              writer.WriteAttributeString("TextStyle", "2");
                               WriteCell(writer, "LineWeight", 0.0138889);
                               WriteCell(writer, "LinePattern", 1);
                               WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
