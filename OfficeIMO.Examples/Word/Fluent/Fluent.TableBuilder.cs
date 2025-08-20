@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Table(t => t
-                        .Columns(3).PreferredWidth(Percent: 100)
+                        .Columns(3).PreferredWidth(percent: 100)
                         .Header("Name", "Role", "Score")
                         .Row("Alice", "Dev", 98)
                         .Row("Bob", "Ops", 91)
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
                     .Table(t => t
-                        .AddTable(2, 3)
+                        .Create(2, 3)
                         .ForEachCell((r, c, cell) => cell.AddParagraph($"R{r}C{c}", true))
                         .Cell(1, 3, cell => cell.AddParagraph("Last", true))
                         .InsertRow(3, "A", "B", "C")
