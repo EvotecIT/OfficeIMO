@@ -378,30 +378,32 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            Worksheet worksheet = _worksheetPart.Worksheet;
+            WriteLock(() => {
+                Worksheet worksheet = _worksheetPart.Worksheet;
 
-            AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
-            if (existing != null) {
-                worksheet.RemoveChild(existing);
-            }
-
-            AutoFilter autoFilter = new AutoFilter { Reference = range };
-
-            if (filterCriteria != null) {
-                foreach (KeyValuePair<uint, IEnumerable<string>> criteria in filterCriteria) {
-                    FilterColumn filterColumn = new FilterColumn { ColumnId = criteria.Key };
-                    Filters filters = new Filters();
-                    foreach (string value in criteria.Value) {
-                        filters.Append(new Filter { Val = value });
-                    }
-
-                    filterColumn.Append(filters);
-                    autoFilter.Append(filterColumn);
+                AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+                if (existing != null) {
+                    worksheet.RemoveChild(existing);
                 }
-            }
 
-            worksheet.Append(autoFilter);
-            worksheet.Save();
+                AutoFilter autoFilter = new AutoFilter { Reference = range };
+
+                if (filterCriteria != null) {
+                    foreach (KeyValuePair<uint, IEnumerable<string>> criteria in filterCriteria) {
+                        FilterColumn filterColumn = new FilterColumn { ColumnId = criteria.Key };
+                        Filters filters = new Filters();
+                        foreach (string value in criteria.Value) {
+                            filters.Append(new Filter { Val = value });
+                        }
+
+                        filterColumn.Append(filters);
+                        autoFilter.Append(filterColumn);
+                    }
+                }
+
+                worksheet.Append(autoFilter);
+                worksheet.Save();
+            });
         }
 
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
@@ -409,63 +411,65 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            var cells = range.Split(':');
-            if (cells.Length != 2) {
-                throw new ArgumentException("Invalid range format", nameof(range));
-            }
+            WriteLock(() => {
+                var cells = range.Split(':');
+                if (cells.Length != 2) {
+                    throw new ArgumentException("Invalid range format", nameof(range));
+                }
 
-            string startRef = cells[0];
-            string endRef = cells[1];
+                string startRef = cells[0];
+                string endRef = cells[1];
 
-            int startColumnIndex = GetColumnIndex(startRef);
-            int endColumnIndex = GetColumnIndex(endRef);
+                int startColumnIndex = GetColumnIndex(startRef);
+                int endColumnIndex = GetColumnIndex(endRef);
 
-            uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
+                uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
-            var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
-            uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
+                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+                uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
 
-            if (string.IsNullOrEmpty(name)) {
-                name = $"Table{tableId}";
-            }
+                if (string.IsNullOrEmpty(name)) {
+                    name = $"Table{tableId}";
+                }
 
-            var table = new Table {
-                Id = tableId,
-                Name = name,
-                DisplayName = name,
-                Reference = range,
-                HeaderRowCount = hasHeader ? (uint)1 : (uint)0,
-                TotalsRowShown = false
-            };
+                var table = new Table {
+                    Id = tableId,
+                    Name = name,
+                    DisplayName = name,
+                    Reference = range,
+                    HeaderRowCount = hasHeader ? (uint)1 : (uint)0,
+                    TotalsRowShown = false
+                };
 
-            var tableColumns = new TableColumns { Count = columnsCount };
-            for (uint i = 0; i < columnsCount; i++) {
-                tableColumns.Append(new TableColumn { Id = i + 1, Name = $"Column{i + 1}" });
-            }
-            table.Append(tableColumns);
+                var tableColumns = new TableColumns { Count = columnsCount };
+                for (uint i = 0; i < columnsCount; i++) {
+                    tableColumns.Append(new TableColumn { Id = i + 1, Name = $"Column{i + 1}" });
+                }
+                table.Append(tableColumns);
 
-            table.Append(new TableStyleInfo {
-                Name = style.ToString(),
-                ShowFirstColumn = false,
-                ShowLastColumn = false,
-                ShowRowStripes = true,
-                ShowColumnStripes = false
+                table.Append(new TableStyleInfo {
+                    Name = style.ToString(),
+                    ShowFirstColumn = false,
+                    ShowLastColumn = false,
+                    ShowRowStripes = true,
+                    ShowColumnStripes = false
+                });
+
+                tableDefinitionPart.Table = table;
+
+                var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+                if (tableParts == null) {
+                    tableParts = new TableParts { Count = 1 };
+                    _worksheetPart.Worksheet.Append(tableParts);
+                } else {
+                    tableParts.Count = (tableParts.Count ?? 0) + 1;
+                }
+
+                var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
+                tableParts.Append(new TablePart { Id = relId });
+
+                _worksheetPart.Worksheet.Save();
             });
-
-            tableDefinitionPart.Table = table;
-
-            var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
-            if (tableParts == null) {
-                tableParts = new TableParts { Count = 1 };
-                _worksheetPart.Worksheet.Append(tableParts);
-            } else {
-                tableParts.Count = (tableParts.Count ?? 0) + 1;
-            }
-
-            var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
-            tableParts.Append(new TablePart { Id = relId });
-
-            _worksheetPart.Worksheet.Save();
         }
 
         public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
@@ -473,32 +477,34 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            Worksheet worksheet = _worksheetPart.Worksheet;
+            WriteLock(() => {
+                Worksheet worksheet = _worksheetPart.Worksheet;
 
-            int priority = 1;
-            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-            if (existingRules.Any()) {
-                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-            }
+                int priority = 1;
+                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+                if (existingRules.Any()) {
+                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+                }
 
-            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
-            };
+                ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+                };
 
-            ConditionalFormattingRule rule = new ConditionalFormattingRule {
-                Type = ConditionalFormatValues.CellIs,
-                Operator = @operator,
-                Priority = priority
-            };
+                ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.CellIs,
+                    Operator = @operator,
+                    Priority = priority
+                };
 
-            rule.Append(new Formula(formula1));
-            if (formula2 != null) {
-                rule.Append(new Formula(formula2));
-            }
+                rule.Append(new Formula(formula1));
+                if (formula2 != null) {
+                    rule.Append(new Formula(formula2));
+                }
 
-            conditionalFormatting.Append(rule);
-            worksheet.Append(conditionalFormatting);
-            worksheet.Save();
+                conditionalFormatting.Append(rule);
+                worksheet.Append(conditionalFormatting);
+                worksheet.Save();
+            });
         }
 
         private static string ConvertColor(SixLaborsColor color) {
@@ -514,33 +520,35 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            Worksheet worksheet = _worksheetPart.Worksheet;
+            WriteLock(() => {
+                Worksheet worksheet = _worksheetPart.Worksheet;
 
-            int priority = 1;
-            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-            if (existingRules.Any()) {
-                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-            }
+                int priority = 1;
+                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+                if (existingRules.Any()) {
+                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+                }
 
-            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
-            };
+                ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+                };
 
-            ConditionalFormattingRule rule = new ConditionalFormattingRule {
-                Type = ConditionalFormatValues.ColorScale,
-                Priority = priority
-            };
+                ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.ColorScale,
+                    Priority = priority
+                };
 
-            ColorScale colorScale = new ColorScale();
-            colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
-            colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-            colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
-            colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
-            rule.Append(colorScale);
+                ColorScale colorScale = new ColorScale();
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
+                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
+                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
+                rule.Append(colorScale);
 
-            conditionalFormatting.Append(rule);
-            worksheet.Append(conditionalFormatting);
-            worksheet.Save();
+                conditionalFormatting.Append(rule);
+                worksheet.Append(conditionalFormatting);
+                worksheet.Save();
+            });
         }
 
         public void AddConditionalDataBar(string range, SixLaborsColor color) {
@@ -552,32 +560,34 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            Worksheet worksheet = _worksheetPart.Worksheet;
+            WriteLock(() => {
+                Worksheet worksheet = _worksheetPart.Worksheet;
 
-            int priority = 1;
-            var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-            if (existingRules.Any()) {
-                priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-            }
+                int priority = 1;
+                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+                if (existingRules.Any()) {
+                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+                }
 
-            ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
-            };
+                ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+                };
 
-            ConditionalFormattingRule rule = new ConditionalFormattingRule {
-                Type = ConditionalFormatValues.DataBar,
-                Priority = priority
-            };
+                ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.DataBar,
+                    Priority = priority
+                };
 
-            DataBar dataBar = new DataBar { ShowValue = true };
-            dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
-            dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-            dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
-            rule.Append(dataBar);
+                DataBar dataBar = new DataBar { ShowValue = true };
+                dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+                dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
+                dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
+                rule.Append(dataBar);
 
-            conditionalFormatting.Append(rule);
-            worksheet.Append(conditionalFormatting);
-            worksheet.Save();
+                conditionalFormatting.Append(rule);
+                worksheet.Append(conditionalFormatting);
+                worksheet.Save();
+            });
         }
 
         public void SetCellValue(int row, int column, string value) {
