@@ -12,5 +12,18 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Open(templatePath);
             Assert.Empty(presentation.ValidatePresentation());
         }
+
+        [Fact]
+        public void NewPresentationIsValid() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                presentation.AddSlide();
+                presentation.Save();
+                Assert.Empty(presentation.ValidatePresentation());
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

@@ -79,4 +79,8 @@
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="DefaultTheme.xml" />
+    </ItemGroup>
+
 </Project>

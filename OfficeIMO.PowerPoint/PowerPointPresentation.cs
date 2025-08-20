@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
+using System.Reflection;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 
@@ -308,7 +309,15 @@ namespace OfficeIMO.PowerPoint {
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
             ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
-            themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
+            using (Stream? themeStream = Assembly.GetExecutingAssembly()
+                       .GetManifestResourceStream("OfficeIMO.PowerPoint.DefaultTheme.xml")) {
+                if (themeStream == null) {
+                    throw new InvalidOperationException("Missing default theme resource.");
+                }
+
+                themePart.FeedData(themeStream);
+            }
+
             slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
