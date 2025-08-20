@@ -23,7 +23,14 @@ namespace OfficeIMO.Examples.Word {
                             { "Q1", "1.1M", "2.1%" },
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
-                    .Table(t => t.AddTable(2, 2).Table!.Rows[0].Cells[0].AddParagraph("TopLeft"))
+                    .Table(t => t
+                        .AddTable(2, 3)
+                        .ForEachCell((r, c, cell) => cell.AddParagraph($"R{r}C{c}", true))
+                        .Cell(1, 3, cell => cell.AddParagraph("Last", true))
+                        .InsertRow(3, "A", "B", "C")
+                        .InsertColumn(4, "X", "Y", "Z")
+                        .RowStyle(1, r => r.Cells.ForEach(c => c.ShadingFillColorHex = "ffcccc"))
+                        .ColumnStyle(2, c => c.ShadingFillColorHex = "ccffcc"))
                     .End()
                     .Save(false);
             }
