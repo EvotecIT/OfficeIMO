@@ -410,6 +410,18 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
+                void WriteXForm(XmlWriter writer, VisioShape shape, double width, double height) {
+                    writer.WriteStartElement("XForm", ns);
+                    writer.WriteElementString("PinX", ns, ToVisioString(shape.PinX));
+                    writer.WriteElementString("PinY", ns, ToVisioString(shape.PinY));
+                    writer.WriteElementString("Width", ns, ToVisioString(width));
+                    writer.WriteElementString("Height", ns, ToVisioString(height));
+                    writer.WriteElementString("LocPinX", ns, ToVisioString(shape.LocPinX));
+                    writer.WriteElementString("LocPinY", ns, ToVisioString(shape.LocPinY));
+                    writer.WriteElementString("Angle", ns, ToVisioString(shape.Angle));
+                    writer.WriteEndElement();
+                }
+
                 void WriteRectangleGeometry(XmlWriter writer, double width, double height) {
                     writer.WriteStartElement("Geom", ns);
                     writer.WriteStartElement("MoveTo", ns);
@@ -527,25 +539,19 @@ namespace OfficeIMO.Visio {
                             double masterHeight = s.Height > 0 ? s.Height : 1;
                             s.Width = masterWidth;
                             s.Height = masterHeight;
+                            if (Math.Abs(s.LocPinX) < double.Epsilon) {
+                                s.LocPinX = masterWidth / 2;
+                            }
+                            if (Math.Abs(s.LocPinY) < double.Epsilon) {
+                                s.LocPinY = masterHeight / 2;
+                            }
                             writer.WriteStartElement("Shape", ns);
                             writer.WriteAttributeString("ID", "1");
                             string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
                             writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
-                            WriteCell(writer, "PinX", s.PinX);
-                            WriteCell(writer, "PinY", s.PinY);
-                            WriteCell(writer, "Width", masterWidth);
-                            WriteCell(writer, "Height", masterHeight);
-                            if (Math.Abs(s.LocPinX - masterWidth / 2) > 0) {
-                                WriteCell(writer, "LocPinX", s.LocPinX);
-                            }
-                            if (Math.Abs(s.LocPinY - masterHeight / 2) > 0) {
-                                WriteCell(writer, "LocPinY", s.LocPinY);
-                            }
-                            if (Math.Abs(s.Angle) > 0) {
-                                WriteCell(writer, "Angle", s.Angle);
-                            }
+                            WriteXForm(writer, s, masterWidth, masterHeight);
                             if (Math.Abs(s.LineWeight - 0.0138889) > 0) {
                                 WriteCell(writer, "LineWeight", s.LineWeight);
                             }
@@ -725,8 +731,6 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Type", "Shape");
                             if (shape.Master != null) {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
-                                WriteCell(writer, "PinX", shape.PinX);
-                                WriteCell(writer, "PinY", shape.PinY);
                                 double width = shape.Width;
                                 if (width <= 0 && shape.Master.Shape.Width > 0) {
                                     width = shape.Master.Shape.Width;
@@ -743,17 +747,13 @@ namespace OfficeIMO.Visio {
                                 }
                                 shape.Width = width;
                                 shape.Height = height;
-                                WriteCell(writer, "Width", width);
-                                WriteCell(writer, "Height", height);
-                                if (Math.Abs(shape.LocPinX - width / 2) > 0) {
-                                    WriteCell(writer, "LocPinX", shape.LocPinX);
+                                if (Math.Abs(shape.LocPinX) < double.Epsilon) {
+                                    shape.LocPinX = width / 2;
                                 }
-                                if (Math.Abs(shape.LocPinY - height / 2) > 0) {
-                                    WriteCell(writer, "LocPinY", shape.LocPinY);
+                                if (Math.Abs(shape.LocPinY) < double.Epsilon) {
+                                    shape.LocPinY = height / 2;
                                 }
-                                if (Math.Abs(shape.Angle) > 0) {
-                                    WriteCell(writer, "Angle", shape.Angle);
-                                }
+                                WriteXForm(writer, shape, width, height);
                                 if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
                                     WriteCell(writer, "LineWeight", shape.LineWeight);
                                 }
@@ -761,23 +761,17 @@ namespace OfficeIMO.Visio {
                                 WriteDataSection(writer, shape.Data);
                                 WriteTextElement(writer, shape.Text);
                             } else {
-                                WriteCell(writer, "PinX", shape.PinX);
-                                WriteCell(writer, "PinY", shape.PinY);
                                 double width = shape.Width > 0 ? shape.Width : 1;
                                 double height = shape.Height > 0 ? shape.Height : 1;
                                 shape.Width = width;
                                 shape.Height = height;
-                                WriteCell(writer, "Width", width);
-                                WriteCell(writer, "Height", height);
-                                if (Math.Abs(shape.LocPinX - width / 2) > 0) {
-                                    WriteCell(writer, "LocPinX", shape.LocPinX);
+                                if (Math.Abs(shape.LocPinX) < double.Epsilon) {
+                                    shape.LocPinX = width / 2;
                                 }
-                                if (Math.Abs(shape.LocPinY - height / 2) > 0) {
-                                    WriteCell(writer, "LocPinY", shape.LocPinY);
+                                if (Math.Abs(shape.LocPinY) < double.Epsilon) {
+                                    shape.LocPinY = height / 2;
                                 }
-                                if (Math.Abs(shape.Angle) > 0) {
-                                    WriteCell(writer, "Angle", shape.Angle);
-                                }
+                                WriteXForm(writer, shape, width, height);
                                 if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
                                     WriteCell(writer, "LineWeight", shape.LineWeight);
                                 }

@@ -118,7 +118,9 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(shape?.Attribute("Name"));
                 Assert.NotNull(shape?.Attribute("NameU"));
                 Assert.Equal("Shape", shape?.Attribute("Type")?.Value);
-                Assert.NotNull(shape?.Elements(ns + "Cell").FirstOrDefault(e => e.Attribute("N")?.Value == "PinX"));
+                XElement? xform = shape?.Element(ns + "XForm");
+                Assert.NotNull(xform);
+                Assert.NotNull(xform?.Element(ns + "PinX"));
                 Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
             }
 

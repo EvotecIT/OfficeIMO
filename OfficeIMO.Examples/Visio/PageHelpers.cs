@@ -15,7 +15,13 @@ namespace OfficeIMO.Examples.Visio {
             VisioPage page = document.AddPage("Page-1");
             page.Size(11, 8.5).Grid(visible: true, snap: true);
 
-            VisioMaster master = new("1", "Rectangle", new VisioShape("1"));
+            VisioShape masterShape = new("1") {
+                Width = 1,
+                Height = 1,
+                LocPinX = 0.5,
+                LocPinY = 0.5,
+            };
+            VisioMaster master = new("1", "Rectangle", masterShape);
             VisioShape from = page.AddShape("1", master, 1, 1, 2, 1, "Start");
             VisioShape to = page.AddShape("2", master, 4, 1, 2, 1, "End");
             page.AddConnector("3", from, to, ConnectorKind.Straight);
