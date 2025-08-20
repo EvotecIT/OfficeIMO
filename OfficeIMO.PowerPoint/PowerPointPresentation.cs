@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
+using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -64,9 +65,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a new PowerPoint presentation at the specified file path.
         /// </summary>
         public static PowerPointPresentation Create(string filePath) {
-            PresentationDocument document =
-                PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
-            return new PowerPointPresentation(document);
+            PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
+            PowerPointPresentation presentation = new(document);
+            presentation._presentationPart.Presentation.Save();
+            presentation._document.Save();
+            return presentation;
         }
 
         /// <summary>
@@ -84,7 +87,22 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>();
-            slidePart.Slide = new Slide(new CommonSlideData(new ShapeTree()));
+            ShapeTree tree = new(
+                new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()
+                ),
+                new GroupShapeProperties(
+                    new A.TransformGroup(
+                        new A.Offset { X = 0L, Y = 0L },
+                        new A.Extents { Cx = 0L, Cy = 0L },
+                        new A.ChildOffset { X = 0L, Y = 0L },
+                        new A.ChildExtents { Cx = 0L, Cy = 0L }
+                    )
+                )
+            );
+            slidePart.Slide = new Slide(new CommonSlideData(tree));
 
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
             if (masterIndex < 0 || masterIndex >= masters.Length) {
@@ -207,28 +225,78 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void InitializeDefaultParts() {
+            static ShapeTree CreateShapeTree() {
+                return new ShapeTree(
+                    new NonVisualGroupShapeProperties(
+                        new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                        new NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()
+                    ),
+                    new GroupShapeProperties(
+                        new A.TransformGroup(
+                            new A.Offset { X = 0L, Y = 0L },
+                            new A.Extents { Cx = 0L, Cy = 0L },
+                            new A.ChildOffset { X = 0L, Y = 0L },
+                            new A.ChildExtents { Cx = 0L, Cy = 0L }
+                        )
+                    )
+                );
+            }
+
             SlideMasterPart slideMasterPart = _presentationPart.AddNewPart<SlideMasterPart>();
-            slideMasterPart.SlideMaster = new SlideMaster(new CommonSlideData(new ShapeTree()));
+            SlideMaster slideMaster = new(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMap {
+                    Background1 = A.ColorSchemeIndexValues.Light1,
+                    Text1 = A.ColorSchemeIndexValues.Dark1,
+                    Background2 = A.ColorSchemeIndexValues.Light2,
+                    Text2 = A.ColorSchemeIndexValues.Dark2,
+                    Accent1 = A.ColorSchemeIndexValues.Accent1,
+                    Accent2 = A.ColorSchemeIndexValues.Accent2,
+                    Accent3 = A.ColorSchemeIndexValues.Accent3,
+                    Accent4 = A.ColorSchemeIndexValues.Accent4,
+                    Accent5 = A.ColorSchemeIndexValues.Accent5,
+                    Accent6 = A.ColorSchemeIndexValues.Accent6,
+                    Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+                    FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+                },
+                new SlideLayoutIdList(),
+                new TextStyles(new TitleStyle(), new BodyStyle(), new OtherStyle())
+            );
+            slideMasterPart.SlideMaster = slideMaster;
 
             SlideLayoutPart slideLayoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart1.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
-
-            SlideLayoutPart slideLayoutPart2 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart2.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
-
-            slideMasterPart.SlideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
-                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
+            slideLayoutPart1.SlideLayout = new SlideLayout(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping())
             );
 
-            ThemePart themePart = slideMasterPart.AddNewPart<ThemePart>();
+            SlideLayoutPart slideLayoutPart2 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            slideLayoutPart2.SlideLayout = new SlideLayout(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping())
+            );
+
+            slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
+                new SlideLayoutId { Id = 2147483649U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
+                new SlideLayoutId { Id = 2147483650U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
+            );
+
+            // theme part is stored under ppt/theme and referenced from both presentation and slide master
+            ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
             themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
+            slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
-                Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
+                Id = 2147483648U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
             });
+
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
-            notesMasterPart.NotesMaster = new NotesMaster(new CommonSlideData(new ShapeTree()));
+            notesMasterPart.NotesMaster = new NotesMaster(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping()),
+                new NotesStyle()
+            );
 
             _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(new NotesMasterId {
                 Id = _presentationPart.GetIdOfPart(notesMasterPart)
@@ -246,8 +314,25 @@ namespace OfficeIMO.PowerPoint {
             };
 
             _presentationPart.Presentation.DefaultTextStyle = new DefaultTextStyle();
-
             _presentationPart.Presentation.SlideIdList = new SlideIdList();
+
+            // additional parts required by PowerPoint
+            _document.PackageProperties.Creator = string.Empty;
+            _document.PackageProperties.Created = DateTime.UtcNow;
+            _document.PackageProperties.Modified = DateTime.UtcNow;
+
+            ExtendedFilePropertiesPart appPart = _document.AddExtendedFilePropertiesPart();
+            appPart.Properties = new Ap.Properties(new Ap.Application { Text = "Microsoft Office PowerPoint" });
+
+            PresentationPropertiesPart presPropsPart = _presentationPart.AddNewPart<PresentationPropertiesPart>();
+            presPropsPart.PresentationProperties = new PresentationProperties();
+
+            ViewPropertiesPart viewPropsPart = _presentationPart.AddNewPart<ViewPropertiesPart>();
+            viewPropsPart.ViewProperties = new ViewProperties();
+
+            TableStylesPart tableStylesPart = _presentationPart.AddNewPart<TableStylesPart>();
+            tableStylesPart.TableStyleList = new A.TableStyleList { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+
             _presentationPart.Presentation.Save();
         }
     }
