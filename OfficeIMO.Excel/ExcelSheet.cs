@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -590,6 +591,106 @@ namespace OfficeIMO.Excel {
                 worksheet.Append(conditionalFormatting);
                 worksheet.Save();
             });
+        }
+
+        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
+            if (items == null) {
+                throw new ArgumentNullException(nameof(items));
+            }
+
+            var list = items.Cast<object?>().ToList();
+            if (list.Count == 0) {
+                return;
+            }
+
+            var flattenedItems = new List<Dictionary<string, object?>>();
+            List<string> headers = new List<string>();
+
+            foreach (var item in list) {
+                var dict = new Dictionary<string, object?>();
+                FlattenObject(item, null, dict);
+                flattenedItems.Add(dict);
+                foreach (var key in dict.Keys) {
+                    if (!headers.Contains(key)) {
+                        headers.Add(key);
+                    }
+                }
+            }
+
+            List<(int Row, int Column, object Value)> cells = new List<(int Row, int Column, object Value)>();
+            int row = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < headers.Count; c++) {
+                    cells.Add((row, c + 1, headers[c]));
+                }
+                row++;
+            }
+
+            foreach (var dict in flattenedItems) {
+                for (int c = 0; c < headers.Count; c++) {
+                    object value = dict.ContainsKey(headers[c]) ? dict[headers[c]] ?? string.Empty : string.Empty;
+                    cells.Add((row, c + 1, value));
+                }
+                row++;
+            }
+
+            const int parallelThreshold = 1000;
+            if (cells.Count > parallelThreshold) {
+                SetCellValuesParallel(cells);
+            } else {
+                foreach (var cell in cells) {
+                    SetCellValue(cell.Row, cell.Column, cell.Value);
+                }
+            }
+        }
+
+        private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
+            if (value == null) {
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = null;
+                }
+                return;
+            }
+
+            if (value is IDictionary dictionary) {
+                foreach (DictionaryEntry entry in dictionary) {
+                    string key = entry.Key?.ToString() ?? string.Empty;
+                    string childPrefix = string.IsNullOrEmpty(prefix) ? key : prefix + "." + key;
+                    FlattenObject(entry.Value, childPrefix, result);
+                }
+                return;
+            }
+
+            if (value is IEnumerable enumerable && value is not string) {
+                var values = new List<string>();
+                foreach (var item in enumerable) {
+                    values.Add(item?.ToString() ?? string.Empty);
+                }
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = string.Join(", ", values);
+                }
+                return;
+            }
+
+            Type type = value.GetType();
+            if (type.IsPrimitive || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is Guid) {
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = value;
+                }
+                return;
+            }
+
+            var props = type.GetProperties().Where(p => p.CanRead);
+            bool hasAny = false;
+            foreach (var prop in props) {
+                hasAny = true;
+                string childPrefix = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
+                FlattenObject(prop.GetValue(value, null), childPrefix, result);
+            }
+
+            if (!hasAny && !string.IsNullOrEmpty(prefix)) {
+                result[prefix] = value.ToString();
+            }
         }
 
         public void SetCellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
