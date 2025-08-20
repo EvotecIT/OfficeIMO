@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Excel {
     internal static partial class FluentWorkbook {
@@ -15,7 +16,10 @@ namespace OfficeIMO.Examples.Excel {
                         .Row(r => r.Values("Alice", 93))
                         .Row(r => r.Values("Bob", 88))
                         .Table(t => t.Add("A1:B3", true, "Scores"))
-                        .Column(c => c.AutoFit()));
+                        .AutoFilter("A1:B3")
+                        .ConditionalColorScale("B2:B3", Color.Red, Color.Green)
+                        .ConditionalDataBar("B2:B3", Color.Blue)
+                        .AutoFit(columns: true, rows: true));
                 document.Save(openExcel);
             }
         }

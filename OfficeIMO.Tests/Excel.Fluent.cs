@@ -1,10 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using SixLaborsColor = SixLabors.ImageSharp.Color;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -42,6 +44,49 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Name", GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal("93", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
                 Assert.True(sheetPart.TableDefinitionParts.Any());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void CanApplyAdvancedFeaturesFluently() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            var criteria = new Dictionary<uint, IEnumerable<string>> {
+                { 0, new[] { "Alice" } }
+            };
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Sheet("Data", s => s
+                        .HeaderRow("Name", "Score")
+                        .Row(r => r.Values("Alice", 1))
+                        .Row(r => r.Values("Bob", 2))
+                        .AutoFilter("A1:B3", criteria)
+                        .ConditionalColorScale("B2:B3", SixLaborsColor.Red, SixLaborsColor.Lime)
+                        .ConditionalDataBar("B2:B3", SixLaborsColor.Blue)
+                        .AutoFit(columns: true, rows: true));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                AutoFilter autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                Assert.NotNull(autoFilter);
+                Assert.Equal("A1:B3", autoFilter.Reference.Value);
+
+                var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
+                    .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
+                    .ToList();
+                Assert.Contains(rules, r => r.Type == ConditionalFormatValues.ColorScale);
+                Assert.Contains(rules, r => r.Type == ConditionalFormatValues.DataBar);
+
+                var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault();
+                Assert.True(column?.BestFit?.Value ?? false);
+
+                var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex == 1);
+                Assert.True(row?.CustomHeight?.Value ?? false);
             }
 
             File.Delete(filePath);
