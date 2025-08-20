@@ -28,8 +28,8 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("Body paragraph"))
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Second section paragraph"))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             Helpers.Open(filePath, openWord);

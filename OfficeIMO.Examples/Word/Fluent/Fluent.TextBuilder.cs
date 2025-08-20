@@ -12,8 +12,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AsFluent()
                     .Paragraph(p => p.Text("Hello")
                         .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000")))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

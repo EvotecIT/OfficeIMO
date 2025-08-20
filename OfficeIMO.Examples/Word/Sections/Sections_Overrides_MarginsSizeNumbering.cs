@@ -30,9 +30,8 @@ namespace OfficeIMO.Examples.Word {
                             .PageNumbering(restart: false)
                             .Paragraph(p => p.Text("Section 2"))
                             .Table(t => t.AddTable(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
-                    .End();
-
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
             Helpers.Open(filePath, openWord);
         }

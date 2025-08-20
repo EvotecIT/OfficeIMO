@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Paragraph(p => p.Text("Heading").Style(WordParagraphStyles.Heading1))
                     .Paragraph(p => p.Text("Custom style").Style(customStyleId))
-                    .End();
-                document.Save(false);
+                    .End()
+                    .Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {
