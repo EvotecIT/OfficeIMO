@@ -2,6 +2,13 @@ using System;
 using System.Globalization;
 
 namespace OfficeIMO.Visio {
+    public enum ConnectorKind {
+        Straight,
+        RightAngle,
+        Curved,
+        Dynamic
+    }
+
     /// <summary>
     /// Connects two shapes together.
     /// </summary>
@@ -35,6 +42,8 @@ namespace OfficeIMO.Visio {
         public VisioConnectionPoint? FromConnectionPoint { get; set; }
 
         public VisioConnectionPoint? ToConnectionPoint { get; set; }
+
+        public ConnectorKind Kind { get; set; } = ConnectorKind.Straight;
 
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
