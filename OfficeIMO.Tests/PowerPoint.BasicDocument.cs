@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -28,6 +29,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Hello", box.Text);
                 Assert.Equal("Test notes", slide.Notes.Text);
                 Assert.Equal(3, slide.Shapes.Count); // textbox, picture, table
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                Assert.NotNull(document.CoreFilePropertiesPart);
+                Assert.NotNull(document.ExtendedFilePropertiesPart);
+                PresentationPart part = document.PresentationPart!;
+                Assert.NotNull(part.PresentationPropertiesPart);
+                Assert.NotNull(part.ViewPropertiesPart);
+                Assert.NotNull(part.TableStylesPart);
             }
 
             File.Delete(filePath);

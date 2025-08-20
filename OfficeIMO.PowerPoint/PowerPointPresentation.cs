@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
+using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -221,12 +222,15 @@ namespace OfficeIMO.PowerPoint {
                 new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
             );
 
-            ThemePart themePart = slideMasterPart.AddNewPart<ThemePart>();
+            // theme part is stored under ppt/theme and referenced from both presentation and slide master
+            ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
             themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
+            slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
                 Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
             });
+
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
             notesMasterPart.NotesMaster = new NotesMaster(new CommonSlideData(new ShapeTree()));
 
@@ -246,8 +250,25 @@ namespace OfficeIMO.PowerPoint {
             };
 
             _presentationPart.Presentation.DefaultTextStyle = new DefaultTextStyle();
-
             _presentationPart.Presentation.SlideIdList = new SlideIdList();
+
+            // additional parts required by PowerPoint
+            _document.PackageProperties.Creator = string.Empty;
+            _document.PackageProperties.Created = DateTime.UtcNow;
+            _document.PackageProperties.Modified = DateTime.UtcNow;
+
+            ExtendedFilePropertiesPart appPart = _document.AddExtendedFilePropertiesPart();
+            appPart.Properties = new Ap.Properties(new Ap.Application { Text = "Microsoft Office PowerPoint" });
+
+            PresentationPropertiesPart presPropsPart = _presentationPart.AddNewPart<PresentationPropertiesPart>();
+            presPropsPart.PresentationProperties = new PresentationProperties();
+
+            ViewPropertiesPart viewPropsPart = _presentationPart.AddNewPart<ViewPropertiesPart>();
+            viewPropsPart.ViewProperties = new ViewProperties();
+
+            TableStylesPart tableStylesPart = _presentationPart.AddNewPart<TableStylesPart>();
+            tableStylesPart.TableStyleList = new A.TableStyleList { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+
             _presentationPart.Presentation.Save();
         }
     }
