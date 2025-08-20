@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using OfficeIMO.Excel.Utilities;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -30,6 +32,29 @@ namespace OfficeIMO.Excel.Fluent {
             var builder = new RowBuilder(this, Sheet, _currentRow);
             action(builder);
             _currentRow++;
+            return this;
+        }
+
+        public SheetBuilder RowsFrom<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (data == null) throw new ArgumentNullException(nameof(data));
+
+            var options = new ObjectFlattenerOptions();
+            configure?.Invoke(options);
+            var flattener = new ObjectFlattener();
+
+            List<string>? headers = null;
+            bool headerWritten = false;
+            foreach (var item in data) {
+                var dict = flattener.Flatten(item, options);
+                if (!headerWritten) {
+                    headers = new List<string>(dict.Keys);
+                    HeaderRow(headers.Cast<object>().ToArray());
+                    headerWritten = true;
+                }
+                Row(r => r.Values(headers!.Select(h => dict.TryGetValue(h, out var v) ? v : null).ToArray()));
+            }
+
             return this;
         }
 
