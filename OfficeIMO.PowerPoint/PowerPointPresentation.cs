@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
-            slidePart.AddPart(layoutPart);
+            _ = slidePart.AddPart(layoutPart);
 
             if (_presentationPart.Presentation.SlideIdList == null) {
                 _presentationPart.Presentation.SlideIdList = new SlideIdList();
@@ -265,21 +265,21 @@ namespace OfficeIMO.PowerPoint {
             );
             slideMasterPart.SlideMaster = slideMaster;
 
-            SlideLayoutPart slideLayoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart1.SlideLayout = new SlideLayout(
+            SlideLayoutPart layoutPart0 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            layoutPart0.SlideLayout = new SlideLayout(
                 new CommonSlideData(CreateShapeTree()),
                 new ColorMapOverride(new A.MasterColorMapping())
             );
 
-            SlideLayoutPart slideLayoutPart2 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart2.SlideLayout = new SlideLayout(
+            SlideLayoutPart layoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            layoutPart1.SlideLayout = new SlideLayout(
                 new CommonSlideData(CreateShapeTree()),
                 new ColorMapOverride(new A.MasterColorMapping())
             );
 
             slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 2147483649U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
-                new SlideLayoutId { Id = 2147483650U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
+                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
+                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
             );
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
@@ -287,9 +287,9 @@ namespace OfficeIMO.PowerPoint {
             themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
             slideMasterPart.AddPart(themePart);
 
-            _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
-                Id = 2147483648U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
-            });
+            _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(
+                new SlideMasterId { Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart) }
+            );
 
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
             notesMasterPart.NotesMaster = new NotesMaster(
