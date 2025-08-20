@@ -227,6 +227,25 @@ namespace OfficeIMO.PowerPoint {
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
                 Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
             });
+            NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
+            notesMasterPart.NotesMaster = new NotesMaster(new CommonSlideData(new ShapeTree()));
+
+            _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(new NotesMasterId {
+                Id = _presentationPart.GetIdOfPart(notesMasterPart)
+            });
+
+            _presentationPart.Presentation.SlideSize = new SlideSize {
+                Cx = 9144000,
+                Cy = 6858000,
+                Type = SlideSizeValues.Screen4x3
+            };
+
+            _presentationPart.Presentation.NotesSize = new NotesSize {
+                Cx = 6858000,
+                Cy = 9144000
+            };
+
+            _presentationPart.Presentation.DefaultTextStyle = new DefaultTextStyle();
 
             _presentationPart.Presentation.SlideIdList = new SlideIdList();
             _presentationPart.Presentation.Save();

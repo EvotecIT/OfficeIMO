@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -17,6 +18,10 @@ namespace OfficeIMO.PowerPoint {
             get {
                 if (_slidePart.NotesSlidePart == null) {
                     NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>();
+                    PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+                    if (presentationPart?.NotesMasterPart != null) {
+                        notesPart.AddPart(presentationPart.NotesMasterPart);
+                    }
                     notesPart.NotesSlide = new NotesSlide(
                         new CommonSlideData(new ShapeTree(
                             new Shape(
