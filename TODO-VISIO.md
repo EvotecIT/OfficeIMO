@@ -1,142 +1,246 @@
-﻿# TODO — OfficeIMO.Visio (.vsdx), normal + fluent (same project)
+﻿# TODO — OfficeIMO.Visio (Normal + Fluent APIs)
 
-> `.vsdx` is an OPC (ZIP+XML) package. There is no Open XML SDK object model for Visio.
-> We will author/read parts directly (System.IO.Packaging + LINQ to XML).
-> Fluent lives in `OfficeIMO.Visio.Fluent` within the same .csproj.
+> `.vsdx` is an OPC (ZIP+XML) format. There is no official OpenXML SDK model for Visio.
+> OfficeIMO.Visio will expose two complementary layers:
+>
+> - **Standard API** — explicit, object-oriented (`VisioDocument`, `VisioPage`, `VisioShape`, `VisioConnector`).
+> - **Fluent API** — chainable DSL (`VisioFluentDocument`, `.Page(...)`, `.Shape(...)`, `.Connector(...)`).
+>
+> Both live in the same project; namespaces:
+> - `OfficeIMO.Visio` — standard API
+> - `OfficeIMO.Visio.Fluent` — fluent API
 
 ---
 
 ## Goals
 
-- Create, read, and update `.vsdx` without Visio installed (no COM).
-- MVP: pages + basic shapes (rectangle/ellipse/text), simple connectors.
-- Phase 2: masters (stencils), images, recalculation hints.
-- Provide a concise fluent DSL for common diagrams.
+- Provide **ergonomic authoring** for common scenarios (flowcharts, diagrams).
+- Hide **OPC/ShapeSheet internals** behind builders and helpers.
+- Ensure **future extensibility**: AWS/Azure/Cisco stencils, validation, auto-layout.
+- Offer **testability**: snapshot & validation APIs for CI/CD.
 
 ---
 
-## Package & Parts (write path)
+## Standard API (Normal)
 
-- `[Content_Types].xml` with overrides for:
-  - `/visio/document.xml` (document main),
-  - `/visio/pages/pages.xml`,
-  - `/visio/pages/page1.xml`,
-  - add `/visio/masters/*` only when used,
-  - images under `/media/*` when used.
-- Relationships:
-  - package → `/visio/document.xml` (document rel),
-  - document → `/visio/pages/pages.xml` (pages rel),
-  - pages → `/visio/pages/pageN.xml` (page rel),
-  - page/master → `/media/*` images (image rels when used).
-
----
-
-## API (Normal)
+### Example usage
 
 ```csharp
-using OfficeIMO.Visio;
+using var doc = VisioDocument.Create("diagram.vsdx");
 
-using var vsd = VisioDocument.Create("diagram.vsdx");
-var page = vsd.AddPage("Page-1", widthInches: 8.5, heightInches: 11);
+var page = doc.AddPage("Process", widthInches: 11, heightInches: 8.5);
 
-// Add a rectangle centered at (4, 5.5), size 2x1 inches
-var rect = page.AddRectangle(centerX: 4, centerY: 5.5, width: 2, height: 1, text: "Hello Visio");
+// Shapes
+var start = page.AddShape("Start",
+    master: FlowchartMasters.Terminator,
+    x: 1.0, y: 6.5, w: 2.2, h: 0.9,
+    text: "Start");
 
-// Simple connector
-var rect2 = page.AddRectangle(7, 5.5, 2, 1, "Next");
-page.Connect(rect, rect2, ConnectorKind.Dynamic);
+var task1 = page.AddShape("Task1",
+    master: FlowchartMasters.Process,
+    x: 1.0, y: 5.0, w: 2.5, h: 1.0,
+    text: "Validate");
+task1.Data["Owner"] = "Ops";
 
-vsd.Save();
+// Connector
+var conn = page.AddConnector("PathYes",
+    fromShape: task1,
+    toShape: start,
+    kind: ConnectorKind.RightAngle);
+conn.Label = "Yes";
+
+doc.Save();
 ````
 
-**Read**
+### Key classes and methods
 
-```csharp
-using var vsd = VisioDocument.Load("existing.vsdx");
-foreach (var p in vsd.Pages) {
-    Console.WriteLine($"{p.Name} {p.WidthInches}x{p.HeightInches}");
-    foreach (var s in p.Shapes)
-        Console.WriteLine($"  {s.Id}: {s.NameU} [{s.PinX},{s.PinY}] {s.Text}");
-}
-```
+* **VisioDocument**
 
-* Core model
+  * `static Create(string path)`, `static Load(string path)`
+  * `AddPage(string name, double widthInches, double heightInches)`
+  * `Pages { get; }`
+  * `Save()`
+  * `Validate(...)`, `Snapshot()`, `RequestRecalcOnOpen()`
 
-  * `VisioDocument`: `Pages`, `AddPage(name, widthInches, heightInches)`, `Save/Load`.
-  * `VisioPage`: `Name`, `WidthInches`, `HeightInches`, `AddRectangle(...)`, `AddEllipse(...)`, `Connect(from,to,kind)`, `Shapes`, `Connectors`.
-  * `VisioShape`: `Id`, `NameU`, `Text`, basic ShapeSheet cells: `PinX`, `PinY`, `Width`, `Height`, `Angle`.
-  * `VisioConnector`: `From`, `To`, `Kind`.
+* **VisioPage**
+
+  * `AddShape(id, master, x, y, w, h, text?)`
+  * `AddConnector(id, fromShape, toShape, ConnectorKind)`
+  * `Size(w,h)`, `Grid(visible, snap)`
+  * `Shapes`, `Connectors`
+
+* **VisioShape**
+
+  * `Id`, `NameU`, `Master`
+  * `PinX`, `PinY`, `Width`, `Height`
+  * `Text`
+  * `Data[string key]` (shape data properties)
+
+* **VisioConnector**
+
+  * `From`, `To`
+  * `Kind` (Straight, RightAngle, Curved, Dynamic)
+  * `Arrow(EndArrow style)`
+  * `Label(string)`
 
 ---
 
-## Fluent DSL (same project, `OfficeIMO.Visio.Fluent`)
+## Fluent API
+
+### Example usage
 
 ```csharp
-using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
-
-VisioDocument.Create("net.vsdx")
+VisioDocument.Create("fluent-diagram.vsdx")
   .AsFluent()
-  .Page("Network", p => p
-      .Rect("Web", center: (2, 4), size: (2, 1)).Out(out var web)
-      .Rect("API", center: (6, 4), size: (2, 1)).Out(out var api)
-      .Rect("DB",  center: (10,4), size: (2, 1)).Out(out var db)
-      .Connect(web, api)
-      .Connect(api, db))
+  .Info(i => i.Title("Order Flow").Author("OfficeIMO"))
+
+  .Stencil(st => st.Use(BuiltInStencil.Flowchart))
+
+  .Page("Process", p => p
+      .Size(11, 8.5).Grid(visible: true, snap: true)
+
+      .Shape("Start", s => s.Flowchart(FlowchartMasters.Terminator)
+                            .At(1.0, 6.5).Size(2.2, 0.9).Text("Start"))
+
+      .Shape("Task1", s => s.Flowchart(FlowchartMasters.Process)
+                            .At(1.0, 5.0).Size(2.5, 1.0).Text("Validate")
+                            .Data("Owner","Ops"))
+
+      .Connector("PathYes", c => c.From("Task1").To("Start").RightAngle().Label("Yes"))
+
+      .Shape("End", s => s.Flowchart(FlowchartMasters.Terminator)
+                          .At(1.0, 2.0).Size(2.2, 0.9).Text("End"))
+
+      .AlignHorizontal("Start","Task1","End")
+      .DistributeVertical("Start","Task1","End")
+      .Theme(BuiltInVisioTheme.Office))
+
   .End()
   .Save();
 ```
 
-* Fluent surface
+### Fluent surface
 
-  * `.Page(name, builder)`
-  * Shape builders: `.Rect(text, center, size)`, `.Ellipse(text, center, size)`, `.Text(text, at, size?)`
-  * `.Connect(from, to, ConnectorKind.Dynamic|Straight|Curved)`
-  * `.Style(...)` (later), `.WithData(key,value)` (later)
-  * `.RequestRecalcOnOpen()` (optional flag on document)
+* **VisioFluentDocument**
+
+  * `.Info(Action<VisioInfoBuilder>)`
+  * `.Stencil(Action<StencilBuilder>)`
+  * `.Page(string name, Action<PageBuilder>)`
+  * `.End()`
+
+* **StencilBuilder**
+
+  * `.Use(BuiltInStencil stencil)`
+  * `.UseFile(string vssxPath)` (load external stencils, e.g. AWS, Cisco)
+
+* **PageBuilder**
+
+  * `.Size(widthIn, heightIn)`
+  * `.Grid(visible, snap)`
+  * `.Background(colorHexOrImage)`
+  * `.Theme(BuiltInVisioTheme)`
+  * `.Shape(id, Action<ShapeBuilder>)`
+  * `.Connector(id, Action<ConnectorBuilder>)`
+  * `.AlignHorizontal(params string[] ids)`, `.AlignVertical(...)`, `.DistributeHorizontal(...)`, `.DistributeVertical(...)`
+
+* **ShapeBuilder**
+
+  * `.Flowchart(FlowchartMasters m)` / `.Master(BasicMasters m)` / `.Master(string customName)`
+  * `.At(x,y)`, `.Size(w,h)`, `.Text(string)`
+  * `.Data(string key, string value)`
+  * `.Fill(string hex)`, `.Line(string hex, double pt)`
+  * `.Rotate(double degrees)`, `.ZOrder(int)`
+
+* **ConnectorBuilder**
+
+  * `.From(string id)`, `.To(string id)`
+  * `.Straight()`, `.RightAngle()`, `.Curved()`
+  * `.Arrow(EndArrow style)`, `.Label(string)`
+  * `.Reroute()`
 
 ---
 
-## Implementation Plan
+## Helpers & Improvements
 
-### M1 — OPC scaffolding
+### 1. Units & grids
 
-* [ ] Create package + `[Content_Types].xml`.
-* [ ] Add package→document, document→pages, pages→page1 relationships by **type**.
-* [ ] Write `/visio/document.xml` skeleton.
-* [ ] Write `/visio/pages/pages.xml` with `<Page>` entry and `Rel/@r:id → page1.xml`.
-* [ ] Write `/visio/pages/page1.xml`:
+* `Units.Inches(double)`, `Units.Cm(double)`, `Units.Pt(double)` → standardize coordinates.
+* `Grid.Snap((x,y), stepInches: 0.125)` → auto snap positions.
 
-  * Root `PageContents` (2012/main),
-  * Single `Shape` rectangle with basic Geometry (`PinX`, `PinY`, `Width`, `Height`) and `Text`.
+### 2. Naming & IDs
 
-### M2 — Reader
+* `Names.Safe("Decision 1")` → `"Decision1"`
+* `Names.EnsureUnique(page, id)` → avoid duplicates.
 
-* [ ] Open existing `.vsdx`, resolve relationships by **type** (no hardcoded paths).
-* [ ] Parse `pages.xml` → page list; read each `pageN.xml` → shapes (ID, NameU, Text, key cells).
+### 3. Master registry
 
-### M3 — Connectors (basic)
+* `Masters.Resolve(FlowchartMasters.Process)` → returns master definition.
+* `Masters.Resolve(BuiltInStencil.BasicShapes, "Rectangle")`.
 
-* [ ] Author orthogonal connector between two shapes; minimal reroute support.
-* [ ] Add helper `.RequestRecalcOnOpen()` to get Visio to reroute on open when topology changes.
+### 4. Shape presets
 
-### M4 — Masters & Images (optional)
+* `ShapePresets.Flow.Process("Validate", w: 2.5, h: 1.0)`.
+* `ShapePresets.Flow.Decision("OK?", w: 2.0, h: 1.5)`.
 
-* [ ] `/visio/masters/masters.xml` + `/visio/masters/masterN.xml` (created only if used).
-* [ ] Allow shapes to reference a `Master`; drop multiple instances.
-* [ ] Embed images in `/media/*` and reference from page/master.
+### 5. Connector presets
 
-### M5 — Fluent polish + tests
+* `ConnectorPresets.RightAngle().Arrow(EndArrow.Triangle)`.
+* `ConnectorPresets.Curved().Dashed()`.
 
-* [ ] DSL sugar (e.g., `.RoundedRect(...)`, `.Align(...)`).
-* [ ] Verify snapshots of key parts, reading/writing round-trip tests.
-* [ ] “Opens without repair” smoke test file artifacts.
+### 6. Validation & testing
+
+* `doc.Validate(v => v.RequireUniqueShapeIds().RequireAllConnectorsResolved().WarnOnOffGrid(0.1))`.
+* `doc.Snapshot("Process")` → POCO for test assertions.
+
+---
+
+## Future Features
+
+* **Stencils**
+
+  * Built-in: Flowchart, UML, BPMN, Network, BasicShapes.
+  * Vendor: AWS, Azure, Cisco, GCP (`.UseFile("AWS.vssx")`).
+  * Treat as `Masters`.
+
+* **Containers & Callouts**
+
+  * `.Container("Region1", c => c.Style(ContainerStyle.AwsRegion).Include("VPC","EC2"))`
+  * `.Callout("Note1", cl => cl.Text("Critical!").Target("EC2"))`
+
+* **Themes & Layout**
+
+  * `.Theme(BuiltInVisioTheme.Modern)`
+  * `.AlignHorizontal(...)`, `.DistributeVertical(...)`
+  * `.AutoLayout(direction: TopToBottom)`
+
+* **Connector types & arrows**
+
+  * Routing: Straight, RightAngle, Curved, Dynamic.
+  * Arrowheads: None, Triangle, Stealth, Diamond, Oval, OpenArrow (\~15 built-in).
+
+* **Validation rules**
+
+  * BPMN, UML, network diagrams with constraints.
+  * `doc.ValidateWithTemplate("BPMN")`.
+
+---
+
+## Quick Comparison
+
+| Concept        | Standard API                                                             | Fluent API                                                                    |
+| -------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Add page       | `doc.AddPage("Process", 11, 8.5)`                                        | `.Page("Process", p => p.Size(11,8.5))`                                       |
+| Add shape      | `page.AddShape("Task1", FlowchartMasters.Process, 1,5,2.5,1,"Validate")` | `.Shape("Task1", s => s.Flowchart(...).At(1,5).Size(2.5,1).Text("Validate"))` |
+| Add connector  | `page.AddConnector("PathYes", from, to, ConnectorKind.RightAngle)`       | `.Connector("PathYes", c => c.From("Task1").To("Decision1").RightAngle())`    |
+| Align          | `page.AlignHorizontal(new[]{"A","B","C"})`                               | `.AlignHorizontal("A","B","C")`                                               |
+| Document props | `doc.Title="...", doc.Author="..."`                                      | `.Info(i => i.Title("...").Author("..."))`                                    |
 
 ---
 
 ## Acceptance Criteria
 
-* New `.vsdx` with 1 page and a rectangle opens cleanly in Visio.
-* Read existing `.vsdx`: list pages and basic shapes with positions and text.
-* Connectors render between shapes after open (recalc flag where needed).
-* Masters/images are optional and only emitted when used.
+* **Standard API**: explicit OO model usable without fluent.
+* **Fluent API**: ergonomic, consistent with Word/Excel/PowerPoint builders.
+* **Helpers**: units, naming, masters, presets, validation, snapshot available for both.
+* **Future ready**: stencils (AWS/Azure/etc.), containers/callouts, themes, auto-layout, validation rules.
+
