@@ -27,7 +27,14 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement styleSheets = docXml.Root!.Element(ns + "StyleSheets")!;
 
+            XElement baseStyle = styleSheets.Elements(ns + "StyleSheet").First(e => e.Attribute("ID")?.Value == "0");
+            Assert.Equal("No Style", baseStyle.Attribute("NameU")?.Value);
+            Assert.Equal("1", baseStyle.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EnableLineProps").Attribute("V")?.Value);
+            Assert.Equal("1", baseStyle.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EnableFillProps").Attribute("V")?.Value);
+            Assert.Equal("1", baseStyle.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EnableTextProps").Attribute("V")?.Value);
+
             XElement normal = styleSheets.Elements(ns + "StyleSheet").First(e => e.Attribute("ID")?.Value == "1");
+            Assert.Equal("0", normal.Attribute("BasedOn")?.Value);
             Assert.Equal("Normal", normal.Attribute("NameU")?.Value);
             Assert.Equal("1", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LinePattern").Attribute("V")?.Value);
             Assert.Equal("RGB(0,0,0)", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
