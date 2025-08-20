@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -38,6 +40,18 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(part.PresentationPropertiesPart);
                 Assert.NotNull(part.ViewPropertiesPart);
                 Assert.NotNull(part.TableStylesPart);
+
+                SlidePart slidePart = part.SlideParts.First();
+                ShapeTree tree = slidePart.Slide.CommonSlideData!.ShapeTree!;
+                Assert.NotNull(tree.GetFirstChild<NonVisualGroupShapeProperties>());
+                Assert.NotNull(tree.GetFirstChild<GroupShapeProperties>());
+
+                var ids = tree.Descendants<NonVisualDrawingProperties>().Select(dp => dp.Id!.Value).ToList();
+                Assert.Equal(ids.Count, ids.Distinct().Count());
+                Assert.Contains(1U, ids);
+                Assert.Contains(2U, ids);
+                Assert.Contains(3U, ids);
+                Assert.Contains(4U, ids);
             }
 
             File.Delete(filePath);

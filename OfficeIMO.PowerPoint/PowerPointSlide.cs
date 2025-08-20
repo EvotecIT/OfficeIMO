@@ -12,6 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly List<PowerPointShape> _shapes = new();
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
+        private uint _nextShapeId = 2;
 
         internal PowerPointSlide(SlidePart slidePart) {
             _slidePart = slidePart;
@@ -252,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Title");
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Title })
                 ),
@@ -287,7 +288,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                 ),
@@ -331,7 +332,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Picture");
             Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -395,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Table");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -424,7 +425,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -534,7 +535,19 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            uint maxId = 1;
             foreach (OpenXmlElement element in tree.ChildElements) {
+                uint? id = element switch {
+                    Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value,
+                    Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
+                    GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Id?.Value,
+                    _ => null
+                };
+
+                if (id.HasValue && id.Value > maxId) {
+                    maxId = id.Value;
+                }
+
                 switch (element) {
                     case Shape s when s.TextBody != null:
                         _shapes.Add(new PowerPointTextBox(s));
@@ -550,6 +563,8 @@ namespace OfficeIMO.PowerPoint {
                         break;
                 }
             }
+
+            _nextShapeId = maxId + 1;
 
             if (_slidePart.NotesSlidePart != null) {
                 _notes = new PowerPointNotes(_slidePart);

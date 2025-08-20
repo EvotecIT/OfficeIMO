@@ -85,7 +85,22 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>();
-            slidePart.Slide = new Slide(new CommonSlideData(new ShapeTree()));
+            ShapeTree tree = new(
+                new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()
+                ),
+                new GroupShapeProperties(
+                    new A.TransformGroup(
+                        new A.Offset { X = 0L, Y = 0L },
+                        new A.Extents { Cx = 0L, Cy = 0L },
+                        new A.ChildOffset { X = 0L, Y = 0L },
+                        new A.ChildExtents { Cx = 0L, Cy = 0L }
+                    )
+                )
+            );
+            slidePart.Slide = new Slide(new CommonSlideData(tree));
 
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
             if (masterIndex < 0 || masterIndex >= masters.Length) {
