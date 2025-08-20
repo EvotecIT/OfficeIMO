@@ -13,15 +13,15 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                presentation.AsFluent()
-                    .Slide()
-                        .Title("Fluent Title")
-                        .Text("Hello")
-                        .Bullets("One", "Two")
-                        .Image(imagePath)
-                        .Table(2, 2)
-                        .Notes("Notes text");
-                presentation.Save();
+                var fluent = presentation.AsFluent();
+                fluent.Slide()
+                    .Title("Fluent Title")
+                    .Text("Hello")
+                    .Bullets("One", "Two")
+                    .Image(imagePath)
+                    .Table(2, 2)
+                    .Notes("Notes text");
+                fluent.End().Save();
             }
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {

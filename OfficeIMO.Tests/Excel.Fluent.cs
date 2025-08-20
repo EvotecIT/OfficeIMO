@@ -34,8 +34,9 @@ namespace OfficeIMO.Tests {
                         .Row(r => r.Values("Alice", 93))
                         .Row(r => r.Values("Bob", 88))
                         .Table(t => t.Add("A1:B3", true, "Scores"))
-                        .Column(c => c.AutoFit()));
-                document.Save();
+                        .Column(c => c.AutoFit()))
+                    .End()
+                    .Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
@@ -66,8 +67,9 @@ namespace OfficeIMO.Tests {
                         .AutoFilter("A1:B3", criteria)
                         .ConditionalColorScale("B2:B3", SixLaborsColor.Red, SixLaborsColor.Lime)
                         .ConditionalDataBar("B2:B3", SixLaborsColor.Blue)
-                        .AutoFit(columns: true, rows: true));
-                document.Save();
+                        .AutoFit(columns: true, rows: true))
+                    .End()
+                    .Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

@@ -13,13 +13,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "FluentPowerPoint.pptx");
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                presentation.AsFluent()
-                    .Slide()
-                        .Title("Fluent Presentation")
-                        .Text("Hello from fluent API")
-                        .Bullets("First", "Second")
-                        .Notes("Example notes");
-                presentation.Save();
+                PowerPointFluentPresentation fluent = presentation.AsFluent();
+                fluent.Slide()
+                    .Title("Fluent Presentation")
+                    .Text("Hello from fluent API")
+                    .Bullets("First", "Second")
+                    .Notes("Example notes");
+                fluent.End().Save();
             }
         }
     }

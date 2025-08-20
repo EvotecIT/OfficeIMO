@@ -22,5 +22,13 @@ namespace OfficeIMO.PowerPoint.Fluent {
             PowerPointSlide slide = Presentation.AddSlide(masterIndex, layoutIndex);
             return new PowerPointSlideBuilder(slide);
         }
+
+        /// <summary>
+        /// Ends fluent configuration and returns the underlying <see cref="PowerPointPresentation"/>.
+        /// </summary>
+        /// <returns>The wrapped <see cref="PowerPointPresentation"/> for further processing.</returns>
+        public PowerPointPresentation End() {
+            return Presentation;
+        }
     }
 }

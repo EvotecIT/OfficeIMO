@@ -20,5 +20,13 @@ namespace OfficeIMO.Excel.Fluent {
             action(builder);
             return this;
         }
+
+        /// <summary>
+        /// Ends fluent configuration and returns the underlying <see cref="ExcelDocument"/>.
+        /// </summary>
+        /// <returns>The wrapped <see cref="ExcelDocument"/> for further processing.</returns>
+        public ExcelDocument End() {
+            return Workbook;
+        }
     }
 }
