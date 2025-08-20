@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
                 foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
                     string? relId = slideId.RelationshipId;
                     if (!string.IsNullOrEmpty(relId)) {
-                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId);
+                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
                         _slides.Add(new PowerPointSlide(slidePart));
                     }
                 }
