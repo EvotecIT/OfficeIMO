@@ -31,6 +31,11 @@ namespace OfficeIMO.Visio {
         public IReadOnlyList<VisioPage> Pages => _pages;
 
         /// <summary>
+        /// Theme applied to the document.
+        /// </summary>
+        public VisioTheme? Theme { get; set; }
+
+        /// <summary>
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
@@ -62,6 +67,14 @@ namespace OfficeIMO.Visio {
             PackagePart documentPart = package.GetPart(documentUri);
             if (documentPart.ContentType != DocumentContentType) {
                 throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
+            }
+
+            PackageRelationship? themeRel = documentPart.GetRelationshipsByType(ThemeRelationshipType).FirstOrDefault();
+            if (themeRel != null) {
+                Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
+                PackagePart themePart = package.GetPart(themeUri);
+                XDocument themeDoc = XDocument.Load(themePart.GetStream());
+                document.Theme = new VisioTheme { Name = themeDoc.Root?.Attribute("name")?.Value };
             }
 
             PackageRelationship pagesRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/pages").Single();
@@ -145,31 +158,117 @@ namespace OfficeIMO.Visio {
             };
 
             List<XElement> cellElements = shapeElement.Elements(ns + "Cell").ToList();
-            if (cellElements.Count > 0) {
-                foreach (XElement cell in cellElements) {
-                    string? n = cell.Attribute("N")?.Value;
-                    string? v = cell.Attribute("V")?.Value;
-                    switch (n) {
-                        case "PinX":
-                            shape.PinX = ParseDouble(v);
-                            break;
-                        case "PinY":
-                            shape.PinY = ParseDouble(v);
-                            break;
-                        case "Width":
-                            shape.Width = ParseDouble(v);
-                            break;
-                        case "Height":
-                            shape.Height = ParseDouble(v);
-                            break;
+            bool pinXFound = false;
+            bool pinYFound = false;
+            bool widthFound = false;
+            bool heightFound = false;
+            bool locPinXFound = false;
+            bool locPinYFound = false;
+            bool angleFound = false;
+            bool lineWeightFound = false;
+            foreach (XElement cell in cellElements) {
+                string? n = cell.Attribute("N")?.Value;
+                string? v = cell.Attribute("V")?.Value;
+                switch (n) {
+                    case "PinX":
+                        shape.PinX = ParseDouble(v);
+                        pinXFound = true;
+                        break;
+                    case "PinY":
+                        shape.PinY = ParseDouble(v);
+                        pinYFound = true;
+                        break;
+                    case "Width":
+                        shape.Width = ParseDouble(v);
+                        widthFound = true;
+                        break;
+                    case "Height":
+                        shape.Height = ParseDouble(v);
+                        heightFound = true;
+                        break;
+                    case "LocPinX":
+                        shape.LocPinX = ParseDouble(v);
+                        locPinXFound = true;
+                        break;
+                    case "LocPinY":
+                        shape.LocPinY = ParseDouble(v);
+                        locPinYFound = true;
+                        break;
+                    case "Angle":
+                        shape.Angle = ParseDouble(v);
+                        angleFound = true;
+                        break;
+                    case "LineWeight":
+                        shape.LineWeight = ParseDouble(v);
+                        lineWeightFound = true;
+                        break;
+                }
+            }
+
+            XElement? xform = shapeElement.Element(ns + "XForm");
+            if (xform != null) {
+                if (!pinXFound) {
+                    XElement? pinX = xform.Element(ns + "PinX");
+                    if (pinX != null) {
+                        shape.PinX = ParseDouble(pinX.Value);
+                        pinXFound = true;
                     }
                 }
-            } else {
-                XElement? xform = shapeElement.Element(ns + "XForm");
-                shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
-                shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
-                shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
-                shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+                if (!pinYFound) {
+                    XElement? pinY = xform.Element(ns + "PinY");
+                    if (pinY != null) {
+                        shape.PinY = ParseDouble(pinY.Value);
+                        pinYFound = true;
+                    }
+                }
+                if (!widthFound) {
+                    XElement? width = xform.Element(ns + "Width");
+                    if (width != null) {
+                        shape.Width = ParseDouble(width.Value);
+                        widthFound = true;
+                    }
+                }
+                if (!heightFound) {
+                    XElement? height = xform.Element(ns + "Height");
+                    if (height != null) {
+                        shape.Height = ParseDouble(height.Value);
+                        heightFound = true;
+                    }
+                }
+                if (!locPinXFound) {
+                    XElement? locPinX = xform.Element(ns + "LocPinX");
+                    if (locPinX != null) {
+                        shape.LocPinX = ParseDouble(locPinX.Value);
+                        locPinXFound = true;
+                    }
+                }
+                if (!locPinYFound) {
+                    XElement? locPinY = xform.Element(ns + "LocPinY");
+                    if (locPinY != null) {
+                        shape.LocPinY = ParseDouble(locPinY.Value);
+                        locPinYFound = true;
+                    }
+                }
+                if (!angleFound) {
+                    XElement? angle = xform.Element(ns + "Angle");
+                    if (angle != null) {
+                        shape.Angle = ParseDouble(angle.Value);
+                        angleFound = true;
+                    }
+                }
+            }
+
+            if (!locPinXFound) {
+                shape.LocPinX = shape.Width / 2;
+            }
+            if (!locPinYFound) {
+                shape.LocPinY = shape.Height / 2;
+            }
+            if (!angleFound) {
+                shape.Angle = 0;
+            }
+            if (!lineWeightFound) {
+                shape.LineWeight = 0.0138889;
             }
 
             XElement? connectionSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
@@ -223,7 +322,7 @@ namespace OfficeIMO.Visio {
         /// Saves the document to a <c>.vsdx</c> package.
         /// </summary>
         public void Save(string filePath) {
-            bool includeTheme = _pages.Any(p => p.Shapes.Any());
+            bool includeTheme = Theme != null;
             int masterCount;
             using (Package package = Package.Open(filePath, FileMode.Create)) {
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
@@ -336,11 +435,13 @@ namespace OfficeIMO.Visio {
                     return index >= 0 ? $"Connections.X{index + 1}" : "PinX";
                 }
 
-                if (themePart != null) {
+                if (themePart != null && Theme != null) {
                     using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                         writer.WriteStartDocument();
                         writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
-                        writer.WriteAttributeString("name", "Office Theme");
+                        if (!string.IsNullOrEmpty(Theme.Name)) {
+                            writer.WriteAttributeString("name", Theme.Name);
+                        }
                         writer.WriteEndElement();
                         writer.WriteEndDocument();
                     }
@@ -385,6 +486,18 @@ namespace OfficeIMO.Visio {
                             WriteCell(writer, "PinY", s.PinY);
                             WriteCell(writer, "Width", masterWidth);
                             WriteCell(writer, "Height", masterHeight);
+                            if (Math.Abs(s.LocPinX - masterWidth / 2) > 0) {
+                                WriteCell(writer, "LocPinX", s.LocPinX);
+                            }
+                            if (Math.Abs(s.LocPinY - masterHeight / 2) > 0) {
+                                WriteCell(writer, "LocPinY", s.LocPinY);
+                            }
+                            if (Math.Abs(s.Angle) > 0) {
+                                WriteCell(writer, "Angle", s.Angle);
+                            }
+                            if (Math.Abs(s.LineWeight - 0.0138889) > 0) {
+                                WriteCell(writer, "LineWeight", s.LineWeight);
+                            }
                             WriteRectangleGeometry(writer, masterWidth, masterHeight);
                             WriteConnectionSection(writer, s.ConnectionPoints);
                             if (!string.IsNullOrEmpty(s.Text)) {
@@ -564,12 +677,18 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
                                 WriteCell(writer, "PinX", shape.PinX);
                                 WriteCell(writer, "PinY", shape.PinY);
-                                writer.WriteStartElement("Cell", ns);
-                                writer.WriteAttributeString("N", "LineWeight");
-                                writer.WriteAttributeString("V", "0.003472222222222222");
-                                writer.WriteAttributeString("U", "PT");
-                                writer.WriteAttributeString("F", "Inh");
-                                writer.WriteEndElement();
+                                if (Math.Abs(shape.LocPinX - shape.Width / 2) > 0) {
+                                    WriteCell(writer, "LocPinX", shape.LocPinX);
+                                }
+                                if (Math.Abs(shape.LocPinY - shape.Height / 2) > 0) {
+                                    WriteCell(writer, "LocPinY", shape.LocPinY);
+                                }
+                                if (Math.Abs(shape.Angle) > 0) {
+                                    WriteCell(writer, "Angle", shape.Angle);
+                                }
+                                if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
+                                    WriteCell(writer, "LineWeight", shape.LineWeight);
+                                }
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
@@ -583,6 +702,18 @@ namespace OfficeIMO.Visio {
                                 shape.Height = height;
                                 WriteCell(writer, "Width", width);
                                 WriteCell(writer, "Height", height);
+                                if (Math.Abs(shape.LocPinX - width / 2) > 0) {
+                                    WriteCell(writer, "LocPinX", shape.LocPinX);
+                                }
+                                if (Math.Abs(shape.LocPinY - height / 2) > 0) {
+                                    WriteCell(writer, "LocPinY", shape.LocPinY);
+                                }
+                                if (Math.Abs(shape.Angle) > 0) {
+                                    WriteCell(writer, "Angle", shape.Angle);
+                                }
+                                if (Math.Abs(shape.LineWeight - 0.0138889) > 0) {
+                                    WriteCell(writer, "LineWeight", shape.LineWeight);
+                                }
                                 WriteRectangleGeometry(writer, width, height);
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
                                 if (!string.IsNullOrEmpty(shape.Text)) {
