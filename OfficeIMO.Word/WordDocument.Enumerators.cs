@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -44,10 +45,29 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal void ForEachRun(Action<WordParagraph> action) {
+            foreach (var paragraph in EnumerateAllParagraphs()) {
+                foreach (var run in paragraph.GetRuns()) {
+                    action(run);
+                }
+            }
+        }
+
         internal IEnumerable<WordParagraph> FindParagraphs(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
             foreach (var paragraph in EnumerateAllParagraphs()) {
                 if (paragraph.Text?.IndexOf(text, stringComparison) >= 0) {
                     yield return paragraph;
+                }
+            }
+        }
+
+        internal IEnumerable<WordParagraph> FindRunsRegex(string pattern) {
+            var regex = new Regex(pattern);
+            foreach (var paragraph in EnumerateAllParagraphs()) {
+                foreach (var run in paragraph.GetRuns()) {
+                    if (run.Text != null && regex.IsMatch(run.Text)) {
+                        yield return run;
+                    }
                 }
             }
         }

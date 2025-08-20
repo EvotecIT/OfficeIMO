@@ -22,9 +22,17 @@ namespace OfficeIMO.Tests {
                 document.AsFluent().ForEachParagraph(p => count++);
                 Assert.Equal(3, count);
 
+                int runCount = 0;
+                document.AsFluent().ForEachRun(r => runCount++);
+                Assert.Equal(3, runCount);
+
                 int found = 0;
                 document.AsFluent().Find("match", p => found++);
                 Assert.Equal(1, found);
+
+                int regexFound = 0;
+                document.AsFluent().FindRegex("Sec.*match", p => regexFound++);
+                Assert.Equal(1, regexFound);
 
                 var selected = document.AsFluent().Select(p => p.Paragraph?.Text.Contains("Third") == true).ToList();
                 Assert.Single(selected);

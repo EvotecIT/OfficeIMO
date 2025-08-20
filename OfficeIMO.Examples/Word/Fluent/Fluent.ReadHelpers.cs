@@ -18,6 +18,10 @@ namespace OfficeIMO.Examples.Word {
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AsFluent().Find("Second", p => Console.WriteLine($"Found: {p.Paragraph?.Text}"));
+                document.AsFluent().FindRegex("Sec.*", p => Console.WriteLine($"Regex found: {p.Paragraph?.Text}"));
+                int totalRuns = 0;
+                document.AsFluent().ForEachRun(r => totalRuns++);
+                Console.WriteLine($"Total runs: {totalRuns}");
                 int total = document.AsFluent().Select(p => p.Paragraph?.Text.Contains("ir") == true).Count();
                 Console.WriteLine($"Paragraphs containing 'ir': {total}");
             }
