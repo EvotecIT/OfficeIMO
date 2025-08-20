@@ -94,11 +94,11 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        public SheetBuilder Cell(int row, int column, object value) {
+        public SheetBuilder Cell(int row, int column, object? value = null, string? formula = null, string? numberFormat = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
-            Sheet.SetCellValue(row, column, value);
+            Sheet.Cell(row, column, value, formula, numberFormat);
             return this;
         }
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel.Fluent {
                 }
             }
 
-            Sheet.SetCellValuesParallel(cells);
+            Sheet.CellValuesParallel(cells);
             return this;
         }
 

@@ -636,10 +636,10 @@ namespace OfficeIMO.Excel {
 
             const int parallelThreshold = 1000;
             if (cells.Count > parallelThreshold) {
-                SetCellValuesParallel(cells);
+                CellValuesParallel(cells);
             } else {
                 foreach (var cell in cells) {
-                    SetCellValue(cell.Row, cell.Column, cell.Value);
+                    CellValue(cell.Row, cell.Column, cell.Value);
                 }
             }
         }
@@ -693,17 +693,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        public void SetCellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
+        /// <summary>
+        /// Sets multiple cell values in parallel.
+        /// </summary>
+        /// <param name="cells">Collection of cell coordinates and values.</param>
+        public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
             if (cells == null) {
                 throw new ArgumentNullException(nameof(cells));
             }
 
             Parallel.ForEach(Partitioner.Create(cells), cell => {
-                SetCellValue(cell.Row, cell.Column, cell.Value);
+                CellValue(cell.Row, cell.Column, cell.Value);
             });
         }
 
-        public void SetCellValue(int row, int column, string value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, string value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
@@ -712,7 +717,8 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellValue(int row, int column, double value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, double value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
@@ -720,7 +726,8 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellValue(int row, int column, decimal value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, decimal value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
@@ -728,7 +735,8 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellValue(int row, int column, DateTime value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, DateTime value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
@@ -736,11 +744,13 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellValue(int row, int column, DateTimeOffset value) {
-            SetCellValue(row, column, value.UtcDateTime);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, DateTimeOffset value) {
+            CellValue(row, column, value.UtcDateTime);
         }
 
-        public void SetCellValue(int row, int column, TimeSpan value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, TimeSpan value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
@@ -748,27 +758,33 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellValue(int row, int column, uint value) {
-            SetCellValue(row, column, (double)value);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, uint value) {
+            CellValue(row, column, (double)value);
         }
 
-        public void SetCellValue(int row, int column, ulong value) {
-            SetCellValue(row, column, (double)value);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, ulong value) {
+            CellValue(row, column, (double)value);
         }
 
-        public void SetCellValue(int row, int column, ushort value) {
-            SetCellValue(row, column, (double)value);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, ushort value) {
+            CellValue(row, column, (double)value);
         }
 
-        public void SetCellValue(int row, int column, byte value) {
-            SetCellValue(row, column, (double)value);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, byte value) {
+            CellValue(row, column, (double)value);
         }
 
-        public void SetCellValue(int row, int column, sbyte value) {
-            SetCellValue(row, column, (double)value);
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, sbyte value) {
+            CellValue(row, column, (double)value);
         }
 
-        public void SetCellValue(int row, int column, bool value) {
+        /// <inheritdoc cref="CellValue(int,int,object)" />
+        public void CellValue(int row, int column, bool value) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value ? "1" : "0");
@@ -776,14 +792,46 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void SetCellFormula(int row, int column, string formula) {
+        /// <summary>
+        /// Sets a formula in the specified cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="formula">The formula expression.</param>
+        public void CellFormula(int row, int column, string formula) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellFormula = new CellFormula(formula);
             });
         }
 
-        public void SetCellFormat(int row, int column, string numberFormat) {
+        /// <summary>
+        /// Sets the value, formula, and number format of a cell in a single operation.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="value">Optional value to assign.</param>
+        /// <param name="formula">Optional formula to apply.</param>
+        /// <param name="numberFormat">Optional number format code.</param>
+        public void Cell(int row, int column, object? value = null, string? formula = null, string? numberFormat = null) {
+            if (value != null) {
+                CellValue(row, column, value);
+            }
+            if (!string.IsNullOrEmpty(formula)) {
+                CellFormula(row, column, formula);
+            }
+            if (!string.IsNullOrEmpty(numberFormat)) {
+                FormatCell(row, column, numberFormat);
+            }
+        }
+
+        /// <summary>
+        /// Applies a number format to the specified cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="numberFormat">The number format code to apply.</param>
+        public void FormatCell(int row, int column, string numberFormat) {
             Cell cell = GetCell(row, column);
 
             WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
@@ -846,73 +894,92 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet.Save();
         }
 
-        public void SetCellValue(int row, int column, object value) {
+        /// <summary>
+        /// Sets the value of a cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="value">The value to assign.</param>
+        /// <summary>
+        /// Sets the specified value into a cell, inferring the data type.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="value">The value to assign.</param>
+        public void CellValue(int row, int column, object value) {
             WriteLock(() => {
                 switch (value) {
                     case string s:
-                        SetCellValue(row, column, s);
+                        CellValue(row, column, s);
                         break;
                     case double d:
-                        SetCellValue(row, column, d);
+                        CellValue(row, column, d);
                         break;
                     case float f:
-                        SetCellValue(row, column, Convert.ToDouble(f));
+                        CellValue(row, column, Convert.ToDouble(f));
                         break;
                     case decimal dec:
-                        SetCellValue(row, column, dec);
+                        CellValue(row, column, dec);
                         break;
                     case int i:
-                        SetCellValue(row, column, (double)i);
+                        CellValue(row, column, (double)i);
                         break;
                     case long l:
-                        SetCellValue(row, column, (double)l);
+                        CellValue(row, column, (double)l);
                         break;
                     case DateTime dt:
-                        SetCellValue(row, column, dt);
+                        CellValue(row, column, dt);
                         break;
                     case DateTimeOffset dto:
-                        SetCellValue(row, column, dto);
+                        CellValue(row, column, dto);
                         break;
                     case TimeSpan ts:
-                        SetCellValue(row, column, ts);
+                        CellValue(row, column, ts);
                         break;
                     case bool b:
-                        SetCellValue(row, column, b);
+                        CellValue(row, column, b);
                         break;
                     case uint ui:
-                        SetCellValue(row, column, ui);
+                        CellValue(row, column, ui);
                         break;
                     case ulong ul:
-                        SetCellValue(row, column, ul);
+                        CellValue(row, column, ul);
                         break;
                     case ushort us:
-                        SetCellValue(row, column, us);
+                        CellValue(row, column, us);
                         break;
                     case byte by:
-                        SetCellValue(row, column, by);
+                        CellValue(row, column, by);
                         break;
                     case sbyte sb:
-                        SetCellValue(row, column, sb);
+                        CellValue(row, column, sb);
                         break;
                     case short sh:
-                        SetCellValue(row, column, (double)sh);
+                        CellValue(row, column, (double)sh);
                         break;
                     default:
                         if (value != null) {
-                            SetCellValue(row, column, value.ToString());
+                            CellValue(row, column, value.ToString());
                         } else {
-                            SetCellValue(row, column, string.Empty);
+                            CellValue(row, column, string.Empty);
                         }
                         break;
                 }
             });
         }
 
-        public void SetCellValue<T>(int row, int column, T? value) where T : struct {
+        /// <summary>
+        /// Sets the value of a cell using a nullable struct.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="value">The nullable value to assign.</param>
+        public void CellValue<T>(int row, int column, T? value) where T : struct {
             if (value.HasValue) {
-                SetCellValue(row, column, value.Value);
+                CellValue(row, column, value.Value);
             } else {
-                SetCellValue(row, column, string.Empty);
+                CellValue(row, column, string.Empty);
             }
         }
     }

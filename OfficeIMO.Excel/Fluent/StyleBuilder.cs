@@ -7,8 +7,15 @@ namespace OfficeIMO.Excel.Fluent {
             _sheet = sheet;
         }
 
-        public StyleBuilder SetCellFormat(int row, int column, string numberFormat) {
-            _sheet.SetCellFormat(row, column, numberFormat);
+        /// <summary>
+        /// Applies a number format to the specified cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="numberFormat">The number format code to apply.</param>
+        /// <returns>The current <see cref="StyleBuilder"/> instance for fluent chaining.</returns>
+        public StyleBuilder FormatCell(int row, int column, string numberFormat) {
+            _sheet.FormatCell(row, column, numberFormat);
             return this;
         }
     }

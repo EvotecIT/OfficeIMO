@@ -13,17 +13,18 @@ namespace OfficeIMO.Tests {
     /// </summary>
     public partial class Excel {
         [Fact]
-        public void Test_SetCellValues() {
-            string filePath = Path.Combine(_directoryWithFiles, "SetCellValues.xlsx");
+        public void Test_CellValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValues.xlsx");
             var date = new DateTime(2024, 1, 2);
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Hello");
-                sheet.SetCellValue(2, 1, 123.45);
-                sheet.SetCellValue(3, 1, 678.90m);
-                sheet.SetCellValue(4, 1, date);
-                sheet.SetCellValue(5, 1, true);
-                sheet.SetCellFormula(6, 1, "SUM(A2:A3)");
+                sheet.CellValue(1, 1, "Hello");
+                sheet.CellValue(2, 1, 123.45);
+                sheet.CellValue(3, 1, 678.90m);
+                sheet.CellValue(4, 1, date);
+                sheet.CellValue(5, 1, true);
+                sheet.CellFormula(6, 1, "SUM(A2:A3)");
+                sheet.Cell(7, 1, 1.23, "A2+1", "0.00");
                 document.Save();
             }
 
@@ -57,6 +58,16 @@ namespace OfficeIMO.Tests {
                 Cell cellFormula = cells.First(c => c.CellReference == "A6");
                   Assert.NotNull(cellFormula.CellFormula);
                   Assert.Equal("SUM(A2:A3)", cellFormula.CellFormula!.Text);
+
+                Cell cellCombined = cells.First(c => c.CellReference == "A7");
+                  Assert.Equal(CellValues.Number, cellCombined.DataType!.Value);
+                  Assert.Equal("1.23", cellCombined.CellValue!.Text);
+                  Assert.NotNull(cellCombined.CellFormula);
+                  Assert.Equal("A2+1", cellCombined.CellFormula!.Text);
+                  Assert.NotNull(cellCombined.StyleIndex);
+                  var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
+                  var formats = styles.NumberingFormats.Elements<NumberingFormat>().ToList();
+                  Assert.Contains(formats, n => n.FormatCode != null && n.FormatCode.Value == "0.00");
             }
         }
     }

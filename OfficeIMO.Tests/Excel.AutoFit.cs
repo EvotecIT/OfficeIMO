@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Long piece of text");
-                sheet.SetCellValue(2, 1, "Second line\nwith newline");
-                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3");
+                sheet.CellValue(1, 1, "Long piece of text");
+                sheet.CellValue(2, 1, "Second line\nwith newline");
+                sheet.CellValue(3, 1, "Line1\nLine2\nLine3");
                 sheet.AutoFitColumns();
                 sheet.AutoFitRows();
                 document.Save();
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.Empty.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Content");
-                sheet.SetCellValue(2, 1, " ");
+                sheet.CellValue(1, 1, "Content");
+                sheet.CellValue(2, 1, " ");
                 sheet.AutoFitRows();
                 document.Save();
             }
@@ -77,14 +77,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearRow.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Content");
+                sheet.CellValue(1, 1, "Content");
                 sheet.AutoFitRows();
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                sheet.SetCellValue(1, 1, string.Empty);
+                sheet.CellValue(1, 1, string.Empty);
                 sheet.AutoFitRows();
                 document.Save();
             }
@@ -102,14 +102,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Long text");
+                sheet.CellValue(1, 1, "Long text");
                 sheet.AutoFitColumns();
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                sheet.SetCellValue(1, 1, string.Empty);
+                sheet.CellValue(1, 1, string.Empty);
                 sheet.AutoFitColumns();
                 document.Save();
             }
@@ -126,8 +126,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Very long text that should expand the column");
-                sheet.SetCellValue(1, 2, "Short");
+                sheet.CellValue(1, 1, "Very long text that should expand the column");
+                sheet.CellValue(1, 2, "Short");
                 sheet.AutoFitColumn(1);
                 document.Save();
             }
@@ -151,8 +151,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleRow.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Line1\nLine2\nLine3");
-                sheet.SetCellValue(2, 1, "Line1\nLine2\nLine3");
+                sheet.CellValue(1, 1, "Line1\nLine2\nLine3");
+                sheet.CellValue(2, 1, "Line1\nLine2\nLine3");
                 sheet.AutoFitRow(1);
                 document.Save();
             }
@@ -174,9 +174,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ConcurrentOperations.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Long piece of text");
-                sheet.SetCellValue(2, 1, "Second line\nwith newline");
-                sheet.SetCellValue(3, 1, "Line1\nLine2\nLine3");
+                sheet.CellValue(1, 1, "Long piece of text");
+                sheet.CellValue(2, 1, "Second line\nwith newline");
+                sheet.CellValue(3, 1, "Line1\nLine2\nLine3");
 
                 var tasks = Enumerable.Range(0, 10)
                     .SelectMany(_ => new[] {

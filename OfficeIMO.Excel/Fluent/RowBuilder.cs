@@ -11,14 +11,14 @@ namespace OfficeIMO.Excel.Fluent {
             _rowIndex = rowIndex;
         }
 
-        public RowBuilder Cell(int column, object value) {
-            _sheet.SetCellValue(_rowIndex, column, value);
+        public RowBuilder Cell(int column, object? value = null, string? formula = null, string? numberFormat = null) {
+            _sheet.Cell(_rowIndex, column, value, formula, numberFormat);
             return this;
         }
 
         public RowBuilder Values(params object?[] values) {
             for (int i = 0; i < values.Length; i++) {
-                _sheet.SetCellValue(_rowIndex, i + 1, values[i]);
+                _sheet.CellValue(_rowIndex, i + 1, values[i]);
             }
             return this;
         }

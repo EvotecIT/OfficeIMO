@@ -10,8 +10,8 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_SetCellValues_AdditionalTypes() {
-            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesAdditional.xlsx");
+        public void Test_CellValues_AdditionalTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesAdditional.xlsx");
             var dateOffset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
             var time = new TimeSpan(1, 2, 3, 4);
             uint ui = 123u;
@@ -25,22 +25,22 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, dateOffset);
-                sheet.SetCellFormat(1, 1, "yyyy-mm-dd hh:mm");
-                sheet.SetCellValue(2, 1, time);
-                sheet.SetCellFormat(2, 1, "hh:mm:ss");
-                sheet.SetCellValue(3, 1, ui);
-                sheet.SetCellFormat(3, 1, "000000");
-                sheet.SetCellValue(4, 1, ul);
-                sheet.SetCellValue(5, 1, us);
-                sheet.SetCellValue(6, 1, by);
-                sheet.SetCellValue(7, 1, nullableInt);
-                sheet.SetCellFormat(7, 1, "0");
-                sheet.SetCellValue(8, 1, nullableNull);
-                sheet.SetCellValue(9, 1, nullableDto);
-                sheet.SetCellFormat(9, 1, "yyyy-mm-dd hh:mm");
-                sheet.SetCellValue(10, 1, nullableTs);
-                sheet.SetCellFormat(10, 1, "hh:mm:ss");
+                sheet.CellValue(1, 1, dateOffset);
+                sheet.FormatCell(1, 1, "yyyy-mm-dd hh:mm");
+                sheet.CellValue(2, 1, time);
+                sheet.FormatCell(2, 1, "hh:mm:ss");
+                sheet.CellValue(3, 1, ui);
+                sheet.FormatCell(3, 1, "000000");
+                sheet.CellValue(4, 1, ul);
+                sheet.CellValue(5, 1, us);
+                sheet.CellValue(6, 1, by);
+                sheet.CellValue(7, 1, nullableInt);
+                sheet.FormatCell(7, 1, "0");
+                sheet.CellValue(8, 1, nullableNull);
+                sheet.CellValue(9, 1, nullableDto);
+                sheet.FormatCell(9, 1, "yyyy-mm-dd hh:mm");
+                sheet.CellValue(10, 1, nullableTs);
+                sheet.FormatCell(10, 1, "hh:mm:ss");
                 document.Save();
             }
 

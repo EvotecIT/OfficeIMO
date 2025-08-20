@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 Parallel.For(1, 101, i => {
-                    sheet.SetCellValue(i, 1, $"Value {i}");
+                    sheet.CellValue(i, 1, $"Value {i}");
                 });
                 document.Save(openExcel);
             }
