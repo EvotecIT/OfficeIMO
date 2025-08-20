@@ -3,6 +3,8 @@ using System.IO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
 
     internal static void Example_Word_Fluent_Paragraph_TextAndFormatting(string folderPath, bool openWord) {

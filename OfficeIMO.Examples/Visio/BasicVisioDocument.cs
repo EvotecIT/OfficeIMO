@@ -13,17 +13,7 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = new();
             VisioPage page = document.AddPage("Page-1");
-            page.PageWidth = 11.69291338582677;
-            page.PageHeight = 8.26771653543307;
-            page.ViewCenterX = 5.8424184863857;
-            page.ViewCenterY = 4.133858091015;
-            page.Shapes.Add(new VisioShape("1") {
-                NameU = "Rectangle",
-                PinX = 2.047244040636296,
-                PinY = 6.73228320203895,
-                Width = 1.574803149606299,
-                Height = 1.181102362204724
-            });
+            page.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Rectangle") { NameU = "Rectangle" });
             document.Save(filePath);
 
             if (openVisio) {

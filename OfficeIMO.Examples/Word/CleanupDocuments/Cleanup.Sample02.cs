@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 /// <summary>
 /// Additional document cleanup examples.
 /// </summary>

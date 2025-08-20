@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class PageSettings {
 
     internal static void Example_PageOrientation(string folderPath, bool openWord) {

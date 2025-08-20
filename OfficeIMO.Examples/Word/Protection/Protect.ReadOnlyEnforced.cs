@@ -2,6 +2,8 @@ using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Protect {
     // Example: Enforced read-only protection (password required to edit)
     internal static void Example_ReadOnlyEnforced(string folderPath, bool openWord) {

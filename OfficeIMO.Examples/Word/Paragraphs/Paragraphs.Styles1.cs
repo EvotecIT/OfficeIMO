@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
 
     internal static void Example_BasicParagraphStyles(string folderPath, bool openWord) {

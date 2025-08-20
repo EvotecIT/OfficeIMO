@@ -14,8 +14,8 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = new();
             document.RequestRecalcOnOpen();
             VisioPage page = document.AddPage("Page-1");
-            VisioShape start = new("1", 1, 1, 2, 1, "Start");
-            VisioShape end = new("2", 4, 1, 2, 1, "End");
+            VisioShape start = new("1", 1, 1, 2, 1, "Start") { NameU = "Rectangle" };
+            VisioShape end = new("2", 4, 1, 2, 1, "End") { NameU = "Rectangle" };
             page.Shapes.Add(start);
             page.Shapes.Add(end);
             page.Connectors.Add(new VisioConnector(start, end));

@@ -14,11 +14,21 @@ namespace OfficeIMO.Examples {
             string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents");
             Setup(folderPath);
 
-            // Visio/BasicVisioDocument
+            // Visio
             OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
-            OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
+            OfficeIMO.Examples.Visio.EmptyVisioDocument.Example_EmptyVisio(folderPath, false);
             OfficeIMO.Examples.Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
+            OfficeIMO.Examples.Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
+            OfficeIMO.Examples.Visio.DocumentProperties.Example_DocumentProperties(folderPath, false);
+            OfficeIMO.Examples.Visio.DocumentStructure.Example_DocumentStructure(folderPath, false);
+            OfficeIMO.Examples.Visio.PageViewSettings.Example_PageViewSettings(folderPath, false);
+            OfficeIMO.Examples.Visio.ShapeProperties.Example_ShapeProperties(folderPath, false);
+            OfficeIMO.Examples.Visio.RotatedShapeBounds.Example_RotatedShapeBounds(folderPath, false);
+            OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
+            OfficeIMO.Examples.Visio.ThemeAndWindows.Example_ThemeAndWindows(folderPath, false);
             OfficeIMO.Examples.Visio.ValidateVisio.Example_ValidateVisio(folderPath, false);
+            OfficeIMO.Examples.Visio.AllNamedShapesHaveMasters.Run();
+            OfficeIMO.Examples.Visio.MasterShapes.Run();
 
             // Excel/BasicExcelFunctionality
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
@@ -28,6 +38,32 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
             // Excel/AutoFit
             OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
+            // Excel/AddTable
+            OfficeIMO.Examples.Excel.AddTable.Example(folderPath, false);
+            // Excel/AutoFilter
+            OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
+            // Excel/ConditionalFormatting
+            OfficeIMO.Examples.Excel.ConditionalFormatting.Example(folderPath, false);
+            // Excel/ConcurrentWrites
+            OfficeIMO.Examples.Excel.ConcurrentWrites.Example(folderPath, false);
+            // Excel/ExcelConcurrentAccessAsync
+            OfficeIMO.Examples.Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
+            // Excel/SetCellValues
+            OfficeIMO.Examples.Excel.SetCellValues.Example(folderPath, false);
+            // Excel/SetCellValuesParallel
+            OfficeIMO.Examples.Excel.SetCellValuesParallel.Example(folderPath, false);
+            // Excel/Fluent
+            OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
+            // PowerPoint
+            OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);
@@ -109,6 +145,11 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.ContentControls.Example_AdvancedContentControls(folderPath, false);
             OfficeIMO.Examples.Word.ContentControls.Example_ContentControlsInTable(folderPath, false);
             OfficeIMO.Examples.Word.ContentControls.Example_MultipleContentControls(folderPath, false);
+            // Word/CleanupDocuments
+            OfficeIMO.Examples.Word.CleanupDocuments.CleanupDocuments_Sample01(false);
+            OfficeIMO.Examples.Word.CleanupDocuments.CleanupDocuments_Sample02(folderPath, false);
+            OfficeIMO.Examples.Word.CleanupDocuments.CleanupDocuments_Sample03(folderPath, false);
+            OfficeIMO.Examples.Word.CleanupDocuments.CleanupDocuments_Sample04(folderPath, false);
             // Word/CoverPages
             OfficeIMO.Examples.Word.CoverPages.Example_AddingCoverPage(folderPath, false);
             OfficeIMO.Examples.Word.CoverPages.Example_AddingCoverPage2(folderPath, false);
@@ -159,6 +200,15 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.FindAndReplace.Example_FindAndReplace01(folderPath, false);
             OfficeIMO.Examples.Word.FindAndReplace.Example_FindAndReplace02(folderPath, false);
             OfficeIMO.Examples.Word.FindAndReplace.Example_ReplaceTextWithHtmlFragment(folderPath, false);
+            // Word/Fluent
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentDocument(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentHeadersAndFooters(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentListBuilder(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentParagraphFormatting(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentReadHelpers(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentSectionLayout(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentTableBuilder(folderPath, false);
+            OfficeIMO.Examples.Word.FluentDocument.Example_FluentTextBuilder(folderPath, false);
             // Word/Fonts
             OfficeIMO.Examples.Word.Fonts.Example_EmbeddedAndBuiltinFonts(templatesPath, folderPath, false);
             OfficeIMO.Examples.Word.Fonts.Example_EmbeddedFontStyle(templatesPath, folderPath, false);
@@ -242,6 +292,23 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.PageNumbers.Example_PageNumbers6(folderPath, false);
             OfficeIMO.Examples.Word.PageNumbers.Example_PageNumbers7(folderPath, false);
             OfficeIMO.Examples.Word.PageNumbers.Example_PageNumbers8(folderPath, false);
+            // Word/PageSettings
+            OfficeIMO.Examples.Word.PageSettings.Example_BasicSettings(folderPath, false);
+            OfficeIMO.Examples.Word.PageSettings.Example_PageOrientation(folderPath, false);
+            // Word/Paragraphs
+            OfficeIMO.Examples.Word.Paragraphs.Example_BasicParagraphs(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_AddFormattedText(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_BasicTabStops(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_InsertParagraphAt(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_BasicParagraphStyles(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_InlineRunHelper(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_RunCharacterStylesAdvanced(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_RegisterCustomParagraphStyle(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_MultipleCustomParagraphStyles(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_OverrideBuiltInParagraphStyle(folderPath, false);
+            OfficeIMO.Examples.Word.Paragraphs.Example_Word_Fluent_Paragraph_TextAndFormatting(folderPath, false);
             // Word/Pdf
             OfficeIMO.Examples.Word.Pdf.Example_HeaderFooterImages(folderPath, false);
             OfficeIMO.Examples.Word.Pdf.Example_PdfInterface(folderPath, false);
@@ -256,6 +323,10 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Pdf.Example_PdfCustomFonts(folderPath, false);
             // Word/PictureControls
             OfficeIMO.Examples.Word.PictureControls.Example_BasicPictureControl(folderPath, false);
+            // Word/Protection
+            OfficeIMO.Examples.Word.Protect.Example_FinalDocument(folderPath, false);
+            OfficeIMO.Examples.Word.Protect.Example_ReadOnlyEnforced(folderPath, false);
+            OfficeIMO.Examples.Word.Protect.Example_ReadOnlyRecommended(folderPath, false);
             // Word/RepeatingSections
             OfficeIMO.Examples.Word.RepeatingSections.Example_BasicRepeatingSection(folderPath, false);
             // Word/Revisions

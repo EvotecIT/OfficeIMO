@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Paragraphs {
 
     internal static void Example_BasicParagraphs(string folderPath, bool openWord) {

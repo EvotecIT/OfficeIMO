@@ -1,6 +1,8 @@
 using System;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 /// <summary>
 /// Demonstrates cleanup operations on a newly created document.
 /// </summary>

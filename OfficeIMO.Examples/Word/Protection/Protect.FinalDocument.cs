@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
+namespace OfficeIMO.Examples.Word;
+
 internal static partial class Protect {
 
     // Example: Mark document as Final (shows 'Mark as Final' banner in Word)

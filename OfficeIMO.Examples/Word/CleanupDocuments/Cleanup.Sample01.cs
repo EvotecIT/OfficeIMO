@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 
+namespace OfficeIMO.Examples.Word;
+
 /// <summary>
 /// Examples demonstrating document cleanup operations.
 /// </summary>
