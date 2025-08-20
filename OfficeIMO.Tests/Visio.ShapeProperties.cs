@@ -26,6 +26,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.5, loaded.LocPinX, 5);
             Assert.Equal(2.5, loaded.LocPinY, 5);
             Assert.Equal(0.3, loaded.Angle, 5);
+            Assert.Equal(4, loaded.Width, 5);
+            Assert.Equal(6, loaded.Height, 5);
         }
 
         [Fact]

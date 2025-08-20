@@ -718,10 +718,20 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
                                 WriteCell(writer, "PinX", shape.PinX);
                                 WriteCell(writer, "PinY", shape.PinY);
-                                double width = shape.Width > 0 ? shape.Width :
-                                    (shape.Master.Shape.Width > 0 ? shape.Master.Shape.Width : 1);
-                                double height = shape.Height > 0 ? shape.Height :
-                                    (shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1);
+                                double width = shape.Width;
+                                if (width <= 0 && shape.Master.Shape.Width > 0) {
+                                    width = shape.Master.Shape.Width;
+                                }
+                                if (width <= 0) {
+                                    width = 1;
+                                }
+                                double height = shape.Height;
+                                if (height <= 0 && shape.Master.Shape.Height > 0) {
+                                    height = shape.Master.Shape.Height;
+                                }
+                                if (height <= 0) {
+                                    height = 1;
+                                }
                                 shape.Width = width;
                                 shape.Height = height;
                                 WriteCell(writer, "Width", width);

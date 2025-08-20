@@ -31,6 +31,10 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.NotNull(loaded.Pages[0].Shapes[0].Master);
             Assert.Equal("Rectangle", loaded.Pages[0].Shapes[0].Master?.NameU);
+            Assert.Equal(2, loaded.Pages[0].Shapes[0].Width, 5);
+            Assert.Equal(1, loaded.Pages[0].Shapes[0].Height, 5);
+            Assert.Equal(2, loaded.Pages[0].Shapes[1].Width, 5);
+            Assert.Equal(1, loaded.Pages[0].Shapes[1].Height, 5);
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/masters/masters.xml", UriKind.Relative)));
