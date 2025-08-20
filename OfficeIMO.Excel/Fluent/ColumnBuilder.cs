@@ -7,8 +7,13 @@ namespace OfficeIMO.Excel.Fluent {
             _sheet = sheet;
         }
 
-        public ColumnBuilder AutoFit() {
-            _sheet.AutoFitColumns();
+        public ColumnBuilder AutoFit(bool columns = true, bool rows = false) {
+            if (columns) {
+                _sheet.AutoFitColumns();
+            }
+            if (rows) {
+                _sheet.AutoFitRows();
+            }
             return this;
         }
     }

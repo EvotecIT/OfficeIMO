@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent {
     public class SheetBuilder {
@@ -49,6 +51,35 @@ namespace OfficeIMO.Excel.Fluent {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new StyleBuilder(Sheet);
             action(builder);
+            return this;
+        }
+
+        public SheetBuilder AutoFilter(string range, Dictionary<uint, IEnumerable<string>>? criteria = null) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            Sheet.AddAutoFilter(range, criteria);
+            return this;
+        }
+
+        public SheetBuilder ConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            Sheet.AddConditionalColorScale(range, startColor, endColor);
+            return this;
+        }
+
+        public SheetBuilder ConditionalDataBar(string range, SixLaborsColor color) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            Sheet.AddConditionalDataBar(range, color);
+            return this;
+        }
+
+        public SheetBuilder AutoFit(bool columns, bool rows) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (columns) {
+                Sheet.AutoFitColumns();
+            }
+            if (rows) {
+                Sheet.AutoFitRows();
+            }
             return this;
         }
     }
