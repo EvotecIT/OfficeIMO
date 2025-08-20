@@ -1,6 +1,6 @@
-namespace OfficeIMO.Word {
+namespace OfficeIMO {
     /// <summary>
-    /// Horizontal alignment options for paragraphs.
+    /// Represents horizontal alignment options.
     /// </summary>
     public enum HorizontalAlignment {
         Left,

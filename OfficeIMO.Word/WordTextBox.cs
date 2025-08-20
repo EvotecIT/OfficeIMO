@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using V = DocumentFormat.OpenXml.Vml;
 using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
+using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -730,7 +731,7 @@ namespace OfficeIMO.Word {
                 if (verticalPosition == null) {
                     anchor.VerticalPosition = new VerticalPosition() {
                         RelativeFrom = VerticalRelativePositionValues.Page,
-                        VerticalAlignment = new VerticalAlignment() {
+                        VerticalAlignment = new DrawingVerticalAlignment() {
                             Text = "top"
                         }
                     };

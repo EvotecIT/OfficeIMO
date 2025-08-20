@@ -2,6 +2,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 using Xunit;
@@ -29,7 +30,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WrapTextImage.Square).Align(JustificationValues.Center))
+                    .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WrapTextImage.Square).Align(HorizontalAlignment.Center))
                     .Image(i => {
                         using var stream = File.OpenRead(imagePath);
                         i.Add(stream, "stream.jpg").Size(60, 60);

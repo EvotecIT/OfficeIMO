@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
 using OfficeIMO.Word;
 using System;
 using System.Linq;
@@ -138,11 +139,11 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Sets horizontal alignment for the table.
         /// </summary>
-        public TableBuilder Align(WordHorizontalAlignmentValues alignment) {
+        public TableBuilder Align(HorizontalAlignment alignment) {
             if (_table != null) {
                 _table.Alignment = alignment switch {
-                    WordHorizontalAlignmentValues.Center => TableRowAlignmentValues.Center,
-                    WordHorizontalAlignmentValues.Right => TableRowAlignmentValues.Right,
+                    HorizontalAlignment.Center => TableRowAlignmentValues.Center,
+                    HorizontalAlignment.Right => TableRowAlignmentValues.Right,
                     _ => TableRowAlignmentValues.Left,
                 };
             }

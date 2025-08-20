@@ -1,6 +1,7 @@
 using System;
-using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
