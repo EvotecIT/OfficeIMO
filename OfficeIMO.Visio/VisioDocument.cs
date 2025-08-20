@@ -205,7 +205,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            XElement? xform = shapeElement.Element(ns + "XForm");
+            XElement? xform = shapeElement.Element(ns + "XForm") ?? shapeElement.Element(ns + "XForm1D");
             if (xform != null) {
                 if (!pinXFound) {
                     XElement? pinX = xform.Element(ns + "PinX");
@@ -730,21 +730,21 @@ namespace OfficeIMO.Visio {
                             double startY;
                             if (connector.FromConnectionPoint != null) {
                                 VisioConnectionPoint cp = connector.FromConnectionPoint;
-                                startX = from.PinX - from.Width / 2 + cp.X;
-                                startY = from.PinY - from.Height / 2 + cp.Y;
+                                (startX, startY) = from.GetAbsolutePoint(cp.X, cp.Y);
                             } else {
-                                startX = from.PinX + from.Width / 2;
-                                startY = from.PinY;
+                                (double left, double bottom, double right, double top) = from.GetBounds();
+                                startX = right;
+                                startY = (top + bottom) / 2;
                             }
                             double endX;
                             double endY;
                             if (connector.ToConnectionPoint != null) {
                                 VisioConnectionPoint cp = connector.ToConnectionPoint;
-                                endX = to.PinX - to.Width / 2 + cp.X;
-                                endY = to.PinY - to.Height / 2 + cp.Y;
+                                (endX, endY) = to.GetAbsolutePoint(cp.X, cp.Y);
                             } else {
-                                endX = to.PinX - to.Width / 2;
-                                endY = to.PinY;
+                                (double left, double bottom, double right, double top) = to.GetBounds();
+                                endX = left;
+                                endY = (top + bottom) / 2;
                             }
 
                             writer.WriteStartElement("Shape", ns);

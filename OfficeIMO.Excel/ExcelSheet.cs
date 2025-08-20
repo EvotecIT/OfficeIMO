@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -587,6 +589,16 @@ namespace OfficeIMO.Excel {
                 conditionalFormatting.Append(rule);
                 worksheet.Append(conditionalFormatting);
                 worksheet.Save();
+            });
+        }
+
+        public void SetCellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
+            if (cells == null) {
+                throw new ArgumentNullException(nameof(cells));
+            }
+
+            Parallel.ForEach(Partitioner.Create(cells), cell => {
+                SetCellValue(cell.Row, cell.Column, cell.Value);
             });
         }
 

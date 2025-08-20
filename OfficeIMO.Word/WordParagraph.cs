@@ -68,7 +68,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsLastRun {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     var parent = _run.Parent;
                     if (parent != null) {
                         var runs = parent.ChildElements.OfType<Run>();
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsFirstRun {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     var parent = _run.Parent;
                     if (parent != null) {
                         var runs = parent.ChildElements.OfType<Run>();
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word {
 
         internal RunProperties? _runProperties {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     return _run.RunProperties;
                 }
 
@@ -540,72 +540,44 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the repeating section contained in this paragraph, if present.
         /// </summary>
-        public WordRepeatingSection? RepeatingSection {
-            get {
-                if (_stdRun != null && _stdRun.SdtProperties?.Elements<W15.SdtRepeatedSection>().Any() == true) {
-                    return new WordRepeatingSection(_document, _paragraph, _stdRun);
-                }
-
-                return null;
-            }
-        }
+        public WordRepeatingSection? RepeatingSection =>
+            _stdRun is not null && _stdRun.SdtProperties?.Elements<W15.SdtRepeatedSection>().Any() is true
+                ? new WordRepeatingSection(_document, _paragraph, _stdRun)
+                : null;
         /// <summary>
         /// Gets the bookmark associated with this paragraph, if present.
         /// </summary>
-        public WordBookmark? Bookmark {
-            get {
-                if (_bookmarkStart != null) {
-                    return new WordBookmark(_document, _paragraph, _bookmarkStart);
-                }
-
-                return null;
-            }
-        }
+        public WordBookmark? Bookmark =>
+            _bookmarkStart is not null ? new WordBookmark(_document, _paragraph, _bookmarkStart) : null;
 
         /// <summary>
         /// Gets the mathematical equation contained in this paragraph, if any.
         /// </summary>
-        public WordEquation? Equation {
-            get {
-                if (_officeMath != null && _mathParagraph != null) {
-                    return new WordEquation(_document, _paragraph, _officeMath, _mathParagraph);
-                }
-                if (_officeMath != null) {
-                    return new WordEquation(_document, _paragraph, _officeMath);
-                }
-                if (_mathParagraph != null) {
-                    return new WordEquation(_document, _paragraph, _mathParagraph);
-                }
-                return null;
-            }
-        }
+        public WordEquation? Equation =>
+            _officeMath is not null && _mathParagraph is not null ? new WordEquation(_document, _paragraph, _officeMath, _mathParagraph) :
+            _officeMath is not null ? new WordEquation(_document, _paragraph, _officeMath) :
+            _mathParagraph is not null ? new WordEquation(_document, _paragraph, _mathParagraph) :
+            null;
 
         /// <summary>
         /// Gets the field contained in this paragraph, if any.
         /// </summary>
-        public WordField? Field {
-            get {
-                if (_simpleField != null || _runs != null) {
-                    return new WordField(_document, _paragraph, _simpleField, _runs);
-                }
-
-                return null;
-            }
-        }
+        public WordField? Field =>
+            _simpleField is not null || _runs is not null ? new WordField(_document, _paragraph, _simpleField, _runs) : null;
 
         /// <summary>
         /// Gets the chart contained in this paragraph, if present.
         /// </summary>
         public WordChart? Chart {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                    if (drawing != null) {
-                        if (drawing.Inline != null) {
-                            if (drawing.Inline.Graphic != null) {
-                                if (drawing.Inline.Graphic.GraphicData != null) {
+                    if (drawing is not null) {
+                        if (drawing.Inline is not null) {
+                            if (drawing.Inline.Graphic is not null) {
+                                if (drawing.Inline.Graphic.GraphicData is not null) {
                                     var chart = drawing.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().FirstOrDefault();
-                                    if (chart != null) {
+                                    if (chart is not null) {
                                         return new WordChart(_document, this, drawing);
                                     }
                                 }
@@ -622,11 +594,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordSmartArt? SmartArt {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                    if (drawing != null) {
+                    if (drawing is not null) {
                         var data = drawing.Descendants<GraphicData>().FirstOrDefault();
-                        if (data != null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
+                        if (data is not null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
                             return new WordSmartArt(_document, this, drawing);
                         }
                     }
@@ -638,24 +610,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the hyperlink contained in this paragraph, if present.
         /// </summary>
-        public WordHyperLink? Hyperlink {
-            get {
-                if (_hyperlink != null) {
-                    return new WordHyperLink(_document, _paragraph, _hyperlink);
-                }
-
-                return null;
-            }
-        }
+        public WordHyperLink? Hyperlink =>
+            _hyperlink is not null ? new WordHyperLink(_document, _paragraph, _hyperlink) : null;
 
         /// <summary>
         /// Gets the footnote associated with this paragraph, if any.
         /// </summary>
         public WordFootNote? FootNote {
             get {
-                if (_run != null && _runProperties != null) {
+                if (_run is not null && _runProperties is not null) {
                     var footReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-                    if (footReference != null) {
+                    if (footReference is not null) {
                         return new WordFootNote(_document, _paragraph, _run);
                     }
                 }
@@ -668,9 +633,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordEndNote? EndNote {
             get {
-                if (_run != null && _runProperties != null) {
+                if (_run is not null && _runProperties is not null) {
                     var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                    if (endNoteReference != null) {
+                    if (endNoteReference is not null) {
                         return new WordEndNote(_document, _paragraph, _run);
                     }
                 }
@@ -681,15 +646,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a hyperlink.
         /// </summary>
-        public bool IsHyperLink {
-            get {
-                if (this.Hyperlink != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsHyperLink => Hyperlink is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph hosts a field code.
@@ -697,11 +654,7 @@ namespace OfficeIMO.Word {
         public bool IsField {
             get {
                 var field = Field;
-                if (field != null && field.Field != null) {
-                    return true;
-                }
-
-                return false;
+                return field is not null && field.Field is not null;
             }
         }
 
@@ -711,204 +664,84 @@ namespace OfficeIMO.Word {
         public bool IsBookmark {
             get {
                 var bookmark = Bookmark;
-                if (bookmark != null && bookmark.Name != null) {
-                    return true;
-                }
-
-                return false;
+                return bookmark is not null && bookmark.Name is not null;
             }
         }
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains an equation.
         /// </summary>
-        public bool IsEquation {
-            get {
-                if (this.Equation != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsEquation => Equation is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph holds a structured document tag.
         /// </summary>
-        public bool IsStructuredDocumentTag {
-            get {
-                if (this.StructuredDocumentTag != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsStructuredDocumentTag => StructuredDocumentTag is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a checkbox control.
         /// </summary>
-        public bool IsCheckBox {
-            get {
-                if (this.CheckBox != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsCheckBox => CheckBox is not null;
 
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a date picker control.
         /// </summary>
-        public bool IsDatePicker {
-            get {
-                if (this.DatePicker != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsDatePicker => DatePicker is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a dropdown list control.
         /// </summary>
-        public bool IsDropDownList {
-            get {
-                if (this.DropDownList != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsDropDownList => DropDownList is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a combo box control.
         /// </summary>
-        public bool IsComboBox {
-            get {
-                if (this.ComboBox != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsComboBox => ComboBox is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a picture control.
         /// </summary>
-        public bool IsPictureControl {
-            get {
-                if (this.PictureControl != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsPictureControl => PictureControl is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a repeating section control.
         /// </summary>
-        public bool IsRepeatingSection {
-            get {
-                if (this.RepeatingSection != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsRepeatingSection => RepeatingSection is not null;
         /// <summary>
         /// Gets a value indicating whether an image is found in the paragraph.
         /// </summary>
-        public bool IsImage {
-            get {
-                if (this.Image != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsImage => Image is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph has an embedded object.
         /// </summary>
-        public bool IsEmbeddedObject {
-            get {
-                if (this.EmbeddedObject != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsEmbeddedObject => EmbeddedObject is not null;
 
         /// <summary>
         /// Gets a value indicating whether the run within the paragraph contains a tab character.
         /// </summary>
-        public bool IsTab {
-            get {
-                if (this.Tab != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsTab => Tab is not null;
 
         /// <summary>
         /// Gets a value indicating whether a chart is associated with the paragraph.
         /// </summary>
-        public bool IsChart {
-            get {
-                if (this.Chart != null) {
-                    return true;
-                }
-                return false;
-            }
-        }
+        public bool IsChart => Chart is not null;
 
         /// <summary>
         /// Gets a value indicating whether SmartArt is present in the paragraph.
         /// </summary>
-        public bool IsSmartArt {
-            get {
-                if (this.SmartArt != null) {
-                    return true;
-                }
-                return false;
-            }
-        }
+        public bool IsSmartArt => SmartArt is not null;
 
         /// <summary>
         /// Gets a value indicating whether an endnote reference is present in the paragraph.
         /// </summary>
-        public bool IsEndNote {
-            get {
-                if (this.EndNote != null) {
-                    return true;
-                }
-                return false;
-            }
-        }
+        public bool IsEndNote => EndNote is not null;
 
         /// <summary>
         /// Gets a value indicating whether a footnote reference is present in the paragraph.
         /// </summary>
-        public bool IsFootNote {
-            get {
-                if (this.FootNote != null) {
-                    return true;
-                }
-                return false;
-            }
-        }
+        public bool IsFootNote => FootNote is not null;
 
         /// <summary>
         /// Gets all tab stops defined on the paragraph.
@@ -916,8 +749,8 @@ namespace OfficeIMO.Word {
         public List<WordTabStop> TabStops {
             get {
                 List<WordTabStop> list = new List<WordTabStop>();
-                if (_paragraph != null && _paragraphProperties != null) {
-                    if (_paragraphProperties.Tabs != null) {
+            if (_paragraph is not null && _paragraphProperties is not null) {
+                if (_paragraphProperties.Tabs is not null) {
                         foreach (TabStop tab in _paragraphProperties.Tabs) {
                             list.Add(new WordTabStop(this, tab));
                         }
@@ -932,44 +765,44 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTextBox? TextBox {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     // DrawingML text boxes
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                    if (drawing != null) {
+                    if (drawing is not null) {
                         if (drawing.Descendants<Wps.TextBoxInfo2>().Any()) {
                             return new WordTextBox(_document, _paragraph, _run);
                         }
                     }
 
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
-                    bool choiceHasOnlyShape = false;
-                    foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
-                        var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                        if (choice != null) {
-                            bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
-                            if (choiceHasTextBox) {
-                                return new WordTextBox(_document, _paragraph, _run);
-                            }
-                            bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
-                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
-                            if (hasShape) {
-                                choiceHasOnlyShape = true;
-                                continue;
-                            }
-                        }
-                        var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                        if (fallback != null) {
-                            if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
-                                return new WordTextBox(_document, _paragraph, _run);
-                            }
-                        }
-                    }
+                      bool choiceHasOnlyShape = false;
+                      foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
+                          var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                          if (choice is not null) {
+                              bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
+                              if (choiceHasTextBox) {
+                                  return new WordTextBox(_document, _paragraph, _run);
+                              }
+                              bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
+                                  choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+                              if (hasShape) {
+                                  choiceHasOnlyShape = true;
+                                  continue;
+                              }
+                          }
+                          var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
+                          if (fallback is not null) {
+                              if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
+                                  return new WordTextBox(_document, _paragraph, _run);
+                              }
+                          }
+                      }
                     if (choiceHasOnlyShape) {
                         return null;
                     }
 
                     // VML text boxes
-                    if (_run.Descendants<V.TextBox>().Any()) {
+                      if (_run.Descendants<V.TextBox>().Any()) {
                         return new WordTextBox(_document, _paragraph, _run);
                     }
                 }
@@ -982,8 +815,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordShape? Shape {
             get {
-                if (_run != null) {
-                    if (TextBox != null) {
+                if (_run is not null) {
+                    if (TextBox is not null) {
                         return null;
                     }
                     // VML shapes
@@ -998,25 +831,25 @@ namespace OfficeIMO.Word {
 
                     // DrawingML shapes (non-pictures and not text boxes)
                     var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
-                    if (drawing == null) {
+                    if (drawing is null) {
                         foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
                             var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                            if (choice != null) {
+                            if (choice is not null) {
                                 drawing = choice.Descendants<Drawing>().FirstOrDefault();
-                                if (drawing != null) {
+                                if (drawing is not null) {
                                     break;
                                 }
                             }
                             var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                            if (fallback != null) {
+                            if (fallback is not null) {
                                 drawing = fallback.Descendants<Drawing>().FirstOrDefault();
-                                if (drawing != null) {
+                                if (drawing is not null) {
                                     break;
                                 }
                             }
                         }
                     }
-                    if (drawing != null) {
+                    if (drawing is not null) {
                         bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
                         bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
                         bool hasShape = drawing.Descendants<Wps.WordprocessingShape>().Any();
@@ -1034,9 +867,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordLine? Line {
             get {
-                if (_run != null) {
+                if (_run is not null) {
                     var line = _run.Descendants<V.Line>().FirstOrDefault();
-                    if (line != null) {
+                    if (line is not null) {
                         return new WordLine(_document, _paragraph, _run);
                     }
                 }
@@ -1047,40 +880,16 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a text box.
         /// </summary>
-        public bool IsTextBox {
-            get {
-                if (this.TextBox != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsTextBox => TextBox is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a shape.
         /// </summary>
-        public bool IsShape {
-            get {
-                if (this.Shape != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsShape => Shape is not null;
 
         /// <summary>
         /// Gets a value indicating whether the paragraph contains a VML line shape.
         /// </summary>
-        public bool IsLine {
-            get {
-                if (this.Line != null) {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool IsLine => Line is not null;
     }
 }

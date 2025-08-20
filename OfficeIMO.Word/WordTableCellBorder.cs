@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml;
+﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -23,7 +20,7 @@ namespace OfficeIMO.Word {
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
             _wordTableCell = wordTableCell;
-            _tableCellProperties = wordTableCell._tableCellProperties;
+            _tableCellProperties = wordTableCell._tableCellProperties ??= new TableCellProperties();
         }
 
         /// <summary>

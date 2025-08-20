@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
@@ -46,57 +44,42 @@ namespace OfficeIMO.Word {
             _wordParagraph = wordParagraph;
         }
 
+        private ParagraphBorders? GetParagraphBorders() => _wordParagraph._paragraphProperties?.GetFirstChild<ParagraphBorders>();
+
+        private ParagraphBorders GetOrCreateParagraphBorders() {
+            var pageBorder = GetParagraphBorders();
+            if (pageBorder == null) {
+                pageBorder = Custom;
+                _wordParagraph._paragraphProperties!.Append(pageBorder);
+            }
+
+            return pageBorder;
+        }
+
         /// <summary>
         /// Gets or sets the left border width in points.
         /// </summary>
-        public UInt32Value LeftSize {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.LeftBorder.Size;
-                }
-
-                return null;
-            }
+        public UInt32Value? LeftSize {
+            get => GetParagraphBorders()?.LeftBorder?.Size;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Size = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.Size = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the left border color as a hex value.
         /// </summary>
-        public string LeftColorHex {
+        public string? LeftColorHex {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.LeftBorder != null && pageBorder.LeftBorder.Color != null) {
-                    return (pageBorder.LeftBorder.Color).Value.Replace("#", "").ToLowerInvariant();
-                }
-
-                return null;
+                var color = GetParagraphBorders()?.LeftBorder?.Color?.Value;
+                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
             }
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -104,38 +87,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets the left border color.
         /// </summary>
         public SixLabors.ImageSharp.Color? LeftColor {
-            get {
-                if (LeftColorHex == null || LeftColorHex == "auto") {
-                    return null;
-                }
-                return Helpers.ParseColor(LeftColorHex);
-            }
-            set => LeftColorHex = value.Value.ToHexColor();
+            get => LeftColorHex == null || LeftColorHex == "auto" ? null : Helpers.ParseColor(LeftColorHex);
+            set => LeftColorHex = value?.ToHexColor();
         }
 
         /// <summary>
         /// Gets or sets the left border theme color.
         /// </summary>
         public ThemeColorValues? LeftThemeColor {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.LeftBorder.ThemeColor.Value;
-                }
-                return null;
-            }
+            get => GetParagraphBorders()?.LeftBorder?.ThemeColor?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    if (value != null) {
-                        var themeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value
-                        };
-                        pageBorder.LeftBorder.ThemeColor = themeColor;
-                    } else {
-                        if (pageBorder.LeftBorder.ThemeColor != null) pageBorder.LeftBorder.ThemeColor = null;
-                    }
-                }
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value) : null;
             }
         }
 
@@ -143,53 +107,27 @@ namespace OfficeIMO.Word {
         /// Gets or sets the left border style.
         /// </summary>
         public BorderValues? LeftStyle {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.LeftBorder.Val;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.LeftBorder?.Val?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                if (value.HasValue) {
+                    leftBorder.Val = value.Value;
+                } else {
+                    leftBorder.Val = null;
                 }
-
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Val = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the left border spacing.
         /// </summary>
-        public UInt32Value LeftSpace {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.LeftBorder.Space;
-                }
-
-                return null;
-            }
+        public UInt32Value? LeftSpace {
+            get => GetParagraphBorders()?.LeftBorder?.Space;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Space = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.Space = value;
             }
         }
 
@@ -197,26 +135,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the left border has a shadow.
         /// </summary>
         public bool? LeftShadow {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.LeftBorder.Shadow != null) {
-                    return pageBorder.LeftBorder.Shadow;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.LeftBorder?.Shadow?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.LeftBorder == null) {
-                    pageBorder.LeftBorder = new LeftBorder();
-                }
-
-                pageBorder.LeftBorder.Shadow = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
+                leftBorder.Shadow = value;
             }
         }
 
@@ -224,21 +147,9 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the left border is part of a frame.
         /// </summary>
         public bool? LeftFrame {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.LeftBorder.Frame != null) {
-                    return pageBorder.LeftBorder.Frame;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.LeftBorder?.Frame?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    pageBorder = Custom;
-                    _wordParagraph._paragraphProperties.Append(pageBorder);
-                }
-
+                var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
                 leftBorder.Frame = value;
             }
@@ -248,17 +159,9 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right border width in points.
         /// </summary>
         public UInt32Value? RightSize {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                return pageBorder?.RightBorder?.Size;
-            }
+            get => GetParagraphBorders()?.RightBorder?.Size;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    pageBorder = Custom;
-                    _wordParagraph._paragraphProperties.Append(pageBorder);
-                }
-
+                var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
                 rightBorder.Size = value;
             }
@@ -269,19 +172,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? RightColorHex {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                var color = pageBorder?.RightBorder?.Color;
-                return color != null ? color.Value.Replace("#", "").ToLowerInvariant() : null;
+                var color = GetParagraphBorders()?.RightBorder?.Color?.Value;
+                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
             }
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    pageBorder = Custom;
-                    _wordParagraph._paragraphProperties.Append(pageBorder);
-                }
-
+                var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                rightBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -289,38 +186,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right border color.
         /// </summary>
         public SixLabors.ImageSharp.Color? RightColor {
-            get {
-                if (RightColorHex == null || RightColorHex == "auto") {
-                    return null;
-                }
-                return Helpers.ParseColor(RightColorHex);
-            }
-            set => RightColorHex = value.Value.ToHexColor();
+            get => RightColorHex == null || RightColorHex == "auto" ? null : Helpers.ParseColor(RightColorHex);
+            set => RightColorHex = value?.ToHexColor();
         }
 
         /// <summary>
         /// Gets or sets the right border theme color.
         /// </summary>
         public ThemeColorValues? RightThemeColor {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.RightBorder.ThemeColor.Value;
-                }
-                return null;
-            }
+            get => GetParagraphBorders()?.RightBorder?.ThemeColor?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    if (value != null) {
-                        var themeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value
-                        };
-                        pageBorder.RightBorder.ThemeColor = themeColor;
-                    } else {
-                        if (pageBorder.RightBorder.ThemeColor != null) pageBorder.RightBorder.ThemeColor = null;
-                    }
-                }
+                var pageBorder = GetOrCreateParagraphBorders();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value) : null;
             }
         }
 
@@ -328,53 +206,27 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right border style.
         /// </summary>
         public BorderValues? RightStyle {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.RightBorder.Val;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.RightBorder?.Val?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                if (value.HasValue) {
+                    rightBorder.Val = value.Value;
+                } else {
+                    rightBorder.Val = null;
                 }
-
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Val = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the right border spacing.
         /// </summary>
-        public UInt32Value RightSpace {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.RightBorder.Space;
-                }
-
-                return null;
-            }
+        public UInt32Value? RightSpace {
+            get => GetParagraphBorders()?.RightBorder?.Space;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Space = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.Space = value;
             }
         }
 
@@ -382,26 +234,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the right border has a shadow.
         /// </summary>
         public bool? RightShadow {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.RightBorder.Shadow != null) {
-                    return pageBorder.RightBorder.Shadow;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.RightBorder?.Shadow?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Shadow = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.Shadow = value;
             }
         }
 
@@ -409,80 +246,38 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the right border is part of a frame.
         /// </summary>
         public bool? RightFrame {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.RightBorder.Frame != null) {
-                    return pageBorder.RightBorder.Frame;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.RightBorder?.Frame?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.RightBorder == null) {
-                    pageBorder.RightBorder = new RightBorder();
-                }
-
-                pageBorder.RightBorder.Frame = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
+                rightBorder.Frame = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the top border width in points.
         /// </summary>
-        public UInt32Value TopSize {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.TopBorder.Size;
-                }
-
-                return null;
-            }
+        public UInt32Value? TopSize {
+            get => GetParagraphBorders()?.TopBorder?.Size;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Size = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Size = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the top border color as a hex value.
         /// </summary>
-        public string TopColorHex {
+        public string? TopColorHex {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.TopBorder != null && pageBorder.TopBorder.Color != null) {
-                    return (pageBorder.TopBorder.Color).Value.Replace("#", "").ToLowerInvariant();
-                }
-
-                return null;
+                var color = GetParagraphBorders()?.TopBorder?.Color?.Value;
+                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
             }
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -490,39 +285,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets the top border color.
         /// </summary>
         public SixLabors.ImageSharp.Color? TopColor {
-            get {
-                if (TopColorHex == null || TopColorHex == "auto"
-                    ) {
-                    return null;
-                }
-                return Helpers.ParseColor(TopColorHex);
-            }
-            set { this.TopColorHex = value.Value.ToHexColor(); }
+            get => TopColorHex == null || TopColorHex == "auto" ? null : Helpers.ParseColor(TopColorHex);
+            set => TopColorHex = value?.ToHexColor();
         }
 
         /// <summary>
         /// Gets or sets the top border theme color.
         /// </summary>
         public ThemeColorValues? TopThemeColor {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.TopBorder.ThemeColor.Value;
-                }
-                return null;
-            }
+            get => GetParagraphBorders()?.TopBorder?.ThemeColor?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    if (value != null) {
-                        var themeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value
-                        };
-                        pageBorder.TopBorder.ThemeColor = themeColor;
-                    } else {
-                        if (pageBorder.TopBorder.ThemeColor != null) pageBorder.TopBorder.ThemeColor = null;
-                    }
-                }
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value) : null;
             }
         }
 
@@ -530,53 +305,27 @@ namespace OfficeIMO.Word {
         /// Gets or sets the top border style.
         /// </summary>
         public BorderValues? TopStyle {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.TopBorder.Val;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.TopBorder?.Val?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                if (value.HasValue) {
+                    topBorder.Val = value.Value;
+                } else {
+                    topBorder.Val = null;
                 }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Val = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the top border spacing.
         /// </summary>
-        public UInt32Value TopSpace {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.TopBorder.Space;
-                }
-
-                return null;
-            }
+        public UInt32Value? TopSpace {
+            get => GetParagraphBorders()?.TopBorder?.Space;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Space = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Space = value;
             }
         }
 
@@ -584,26 +333,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the top border has a shadow.
         /// </summary>
         public bool? TopShadow {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.TopBorder.Shadow != null) {
-                    return pageBorder.TopBorder.Shadow;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.TopBorder?.Shadow?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Shadow = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Shadow = value;
             }
         }
 
@@ -611,26 +345,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the top border is part of a frame.
         /// </summary>
         public bool? TopFrame {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.TopBorder.Frame != null) {
-                    return pageBorder.TopBorder.Frame;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.TopBorder?.Frame?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.TopBorder == null) {
-                    pageBorder.TopBorder = new TopBorder();
-                }
-
-                pageBorder.TopBorder.Frame = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
+                topBorder.Frame = value;
             }
         }
 
@@ -638,54 +357,27 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border width in points.
         /// </summary>
-        public UInt32Value BottomSize {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.BottomBorder.Size;
-                }
-
-                return null;
-            }
+        public UInt32Value? BottomSize {
+            get => GetParagraphBorders()?.BottomBorder?.Size;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Size = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.Size = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the bottom border color as a hex value.
         /// </summary>
-        public string BottomColorHex {
+        public string? BottomColorHex {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.BottomBorder != null && pageBorder.BottomBorder.Color != null) {
-                    return (pageBorder.BottomBorder.Color).Value.Replace("#", "").ToLowerInvariant();
-                }
-
-                return null;
+                var color = GetParagraphBorders()?.BottomBorder?.Color?.Value;
+                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
             }
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Color = value.Replace("#", "").ToLowerInvariant();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -693,44 +385,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bottom border color.
         /// </summary>
         public SixLabors.ImageSharp.Color? BottomColor {
-            get {
-                if (BottomColorHex == null || BottomColorHex == "auto") {
-                    return null;
-                }
-                return Helpers.ParseColor(BottomColorHex);
-            }
-            set {
-                if (value == null) {
-                    this.BottomColorHex = null;
-                    return;
-                }
-                this.BottomColorHex = value.Value.ToHexColor();
-            }
+            get => BottomColorHex == null || BottomColorHex == "auto" ? null : Helpers.ParseColor(BottomColorHex);
+            set => BottomColorHex = value?.ToHexColor();
         }
 
         /// <summary>
         /// Gets or sets the bottom border theme color.
         /// </summary>
         public ThemeColorValues? BottomThemeColor {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.BottomBorder.ThemeColor.Value;
-                }
-                return null;
-            }
+            get => GetParagraphBorders()?.BottomBorder?.ThemeColor?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    if (value != null) {
-                        var themeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value
-                        };
-                        pageBorder.BottomBorder.ThemeColor = themeColor;
-                    } else {
-                        if (pageBorder.BottomBorder.ThemeColor != null) pageBorder.BottomBorder.ThemeColor = null;
-                    }
-                }
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value) : null;
             }
         }
 
@@ -738,56 +405,27 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bottom border style.
         /// </summary>
         public BorderValues? BottomStyle {
-            get {
-                var props = _wordParagraph._paragraphProperties;
-                if (props != null) {
-                    var pageBorder = props.GetFirstChild<ParagraphBorders>();
-                    if (pageBorder != null && pageBorder.BottomBorder != null) {
-                        return pageBorder.BottomBorder.Val;
-                    }
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.BottomBorder?.Val?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                if (value.HasValue) {
+                    bottomBorder.Val = value.Value;
+                } else {
+                    bottomBorder.Val = null;
                 }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Val = value;
             }
         }
 
         /// <summary>
         /// Gets or sets the bottom border spacing.
         /// </summary>
-        public UInt32Value BottomSpace {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    return pageBorder.BottomBorder.Space;
-                }
-
-                return null;
-            }
+        public UInt32Value? BottomSpace {
+            get => GetParagraphBorders()?.BottomBorder?.Space;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Space = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.Space = value;
             }
         }
 
@@ -795,26 +433,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the bottom border has a shadow.
         /// </summary>
         public bool? BottomShadow {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.BottomBorder.Shadow != null) {
-                    return pageBorder.BottomBorder.Shadow;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.BottomBorder?.Shadow?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Shadow = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.Shadow = value;
             }
         }
 
@@ -822,26 +445,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the bottom border is part of a frame.
         /// </summary>
         public bool? BottomFrame {
-            get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null && pageBorder.BottomBorder.Frame != null) {
-                    return pageBorder.BottomBorder.Frame;
-                }
-
-                return null;
-            }
+            get => GetParagraphBorders()?.BottomBorder?.Frame?.Value;
             set {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(Custom);
-                    pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                }
-
-                if (pageBorder.BottomBorder == null) {
-                    pageBorder.BottomBorder = new BottomBorder();
-                }
-
-                pageBorder.BottomBorder.Frame = value;
+                var pageBorder = GetOrCreateParagraphBorders();
+                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
+                bottomBorder.Frame = value;
             }
         }
 
@@ -849,17 +457,15 @@ namespace OfficeIMO.Word {
         internal void SetBorder(WordBorder wordBorder) {
             var ParagraphBordersettings = GetDefault(wordBorder);
             if (ParagraphBordersettings == null) {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
-                if (pageBorder != null) {
-                    pageBorder.Remove();
-                }
+                var pageBorder = GetParagraphBorders();
+                pageBorder?.Remove();
             } else {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetParagraphBorders();
                 if (pageBorder == null) {
-                    _wordParagraph._paragraphProperties.Append(ParagraphBordersettings);
+                    _wordParagraph._paragraphProperties!.Append(ParagraphBordersettings);
                 } else {
                     pageBorder.Remove();
-                    _wordParagraph._paragraphProperties.Append(ParagraphBordersettings);
+                    _wordParagraph._paragraphProperties!.Append(ParagraphBordersettings);
                 }
             }
         }
@@ -869,14 +475,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordBorder Type {
             get {
-                var pageBorder = _wordParagraph._paragraphProperties.GetFirstChild<ParagraphBorders>();
+                var pageBorder = GetParagraphBorders();
                 if (pageBorder != null) {
                     foreach (WordBorder wordBorder in Enum.GetValues(typeof(WordBorder))) {
                         if (wordBorder == WordBorder.None) {
                             continue;
                         }
 
-                        var ParagraphBordersBuiltin = GetDefault(wordBorder);
+                        var ParagraphBordersBuiltin = GetDefault(wordBorder)!;
 
                         if ((ParagraphBordersBuiltin.LeftBorder == null && pageBorder.LeftBorder == null) &&
                             (ParagraphBordersBuiltin.RightBorder == null && pageBorder.RightBorder == null) &&
@@ -917,7 +523,7 @@ namespace OfficeIMO.Word {
             set => SetBorder(value);
         }
 
-        private static ParagraphBorders GetDefault(WordBorder border) {
+        private static ParagraphBorders? GetDefault(WordBorder border) {
             switch (border) {
                 case WordBorder.Box: return Box;
                 case WordBorder.Shadow: return Shadow;

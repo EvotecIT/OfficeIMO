@@ -49,13 +49,27 @@ namespace OfficeIMO.PowerPoint {
                 return text?.Text ?? string.Empty;
             }
             set {
-                Shape? shape = NotesSlide.CommonSlideData?.ShapeTree?.GetFirstChild<Shape>();
-                A.Paragraph? paragraph = shape?.TextBody?.GetFirstChild<A.Paragraph>();
-                A.Run? run = paragraph?.GetFirstChild<A.Run>();
-                A.Text? text = run?.GetFirstChild<A.Text>();
-                if (text != null) {
-                    text.Text = value;
+                NotesSlide notesSlide = NotesSlide;
+                CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+                ShapeTree tree = common.ShapeTree ??= new ShapeTree();
+                Shape shape = tree.GetFirstChild<Shape>();
+                if (shape == null) {
+                    shape = new Shape(
+                        new NonVisualShapeProperties(
+                            new NonVisualDrawingProperties { Id = 1U, Name = "Notes Placeholder" },
+                            new NonVisualShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
+                        ),
+                        new ShapeProperties(),
+                        new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph())
+                    );
+                    tree.AppendChild(shape);
                 }
+
+                A.Paragraph paragraph = shape.TextBody!.GetFirstChild<A.Paragraph>() ?? shape.TextBody.AppendChild(new A.Paragraph());
+                A.Run run = paragraph.GetFirstChild<A.Run>() ?? paragraph.AppendChild(new A.Run());
+                A.Text text = run.GetFirstChild<A.Text>() ?? run.AppendChild(new A.Text());
+                text.Text = value;
             }
         }
 

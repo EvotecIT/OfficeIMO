@@ -51,5 +51,33 @@ namespace OfficeIMO.Visio {
         public string? Text { get; set; }
 
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
+
+        /// <summary>
+        /// Transforms a point from the shape's local coordinate system to the page coordinate system.
+        /// </summary>
+        public (double X, double Y) GetAbsolutePoint(double x, double y) {
+            double cos = Math.Cos(Angle);
+            double sin = Math.Sin(Angle);
+            double dx = x - LocPinX;
+            double dy = y - LocPinY;
+            double absX = PinX + cos * dx - sin * dy;
+            double absY = PinY + sin * dx + cos * dy;
+            return (absX, absY);
+        }
+
+        /// <summary>
+        /// Computes the absolute bounds of the shape on the page.
+        /// </summary>
+        public (double Left, double Bottom, double Right, double Top) GetBounds() {
+            (double x1, double y1) = GetAbsolutePoint(0, 0);
+            (double x2, double y2) = GetAbsolutePoint(Width, 0);
+            (double x3, double y3) = GetAbsolutePoint(0, Height);
+            (double x4, double y4) = GetAbsolutePoint(Width, Height);
+            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            return (left, bottom, right, top);
+        }
     }
 }
