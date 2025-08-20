@@ -473,6 +473,20 @@ namespace OfficeIMO.Visio {
                     WriteCell(writer, "Angle", shape.Angle);
                 }
 
+                void WriteXForm1D(XmlWriter writer, double beginX, double beginY, double endX, double endY) {
+                    writer.WriteStartElement("XForm1D", ns);
+                    writer.WriteElementString("BeginX", ns, ToVisioString(beginX));
+                    writer.WriteElementString("BeginY", ns, ToVisioString(beginY));
+                    writer.WriteElementString("EndX", ns, ToVisioString(endX));
+                    writer.WriteElementString("EndY", ns, ToVisioString(endY));
+                    writer.WriteEndElement();
+
+                    WriteCell(writer, "BeginX", beginX);
+                    WriteCell(writer, "BeginY", beginY);
+                    WriteCell(writer, "EndX", endX);
+                    WriteCell(writer, "EndY", endY);
+                }
+
                 void WriteRectangleGeometry(XmlWriter writer, double width, double height) {
                     writer.WriteStartElement("Geom", ns);
                     writer.WriteStartElement("Cell", ns);
@@ -901,6 +915,7 @@ namespace OfficeIMO.Visio {
                               writer.WriteAttributeString("LineStyle", "2");
                               writer.WriteAttributeString("FillStyle", "2");
                               writer.WriteAttributeString("TextStyle", "2");
+                              WriteXForm1D(writer, startX, startY, endX, endY);
                               WriteCell(writer, "LineWeight", 0.0138889);
                               WriteCell(writer, "LinePattern", 1);
                               WriteCellValue(writer, "LineColor", "RGB(0,0,0)");
