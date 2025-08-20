@@ -22,12 +22,13 @@ namespace OfficeIMO.Tests {
                         .Image(imagePath)
                         .Table(2, 2)
                         .Notes("Notes text"))
+                    .Slide(s => s.Title("Second Slide"))
                     .End()
                     .Save();
             }
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
-                Assert.Single(presentation.Slides);
+                Assert.Equal(2, presentation.Slides.Count);
                 PowerPointSlide slide = presentation.Slides[0];
                 Assert.Equal("Notes text", slide.Notes.Text);
                 Assert.Equal(5, slide.Shapes.Count);
@@ -36,6 +37,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Fluent Title", textBoxes[0].Text);
                 Assert.Equal("Hello", textBoxes[1].Text);
                 Assert.Equal(1, slide.LayoutIndex);
+
+                PowerPointSlide slide2 = presentation.Slides[1];
+                var textBoxes2 = slide2.Shapes.OfType<PowerPointTextBox>().ToList();
+                Assert.Single(textBoxes2);
+                Assert.Equal("Second Slide", textBoxes2[0].Text);
             }
 
             File.Delete(filePath);

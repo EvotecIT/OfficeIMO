@@ -20,6 +20,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                         .TextBox("Hello from fluent API")
                         .Bullets("First", "Second")
                         .Notes("Example notes"))
+                    .Slide(s => s.Title("Second Slide"))
                     .End()
                     .Save();
             }
