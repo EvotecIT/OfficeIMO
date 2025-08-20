@@ -21,8 +21,9 @@ namespace OfficeIMO.Tests {
                         .Bullets("One", "Two")
                         .Image(imagePath)
                         .Table(2, 2)
-                        .Notes("Notes text"));
-                presentation.Save();
+                        .Notes("Notes text"))
+                    .End()
+                    .Save();
             }
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {

@@ -19,8 +19,9 @@ namespace OfficeIMO.Examples.Excel {
                         .AutoFilter("A1:B3")
                         .ConditionalColorScale("B2:B3", Color.Red, Color.Green)
                         .ConditionalDataBar("B2:B3", Color.Blue)
-                        .AutoFit(columns: true, rows: true));
-                document.Save(openExcel);
+                        .AutoFit(columns: true, rows: true))
+                    .End()
+                    .Save(openExcel);
             }
         }
     }

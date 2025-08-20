@@ -20,5 +20,9 @@ namespace OfficeIMO.Excel.Fluent {
             action(builder);
             return this;
         }
+
+        public ExcelDocument End() {
+            return Workbook;
+        }
     }
 }
