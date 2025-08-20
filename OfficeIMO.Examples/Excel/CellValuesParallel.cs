@@ -5,12 +5,12 @@ using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
-    /// Demonstrates bulk cell updates using SetCellValuesParallel.
+    /// Demonstrates bulk cell updates using CellValuesParallel.
     /// </summary>
-    public static class SetCellValuesParallel {
+    public static class CellValuesParallel {
         public static void Example(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Set cell values in parallel");
-            string filePath = System.IO.Path.Combine(folderPath, "SetCellValuesParallel.xlsx");
+            string filePath = System.IO.Path.Combine(folderPath, "CellValuesParallel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Excel {
                 }
 
                 Task.WaitAll(
-                    Task.Run(() => sheet.SetCellValuesParallel(column1)),
-                    Task.Run(() => sheet.SetCellValuesParallel(column2))
+                    Task.Run(() => sheet.CellValuesParallel(column1)),
+                    Task.Run(() => sheet.CellValuesParallel(column2))
                 );
 
                 document.Save(openExcel);

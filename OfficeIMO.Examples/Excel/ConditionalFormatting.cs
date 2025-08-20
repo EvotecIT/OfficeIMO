@@ -10,9 +10,9 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, 10d);
-                sheet.SetCellValue(2, 1, 20d);
-                sheet.SetCellValue(3, 1, 30d);
+                sheet.CellValue(1, 1, 10d);
+                sheet.CellValue(2, 1, 20d);
+                sheet.CellValue(3, 1, 30d);
                 sheet.AddConditionalColorScale("A1:A3", Color.Red, Color.Green);
                 document.Save(openExcel);
             }

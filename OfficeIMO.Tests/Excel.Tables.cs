@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Name");
-                sheet.SetCellValue(1, 2, "Value");
-                sheet.SetCellValue(2, 1, "A");
-                sheet.SetCellValue(2, 2, 1d);
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
                 sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -34,12 +34,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Concurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Name");
-                sheet.SetCellValue(1, 2, "Value");
-                sheet.SetCellValue(2, 1, "A");
-                sheet.SetCellValue(2, 2, 1d);
-                sheet.SetCellValue(3, 1, "B");
-                sheet.SetCellValue(3, 2, 2d);
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
 
                 var tasks = Enumerable.Range(0, 5)
                     .Select(i => Task.Run(() => sheet.AddTable("A1:B3", true, $"MyTable{i}", TableStyle.TableStyleMedium9)))

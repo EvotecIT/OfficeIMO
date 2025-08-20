@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Name");
-                sheet.SetCellValue(1, 2, "Value");
-                sheet.SetCellValue(2, 1, "A");
-                sheet.SetCellValue(2, 2, 10d);
-                sheet.SetCellValue(3, 1, "B");
-                sheet.SetCellValue(3, 2, 20d);
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 20d);
                 Dictionary<uint, IEnumerable<string>> criteria = new Dictionary<uint, IEnumerable<string>> {
                     { 0, new[] { "A" } }
                 };
@@ -53,12 +53,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.Concurrent.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
-                sheet.SetCellValue(1, 1, "Name");
-                sheet.SetCellValue(1, 2, "Value");
-                sheet.SetCellValue(2, 1, "A");
-                sheet.SetCellValue(2, 2, 10d);
-                sheet.SetCellValue(3, 1, "B");
-                sheet.SetCellValue(3, 2, 20d);
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 20d);
 
                 var tasks = Enumerable.Range(0, 5)
                     .Select(_ => Task.Run(() => sheet.AddAutoFilter("A1:B3")))

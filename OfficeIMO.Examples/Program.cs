@@ -48,10 +48,10 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.ConcurrentWrites.Example(folderPath, false);
             // Excel/ExcelConcurrentAccessAsync
             OfficeIMO.Examples.Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
-            // Excel/SetCellValues
-            OfficeIMO.Examples.Excel.SetCellValues.Example(folderPath, false);
-            // Excel/SetCellValuesParallel
-            OfficeIMO.Examples.Excel.SetCellValuesParallel.Example(folderPath, false);
+            // Excel/CellValues
+            OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
+            // Excel/CellValuesParallel
+            OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             // PowerPoint

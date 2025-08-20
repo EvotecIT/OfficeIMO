@@ -9,8 +9,8 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_SetCellValuesParallel() {
-            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallel.xlsx");
+        public void Test_CellValuesParallel() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -21,10 +21,10 @@ namespace OfficeIMO.Tests {
                 var col4 = Enumerable.Range(1, 250).Select(i => (i, 4, (object)$"R{i}C4"));
 
                 Task.WaitAll(
-                    Task.Run(() => sheet.SetCellValuesParallel(col1)),
-                    Task.Run(() => sheet.SetCellValuesParallel(col2)),
-                    Task.Run(() => sheet.SetCellValuesParallel(col3)),
-                    Task.Run(() => sheet.SetCellValuesParallel(col4))
+                    Task.Run(() => sheet.CellValuesParallel(col1)),
+                    Task.Run(() => sheet.CellValuesParallel(col2)),
+                    Task.Run(() => sheet.CellValuesParallel(col3)),
+                    Task.Run(() => sheet.CellValuesParallel(col4))
                 );
 
                 document.Save();
