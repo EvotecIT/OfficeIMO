@@ -52,6 +52,8 @@ namespace OfficeIMO.Visio {
 
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
 
+        public Dictionary<string, string> Data { get; } = new();
+
         /// <summary>
         /// Transforms a point from the shape's local coordinate system to the page coordinate system.
         /// </summary>

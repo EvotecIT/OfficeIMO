@@ -315,6 +315,18 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            XElement? propSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
+            if (propSection != null) {
+                foreach (XElement row in propSection.Elements(ns + "Row")) {
+                    string? key = row.Attribute("N")?.Value;
+                    XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
+                    string? value = valueCell?.Attribute("V")?.Value;
+                    if (!string.IsNullOrEmpty(key) && value != null) {
+                        shape.Data[key] = value;
+                    }
+                }
+            }
+
             return shape;
         }
 
@@ -515,6 +527,20 @@ namespace OfficeIMO.Visio {
                             }
                             WriteRectangleGeometry(writer, masterWidth, masterHeight);
                             WriteConnectionSection(writer, s.ConnectionPoints);
+                            if (s.Data.Count > 0) {
+                                writer.WriteStartElement("Section", ns);
+                                writer.WriteAttributeString("N", "Prop");
+                                foreach (KeyValuePair<string, string> kv in s.Data) {
+                                    writer.WriteStartElement("Row", ns);
+                                    writer.WriteAttributeString("N", kv.Key);
+                                    writer.WriteStartElement("Cell", ns);
+                                    writer.WriteAttributeString("N", "Value");
+                                    writer.WriteAttributeString("V", kv.Value);
+                                    writer.WriteEndElement();
+                                    writer.WriteEndElement();
+                                }
+                                writer.WriteEndElement();
+                            }
                             if (!string.IsNullOrEmpty(s.Text)) {
                                 writer.WriteElementString("Text", ns, s.Text);
                             }
@@ -713,6 +739,20 @@ namespace OfficeIMO.Visio {
                                     WriteCell(writer, "LineWeight", shape.LineWeight);
                                 }
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
+                                if (shape.Data.Count > 0) {
+                                    writer.WriteStartElement("Section", ns);
+                                    writer.WriteAttributeString("N", "Prop");
+                                    foreach (KeyValuePair<string, string> kv in shape.Data) {
+                                        writer.WriteStartElement("Row", ns);
+                                        writer.WriteAttributeString("N", kv.Key);
+                                        writer.WriteStartElement("Cell", ns);
+                                        writer.WriteAttributeString("N", "Value");
+                                        writer.WriteAttributeString("V", kv.Value);
+                                        writer.WriteEndElement();
+                                        writer.WriteEndElement();
+                                    }
+                                    writer.WriteEndElement();
+                                }
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
                                 }
@@ -739,6 +779,20 @@ namespace OfficeIMO.Visio {
                                 }
                                 WriteRectangleGeometry(writer, width, height);
                                 WriteConnectionSection(writer, shape.ConnectionPoints);
+                                if (shape.Data.Count > 0) {
+                                    writer.WriteStartElement("Section", ns);
+                                    writer.WriteAttributeString("N", "Prop");
+                                    foreach (KeyValuePair<string, string> kv in shape.Data) {
+                                        writer.WriteStartElement("Row", ns);
+                                        writer.WriteAttributeString("N", kv.Key);
+                                        writer.WriteStartElement("Cell", ns);
+                                        writer.WriteAttributeString("N", "Value");
+                                        writer.WriteAttributeString("V", kv.Value);
+                                        writer.WriteEndElement();
+                                        writer.WriteEndElement();
+                                    }
+                                    writer.WriteEndElement();
+                                }
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
                                 }
