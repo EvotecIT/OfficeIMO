@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -590,6 +591,57 @@ namespace OfficeIMO.Excel {
                 worksheet.Append(conditionalFormatting);
                 worksheet.Save();
             });
+        }
+
+        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
+            if (items == null) {
+                throw new ArgumentNullException(nameof(items));
+            }
+
+            var list = items.ToList();
+            if (list.Count == 0) {
+                return;
+            }
+
+            object first = list[0]!;
+            List<string> headers;
+            Func<T, IEnumerable<object?>> accessor;
+
+            if (first is IDictionary) {
+                headers = ((IDictionary)first).Keys.Cast<object?>().Select(k => k?.ToString() ?? string.Empty).ToList();
+                accessor = item => ((IDictionary)(object)item).Cast<DictionaryEntry>().Select(e => e.Value);
+            } else {
+                var props = first.GetType().GetProperties().Where(p => p.CanRead).ToArray();
+                headers = props.Select(p => p.Name).ToList();
+                accessor = item => props.Select(p => p.GetValue(item));
+            }
+
+            List<(int Row, int Column, object Value)> cells = new();
+            int row = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < headers.Count; c++) {
+                    cells.Add((row, c + 1, headers[c]));
+                }
+                row++;
+            }
+
+            foreach (var item in list) {
+                int col = 1;
+                foreach (var value in accessor(item)) {
+                    cells.Add((row, col, value ?? string.Empty));
+                    col++;
+                }
+                row++;
+            }
+
+            const int parallelThreshold = 1000;
+            if (cells.Count > parallelThreshold) {
+                SetCellValuesParallel(cells);
+            } else {
+                foreach (var cell in cells) {
+                    SetCellValue(cell.Row, cell.Column, cell.Value);
+                }
+            }
         }
 
         public void SetCellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
