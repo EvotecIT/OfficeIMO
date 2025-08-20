@@ -10,11 +10,11 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "FluentParagraphFormatting.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Paragraph(p => p.Text("Left aligned paragraph").AlignLeft())
-                    .Paragraph(p => p.Text("Centered paragraph").AlignCenter())
-                    .Paragraph(p => p.Text("Right aligned paragraph").AlignRight())
+                    .Paragraph(p => p.Text("Left aligned paragraph").Align(HorizontalAlignment.Left))
+                    .Paragraph(p => p.Text("Centered paragraph").Align(HorizontalAlignment.Center))
+                    .Paragraph(p => p.Text("Right aligned paragraph").Align(HorizontalAlignment.Right))
                     .Paragraph(p => p.Text("Justified heading with spacing and indentation")
-                        .AlignJustified()
+                        .Align(HorizontalAlignment.Justified)
                         .SpacingBefore(12)
                         .SpacingAfter(12)
                         .LineSpacing(24)

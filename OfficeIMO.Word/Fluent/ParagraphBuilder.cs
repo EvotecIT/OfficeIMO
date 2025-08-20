@@ -17,11 +17,6 @@ namespace OfficeIMO.Word.Fluent {
 
         public WordParagraph Paragraph => _paragraph;
 
-        public ParagraphBuilder AddParagraph(string text = "") {
-            var paragraph = _fluent.Document.AddParagraph(text);
-            return new ParagraphBuilder(_fluent, paragraph);
-        }
-
         public ParagraphBuilder Text(string text, Action<TextBuilder>? configure = null) {
             var run = _paragraph.AddText(text);
             configure?.Invoke(new TextBuilder(run));
@@ -32,6 +27,21 @@ namespace OfficeIMO.Word.Fluent {
 
         public ParagraphBuilder InlineImage(string path, double? widthPx = null, double? heightPx = null, string alt = "") {
             _paragraph.AddImage(path, widthPx, heightPx, WrapTextImage.InLineWithText, alt);
+            return this;
+        }
+
+        public ParagraphBuilder Link(string url, string? text = null, bool style = false) {
+            _paragraph.AddHyperLink(text ?? url, new Uri(url), style);
+            return this;
+        }
+
+        public ParagraphBuilder Break(BreakValues? breakType = null) {
+            _paragraph.AddBreak(breakType);
+            return this;
+        }
+
+        public ParagraphBuilder Tab() {
+            _paragraph.AddTab();
             return this;
         }
 
@@ -53,23 +63,13 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
       
-        public ParagraphBuilder AlignLeft() {
-            _paragraph.ParagraphAlignment = JustificationValues.Left;
-            return this;
-        }
-
-        public ParagraphBuilder AlignCenter() {
-            _paragraph.ParagraphAlignment = JustificationValues.Center;
-            return this;
-        }
-
-        public ParagraphBuilder AlignRight() {
-            _paragraph.ParagraphAlignment = JustificationValues.Right;
-            return this;
-        }
-
-        public ParagraphBuilder AlignJustified() {
-            _paragraph.ParagraphAlignment = JustificationValues.Both;
+        public ParagraphBuilder Align(HorizontalAlignment alignment) {
+            _paragraph.ParagraphAlignment = alignment switch {
+                HorizontalAlignment.Center => JustificationValues.Center,
+                HorizontalAlignment.Right => JustificationValues.Right,
+                HorizontalAlignment.Justified => JustificationValues.Both,
+                _ => JustificationValues.Left,
+            };
             return this;
         }
 

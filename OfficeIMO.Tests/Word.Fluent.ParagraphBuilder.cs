@@ -36,5 +36,28 @@ namespace OfficeIMO.Tests {
 
             RemoveCustomStyle(customStyleId);
         }
+
+        [Fact]
+        public void Test_FluentParagraphBuilderNewMethods() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentParagraphBuilderNewMethods.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Paragraph(p => p.Text("Before").Tab().Text("After"))
+                    .Paragraph(p => p.Link("https://example.com", "Example", true))
+                    .Paragraph(p => p.Text("Line1").Break().Text("Line2"))
+                    .Paragraph(p => p.Align(HorizontalAlignment.Right).Text("Aligned"))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Paragraphs[0].IsTab);
+                Assert.True(document.Paragraphs[1].IsHyperLink);
+                Assert.Equal("https://example.com/", document.Paragraphs[1].Hyperlink?.Uri?.ToString());
+                Assert.True(document.Paragraphs[2].IsBreak);
+                Assert.Equal(JustificationValues.Right, document.Paragraphs[3].ParagraphAlignment);
+            }
+        }
     }
 }

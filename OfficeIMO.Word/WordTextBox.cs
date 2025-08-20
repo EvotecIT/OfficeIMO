@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using V = DocumentFormat.OpenXml.Vml;
+using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -155,7 +156,7 @@ namespace OfficeIMO.Word {
                     }
                     if (horizontalPosition != null) {
                         if (horizontalPosition.HorizontalAlignment == null) {
-                            horizontalPosition.HorizontalAlignment = new HorizontalAlignment() {
+                            horizontalPosition.HorizontalAlignment = new DrawingHorizontalAlignment() {
                                 Text = HorizontalAlignmentHelper.ToString(value)
                             };
                         } else {
@@ -589,7 +590,7 @@ namespace OfficeIMO.Word {
             SimplePosition simplePosition1 = new SimplePosition() { X = 0L, Y = 0L };
 
             HorizontalPosition horizontalPosition1 = new HorizontalPosition() { RelativeFrom = HorizontalRelativePositionValues.Page };
-            HorizontalAlignment horizontalAlignment1 = new HorizontalAlignment();
+            DrawingHorizontalAlignment horizontalAlignment1 = new DrawingHorizontalAlignment();
             horizontalAlignment1.Text = "center";
             horizontalPosition1.Append(horizontalAlignment1);
 
@@ -767,7 +768,7 @@ namespace OfficeIMO.Word {
                 } else if (horizontalPosition == null) {
                     anchor.HorizontalPosition = new HorizontalPosition() {
                         RelativeFrom = HorizontalRelativePositionValues.Page,
-                        HorizontalAlignment = new HorizontalAlignment() {
+                        HorizontalAlignment = new DrawingHorizontalAlignment() {
                             Text = "center"
                         }
                     };
@@ -905,7 +906,7 @@ namespace OfficeIMO.Word {
             SimplePosition simplePosition1 = new SimplePosition() { X = 0L, Y = 0L };
 
             HorizontalPosition horizontalPosition1 = new HorizontalPosition() { RelativeFrom = HorizontalRelativePositionValues.Page };
-            HorizontalAlignment horizontalAlignment1 = new HorizontalAlignment();
+            DrawingHorizontalAlignment horizontalAlignment1 = new DrawingHorizontalAlignment();
             horizontalAlignment1.Text = "center";
 
             horizontalPosition1.Append(horizontalAlignment1);
