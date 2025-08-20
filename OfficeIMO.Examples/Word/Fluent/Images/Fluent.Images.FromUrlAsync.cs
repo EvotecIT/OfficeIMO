@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
@@ -15,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 await document.AsFluent()
                     .ImageAsync(async img => {
                         await img.AddFromUrlAsync("https://raw.githubusercontent.com/EvotecIT/OfficeIMO/master/OfficeIMO.Examples/Images/Kulek.jpg");
-                        img.Wrap(WrapTextImage.Tight).Align(JustificationValues.Right);
+                        img.Wrap(WrapTextImage.Tight).Align(HorizontalAlignment.Right);
                     });
                 document.Save(false);
             }

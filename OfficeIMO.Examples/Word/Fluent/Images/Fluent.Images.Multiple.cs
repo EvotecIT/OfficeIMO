@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
@@ -16,10 +17,10 @@ namespace OfficeIMO.Examples.Word {
                     .Image(img => img
                         .Add(Path.Combine(imagesPath, "PrzemyslawKlysAndKulkozaurr.jpg"))
                             .Size(200)
-                            .Align(JustificationValues.Left)
+                            .Align(HorizontalAlignment.Left)
                         .Add(Path.Combine(imagesPath, "Kulek.jpg"))
                             .MaxWidth(300)
-                            .Align(JustificationValues.Right))
+                            .Align(HorizontalAlignment.Right))
                     .End();
                 document.Save(false);
             }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 

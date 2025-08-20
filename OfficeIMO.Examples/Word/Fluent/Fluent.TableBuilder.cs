@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 
@@ -16,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                         .Row("Alice", "Dev", 98)
                         .Row("Bob", "Ops", 91)
                         .Style(WordTableStyle.TableGrid)
-                        .Align(WordHorizontalAlignmentValues.Center))
+                        .Align(HorizontalAlignment.Center))
                     .Table(t => t
                         .From2D(new object[,] {
                             { "Q", "Revenue", "Churn" },
