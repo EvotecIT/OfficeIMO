@@ -14,8 +14,16 @@ namespace OfficeIMO.Examples.Excel {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 var people = new List<Person> {
-                    new Person { Name = "Alice", Age = 30 },
-                    new Person { Name = "Bob", Age = 40 }
+                    new Person {
+                        Name = "Alice",
+                        Age = 30,
+                        Address = new Address { City = "London", ZipCode = "SW1" }
+                    },
+                    new Person {
+                        Name = "Bob",
+                        Age = 40,
+                        Address = new Address { City = "Paris", ZipCode = "75001" }
+                    }
                 };
                 sheet.InsertObjects(people);
                 document.Save(openExcel);
@@ -25,6 +33,12 @@ namespace OfficeIMO.Examples.Excel {
         private class Person {
             public string Name { get; set; } = string.Empty;
             public int Age { get; set; }
+            public Address? Address { get; set; }
+        }
+
+        private class Address {
+            public string City { get; set; } = string.Empty;
+            public string ZipCode { get; set; } = string.Empty;
         }
     }
 }
