@@ -26,6 +26,8 @@ namespace OfficeIMO.Visio {
 
         public VisioMaster? Master { get; set; }
 
+        public string? MasterNameU => Master?.NameU;
+
         public double PinX { get; set; }
 
         public double PinY { get; set; }
