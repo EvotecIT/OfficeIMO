@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
-using System.Reflection;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -66,31 +65,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a new PowerPoint presentation at the specified file path.
         /// </summary>
         public static PowerPointPresentation Create(string filePath) {
-            Assembly assembly = typeof(PowerPointPresentation).Assembly;
-            string resourceName = assembly
-                .GetManifestResourceNames()
-                .FirstOrDefault(n => n.EndsWith("PowerPointBlank.pptx"))
-                ?? throw new InvalidOperationException("Embedded PowerPoint template not found.");
-
-            using (Stream resourceStream = assembly.GetManifestResourceStream(resourceName)!)
-            using (FileStream fileStream = new(filePath, FileMode.Create, FileAccess.ReadWrite)) {
-                resourceStream.CopyTo(fileStream);
-            }
-
-            PresentationDocument document = PresentationDocument.Open(filePath, true);
+            PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
             PowerPointPresentation presentation = new(document);
-            while (presentation.Slides.Count > 0) {
-                presentation.RemoveSlide(0);
-            }
-
-            if (presentation._presentationPart.Presentation.SlideIdList == null) {
-                presentation._presentationPart.Presentation.SlideIdList = new SlideIdList();
-            }
-
-            presentation._document.PackageProperties.Creator = string.Empty;
-            presentation._document.PackageProperties.Created = DateTime.UtcNow;
-            presentation._document.PackageProperties.Modified = DateTime.UtcNow;
-
             presentation._presentationPart.Presentation.Save();
             presentation._document.Save();
             return presentation;

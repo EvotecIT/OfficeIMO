@@ -55,7 +55,6 @@
             <Pack>True</Pack>
             <PackagePath>README.md</PackagePath>
         </None>
-        <EmbeddedResource Include="..\Assets\PowerPointTemplates\PowerPointBlank.pptx" Link="PowerPointBlank.pptx" />
     </ItemGroup>
 
     <ItemGroup>
