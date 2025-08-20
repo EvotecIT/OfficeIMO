@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.ParagraphsTabs.Count == 3);
 
-                paragraph2.Tab.Remove();
+                paragraph2.Tab!.Remove();
 
                 Assert.True(document.Paragraphs.Count == 5);
 
