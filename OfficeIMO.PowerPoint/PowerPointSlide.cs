@@ -137,6 +137,33 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the slide layout using master and layout indexes.
+        /// </summary>
+        public void SetLayout(int masterIndex, int layoutIndex) {
+            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+
+            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
+            if (masterIndex < 0 || masterIndex >= masters.Length) {
+                throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            }
+
+            SlideMasterPart masterPart = masters[masterIndex];
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
+                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
+            }
+
+            SlideLayoutPart layoutPart = layouts[layoutIndex];
+            SlideLayoutPart? current = _slidePart.SlideLayoutPart;
+            if (current != null) {
+                string relId = _slidePart.GetIdOfPart(current);
+                _slidePart.DeletePart(relId);
+            }
+
+            _slidePart.AddPart(layoutPart);
+        }
+
+        /// <summary>
         ///     Retrieves a shape by its name.
         /// </summary>
         public PowerPointShape? GetShape(string name) {
@@ -211,6 +238,41 @@ namespace OfficeIMO.PowerPoint {
             } while (_shapes.Any(s => s.Name == name));
 
             return name;
+        }
+
+        /// <summary>
+        ///     Adds a title textbox to the slide.
+        /// </summary>
+        public PowerPointTextBox AddTitle(string text, long left = 0L, long top = 0L,
+            long width = 914400L, long height = 914400L) {
+            if (text == null) {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            string name = GenerateUniqueName("Title");
+            Shape shape = new(
+                new NonVisualShapeProperties(
+                    new NonVisualDrawingProperties { Id = (UInt32Value)(uint)(_shapes.Count + 1), Name = name },
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Title })
+                ),
+                new ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                ),
+                new TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(new A.Run(new A.Text(text)))
+                )
+            );
+
+            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.AppendChild(shape);
+            PowerPointTextBox textBox = new(shape);
+            _shapes.Add(textBox);
+            return textBox;
         }
 
         /// <summary>

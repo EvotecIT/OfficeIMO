@@ -1,3 +1,5 @@
+using System;
+
 namespace OfficeIMO.PowerPoint.Fluent {
     /// <summary>
     ///     Provides a fluent API wrapper around <see cref="PowerPointPresentation" />.
@@ -21,6 +23,15 @@ namespace OfficeIMO.PowerPoint.Fluent {
         public PowerPointSlideBuilder Slide(int masterIndex = 0, int layoutIndex = 0) {
             PowerPointSlide slide = Presentation.AddSlide(masterIndex, layoutIndex);
             return new PowerPointSlideBuilder(slide);
+        }
+
+        /// <summary>
+        ///     Adds and configures a new slide using a builder action.
+        /// </summary>
+        public PowerPointFluentPresentation Slide(Action<PowerPointSlideBuilder> configure) {
+            PowerPointSlideBuilder builder = Slide();
+            configure(builder);
+            return this;
         }
     }
 }
