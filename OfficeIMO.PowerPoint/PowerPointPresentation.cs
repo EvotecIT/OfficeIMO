@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
@@ -298,9 +299,9 @@ namespace OfficeIMO.PowerPoint {
                 new NotesStyle()
             );
 
-            _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(new NotesMasterId {
-                Id = _presentationPart.GetIdOfPart(notesMasterPart)
-            });
+            NotesMasterId notesMasterId = new();
+            notesMasterId.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", _presentationPart.GetIdOfPart(notesMasterPart)));
+            _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(notesMasterId);
 
             _presentationPart.Presentation.SlideSize = new SlideSize {
                 Cx = 9144000,
