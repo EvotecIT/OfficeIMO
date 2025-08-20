@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Fluent {
         private WordTable? _table;
         private int _columns;
         private int? _preferredWidthPct;
-        private int? _preferredWidthDxa;
+        private int? _preferredWidthPoints;
 
         internal TableBuilder(WordFluentDocument fluent) {
             _fluent = fluent;
@@ -33,16 +33,10 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="rows">Number of rows.</param>
         /// <param name="columns">Number of columns.</param>
         /// <returns>The current <see cref="TableBuilder"/>.</returns>
-        public TableBuilder AddTable(int rows, int columns) {
+        public TableBuilder Create(int rows, int columns) {
             _columns = columns;
             _table = _fluent.Document.AddTable(rows, columns);
-            if (_preferredWidthPct.HasValue) {
-                _table.WidthType = TableWidthUnitValues.Pct;
-                _table.Width = _preferredWidthPct.Value * 50;
-            } else if (_preferredWidthDxa.HasValue) {
-                _table.WidthType = TableWidthUnitValues.Dxa;
-                _table.Width = _preferredWidthDxa.Value;
-            }
+            ApplyPreferredWidth();
             return this;
         }
 
@@ -60,31 +54,39 @@ namespace OfficeIMO.Word.Fluent {
                     _columns = 1;
                 }
                 _table = _fluent.Document.AddTable(rows, _columns);
-                if (_preferredWidthPct.HasValue) {
-                    _table.WidthType = TableWidthUnitValues.Pct;
-                    _table.Width = _preferredWidthPct.Value * 50;
-                } else if (_preferredWidthDxa.HasValue) {
-                    _table.WidthType = TableWidthUnitValues.Dxa;
-                    _table.Width = _preferredWidthDxa.Value;
-                }
+                ApplyPreferredWidth();
+            }
+        }
+
+        private void ApplyPreferredWidth() {
+            if (_table == null) {
+                return;
+            }
+
+            if (_preferredWidthPct.HasValue) {
+                _table.WidthType = TableWidthUnitValues.Pct;
+                _table.Width = _preferredWidthPct.Value * 50;
+            } else if (_preferredWidthPoints.HasValue) {
+                _table.WidthType = TableWidthUnitValues.Dxa;
+                _table.Width = _preferredWidthPoints.Value * 20;
             }
         }
 
         /// <summary>
         /// Sets the preferred width of the table.
         /// </summary>
-        public TableBuilder PreferredWidth(int? Percent = null, int? Dxa = null) {
+        public TableBuilder PreferredWidth(int? percent = null, int? points = null) {
             if (_table != null) {
-                if (Percent.HasValue) {
+                if (percent.HasValue) {
                     _table.WidthType = TableWidthUnitValues.Pct;
-                    _table.Width = Percent.Value * 50;
-                } else if (Dxa.HasValue) {
+                    _table.Width = percent.Value * 50;
+                } else if (points.HasValue) {
                     _table.WidthType = TableWidthUnitValues.Dxa;
-                    _table.Width = Dxa.Value;
+                    _table.Width = points.Value * 20;
                 }
             } else {
-                _preferredWidthPct = Percent;
-                _preferredWidthDxa = Dxa;
+                _preferredWidthPct = percent;
+                _preferredWidthPoints = points;
             }
             return this;
         }

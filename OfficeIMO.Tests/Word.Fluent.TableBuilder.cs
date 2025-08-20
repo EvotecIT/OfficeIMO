@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Table(t => t
-                        .Columns(3).PreferredWidth(Percent: 100)
+                        .Columns(3).PreferredWidth(percent: 100)
                         .Header("Name", "Role", "Score")
                         .Row("Alice", "Dev", 98)
                         .Row("Bob", "Ops", 91)
@@ -49,11 +49,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FluentTableBuilder_AddTable() {
-            string filePath = Path.Combine(_directoryWithFiles, "FluentAddTable.docx");
+        public void Test_FluentTableBuilder_Create() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentCreate.docx");
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Table(t => t.AddTable(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
+                    .Table(t => t.Create(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
                     .End()
                     .Save(false);
             }
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
                     .Table(t => t
-                        .AddTable(2, 3)
+                        .Create(2, 3)
                         .ForEachCell((r, c, cell) => cell.AddParagraph($"R{r}C{c}", true))
                         .Cell(1, 3, cell => cell.AddParagraph("Last", true))
                         .InsertRow(3, "A", "B", "C")
@@ -96,6 +96,23 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("ccffcc", table.Rows[0].Cells[1].ShadingFillColorHex);
                 Assert.True(table.Rows[0].Cells[0].HasHorizontalMerge);
                 Assert.True(table.Rows[0].Cells[0].HasVerticalMerge);
+            }
+        }
+
+        [Fact]
+        public void Test_FluentTableBuilder_PreferredWidthPoints() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderPoints.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Table(t => t.PreferredWidth(points: 100).Columns(2).Row("A", "B"))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                Assert.Equal(2000, table.Width);
+                Assert.Equal(TableWidthUnitValues.Dxa, table.WidthType);
             }
         }
     }
