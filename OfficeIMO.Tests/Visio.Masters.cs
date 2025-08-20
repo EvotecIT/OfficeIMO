@@ -15,9 +15,22 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = new();
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "A") { NameU = "Rectangle" });
-            page.Shapes.Add(new VisioShape("2", 4, 1, 2, 1, "B") { NameU = "Rectangle" });
+
+            VisioShape shape1 = new("1", 1, 1, 2, 1, "A");
+            VisioShape shape2 = new("2", 4, 1, 2, 1, "B");
+
+            VisioMaster master1 = new("2", "Rectangle", shape1);
+            VisioMaster master2 = new("3", "Rectangle", shape2);
+            shape1.Master = master1;
+            shape2.Master = master2;
+
+            page.Shapes.Add(shape1);
+            page.Shapes.Add(shape2);
             document.Save(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.NotNull(loaded.Pages[0].Shapes[0].Master);
+            Assert.Equal("Rectangle", loaded.Pages[0].Shapes[0].Master?.NameU);
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/masters/masters.xml", UriKind.Relative)));

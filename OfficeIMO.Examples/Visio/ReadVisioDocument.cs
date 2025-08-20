@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Visio {
             foreach (VisioPage page in document.Pages) {
                 Console.WriteLine($"Page: {page.Name}");
                 foreach (VisioShape shape in page.Shapes) {
-                    Console.WriteLine($"  Shape {shape.Id} {shape.NameU} {shape.Text}");
+                    string master = shape.Master?.NameU ?? "None";
+                    Console.WriteLine($"  Shape {shape.Id} {shape.NameU} {shape.Text} Master:{master}");
                 }
             }
 

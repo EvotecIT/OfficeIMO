@@ -70,6 +70,33 @@ namespace OfficeIMO.Visio {
 
             XNamespace ns = VisioNamespace;
             XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+            Dictionary<string, VisioMaster> masters = new();
+
+            PackageRelationship? mastersRel = documentPart.GetRelationshipsByType("http://schemas.microsoft.com/visio/2010/relationships/masters").FirstOrDefault();
+            if (mastersRel != null) {
+                Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
+                PackagePart mastersPart = package.GetPart(mastersUri);
+                XDocument mastersDoc = XDocument.Load(mastersPart.GetStream());
+                foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
+                    string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
+                    string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
+                    string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                    if (string.IsNullOrEmpty(mRelId)) {
+                        continue;
+                    }
+
+                    PackageRelationship rel = mastersPart.GetRelationship(mRelId);
+                    Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
+                    PackagePart masterPart = package.GetPart(masterUri);
+                    XDocument masterDoc = XDocument.Load(masterPart.GetStream());
+                    XElement? masterShapeElement = masterDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+                    VisioShape masterShape = masterShapeElement != null ? ParseShape(masterShapeElement, ns) : new VisioShape("1");
+                    VisioMaster master = new(masterId, masterNameU, masterShape);
+                    masters[masterId] = master;
+                }
+            }
+
             XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
 
             foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
@@ -92,39 +119,10 @@ namespace OfficeIMO.Visio {
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
 
                 foreach (XElement shapeElement in pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape") ?? Enumerable.Empty<XElement>()) {
-                    string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
-                    VisioShape shape = new(id) {
-                        Name = shapeElement.Attribute("Name")?.Value,
-                        NameU = shapeElement.Attribute("NameU")?.Value,
-                        Text = shapeElement.Element(ns + "Text")?.Value
-                    };
-
-                    var cellElements = shapeElement.Elements(ns + "Cell").ToList();
-                    if (cellElements.Count > 0) {
-                        foreach (XElement cell in cellElements) {
-                            string? n = cell.Attribute("N")?.Value;
-                            string? v = cell.Attribute("V")?.Value;
-                            switch (n) {
-                                case "PinX":
-                                    shape.PinX = ParseDouble(v);
-                                    break;
-                                case "PinY":
-                                    shape.PinY = ParseDouble(v);
-                                    break;
-                                case "Width":
-                                    shape.Width = ParseDouble(v);
-                                    break;
-                                case "Height":
-                                    shape.Height = ParseDouble(v);
-                                    break;
-                            }
-                        }
-                    } else {
-                        XElement? xform = shapeElement.Element(ns + "XForm");
-                        shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
-                        shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
-                        shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
-                        shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+                    VisioShape shape = ParseShape(shapeElement, ns);
+                    string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
+                    if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
+                        shape.Master = master;
                     }
 
                     page.Shapes.Add(shape);
@@ -136,6 +134,45 @@ namespace OfficeIMO.Visio {
 
         private static double ParseDouble(string? value) {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+        }
+
+        private static VisioShape ParseShape(XElement shapeElement, XNamespace ns) {
+            string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
+            VisioShape shape = new(id) {
+                Name = shapeElement.Attribute("Name")?.Value,
+                NameU = shapeElement.Attribute("NameU")?.Value,
+                Text = shapeElement.Element(ns + "Text")?.Value
+            };
+
+            List<XElement> cellElements = shapeElement.Elements(ns + "Cell").ToList();
+            if (cellElements.Count > 0) {
+                foreach (XElement cell in cellElements) {
+                    string? n = cell.Attribute("N")?.Value;
+                    string? v = cell.Attribute("V")?.Value;
+                    switch (n) {
+                        case "PinX":
+                            shape.PinX = ParseDouble(v);
+                            break;
+                        case "PinY":
+                            shape.PinY = ParseDouble(v);
+                            break;
+                        case "Width":
+                            shape.Width = ParseDouble(v);
+                            break;
+                        case "Height":
+                            shape.Height = ParseDouble(v);
+                            break;
+                    }
+                }
+            } else {
+                XElement? xform = shapeElement.Element(ns + "XForm");
+                shape.PinX = ParseDouble(xform?.Element(ns + "PinX")?.Value);
+                shape.PinY = ParseDouble(xform?.Element(ns + "PinY")?.Value);
+                shape.Width = ParseDouble(xform?.Element(ns + "Width")?.Value);
+                shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
+            }
+
+            return shape;
         }
 
         private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
@@ -157,8 +194,8 @@ namespace OfficeIMO.Visio {
         /// Saves the document to a <c>.vsdx</c> package.
         /// </summary>
         public void Save(string filePath) {
-            int masterCount = 0;
             bool includeTheme = _pages.Any(p => p.Shapes.Any());
+            int masterCount;
             using (Package package = Package.Open(filePath, FileMode.Create)) {
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
                 PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
@@ -253,12 +290,12 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                List<VisioMaster> masters = new();
-                foreach (VisioShape shape in _pages.SelectMany(p => p.Shapes).Where(s => !string.IsNullOrEmpty(s.NameU))) {
-                    VisioMaster master = new(XmlConvert.ToString(masters.Count + 2), shape.NameU!, shape);
-                    masters.Add(master);
-                    shape.Master = master;
-                }
+                List<VisioMaster> masters = _pages.SelectMany(p => p.Shapes)
+                    .Where(s => s.Master != null)
+                    .Select(s => s.Master!)
+                    .GroupBy(m => m.Id)
+                    .Select(g => g.First())
+                    .ToList();
 
                 PackagePart? mastersPart = null;
                 if (masters.Count > 0) {
@@ -464,7 +501,7 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("ID", shape.Id);
                             string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
                             writer.WriteAttributeString("Name", shapeName);
-                            writer.WriteAttributeString("NameU", shape.NameU ?? shapeName);
+                            writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
                             writer.WriteAttributeString("Type", "Shape");
                             if (shape.Master != null) {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
