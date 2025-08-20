@@ -33,5 +33,9 @@ namespace OfficeIMO.PowerPoint.Fluent {
             configure(builder);
             return this;
         }
+
+        public PowerPointPresentation End() {
+            return Presentation;
+        }
     }
 }
