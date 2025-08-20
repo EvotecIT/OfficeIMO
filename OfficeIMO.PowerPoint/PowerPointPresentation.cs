@@ -265,14 +265,21 @@ namespace OfficeIMO.PowerPoint {
             );
             slideMasterPart.SlideMaster = slideMaster;
 
-            SlideLayoutPart layoutPart = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            layoutPart.SlideLayout = new SlideLayout(
+            SlideLayoutPart layoutPart0 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            layoutPart0.SlideLayout = new SlideLayout(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping())
+            );
+
+            SlideLayoutPart layoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
+            layoutPart1.SlideLayout = new SlideLayout(
                 new CommonSlideData(CreateShapeTree()),
                 new ColorMapOverride(new A.MasterColorMapping())
             );
 
             slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart) }
+                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
+                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
             );
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
