@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter? _headerFooter;
-        private Run _run => _wordParagraph._run;
+        private Run _run => _wordParagraph._run!;
         private V.TextBox? _vmlTextBox;
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, string text, WrapTextImage wrapTextImage) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _document = wordDocument;
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
             _headerFooter = wordHeaderFooter;
 
             var paragraph = wordHeaderFooter.AddParagraph(newRun: true);
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, WordParagraph paragraph, string text, WrapTextImage wrapTextImage) {
             _document = wordDocument;
 
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;
@@ -107,7 +107,10 @@ namespace OfficeIMO.Word {
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
                     if (horizontalPosition != null) {
-                        return horizontalPosition.RelativeFrom;
+                        var relativeFrom = horizontalPosition.RelativeFrom;
+                        if (relativeFrom != null) {
+                            return relativeFrom.Value;
+                        }
                     }
                 }
 
@@ -175,7 +178,10 @@ namespace OfficeIMO.Word {
                 if (anchor != null) {
                     var verticalPosition = anchor.VerticalPosition;
                     if (verticalPosition != null) {
-                        return verticalPosition.RelativeFrom;
+                        var relativeFrom = verticalPosition.RelativeFrom;
+                        if (relativeFrom != null) {
+                            return relativeFrom.Value;
+                        }
                     }
                 }
                 return VerticalRelativePositionValues.Page;
@@ -200,7 +206,10 @@ namespace OfficeIMO.Word {
                 if (anchor != null) {
                     var verticalPosition = anchor.VerticalPosition;
                     if (verticalPosition != null) {
-                        return int.Parse(verticalPosition.PositionOffset.Text);
+                        var positionOffset = verticalPosition.PositionOffset;
+                        if (positionOffset != null) {
+                            return int.Parse(positionOffset.Text);
+                        }
                     }
                 }
 
@@ -208,10 +217,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 var anchor = _anchor;
-                if (anchor != null) {
+                if (anchor != null && value.HasValue) {
                     var verticalPosition = AddVerticalPosition(anchor, true);
                     if (verticalPosition != null) {
-                        verticalPosition.PositionOffset.Text = value.ToString();
+                        verticalPosition.PositionOffset!.Text = value.Value.ToString();
                     }
                 }
             }
@@ -226,18 +235,21 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null && horizontalPosition.PositionOffset != null) {
-                        return int.Parse(horizontalPosition.PositionOffset.Text);
+                    if (horizontalPosition != null) {
+                        var positionOffset = horizontalPosition.PositionOffset;
+                        if (positionOffset != null) {
+                            return int.Parse(positionOffset.Text);
+                        }
                     }
                 }
                 return null;
             }
             set {
                 var anchor = _anchor;
-                if (anchor != null) {
+                if (anchor != null && value.HasValue) {
                     var horizontalPosition = AddHorizontalPosition(anchor, true);
                     if (horizontalPosition != null) {
-                        horizontalPosition.PositionOffset.Text = value.ToString();
+                        horizontalPosition.PositionOffset!.Text = value.Value.ToString();
                     }
                 }
             }
@@ -375,7 +387,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets text body properties
         /// </summary>
-        public TextBodyProperties TextBodyProperties => _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
+        public TextBodyProperties TextBodyProperties {
+            get {
+                var shape = _wordprocessingShape ?? throw new InvalidOperationException("Word processing shape not found.");
+                var props = shape.GetFirstChild<TextBodyProperties>();
+                if (props == null) {
+                    props = new TextBodyProperties();
+                    shape.AppendChild(props);
+                }
+                return props;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the AutoFit behavior for the textbox.
@@ -448,8 +470,8 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var extent = anchor.ChildElements.OfType<Extent>().FirstOrDefault();
-                    if (extent != null) {
-                        return Int64.Parse(extent.Cx);
+                    if (extent?.Cx != null) {
+                        return extent.Cx.Value;
                     }
                 }
                 return 0;
@@ -479,8 +501,8 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var extent = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>().FirstOrDefault();
-                    if (extent != null) {
-                        return Int64.Parse(extent.Cy);
+                    if (extent?.Cy != null) {
+                        return extent.Cy.Value;
                     }
                 }
                 return 0;
@@ -599,11 +621,11 @@ namespace OfficeIMO.Word {
             verticalPosition1.Append(positionOffset1);
 
             // Copy INLINE to ANCHOR
-            Extent extent1 = (Extent)inline.Extent.CloneNode(true);
-            EffectExtent effectExtent1 = (EffectExtent)inline.EffectExtent.CloneNode(true);
-            DocProperties docProperties1 = (DocProperties)inline.DocProperties.CloneNode(true);
-            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)inline.NonVisualGraphicFrameDrawingProperties.CloneNode(true);
-            Graphic graphic1 = (Graphic)inline.Graphic.CloneNode(true);
+            Extent extent1 = (Extent)inline.Extent!.CloneNode(true);
+            EffectExtent effectExtent1 = (EffectExtent)inline.EffectExtent!.CloneNode(true);
+            DocProperties docProperties1 = (DocProperties)inline.DocProperties!.CloneNode(true);
+            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)inline.NonVisualGraphicFrameDrawingProperties!.CloneNode(true);
+            Graphic graphic1 = (Graphic)inline.Graphic!.CloneNode(true);
 
             // continuation of anchor
             DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth relativeWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth() { ObjectId = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues.Margin };
@@ -637,17 +659,23 @@ namespace OfficeIMO.Word {
         internal static Inline ConvertAnchorToInline(Anchor anchor) {
             Inline inline1 = new Inline() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)0U, DistanceFromRight = (UInt32Value)0U, AnchorId = "29D0141D", EditId = "5A52866D" };
 
-            Extent extent1 = (Extent)anchor.Extent.CloneNode(true);
-            EffectExtent effectExtent1 = (EffectExtent)anchor.EffectExtent.CloneNode(true);
-            DocProperties docProperties1 = (DocProperties)anchor.OfType<DocProperties>().FirstOrDefault()?.CloneNode(true);
-            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)anchor.OfType<NonVisualGraphicFrameDrawingProperties>().FirstOrDefault()?.CloneNode(true);
-            Graphic graphic1 = (Graphic)anchor.OfType<Graphic>().FirstOrDefault()?.CloneNode(true);
+            Extent extent1 = (Extent)anchor.Extent!.CloneNode(true);
+            EffectExtent effectExtent1 = (EffectExtent)anchor.EffectExtent!.CloneNode(true);
+            DocProperties? docProperties1 = anchor.OfType<DocProperties>().FirstOrDefault()?.CloneNode(true) as DocProperties;
+            NonVisualGraphicFrameDrawingProperties? nonVisualGraphicFrameDrawingProperties1 = anchor.OfType<NonVisualGraphicFrameDrawingProperties>().FirstOrDefault()?.CloneNode(true) as NonVisualGraphicFrameDrawingProperties;
+            Graphic? graphic1 = anchor.OfType<Graphic>().FirstOrDefault()?.CloneNode(true) as Graphic;
 
             inline1.Append(extent1);
             inline1.Append(effectExtent1);
-            inline1.Append(docProperties1);
-            inline1.Append(nonVisualGraphicFrameDrawingProperties1);
-            inline1.Append(graphic1);
+            if (docProperties1 != null) {
+                inline1.Append(docProperties1);
+            }
+            if (nonVisualGraphicFrameDrawingProperties1 != null) {
+                inline1.Append(nonVisualGraphicFrameDrawingProperties1);
+            }
+            if (graphic1 != null) {
+                inline1.Append(graphic1);
+            }
 
             return inline1;
         }
@@ -812,7 +840,7 @@ namespace OfficeIMO.Word {
 
             alternateContent1.Append(alternateContentChoice1);
             //alternateContent1.Append(alternateContentFallback1);
-            wordParagraph._run.Append(alternateContent1);
+            wordParagraph._run!.Append(alternateContent1);
         }
 
         private Inline GenerateInline(string text) {

@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
 
             var paragraph = AddParagraph();
             paragraph.AddImage(ms, fileName, width, height);
-            return paragraph.Image;
+            return paragraph.Image!;
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph();
             paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image;
+            return paragraph.Image!;
         }
 
         /// <summary>
