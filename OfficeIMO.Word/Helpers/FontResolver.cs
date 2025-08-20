@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace OfficeIMO.Word;
 
@@ -101,11 +102,39 @@ public static class FontResolver {
 
     private static bool IsFontInstalled(string fontFamily) {
         try {
-            using var fonts = new System.Drawing.Text.InstalledFontCollection();
-            return fonts.Families.Any(f => string.Equals(f.Name, fontFamily, StringComparison.OrdinalIgnoreCase));
+            return GetFontFiles().Any(file =>
+                Path.GetFileNameWithoutExtension(file)
+                    .Contains(fontFamily, StringComparison.OrdinalIgnoreCase));
         } catch {
             return false;
         }
+    }
+
+    private static IEnumerable<string> GetFontFiles() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            string? fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            if (Directory.Exists(fontsDir)) {
+                return Directory.EnumerateFiles(fontsDir, "*.ttf", SearchOption.TopDirectoryOnly);
+            }
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            var paths = new[] {
+                "/usr/share/fonts",
+                "/usr/local/share/fonts",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts")
+            };
+            return paths.Where(Directory.Exists)
+                .SelectMany(p => Directory.EnumerateFiles(p, "*.ttf", SearchOption.AllDirectories));
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            var paths = new[] {
+                "/System/Library/Fonts",
+                "/Library/Fonts",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library/Fonts")
+            };
+            return paths.Where(Directory.Exists)
+                .SelectMany(p => Directory.EnumerateFiles(p, "*.ttf", SearchOption.AllDirectories));
+        }
+
+        return Array.Empty<string>();
     }
 }
 
