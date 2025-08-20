@@ -21,6 +21,9 @@ namespace OfficeIMO.Tests {
             XDocument pageDoc = XDocument.Load(pagePart.GetStream());
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement shape = pageDoc.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
+            Assert.Equal("3", shape.Attribute("LineStyle")?.Value);
+            Assert.Equal("3", shape.Attribute("FillStyle")?.Value);
+            Assert.Equal("3", shape.Attribute("TextStyle")?.Value);
             XElement geom = shape.Element(ns + "Geom")!;
             var lines = geom.Elements(ns + "LineTo").ToList();
             Assert.Equal(4, lines.Count);

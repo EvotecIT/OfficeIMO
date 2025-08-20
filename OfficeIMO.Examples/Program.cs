@@ -29,6 +29,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Visio.ThemeAndWindows.Example_ThemeAndWindows(folderPath, false);
             OfficeIMO.Examples.Visio.AllNamedShapesHaveMasters.Run();
             OfficeIMO.Examples.Visio.MasterShapes.Run();
+            OfficeIMO.Examples.Visio.RectangleStyles.Example_RectangleStyles(folderPath, false);
 
             // Excel/BasicExcelFunctionality
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);

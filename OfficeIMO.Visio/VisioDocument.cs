@@ -594,6 +594,9 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
+                            writer.WriteAttributeString("LineStyle", "3");
+                            writer.WriteAttributeString("FillStyle", "3");
+                            writer.WriteAttributeString("TextStyle", "3");
                             WriteXForm(writer, s, masterWidth, masterHeight);
                             // Always specify line weight so that shapes are visible
                             WriteCell(writer, "LineWeight", s.LineWeight);
@@ -802,6 +805,9 @@ namespace OfficeIMO.Visio {
                                 WriteDataSection(writer, shape.Data);
                                 WriteTextElement(writer, shape.Text);
                             } else {
+                                writer.WriteAttributeString("LineStyle", "3");
+                                writer.WriteAttributeString("FillStyle", "3");
+                                writer.WriteAttributeString("TextStyle", "3");
                                 double width = shape.Width > 0 ? shape.Width : 1;
                                 double height = shape.Height > 0 ? shape.Height : 1;
                                 shape.Width = width;
@@ -847,12 +853,16 @@ namespace OfficeIMO.Visio {
                                 endY = (top + bottom) / 2;
                             }
 
-                            writer.WriteStartElement("Shape", ns);
-                            writer.WriteAttributeString("ID", connector.Id);
-                            writer.WriteAttributeString("Name", "Connector");
-                            writer.WriteAttributeString("NameU", "Connector");
-                            writer.WriteAttributeString("Type", "Shape");
-                            writer.WriteStartElement("Geom", ns);
+                              writer.WriteStartElement("Shape", ns);
+                              writer.WriteAttributeString("ID", connector.Id);
+                              writer.WriteAttributeString("Name", "Connector");
+                              writer.WriteAttributeString("NameU", "Connector");
+                              writer.WriteAttributeString("Type", "Shape");
+                              writer.WriteAttributeString("LineStyle", "3");
+                              writer.WriteAttributeString("FillStyle", "3");
+                              writer.WriteAttributeString("TextStyle", "3");
+                              WriteCell(writer, "LineWeight", 0.0138889);
+                              writer.WriteStartElement("Geom", ns);
                             writer.WriteStartElement("MoveTo", ns);
                             writer.WriteAttributeString("X", ToVisioString(startX));
                             writer.WriteAttributeString("Y", ToVisioString(startY));
