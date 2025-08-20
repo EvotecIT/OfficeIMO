@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
@@ -224,6 +225,29 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointFluentPresentation(this);
         }
 
+        /// <summary>
+        ///     Gets the list of validation errors for the presentation.
+        /// </summary>
+        public List<ValidationErrorInfo> PresentationValidationErrors {
+            get {
+                return ValidatePresentation();
+            }
+        }
+
+        /// <summary>
+        ///     Validates the presentation using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> ValidatePresentation(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(_document)) {
+                listErrors.Add(error);
+            }
+            return listErrors;
+        }
+
         private void InitializeDefaultParts() {
             static ShapeTree CreateShapeTree() {
                 return new ShapeTree(
@@ -294,7 +318,20 @@ namespace OfficeIMO.PowerPoint {
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
             notesMasterPart.NotesMaster = new NotesMaster(
                 new CommonSlideData(CreateShapeTree()),
-                new ColorMapOverride(new A.MasterColorMapping()),
+                new ColorMap {
+                    Background1 = A.ColorSchemeIndexValues.Light1,
+                    Text1 = A.ColorSchemeIndexValues.Dark1,
+                    Background2 = A.ColorSchemeIndexValues.Light2,
+                    Text2 = A.ColorSchemeIndexValues.Dark2,
+                    Accent1 = A.ColorSchemeIndexValues.Accent1,
+                    Accent2 = A.ColorSchemeIndexValues.Accent2,
+                    Accent3 = A.ColorSchemeIndexValues.Accent3,
+                    Accent4 = A.ColorSchemeIndexValues.Accent4,
+                    Accent5 = A.ColorSchemeIndexValues.Accent5,
+                    Accent6 = A.ColorSchemeIndexValues.Accent6,
+                    Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+                    FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+                },
                 new NotesStyle()
             );
 
