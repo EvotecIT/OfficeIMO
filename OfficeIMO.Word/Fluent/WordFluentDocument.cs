@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -77,6 +78,15 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="action">Action that receives an <see cref="ImageBuilder"/>.</param>
         public WordFluentDocument Image(Action<ImageBuilder> action) {
             action(new ImageBuilder(this));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds or modifies an image asynchronously.
+        /// </summary>
+        /// <param name="action">Async action that receives an <see cref="ImageBuilder"/>.</param>
+        public async Task<WordFluentDocument> ImageAsync(Func<ImageBuilder, Task> action) {
+            await action(new ImageBuilder(this));
             return this;
         }
 

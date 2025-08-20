@@ -30,6 +30,11 @@ namespace OfficeIMO.Word.Fluent {
 
         public ParagraphBuilder Run(string text, Action<TextBuilder>? configure = null) => Text(text, configure);
 
+        public ParagraphBuilder InlineImage(string path, double? widthPx = null, double? heightPx = null, string alt = "") {
+            _paragraph.AddImage(path, widthPx, heightPx, WrapTextImage.InLineWithText, alt);
+            return this;
+        }
+
         /// <summary>
         /// Adds or modifies a list within the document context.
         /// </summary>
