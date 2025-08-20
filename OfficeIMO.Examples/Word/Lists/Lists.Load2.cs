@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Temp 10");
                 wordList2.AddItem("Text 10.1", 1);
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("This is 10th list").SetColor(Color.ForestGreen).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList3 = document.AddList(WordListStyle.Headings111);
+                WordList wordList3 = document.AddList(WordListStyle.Numbered);
                 wordList3.AddItem("Temp 11");
                 wordList3.AddItem("Text 11.1", 1);
 

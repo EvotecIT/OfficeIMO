@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("This is second list").SetColor(Color.OrangeRed).SetUnderline(UnderlineValues.Double);
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Temp 2");
                 wordList2.AddItem("Text 2", 1);
                 wordList2.AddItem("Text 3", 2);

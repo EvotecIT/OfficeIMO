@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
 
-                WordList wordList = document.AddList(WordListStyle.Headings111);
+                WordList wordList = document.AddList(WordListStyle.Numbered);
                 wordList.AddItem("Text 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList.AddItem("Text 2.1", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
                 wordList.AddItem("Text 2.2", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].PageSettings.Orientation);
                 Console.WriteLine(document.Sections[1].PageSettings.Orientation);
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Section 1").SetCapsStyle(CapsStyle.SmallCaps);
                 wordList2.AddItem("Section 2.1", 1).SetColor(SixLabors.ImageSharp.Color.Brown);
                 wordList2.AddItem("Section 2.2", 1).SetColor(SixLabors.ImageSharp.Color.Brown);

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ListStyleDetection.docx");
             var styles = new[] {
                 WordListStyle.Bulleted,
-                WordListStyle.Headings111,
+                WordListStyle.Numbered,
                 WordListStyle.ArticleSections
             };
 

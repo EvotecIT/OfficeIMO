@@ -31,6 +31,7 @@ public static partial class WordListStyles {
             case WordListStyle.UpperLetterWithDot: return UpperLetterWithDot;
             case WordListStyle.UpperLetterWithBracket: return UpperLetterWithBracket;
             case WordListStyle.Custom: return Custom;
+            case WordListStyle.Numbered: return Numbered;
         }
         throw new ArgumentOutOfRangeException(nameof(style));
     }
@@ -57,6 +58,7 @@ public static partial class WordListStyles {
             "73ECA528" => WordListStyle.LowerLetterWithDot,
             "76643E8A" => WordListStyle.UpperLetterWithDot,
             "76643E8C" => WordListStyle.UpperLetterWithBracket,
+            "25BE4216" => WordListStyle.Numbered,
             _ => WordListStyle.Custom
         };
     }
@@ -76,7 +78,7 @@ public static partial class WordListStyles {
         InitializeAbstractNumberId(document);
 
         AbstractNum bulletAbstract = GetStyle(WordListStyle.Bulleted);
-        AbstractNum orderedAbstract = GetStyle(WordListStyle.Headings111);
+        AbstractNum orderedAbstract = GetStyle(WordListStyle.Numbered);
 
         bulletNumberId = 1;
         orderedNumberId = 2;

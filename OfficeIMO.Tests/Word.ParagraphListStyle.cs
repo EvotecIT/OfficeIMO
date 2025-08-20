@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 var bullet = document.AddList(WordListStyle.Bulleted);
                 bullet.AddItem("Bullet");
 
-                var numbered = document.AddList(WordListStyle.Headings111);
+                var numbered = document.AddList(WordListStyle.Numbered);
                 numbered.AddItem("Numbered");
 
                 var custom = document.AddCustomList();
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 var customParagraph = document.Paragraphs.First(p => p.Text == "Custom");
 
                 Assert.Equal(WordListStyle.Bulleted, bulletParagraph.GetListStyle());
-                Assert.Equal(WordListStyle.Headings111, numberedParagraph.GetListStyle());
+                Assert.Equal(WordListStyle.Numbered, numberedParagraph.GetListStyle());
                 Assert.Equal(WordListStyle.Custom, customParagraph.GetListStyle());
             }
         }

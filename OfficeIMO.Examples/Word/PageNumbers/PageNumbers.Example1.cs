@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].AddHorizontalLine();
 
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
                 wordListToc.AddItem("This is first item");
 

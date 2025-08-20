@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
                 document.AddPageBreak();
 
-                var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+                var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
                 Assert.True(document.Lists.Count == 1, "Lists count should be 1, just TOC");
 
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
         public void Test_TocListLevelClamping() {
             string filePath = Path.Combine(_directoryWithFiles, "TocLevelClamp.docx");
             using (var document = WordDocument.Create(filePath)) {
-                var tocList = document.AddTableOfContentList(WordListStyle.Headings111);
+                var tocList = document.AddTableOfContentList(WordListStyle.Numbered);
                 tocList.AddItem("First", -2);
                 tocList.AddItem("Last", 10);
                 document.Save(false);

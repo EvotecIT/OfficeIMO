@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 // add list and nest a list
-                WordList wordList1 = document.AddList(WordListStyle.Headings111);
+                WordList wordList1 = document.AddList(WordListStyle.Numbered);
                 Console.WriteLine("List (0) ElementsCount (0): " + wordList1.ListItems.Count);
                 Console.WriteLine("List (0) ElementsCount (1): " + document.Lists[0].ListItems.Count);
                 wordList1.AddItem("Text 1");
@@ -30,27 +30,27 @@ namespace OfficeIMO.Examples.Word {
                 wordListNested.AddItem("Nested 1", 1);
                 wordListNested.AddItem("Nested 2", 1);
 
-                WordList wordList2 = document.AddList(WordListStyle.Headings111);
+                WordList wordList2 = document.AddList(WordListStyle.Numbered);
 
                 wordList2.AddItem("Section 2");
                 wordList2.AddItem("Section 2.1", 1);
 
-                WordList wordList3 = document.AddList(WordListStyle.Headings111);
+                WordList wordList3 = document.AddList(WordListStyle.Numbered);
 
                 wordList3.AddItem("Section 1");
                 wordList3.AddItem("Section 1.1", 1);
 
-                WordList wordList4 = document.AddList(WordListStyle.Headings111);
+                WordList wordList4 = document.AddList(WordListStyle.Numbered);
                 //wordList4.RestartNumbering = true;
                 wordList4.AddItem("Section 2");
                 wordList4.AddItem("Section 2.1", 1);
 
-                WordList wordList5 = document.AddList(WordListStyle.Headings111);
+                WordList wordList5 = document.AddList(WordListStyle.Numbered);
                 //wordList5.RestartNumbering = true;
                 wordList5.AddItem("Section 3");
                 wordList5.AddItem("Section 3.1", 1);
 
-                WordList wordList6 = document.AddList(WordListStyle.Headings111);
+                WordList wordList6 = document.AddList(WordListStyle.Numbered);
                 wordList1.AddItem("Text 4");
                 wordList1.AddItem("Text 4.1", 1);
 
@@ -139,7 +139,7 @@ namespace OfficeIMO.Examples.Word {
                 listInHeader.AddItem("Test Header 2");
 
 
-                var listInFooter = document.Footer.Default.AddList(WordListStyle.Headings111);
+                var listInFooter = document.Footer.Default.AddList(WordListStyle.Numbered);
 
                 listInFooter.AddItem("Test Footer 1");
 

@@ -30,7 +30,7 @@ public class CoverPageTests : VerifyTestBase {
         document.AddTableOfContent();
         document.AddPageBreak();
 
-        var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+        var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
         wordListToc.AddItem("Prepare document");
         document.AddParagraph("This is my test 1");
@@ -58,7 +58,7 @@ public class CoverPageTests : VerifyTestBase {
 
         document.AddPageBreak();
 
-        var wordListToc = document.AddTableOfContentList(WordListStyle.Headings111);
+        var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
         wordListToc.AddItem("Prepare document");
 

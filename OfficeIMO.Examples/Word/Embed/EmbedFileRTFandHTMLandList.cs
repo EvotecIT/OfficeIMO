@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddPageBreak();
 
-                WordList wordList = document.AddList(WordListStyle.Headings111);
+                WordList wordList = document.AddList(WordListStyle.Numbered);
                 wordList.AddItem("Embedded RTF").Style = WordParagraphStyles.Heading1;
 
                 document.AddParagraph("Add RTF document in front of the document");

@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_ListStartAttribute() {
             using var doc = WordDocument.Create();
-            var list = doc.AddList(WordListStyle.Headings111);
+            var list = doc.AddList(WordListStyle.Numbered);
             list.Numbering.Levels[0].SetStartNumberingValue(4);
             list.AddItem("Four");
             list.AddItem("Five");

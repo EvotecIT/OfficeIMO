@@ -14,7 +14,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfListSample.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordList numbered = document.AddList(WordListStyle.Headings111);
+            WordList numbered = document.AddList(WordListStyle.Numbered);
             numbered.AddItem("Numbered 1");
             numbered.AddItem("Numbered 2");
             numbered.AddItem("Numbered 2.1", 1);
