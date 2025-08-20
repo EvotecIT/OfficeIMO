@@ -420,6 +420,15 @@ namespace OfficeIMO.Visio {
                     writer.WriteElementString("LocPinY", ns, ToVisioString(shape.LocPinY));
                     writer.WriteElementString("Angle", ns, ToVisioString(shape.Angle));
                     writer.WriteEndElement();
+
+                    // Visio expects these values as cell entries as well
+                    WriteCell(writer, "PinX", shape.PinX);
+                    WriteCell(writer, "PinY", shape.PinY);
+                    WriteCell(writer, "Width", width);
+                    WriteCell(writer, "Height", height);
+                    WriteCell(writer, "LocPinX", shape.LocPinX);
+                    WriteCell(writer, "LocPinY", shape.LocPinY);
+                    WriteCell(writer, "Angle", shape.Angle);
                 }
 
                 void WriteRectangleGeometry(XmlWriter writer, double width, double height) {
