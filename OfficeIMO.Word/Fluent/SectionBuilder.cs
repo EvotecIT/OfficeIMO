@@ -21,32 +21,39 @@ namespace OfficeIMO.Word.Fluent {
 
         public WordSection? Section => _section;
 
-        public SectionBuilder New(SectionMarkValues? mark = null) {
-            var section = _fluent.Document.AddSection(mark);
+        public SectionBuilder New() {
+            return New(SectionMarkValues.NextPage);
+        }
+
+        public SectionBuilder New(SectionMarkValues breakType) {
+            var section = _fluent.Document.AddSection(breakType);
             return new SectionBuilder(_fluent, section);
         }
 
-        public SectionBuilder SectionBreak(SectionMarkValues mark) {
+        public SectionBuilder PageNumbering(bool restart = false) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
 
-            var sectionType = _section._sectionProperties.GetFirstChild<SectionType>();
-            if (sectionType == null) {
-                sectionType = new SectionType();
-                _section._sectionProperties.Append(sectionType);
-            }
-
-            sectionType.Val = mark;
+            _section.AddPageNumbering(restart ? 1 : (int?)null);
             return this;
         }
 
-        public SectionBuilder PageNumbering(NumberFormatValues? format = null, bool restart = false, int startNumber = 1) {
+        public SectionBuilder PageNumbering(NumberFormatValues format, bool restart = false) {
             if (_section == null) {
                 throw new InvalidOperationException("No section available to configure.");
             }
 
-            _section.AddPageNumbering(restart ? startNumber : (int?)null, format);
+            _section.AddPageNumbering(restart ? 1 : (int?)null, format);
+            return this;
+        }
+
+        public SectionBuilder Columns(int count) {
+            if (_section == null) {
+                throw new InvalidOperationException("No section available to configure.");
+            }
+
+            _section.ColumnCount = count;
             return this;
         }
 
