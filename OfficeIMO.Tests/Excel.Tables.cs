@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddTableConcurrent() {
+        public async Task Test_AddTableConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Concurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 var tasks = Enumerable.Range(0, 5)
                     .Select(i => Task.Run(() => sheet.AddTable("A1:B3", true, $"MyTable{i}", TableStyle.TableStyleMedium9)))
                     .ToArray();
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 document.Save();
             }
 
