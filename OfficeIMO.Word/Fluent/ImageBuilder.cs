@@ -82,6 +82,10 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Sets horizontal alignment for the image's paragraph.
+        /// </summary>
+        /// <param name="alignment">Desired horizontal alignment.</param>
         public ImageBuilder Align(HorizontalAlignment alignment) {
             var justification = alignment switch {
                 HorizontalAlignment.Center => JustificationValues.Center,
