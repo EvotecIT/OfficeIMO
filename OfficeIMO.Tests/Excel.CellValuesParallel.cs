@@ -9,7 +9,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_CellValuesParallel() {
+        public async Task Test_CellValuesParallel() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 var col3 = Enumerable.Range(1, 250).Select(i => (i, 3, (object)$"R{i}C3"));
                 var col4 = Enumerable.Range(1, 250).Select(i => (i, 4, (object)$"R{i}C4"));
 
-                Task.WaitAll(
+                await Task.WhenAll(
                     Task.Run(() => sheet.CellValuesParallel(col1)),
                     Task.Run(() => sheet.CellValuesParallel(col2)),
                     Task.Run(() => sheet.CellValuesParallel(col3)),

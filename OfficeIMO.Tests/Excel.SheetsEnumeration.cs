@@ -7,7 +7,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_SheetsEnumerationConcurrent() {
+        public async Task Test_SheetsEnumerationConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetsEnum.xlsx");
             using var document = ExcelDocument.Create(filePath);
             document.AddWorkSheet("S1");
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(3, sheets.Count);
                 }))
                 .ToArray();
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
             document.Save();
         }
     }

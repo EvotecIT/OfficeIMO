@@ -12,14 +12,15 @@ namespace OfficeIMO.Tests {
         private static string CreateDummyVba(string path, params string[] modules) {
             using var root = RootStorage.Create(path, Version.V3, StorageModeFlags.None);
             var vba = root.CreateStorage("VBA");
-            using (var dir = vba.CreateStream("dir")) dir.Write(Array.Empty<byte>());
-            using (var project = vba.CreateStream("_VBA_PROJECT")) project.Write(Array.Empty<byte>());
+            using (var dir = vba.CreateStream("dir")) dir.Write(Array.Empty<byte>(), 0, 0);
+            using (var project = vba.CreateStream("_VBA_PROJECT")) project.Write(Array.Empty<byte>(), 0, 0);
             if (modules == null || modules.Length == 0) modules = new[] { "Module1" };
             foreach (var module in modules) {
                 using var stream = vba.CreateStream(module);
-                stream.Write(Encoding.UTF8.GetBytes("test"));
+                var bytes = Encoding.UTF8.GetBytes("test");
+                stream.Write(bytes, 0, bytes.Length);
             }
-            using (var projectStream = root.CreateStream("PROJECT")) projectStream.Write(Array.Empty<byte>());
+            using (var projectStream = root.CreateStream("PROJECT")) projectStream.Write(Array.Empty<byte>(), 0, 0);
             return path;
         }
         [Fact]
