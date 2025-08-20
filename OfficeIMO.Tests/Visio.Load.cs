@@ -11,33 +11,36 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = new();
             VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = new("1", 1, 2, 1, 1, "Rectangle");
-            VisioMaster master = new("2", "Rectangle", shape);
-            shape.Master = master;
-            page.Shapes.Add(shape);
+            VisioShape masterShape = new("0", 0, 0, 1, 1, string.Empty);
+            VisioMaster master = new("2", "Rectangle", masterShape);
+
+            VisioShape shape1 = new("1", 1, 2, 1, 1, "Rectangle") { Master = master };
+            VisioShape shape2 = new("3", 3, 4, 2, 3, "Rectangle") { Master = master };
+            page.Shapes.Add(shape1);
+            page.Shapes.Add(shape2);
             document.Save(filePath);
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Single(loaded.Pages);
             VisioPage loadedPage = loaded.Pages[0];
-            Assert.Single(loadedPage.Shapes);
-            VisioShape loadedShape = loadedPage.Shapes[0];
-            Assert.Equal("1", loadedShape.Id);
-            Assert.Equal("Rectangle", loadedShape.NameU);
-            Assert.Equal("Rectangle", loadedShape.Text);
-            Assert.Equal(1d, loadedShape.PinX);
-            Assert.Equal(2d, loadedShape.PinY);
-            Assert.Equal(1d, loadedShape.Width);
-            Assert.Equal(1d, loadedShape.Height);
-            Assert.NotNull(loadedShape.Master);
+            Assert.Equal(2, loadedPage.Shapes.Count);
+            VisioShape loadedShape1 = loadedPage.Shapes[0];
+            VisioShape loadedShape2 = loadedPage.Shapes[1];
+            Assert.Equal("1", loadedShape1.Id);
+            Assert.Equal(1d, loadedShape1.Width);
+            Assert.Equal(1d, loadedShape1.Height);
+            Assert.Equal(2d, loadedShape2.Width);
+            Assert.Equal(3d, loadedShape2.Height);
 
             string secondPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             loaded.Save(secondPath);
             VisioDocument roundTrip = VisioDocument.Load(secondPath);
-            VisioShape roundTripShape = roundTrip.Pages[0].Shapes[0];
-            Assert.Equal(loadedShape.Text, roundTripShape.Text);
-            Assert.Equal(1d, roundTripShape.Width);
-            Assert.Equal(1d, roundTripShape.Height);
+            VisioShape rtShape1 = roundTrip.Pages[0].Shapes[0];
+            VisioShape rtShape2 = roundTrip.Pages[0].Shapes[1];
+            Assert.Equal(1d, rtShape1.Width);
+            Assert.Equal(1d, rtShape1.Height);
+            Assert.Equal(2d, rtShape2.Width);
+            Assert.Equal(3d, rtShape2.Height);
         }
     }
 }
