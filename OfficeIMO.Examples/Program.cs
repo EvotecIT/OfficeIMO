@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Visio.DocumentStructure.Example_DocumentStructure(folderPath, false);
             OfficeIMO.Examples.Visio.PageViewSettings.Example_PageViewSettings(folderPath, false);
             OfficeIMO.Examples.Visio.ShapeProperties.Example_ShapeProperties(folderPath, false);
+            OfficeIMO.Examples.Visio.ShapeDataWithText.Example_ShapeDataWithText(folderPath, false);
             OfficeIMO.Examples.Visio.RotatedShapeBounds.Example_RotatedShapeBounds(folderPath, false);
             OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
             OfficeIMO.Examples.Visio.ThemeAndWindows.Example_ThemeAndWindows(folderPath, false);
