@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -52,11 +53,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.True(document.Paragraphs[0].IsTab);
-                Assert.True(document.Paragraphs[1].IsHyperLink);
-                Assert.Equal("https://example.com/", document.Paragraphs[1].Hyperlink?.Uri?.ToString());
-                Assert.True(document.Paragraphs[2].IsBreak);
-                Assert.Equal(JustificationValues.Right, document.Paragraphs[3].ParagraphAlignment);
+                Assert.True(document.Paragraphs[1].IsTab);
+                Assert.True(document.Paragraphs[3].IsHyperLink);
+                Assert.Equal("https://example.com/", document.Paragraphs[3].Hyperlink?.Uri?.ToString());
+                Assert.True(document.Paragraphs[5].IsBreak);
+                Assert.Equal(JustificationValues.Right, document.Paragraphs.Last().ParagraphAlignment);
             }
         }
     }
