@@ -283,6 +283,191 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Removes the <see cref="TableCellMargin"/> element if it has no child elements.
+        /// </summary>
+        private void CleanupTableCellMargin() {
+            if (_tableCellProperties?.TableCellMargin != null && !_tableCellProperties.TableCellMargin.Any()) {
+                _tableCellProperties.TableCellMargin.Remove();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the top margin in twips for the current cell.
+        /// </summary>
+        public Int16? MarginTopWidth {
+            get {
+                var width = _tableCellProperties?.TableCellMargin?.TopMargin?.Width;
+                if (width != null) {
+                    return Int16.Parse(width);
+                }
+                return null;
+            }
+            set {
+                AddTableCellProperties();
+                if (value != null) {
+                    _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
+                    _tableCellProperties.TableCellMargin.TopMargin ??= new TopMargin();
+                    _tableCellProperties.TableCellMargin.TopMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.TopMargin.Type = TableWidthUnitValues.Dxa;
+                } else {
+                    _tableCellProperties?.TableCellMargin?.TopMargin?.Remove();
+                    CleanupTableCellMargin();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the bottom margin in twips for the current cell.
+        /// </summary>
+        public Int16? MarginBottomWidth {
+            get {
+                var width = _tableCellProperties?.TableCellMargin?.BottomMargin?.Width;
+                if (width != null) {
+                    return Int16.Parse(width);
+                }
+                return null;
+            }
+            set {
+                AddTableCellProperties();
+                if (value != null) {
+                    _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
+                    _tableCellProperties.TableCellMargin.BottomMargin ??= new BottomMargin();
+                    _tableCellProperties.TableCellMargin.BottomMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.BottomMargin.Type = TableWidthUnitValues.Dxa;
+                } else {
+                    _tableCellProperties?.TableCellMargin?.BottomMargin?.Remove();
+                    CleanupTableCellMargin();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the left margin in twips for the current cell.
+        /// </summary>
+        public Int16? MarginLeftWidth {
+            get {
+                var width = _tableCellProperties?.TableCellMargin?.LeftMargin?.Width;
+                if (width != null) {
+                    return Int16.Parse(width);
+                }
+                return null;
+            }
+            set {
+                AddTableCellProperties();
+                if (value != null) {
+                    _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
+                    _tableCellProperties.TableCellMargin.LeftMargin ??= new LeftMargin();
+                    _tableCellProperties.TableCellMargin.LeftMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.LeftMargin.Type = TableWidthUnitValues.Dxa;
+                } else {
+                    _tableCellProperties?.TableCellMargin?.LeftMargin?.Remove();
+                    CleanupTableCellMargin();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the right margin in twips for the current cell.
+        /// </summary>
+        public Int16? MarginRightWidth {
+            get {
+                var width = _tableCellProperties?.TableCellMargin?.RightMargin?.Width;
+                if (width != null) {
+                    return Int16.Parse(width);
+                }
+                return null;
+            }
+            set {
+                AddTableCellProperties();
+                if (value != null) {
+                    _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
+                    _tableCellProperties.TableCellMargin.RightMargin ??= new RightMargin();
+                    _tableCellProperties.TableCellMargin.RightMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.RightMargin.Type = TableWidthUnitValues.Dxa;
+                } else {
+                    _tableCellProperties?.TableCellMargin?.RightMargin?.Remove();
+                    CleanupTableCellMargin();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the top margin in centimeters for the current cell.
+        /// </summary>
+        public double? MarginTopCentimeters {
+            get {
+                if (MarginTopWidth != null) {
+                    return Helpers.ConvertTwipsToCentimeters(MarginTopWidth.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    MarginTopWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+                } else {
+                    MarginTopWidth = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the bottom margin in centimeters for the current cell.
+        /// </summary>
+        public double? MarginBottomCentimeters {
+            get {
+                if (MarginBottomWidth != null) {
+                    return Helpers.ConvertTwipsToCentimeters(MarginBottomWidth.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    MarginBottomWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+                } else {
+                    MarginBottomWidth = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the left margin in centimeters for the current cell.
+        /// </summary>
+        public double? MarginLeftCentimeters {
+            get {
+                if (MarginLeftWidth != null) {
+                    return Helpers.ConvertTwipsToCentimeters(MarginLeftWidth.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    MarginLeftWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+                } else {
+                    MarginLeftWidth = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the right margin in centimeters for the current cell.
+        /// </summary>
+        public double? MarginRightCentimeters {
+            get {
+                if (MarginRightWidth != null) {
+                    return Helpers.ConvertTwipsToCentimeters(MarginRightWidth.Value);
+                }
+                return null;
+            }
+            set {
+                if (value != null) {
+                    MarginRightWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
+                } else {
+                    MarginRightWidth = null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets whether text wraps within the cell.
         /// </summary>
         public bool WrapText {
