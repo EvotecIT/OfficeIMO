@@ -26,6 +26,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
                 Assert.Single(presentation.Slides);
+                Assert.Equal("Office Theme", presentation.ThemeName);
                 PowerPointSlide slide = presentation.Slides[0];
                 PowerPointTextBox box = slide.Shapes.OfType<PowerPointTextBox>().First();
                 Assert.Equal("Hello", box.Text);
@@ -40,6 +41,11 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(part.PresentationPropertiesPart);
                 Assert.NotNull(part.ViewPropertiesPart);
                 Assert.NotNull(part.TableStylesPart);
+
+                SlideMasterPart master = part.SlideMasterParts.First();
+                Assert.NotNull(master.SlideMaster.ColorMap);
+                SlideLayoutPart layout = master.SlideLayoutParts.First();
+                Assert.NotNull(layout.SlideLayout.ColorMapOverride);
 
                 SlidePart slidePart = part.SlideParts.First();
                 ShapeTree tree = slidePart.Slide.CommonSlideData!.ShapeTree!;

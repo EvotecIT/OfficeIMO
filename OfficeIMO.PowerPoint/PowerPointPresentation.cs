@@ -225,18 +225,61 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void InitializeDefaultParts() {
+            static ShapeTree CreateShapeTree() {
+                return new ShapeTree(
+                    new NonVisualGroupShapeProperties(
+                        new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                        new NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()
+                    ),
+                    new GroupShapeProperties(
+                        new A.TransformGroup(
+                            new A.Offset { X = 0L, Y = 0L },
+                            new A.Extents { Cx = 0L, Cy = 0L },
+                            new A.ChildOffset { X = 0L, Y = 0L },
+                            new A.ChildExtents { Cx = 0L, Cy = 0L }
+                        )
+                    )
+                );
+            }
+
             SlideMasterPart slideMasterPart = _presentationPart.AddNewPart<SlideMasterPart>();
-            slideMasterPart.SlideMaster = new SlideMaster(new CommonSlideData(new ShapeTree()));
+            SlideMaster slideMaster = new(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMap {
+                    Background1 = A.ColorSchemeIndexValues.Light1,
+                    Text1 = A.ColorSchemeIndexValues.Dark1,
+                    Background2 = A.ColorSchemeIndexValues.Light2,
+                    Text2 = A.ColorSchemeIndexValues.Dark2,
+                    Accent1 = A.ColorSchemeIndexValues.Accent1,
+                    Accent2 = A.ColorSchemeIndexValues.Accent2,
+                    Accent3 = A.ColorSchemeIndexValues.Accent3,
+                    Accent4 = A.ColorSchemeIndexValues.Accent4,
+                    Accent5 = A.ColorSchemeIndexValues.Accent5,
+                    Accent6 = A.ColorSchemeIndexValues.Accent6,
+                    Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+                    FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+                },
+                new SlideLayoutIdList(),
+                new TextStyles(new TitleStyle(), new BodyStyle(), new OtherStyle())
+            );
+            slideMasterPart.SlideMaster = slideMaster;
 
             SlideLayoutPart slideLayoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart1.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
+            slideLayoutPart1.SlideLayout = new SlideLayout(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping())
+            );
 
             SlideLayoutPart slideLayoutPart2 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            slideLayoutPart2.SlideLayout = new SlideLayout(new CommonSlideData(new ShapeTree()));
+            slideLayoutPart2.SlideLayout = new SlideLayout(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping())
+            );
 
-            slideMasterPart.SlideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
-                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
+            slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
+                new SlideLayoutId { Id = 2147483649U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart1) },
+                new SlideLayoutId { Id = 2147483650U, RelationshipId = slideMasterPart.GetIdOfPart(slideLayoutPart2) }
             );
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
@@ -245,11 +288,15 @@ namespace OfficeIMO.PowerPoint {
             slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(new SlideMasterId {
-                Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
+                Id = 2147483648U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart)
             });
 
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
-            notesMasterPart.NotesMaster = new NotesMaster(new CommonSlideData(new ShapeTree()));
+            notesMasterPart.NotesMaster = new NotesMaster(
+                new CommonSlideData(CreateShapeTree()),
+                new ColorMapOverride(new A.MasterColorMapping()),
+                new NotesStyle()
+            );
 
             _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(new NotesMasterId {
                 Id = _presentationPart.GetIdOfPart(notesMasterPart)

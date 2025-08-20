@@ -12,6 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "Basic PowerPoint.pptx");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            Console.WriteLine($"Theme: {presentation.ThemeName}");
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBox("Hello World");
             text.AddBullet("Bullet 1");
