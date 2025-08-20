@@ -36,17 +36,37 @@ namespace OfficeIMO.Tests {
                 }
 
                 foreach (SlideMasterPart master in presentationPart.SlideMasterParts) {
+                    if (master.SlideMaster == null) {
+                        warnings.Add("Slide master missing root element.");
+                    }
+
                     if (!master.SlideLayoutParts.Any()) {
                         warnings.Add("Slide master missing slide layout part.");
                     }
 
+                    foreach (SlideLayoutPart layout in master.SlideLayoutParts) {
+                        if (layout.SlideLayout == null) {
+                            warnings.Add("Slide layout part missing root element.");
+                        }
+                    }
+
                     if (master.ThemePart == null) {
                         warnings.Add("Slide master missing theme part.");
+                    } else if (master.ThemePart.Theme == null) {
+                        warnings.Add("Theme part missing root element.");
                     }
                 }
 
                 if (presentationPart.ThemePart == null) {
                     warnings.Add("Presentation missing theme part.");
+                } else if (presentationPart.ThemePart.Theme == null) {
+                    warnings.Add("Presentation theme part missing root element.");
+                }
+
+                if (presentationPart.NotesMasterPart == null) {
+                    warnings.Add("Presentation missing notes master part.");
+                } else if (presentationPart.NotesMasterPart.NotesMaster == null) {
+                    warnings.Add("Notes master part missing root element.");
                 }
 
                 List<SlidePart> slideParts = presentationPart.SlideParts.ToList();

@@ -271,21 +271,25 @@ namespace OfficeIMO.PowerPoint {
                 new CommonSlideData(CreateShapeTree()),
                 new ColorMapOverride(new A.MasterColorMapping())
             );
+            layoutPart0.SlideLayout.Save();
 
             SlideLayoutPart layoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
             layoutPart1.SlideLayout = new SlideLayout(
                 new CommonSlideData(CreateShapeTree()),
                 new ColorMapOverride(new A.MasterColorMapping())
             );
+            layoutPart1.SlideLayout.Save();
 
             slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
                 new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
                 new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
             );
+            slideMaster.Save();
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
             ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
             themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
+            themePart.Theme.Save();
             slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(
@@ -298,6 +302,7 @@ namespace OfficeIMO.PowerPoint {
                 new ColorMapOverride(new A.MasterColorMapping()),
                 new NotesStyle()
             );
+            notesMasterPart.NotesMaster.Save();
 
             NotesMasterId notesMasterId = new NotesMasterId();
             notesMasterId.SetAttribute(new OpenXmlAttribute(
@@ -307,7 +312,6 @@ namespace OfficeIMO.PowerPoint {
                 _presentationPart.GetIdOfPart(notesMasterPart)
             ));
             _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(notesMasterId);
-            notesMasterPart.NotesMaster.Save();
 
             _presentationPart.Presentation.SlideSize = new SlideSize {
                 Cx = 9144000,
