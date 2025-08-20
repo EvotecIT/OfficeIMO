@@ -692,10 +692,18 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("Master", shape.Master.Id);
                                 WriteCell(writer, "PinX", shape.PinX);
                                 WriteCell(writer, "PinY", shape.PinY);
-                                if (Math.Abs(shape.LocPinX - shape.Width / 2) > 0) {
+                                double width = shape.Width > 0 ? shape.Width :
+                                    (shape.Master.Shape.Width > 0 ? shape.Master.Shape.Width : 1);
+                                double height = shape.Height > 0 ? shape.Height :
+                                    (shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1);
+                                shape.Width = width;
+                                shape.Height = height;
+                                WriteCell(writer, "Width", width);
+                                WriteCell(writer, "Height", height);
+                                if (Math.Abs(shape.LocPinX - width / 2) > 0) {
                                     WriteCell(writer, "LocPinX", shape.LocPinX);
                                 }
-                                if (Math.Abs(shape.LocPinY - shape.Height / 2) > 0) {
+                                if (Math.Abs(shape.LocPinY - height / 2) > 0) {
                                     WriteCell(writer, "LocPinY", shape.LocPinY);
                                 }
                                 if (Math.Abs(shape.Angle) > 0) {
