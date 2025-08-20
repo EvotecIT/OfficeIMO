@@ -218,6 +218,31 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
+                void WriteRectangleGeometry(XmlWriter writer, double width, double height) {
+                    writer.WriteStartElement("Geom", ns);
+                    writer.WriteStartElement("MoveTo", ns);
+                    writer.WriteAttributeString("X", ToVisioString(0));
+                    writer.WriteAttributeString("Y", ToVisioString(0));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", ToVisioString(width));
+                    writer.WriteAttributeString("Y", ToVisioString(0));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", ToVisioString(width));
+                    writer.WriteAttributeString("Y", ToVisioString(height));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", ToVisioString(0));
+                    writer.WriteAttributeString("Y", ToVisioString(height));
+                    writer.WriteEndElement();
+                    writer.WriteStartElement("LineTo", ns);
+                    writer.WriteAttributeString("X", ToVisioString(0));
+                    writer.WriteAttributeString("Y", ToVisioString(0));
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
+                }
+
                 if (themePart != null) {
                     using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                         writer.WriteStartDocument();
@@ -253,6 +278,10 @@ namespace OfficeIMO.Visio {
                             writer.WriteStartElement("MasterContents", ns);
                             writer.WriteStartElement("Shapes", ns);
                             VisioShape s = master.Shape;
+                            double masterWidth = s.Width > 0 ? s.Width : 1;
+                            double masterHeight = s.Height > 0 ? s.Height : 1;
+                            s.Width = masterWidth;
+                            s.Height = masterHeight;
                             writer.WriteStartElement("Shape", ns);
                             writer.WriteAttributeString("ID", "1");
                             string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
@@ -261,8 +290,9 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Type", "Shape");
                             WriteCell(writer, "PinX", s.PinX);
                             WriteCell(writer, "PinY", s.PinY);
-                            WriteCell(writer, "Width", s.Width);
-                            WriteCell(writer, "Height", s.Height);
+                            WriteCell(writer, "Width", masterWidth);
+                            WriteCell(writer, "Height", masterHeight);
+                            WriteRectangleGeometry(writer, masterWidth, masterHeight);
                             if (!string.IsNullOrEmpty(s.Text)) {
                                 writer.WriteElementString("Text", ns, s.Text);
                             }
@@ -452,8 +482,13 @@ namespace OfficeIMO.Visio {
                             } else {
                                 WriteCell(writer, "PinX", shape.PinX);
                                 WriteCell(writer, "PinY", shape.PinY);
-                                WriteCell(writer, "Width", shape.Width);
-                                WriteCell(writer, "Height", shape.Height);
+                                double width = shape.Width > 0 ? shape.Width : 1;
+                                double height = shape.Height > 0 ? shape.Height : 1;
+                                shape.Width = width;
+                                shape.Height = height;
+                                WriteCell(writer, "Width", width);
+                                WriteCell(writer, "Height", height);
+                                WriteRectangleGeometry(writer, width, height);
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
                                 }

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
         }
 
-        [Fact(Skip = "Temporarily disabled due to failing test; TODO revisit")]
+        [Fact(Skip = "Rectangle output not yet finalized")]
         public void RectangleDocumentMatchesAsset() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
