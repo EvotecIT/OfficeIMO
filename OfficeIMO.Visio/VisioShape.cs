@@ -37,5 +37,7 @@ namespace OfficeIMO.Visio {
         public double Height { get; set; }
 
         public string? Text { get; set; }
+
+        public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
     }
 }

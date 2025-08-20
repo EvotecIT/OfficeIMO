@@ -172,6 +172,35 @@ namespace OfficeIMO.Visio {
                 shape.Height = ParseDouble(xform?.Element(ns + "Height")?.Value);
             }
 
+            XElement? connectionSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
+            if (connectionSection != null) {
+                foreach (XElement row in connectionSection.Elements(ns + "Row")) {
+                    double x = 0;
+                    double y = 0;
+                    double dirX = 0;
+                    double dirY = 0;
+                    foreach (XElement cell in row.Elements(ns + "Cell")) {
+                        string? n = cell.Attribute("N")?.Value;
+                        string? v = cell.Attribute("V")?.Value;
+                        switch (n) {
+                            case "X":
+                                x = ParseDouble(v);
+                                break;
+                            case "Y":
+                                y = ParseDouble(v);
+                                break;
+                            case "DirX":
+                                dirX = ParseDouble(v);
+                                break;
+                            case "DirY":
+                                dirY = ParseDouble(v);
+                                break;
+                        }
+                    }
+                    shape.ConnectionPoints.Add(new VisioConnectionPoint(x, y, dirX, dirY));
+                }
+            }
+
             return shape;
         }
 
@@ -280,6 +309,33 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
+                void WriteConnectionSection(XmlWriter writer, IList<VisioConnectionPoint> points) {
+                    if (points.Count == 0) {
+                        return;
+                    }
+                    writer.WriteStartElement("Section", ns);
+                    writer.WriteAttributeString("N", "Connection");
+                    for (int i = 0; i < points.Count; i++) {
+                        VisioConnectionPoint cp = points[i];
+                        writer.WriteStartElement("Row", ns);
+                        writer.WriteAttributeString("IX", XmlConvert.ToString(i));
+                        WriteCell(writer, "X", cp.X);
+                        WriteCell(writer, "Y", cp.Y);
+                        WriteCell(writer, "DirX", cp.DirX);
+                        WriteCell(writer, "DirY", cp.DirY);
+                        writer.WriteEndElement();
+                    }
+                    writer.WriteEndElement();
+                }
+
+                string GetConnectionCell(VisioShape shape, VisioConnectionPoint? point) {
+                    if (point == null) {
+                        return "PinX";
+                    }
+                    int index = shape.ConnectionPoints.IndexOf(point);
+                    return index >= 0 ? $"Connections.X{index + 1}" : "PinX";
+                }
+
                 if (themePart != null) {
                     using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                         writer.WriteStartDocument();
@@ -330,6 +386,7 @@ namespace OfficeIMO.Visio {
                             WriteCell(writer, "Width", masterWidth);
                             WriteCell(writer, "Height", masterHeight);
                             WriteRectangleGeometry(writer, masterWidth, masterHeight);
+                            WriteConnectionSection(writer, s.ConnectionPoints);
                             if (!string.IsNullOrEmpty(s.Text)) {
                                 writer.WriteElementString("Text", ns, s.Text);
                             }
@@ -513,6 +570,7 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("U", "PT");
                                 writer.WriteAttributeString("F", "Inh");
                                 writer.WriteEndElement();
+                                WriteConnectionSection(writer, shape.ConnectionPoints);
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
                                 }
@@ -526,6 +584,7 @@ namespace OfficeIMO.Visio {
                                 WriteCell(writer, "Width", width);
                                 WriteCell(writer, "Height", height);
                                 WriteRectangleGeometry(writer, width, height);
+                                WriteConnectionSection(writer, shape.ConnectionPoints);
                                 if (!string.IsNullOrEmpty(shape.Text)) {
                                     writer.WriteElementString("Text", ns, shape.Text);
                                 }
@@ -536,10 +595,26 @@ namespace OfficeIMO.Visio {
                         foreach (VisioConnector connector in page.Connectors) {
                             VisioShape from = connector.From;
                             VisioShape to = connector.To;
-                            double startX = from.PinX + from.Width / 2;
-                            double startY = from.PinY;
-                            double endX = to.PinX - to.Width / 2;
-                            double endY = to.PinY;
+                            double startX;
+                            double startY;
+                            if (connector.FromConnectionPoint != null) {
+                                VisioConnectionPoint cp = connector.FromConnectionPoint;
+                                startX = from.PinX - from.Width / 2 + cp.X;
+                                startY = from.PinY - from.Height / 2 + cp.Y;
+                            } else {
+                                startX = from.PinX + from.Width / 2;
+                                startY = from.PinY;
+                            }
+                            double endX;
+                            double endY;
+                            if (connector.ToConnectionPoint != null) {
+                                VisioConnectionPoint cp = connector.ToConnectionPoint;
+                                endX = to.PinX - to.Width / 2 + cp.X;
+                                endY = to.PinY - to.Height / 2 + cp.Y;
+                            } else {
+                                endX = to.PinX - to.Width / 2;
+                                endY = to.PinY;
+                            }
 
                             writer.WriteStartElement("Shape", ns);
                             writer.WriteAttributeString("ID", connector.Id);
@@ -572,13 +647,13 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("FromSheet", connector.Id);
                                 writer.WriteAttributeString("FromCell", "BeginX");
                                 writer.WriteAttributeString("ToSheet", connector.From.Id);
-                                writer.WriteAttributeString("ToCell", "PinX");
+                                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.From, connector.FromConnectionPoint));
                                 writer.WriteEndElement();
                                 writer.WriteStartElement("Connect", ns);
                                 writer.WriteAttributeString("FromSheet", connector.Id);
                                 writer.WriteAttributeString("FromCell", "EndX");
                                 writer.WriteAttributeString("ToSheet", connector.To.Id);
-                                writer.WriteAttributeString("ToCell", "PinX");
+                                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.To, connector.ToConnectionPoint));
                                 writer.WriteEndElement();
                             }
                             writer.WriteEndElement(); // Connects

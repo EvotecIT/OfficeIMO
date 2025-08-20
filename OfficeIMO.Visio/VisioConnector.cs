@@ -32,6 +32,10 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioShape To { get; }
 
+        public VisioConnectionPoint? FromConnectionPoint { get; set; }
+
+        public VisioConnectionPoint? ToConnectionPoint { get; set; }
+
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
             int toId = int.TryParse(to.Id, out int ti) ? ti : 0;
