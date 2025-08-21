@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Bookmark to reference.
         /// </summary>
-        public string Bookmark { get; set; }
+        public string? Bookmark { get; set; }
 
         /// <summary>
         /// When true, inserts a hyperlink to the bookmark (\\h switch).

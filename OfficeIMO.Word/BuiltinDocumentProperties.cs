@@ -6,8 +6,8 @@ namespace OfficeIMO.Word {
     /// Provides access to the built-in document properties such as title, creator and keywords.
     /// </summary>
     public class BuiltinDocumentProperties {
-        private WordprocessingDocument _wordprocessingDocument;
-        private WordDocument _document;
+        private readonly WordprocessingDocument _wordprocessingDocument;
+        private readonly WordDocument _document;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BuiltinDocumentProperties"/> class
@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the creator of the document.
         /// </summary>
-        public string Creator {
+        public string? Creator {
             get {
                 return _wordprocessingDocument.PackageProperties.Creator;
             }
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the title of the document.
         /// </summary>
-        public string Title {
+        public string? Title {
             get {
                 return _wordprocessingDocument.PackageProperties.Title;
             }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the document description.
         /// </summary>
-        public string Description {
+        public string? Description {
             get {
                 return _wordprocessingDocument.PackageProperties.Description;
             }
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the category of the document.
         /// </summary>
-        public string Category {
+        public string? Category {
             get {
                 return _wordprocessingDocument.PackageProperties.Category;
             }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// A delimited set of keywords (tags) to support searching and indexing the Package and content.
         /// </summary>
-        public string Keywords {
+        public string? Keywords {
             get {
                 return _wordprocessingDocument.PackageProperties.Keywords;
             }
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the document subject.
         /// </summary>
-        public string Subject {
+        public string? Subject {
             get {
                 return _wordprocessingDocument.PackageProperties.Subject;
             }
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the document revision number.
         /// </summary>
-        public string Revision {
+        public string? Revision {
             get {
                 return _wordprocessingDocument.PackageProperties.Revision;
             }
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the last user who modified the document.
         /// </summary>
-        public string LastModifiedBy {
+        public string? LastModifiedBy {
             get {
                 return _wordprocessingDocument.PackageProperties.LastModifiedBy;
             }
@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the document version.
         /// </summary>
-        public string Version {
+        public string? Version {
             get {
                 return _wordprocessingDocument.PackageProperties.Version;
             }

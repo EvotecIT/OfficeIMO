@@ -13,8 +13,7 @@ namespace OfficeIMO.Word {
         static ColorNameResolver() {
             // Use reflection to get all named colors from the Color structure
             foreach (var prop in typeof(Color).GetFields(BindingFlags.Static | BindingFlags.Public)) {
-                if (prop.FieldType == typeof(Color)) {
-                    Color color = (Color)prop.GetValue(null);
+                if (prop.FieldType == typeof(Color) && prop.GetValue(null) is Color color) {
                     colorNameMap[color] = prop.Name;
                 }
             }
@@ -27,7 +26,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">The color to resolve.</param>
         /// <returns>The color name or RGBA string.</returns>
         public static string GetColorName(Color color) {
-            if (colorNameMap.TryGetValue(color, out string colorName)) {
+            if (colorNameMap.TryGetValue(color, out var colorName)) {
                 return colorName;
             }
 

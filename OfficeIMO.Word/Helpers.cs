@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
         /// Normalizes color input which may be a hex value or a named color.
         /// Returns a lowercase hex string without '#'.
         /// </summary>
-        internal static string NormalizeColor(string color) {
+        internal static string? NormalizeColor(string? color) {
             if (string.IsNullOrEmpty(color)) {
                 return null;
             }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Word {
             return IsFileLocked(new FileInfo(fileName));
         }
 
-        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream, string fileName = null) {
+        internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream, string? fileName = null) {
             try {
                 using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
                 imageStream.Position = 0;
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word {
                         try {
                             using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
                             var svg = System.Xml.Linq.XDocument.Load(reader);
-                            var root = svg.Root;
+                            var root = svg.Root ?? throw new InvalidOperationException("SVG document has no root element.");
                             double width = 0;
                             double height = 0;
                             var wAttr = root.Attribute("width");

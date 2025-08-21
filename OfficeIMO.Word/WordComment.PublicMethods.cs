@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         /// <param name="comment">Comment text.</param>
         /// <param name="parent">Optional parent comment when creating a reply.</param>
         /// <returns>The newly created <see cref="WordComment"/>.</returns>
-        public static WordComment Create(WordDocument document, string author, string initials, string comment, WordComment parent = null) {
+        public static WordComment Create(WordDocument document, string author, string initials, string comment, WordComment? parent = null) {
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
             // Compose a new Comment and add it to the Comments part.

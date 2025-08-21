@@ -85,6 +85,7 @@ namespace OfficeIMO.Word {
 
             var header = new Header();
             header.Save(headerPart);
+            var headerElement = headerPart.Header ?? throw new InvalidOperationException("Header element is missing.");
 
             if (headerPart != null) {
                 var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(headerPart);
@@ -99,15 +100,13 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            var headers = section.Header ?? throw new InvalidOperationException("Headers collection is missing.");
             if (headerFooterValue == HeaderFooterValues.Default) {
-                //  section._headerDefault = headerPart.Header;
-                section.Header.Default = new WordHeader(document, HeaderFooterValues.Default, headerPart.Header, section);
+                headers.Default = new WordHeader(document, HeaderFooterValues.Default, headerElement, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {
-                //  section._headerFirst = headerPart.Header;
-                section.Header.First = new WordHeader(document, HeaderFooterValues.First, headerPart.Header, section);
+                headers.First = new WordHeader(document, HeaderFooterValues.First, headerElement, section);
             } else {
-                // section._headerEven = headerPart.Header;
-                section.Header.Even = new WordHeader(document, HeaderFooterValues.Even, headerPart.Header, section);
+                headers.Even = new WordHeader(document, HeaderFooterValues.Even, headerElement, section);
             }
         }
 
@@ -130,6 +129,7 @@ namespace OfficeIMO.Word {
 
             var footer = new Footer();
             footer.Save(footerPart);
+            var footerElement = footerPart.Footer ?? throw new InvalidOperationException("Footer element is missing.");
 
             if (footerPart != null) {
                 var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(footerPart);
@@ -142,15 +142,13 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            var footers = section.Footer ?? throw new InvalidOperationException("Footers collection is missing.");
             if (headerFooterValue == HeaderFooterValues.Default) {
-                //section._footerDefault = footerPart.Footer;
-                section.Footer.Default = new WordFooter(document, HeaderFooterValues.Default, footerPart.Footer, section);
+                footers.Default = new WordFooter(document, HeaderFooterValues.Default, footerElement, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {
-                //section._footerFirst = footerPart.Footer;
-                section.Footer.First = new WordFooter(document, HeaderFooterValues.First, footerPart.Footer, section);
+                footers.First = new WordFooter(document, HeaderFooterValues.First, footerElement, section);
             } else {
-                //section._footerEven = footerPart.Footer;
-                section.Footer.Even = new WordFooter(document, HeaderFooterValues.Even, footerPart.Footer, section);
+                footers.Even = new WordFooter(document, HeaderFooterValues.Even, footerElement, section);
             }
         }
 
