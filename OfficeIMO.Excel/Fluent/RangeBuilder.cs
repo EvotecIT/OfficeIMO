@@ -58,6 +58,17 @@ namespace OfficeIMO.Excel.Fluent {
             }
             return this;
         }
+
+        public RangeBuilder Cell(int rowOffset, int columnOffset, object? value = null, string? formula = null, string? numberFormat = null) {
+            if (rowOffset < 1) throw new ArgumentOutOfRangeException(nameof(rowOffset));
+            if (columnOffset < 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+            int row = _fromRow + rowOffset - 1;
+            int col = _fromCol + columnOffset - 1;
+            if (row > _toRow) throw new ArgumentOutOfRangeException(nameof(rowOffset));
+            if (col > _toCol) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+            _sheet.Cell(row, col, value, formula, numberFormat);
+            return this;
+        }
     }
 }
 

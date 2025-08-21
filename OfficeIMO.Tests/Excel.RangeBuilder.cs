@@ -41,6 +41,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RangeBuilderSetsSingleCell() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AsFluent().Sheet("Data", s => s.Range("A1:C3", r => r.Cell(2, 2, "X")));
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.Equal("X", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RangeBuilderAppliesNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             object[,] values = { { 1.2, 3.4 }, { 5.6, 7.8 } };
