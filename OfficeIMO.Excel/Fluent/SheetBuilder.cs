@@ -96,18 +96,18 @@ namespace OfficeIMO.Excel.Fluent {
 
         public SheetBuilder Cell(int row, int column, object? value = null, string? formula = null, string? numberFormat = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+            if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
             Sheet.Cell(row, column, value, formula, numberFormat);
             return this;
         }
 
         public SheetBuilder Range(int fromRow, int fromCol, int toRow, int toCol, object[,]? values = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            if (fromRow <= 0) throw new ArgumentOutOfRangeException(nameof(fromRow));
-            if (fromCol <= 0) throw new ArgumentOutOfRangeException(nameof(fromCol));
-            if (toRow <= 0) throw new ArgumentOutOfRangeException(nameof(toRow));
-            if (toCol <= 0) throw new ArgumentOutOfRangeException(nameof(toCol));
+            if (fromRow < 1) throw new ArgumentOutOfRangeException(nameof(fromRow));
+            if (fromCol < 1) throw new ArgumentOutOfRangeException(nameof(fromCol));
+            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toCol < 1) throw new ArgumentOutOfRangeException(nameof(toCol));
             if (toRow < fromRow) throw new ArgumentOutOfRangeException(nameof(toRow));
             if (toCol < fromCol) throw new ArgumentOutOfRangeException(nameof(toCol));
 

@@ -42,6 +42,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Cell(0, 1, "X")));
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Cell(1, 0, "X")));
             }
             File.Delete(filePath);
         }
@@ -72,6 +73,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Range(0, 1, 1, 1, null)));
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Sheet("Data", s => s.Range(1, 0, 1, 1, null)));
             }
             File.Delete(filePath);
         }
