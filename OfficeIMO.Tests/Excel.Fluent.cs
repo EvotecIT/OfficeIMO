@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                         .Row(r => r.Values("Alice", 93))
                         .Row(r => r.Values("Bob", 88))
                         .Table(t => t.Add("A1:B3", true, "Scores"))
-                        .Column(c => c.AutoFit()))
+                        .Columns(c => c.Col(1, col => col.AutoFit()).Col(2, col => col.AutoFit())))
                     .End()
                     .Save();
             }
@@ -45,6 +45,36 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Name", GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal("93", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
                 Assert.True(sheetPart.TableDefinitionParts.Any());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void CanChangeColumnWidthAndHiddenState() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Sheet("Data", s => s
+                        .HeaderRow("Name", "Score")
+                        .Columns(c => c
+                            .Col(1, col => col.Width(25).Hidden(true))
+                            .Col(2, col => col.Width(30))))
+                    .End()
+                    .Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>();
+                Assert.NotNull(columns);
+                var col1 = columns.Elements<Column>().First(c => c.Min == 1 && c.Max == 1);
+                var col2 = columns.Elements<Column>().First(c => c.Min == 2 && c.Max == 2);
+                Assert.Equal(25D, col1.Width!.Value);
+                Assert.True(col1.Hidden!.Value);
+                Assert.Equal(30D, col2.Width!.Value);
+                Assert.False(col2.Hidden?.Value ?? false);
             }
 
             File.Delete(filePath);

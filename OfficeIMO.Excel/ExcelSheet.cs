@@ -333,6 +333,43 @@ namespace OfficeIMO.Excel {
             worksheet.Save();
         }
 
+        public void SetColumnWidth(int columnIndex, double width) {
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                var columns = worksheet.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = worksheet.InsertAt(new Columns(), 0);
+                }
+                var column = columns.Elements<Column>()
+                    .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+                if (column == null) {
+                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                    columns.Append(column);
+                }
+                column.Width = width;
+                column.CustomWidth = true;
+                worksheet.Save();
+            });
+        }
+
+        public void SetColumnHidden(int columnIndex, bool hidden) {
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                var columns = worksheet.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = worksheet.InsertAt(new Columns(), 0);
+                }
+                var column = columns.Elements<Column>()
+                    .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+                if (column == null) {
+                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                    columns.Append(column);
+                }
+                column.Hidden = hidden ? true : (bool?)null;
+                worksheet.Save();
+            });
+        }
+
         public void AutoFitRow(int rowIndex) {
             var worksheet = _worksheetPart.Worksheet;
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
