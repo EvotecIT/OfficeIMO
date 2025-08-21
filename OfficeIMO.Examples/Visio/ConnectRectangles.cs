@@ -36,7 +36,10 @@ namespace OfficeIMO.Examples.Visio {
             var connector = new VisioConnector(start, end) {
                 LineColor = Color.Blue,
                 LineWeight = 0.02,
-                EndArrow = 1 // Add arrow at the end
+                Kind = ConnectorKind.RightAngle,
+                BeginArrow = EndArrow.Arrow,
+                EndArrow = EndArrow.Triangle,
+                Label = "Start to End"
             };
             page.Connectors.Add(connector);
             

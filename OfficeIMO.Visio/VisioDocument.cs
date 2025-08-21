@@ -160,7 +160,16 @@ namespace OfficeIMO.Visio {
                 PackagePart pagePart = package.GetPart(pageUri);
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
 
-                foreach (XElement shapeElement in pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape") ?? Enumerable.Empty<XElement>()) {
+                XElement? shapesRoot = pageDoc.Root?.Element(ns + "Shapes");
+                Dictionary<string, VisioShape> shapeMap = new();
+                List<XElement> connectorElements = new();
+                foreach (XElement shapeElement in shapesRoot?.Elements(ns + "Shape") ?? Enumerable.Empty<XElement>()) {
+                    string? nameU = shapeElement.Attribute("NameU")?.Value;
+                    if (string.Equals(nameU, "Connector", StringComparison.OrdinalIgnoreCase)) {
+                        connectorElements.Add(shapeElement);
+                        continue;
+                    }
+
                     VisioShape shape = ParseShape(shapeElement, ns);
                     string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
                     if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
@@ -183,6 +192,63 @@ namespace OfficeIMO.Visio {
                     }
 
                     page.Shapes.Add(shape);
+                    shapeMap[shape.Id] = shape;
+                }
+
+                Dictionary<string, (string? fromId, string? toId)> connectionMap = new();
+                foreach (XElement connectElement in pageDoc.Root?.Element(ns + "Connects")?.Elements(ns + "Connect") ?? Enumerable.Empty<XElement>()) {
+                    string? connectorId = connectElement.Attribute("FromSheet")?.Value;
+                    string? fromCell = connectElement.Attribute("FromCell")?.Value;
+                    string? toSheet = connectElement.Attribute("ToSheet")?.Value;
+                    if (connectorId == null || fromCell == null || toSheet == null) {
+                        continue;
+                    }
+                    var info = connectionMap.TryGetValue(connectorId, out var existing) ? existing : (null, null);
+                    if (fromCell == "BeginX") {
+                        info.fromId = toSheet;
+                    } else if (fromCell == "EndX") {
+                        info.toId = toSheet;
+                    }
+                    connectionMap[connectorId] = info;
+                }
+
+                foreach (XElement connectorElement in connectorElements) {
+                    string id = connectorElement.Attribute("ID")?.Value ?? string.Empty;
+                    if (!connectionMap.TryGetValue(id, out var ids) || ids.fromId == null || ids.toId == null) {
+                        continue;
+                    }
+                    if (!shapeMap.TryGetValue(ids.fromId, out VisioShape fromShape) || !shapeMap.TryGetValue(ids.toId, out VisioShape toShape)) {
+                        continue;
+                    }
+                    VisioConnector connector = new VisioConnector(id, fromShape, toShape);
+
+                    foreach (XElement cell in connectorElement.Elements(ns + "Cell")) {
+                        string? n = cell.Attribute("N")?.Value;
+                        string? v = cell.Attribute("V")?.Value;
+                        switch (n) {
+                            case "BeginArrow":
+                                connector.BeginArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
+                                break;
+                            case "EndArrow":
+                                connector.EndArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
+                                break;
+                        }
+                    }
+
+                    XElement? geometry = connectorElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Geometry");
+                    if (geometry != null) {
+                        int rowCount = geometry.Elements(ns + "Row").Count();
+                        connector.Kind = rowCount switch {
+                            2 => ConnectorKind.Straight,
+                            3 => ConnectorKind.RightAngle,
+                            _ => ConnectorKind.Curved
+                        };
+                    } else {
+                        connector.Kind = ConnectorKind.Dynamic;
+                    }
+
+                    connector.Label = connectorElement.Element(ns + "Text")?.Value;
+                    page.Connectors.Add(connector);
                 }
             }
 
@@ -982,35 +1048,53 @@ namespace OfficeIMO.Visio {
                               WriteCell(writer, "FillPattern", 0); // Connectors typically have no fill
                               WriteCellValue(writer, "FillForegnd", Color.Transparent.ToVisioHex());
                               WriteCell(writer, "OneD", 1);
-                              if (connector.EndArrow.HasValue) {
-                                  WriteCell(writer, "EndArrow", connector.EndArrow.Value);
+                              if (connector.BeginArrow.HasValue) {
+                                  WriteCell(writer, "BeginArrow", (int)connector.BeginArrow.Value);
                               }
-                              writer.WriteStartElement("Section", ns);
-                              writer.WriteAttributeString("N", "Geometry");
-                              writer.WriteAttributeString("IX", "0");
-                              
-                              // MoveTo
-                              writer.WriteStartElement("Row", ns);
-                              writer.WriteAttributeString("T", "MoveTo");
-                              WriteCell(writer, "X", startX);
-                              WriteCell(writer, "Y", startY);
-                              writer.WriteEndElement();
-                              
-                              // LineTo to intermediate point
-                              writer.WriteStartElement("Row", ns);
-                              writer.WriteAttributeString("T", "LineTo");
-                              WriteCell(writer, "X", startX);
-                              WriteCell(writer, "Y", endY);
-                              writer.WriteEndElement();
-                              
-                              // LineTo to end point
-                              writer.WriteStartElement("Row", ns);
-                              writer.WriteAttributeString("T", "LineTo");
-                              WriteCell(writer, "X", endX);
-                              WriteCell(writer, "Y", endY);
-                              writer.WriteEndElement();
-                              
-                              writer.WriteEndElement();
+                              if (connector.EndArrow.HasValue) {
+                                  WriteCell(writer, "EndArrow", (int)connector.EndArrow.Value);
+                              }
+
+                              if (connector.Kind != ConnectorKind.Dynamic) {
+                                  writer.WriteStartElement("Section", ns);
+                                  writer.WriteAttributeString("N", "Geometry");
+                                  writer.WriteAttributeString("IX", "0");
+
+                                  writer.WriteStartElement("Row", ns);
+                                  writer.WriteAttributeString("T", "MoveTo");
+                                  WriteCell(writer, "X", startX);
+                                  WriteCell(writer, "Y", startY);
+                                  writer.WriteEndElement();
+
+                                  switch (connector.Kind) {
+                                      case ConnectorKind.RightAngle:
+                                          writer.WriteStartElement("Row", ns);
+                                          writer.WriteAttributeString("T", "LineTo");
+                                          WriteCell(writer, "X", startX);
+                                          WriteCell(writer, "Y", endY);
+                                          writer.WriteEndElement();
+
+                                          writer.WriteStartElement("Row", ns);
+                                          writer.WriteAttributeString("T", "LineTo");
+                                          WriteCell(writer, "X", endX);
+                                          WriteCell(writer, "Y", endY);
+                                          writer.WriteEndElement();
+                                          break;
+                                      case ConnectorKind.Curved:
+                                      case ConnectorKind.Straight:
+                                      default:
+                                          writer.WriteStartElement("Row", ns);
+                                          writer.WriteAttributeString("T", "LineTo");
+                                          WriteCell(writer, "X", endX);
+                                          WriteCell(writer, "Y", endY);
+                                          writer.WriteEndElement();
+                                          break;
+                                  }
+
+                                  writer.WriteEndElement();
+                              }
+
+                              WriteTextElement(writer, connector.Label);
                             writer.WriteEndElement();
                         }
 

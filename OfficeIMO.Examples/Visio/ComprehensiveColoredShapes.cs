@@ -150,7 +150,7 @@ namespace OfficeIMO.Examples.Visio {
                 LineColor = Color.Blue,
                 LineWeight = 0.02,
                 LinePattern = 1,
-                EndArrow = 1 // Arrow at end
+                EndArrow = EndArrow.Arrow
             };
             page.Connectors.Add(connector1);
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Examples.Visio {
                 LineColor = Color.Green,
                 LineWeight = 0.02,
                 LinePattern = 1,
-                EndArrow = 1 // Arrow at end
+                EndArrow = EndArrow.Arrow
             };
             page.Connectors.Add(connector2);
 

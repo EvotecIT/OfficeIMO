@@ -60,12 +60,22 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the kind of connector.
         /// </summary>
-        public ConnectorKind Kind { get; set; } = ConnectorKind.Straight;
+        public ConnectorKind Kind { get; set; } = ConnectorKind.Dynamic;
 
         /// <summary>
-        /// Gets or sets the end arrow style.
+        /// Gets or sets the arrow style at the beginning of the connector.
         /// </summary>
-        public int? EndArrow { get; set; }
+        public EndArrow? BeginArrow { get; set; }
+
+        /// <summary>
+        /// Gets or sets the arrow style at the end of the connector.
+        /// </summary>
+        public EndArrow? EndArrow { get; set; }
+
+        /// <summary>
+        /// Optional label displayed alongside the connector.
+        /// </summary>
+        public string? Label { get; set; }
         
         /// <summary>
         /// Line color of the connector.
