@@ -48,6 +48,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
+            OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);

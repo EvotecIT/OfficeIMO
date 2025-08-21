@@ -130,6 +130,22 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        public SheetBuilder Range(string reference, Action<RangeBuilder> action) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+
+            var parts = reference.Split(':');
+            var start = parts[0];
+            var end = parts.Length > 1 ? parts[1] : parts[0];
+
+            var (fromRow, fromCol) = ParseCellReference(start);
+            var (toRow, toCol) = ParseCellReference(end);
+
+            var builder = new RangeBuilder(Sheet, fromRow, fromCol, toRow, toCol);
+            action(builder);
+            return this;
+        }
+
         public SheetBuilder Columns(Action<ColumnCollectionBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new ColumnCollectionBuilder(Sheet);
@@ -213,6 +229,21 @@ namespace OfficeIMO.Excel.Fluent {
                 dividend = (dividend - modulo) / 26;
             }
             return columnName;
+        }
+
+        private static (int Row, int Column) ParseCellReference(string reference) {
+            int i = 0;
+            int col = 0;
+            while (i < reference.Length && char.IsLetter(reference[i])) {
+                col = col * 26 + (char.ToUpperInvariant(reference[i]) - 'A' + 1);
+                i++;
+            }
+            if (col == 0 || i >= reference.Length) throw new ArgumentException("Invalid cell reference", nameof(reference));
+            var rowPart = reference.Substring(i);
+            if (!int.TryParse(rowPart, out int row) || row <= 0) {
+                throw new ArgumentException("Invalid cell reference", nameof(reference));
+            }
+            return (row, col);
         }
     }
 }
