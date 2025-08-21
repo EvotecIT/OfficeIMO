@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             VisioShape end = new("2", 4, 1, 2, 1, "End");
             page.Shapes.Add(start);
             page.Shapes.Add(end);
-            VisioConnector connector = new(start, end) { EndArrow = 13 };
+            VisioConnector connector = new(start, end) { EndArrow = EndArrow.Triangle };
             page.Connectors.Add(connector);
             document.Save();
 
