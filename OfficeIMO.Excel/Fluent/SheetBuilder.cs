@@ -102,6 +102,14 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        public SheetBuilder Cell(string reference, object? value = null, string? formula = null, string? numberFormat = null) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            var (row, column) = ParseCellReference(reference);
+            Sheet.Cell(row, column, value, formula, numberFormat);
+            return this;
+        }
+
         public SheetBuilder Range(int fromRow, int fromCol, int toRow, int toCol, object[,]? values = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (fromRow < 1) throw new ArgumentOutOfRangeException(nameof(fromRow));

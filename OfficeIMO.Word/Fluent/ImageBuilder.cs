@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
 using OfficeIMO;
 using OfficeIMO.Word;
 
@@ -79,6 +81,61 @@ namespace OfficeIMO.Word.Fluent {
             if (_image != null) {
                 _image.WrapText = wrapImage;
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Places the image behind text.
+        /// </summary>
+        public ImageBuilder BehindText() {
+            return Wrap(WrapTextImage.BehindText);
+        }
+
+        /// <summary>
+        /// Sets alternative text for the image.
+        /// </summary>
+        /// <param name="title">Optional title for the image.</param>
+        /// <param name="description">Optional description for the image.</param>
+        public ImageBuilder Alt(string? title = null, string? description = null) {
+            if (_image != null) {
+                if (title != null) {
+                    _image.Title = title;
+                }
+                if (description != null) {
+                    _image.Description = description;
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Makes the image a hyperlink pointing to the specified URL.
+        /// </summary>
+        /// <param name="url">Destination URL.</param>
+        public ImageBuilder Link(string url) {
+            if (_image != null && _paragraph != null) {
+                var uri = new Uri(url);
+                var paragraphElement = _paragraph._paragraph;
+
+                HyperlinkRelationship rel;
+                var headerPart = paragraphElement.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
+                var footerPart = paragraphElement.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
+
+                if (headerPart != null) {
+                    rel = headerPart.AddHyperlinkRelationship(uri, true);
+                } else if (footerPart != null) {
+                    rel = footerPart.AddHyperlinkRelationship(uri, true);
+                } else {
+                    rel = _fluent.Document._wordprocessingDocument.MainDocumentPart!.AddHyperlinkRelationship(uri, true);
+                }
+
+                var imageRun = (Run)_image._Image.Parent!;
+                imageRun.Remove();
+                Hyperlink hyperlink = new Hyperlink() { Id = rel.Id };
+                hyperlink.Append(imageRun);
+                paragraphElement.Append(hyperlink);
+            }
+
             return this;
         }
 

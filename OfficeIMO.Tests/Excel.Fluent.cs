@@ -51,6 +51,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanSetCellsWithVariousBuilders() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Sheet("Data", s => s
+                        .Cell("B2", "Sheet")
+                        .Row(r => r.Cell("C", "Row"))
+                        .Columns(c => c.Col(4, col => col.Cell(2, "Column")))
+                        .Range("A1:D4", r => r.Cell(4, 4, "Range")))
+                    .End()
+                    .Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.Equal("Sheet", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
+                Assert.Equal("Row", GetCellValue(document._spreadSheetDocument, sheetPart, "C1"));
+                Assert.Equal("Column", GetCellValue(document._spreadSheetDocument, sheetPart, "D2"));
+                Assert.Equal("Range", GetCellValue(document._spreadSheetDocument, sheetPart, "D4"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanChangeColumnWidthAndHiddenState() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
