@@ -10,8 +10,10 @@ namespace OfficeIMO.Examples {
         }
 
         static void Main(string[] args) {
-            string templatesPath = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
-            string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents");
+            string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+            Directory.SetCurrentDirectory(baseFolder);
+            string templatesPath = Path.Combine(baseFolder, "Templates");
+            string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
 
             // Visio - Core Examples

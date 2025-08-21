@@ -9,17 +9,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Bookmark to assign the value to.
         /// </summary>
-        public string Bookmark { get; set; }
+        public string? Bookmark { get; set; }
 
         /// <summary>
         /// Prompt displayed to the user.
         /// </summary>
-        public string Prompt { get; set; }
+        public string? Prompt { get; set; }
 
         /// <summary>
         /// Default response for the prompt. Added using the \d switch.
         /// </summary>
-        public string DefaultResponse { get; set; }
+        public string? DefaultResponse { get; set; }
 
         /// <summary>
         /// Indicates whether the prompt should appear only once. Added using the \o switch.
