@@ -68,9 +68,13 @@ namespace OfficeIMO.Word.Fluent {
             _paragraph.ParagraphAlignment = alignment switch {
                 HorizontalAlignment.Center => JustificationValues.Center,
                 HorizontalAlignment.Right => JustificationValues.Right,
-                HorizontalAlignment.Justified => JustificationValues.Both,
                 _ => JustificationValues.Left,
             };
+            return this;
+        }
+
+        public ParagraphBuilder Justify() {
+            _paragraph.ParagraphAlignment = JustificationValues.Both;
             return this;
         }
 
