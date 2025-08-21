@@ -38,7 +38,6 @@
         <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
         <PackageReference Include="SixLabors.Fonts" Version="1.0.1" />
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
-        <PackageReference Include="System.Text.Json" Version="7.0.3" />
     </ItemGroup>
 
     <ItemGroup>

@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 
 namespace OfficeIMO.Excel.Utilities {
     public enum HeaderCase {
@@ -21,8 +20,7 @@ namespace OfficeIMO.Excel.Utilities {
 
     public enum CollectionMode {
         JoinWith,
-        ExpandRows,
-        Json
+        ExpandRows
     }
 
     public class ObjectFlattenerOptions {
@@ -123,9 +121,6 @@ namespace OfficeIMO.Excel.Utilities {
                 var list = enumerable.Cast<object?>().Select(v => v?.ToString()).ToArray();
                 var joined = string.Join(opts.CollectionJoinWith, list);
                 return ApplyFormatting(path, joined, opts);
-            }
-            if (opts.CollectionMode == CollectionMode.Json) {
-                return JsonSerializer.Serialize(enumerable);
             }
             // ExpandRows handled in SheetBuilder
             return enumerable;
