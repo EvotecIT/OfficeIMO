@@ -14,9 +14,7 @@ namespace OfficeIMO.Tests {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
-            VisioPage page = document.AddPage("Page-1");
-            page.PageWidth = 8.26771653543307;
-            page.PageHeight = 11.69291338582677;
+            VisioPage page = document.AddPage("Page-1", 8.26771653543307, 11.69291338582677);
             page.ViewCenterX = 4.1233127451916;
             page.ViewCenterY = 5.8492688900245;
             document.Save();
@@ -34,9 +32,7 @@ namespace OfficeIMO.Tests {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
-            VisioPage page = document.AddPage("Page-1");
-            page.PageWidth = 11.69291338582677;
-            page.PageHeight = 8.26771653543307;
+            VisioPage page = document.AddPage("Page-1", 11.69291338582677, 8.26771653543307);
             page.ViewCenterX = 5.8424184863857;
             page.ViewCenterY = 4.133858091015;
             page.Shapes.Add(new VisioShape("1") {

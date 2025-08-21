@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
-            VisioPage page = document.AddPage("Page-1");
+            VisioPage page = document.AddPage("Page-1", 8.5, 11);
             
             VisioShape start = new("1", 1, 1, 2, 1, "Start") { 
                 NameU = "Rectangle",

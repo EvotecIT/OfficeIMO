@@ -17,7 +17,15 @@ namespace OfficeIMO.Visio.Fluent {
         /// Adds a page and returns the fluent document for chaining.
         /// </summary>
         /// <param name="name">Name of the page.</param>
+        /// <param name="widthInches">Page width in inches.</param>
+        /// <param name="heightInches">Page height in inches.</param>
         /// <param name="page">The created page.</param>
+        public VisioFluentDocument AddPage(string name, double widthInches, double heightInches, out VisioPage page) {
+            page = _document.AddPage(name, widthInches, heightInches);
+            return this;
+        }
+
+        [System.Obsolete("Use AddPage with width and height parameters")]
         public VisioFluentDocument AddPage(string name, out VisioPage page) {
             page = _document.AddPage(name);
             return this;

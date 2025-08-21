@@ -14,8 +14,7 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
-            VisioPage page = document.AddPage("Colored Shapes");
-            page.Size(11, 8.5); // Standard landscape page
+            VisioPage page = document.AddPage("Colored Shapes", 11, 8.5);
 
             // Row 1: Basic colored rectangles
             var blueRect = new VisioShape("1", 1.5, 7, 1.5, 1, "Blue") {

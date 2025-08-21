@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Connection Points.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Page-1");
+            VisioPage page = document.AddPage("Page-1", 8.5, 11);
 
             VisioShape left = new("1", 2, 2, 2, 2, "Left");
             left.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
