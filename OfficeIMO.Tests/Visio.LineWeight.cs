@@ -11,10 +11,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ShapeContainsLineWeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Rect") { NameU = "Rectangle" });
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             PackagePart pagePart = package.GetPart(new Uri("/visio/pages/page1.xml", UriKind.Relative));

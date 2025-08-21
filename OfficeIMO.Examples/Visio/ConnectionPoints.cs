@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Connection points");
             string filePath = Path.Combine(folderPath, "Connection Points.vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
             VisioShape left = new("1", 2, 2, 2, 2, "Left");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Visio {
             };
             page.Connectors.Add(connector);
 
-            document.Save(filePath);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

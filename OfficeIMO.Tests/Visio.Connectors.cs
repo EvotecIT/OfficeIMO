@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void ConnectorBetweenRectanglesEmitsGeometryAndRecalcFlag() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
             VisioPage page = document.AddPage("Page-1");
             VisioShape start = new("1", 1, 1, 1, 1, "Start");
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             VisioConnector connector = new(start, end);
             Assert.True(int.TryParse(connector.Id, out _));
             page.Connectors.Add(connector);
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

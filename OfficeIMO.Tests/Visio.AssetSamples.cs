@@ -13,13 +13,13 @@ namespace OfficeIMO.Tests {
         public void EmptyDocumentMatchesAsset() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(target);
             VisioPage page = document.AddPage("Page-1");
             page.PageWidth = 8.26771653543307;
             page.PageHeight = 11.69291338582677;
             page.ViewCenterX = 4.1233127451916;
             page.ViewCenterY = 5.8492688900245;
-            document.Save(target);
+            document.Save();
 
             using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "DrawingEmpty.vsdx"));
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void RectangleDocumentMatchesAsset() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(target);
             VisioPage page = document.AddPage("Page-1");
             page.PageWidth = 11.69291338582677;
             page.PageHeight = 8.26771653543307;
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 PinX = 2.047244040636296,
                 PinY = 6.73228320203895
             });
-            document.Save(target);
+            document.Save();
 
             using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "DrawingWithRectangle.vsdx"));
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);

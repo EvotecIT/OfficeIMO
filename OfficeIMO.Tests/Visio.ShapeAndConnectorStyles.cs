@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void ShapesAndConnectorsHaveDefaultStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape start = new("1", 1, 1, 2, 1, "Start");
             VisioShape end = new("2", 4, 1, 2, 1, "End");
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             page.Shapes.Add(end);
             VisioConnector connector = new(start, end) { EndArrow = 13 };
             page.Connectors.Add(connector);
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

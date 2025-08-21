@@ -9,10 +9,10 @@ namespace OfficeIMO.Tests {
         public void SavedDocumentValidatesAndOpens() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
-            document.Save(filePath);
+            document.Save();
 
             var issues = VisioValidator.Validate(filePath);
             Assert.Empty(issues);

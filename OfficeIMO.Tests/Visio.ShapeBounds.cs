@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void ComputesBoundsForRotatedShapesAndConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape start = new("1", 2, 2, 2, 1, "Start") {
                 Angle = Math.PI / 2,
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2.5, right, 5);
             Assert.Equal(3, top, 5);
 
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

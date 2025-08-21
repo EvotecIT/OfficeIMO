@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -5,7 +7,8 @@ namespace OfficeIMO.Tests {
     public class VisioBasicDocument {
         [Fact]
         public void CanCreateBasicVisioDocument() {
-            VisioDocument document = new();
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page1");
             VisioShape shape1 = new("S1");
             VisioShape shape2 = new("S2");
@@ -16,6 +19,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(document.Pages);
             Assert.Equal(2, page.Shapes.Count);
             Assert.Single(page.Connectors);
+            document.Save();
         }
     }
 }

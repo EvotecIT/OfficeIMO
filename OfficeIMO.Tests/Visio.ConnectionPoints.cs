@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void ConnectionPointsAreSavedAndLoaded() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
             VisioShape from = new("1", 2, 2, 2, 2, "From");
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             };
             page.Connectors.Add(connector);
 
-            document.Save(filePath);
+            document.Save();
 
             byte[] data = File.ReadAllBytes(filePath);
             using MemoryStream ms = new(data);

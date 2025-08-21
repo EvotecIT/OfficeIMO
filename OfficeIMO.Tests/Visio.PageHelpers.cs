@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -5,7 +7,8 @@ namespace OfficeIMO.Tests {
     public class VisioPageHelpers {
         [Fact]
         public void AddShapeAndConnectorPopulateCollections() {
-            VisioDocument document = new();
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioMaster master = new("1", "Rectangle", new VisioShape("1"));
 
@@ -21,6 +24,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(page.Connectors);
             Assert.Contains(connector, page.Connectors);
             Assert.Equal(ConnectorKind.Straight, connector.Kind);
+            document.Save();
         }
 
         [Fact]
