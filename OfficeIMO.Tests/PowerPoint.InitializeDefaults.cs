@@ -48,6 +48,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.slide+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.theme+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"));
             }
 
