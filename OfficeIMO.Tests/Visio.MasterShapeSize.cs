@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ShapesInheritMasterSize() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
             VisioShape masterRectShape = new("0", 0, 0, 2, 1, string.Empty);
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
 
             page.Shapes.Add(rect);
             page.Shapes.Add(square);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioPage loadedPage = loaded.Pages[0];

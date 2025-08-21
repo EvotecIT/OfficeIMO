@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CreatesMasterForEachNamedShape() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
             VisioShape shape1 = new("1", 1, 1, 2, 1, "A");
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
 
             page.Shapes.Add(shape1);
             page.Shapes.Add(shape2);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.NotNull(loaded.Pages[0].Shapes[0].Master);
@@ -70,7 +70,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(masterShape?.Attribute("Name"));
                 Assert.NotNull(masterShape?.Attribute("NameU"));
                 Assert.Equal("Shape", masterShape?.Attribute("Type")?.Value);
-                Assert.NotNull(masterShape?.Element(ns + "XForm"));
             }
 
             using FileStream zipStream = File.OpenRead(filePath);

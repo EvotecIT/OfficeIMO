@@ -11,10 +11,10 @@ namespace OfficeIMO.Tests {
         public void LoadIgnoresDeprecatedRelIdAttribute() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 2, 3, 4, "Rectangle"));
-            document.Save(filePath);
+            document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
                 PackagePart pagesPart = package.GetPart(new Uri("/visio/pages/pages.xml", UriKind.Relative));

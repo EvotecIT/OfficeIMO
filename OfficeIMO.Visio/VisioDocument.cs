@@ -17,6 +17,7 @@ namespace OfficeIMO.Visio {
     public class VisioDocument {
         private readonly List<VisioPage> _pages = new();
         private bool _requestRecalcOnOpen;
+        private string? _filePath;
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
@@ -55,11 +56,19 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Creates a new <see cref="VisioDocument"/> with the given save path.
+        /// </summary>
+        /// <param name="path">Path where the document will be saved.</param>
+        public static VisioDocument Create(string path) {
+            return new VisioDocument { _filePath = path };
+        }
+
+        /// <summary>
         /// Loads an existing <c>.vsdx</c> file into a <see cref="VisioDocument"/>.
         /// </summary>
         /// <param name="filePath">Path to the <c>.vsdx</c> file.</param>
         public static VisioDocument Load(string filePath) {
-            VisioDocument document = new();
+            VisioDocument document = new() { _filePath = filePath };
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
 
@@ -401,7 +410,19 @@ namespace OfficeIMO.Visio {
         /// Saves the document to a file.
         /// </summary>
         /// <param name="filePath">Path to save the file.</param>
+        public void Save() {
+            if (string.IsNullOrEmpty(_filePath)) {
+                throw new InvalidOperationException("File path is not set.");
+            }
+            SaveInternal(_filePath);
+        }
+
         public void Save(string filePath) {
+            _filePath = filePath;
+            SaveInternal(filePath);
+        }
+
+        private void SaveInternal(string filePath) {
             bool includeTheme = Theme != null;
             int masterCount;
             using (Package package = Package.Open(filePath, FileMode.Create)) {

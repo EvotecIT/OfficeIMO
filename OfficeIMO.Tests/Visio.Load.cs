@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void CanRoundTripVisioDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape masterShape = new("0", 0, 0, 1, 1, string.Empty);
             VisioMaster master = new("2", "Rectangle", masterShape);
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             VisioShape shape2 = new("3", 3, 4, 2, 3, "Rectangle") { Master = master };
             page.Shapes.Add(shape1);
             page.Shapes.Add(shape2);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Single(loaded.Pages);
