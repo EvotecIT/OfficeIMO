@@ -46,24 +46,6 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
-        /// <summary>
-        /// Adds or modifies a list within the document context.
-        /// </summary>
-        /// <param name="action">Action that receives a <see cref="ListBuilder"/>.</param>
-        public ParagraphBuilder List(Action<ListBuilder> action) {
-            action(new ListBuilder(_fluent));
-            return this;
-        }
-
-        /// <summary>
-        /// Adds or modifies a table within the document context.
-        /// </summary>
-        /// <param name="action">Action that receives a <see cref="TableBuilder"/>.</param>
-        public ParagraphBuilder Table(Action<TableBuilder> action) {
-            action(new TableBuilder(_fluent));
-            return this;
-        }
-      
         public ParagraphBuilder Align(HorizontalAlignment alignment) {
             _paragraph.ParagraphAlignment = alignment switch {
                 HorizontalAlignment.Center => JustificationValues.Center,
@@ -113,21 +95,6 @@ namespace OfficeIMO.Word.Fluent {
         public ParagraphBuilder Style(string styleId) {
             _paragraph.SetStyleId(styleId);
             return this;
-        }
-
-        public ListBuilder AddList(WordListStyle style) {
-            var list = _paragraph.AddList(style);
-            return new ListBuilder(_fluent, list);
-        }
-
-        public TableBuilder AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            var table = _paragraph.AddTableAfter(rows, columns, tableStyle);
-            return new TableBuilder(_fluent, table);
-        }
-
-        public TableBuilder AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            var table = _paragraph.AddTableBefore(rows, columns, tableStyle);
-            return new TableBuilder(_fluent, table);
         }
     }
 }

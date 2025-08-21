@@ -21,8 +21,9 @@ namespace OfficeIMO.Examples.Word {
                         .LineSpacing(24)
                         .Indentation(left: 24, firstLine: 24)
                         .Style(WordParagraphStyles.Heading2))
-                    .Paragraph(p => p.Text("Bullet list item").AddList(WordListStyle.Bulleted))
-                    .Paragraph(p => p.Text("Table below").AddTableAfter(2, 2))
+                    .List(l => l.Bulleted().Item("Bullet list item"))
+                    .Paragraph(p => p.Text("Table below"))
+                    .Table(t => t.Create(2, 2))
                     .End()
                     .Save(false);
             }
