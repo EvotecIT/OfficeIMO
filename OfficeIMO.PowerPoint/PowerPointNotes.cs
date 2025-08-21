@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -17,7 +18,22 @@ namespace OfficeIMO.PowerPoint {
         private NotesSlide NotesSlide {
             get {
                 if (_slidePart.NotesSlidePart == null) {
-                    NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>();
+                    // Generate a unique relationship ID for the notes part
+                    var slideRelationships = new HashSet<string>(
+                        _slidePart.Parts.Select(p => p.RelationshipId)
+                        .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
+                        .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                        .Where(id => !string.IsNullOrEmpty(id))
+                    );
+                    
+                    int notesIdNum = 1;
+                    string notesRelId;
+                    do {
+                        notesRelId = "rId" + notesIdNum;
+                        notesIdNum++;
+                    } while (slideRelationships.Contains(notesRelId));
+                    
+                    NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
                     PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
                     if (presentationPart?.NotesMasterPart != null) {
                         notesPart.AddPart(presentationPart.NotesMasterPart);
