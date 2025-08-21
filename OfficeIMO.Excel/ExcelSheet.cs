@@ -31,10 +31,10 @@ namespace OfficeIMO.Excel {
                 _sheet.Name = value;
             }
         }
-        private readonly UInt32Value Id;
-        private readonly WorksheetPart _worksheetPart;
-        private readonly SpreadsheetDocument _spreadSheetDocument;
-        private readonly ExcelDocument _excelDocument;
+        private readonly UInt32Value Id = null!;
+        private readonly WorksheetPart _worksheetPart = null!;
+        private readonly SpreadsheetDocument _spreadSheetDocument = null!;
+        private readonly ExcelDocument _excelDocument = null!;
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
         /// <summary>
@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
+            Id = sheet.SheetId ?? new UInt32Value((uint)0);
 
             var list = _spreadSheetDocument.WorkbookPart.WorksheetParts.ToList();
             foreach (var worksheetPart in list) {
@@ -467,7 +468,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
+        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -997,9 +998,12 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
-        public void CellValue(int row, int column, object value) {
+        public void CellValue(int row, int column, object? value) {
             WriteLock(() => {
                 switch (value) {
+                    case null:
+                        CellValue(row, column, string.Empty);
+                        break;
                     case string s:
                         CellValue(row, column, s);
                         break;
@@ -1049,11 +1053,7 @@ namespace OfficeIMO.Excel {
                         CellValue(row, column, (double)sh);
                         break;
                     default:
-                        if (value != null) {
-                            CellValue(row, column, value.ToString());
-                        } else {
-                            CellValue(row, column, string.Empty);
-                        }
+                        CellValue(row, column, value.ToString()!);
                         break;
                 }
             });
