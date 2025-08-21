@@ -69,6 +69,26 @@ namespace OfficeIMO.Tests {
                     warnings.Add("Notes master part missing root element.");
                 }
 
+                ExtendedFilePropertiesPart? appPart = document.ExtendedFilePropertiesPart;
+                if (appPart?.Properties == null) {
+                    warnings.Add("Presentation app part missing root element.");
+                }
+
+                PresentationPropertiesPart? presPropsPart = presentationPart.PresentationPropertiesPart;
+                if (presPropsPart?.PresentationProperties == null) {
+                    warnings.Add("Presentation properties part missing root element.");
+                }
+
+                ViewPropertiesPart? viewPropsPart = presentationPart.ViewPropertiesPart;
+                if (viewPropsPart?.ViewProperties == null) {
+                    warnings.Add("View properties part missing root element.");
+                }
+
+                TableStylesPart? tableStylesPart = presentationPart.TableStylesPart;
+                if (tableStylesPart?.TableStyleList == null) {
+                    warnings.Add("Table styles part missing root element.");
+                }
+
                 List<SlidePart> slideParts = presentationPart.SlideParts.ToList();
                 if (slideParts.Count == 0) {
                     warnings.Add("Presentation missing slide parts.");

@@ -334,15 +334,19 @@ namespace OfficeIMO.PowerPoint {
 
             ExtendedFilePropertiesPart appPart = _document.AddExtendedFilePropertiesPart();
             appPart.Properties = new Ap.Properties(new Ap.Application { Text = "Microsoft Office PowerPoint" });
+            appPart.Properties.Save();
 
             PresentationPropertiesPart presPropsPart = _presentationPart.AddNewPart<PresentationPropertiesPart>();
             presPropsPart.PresentationProperties = new PresentationProperties();
+            presPropsPart.PresentationProperties.Save();
 
             ViewPropertiesPart viewPropsPart = _presentationPart.AddNewPart<ViewPropertiesPart>();
             viewPropsPart.ViewProperties = new ViewProperties();
+            viewPropsPart.ViewProperties.Save();
 
             TableStylesPart tableStylesPart = _presentationPart.AddNewPart<TableStylesPart>();
             tableStylesPart.TableStyleList = new A.TableStyleList { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+            tableStylesPart.TableStyleList.Save();
 
             _presentationPart.Presentation.Save();
         }
