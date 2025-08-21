@@ -169,6 +169,17 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Freezes the specified number of rows and columns on the current sheet.
+        /// </summary>
+        /// <param name="topRows">Number of rows at the top to freeze.</param>
+        /// <param name="leftCols">Number of columns on the left to freeze.</param>
+        public SheetBuilder Freeze(int topRows = 0, int leftCols = 0) {
+            if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            Sheet.Freeze(topRows, leftCols);
+            return this;
+        }
+
         public SheetBuilder AutoFit(bool columns, bool rows) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (columns) {

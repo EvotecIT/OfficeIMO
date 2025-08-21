@@ -19,6 +19,7 @@ namespace OfficeIMO.Examples.Excel {
                         .AutoFilter("A1:B3")
                         .ConditionalColorScale("B2:B3", Color.Red, Color.Green)
                         .ConditionalDataBar("B2:B3", Color.Blue)
+                        .Freeze(topRows: 1, leftCols: 1)
                         .AutoFit(columns: true, rows: true))
                     .End()
                     .Save(openExcel);
