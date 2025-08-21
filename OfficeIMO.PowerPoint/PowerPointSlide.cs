@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
                 _slidePart.DeletePart(relId);
             }
 
-            _slidePart.AddPart(layoutPart);
+            _slidePart.AddPart(layoutPart, masterPart.GetIdOfPart(layoutPart));
         }
 
         /// <summary>

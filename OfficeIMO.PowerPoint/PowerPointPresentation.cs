@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
-            _ = slidePart.AddPart(layoutPart);
+            slidePart.AddPart(layoutPart, masterPart.GetIdOfPart(layoutPart));
 
             if (_presentationPart.Presentation.SlideIdList == null) {
                 _presentationPart.Presentation.SlideIdList = new SlideIdList();
