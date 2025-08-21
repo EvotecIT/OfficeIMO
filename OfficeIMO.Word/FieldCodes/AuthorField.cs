@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Optional author name to insert instead of the document property.
         /// </summary>
-        public string Author { get; set; }
+        public string? Author { get; set; }
 
         internal override WordFieldType FieldType => WordFieldType.Author;
 

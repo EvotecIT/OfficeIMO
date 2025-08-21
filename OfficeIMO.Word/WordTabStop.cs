@@ -11,21 +11,22 @@ namespace OfficeIMO.Word {
 
         private Tabs _tabs {
             get {
-                if (_paragraph._paragraphProperties.Tabs == null) {
-                    _paragraph._paragraphProperties.Append(new Tabs());
+                var paragraphProperties = _paragraph._paragraphProperties;
+                if (paragraphProperties.Tabs == null) {
+                    paragraphProperties.Append(new Tabs());
                 }
-                return _paragraph._paragraphProperties.Tabs;
+                return paragraphProperties.Tabs!;
             }
         }
 
-        private TabStop _tabStop { get; set; }
+        private TabStop _tabStop { get; set; } = new TabStop();
 
         /// <summary>
         /// Gets or sets the alignment type for the tab stop.
         /// </summary>
         public TabStopValues Alignment {
             get {
-                return _tabStop.Val;
+                return _tabStop.Val ?? TabStopValues.Left;
             }
             set {
                 _tabStop.Val = value;
@@ -37,7 +38,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public TabStopLeaderCharValues Leader {
             get {
-                return _tabStop.Leader;
+                return _tabStop.Leader ?? TabStopLeaderCharValues.None;
             }
             set {
                 _tabStop.Leader = value;
@@ -49,7 +50,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int Position {
             get {
-                return (int)_tabStop.Position;
+                return (int)(_tabStop.Position ?? 0);
             }
             set {
                 _tabStop.Position = value;
@@ -96,7 +97,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="other">The tab stop to compare with the current instance.</param>
         /// <returns><c>true</c> if the tab stops have the same alignment, leader and position; otherwise, <c>false</c>.</returns>
-        public bool Equals(WordTabStop other) {
+        public bool Equals(WordTabStop? other) {
             if (other is null) return false;
             return Alignment == other.Alignment && Leader == other.Leader && Position == other.Position;
         }
@@ -106,7 +107,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="obj">The object to compare with the current instance.</param>
         /// <returns><c>true</c> if the objects are equal; otherwise, <c>false</c>.</returns>
-        public override bool Equals(object obj) {
+        public override bool Equals(object? obj) {
             return obj is WordTabStop other && Equals(other);
         }
 

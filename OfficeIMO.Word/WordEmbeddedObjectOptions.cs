@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the path to the icon used when <see cref="DisplayAsIcon"/> is <c>true</c>.
         /// </summary>
-        public string IconPath { get; set; }
+        public string? IconPath { get; set; }
 
         /// <summary>
         /// Gets or sets the width of the embedded object when displayed as an icon.
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">Optional icon width in points.</param>
         /// <param name="height">Optional icon height in points.</param>
         /// <returns>A configured <see cref="WordEmbeddedObjectOptions"/> instance.</returns>
-        public static WordEmbeddedObjectOptions Icon(string iconPath = null, double? width = null, double? height = null) {
+        public static WordEmbeddedObjectOptions Icon(string? iconPath = null, double? width = null, double? height = null) {
             return new WordEmbeddedObjectOptions {
                 DisplayAsIcon = true,
                 IconPath = iconPath,

@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
     /// Holds private helpers for field processing.
     /// </summary>
     public partial class WordField {
-        private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, List<String> parameters = null) {
+        private static SimpleField AddSimpleField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
             SimpleField simpleField1 = new SimpleField() { Instruction = GenerateField(wordFieldType, wordFieldFormat, customFormat, parameters) };
 
             Run run1 = new Run();
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word {
         }
 
 
-        private static Run AddAdvancedField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, List<String> parameters = null) {
+        private static Run AddAdvancedField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
             Run run = new Run();
 
             RunProperties runProperties = new RunProperties();
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private static string GenerateField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, List<String> parameters = null) {
+        private static string GenerateField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, List<string>? parameters = null) {
             var fieldType = " " + wordFieldType.ToString().ToUpper() + " ";
             var fieldFormat = string.Empty;
             if (wordFieldFormat != null) {

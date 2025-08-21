@@ -73,9 +73,9 @@ public static partial class Helpers {
     /// </summary>
     /// <param name="source">The source stream.</param>
     /// <param name="target">The target stream.</param>
-    public static void CopyStream(Stream source, Stream target) {
+    public static void CopyStream(Stream? source, Stream target) {
         if (source != null) {
-            MemoryStream mstream = source as MemoryStream;
+            MemoryStream? mstream = source as MemoryStream;
             if (mstream != null) {
                 mstream.WriteTo(target);
             } else {
