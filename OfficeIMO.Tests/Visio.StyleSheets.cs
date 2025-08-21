@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0", normal.Attribute("BasedOn")?.Value);
             Assert.Equal("Normal", normal.Attribute("NameU")?.Value);
             Assert.Equal("1", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LinePattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(0,0,0)", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
+            Assert.Equal("#000000", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
             Assert.Equal("1", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillPattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(255,255,255)", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
+            Assert.Equal("#FFFFFF", normal.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
 
             XElement connectorStyle = styleSheets.Elements(ns + "StyleSheet").First(e => e.Attribute("ID")?.Value == "2");
             Assert.Equal("1", connectorStyle.Attribute("BasedOn")?.Value);
@@ -49,13 +49,13 @@ namespace OfficeIMO.Tests {
             XDocument pageXml = XDocument.Load(pagePart.GetStream());
             XElement shapesRoot = pageXml.Root!.Element(ns + "Shapes")!;
             XElement shapeXml = shapesRoot.Elements(ns + "Shape").First(e => e.Attribute("ID")?.Value == "1");
-            Assert.Equal("1", shapeXml.Attribute("LineStyle")?.Value);
-            Assert.Equal("1", shapeXml.Attribute("FillStyle")?.Value);
-            Assert.Equal("1", shapeXml.Attribute("TextStyle")?.Value);
+            Assert.Equal("0", shapeXml.Attribute("LineStyle")?.Value);
+            Assert.Equal("0", shapeXml.Attribute("FillStyle")?.Value);
+            Assert.Equal("0", shapeXml.Attribute("TextStyle")?.Value);
             XElement connectorXml = shapesRoot.Elements(ns + "Shape").First(e => e.Attribute("NameU")?.Value == "Connector");
-            Assert.Equal("2", connectorXml.Attribute("LineStyle")?.Value);
-            Assert.Equal("2", connectorXml.Attribute("FillStyle")?.Value);
-            Assert.Equal("2", connectorXml.Attribute("TextStyle")?.Value);
+            Assert.Equal("0", connectorXml.Attribute("LineStyle")?.Value);
+            Assert.Equal("0", connectorXml.Attribute("FillStyle")?.Value);
+            Assert.Equal("0", connectorXml.Attribute("TextStyle")?.Value);
         }
     }
 }

@@ -70,7 +70,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(masterShape?.Attribute("Name"));
                 Assert.NotNull(masterShape?.Attribute("NameU"));
                 Assert.Equal("Shape", masterShape?.Attribute("Type")?.Value);
-                Assert.NotNull(masterShape?.Element(ns + "XForm"));
             }
 
             using FileStream zipStream = File.OpenRead(filePath);

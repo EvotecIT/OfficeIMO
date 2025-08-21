@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             page.ViewCenterY = 5.8492688900245;
             document.Save();
 
-            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "DrawingEmpty.vsdx"));
+            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "VisioTemplates", "DrawingEmpty.vsdx"));
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
             using FileStream actualStream = File.OpenRead(target);
             using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             });
             document.Save();
 
-            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "DrawingWithRectangle.vsdx"));
+            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithRectangle.vsdx"));
             using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
             using FileStream actualStream = File.OpenRead(target);
             using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);

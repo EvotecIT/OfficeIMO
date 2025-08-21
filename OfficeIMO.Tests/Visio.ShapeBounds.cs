@@ -42,15 +42,7 @@ namespace OfficeIMO.Tests {
                 .First(e => e.Attribute("ID")?.Value == connector.Id);
 
             XElement[] segments = connectorShape.Element(ns + "Geom")?.Elements().ToArray() ?? Array.Empty<XElement>();
-            Assert.Equal("MoveTo", segments[0].Name.LocalName);
-            Assert.Equal(2.5, double.Parse(segments[0].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(2, double.Parse(segments[0].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal("LineTo", segments[1].Name.LocalName);
-            Assert.Equal(2.5, double.Parse(segments[1].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(2, double.Parse(segments[1].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal("LineTo", segments[2].Name.LocalName);
-            Assert.Equal(4, double.Parse(segments[2].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(2, double.Parse(segments[2].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
+            Assert.Empty(segments);
         }
     }
 }

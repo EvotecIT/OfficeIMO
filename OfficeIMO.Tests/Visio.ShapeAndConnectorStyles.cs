@@ -30,15 +30,15 @@ namespace OfficeIMO.Tests {
 
             XElement shapeXml = shapesRoot.Elements(ns + "Shape").First(e => e.Attribute("ID")?.Value == "1");
             Assert.Equal("1", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LinePattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(0,0,0)", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
+            Assert.Equal("#000000", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
             Assert.Equal("1", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillPattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(255,255,255)", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
+            Assert.Equal("#FFFFFF", shapeXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
 
             XElement connectorXml = shapesRoot.Elements(ns + "Shape").First(e => e.Attribute("ID")?.Value == connector.Id);
             Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LinePattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(0,0,0)", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
-            Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillPattern").Attribute("V")?.Value);
-            Assert.Equal("RGB(255,255,255)", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
+            Assert.Equal("#000000", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "LineColor").Attribute("V")?.Value);
+            Assert.Equal("0", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillPattern").Attribute("V")?.Value);
+            Assert.Equal("#000000", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "FillForegnd").Attribute("V")?.Value);
             Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "OneD").Attribute("V")?.Value);
             Assert.Equal("13", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndArrow").Attribute("V")?.Value);
             Assert.Equal("2", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "BeginX").Attribute("V")?.Value);

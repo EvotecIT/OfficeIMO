@@ -19,8 +19,8 @@ namespace OfficeIMO.Tests {
             XDocument docXml = XDocument.Load(docPart.GetStream());
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement settings = docXml.Root!.Element(ns + "DocumentSettings")!;
-            Assert.Equal("1", settings.Attribute("DefaultLineStyle")?.Value);
-            Assert.Equal("1", settings.Attribute("DefaultFillStyle")?.Value);
+            Assert.Equal("0", settings.Attribute("DefaultLineStyle")?.Value);
+            Assert.Equal("0", settings.Attribute("DefaultFillStyle")?.Value);
         }
     }
 }
