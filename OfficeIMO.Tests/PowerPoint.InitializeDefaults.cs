@@ -28,6 +28,11 @@ namespace OfficeIMO.Tests {
                 ThemePart theme = part.ThemePart!;
                 Assert.Same(theme, master.ThemePart);
                 Assert.Single(part.Presentation.SlideIdList!.Elements<SlideId>());
+
+                Assert.NotNull(document.ExtendedFilePropertiesPart?.Properties);
+                Assert.NotNull(part.PresentationPropertiesPart?.PresentationProperties);
+                Assert.NotNull(part.ViewPropertiesPart?.ViewProperties);
+                Assert.NotNull(part.TableStylesPart?.TableStyleList);
             }
 
             using (FileStream fs = File.OpenRead(filePath))
