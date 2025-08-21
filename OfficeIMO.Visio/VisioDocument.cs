@@ -38,6 +38,16 @@ namespace OfficeIMO.Visio {
         public VisioTheme? Theme { get; set; }
 
         /// <summary>
+        /// Title of the document.
+        /// </summary>
+        public string? Title { get; set; }
+
+        /// <summary>
+        /// Author of the document.
+        /// </summary>
+        public string? Author { get; set; }
+
+        /// <summary>
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
@@ -77,6 +87,9 @@ namespace OfficeIMO.Visio {
             VisioDocument document = new() { _filePath = filePath };
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
+
+            document.Title = package.PackageProperties.Title;
+            document.Author = package.PackageProperties.Creator;
 
             PackageRelationship documentRel = package.GetRelationshipsByType(DocumentRelationshipType).Single();
             Uri documentUri = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), documentRel.TargetUri);
@@ -476,6 +489,24 @@ namespace OfficeIMO.Visio {
                     CloseOutput = true,
                     Indent = false,
                 };
+                using (XmlWriter writer = XmlWriter.Create(corePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("cp", "coreProperties", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties");
+                    writer.WriteAttributeString("xmlns", "dc", null, "http://purl.org/dc/elements/1.1/");
+                    writer.WriteAttributeString("xmlns", "dcterms", null, "http://purl.org/dc/terms/");
+                    writer.WriteAttributeString("xmlns", "dcmitype", null, "http://purl.org/dc/dcmitype/");
+                    writer.WriteAttributeString("xmlns", "xsi", null, "http://www.w3.org/2001/XMLSchema-instance");
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+
+                if (!string.IsNullOrEmpty(Title)) {
+                    package.PackageProperties.Title = Title;
+                }
+                if (!string.IsNullOrEmpty(Author)) {
+                    package.PackageProperties.Creator = Author;
+                }
+
                 const string ns = VisioNamespace;
 
                 string ToVisioString(double value) {
@@ -717,17 +748,6 @@ namespace OfficeIMO.Visio {
 
                 using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write)) {
                     CreateVisioDocumentXml(_requestRecalcOnOpen).Save(stream);
-                }
-
-                using (XmlWriter writer = XmlWriter.Create(corePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("cp", "coreProperties", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties");
-                    writer.WriteAttributeString("xmlns", "dc", null, "http://purl.org/dc/elements/1.1/");
-                    writer.WriteAttributeString("xmlns", "dcterms", null, "http://purl.org/dc/terms/");
-                    writer.WriteAttributeString("xmlns", "dcmitype", null, "http://purl.org/dc/dcmitype/");
-                    writer.WriteAttributeString("xmlns", "xsi", null, "http://www.w3.org/2001/XMLSchema-instance");
-                    writer.WriteEndElement();
-                    writer.WriteEndDocument();
                 }
 
                 using (XmlWriter writer = XmlWriter.Create(appPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
