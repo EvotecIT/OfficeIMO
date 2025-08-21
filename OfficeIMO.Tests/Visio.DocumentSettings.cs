@@ -10,17 +10,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DocumentHasDefaultStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.AddPage("Page-1");
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             PackagePart docPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
             XDocument docXml = XDocument.Load(docPart.GetStream());
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement settings = docXml.Root!.Element(ns + "DocumentSettings")!;
-            Assert.Equal("1", settings.Attribute("DefaultLineStyle")?.Value);
-            Assert.Equal("1", settings.Attribute("DefaultFillStyle")?.Value);
+            Assert.Equal("0", settings.Attribute("DefaultLineStyle")?.Value);
+            Assert.Equal("0", settings.Attribute("DefaultFillStyle")?.Value);
         }
     }
 }

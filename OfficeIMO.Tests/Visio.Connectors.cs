@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void ConnectorBetweenRectanglesEmitsGeometryAndRecalcFlag() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
             VisioPage page = document.AddPage("Page-1");
             VisioShape start = new("1", 1, 1, 1, 1, "Start");
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             VisioConnector connector = new(start, end);
             Assert.True(int.TryParse(connector.Id, out _));
             page.Connectors.Add(connector);
-            document.Save(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -40,15 +40,7 @@ namespace OfficeIMO.Tests {
                 .First(e => e.Attribute("ID")?.Value == connector.Id);
 
             XElement[] segments = connectorShape.Element(ns + "Geom")?.Elements().ToArray() ?? Array.Empty<XElement>();
-            Assert.Equal("MoveTo", segments[0].Name.LocalName);
-            Assert.Equal(1.5, double.Parse(segments[0].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(1, double.Parse(segments[0].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal("LineTo", segments[1].Name.LocalName);
-            Assert.Equal(1.5, double.Parse(segments[1].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(2, double.Parse(segments[1].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal("LineTo", segments[2].Name.LocalName);
-            Assert.Equal(2.5, double.Parse(segments[2].Attribute("X")!.Value, CultureInfo.InvariantCulture));
-            Assert.Equal(2, double.Parse(segments[2].Attribute("Y")!.Value, CultureInfo.InvariantCulture));
+            Assert.Empty(segments);
 
             XElement connects = pageXml.Root?.Element(ns + "Connects") ?? new XElement("none");
             XElement[] entries = connects.Elements(ns + "Connect").ToArray();

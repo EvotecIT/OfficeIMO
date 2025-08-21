@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void RoundTripsShapeProperties() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape shape = new("1", 2, 3, 4, 6, string.Empty) {
                 LineWeight = 0.02,
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Angle = 0.3,
             };
             page.Shapes.Add(shape);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument roundTrip = VisioDocument.Load(filePath);
             VisioShape loaded = roundTrip.Pages[0].Shapes[0];
@@ -34,11 +34,11 @@ namespace OfficeIMO.Tests {
         public void DefaultsWhenMissing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape shape = new("1", 1, 1, 2, 4, string.Empty);
             page.Shapes.Add(shape);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape s = loaded.Pages[0].Shapes[0];

@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
         public void RoundTripsShapeData() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             VisioShape shape = new("1", 2, 3, 4, 5, string.Empty);
             shape.Data["Key"] = "Value";
             page.Shapes.Add(shape);
-            document.Save(filePath);
+            document.Save();
 
             VisioDocument roundTrip = VisioDocument.Load(filePath);
             VisioShape loaded = roundTrip.Pages[0].Shapes[0];

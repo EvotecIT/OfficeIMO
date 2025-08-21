@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Comprehensive Colored Shapes");
             string filePath = Path.Combine(folderPath, "Comprehensive Colored Shapes.vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
             VisioPage page = document.AddPage("Colored Shapes");
             page.Size(11, 8.5); // Standard landscape page
@@ -200,7 +200,7 @@ namespace OfficeIMO.Examples.Visio {
             };
             page.Shapes.Add(transparentShape);
 
-            document.Save(filePath);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         public void VisioDocumentIncludesRequiredChildren() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
-            document.Save(filePath);
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
         public void VisioDocumentRootHasExpectedChildrenInOrder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
-            document.Save(filePath);
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             PackagePart documentPart = package.GetPart(new Uri("/visio/document.xml", UriKind.Relative));
