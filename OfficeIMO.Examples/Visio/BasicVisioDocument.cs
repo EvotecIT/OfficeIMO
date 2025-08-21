@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Basic Visio.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Page-1");
+            VisioPage page = document.AddPage("Page-1", 8.5, 11);
             page.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Rectangle") { 
                 NameU = "Rectangle",
                 FillColor = Color.LightBlue,

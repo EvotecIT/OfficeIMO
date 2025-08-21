@@ -7,17 +7,22 @@ namespace OfficeIMO.Visio {
     public class VisioPage {
         private readonly List<VisioShape> _shapes = new();
         private readonly List<VisioConnector> _connectors = new();
-        private double _pageWidth = 8.26771653543307; // A4 width in inches
-        private double _pageHeight = 11.69291338582677; // A4 height in inches
+        private double _width = 8.26771653543307; // A4 width in inches
+        private double _height = 11.69291338582677; // A4 height in inches
         private bool _gridVisible;
         private bool _snap = true;
 
-        public VisioPage(string name) {
+        public VisioPage(string name) : this(name, 8.26771653543307, 11.69291338582677) {
+        }
+
+        public VisioPage(string name, double widthInches, double heightInches) {
             Name = name;
             NameU = name;
+            _width = widthInches;
+            _height = heightInches;
             ViewScale = -1;
-            ViewCenterX = _pageWidth / 2;
-            ViewCenterY = _pageHeight / 2;
+            ViewCenterX = widthInches / 2;
+            ViewCenterY = heightInches / 2;
         }
 
         public int Id { get; internal set; }
@@ -35,20 +40,42 @@ namespace OfficeIMO.Visio {
 
         public double ViewCenterY { get; set; }
 
-        public double PageWidth {
-            get => _pageWidth;
+        public double Width {
+            get => _width;
             set {
-                _pageWidth = value;
+                _width = value;
                 ViewCenterX = value / 2;
             }
         }
 
-        public double PageHeight {
-            get => _pageHeight;
+        public double WidthCentimeters {
+            get => _width.FromInches(VisioMeasurementUnit.Centimeters);
+            set => Width = value.ToInches(VisioMeasurementUnit.Centimeters);
+        }
+
+        public double Height {
+            get => _height;
             set {
-                _pageHeight = value;
+                _height = value;
                 ViewCenterY = value / 2;
             }
+        }
+
+        public double HeightCentimeters {
+            get => _height.FromInches(VisioMeasurementUnit.Centimeters);
+            set => Height = value.ToInches(VisioMeasurementUnit.Centimeters);
+        }
+
+        [System.Obsolete("Use Width instead")]
+        public double PageWidth {
+            get => Width;
+            set => Width = value;
+        }
+
+        [System.Obsolete("Use Height instead")]
+        public double PageHeight {
+            get => Height;
+            set => Height = value;
         }
 
         public bool GridVisible {
@@ -71,9 +98,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public IList<VisioConnector> Connectors => _connectors;
 
-        public VisioPage Size(double w, double h) {
-            PageWidth = w;
-            PageHeight = h;
+        public VisioPage Size(double w, double h, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            Width = w.ToInches(unit);
+            Height = h.ToInches(unit);
             return this;
         }
 

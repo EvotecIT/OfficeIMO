@@ -41,12 +41,18 @@ namespace OfficeIMO.Visio {
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
+        /// <param name="width">Page width.</param>
+        /// <param name="height">Page height.</param>
+        /// <param name="unit">Measurement unit for width and height.</param>
         /// <param name="id">Optional page identifier. If not specified, uses zero-based index.</param>
-        public VisioPage AddPage(string name, int? id = null) {
-            VisioPage page = new(name) { Id = id ?? _pages.Count };
+        public VisioPage AddPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+            double widthInches = width.ToInches(unit);
+            double heightInches = height.ToInches(unit);
+            VisioPage page = new(name, widthInches, heightInches) { Id = id ?? _pages.Count };
             _pages.Add(page);
             return page;
         }
+
 
         /// <summary>
         /// Requests Visio to relayout and reroute connectors when the document is opened.
@@ -125,7 +131,7 @@ namespace OfficeIMO.Visio {
             foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
                 string name = pageRef.Attribute("Name")?.Value ?? "Page";
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
-                VisioPage page = document.AddPage(name, pageId);
+                VisioPage page = document.AddPage(name, id: pageId);
                 page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
                 page.ViewScale = ParseDouble(pageRef.Attribute("ViewScale")?.Value);
                 page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
@@ -785,9 +791,9 @@ namespace OfficeIMO.Visio {
                         if (formula != null) writer.WriteAttributeString("F", formula);
                         writer.WriteEndElement();
                     }
-                    bool useUnits = page.PageWidth != 8.26771653543307 || page.PageHeight != 11.69291338582677;
-                    WritePageCell("PageWidth", page.PageWidth, useUnits ? "MM" : null);
-                    WritePageCell("PageHeight", page.PageHeight, useUnits ? "MM" : null);
+                    bool useUnits = page.Width != 8.26771653543307 || page.Height != 11.69291338582677;
+                    WritePageCell("PageWidth", page.Width, useUnits ? "MM" : null);
+                    WritePageCell("PageHeight", page.Height, useUnits ? "MM" : null);
                     WritePageCell("ShdwOffsetX", 0.1181102362204724, useUnits ? "MM" : null);
                     WritePageCell("ShdwOffsetY", -0.1181102362204724, useUnits ? "MM" : null);
                     WritePageCell("PageScale", 0.03937007874015748, "MM");
