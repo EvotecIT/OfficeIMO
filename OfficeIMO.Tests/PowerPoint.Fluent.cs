@@ -14,14 +14,14 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 presentation.AsFluent()
-                    .Slide(s => s
-                        .Layout(0, 1)
+                    .Slide(0, 1)
                         .Title("Fluent Title")
                         .TextBox("Hello")
                         .Bullets("One", "Two")
                         .Image(imagePath)
                         .Table(2, 2)
-                        .Notes("Notes text"))
+                        .Notes("Notes text")
+                        .End()
                     .Slide(s => s.Title("Second Slide"))
                     .End()
                     .Save();
