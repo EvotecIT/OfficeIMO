@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
 using DocumentFormat.OpenXml.CustomProperties;
@@ -20,7 +19,6 @@ namespace OfficeIMO.VerifyTests;
 public abstract class VerifyTestBase {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private static readonly string LastTime =
         DateTimeOffset.MaxValue.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
@@ -46,7 +44,7 @@ public abstract class VerifyTestBase {
 
         result.AppendLine(nameof(document.PackageProperties));
         result.AppendLine(RowDelimiter);
-        var packageProperties = JsonSerializer.Serialize(document.PackageProperties, JsonOptions);
+        var packageProperties = SerializePackageProperties(document.PackageProperties);
         result.AppendLine(packageProperties);
         result.AppendLine(RowDelimiter);
 
@@ -82,6 +80,37 @@ public abstract class VerifyTestBase {
     private static void NormalizeWord(WordprocessingDocument document) {
         NormalizeDocument(document.MainDocumentPart?.Document);
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
+    }
+
+    private static string SerializePackageProperties(IPackageProperties properties) {
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        var props = typeof(IPackageProperties)
+            .GetProperties()
+            .OrderBy(p => p.MetadataToken)
+            .ToArray();
+        for (int i = 0; i < props.Length; i++) {
+            var prop = props[i];
+            var value = prop.GetValue(properties);
+            sb.Append("  \"").Append(prop.Name).Append("\": ");
+            if (value == null) {
+                sb.Append("null");
+            } else {
+                sb.Append('"').Append(Escape(value.ToString()!)).Append('"');
+            }
+            if (i < props.Length - 1) sb.Append(',');
+            sb.AppendLine();
+        }
+        sb.Append('}');
+        return sb.ToString();
+    }
+
+    private static string Escape(string value) {
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
     }
 
     private static string FormatXml(string value) {
