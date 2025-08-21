@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         public ColumnCollectionBuilder Col(int index, Action<ColumnBuilder> action) {
+            if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
             var builder = new ColumnBuilder(_sheet, index);
             action(builder);
             return this;

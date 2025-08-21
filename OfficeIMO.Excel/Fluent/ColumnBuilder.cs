@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     public class ColumnBuilder {
@@ -5,6 +6,7 @@ namespace OfficeIMO.Excel.Fluent {
         private readonly int _columnIndex;
 
         internal ColumnBuilder(ExcelSheet sheet, int columnIndex) {
+            if (columnIndex < 1) throw new ArgumentOutOfRangeException(nameof(columnIndex));
             _sheet = sheet;
             _columnIndex = columnIndex;
         }
@@ -21,6 +23,12 @@ namespace OfficeIMO.Excel.Fluent {
 
         public ColumnBuilder Hidden(bool hidden) {
             _sheet.SetColumnHidden(_columnIndex, hidden);
+            return this;
+        }
+
+        public ColumnBuilder Cell(int row, object? value = null, string? formula = null, string? numberFormat = null) {
+            if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
+            _sheet.Cell(row, _columnIndex, value, formula, numberFormat);
             return this;
         }
     }
