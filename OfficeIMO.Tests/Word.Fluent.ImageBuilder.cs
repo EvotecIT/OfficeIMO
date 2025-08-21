@@ -57,5 +57,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
             }
         }
+
+        [Fact]
+        public void Test_FluentImageAltAndLink() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageAltLink.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Image(i => i.Add(imagePath).Alt("Title", "Desc").Link("https://example.com"))
+                    .End();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var hyperlink = document.Paragraphs[0].Hyperlink!;
+                var drawing = hyperlink._hyperlink.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().First();
+                var image = new WordImage(document, drawing);
+                Assert.Equal("Desc", image.Description);
+                Assert.Equal("Title", image.Title);
+                Assert.True(document.Paragraphs[0].IsHyperLink);
+            }
+        }
     }
 }
