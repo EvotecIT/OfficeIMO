@@ -53,10 +53,6 @@ namespace OfficeIMO.Visio {
             return page;
         }
 
-        [Obsolete("Use AddPage with unit parameter")]
-        public VisioPage AddPage(string name, double widthInches, double heightInches, int? id = null) {
-            return AddPage(name, widthInches, heightInches, VisioMeasurementUnit.Inches, id);
-        }
 
         /// <summary>
         /// Requests Visio to relayout and reroute connectors when the document is opened.
