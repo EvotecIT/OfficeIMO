@@ -41,13 +41,21 @@ namespace OfficeIMO.Visio {
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
-        /// <param name="widthInches">Page width in inches.</param>
-        /// <param name="heightInches">Page height in inches.</param>
+        /// <param name="width">Page width.</param>
+        /// <param name="height">Page height.</param>
+        /// <param name="unit">Measurement unit for width and height.</param>
         /// <param name="id">Optional page identifier. If not specified, uses zero-based index.</param>
-        public VisioPage AddPage(string name, double widthInches = 8.26771653543307, double heightInches = 11.69291338582677, int? id = null) {
+        public VisioPage AddPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+            double widthInches = width.ToInches(unit);
+            double heightInches = height.ToInches(unit);
             VisioPage page = new(name, widthInches, heightInches) { Id = id ?? _pages.Count };
             _pages.Add(page);
             return page;
+        }
+
+        [Obsolete("Use AddPage with unit parameter")]
+        public VisioPage AddPage(string name, double widthInches, double heightInches, int? id = null) {
+            return AddPage(name, widthInches, heightInches, VisioMeasurementUnit.Inches, id);
         }
 
         /// <summary>

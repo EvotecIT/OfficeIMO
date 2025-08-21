@@ -48,12 +48,22 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        public double WidthCentimeters {
+            get => _width.FromInches(VisioMeasurementUnit.Centimeters);
+            set => Width = value.ToInches(VisioMeasurementUnit.Centimeters);
+        }
+
         public double Height {
             get => _height;
             set {
                 _height = value;
                 ViewCenterY = value / 2;
             }
+        }
+
+        public double HeightCentimeters {
+            get => _height.FromInches(VisioMeasurementUnit.Centimeters);
+            set => Height = value.ToInches(VisioMeasurementUnit.Centimeters);
         }
 
         [System.Obsolete("Use Width instead")]
@@ -88,9 +98,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public IList<VisioConnector> Connectors => _connectors;
 
-        public VisioPage Size(double w, double h) {
-            Width = w;
-            Height = h;
+        public VisioPage Size(double w, double h, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            Width = w.ToInches(unit);
+            Height = h.ToInches(unit);
             return this;
         }
 

@@ -38,5 +38,15 @@ namespace OfficeIMO.Tests {
             Assert.True(page.GridVisible);
             Assert.False(page.Snap);
         }
+
+        [Fact]
+        public void MetricUnitsConvertToInches() {
+            VisioDocument document = VisioDocument.Create(Path.GetTempFileName());
+            VisioPage page = document.AddPage("Metric", 21, 29.7, VisioMeasurementUnit.Centimeters);
+            Assert.Equal(21, Math.Round(page.WidthCentimeters, 2));
+            Assert.Equal(29.7, Math.Round(page.HeightCentimeters, 2));
+            Assert.Equal(8.27, Math.Round(page.Width, 2));
+            Assert.Equal(11.69, Math.Round(page.Height, 2));
+        }
     }
 }
