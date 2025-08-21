@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("Centered paragraph").Align(HorizontalAlignment.Center))
                     .Paragraph(p => p.Text("Right aligned paragraph").Align(HorizontalAlignment.Right))
                     .Paragraph(p => p.Text("Justified heading with spacing and indentation")
-                        .Align(HorizontalAlignment.Justified)
+                        .Justify()
                         .SpacingBefore(12)
                         .SpacingAfter(12)
                         .LineSpacing(24)

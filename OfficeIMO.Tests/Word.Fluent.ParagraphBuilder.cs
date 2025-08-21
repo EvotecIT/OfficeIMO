@@ -61,5 +61,21 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(JustificationValues.Right, document.Paragraphs.Last().ParagraphAlignment);
             }
         }
+
+        [Fact]
+        public void Test_FluentParagraphBuilderJustify() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentParagraphBuilderJustify.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Paragraph(p => p.Text("Justified").Justify())
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(JustificationValues.Both, document.Paragraphs.Last().ParagraphAlignment);
+            }
+        }
     }
 }

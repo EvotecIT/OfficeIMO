@@ -5,7 +5,6 @@ namespace OfficeIMO {
     public enum HorizontalAlignment {
         Left,
         Center,
-        Right,
-        Justified
+        Right
     }
 }

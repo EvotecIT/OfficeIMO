@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                         i.Add(stream, "stream.jpg").Size(60, 60).Align(HorizontalAlignment.Right);
                     })
                     .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left))
-                    .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80).Align(HorizontalAlignment.Justified))
+                    .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80).Align(HorizontalAlignment.Center))
                     .End();
                 document.Save(false);
             }
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(70, document.Images[2].Width);
                 Assert.Equal(JustificationValues.Left, document.Paragraphs[2].ParagraphAlignment);
                 Assert.Equal(80, document.Images[3].Width);
-                Assert.Equal(JustificationValues.Both, document.Paragraphs[3].ParagraphAlignment);
+                Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
             }
         }
     }
