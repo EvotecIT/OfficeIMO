@@ -13,11 +13,11 @@ namespace OfficeIMO.Tests {
         public void AddsThemePart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.Theme = new VisioTheme { Name = "Office Theme" };
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
-            document.Save(filePath);
+            document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/theme/theme1.xml", UriKind.Relative)));
@@ -44,10 +44,10 @@ namespace OfficeIMO.Tests {
         public void DoesNotAddThemeWhenAbsent() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
-            document.Save(filePath);
+            document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.False(package.PartExists(new Uri("/visio/theme/theme1.xml", UriKind.Relative)));

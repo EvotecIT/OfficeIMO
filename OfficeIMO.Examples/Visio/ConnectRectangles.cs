@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Connecting rectangles");
             string filePath = Path.Combine(folderPath, "Connect Rectangles.vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
             VisioPage page = document.AddPage("Page-1");
             
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Visio {
             };
             page.Connectors.Add(connector);
             
-            document.Save(filePath);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Creating basic document");
             string filePath = Path.Combine(folderPath, "Basic Visio.vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Rectangle") { 
                 NameU = "Rectangle",
@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Visio {
                 LineColor = Color.DarkBlue,
                 LineWeight = 0.02
             });
-            document.Save(filePath);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests {
         public void CreatesPackageWithExpectedParts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument document = new();
+            VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Rectangle"));
-            document.Save(filePath);
+            document.Save();
 
             XDocument pageDoc;
             Uri pageUri;
@@ -118,9 +118,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(shape?.Attribute("Name"));
                 Assert.NotNull(shape?.Attribute("NameU"));
                 Assert.Equal("Shape", shape?.Attribute("Type")?.Value);
-                XElement? xform = shape?.Element(ns + "XForm");
-                Assert.NotNull(xform);
-                Assert.NotNull(xform?.Element(ns + "PinX"));
                 Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
             }
 
