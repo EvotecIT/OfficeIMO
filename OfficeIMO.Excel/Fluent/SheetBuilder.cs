@@ -130,9 +130,9 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        public SheetBuilder Column(Action<ColumnBuilder> action) {
+        public SheetBuilder Columns(Action<ColumnCollectionBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            var builder = new ColumnBuilder(Sheet);
+            var builder = new ColumnCollectionBuilder(Sheet);
             action(builder);
             return this;
         }
