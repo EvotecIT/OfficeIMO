@@ -1,0 +1,150 @@
+﻿name: Actions Storage Cleanup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # daily at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Delete items older than N days'
+        required: false
+        default: '7'
+      keep_artifacts:
+        description: 'Keep newest N artifacts'
+        required: false
+        default: '20'
+      keep_caches:
+        description: 'Keep newest N caches'
+        required: false
+        default: '20'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: actions-storage-cleanup
+  cancel-in-progress: false
+
+env:
+  CLEAN_DAYS: ${{ github.event.inputs.days || '7' }}
+  KEEP_ARTIFACTS: ${{ github.event.inputs.keep_artifacts || '20' }}
+  KEEP_CACHES: ${{ github.event.inputs.keep_caches || '20' }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show settings
+        run: |
+          echo "Days threshold: $CLEAN_DAYS"
+          echo "Keep newest artifacts: $KEEP_ARTIFACTS"
+          echo "Keep newest caches:   $KEEP_CACHES"
+
+      - name: Purge artifacts by age and count
+        uses: actions/github-script@v7
+        with:
+          script: |
+            async function safeDeleteArtifact(owner, repo, id, name) {
+              for (let attempt = 1; attempt <= 5; attempt++) {
+                try {
+                  await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: id });
+                  core.info(`Deleted artifact ${name} (${id})`);
+                  return true;
+                } catch (e) {
+                  if ([500,502,503,504].includes(e.status)) {
+                    core.warning(`Retry ${attempt} deleting artifact ${id} (status ${e.status})`);
+                    await new Promise(r => setTimeout(r, 2000 * attempt));
+                    continue;
+                  }
+                  core.error(`Artifact ${id} failed with ${e.status}: ${e.message}`);
+                  return false;
+                }
+              }
+              core.error(`Giving up artifact ${id} after retries`);
+              return false;
+            }
+
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const days = Number(process.env.CLEAN_DAYS);
+            const keep = Number(process.env.KEEP_ARTIFACTS);
+            const cutoff = Date.now() - days*24*60*60*1000;
+
+            // Collect all artifacts
+            const artifacts = [];
+            for (let page = 1; ; page++) {
+              const { data } = await github.rest.actions.listArtifactsForRepo({ owner, repo, per_page: 100, page });
+              if (!data.artifacts?.length) break;
+              artifacts.push(...data.artifacts);
+            }
+
+            artifacts.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+            let deleted = 0;
+            for (let i = 0; i < artifacts.length; i++) {
+              const a = artifacts[i];
+              const created = new Date(a.created_at).getTime();
+              if (i >= keep || created < cutoff) {
+                const ok = await safeDeleteArtifact(owner, repo, a.id, a.name);
+                if (ok) deleted++;
+              }
+            }
+            core.info(`Artifacts total: ${artifacts.length}, deleted: ${deleted}, kept: ${Math.max(artifacts.length - deleted, 0)}`);
+
+      - name: Purge caches by age and count
+        uses: actions/github-script@v7
+        with:
+          script: |
+            async function safeDeleteCache(owner, repo, id, key) {
+              for (let attempt = 1; attempt <= 5; attempt++) {
+                try {
+                  await github.request('DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}', {
+                    owner, repo, cache_id: id
+                  });
+                  core.info(`Deleted cache ${key} (${id})`);
+                  return true;
+                } catch (e) {
+                  if ([500,502,503,504].includes(e.status)) {
+                    core.warning(`Retry ${attempt} deleting cache ${id} (status ${e.status})`);
+                    await new Promise(r => setTimeout(r, 2000 * attempt));
+                    continue;
+                  }
+                  core.error(`Cache ${id} failed with ${e.status}: ${e.message}`);
+                  return false;
+                }
+              }
+              core.error(`Giving up cache ${id} after retries`);
+              return false;
+            }
+
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const days = Number(process.env.CLEAN_DAYS);
+            const keep = Number(process.env.KEEP_CACHES);
+            const cutoff = Date.now() - days*24*60*60*1000;
+
+            // Collect all caches
+            const caches = [];
+            for (let page = 1; ; page++) {
+              const { data } = await github.request(
+                'GET /repos/{owner}/{repo}/actions/caches',
+                { owner, repo, per_page: 100, page }
+              );
+              const list = data.actions_caches ?? [];
+              if (!list.length) break;
+              caches.push(...list);
+            }
+
+            caches.forEach(c => { c._last = c.last_accessed_at ? new Date(c.last_accessed_at).getTime() : 0; });
+            caches.sort((a,b) => (b._last - a._last));
+
+            let deleted = 0;
+            for (let i = 0; i < caches.length; i++) {
+              const c = caches[i];
+              if (i >= keep || !Number.isFinite(c._last) || c._last < cutoff) {
+                const ok = await safeDeleteCache(owner, repo, c.id, c.key);
+                if (ok) deleted++;
+              }
+            }
+            core.info(`Caches total: ${caches.length}, deleted: ${deleted}, kept: ${Math.max(caches.length - deleted, 0)}`);
