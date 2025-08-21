@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -106,6 +107,38 @@ namespace OfficeIMO.Word.Fluent {
         public WordFluentDocument Footer(Action<FootersBuilder> action) {
             action(new FootersBuilder(this));
             return this;
+        }
+
+        /// <summary>
+        /// Executes an action for each section in the document.
+        /// </summary>
+        /// <param name="action">Action to execute for every section with its 1-based index.</param>
+        public WordFluentDocument ForEachSection(Action<int, WordSection> action) {
+            for (int i = 0; i < Document.Sections.Count; i++) {
+                action(i + 1, Document.Sections[i]);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Returns all sections in the document.
+        /// </summary>
+        public IEnumerable<WordSection> Sections() {
+            return Document.Sections;
+        }
+
+        /// <summary>
+        /// Returns all paragraphs in the document.
+        /// </summary>
+        public IEnumerable<WordParagraph> Paragraphs() {
+            return Document.Paragraphs;
+        }
+
+        /// <summary>
+        /// Returns all tables in the document.
+        /// </summary>
+        public IEnumerable<WordTable> Tables() {
+            return Document.Tables;
         }
 
         /// <summary>
