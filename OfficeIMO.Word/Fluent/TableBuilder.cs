@@ -183,6 +183,9 @@ namespace OfficeIMO.Word.Fluent {
         /// Performs an action on the specified cell using 1-based row and column indices.
         /// </summary>
         public TableBuilder Cell(int row, int column, Action<WordTableCell> action) {
+            if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
+
             EnsureTable(row);
             if (_table == null) {
                 return this;

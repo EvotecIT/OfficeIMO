@@ -115,6 +115,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(TableWidthUnitValues.Dxa, table.WidthType);
             }
         }
+
+        [Fact]
+        public void TableBuilderCellEnforces1BasedIndexing() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderInvalidCell.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Table(t => t.Cell(0, 1, _ => { })));
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.AsFluent().Table(t => t.Cell(1, 0, _ => { })));
+            }
+        }
     }
 }
 
