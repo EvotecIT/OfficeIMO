@@ -16,22 +16,29 @@ namespace OfficeIMO.PowerPoint.Fluent {
         internal PowerPointPresentation Presentation { get; }
 
         /// <summary>
+        ///     Adds and returns a builder for a new slide.
+        /// </summary>
+        /// <param name="masterIndex">Index of the slide master.</param>
+        /// <param name="layoutIndex">Index of the slide layout.</param>
+        public PowerPointSlideBuilder Slide(int masterIndex = 0, int layoutIndex = 0) {
+            PowerPointSlide slide = Presentation.AddSlide(masterIndex, layoutIndex);
+            return new PowerPointSlideBuilder(this, slide);
+        }
+
+        /// <summary>
         ///     Adds and optionally configures a new slide to the presentation.
         /// </summary>
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
-        /// <param name="configure">Optional action used to configure the slide via a <see cref="PowerPointSlideBuilder"/>.</param>
-        public PowerPointFluentPresentation Slide(int masterIndex = 0, int layoutIndex = 0, Action<PowerPointSlideBuilder> configure = null) {
-            PowerPointSlide slide = Presentation.AddSlide(masterIndex, layoutIndex);
-            if (configure != null) {
-                PowerPointSlideBuilder builder = new PowerPointSlideBuilder(slide);
-                configure(builder);
-            }
+        /// <param name="configure">Action used to configure the slide.</param>
+        public PowerPointFluentPresentation Slide(int masterIndex, int layoutIndex, Action<PowerPointSlideBuilder> configure) {
+            PowerPointSlideBuilder builder = Slide(masterIndex, layoutIndex);
+            configure?.Invoke(builder);
             return this;
         }
 
         /// <summary>
-        ///     Adds and configures a new slide using a builder action.
+        ///     Adds and configures a new slide using a builder action with default master and layout indexes.
         /// </summary>
         /// <param name="configure">Action used to configure the slide.</param>
         public PowerPointFluentPresentation Slide(Action<PowerPointSlideBuilder> configure) {

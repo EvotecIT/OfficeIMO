@@ -3,9 +3,11 @@ namespace OfficeIMO.PowerPoint.Fluent {
     ///     Builder for slide content.
     /// </summary>
     public class PowerPointSlideBuilder {
+        private readonly PowerPointFluentPresentation _presentation;
         private readonly PowerPointSlide _slide;
 
-        internal PowerPointSlideBuilder(PowerPointSlide slide) {
+        internal PowerPointSlideBuilder(PowerPointFluentPresentation presentation, PowerPointSlide slide) {
+            _presentation = presentation;
             _slide = slide;
         }
 
@@ -67,6 +69,13 @@ namespace OfficeIMO.PowerPoint.Fluent {
         public PowerPointSlideBuilder Notes(string text) {
             _slide.Notes.Text = text;
             return this;
+        }
+
+        /// <summary>
+        ///     Ends slide configuration and returns to the presentation builder.
+        /// </summary>
+        public PowerPointFluentPresentation End() {
+            return _presentation;
         }
     }
 }
