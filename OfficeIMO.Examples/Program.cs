@@ -34,6 +34,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
             // Excel/AddTable
             OfficeIMO.Examples.Excel.AddTable.Example(folderPath, false);
+            // Excel/AddTableMissingCells
+            OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
             // Excel/AutoFilter
             OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
             // Excel/Freeze
