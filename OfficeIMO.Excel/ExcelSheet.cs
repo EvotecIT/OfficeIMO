@@ -163,6 +163,11 @@ namespace OfficeIMO.Excel {
             return columnIndex;
         }
 
+        private static int GetRowIndex(string cellReference) {
+            var digits = new string(cellReference.Where(char.IsDigit).ToArray());
+            return int.Parse(digits, CultureInfo.InvariantCulture);
+        }
+
         private string GetCellText(Cell cell) {
             if (cell.CellValue == null) return string.Empty;
             string value = cell.CellValue.InnerText;
@@ -547,11 +552,35 @@ namespace OfficeIMO.Excel {
 
                 int startColumnIndex = GetColumnIndex(startRef);
                 int endColumnIndex = GetColumnIndex(endRef);
+                int startRowIndex = GetRowIndex(startRef);
+                int endRowIndex = GetRowIndex(endRef);
 
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
-                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+                foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
+                    var existingRange = existingPart.Table?.Reference?.Value;
+                    if (string.IsNullOrEmpty(existingRange)) continue;
+                    var existingCells = existingRange.Split(':');
+                    if (existingCells.Length != 2) continue;
+                    string existingStartRef = existingCells[0];
+                    string existingEndRef = existingCells[1];
+
+                    int existingStartColumn = GetColumnIndex(existingStartRef);
+                    int existingEndColumn = GetColumnIndex(existingEndRef);
+                    int existingStartRow = GetRowIndex(existingStartRef);
+                    int existingEndRow = GetRowIndex(existingEndRef);
+
+                    bool overlaps = startColumnIndex <= existingEndColumn &&
+                                    endColumnIndex >= existingStartColumn &&
+                                    startRowIndex <= existingEndRow &&
+                                    endRowIndex >= existingStartRow;
+                    if (overlaps) {
+                        throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                    }
+                }
+
                 uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
+                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
 
                 if (string.IsNullOrEmpty(name)) {
                     name = $"Table{tableId}";
@@ -581,6 +610,7 @@ namespace OfficeIMO.Excel {
                 });
 
                 tableDefinitionPart.Table = table;
+                tableDefinitionPart.Table.Save();
 
                 var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
