@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -38,30 +40,32 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Text {
             get {
-                if (_sdtBlock != null) {
-                    var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in paragraphs) {
-                        var run = paragraph.OfType<Run>().FirstOrDefault();
-                        if (run != null) {
-                            Text text = run.OfType<Text>().FirstOrDefault();
-                            if (text != null) {
-                                return text.Text;
-                            }
+                var contentBlock = _sdtBlock?.SdtContentBlock;
+                if (contentBlock != null) {
+                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
+                        var text = paragraph
+                            .OfType<Run>()
+                            .FirstOrDefault()?
+                            .OfType<Text>()
+                            .FirstOrDefault()?.Text;
+                        if (text != null) {
+                            return text;
                         }
                     }
                 }
-                return "";
+                return string.Empty;
             }
             set {
-                if (_sdtBlock != null) {
-                    var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in paragraphs) {
-                        var run = paragraph.OfType<Run>().FirstOrDefault();
-                        if (run != null) {
-                            Text text = run.OfType<Text>().FirstOrDefault();
-                            if (text != null) {
-                                text.Text = value;
-                            }
+                var contentBlock = _sdtBlock?.SdtContentBlock;
+                if (contentBlock != null) {
+                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
+                        var text = paragraph
+                            .OfType<Run>()
+                            .FirstOrDefault()?
+                            .OfType<Text>()
+                            .FirstOrDefault();
+                        if (text != null) {
+                            text.Text = value;
                         }
                     }
                 }
@@ -73,36 +77,36 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string TextNoContent {
             get {
-                if (_sdtBlock != null) {
-                    var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in paragraphs) {
-                        var simpleField = paragraph.OfType<SimpleField>().FirstOrDefault();
-                        if (simpleField != null) {
-                            var run = simpleField.OfType<Run>().FirstOrDefault();
-                            if (run != null) {
-                                Text text = run.OfType<Text>().FirstOrDefault();
-                                if (text != null) {
-                                    return text.Text;
-                                }
-                            }
+                var contentBlock = _sdtBlock?.SdtContentBlock;
+                if (contentBlock != null) {
+                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
+                        var text = paragraph
+                            .OfType<SimpleField>()
+                            .FirstOrDefault()?
+                            .OfType<Run>()
+                            .FirstOrDefault()?
+                            .OfType<Text>()
+                            .FirstOrDefault()?.Text;
+                        if (text != null) {
+                            return text;
                         }
                     }
                 }
-                return "";
+                return string.Empty;
             }
             set {
-                if (_sdtBlock != null) {
-                    var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-                    foreach (var paragraph in paragraphs) {
-                        var simpleField = paragraph.OfType<SimpleField>().FirstOrDefault();
-                        if (simpleField != null) {
-                            var run = simpleField.OfType<Run>().FirstOrDefault();
-                            if (run != null) {
-                                Text text = run.OfType<Text>().FirstOrDefault();
-                                if (text != null) {
-                                    text.Text = value;
-                                }
-                            }
+                var contentBlock = _sdtBlock?.SdtContentBlock;
+                if (contentBlock != null) {
+                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
+                        var text = paragraph
+                            .OfType<SimpleField>()
+                            .FirstOrDefault()?
+                            .OfType<Run>()
+                            .FirstOrDefault()?
+                            .OfType<Text>()
+                            .FirstOrDefault();
+                        if (text != null) {
+                            text.Text = value;
                         }
                     }
                 }
@@ -117,10 +121,11 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument">Parent document where the table of contents will be created.</param>
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
         public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle) {
-            this._document = wordDocument;
+            this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this.Style = tableOfContentStyle;
             this._sdtBlock = GetStyle(tableOfContentStyle);
-            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
+            var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            body?.Append(_sdtBlock);
 
             //var currentStdBlock = this._document._wordprocessingDocument.MainDocumentPart.Document.Body.OfType<SdtBlock>();
             //if (currentStdBlock.ToList().Count > 0) {
@@ -136,8 +141,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument">Parent document that owns the table of contents.</param>
         /// <param name="sdtBlock">Structured document tag representing the table of contents.</param>
         public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock) {
-            this._document = wordDocument;
-            this._sdtBlock = sdtBlock;
+            this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
+            this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
             this.Style = TableOfContentStyle.Template1;
         }
 
