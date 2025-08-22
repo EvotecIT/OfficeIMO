@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Validation;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -20,6 +21,16 @@ namespace OfficeIMO.Tests {
             //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
             _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments1");
             Word.Setup(_directoryWithFiles);
+        }
+
+        internal static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
+            return string.Join(Environment.NewLine + Environment.NewLine,
+                errors.Select(error =>
+                    $"Description: {error.Description}\n" +
+                    $"Id: {error.Id}\n" +
+                    $"ErrorType: {error.ErrorType}\n" +
+                    $"Part: {error.Part?.Uri}\n" +
+                    $"Path: {error.Path?.XPath}"));
         }
     }
 }
