@@ -52,7 +52,7 @@ namespace OfficeIMO.Word {
             return this._run;
         }
 
-        internal Run VerifyRun(Paragraph paragraph, Run run) {
+        internal Run VerifyRun(Paragraph paragraph, Run? run) {
             if (run == null) {
                 run = new Run();
                 paragraph.Append(run);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        internal Run VerifyRun(Hyperlink hyperlink, Run run) {
+        internal Run VerifyRun(Hyperlink hyperlink, Run? run) {
             if (run == null) {
                 run = new Run();
                 hyperlink.Append(run);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run? run, RunProperties? runProperties) {
             VerifyRun(hyperlink, run);
             if (run != null) {
                 if (runProperties == null) {
@@ -80,10 +80,11 @@ namespace OfficeIMO.Word {
                     } else {
                         run.Append(new RunProperties());
                     }
+                    runProperties = run.RunProperties;
                 }
             }
 
-            return runProperties;
+            return runProperties!;
         }
 
         /// <summary>
