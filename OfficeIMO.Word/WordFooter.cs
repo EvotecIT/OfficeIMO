@@ -1,9 +1,9 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the default footer for the section.
         /// </summary>
-        public WordFooter Default {
+        public WordFooter? Default {
             get;
             set;
         }
@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the footer used for even pages.
         /// </summary>
-        public WordFooter Even {
+        public WordFooter? Even {
             get;
             set;
         }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the footer used for the first page.
         /// </summary>
-        public WordFooter First {
+        public WordFooter? First {
             get;
             set;
         }
@@ -43,14 +43,18 @@ namespace OfficeIMO.Word {
         private readonly WordSection _section;
 
         internal WordFooter(WordDocument document, FooterReference footerReference, WordSection section) {
-            _document = document;
-            _id = footerReference.Id;
-            _type = WordSection.GetType(footerReference.Type);
+            _document = document ?? throw new ArgumentNullException(nameof(document));
+            _id = footerReference.Id?.Value ?? throw new InvalidOperationException("FooterReference requires an Id.");
+            var typeEnum = footerReference.Type?.Value;
+            var typeString = typeEnum?.ToString().ToLower() ?? "first";
+            _type = WordSection.GetType(typeString);
             _section = section;
 
-            var listHeaders = document._wordprocessingDocument.MainDocumentPart.FooterParts.ToList();
+            var mainPart = document._wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("Document does not contain a MainDocumentPart.");
+            var listHeaders = mainPart.FooterParts.ToList();
             foreach (FooterPart footerPart in listHeaders) {
-                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(footerPart);
+                var id = mainPart.GetIdOfPart(footerPart);
                 if (id == _id) {
                     _footerPart = footerPart;
                     _footer = footerPart.Footer;
@@ -92,8 +96,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
-            var docPart = wordprocessingDocument.MainDocumentPart;
-            DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
+            var docPart = wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("WordprocessingDocument does not contain a MainDocumentPart.");
+            var document = docPart.Document
+                ?? throw new InvalidOperationException("MainDocumentPart does not contain a Document.");
 
             if (types == null || types.Length == 0) {
                 if (docPart.FooterParts.Any()) {
@@ -108,11 +114,15 @@ namespace OfficeIMO.Word {
 
             var partsToDelete = new HashSet<FooterPart>();
             var footersToRemove = document.Descendants<FooterReference>()
-                .Where(f => types.Contains(f.Type)).ToList();
+                .Where(f => f.Type != null && types.Contains(f.Type))
+                .ToList();
             foreach (var footer in footersToRemove) {
-                var part = docPart.GetPartById(footer.Id) as FooterPart;
-                if (part != null) {
-                    partsToDelete.Add(part);
+                var footerId = footer.Id?.Value;
+                if (footerId != null) {
+                    var part = docPart.GetPartById(footerId) as FooterPart;
+                    if (part != null) {
+                        partsToDelete.Add(part);
+                    }
                 }
                 footer.Remove();
             }
