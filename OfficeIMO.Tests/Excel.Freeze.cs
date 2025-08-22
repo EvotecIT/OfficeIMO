@@ -1,7 +1,9 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
 using Xunit;
@@ -31,11 +33,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PaneValues.BottomLeft, pane.ActivePane?.Value);
                 Assert.Equal("A2", pane.TopLeftCell?.Value);
 
-                Selection selection = sheetView!.GetFirstChild<Selection>();
-                Assert.NotNull(selection);
-                Assert.Equal(PaneValues.BottomLeft, selection!.Pane?.Value);
-                Assert.Equal("A2", selection.ActiveCell?.Value);
-                Assert.Equal("A2", selection.SequenceOfReferences?.InnerText);
+                Selection[] selections = sheetView!.Elements<Selection>().ToArray();
+                Assert.Equal(2, selections.Length);
+                Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
+                Assert.Equal("A2", bottomLeft.ActiveCell?.Value);
+                Assert.Equal("A2", bottomLeft.SequenceOfReferences?.InnerText);
+                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                Assert.Equal("A1", topLeft.ActiveCell?.Value);
+                Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
+
+                OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                var errors = validator.Validate(wsPart.Worksheet).ToList();
+                Assert.Empty(errors);
             }
         }
 
@@ -59,11 +68,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PaneValues.TopRight, pane.ActivePane?.Value);
                 Assert.Equal("C1", pane.TopLeftCell?.Value);
 
-                Selection selection = sheetView!.GetFirstChild<Selection>();
-                Assert.NotNull(selection);
-                Assert.Equal(PaneValues.TopRight, selection!.Pane?.Value);
-                Assert.Equal("C1", selection.ActiveCell?.Value);
-                Assert.Equal("C1", selection.SequenceOfReferences?.InnerText);
+                Selection[] selections = sheetView!.Elements<Selection>().ToArray();
+                Assert.Equal(2, selections.Length);
+                Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
+                Assert.Equal("C1", topRight.ActiveCell?.Value);
+                Assert.Equal("C1", topRight.SequenceOfReferences?.InnerText);
+                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                Assert.Equal("A1", topLeft.ActiveCell?.Value);
+                Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
+
+                OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                var errors = validator.Validate(wsPart.Worksheet).ToList();
+                Assert.Empty(errors);
             }
         }
 
@@ -88,11 +104,44 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B2", pane.TopLeftCell?.Value);
 
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();
-                Assert.Equal(3, selections.Length);
-                foreach (Selection selection in selections) {
-                    Assert.Equal(pane.TopLeftCell?.Value, selection.ActiveCell?.Value);
-                    Assert.Equal(pane.TopLeftCell?.Value, selection.SequenceOfReferences?.InnerText);
+                Assert.Equal(4, selections.Length);
+                Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
+                Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
+                Selection bottomRight = selections.Single(s => s.Pane?.Value == PaneValues.BottomRight);
+                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                foreach (Selection sel in new[] { topRight, bottomLeft, bottomRight }) {
+                    Assert.Equal(pane.TopLeftCell?.Value, sel.ActiveCell?.Value);
+                    Assert.Equal(pane.TopLeftCell?.Value, sel.SequenceOfReferences?.InnerText);
                 }
+                Assert.Equal("A1", topLeft.ActiveCell?.Value);
+                Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
+
+                OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                var errors = validator.Validate(wsPart.Worksheet).ToList();
+                Assert.Empty(errors);
+            }
+        }
+
+        [Fact]
+        public void Test_UnfreezeRemovesSheetViews() {
+            string filePath = Path.Combine(_directoryWithFiles, "FreezeUnfreeze.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Sheet("Data", s => {
+                        s.Freeze(topRows: 1, leftCols: 1);
+                        s.Freeze();
+                    })
+                    .End()
+                    .Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.GetFirstChild<SheetViews>());
+
+                OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                var errors = validator.Validate(wsPart.Worksheet).ToList();
+                Assert.Empty(errors);
             }
         }
     }

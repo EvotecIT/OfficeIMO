@@ -467,8 +467,23 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
                 SheetViews sheetViews = worksheet.GetFirstChild<SheetViews>();
+
+                if (topRows == 0 && leftCols == 0) {
+                    if (sheetViews != null) {
+                        worksheet.RemoveChild(sheetViews);
+                    }
+                    worksheet.Save();
+                    return;
+                }
+
                 if (sheetViews == null) {
-                    sheetViews = worksheet.AppendChild(new SheetViews());
+                    sheetViews = new SheetViews();
+                    SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData != null) {
+                        worksheet.InsertBefore(sheetViews, sheetData);
+                    } else {
+                        worksheet.PrependChild(sheetViews);
+                    }
                 }
 
                 SheetView sheetView = sheetViews.GetFirstChild<SheetView>();
@@ -480,57 +495,62 @@ namespace OfficeIMO.Excel {
                 sheetView.RemoveAllChildren<Pane>();
                 sheetView.RemoveAllChildren<Selection>();
 
-                if (topRows > 0 || leftCols > 0) {
-                    Pane pane = new Pane { State = PaneStateValues.Frozen };
-                    if (topRows > 0) {
-                        pane.HorizontalSplit = topRows;
-                    }
-                    if (leftCols > 0) {
-                        pane.VerticalSplit = leftCols;
-                    }
-
-                    pane.TopLeftCell = GetColumnName(leftCols + 1) + (topRows + 1).ToString(CultureInfo.InvariantCulture);
-
-                    if (topRows > 0 && leftCols > 0) {
-                        pane.ActivePane = PaneValues.BottomRight;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.TopRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomLeft,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    } else if (topRows > 0) {
-                        pane.ActivePane = PaneValues.BottomLeft;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomLeft,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    } else {
-                        pane.ActivePane = PaneValues.TopRight;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.TopRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    }
+                Pane pane = new Pane { State = PaneStateValues.Frozen };
+                if (topRows > 0) {
+                    pane.HorizontalSplit = topRows;
                 }
+                if (leftCols > 0) {
+                    pane.VerticalSplit = leftCols;
+                }
+
+                pane.TopLeftCell = GetColumnName(leftCols + 1) + (topRows + 1).ToString(CultureInfo.InvariantCulture);
+
+                if (topRows > 0 && leftCols > 0) {
+                    pane.ActivePane = PaneValues.BottomRight;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.TopRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomLeft,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                } else if (topRows > 0) {
+                    pane.ActivePane = PaneValues.BottomLeft;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomLeft,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                } else {
+                    pane.ActivePane = PaneValues.TopRight;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.TopRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                }
+
+                sheetView.Append(new Selection {
+                    Pane = PaneValues.TopLeft,
+                    ActiveCell = "A1",
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+                });
 
                 worksheet.Save();
             });
         }
+
 
         public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
