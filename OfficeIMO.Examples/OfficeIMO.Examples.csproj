@@ -36,4 +36,8 @@
         <Using Include="System.IO" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Remove="Excel/BasicExcelFunctionality.cs" />
+        <Compile Remove="Excel/BasicExcelFunctionality.Async.cs" />
+    </ItemGroup>
 </Project>
