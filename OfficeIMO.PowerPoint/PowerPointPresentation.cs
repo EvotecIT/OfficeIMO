@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
+using D = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -16,16 +17,18 @@ namespace OfficeIMO.PowerPoint {
         private readonly PresentationDocument _document;
         private readonly PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
+        private bool _initialSlideUntouched = false;
 
-        private PowerPointPresentation(PresentationDocument document) {
+        private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
             _document = document;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
             if (_presentationPart.Presentation == null) {
+                // New presentation - create with required initial structure
                 _presentationPart.Presentation = new Presentation();
                 InitializeDefaultParts();
                 
                 // After initialization, we have one slide created by PowerPointUtils
-                // Track it in our slides collection
+                // Track it and mark it as untouched
                 if (_presentationPart.Presentation.SlideIdList != null) {
                     foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
                         string? relId = slideId.RelationshipId;
@@ -35,17 +38,11 @@ namespace OfficeIMO.PowerPoint {
                         }
                     }
                 }
+                _initialSlideUntouched = isNewPresentation && _slides.Count == 1;
             } else {
                 // Loading existing presentation
-                if (_presentationPart.Presentation.SlideIdList != null) {
-                    foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                        string? relId = slideId.RelationshipId;
-                        if (!string.IsNullOrEmpty(relId)) {
-                            SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                            _slides.Add(new PowerPointSlide(slidePart));
-                        }
-                    }
-                }
+                LoadExistingSlides();
+                _initialSlideUntouched = false; // Existing files don't have untouched initial slide
             }
         }
 
@@ -83,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
-            PowerPointPresentation presentation = new(document);
+            PowerPointPresentation presentation = new(document, isNewPresentation: true);
             presentation._presentationPart.Presentation.Save();
             presentation._document.Save();
             return presentation;
@@ -94,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document);
+            return new PowerPointPresentation(document, isNewPresentation: false);
         }
 
         /// <summary>
@@ -103,6 +100,12 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
+            // If we have an untouched initial slide, return it for the user to use
+            if (_initialSlideUntouched && _slides.Count == 1) {
+                _initialSlideUntouched = false;
+                return _slides[0];
+            }
+            
             // Generate a unique relationship ID for the slide
             var existingRelationships = new HashSet<string>(
                 _presentationPart.Parts
@@ -213,6 +216,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
+            // If the initial slide is untouched, we pretend there are no slides
+            if (_initialSlideUntouched) {
+                throw new ArgumentOutOfRangeException(nameof(index), "No slides to remove.");
+            }
+            
             if (index < 0 || index >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -242,6 +250,11 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
+            // If the initial slide is untouched, we pretend there are no slides
+            if (_initialSlideUntouched) {
+                throw new ArgumentOutOfRangeException(nameof(fromIndex), "No slides to move.");
+            }
+            
             if (fromIndex < 0 || fromIndex >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(fromIndex));
             }
@@ -301,6 +314,18 @@ namespace OfficeIMO.PowerPoint {
             // the slide layout, slide master, and theme in a specific order.
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
             PowerPointUtils.CreatePresentationParts(_presentationPart);
+        }
+        
+        private void LoadExistingSlides() {
+            if (_presentationPart.Presentation.SlideIdList != null) {
+                foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
+                    string? relId = slideId.RelationshipId;
+                    if (!string.IsNullOrEmpty(relId)) {
+                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
+                        _slides.Add(new PowerPointSlide(slidePart));
+                    }
+                }
+            }
         }
     }
 }
