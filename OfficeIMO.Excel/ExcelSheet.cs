@@ -478,11 +478,13 @@ namespace OfficeIMO.Excel {
 
                 if (sheetViews == null) {
                     sheetViews = new SheetViews();
-                    SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.InsertBefore(sheetViews, sheetData);
+                    OpenXmlElement? insertBefore = worksheet.Elements<SheetFormatProperties>().Cast<OpenXmlElement>().FirstOrDefault()
+                        ?? worksheet.Elements<Columns>().Cast<OpenXmlElement>().FirstOrDefault()
+                        ?? worksheet.Elements<SheetData>().Cast<OpenXmlElement>().FirstOrDefault();
+                    if (insertBefore != null) {
+                        worksheet.InsertBefore(sheetViews, insertBefore);
                     } else {
-                        worksheet.PrependChild(sheetViews);
+                        worksheet.AppendChild(sheetViews);
                     }
                 }
 
@@ -542,7 +544,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 sheetView.Append(new Selection {
-                    Pane = PaneValues.TopLeft,
                     ActiveCell = "A1",
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
                 });

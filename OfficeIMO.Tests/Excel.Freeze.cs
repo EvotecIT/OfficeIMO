@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
                 Assert.Equal("A2", bottomLeft.ActiveCell?.Value);
                 Assert.Equal("A2", bottomLeft.SequenceOfReferences?.InnerText);
-                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                Selection topLeft = selections.Single(s => s.Pane == null);
                 Assert.Equal("A1", topLeft.ActiveCell?.Value);
                 Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
                 Assert.Equal("C1", topRight.ActiveCell?.Value);
                 Assert.Equal("C1", topRight.SequenceOfReferences?.InnerText);
-                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                Selection topLeft = selections.Single(s => s.Pane == null);
                 Assert.Equal("A1", topLeft.ActiveCell?.Value);
                 Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
                 Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
                 Selection bottomRight = selections.Single(s => s.Pane?.Value == PaneValues.BottomRight);
-                Selection topLeft = selections.Single(s => s.Pane == null || s.Pane.Value == PaneValues.TopLeft);
+                Selection topLeft = selections.Single(s => s.Pane == null);
                 foreach (Selection sel in new[] { topRight, bottomLeft, bottomRight }) {
                     Assert.Equal(pane.TopLeftCell?.Value, sel.ActiveCell?.Value);
                     Assert.Equal(pane.TopLeftCell?.Value, sel.SequenceOfReferences?.InnerText);
