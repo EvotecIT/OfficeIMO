@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f.Contains(expectedFont));
+                    Assert.Contains(fonts, f => f != null && f.Contains(expectedFont));
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f.Contains(expectedFont));
+                    Assert.Contains(fonts, f => f != null && f.Contains(expectedFont));
                 }
             }
         }
