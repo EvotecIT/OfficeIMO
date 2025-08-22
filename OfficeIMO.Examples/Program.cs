@@ -50,6 +50,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
             // Excel/CellValuesParallel
             OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
+            // Excel/ValidateDocument
+            OfficeIMO.Examples.Excel.ValidateDocument.Example(folderPath, false);
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
@@ -63,6 +65,7 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
             OfficeIMO.Examples.PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.ValidateDocument.Example(folderPath, false);
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);

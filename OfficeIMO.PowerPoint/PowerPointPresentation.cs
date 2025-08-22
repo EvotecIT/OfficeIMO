@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
@@ -55,6 +56,42 @@ namespace OfficeIMO.PowerPoint {
 
                 themePart.Theme.Name = value;
             }
+        }
+
+        /// <summary>
+        /// Indicates whether the presentation passes Open XML validation.
+        /// </summary>
+        public bool DocumentIsValid {
+            get {
+                if (DocumentValidationErrors.Count > 0) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of validation errors for the presentation.
+        /// </summary>
+        public List<ValidationErrorInfo> DocumentValidationErrors {
+            get {
+                return ValidateDocument();
+            }
+        }
+
+        /// <summary>
+        /// Validates the presentation using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(_document)) {
+                listErrors.Add(error);
+            }
+            return listErrors;
         }
 
         /// <inheritdoc />
@@ -281,25 +318,88 @@ namespace OfficeIMO.PowerPoint {
             layoutPart1.SlideLayout.Save();
 
             slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
-                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
+                new SlideLayoutId { Id = 2147483648U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
+                new SlideLayoutId { Id = 2147483649U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
             );
             slideMaster.Save();
 
             // theme part is stored under ppt/theme and referenced from both presentation and slide master
             ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
-            themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
+            themePart.Theme = new A.Theme(
+                new A.ThemeElements(
+                    new A.ColorScheme(
+                        new A.Dark1Color(new A.SystemColor { Val = A.SystemColorValues.WindowText, LastColor = "000000" }),
+                        new A.Light1Color(new A.SystemColor { Val = A.SystemColorValues.Window, LastColor = "FFFFFF" }),
+                        new A.Dark2Color(new A.RgbColorModelHex { Val = "000000" }),
+                        new A.Light2Color(new A.RgbColorModelHex { Val = "FFFFFF" }),
+                        new A.Accent1Color(new A.RgbColorModelHex { Val = "4F81BD" }),
+                        new A.Accent2Color(new A.RgbColorModelHex { Val = "C0504D" }),
+                        new A.Accent3Color(new A.RgbColorModelHex { Val = "9BBB59" }),
+                        new A.Accent4Color(new A.RgbColorModelHex { Val = "8064A2" }),
+                        new A.Accent5Color(new A.RgbColorModelHex { Val = "4BACC6" }),
+                        new A.Accent6Color(new A.RgbColorModelHex { Val = "F79646" }),
+                        new A.Hyperlink(new A.RgbColorModelHex { Val = "0000FF" }),
+                        new A.FollowedHyperlinkColor(new A.RgbColorModelHex { Val = "800080" })
+                    ) { Name = "Office" },
+                    new A.FontScheme(
+                        new A.MajorFont(
+                            new A.LatinFont { Typeface = "Calibri" },
+                            new A.EastAsianFont { Typeface = string.Empty },
+                            new A.ComplexScriptFont { Typeface = string.Empty }
+                        ),
+                        new A.MinorFont(
+                            new A.LatinFont { Typeface = "Calibri" },
+                            new A.EastAsianFont { Typeface = string.Empty },
+                            new A.ComplexScriptFont { Typeface = string.Empty }
+                        )
+                    ) { Name = "Office" },
+                    new A.FormatScheme(
+                        new A.FillStyleList(
+                            new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor }),
+                            new A.GradientFill(),
+                            new A.NoFill()
+                        ),
+                        new A.LineStyleList(
+                            new A.Outline(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor })) { Width = 9525 },
+                            new A.Outline(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor })) { Width = 9525 },
+                            new A.Outline(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor })) { Width = 9525 }
+                        ),
+                        new A.EffectStyleList(
+                            new A.EffectStyle(new A.EffectList()),
+                            new A.EffectStyle(new A.EffectList()),
+                            new A.EffectStyle(new A.EffectList())
+                        ),
+                        new A.BackgroundFillStyleList(
+                            new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor }),
+                            new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor })
+                        )
+                    ) { Name = "Office" }
+                )
+            ) { Name = "Office Theme" };
             themePart.Theme.Save();
             slideMasterPart.AddPart(themePart);
 
             _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(
-                new SlideMasterId { Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart) }
+                new SlideMasterId { Id = 2147483648U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart) }
             );
 
             NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
             notesMasterPart.NotesMaster = new NotesMaster(
                 new CommonSlideData(CreateShapeTree()),
-                new ColorMapOverride(new A.MasterColorMapping()),
+                new ColorMap {
+                    Background1 = A.ColorSchemeIndexValues.Light1,
+                    Text1 = A.ColorSchemeIndexValues.Dark1,
+                    Background2 = A.ColorSchemeIndexValues.Light2,
+                    Text2 = A.ColorSchemeIndexValues.Dark2,
+                    Accent1 = A.ColorSchemeIndexValues.Accent1,
+                    Accent2 = A.ColorSchemeIndexValues.Accent2,
+                    Accent3 = A.ColorSchemeIndexValues.Accent3,
+                    Accent4 = A.ColorSchemeIndexValues.Accent4,
+                    Accent5 = A.ColorSchemeIndexValues.Accent5,
+                    Accent6 = A.ColorSchemeIndexValues.Accent6,
+                    Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+                    FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+                },
                 new NotesStyle()
             );
             notesMasterPart.NotesMaster.Save();

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -73,6 +74,42 @@ namespace OfficeIMO.Excel {
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+
+        /// <summary>
+        /// Indicates whether the document is valid.
+        /// </summary>
+        public bool DocumentIsValid {
+            get {
+                if (DocumentValidationErrors.Count > 0) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of validation errors for the document.
+        /// </summary>
+        public List<ValidationErrorInfo> DocumentValidationErrors {
+            get {
+                return ValidateDocument();
+            }
+        }
+
+        /// <summary>
+        /// Validates the document using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument)) {
+                listErrors.Add(error);
+            }
+            return listErrors;
+        }
 
         internal SharedStringTablePart SharedStringTablePart {
             get {
