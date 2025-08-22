@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using SixLabors.Fonts;
 using Xunit;
@@ -144,6 +145,45 @@ namespace OfficeIMO.Tests {
 
                 var column2 = columns.Elements<Column>().FirstOrDefault(c => c.Min == 2 && c.Max == 2);
                 Assert.Null(column2);
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFitColumn_SplitsSpanningColumn() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SplitColumn.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Very long text that should expand the column");
+                sheet.CellValue(1, 2, "Short");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var worksheet = wsPart.Worksheet;
+                var columns = worksheet.GetFirstChild<Columns>() ?? worksheet.InsertAt(new Columns(), 0);
+                columns.RemoveAllChildren();
+                columns.Append(new Column { Min = 1, Max = 2, Width = 10, CustomWidth = true });
+                worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                sheet.AutoFitColumn(1);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var cols = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                Assert.Equal(new uint[] { 1, 2 }, cols.Select(c => c.Min!.Value).ToArray());
+                var column1 = cols.First(c => c.Min == 1 && c.Max == 1);
+                var column2 = cols.First(c => c.Min == 2 && c.Max == 2);
+                Assert.True(column1.Width!.Value > column2.Width!.Value);
+                Assert.Equal(10.0, column2.Width!.Value);
+
+                OpenXmlValidator validator = new();
+                Assert.Empty(validator.Validate(spreadsheet));
             }
         }
 
