@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
-            var loc = paragraph.Image.Location;
+            var loc = paragraph.Image!.Location;
             Assert.Equal(0, loc.X);
             Assert.Equal(0, loc.Y);
 
@@ -28,16 +28,17 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50, WrapTextImage.Square);
             int offset = 914400;
-            paragraph.Image.horizontalPosition = new HorizontalPosition() {
+            var image = paragraph.Image!;
+            image.horizontalPosition = new HorizontalPosition() {
                 RelativeFrom = HorizontalRelativePositionValues.Page,
                 PositionOffset = new PositionOffset { Text = offset.ToString() }
             };
-            paragraph.Image.verticalPosition = new VerticalPosition() {
+            image.verticalPosition = new VerticalPosition() {
                 RelativeFrom = VerticalRelativePositionValues.Page,
                 PositionOffset = new PositionOffset { Text = offset.ToString() }
             };
 
-            var loc = paragraph.Image.Location;
+            var loc = image.Location;
             Assert.Equal(offset, loc.X);
             Assert.Equal(offset, loc.Y);
 
