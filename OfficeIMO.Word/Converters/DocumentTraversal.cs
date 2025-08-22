@@ -67,10 +67,11 @@ namespace OfficeIMO.Word {
 
             int? numberId = paragraph._listNumberId;
             var list = numberId.HasValue ? paragraph._document?.Lists.FirstOrDefault(l => l._numberId == numberId) : null;
-            var wordLevel = list?.Numbering.Levels.FirstOrDefault(l => l._level.LevelIndex == level);
+            var wordLevel = list?.Numbering.Levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level);
             if (wordLevel != null) {
-                start = wordLevel.StartNumberingValue;
-                numberFormat = wordLevel._level.NumberingFormat?.Val;
+                var startVal = wordLevel._level.StartNumberingValue?.Val;
+                start = startVal?.Value ?? 1;
+                numberFormat = wordLevel._level.NumberingFormat?.Val?.Value;
                 levelText = wordLevel.LevelText;
             }
 

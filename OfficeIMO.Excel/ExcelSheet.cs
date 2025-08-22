@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
-    public class ExcelSheet {
+    public class ExcelSheet : IDisposable {
         private readonly Sheet _sheet;
 
         /// <summary>
@@ -36,6 +36,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly AsyncLocal<bool> _skipWriteLock = new AsyncLocal<bool>();
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -163,6 +164,11 @@ namespace OfficeIMO.Excel {
             return columnIndex;
         }
 
+        private static int GetRowIndex(string cellReference) {
+            var digits = new string(cellReference.Where(char.IsDigit).ToArray());
+            return int.Parse(digits, CultureInfo.InvariantCulture);
+        }
+
         private string GetCellText(Cell cell) {
             if (cell.CellValue == null) return string.Empty;
             string value = cell.CellValue.InnerText;
@@ -181,6 +187,14 @@ namespace OfficeIMO.Excel {
                 action();
             } finally {
                 _lock.ExitWriteLock();
+            }
+        }
+
+        private void WriteLockConditional(Action action) {
+            if (_skipWriteLock.Value) {
+                action();
+            } else {
+                WriteLock(action);
             }
         }
 
@@ -215,6 +229,36 @@ namespace OfficeIMO.Excel {
                 return true;
             } catch {
                 return false;
+            }
+        }
+
+        private SixLabors.Fonts.Font GetCellFont(Cell cell) {
+            var defaultFont = GetDefaultFont();
+            if (cell.StyleIndex == null) return defaultFont;
+
+            var stylesPart = _spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            var stylesheet = stylesPart?.Stylesheet;
+            var fonts = stylesheet?.Fonts;
+            var cellFormats = stylesheet?.CellFormats;
+            if (fonts == null || cellFormats == null) return defaultFont;
+
+            var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
+            if (cellFormat?.FontId == null) return defaultFont;
+
+            var fontElement = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)cellFormat.FontId.Value);
+            if (fontElement == null) return defaultFont;
+
+            var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
+            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? defaultFont.Size;
+            bool bold = fontElement.GetFirstChild<Bold>() != null;
+
+            try {
+                if (!string.IsNullOrEmpty(fontName)) {
+                    return SystemFonts.CreateFont(fontName, (float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+                }
+                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+            } catch (FontFamilyNotFoundException) {
+                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
             }
         }
 
@@ -291,46 +335,48 @@ namespace OfficeIMO.Excel {
         }
 
         public void AutoFitColumn(int columnIndex) {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var columns = worksheet.GetFirstChild<Columns>();
-            if (columns == null) {
-                columns = worksheet.InsertAt(new Columns(), 0);
-            }
-
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
-            float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
-            double width = 0;
-
-            foreach (var row in sheetData.Elements<Row>()) {
-                var cell = row.Elements<Cell>()
-                    .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
-                if (cell == null) continue;
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                var size = TextMeasurer.MeasureSize(text, options);
-                double cellWidth = size.Width / zeroWidth + 1;
-                if (cellWidth > width) width = cellWidth;
-            }
-
-            Column column = columns.Elements<Column>()
-                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
-            if (width > 0) {
-                if (column == null) {
-                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
-                    columns.Append(column);
+                var columns = worksheet.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = worksheet.InsertAt(new Columns(), 0);
                 }
-                column.Width = width;
-                column.CustomWidth = true;
-                column.BestFit = true;
-            } else if (column != null) {
-                column.Remove();
-            }
 
-            worksheet.Save();
+                double width = 0;
+
+                foreach (var row in sheetData.Elements<Row>()) {
+                    var cell = row.Elements<Cell>()
+                        .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
+                    if (cell == null) continue;
+                    string text = GetCellText(cell);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    var font = GetCellFont(cell);
+                    var options = new TextOptions(font);
+                    float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
+                    var size = TextMeasurer.MeasureSize(text, options);
+                    double cellWidth = zeroWidth == 0 ? 0 : size.Width / zeroWidth + 1;
+                    if (cellWidth > width) width = cellWidth;
+                }
+
+                Column column = columns.Elements<Column>()
+                    .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+                if (width > 0) {
+                    if (column == null) {
+                        column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                        columns.Append(column);
+                    }
+                    column.Width = width;
+                    column.CustomWidth = true;
+                    column.BestFit = true;
+                } else if (column != null) {
+                    column.Remove();
+                }
+
+                worksheet.Save();
+            });
         }
 
         public void SetColumnWidth(int columnIndex, double width) {
@@ -371,46 +417,45 @@ namespace OfficeIMO.Excel {
         }
 
         public void AutoFitRow(int rowIndex) {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
+                Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
+                if (row == null) return;
 
-            double defaultHeight = 15;
-            double ToPoints(double height) {
-                return height * 72.0 / options.Dpi;
-            }
+                const double defaultHeight = 15;
+                const double pointsPerInch = 72.0;
 
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return;
-
-            double maxHeight = 0;
-            foreach (var cell in row.Elements<Cell>()) {
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                double lineHeight = lines.Max(line => ToPoints(TextMeasurer.MeasureSize(line, options).Height));
-                double cellHeight = lineHeight * lines.Length;
-                if (cellHeight > maxHeight) maxHeight = cellHeight;
-            }
-
-            if (maxHeight > 0) {
-                row.Height = maxHeight + 2;
-                row.CustomHeight = true;
-                var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
-                if (sheetFormat == null) {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                double maxHeight = 0;
+                foreach (var cell in row.Elements<Cell>()) {
+                    string text = GetCellText(cell);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    var font = GetCellFont(cell);
+                    var options = new TextOptions(font);
+                    var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                    double lineHeight = lines.Max(line => TextMeasurer.MeasureSize(line, options).Height * pointsPerInch / options.Dpi);
+                    double cellHeight = lineHeight * lines.Length;
+                    if (cellHeight > maxHeight) maxHeight = cellHeight;
                 }
-                sheetFormat.DefaultRowHeight = defaultHeight;
-                sheetFormat.CustomHeight = true;
-            } else {
-                row.Height = null;
-                row.CustomHeight = null;
-            }
 
-            worksheet.Save();
+                if (maxHeight > 0) {
+                    row.Height = maxHeight + 2;
+                    row.CustomHeight = true;
+                    var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+                    if (sheetFormat == null) {
+                        sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                    }
+                    sheetFormat.DefaultRowHeight = defaultHeight;
+                    sheetFormat.CustomHeight = true;
+                } else {
+                    row.Height = null;
+                    row.CustomHeight = null;
+                }
+
+                worksheet.Save();
+            });
         }
 
         /// <summary>
@@ -449,17 +494,37 @@ namespace OfficeIMO.Excel {
                     if (topRows > 0 && leftCols > 0) {
                         pane.ActivePane = PaneValues.BottomRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else if (topRows > 0) {
                         pane.ActivePane = PaneValues.BottomLeft;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else {
                         pane.ActivePane = PaneValues.TopRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     }
                 }
 
@@ -500,6 +565,19 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds an Excel table to the worksheet over the specified range.
+        /// </summary>
+        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
+        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
+        /// <param name="name">Name of the table. If empty, a default name is used.</param>
+        /// <param name="style">Table style to apply.</param>
+        /// <remarks>
+        /// All cells within <paramref name="range"/> must exist. Missing cells are automatically created with empty values.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -516,11 +594,45 @@ namespace OfficeIMO.Excel {
 
                 int startColumnIndex = GetColumnIndex(startRef);
                 int endColumnIndex = GetColumnIndex(endRef);
+                int startRowIndex = GetRowIndex(startRef);
+                int endRowIndex = GetRowIndex(endRef);
 
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
-                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+                foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
+                    var existingRange = existingPart.Table?.Reference?.Value;
+                    if (string.IsNullOrEmpty(existingRange)) continue;
+                    var existingCells = existingRange.Split(':');
+                    if (existingCells.Length != 2) continue;
+                    string existingStartRef = existingCells[0];
+                    string existingEndRef = existingCells[1];
+
+                    int existingStartColumn = GetColumnIndex(existingStartRef);
+                    int existingEndColumn = GetColumnIndex(existingEndRef);
+                    int existingStartRow = GetRowIndex(existingStartRef);
+                    int existingEndRow = GetRowIndex(existingEndRef);
+
+                    bool overlaps = startColumnIndex <= existingEndColumn &&
+                                    endColumnIndex >= existingStartColumn &&
+                                    startRowIndex <= existingEndRow &&
+                                    endRowIndex >= existingStartRow;
+                    if (overlaps) {
+                        throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                    }
+                }
+
+                for (int row = startRowIndex; row <= endRowIndex; row++) {
+                    for (int column = startColumnIndex; column <= endColumnIndex; column++) {
+                        var cell = GetCell(row, column);
+                        if (cell.CellValue == null) {
+                            cell.CellValue = new CellValue(string.Empty);
+                            cell.DataType = CellValues.String;
+                        }
+                    }
+                }
+
                 uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
+                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
 
                 if (string.IsNullOrEmpty(name)) {
                     name = $"Table{tableId}";
@@ -550,6 +662,7 @@ namespace OfficeIMO.Excel {
                 });
 
                 tableDefinitionPart.Table = table;
+                tableDefinitionPart.Table.Save();
 
                 var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
@@ -793,14 +906,19 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(cells));
             }
 
-            Parallel.ForEach(Partitioner.Create(cells), cell => {
-                CellValue(cell.Row, cell.Column, cell.Value);
+            WriteLock(() => {
+                _skipWriteLock.Value = true;
+                try {
+                    Parallel.ForEach(cells, cell => CellValue(cell.Row, cell.Column, cell.Value));
+                } finally {
+                    _skipWriteLock.Value = false;
+                }
             });
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
                 cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
@@ -810,7 +928,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, double value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -819,7 +937,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, decimal value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -828,7 +946,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTime value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -842,7 +960,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, TimeSpan value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -876,7 +994,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, bool value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value ? "1" : "0");
                 cell.DataType = CellValues.Boolean;
@@ -998,7 +1116,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
         public void CellValue(int row, int column, object value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 switch (value) {
                     case string s:
                         CellValue(row, column, s);
@@ -1072,6 +1190,10 @@ namespace OfficeIMO.Excel {
             } else {
                 CellValue(row, column, string.Empty);
             }
+        }
+
+        public void Dispose() {
+            _lock.Dispose();
         }
     }
 }

@@ -10,8 +10,10 @@ namespace OfficeIMO.Examples {
         }
 
         static void Main(string[] args) {
-            string templatesPath = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
-            string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Documents");
+            string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+            Directory.SetCurrentDirectory(baseFolder);
+            string templatesPath = Path.Combine(baseFolder, "Templates");
+            string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
 
             // Visio - Core Examples
@@ -32,6 +34,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
             // Excel/AddTable
             OfficeIMO.Examples.Excel.AddTable.Example(folderPath, false);
+            // Excel/AddTableMissingCells
+            OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
             // Excel/AutoFilter
             OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
             // Excel/Freeze
@@ -46,6 +50,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
             // Excel/CellValuesParallel
             OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
+            // Excel/ValidateDocument
+            OfficeIMO.Examples.Excel.ValidateDocument.Example(folderPath, false);
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
@@ -59,6 +65,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
             OfficeIMO.Examples.PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            return;
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);

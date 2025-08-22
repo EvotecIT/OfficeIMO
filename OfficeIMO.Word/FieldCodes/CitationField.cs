@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Tag of the source to cite.
         /// </summary>
-        public string SourceTag { get; set; }
+        public string? SourceTag { get; set; }
 
         internal override WordFieldType FieldType => WordFieldType.Citation;
 

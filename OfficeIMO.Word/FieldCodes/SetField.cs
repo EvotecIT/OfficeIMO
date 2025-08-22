@@ -8,12 +8,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Name of the bookmark or variable to set.
         /// </summary>
-        public string Bookmark { get; set; }
+        public string? Bookmark { get; set; }
 
         /// <summary>
         /// Value to assign to the bookmark.
         /// </summary>
-        public string Value { get; set; }
+        public string? Value { get; set; }
 
         internal override WordFieldType FieldType => WordFieldType.Set;
 

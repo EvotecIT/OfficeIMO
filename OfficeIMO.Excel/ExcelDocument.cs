@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -67,11 +68,48 @@ namespace OfficeIMO.Excel {
         /// Path to the file backing this document.
         /// </summary>
         public string FilePath;
+        private bool _isMemory;
 
         /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+
+        /// <summary>
+        /// Indicates whether the document is valid.
+        /// </summary>
+        public bool DocumentIsValid {
+            get {
+                if (DocumentValidationErrors.Count > 0) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of validation errors for the document.
+        /// </summary>
+        public List<ValidationErrorInfo> DocumentValidationErrors {
+            get {
+                return ValidateDocument();
+            }
+        }
+
+        /// <summary>
+        /// Validates the document using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument)) {
+                listErrors.Add(error);
+            }
+            return listErrors;
+        }
 
         internal SharedStringTablePart SharedStringTablePart {
             get {
@@ -265,9 +303,56 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to save to.</param>
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
-            this._workBookPart.Workbook.Save();
+            _workBookPart.Workbook.Save();
 
-            this.Open(filePath, openExcel);
+            var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+
+            if (!string.IsNullOrEmpty(filePath) && !Path.GetFullPath(path).Equals(Path.GetFullPath(FilePath), StringComparison.OrdinalIgnoreCase)) {
+                if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
+                    throw new IOException($"Failed to save to '{path}'. The file is read-only.");
+                }
+
+                var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                    var dirInfo = new DirectoryInfo(directory);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                        throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
+                    }
+                }
+
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
+                    using (_spreadSheetDocument.Clone(fs)) {
+                    }
+                    fs.Flush();
+                }
+                FilePath = path;
+            } else if (_isMemory) {
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
+                    using (_spreadSheetDocument.Clone(fs)) {
+                    }
+                    fs.Flush();
+                }
+            }
+
+            try {
+                _spreadSheetDocument.Dispose();
+            } catch (NotSupportedException) {
+                // ignore dispose failures on some streams
+            }
+
+            var memory = new MemoryStream();
+            using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                file.CopyTo(memory);
+            }
+            memory.Position = 0;
+            _spreadSheetDocument = SpreadsheetDocument.Open(memory, true);
+            _workBookPart = _spreadSheetDocument.WorkbookPart;
+            _sharedStringTablePart = null;
+            _isMemory = true;
+
+            if (openExcel) {
+                Helpers.Open(path, true);
+            }
         }
 
         /// <summary>

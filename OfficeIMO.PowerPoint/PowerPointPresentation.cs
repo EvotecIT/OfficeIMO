@@ -1,9 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
+using D = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -13,23 +17,32 @@ namespace OfficeIMO.PowerPoint {
         private readonly PresentationDocument _document;
         private readonly PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
+        private bool _initialSlideUntouched = false;
 
-        private PowerPointPresentation(PresentationDocument document) {
+        private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
             _document = document;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
             if (_presentationPart.Presentation == null) {
+                // New presentation - create with required initial structure
                 _presentationPart.Presentation = new Presentation();
                 InitializeDefaultParts();
-            }
-
-            if (_presentationPart.Presentation.SlideIdList != null) {
-                foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    string? relId = slideId.RelationshipId;
-                    if (!string.IsNullOrEmpty(relId)) {
-                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        _slides.Add(new PowerPointSlide(slidePart));
+                
+                // After initialization, we have one slide created by PowerPointUtils
+                // Track it and mark it as untouched
+                if (_presentationPart.Presentation.SlideIdList != null) {
+                    foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
+                        string? relId = slideId.RelationshipId;
+                        if (!string.IsNullOrEmpty(relId)) {
+                            SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
+                            _slides.Add(new PowerPointSlide(slidePart));
+                        }
                     }
                 }
+                _initialSlideUntouched = isNewPresentation && _slides.Count == 1;
+            } else {
+                // Loading existing presentation
+                LoadExistingSlides();
+                _initialSlideUntouched = false; // Existing files don't have untouched initial slide
             }
         }
 
@@ -67,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
-            PowerPointPresentation presentation = new(document);
+            PowerPointPresentation presentation = new(document, isNewPresentation: true);
             presentation._presentationPart.Presentation.Save();
             presentation._document.Save();
             return presentation;
@@ -78,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document);
+            return new PowerPointPresentation(document, isNewPresentation: false);
         }
 
         /// <summary>
@@ -87,23 +100,49 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
-            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>();
-            ShapeTree tree = new(
-                new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                new GroupShapeProperties(
-                    new A.TransformGroup(
-                        new A.Offset { X = 0L, Y = 0L },
-                        new A.Extents { Cx = 0L, Cy = 0L },
-                        new A.ChildOffset { X = 0L, Y = 0L },
-                        new A.ChildExtents { Cx = 0L, Cy = 0L }
-                    )
-                )
+            // If we have an untouched initial slide, return it for the user to use
+            if (_initialSlideUntouched && _slides.Count == 1) {
+                _initialSlideUntouched = false;
+                return _slides[0];
+            }
+            
+            // Generate a unique relationship ID for the slide
+            var existingRelationships = new HashSet<string>(
+                _presentationPart.Parts
+                    .Select(p => p.RelationshipId)
+                    .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
+                    .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
+                    .Where(id => !string.IsNullOrEmpty(id))
             );
-            slidePart.Slide = new Slide(new CommonSlideData(tree));
+            
+            // Also check the slide IDs
+            if (_presentationPart.Presentation.SlideIdList != null) {
+                foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
+                    if (!string.IsNullOrEmpty(existingSlideId.RelationshipId)) {
+                        existingRelationships.Add(existingSlideId.RelationshipId);
+                    }
+                }
+            }
+            
+            // Find the next available rId number
+            int nextId = 1;
+            string slideRelId;
+            do {
+                slideRelId = "rId" + nextId;
+                nextId++;
+            } while (existingRelationships.Contains(slideRelId));
+            
+            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
+            // Create slide exactly like the working example
+            slidePart.Slide = new Slide(
+                new CommonSlideData(
+                    new ShapeTree(
+                        new NonVisualGroupShapeProperties(
+                            new NonVisualDrawingProperties() { Id = 1U, Name = "" },
+                            new NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new GroupShapeProperties(new A.TransformGroup()))),
+                new ColorMapOverride(new A.MasterColorMapping()));
 
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
             if (masterIndex < 0 || masterIndex >= masters.Length) {
@@ -118,7 +157,39 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
-            _ = slidePart.AddPart(layoutPart);
+            
+            // Check if this slide part already has a reference to this layout part
+            string? existingRelId = null;
+            foreach (var partPair in slidePart.Parts) {
+                if (partPair.OpenXmlPart == layoutPart) {
+                    existingRelId = partPair.RelationshipId;
+                    break;
+                }
+            }
+            
+            if (existingRelId == null) {
+                // Layout part not yet referenced, add it with a unique relationship ID
+                // Check if rId1 is already in use by this slide part
+                var slideRelationships = new HashSet<string>(
+                    slidePart.Parts.Select(p => p.RelationshipId)
+                    .Union(slidePart.ExternalRelationships.Select(r => r.Id))
+                    .Union(slidePart.HyperlinkRelationships.Select(r => r.Id))
+                    .Where(id => !string.IsNullOrEmpty(id))
+                );
+                
+                // Find a unique relationship ID for the layout
+                string layoutRelId = "rId1";
+                if (slideRelationships.Contains(layoutRelId)) {
+                    int layoutIdNum = 1;
+                    do {
+                        layoutRelId = "rId" + layoutIdNum;
+                        layoutIdNum++;
+                    } while (slideRelationships.Contains(layoutRelId));
+                }
+                
+                slidePart.AddPart(layoutPart, layoutRelId);
+            }
+            // If the layout is already referenced, we don't need to add it again
 
             if (_presentationPart.Presentation.SlideIdList == null) {
                 _presentationPart.Presentation.SlideIdList = new SlideIdList();
@@ -126,10 +197,12 @@ namespace OfficeIMO.PowerPoint {
 
             uint maxId = 255;
             if (_presentationPart.Presentation.SlideIdList.Elements<SlideId>().Any()) {
-                maxId = _presentationPart.Presentation.SlideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 0);
+                maxId = _presentationPart.Presentation.SlideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 255);
             }
 
-            SlideId slideId = new() { Id = maxId + 1, RelationshipId = _presentationPart.GetIdOfPart(slidePart) };
+            // Ensure ID is at least 256 (PowerPoint convention)
+            uint newId = maxId >= 255 ? maxId + 1 : 256;
+            SlideId slideId = new() { Id = newId, RelationshipId = slideRelId };
             _presentationPart.Presentation.SlideIdList.Append(slideId);
             _presentationPart.Presentation.Save();
 
@@ -143,6 +216,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
+            // If the initial slide is untouched, we pretend there are no slides
+            if (_initialSlideUntouched) {
+                throw new ArgumentOutOfRangeException(nameof(index), "No slides to remove.");
+            }
+            
             if (index < 0 || index >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -172,6 +250,11 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
+            // If the initial slide is untouched, we pretend there are no slides
+            if (_initialSlideUntouched) {
+                throw new ArgumentOutOfRangeException(nameof(fromIndex), "No slides to move.");
+            }
+            
             if (fromIndex < 0 || fromIndex >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(fromIndex));
             }
@@ -226,129 +309,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void InitializeDefaultParts() {
-            static ShapeTree CreateShapeTree() {
-                return new ShapeTree(
-                    new NonVisualGroupShapeProperties(
-                        new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                        new NonVisualGroupShapeDrawingProperties(),
-                        new ApplicationNonVisualDrawingProperties()
-                    ),
-                    new GroupShapeProperties(
-                        new A.TransformGroup(
-                            new A.Offset { X = 0L, Y = 0L },
-                            new A.Extents { Cx = 0L, Cy = 0L },
-                            new A.ChildOffset { X = 0L, Y = 0L },
-                            new A.ChildExtents { Cx = 0L, Cy = 0L }
-                        )
-                    )
-                );
+            // IMPORTANT: PowerPoint requires a very specific initialization pattern to avoid the repair dialog.
+            // We must create an initial blank slide with relationship ID "rId2" and then create
+            // the slide layout, slide master, and theme in a specific order.
+            // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
+            PowerPointUtils.CreatePresentationParts(_presentationPart);
+        }
+        
+        private void LoadExistingSlides() {
+            if (_presentationPart.Presentation.SlideIdList != null) {
+                foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
+                    string? relId = slideId.RelationshipId;
+                    if (!string.IsNullOrEmpty(relId)) {
+                        SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
+                        _slides.Add(new PowerPointSlide(slidePart));
+                    }
+                }
             }
-
-            SlideMasterPart slideMasterPart = _presentationPart.AddNewPart<SlideMasterPart>();
-            SlideMaster slideMaster = new(
-                new CommonSlideData(CreateShapeTree()),
-                new ColorMap {
-                    Background1 = A.ColorSchemeIndexValues.Light1,
-                    Text1 = A.ColorSchemeIndexValues.Dark1,
-                    Background2 = A.ColorSchemeIndexValues.Light2,
-                    Text2 = A.ColorSchemeIndexValues.Dark2,
-                    Accent1 = A.ColorSchemeIndexValues.Accent1,
-                    Accent2 = A.ColorSchemeIndexValues.Accent2,
-                    Accent3 = A.ColorSchemeIndexValues.Accent3,
-                    Accent4 = A.ColorSchemeIndexValues.Accent4,
-                    Accent5 = A.ColorSchemeIndexValues.Accent5,
-                    Accent6 = A.ColorSchemeIndexValues.Accent6,
-                    Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
-                    FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
-                },
-                new SlideLayoutIdList(),
-                new TextStyles(new TitleStyle(), new BodyStyle(), new OtherStyle())
-            );
-            slideMasterPart.SlideMaster = slideMaster;
-
-            SlideLayoutPart layoutPart0 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            layoutPart0.SlideLayout = new SlideLayout(
-                new CommonSlideData(CreateShapeTree()),
-                new ColorMapOverride(new A.MasterColorMapping())
-            );
-            layoutPart0.SlideLayout.Save();
-
-            SlideLayoutPart layoutPart1 = slideMasterPart.AddNewPart<SlideLayoutPart>();
-            layoutPart1.SlideLayout = new SlideLayout(
-                new CommonSlideData(CreateShapeTree()),
-                new ColorMapOverride(new A.MasterColorMapping())
-            );
-            layoutPart1.SlideLayout.Save();
-
-            slideMaster.SlideLayoutIdList = new SlideLayoutIdList(
-                new SlideLayoutId { Id = 1U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart0) },
-                new SlideLayoutId { Id = 2U, RelationshipId = slideMasterPart.GetIdOfPart(layoutPart1) }
-            );
-            slideMaster.Save();
-
-            // theme part is stored under ppt/theme and referenced from both presentation and slide master
-            ThemePart themePart = _presentationPart.AddNewPart<ThemePart>();
-            themePart.Theme = new A.Theme { Name = "Office Theme", ThemeElements = new A.ThemeElements() };
-            themePart.Theme.Save();
-            slideMasterPart.AddPart(themePart);
-
-            _presentationPart.Presentation.SlideMasterIdList = new SlideMasterIdList(
-                new SlideMasterId { Id = 1U, RelationshipId = _presentationPart.GetIdOfPart(slideMasterPart) }
-            );
-
-            NotesMasterPart notesMasterPart = _presentationPart.AddNewPart<NotesMasterPart>();
-            notesMasterPart.NotesMaster = new NotesMaster(
-                new CommonSlideData(CreateShapeTree()),
-                new ColorMapOverride(new A.MasterColorMapping()),
-                new NotesStyle()
-            );
-            notesMasterPart.NotesMaster.Save();
-
-            NotesMasterId notesMasterId = new NotesMasterId();
-            notesMasterId.SetAttribute(new OpenXmlAttribute(
-                "r",
-                "id",
-                "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-                _presentationPart.GetIdOfPart(notesMasterPart)
-            ));
-            _presentationPart.Presentation.NotesMasterIdList = new NotesMasterIdList(notesMasterId);
-
-            _presentationPart.Presentation.SlideSize = new SlideSize {
-                Cx = 9144000,
-                Cy = 6858000,
-                Type = SlideSizeValues.Screen4x3
-            };
-
-            _presentationPart.Presentation.NotesSize = new NotesSize {
-                Cx = 6858000,
-                Cy = 9144000
-            };
-
-            _presentationPart.Presentation.DefaultTextStyle = new DefaultTextStyle();
-            _presentationPart.Presentation.SlideIdList = new SlideIdList();
-
-            // additional parts required by PowerPoint
-            _document.PackageProperties.Creator = string.Empty;
-            _document.PackageProperties.Created = DateTime.UtcNow;
-            _document.PackageProperties.Modified = DateTime.UtcNow;
-
-            ExtendedFilePropertiesPart appPart = _document.AddExtendedFilePropertiesPart();
-            appPart.Properties = new Ap.Properties(new Ap.Application { Text = "Microsoft Office PowerPoint" });
-            appPart.Properties.Save();
-
-            PresentationPropertiesPart presPropsPart = _presentationPart.AddNewPart<PresentationPropertiesPart>();
-            presPropsPart.PresentationProperties = new PresentationProperties();
-            presPropsPart.PresentationProperties.Save();
-
-            ViewPropertiesPart viewPropsPart = _presentationPart.AddNewPart<ViewPropertiesPart>();
-            viewPropsPart.ViewProperties = new ViewProperties();
-            viewPropsPart.ViewProperties.Save();
-
-            TableStylesPart tableStylesPart = _presentationPart.AddNewPart<TableStylesPart>();
-            tableStylesPart.TableStyleList = new A.TableStyleList { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
-            tableStylesPart.TableStyleList.Save();
-
-            _presentationPart.Presentation.Save();
         }
     }
 }

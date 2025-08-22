@@ -22,8 +22,6 @@ Underneath it uses [OpenXML SDK](https://github.com/OfficeDev/Open-XML-SDK) but 
 It was created because working with OpenXML is way too hard for me and time-consuming.
 I created it for use within the PowerShell module called [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice),
 but thought it may be useful for others to use in the .NET community.
-This repository also includes an experimental **OfficeIMO.Excel** component for creating simple spreadsheets.
-
 If you want to see what it can do take a look at this [blog post](https://evotec.xyz/officeimo-free-cross-platform-microsoft-word-net-library/).
 
 I used to use the DocX library (which I co-authored/maintained before it was taken over by Xceed) to create Microsoft Word documents,
@@ -45,9 +43,9 @@ The main thing is - it has to work with .NET Framework 4.7.2, .NET Standard 2.0 
 
 | Platform | Status | Code Coverage | .NET |
 | -------- | ------ | ------------- | ---- |
-| Windows  | ![Windows](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `netstandard2.0`, `net472`, `net8.0`, `net9.0`; OfficeIMO.Excel: `netstandard2.0`, `net472`, `net48`, `net8.0`, `net9.0` |
-| Linux    | ![Linux](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `net8.0`; OfficeIMO.Excel: `net8.0`, `net9.0` |
-| MacOs    | ![macOS](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `net8.0`; OfficeIMO.Excel: `net8.0`, `net9.0` |
+| Windows  | ![Windows](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `netstandard2.0`, `net472`, `net8.0`, `net9.0`; OfficeIMO.Excel: `netstandard2.0`, `net472`, `net48`, `net8.0`, `net9.0`; OfficeIMO.PowerPoint: `netstandard2.0`, `net472`, `net8.0`, `net9.0` |
+| Linux    | ![Linux](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `net8.0`; OfficeIMO.Excel: `net8.0`, `net9.0`; OfficeIMO.PowerPoint: `net8.0`, `net9.0` |
+| MacOs    | ![macOS](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master) | [Codecov](https://codecov.io/gh/EvotecIT/OfficeIMO) | OfficeIMO.Word: `net8.0`; OfficeIMO.Excel: `net8.0`, `net9.0`; OfficeIMO.PowerPoint: `net8.0`, `net9.0` |
 ## Support This Project
 
 If you find this project helpful, please consider supporting its development.
@@ -261,10 +259,51 @@ Here's a list of features currently supported (and probably a lot I forgot) and 
  - ☑️ [Measurement unit conversion helpers](OfficeIMO.Tests/Word.HelpersConversions.cs)
 
 - ☑️ Experimental Excel component
+- ☑️ Experimental PowerPoint component
+    - ☑️ Create presentations
+    - ☑️ Add slides with layouts
+    - ☑️ Add text boxes and titles
+    - ☑️ Add tables
+    - ☑️ Add images
+    - ☑️ Add shapes
+    - ☑️ Add bullet lists
+    - ☑️ Fluent API support
     - ☑️ Create and load workbooks
     - ☑️ Add worksheets
     - ☑️ Async save and load APIs
 
+## Important: PowerPoint Initialization Pattern
+
+When creating PowerPoint presentations with OfficeIMO.PowerPoint, it's crucial to understand that PowerPoint requires a very specific initialization pattern to avoid triggering a "repair" dialog when opening the generated files.
+
+### Why This Matters
+
+PowerPoint has strict requirements about the order and structure of document parts. If these requirements aren't met exactly, PowerPoint will display a "PowerPoint found a problem with content" dialog and attempt to repair the presentation. While the repair usually succeeds, it's a poor user experience.
+
+### The Critical Pattern
+
+The initialization must follow this exact sequence:
+1. Create a slide with relationship ID "rId2"
+2. Create a slide layout through the slide with "rId1"
+3. Create a slide master through the slide layout with "rId1"
+4. Create a theme through the slide master with "rId5"
+5. Add the theme to the presentation part with "rId5"
+
+**DO NOT modify this pattern** - the specific relationship IDs and order are critical for PowerPoint to recognize the file as valid.
+
+### Implementation Details
+
+OfficeIMO.PowerPoint handles this automatically in the `PowerPointPresentation.Create()` method. The implementation:
+1. Creates the required structure with an initial slide
+2. Keeps this initial slide (PowerPoint requires at least one slide)
+3. Users can modify the initial slide or add more slides as needed
+
+**Note:** New presentations start with one blank slide. You can either:
+- Modify this first slide using `presentation.Slides[0]`
+- Add additional slides using `presentation.AddSlide()`
+- Remove the first slide after adding others if you don't need it
+
+This approach ensures presentations open without any repair dialogs while maintaining full functionality for adding content.
 
 ## Features (oneliners):
 

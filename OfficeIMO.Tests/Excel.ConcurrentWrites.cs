@@ -23,7 +23,12 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            SpreadsheetDocument spreadsheet = null!;
+            Exception? ex = Record.Exception(() => spreadsheet = SpreadsheetDocument.Open(filePath, false));
+            Assert.Null(ex);
+            using (spreadsheet) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
                 for (int i = 1; i <= 1000; i++) {

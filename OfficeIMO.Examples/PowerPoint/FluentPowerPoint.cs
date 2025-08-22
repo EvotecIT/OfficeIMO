@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                         .Title("Fluent Presentation")
                         .TextBox("Hello from fluent API")
                         .Bullets("First", "Second")
-                        .Notes("Example notes")
+                        //.Notes("Example notes")
                         .End()
                     .Slide(s => s.Title("Second Slide"))
                     .End()
