@@ -1,18 +1,19 @@
-﻿using System;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
-using DocumentFormat.OpenXml;
+﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
@@ -75,7 +76,7 @@ namespace OfficeIMO.Excel {
             if (name == "") {
                 name = "Sheet1";
             }
-            
+
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
             worksheetPart.Worksheet = new Worksheet(new SheetData());
@@ -917,6 +918,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Sets multiple cell values in parallel without mutating the DOM concurrently.
+        /// Cell data is prepared in parallel, then applied sequentially under write lock
+        /// to prevent XML corruption and ensure thread safety.
         /// </summary>
         /// <param name="cells">Collection of cell coordinates and values.</param>
         public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
@@ -924,11 +927,25 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(cells));
             }
 
+            var cellList = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
+            int cellCount = cellList.Count;
+            bool monitor = cellCount > 5000;
+            Stopwatch? prepWatch = null;
+            Stopwatch? applyWatch = null;
+            if (monitor) {
+                prepWatch = Stopwatch.StartNew();
+            }
+
             var bag = new ConcurrentBag<CellUpdate>();
 
-            Parallel.ForEach(cells, cell => {
+            Parallel.ForEach(cellList, cell => {
                 bag.Add(PrepareCellUpdate(cell.Row, cell.Column, cell.Value));
             });
+
+            if (monitor && prepWatch != null) {
+                prepWatch.Stop();
+                applyWatch = Stopwatch.StartNew();
+            }
 
             WriteLock(() => {
                 _skipWriteLock.Value = true;
@@ -941,6 +958,11 @@ namespace OfficeIMO.Excel {
                     _skipWriteLock.Value = false;
                 }
             });
+
+            if (monitor && applyWatch != null && prepWatch != null) {
+                applyWatch.Stop();
+                Debug.WriteLine($"CellValuesParallel: prepared {cellCount} cells in {prepWatch.ElapsedMilliseconds} ms, applied in {applyWatch.ElapsedMilliseconds} ms.");
+            }
         }
 
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {
@@ -1000,7 +1022,7 @@ namespace OfficeIMO.Excel {
                 using XmlReader reader = XmlReader.Create(sr);
                 while (reader.Read()) { }
             } catch (XmlException ex) {
-                throw new InvalidOperationException("Worksheet XML is not well-formed.", ex);
+                throw new InvalidOperationException($"Worksheet XML is not well-formed after parallel write operation. {ex.Message}", ex);
             }
         }
 
