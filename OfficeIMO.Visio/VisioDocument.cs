@@ -120,45 +120,45 @@ namespace OfficeIMO.Visio {
                 Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
                 PackagePart mastersPart = package.GetPart(mastersUri);
                 XDocument mastersDoc = XDocument.Load(mastersPart.GetStream());
-                foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
-                    string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
-                    string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
-                    string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                    if (string.IsNullOrEmpty(mRelId)) {
-                        continue;
-                    }
+                  foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
+                      string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
+                      string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
+                      string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                      if (string.IsNullOrEmpty(mRelId)) {
+                          continue;
+                      }
 
-                    PackageRelationship rel = mastersPart.GetRelationship(mRelId);
-                    Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
-                    PackagePart masterPart = package.GetPart(masterUri);
-                    XDocument masterDoc = XDocument.Load(masterPart.GetStream());
-                    XElement? masterShapeElement = masterDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
-                    VisioShape masterShape = masterShapeElement != null ? ParseShape(masterShapeElement, ns) : new VisioShape("1");
-                    VisioMaster master = new(masterId, masterNameU, masterShape);
-                    masters[masterId] = master;
-                }
+                      PackageRelationship rel = mastersPart.GetRelationship(mRelId);
+                      Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
+                      PackagePart masterPart = package.GetPart(masterUri);
+                      XDocument masterDoc = XDocument.Load(masterPart.GetStream());
+                      XElement? masterShapeElement = masterDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+                      VisioShape masterShape = masterShapeElement != null ? ParseShape(masterShapeElement, ns) : new VisioShape("1");
+                      VisioMaster master = new(masterId, masterNameU, masterShape);
+                      masters[masterId] = master;
+                  }
             }
 
             XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
 
-            foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
-                string name = pageRef.Attribute("Name")?.Value ?? "Page";
-                int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
-                VisioPage page = document.AddPage(name, id: pageId);
-                page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
-                page.ViewScale = ParseDouble(pageRef.Attribute("ViewScale")?.Value);
-                page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
-                page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
+                  foreach (XElement pageRef in pagesDoc.Root?.Elements(ns + "Page") ?? Enumerable.Empty<XElement>()) {
+                      string name = pageRef.Attribute("Name")?.Value ?? "Page";
+                      int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
+                      VisioPage page = document.AddPage(name, id: pageId);
+                      page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
+                      page.ViewScale = ParseDouble(pageRef.Attribute("ViewScale")?.Value);
+                      page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
+                      page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
-                string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                if (string.IsNullOrEmpty(relId)) {
-                    continue;
-                }
+                      string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                      if (string.IsNullOrEmpty(relId)) {
+                          continue;
+                      }
 
-                PackageRelationship pageRel = pagesPart.GetRelationship(relId);
-                Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
-                PackagePart pagePart = package.GetPart(pageUri);
-                XDocument pageDoc = XDocument.Load(pagePart.GetStream());
+                      PackageRelationship pageRel = pagesPart.GetRelationship(relId);
+                      Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
+                      PackagePart pagePart = package.GetPart(pageUri);
+                      XDocument pageDoc = XDocument.Load(pagePart.GetStream());
 
                 XElement? shapesRoot = pageDoc.Root?.Element(ns + "Shapes");
                 Dictionary<string, VisioShape> shapeMap = new();
@@ -170,26 +170,28 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    VisioShape shape = ParseShape(shapeElement, ns);
-                    string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
-                    if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
-                        shape.Master = master;
-                        if (shape.Width == 0 || shape.Height == 0) {
-                            VisioShape masterShape = shape.Master.Shape;
-                            if (shape.Width == 0) {
-                                shape.Width = masterShape.Width;
-                            }
-                            if (shape.Height == 0) {
-                                shape.Height = masterShape.Height;
-                            }
-                            if (shape.LocPinX == 0) {
-                                shape.LocPinX = masterShape.LocPinX;
-                            }
-                            if (shape.LocPinY == 0) {
-                                shape.LocPinY = masterShape.LocPinY;
-                            }
-                        }
-                    }
+                      VisioShape shape = ParseShape(shapeElement, ns);
+                      string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
+                      if (!string.IsNullOrEmpty(masterIdAttr)) {
+                          if (masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
+                              shape.Master = master;
+                              if (shape.Width == 0 || shape.Height == 0) {
+                                  VisioShape masterShape = shape.Master.Shape;
+                                  if (shape.Width == 0) {
+                                      shape.Width = masterShape.Width;
+                                  }
+                                  if (shape.Height == 0) {
+                                      shape.Height = masterShape.Height;
+                                  }
+                                  if (shape.LocPinX == 0) {
+                                      shape.LocPinX = masterShape.LocPinX;
+                                  }
+                                  if (shape.LocPinY == 0) {
+                                      shape.LocPinY = masterShape.LocPinY;
+                                  }
+                              }
+                          }
+                      }
 
                     page.Shapes.Add(shape);
                     shapeMap[shape.Id] = shape;

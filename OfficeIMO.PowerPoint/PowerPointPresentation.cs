@@ -116,13 +116,14 @@ namespace OfficeIMO.PowerPoint {
             );
             
             // Also check the slide IDs
-            if (_presentationPart.Presentation.SlideIdList != null) {
-                foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    if (!string.IsNullOrEmpty(existingSlideId.RelationshipId)) {
-                        existingRelationships.Add(existingSlideId.RelationshipId);
-                    }
-                }
-            }
+              if (_presentationPart.Presentation.SlideIdList != null) {
+                  foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
+                      string? relId = existingSlideId.RelationshipId;
+                      if (!string.IsNullOrEmpty(relId)) {
+                          existingRelationships.Add(relId);
+                      }
+                  }
+              }
             
             // Find the next available rId number
             int nextId = 1;
