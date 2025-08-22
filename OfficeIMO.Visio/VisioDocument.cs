@@ -123,7 +123,7 @@ namespace OfficeIMO.Visio {
                 foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
                     string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
-                    string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                    string mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value ?? string.Empty;
                     if (string.IsNullOrEmpty(mRelId)) {
                         continue;
                     }
