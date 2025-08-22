@@ -8,12 +8,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the <see cref="ImagePart"/> associated with the image.
         /// </summary>
-        public ImagePart ImagePart { get; set; }
+        public required ImagePart ImagePart { get; set; }
 
         /// <summary>
         /// Gets or sets the relationship identifier linking to the image part.
         /// </summary>
-        public string RelationshipId { get; set; }
+        public required string RelationshipId { get; set; }
 
         /// <summary>
         /// Gets or sets the width of the image in pixels.
@@ -28,6 +28,6 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the descriptive name of the image.
         /// </summary>
-        public string ImageName { get; set; }
+        public required string ImageName { get; set; }
     }
 }

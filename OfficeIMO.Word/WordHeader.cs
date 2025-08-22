@@ -13,17 +13,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the default header.
         /// </summary>
-        public WordHeader Default { get; set; }
+        public WordHeader? Default { get; set; }
 
         /// <summary>
         /// Gets or sets the header for even pages.
         /// </summary>
-        public WordHeader Even { get; set; }
+        public WordHeader? Even { get; set; }
 
         /// <summary>
         /// Gets or sets the header for the first page.
         /// </summary>
-        public WordHeader First { get; set; }
+        public WordHeader? First { get; set; }
     }
     /// <summary>
     /// Represents a single header instance within a section.
@@ -33,13 +33,17 @@ namespace OfficeIMO.Word {
 
         internal WordHeader(WordDocument document, HeaderReference headerReference, WordSection section) {
             _document = document;
-            _id = headerReference.Id;
-            _type = WordSection.GetType(headerReference.Type);
+            _id = headerReference.Id?.Value ??
+                throw new InvalidOperationException("Header reference Id is missing.");
+            _type = headerReference.Type?.Value ??
+                throw new InvalidOperationException("Header reference Type is missing.");
             _section = section;
 
-            var listHeaders = document._wordprocessingDocument.MainDocumentPart.HeaderParts.ToList();
+            var mainPart = document._wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+            var listHeaders = mainPart.HeaderParts.ToList();
             foreach (HeaderPart headerPart in listHeaders) {
-                var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
+                var id = mainPart.GetIdOfPart(headerPart);
                 if (id == _id) {
                     _headerPart = headerPart;
                     _header = headerPart.Header;
@@ -80,7 +84,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordprocessingDocument">Document to operate on.</param>
         /// <param name="types">Header types to remove.</param>
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
-            var docPart = wordprocessingDocument.MainDocumentPart;
+            var docPart = wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
             DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
 
             if (types == null || types.Length == 0) {
@@ -96,9 +101,10 @@ namespace OfficeIMO.Word {
 
             var partsToDelete = new HashSet<HeaderPart>();
             var headersToRemove = document.Descendants<HeaderReference>()
-                .Where(h => types.Contains(h.Type)).ToList();
+                .Where(h => h.Type != null && types.Contains(h.Type.Value)).ToList();
             foreach (var header in headersToRemove) {
-                var part = docPart.GetPartById(header.Id) as HeaderPart;
+                var part = docPart.GetPartById(header.Id?.Value
+                    ?? throw new InvalidOperationException("Header Id is missing.")) as HeaderPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
@@ -156,7 +162,7 @@ namespace OfficeIMO.Word {
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph(newRun: true);
             paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image;
+            return paragraph.Image ?? throw new InvalidOperationException("Image was not created.");
         }
 
         /// <summary>

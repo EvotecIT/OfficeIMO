@@ -37,7 +37,8 @@ namespace OfficeIMO.Word {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
-            _line = run.Descendants<V.Line>().FirstOrDefault();
+            _line = run.Descendants<V.Line>().FirstOrDefault()
+                ?? throw new InvalidOperationException("Line element not found in run.");
         }
 
         /// <summary>
