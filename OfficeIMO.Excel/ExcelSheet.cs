@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
-    public class ExcelSheet {
+    public class ExcelSheet : IDisposable {
         private readonly Sheet _sheet;
 
         /// <summary>
@@ -36,6 +36,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly AsyncLocal<bool> _skipWriteLock = new AsyncLocal<bool>();
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -186,6 +187,14 @@ namespace OfficeIMO.Excel {
                 action();
             } finally {
                 _lock.ExitWriteLock();
+            }
+        }
+
+        private void WriteLockConditional(Action action) {
+            if (_skipWriteLock.Value) {
+                action();
+            } else {
+                WriteLock(action);
             }
         }
 
@@ -485,17 +494,37 @@ namespace OfficeIMO.Excel {
                     if (topRows > 0 && leftCols > 0) {
                         pane.ActivePane = PaneValues.BottomRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else if (topRows > 0) {
                         pane.ActivePane = PaneValues.BottomLeft;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else {
                         pane.ActivePane = PaneValues.TopRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     }
                 }
 
@@ -536,6 +565,19 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds an Excel table to the worksheet over the specified range.
+        /// </summary>
+        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
+        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
+        /// <param name="name">Name of the table. If empty, a default name is used.</param>
+        /// <param name="style">Table style to apply.</param>
+        /// <remarks>
+        /// All cells within <paramref name="range"/> must exist. Missing cells are automatically created with empty values.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -576,6 +618,16 @@ namespace OfficeIMO.Excel {
                                     endRowIndex >= existingStartRow;
                     if (overlaps) {
                         throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                    }
+                }
+
+                for (int row = startRowIndex; row <= endRowIndex; row++) {
+                    for (int column = startColumnIndex; column <= endColumnIndex; column++) {
+                        var cell = GetCell(row, column);
+                        if (cell.CellValue == null) {
+                            cell.CellValue = new CellValue(string.Empty);
+                            cell.DataType = CellValues.String;
+                        }
                     }
                 }
 
@@ -854,14 +906,19 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(cells));
             }
 
-            Parallel.ForEach(Partitioner.Create(cells), cell => {
-                CellValue(cell.Row, cell.Column, cell.Value);
+            WriteLock(() => {
+                _skipWriteLock.Value = true;
+                try {
+                    Parallel.ForEach(cells, cell => CellValue(cell.Row, cell.Column, cell.Value));
+                } finally {
+                    _skipWriteLock.Value = false;
+                }
             });
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
                 cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
@@ -871,7 +928,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, double value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -880,7 +937,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, decimal value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -889,7 +946,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTime value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -903,7 +960,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, TimeSpan value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -937,7 +994,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, bool value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value ? "1" : "0");
                 cell.DataType = CellValues.Boolean;
@@ -1059,7 +1116,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
         public void CellValue(int row, int column, object value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 switch (value) {
                     case string s:
                         CellValue(row, column, s);
@@ -1133,6 +1190,10 @@ namespace OfficeIMO.Excel {
             } else {
                 CellValue(row, column, string.Empty);
             }
+        }
+
+        public void Dispose() {
+            _lock.Dispose();
         }
     }
 }
