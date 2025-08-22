@@ -15,8 +15,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             presentation.ThemeName = "Custom Theme";
             PowerPointSlide first = presentation.AddSlide();
             first.AddTextBox("Default layout");
-            PowerPointSlide second = presentation.AddSlide(layoutIndex: 1);
-            second.AddTextBox("Second layout");
+            PowerPointSlide second = presentation.AddSlide(layoutIndex: 0);
+            second.AddTextBox("Same layout (only one available)");
             presentation.Save();
         }
     }

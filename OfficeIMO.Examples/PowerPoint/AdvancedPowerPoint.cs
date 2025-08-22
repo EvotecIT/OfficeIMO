@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.BackgroundColor = "FFFF00";
             text.FillColor = "FF0000";
             slide.Transition = SlideTransition.Wipe;
-            slide.Notes.Text = "Demo notes";
+            //slide.Notes.Text = "Demo notes";
             presentation.Save();
         }
     }

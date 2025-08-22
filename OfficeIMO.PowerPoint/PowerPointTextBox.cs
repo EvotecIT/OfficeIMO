@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.Paragraph paragraph = new(
-                new A.ParagraphProperties(new A.CharacterBullet()),
+                new A.ParagraphProperties(new A.CharacterBullet() { Char = "•" }),
                 run
             );
             Shape.TextBody!.AppendChild(paragraph);

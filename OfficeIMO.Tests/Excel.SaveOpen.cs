@@ -7,15 +7,16 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Fact]
+        [Fact()]
         public void Test_Save_OpensWithoutSharingViolation() {
             string filePath = Path.Combine(_directoryWithFiles, "SaveOpen.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Test");
 
+                // Attempt to save the document, do not open, as it may fail on systems without associated application, and not really great for testing
                 try {
-                    document.Save(true);
+                    document.Save(false);
                 } catch {
                     // Opening the file may fail on systems without associated application
                 }

@@ -244,8 +244,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a title textbox to the slide.
         /// </summary>
-        public PowerPointTextBox AddTitle(string text, long left = 0L, long top = 0L,
-            long width = 914400L, long height = 914400L) {
+        public PowerPointTextBox AddTitle(string text, long left = 838200L, long top = 365125L,
+            long width = 7772400L, long height = 1470025L) {
             if (text == null) {
                 throw new ArgumentNullException(nameof(text));
             }
@@ -279,8 +279,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a textbox with the specified text.
         /// </summary>
-        public PowerPointTextBox AddTextBox(string text, long left = 0L, long top = 0L, long width = 914400L,
-            long height = 914400L) {
+        public PowerPointTextBox AddTextBox(string text, long left = 838200L, long top = 2174875L, long width = 7772400L,
+            long height = 3962400L) {
             if (text == null) {
                 throw new ArgumentNullException(nameof(text));
             }
@@ -418,7 +418,22 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
         public PowerPointChart AddChart() {
-            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>();
+            // Generate a unique relationship ID for the chart part
+            var slideRelationships = new HashSet<string>(
+                _slidePart.Parts.Select(p => p.RelationshipId)
+                .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
+                .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                .Where(id => !string.IsNullOrEmpty(id))
+            );
+            
+            int chartIdNum = 1;
+            string chartRelId;
+            do {
+                chartRelId = "rId" + chartIdNum;
+                chartIdNum++;
+            } while (slideRelationships.Contains(chartRelId));
+            
+            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
             GenerateDefaultChart(chartPart);
 
             string relId = _slidePart.GetIdOfPart(chartPart);
@@ -485,9 +500,25 @@ namespace OfficeIMO.PowerPoint {
             chartSpace.Append(chart, new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap },
                 new C.ShowDataLabelsOverMaximum { Val = false });
 
+            // Generate a unique relationship ID for the embedded Excel part
+            var chartRelationships = new HashSet<string>(
+                chartPart.Parts.Select(p => p.RelationshipId)
+                .Union(chartPart.ExternalRelationships.Select(r => r.Id))
+                .Union(chartPart.HyperlinkRelationships.Select(r => r.Id))
+                .Where(id => !string.IsNullOrEmpty(id))
+            );
+            
+            int excelIdNum = 1;
+            string excelRelId;
+            do {
+                excelRelId = "rId" + excelIdNum;
+                excelIdNum++;
+            } while (chartRelationships.Contains(excelRelId));
+            
             EmbeddedPackagePart excelPart =
                 chartPart.AddNewPart<EmbeddedPackagePart>(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    excelRelId);
             using (MemoryStream ms = new()) {
                 using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
                     WorkbookPart wbPart = doc.AddWorkbookPart();

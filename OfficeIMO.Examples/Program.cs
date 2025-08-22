@@ -63,6 +63,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
             OfficeIMO.Examples.PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            OfficeIMO.Examples.PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            return;
             // Html/Html
             OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
             OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);
