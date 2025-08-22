@@ -556,6 +556,19 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds an Excel table to the worksheet over the specified range.
+        /// </summary>
+        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
+        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
+        /// <param name="name">Name of the table. If empty, a default name is used.</param>
+        /// <param name="style">Table style to apply.</param>
+        /// <remarks>
+        /// All cells within <paramref name="range"/> must exist. Missing cells are automatically created with empty values.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -596,6 +609,16 @@ namespace OfficeIMO.Excel {
                                     endRowIndex >= existingStartRow;
                     if (overlaps) {
                         throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                    }
+                }
+
+                for (int row = startRowIndex; row <= endRowIndex; row++) {
+                    for (int column = startColumnIndex; column <= endColumnIndex; column++) {
+                        var cell = GetCell(row, column);
+                        if (cell.CellValue == null) {
+                            cell.CellValue = new CellValue(string.Empty);
+                            cell.DataType = CellValues.String;
+                        }
                     }
                 }
 

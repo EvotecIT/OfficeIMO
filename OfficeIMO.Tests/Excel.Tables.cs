@@ -30,6 +30,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddTablePopulatesMissingCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.MissingCells.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>();
+                Assert.Contains(cells, c => c.CellReference == "A2");
+                Assert.Contains(cells, c => c.CellReference == "B2");
+            }
+        }
+
+        [Fact]
         public async Task Test_AddTableConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Concurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
