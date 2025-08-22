@@ -46,7 +46,7 @@ namespace OfficeIMO.Word {
             get {
                 if (_tableRow.TableRowProperties != null) {
                     var rowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
-                    if (rowHeight != null) {
+                    if (rowHeight?.Val != null) {
                         return (int)rowHeight.Val.Value;
                     }
                 }
@@ -55,15 +55,16 @@ namespace OfficeIMO.Word {
             set {
                 if (value != null) {
                     AddTableRowProperties();
-                    var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    var tableRowProperties = _tableRow.TableRowProperties!;
+                    var tableRowHeight = tableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight == null) {
                         tableRowHeight = new TableRowHeight();
-                        _tableRow.TableRowProperties.InsertAt(tableRowHeight, 0);
+                        tableRowProperties.InsertAt(tableRowHeight, 0);
                     }
                     tableRowHeight.Val = (uint)value;
                     tableRowHeight.HeightType = HeightRuleValues.Exact;
                 } else {
-                    var tableRowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
+                    var tableRowHeight = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
                     if (tableRowHeight != null) {
                         tableRowHeight.Remove();
                     }
@@ -99,9 +100,10 @@ namespace OfficeIMO.Word {
                     }
                 } else {
                     AddTableRowProperties();
-                    var cantSplit = _tableRow.TableRowProperties.OfType<CantSplit>().FirstOrDefault();
+                    var tableRowProperties = _tableRow.TableRowProperties!;
+                    var cantSplit = tableRowProperties.OfType<CantSplit>().FirstOrDefault();
                     if (cantSplit == null) {
-                        _tableRow.TableRowProperties.InsertAt(new CantSplit(), 0);
+                        tableRowProperties.InsertAt(new CantSplit(), 0);
                     }
                 }
             }
@@ -123,14 +125,15 @@ namespace OfficeIMO.Word {
             }
             set {
                 AddTableRowProperties();
-                var rowHeader = _tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
+                var tableRowProperties = _tableRow.TableRowProperties!;
+                var rowHeader = tableRowProperties.OfType<TableHeader>().FirstOrDefault();
                 if (rowHeader != null) {
                     if (value == false) {
                         rowHeader.Remove();
                     }
                 } else {
                     // Add table header
-                    _tableRow.TableRowProperties.InsertAt(new TableHeader(), 0);
+                    tableRowProperties.InsertAt(new TableHeader(), 0);
 
                 }
             }
