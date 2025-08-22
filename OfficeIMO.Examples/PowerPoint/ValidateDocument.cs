@@ -12,7 +12,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using (var presentation = PowerPointPresentation.Create(filePath)) {
                 Console.WriteLine(presentation.DocumentIsValid);
-                Console.WriteLine(presentation.DocumentValidationErrors);
+                foreach (var error in presentation.DocumentValidationErrors) {
+                    Console.WriteLine($"Validation Error: {error.Description}");
+                }
                 presentation.Save();
             }
 

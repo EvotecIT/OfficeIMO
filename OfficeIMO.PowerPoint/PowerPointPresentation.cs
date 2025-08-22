@@ -317,6 +317,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="fileFormatVersions">File format version to validate against.</param>
         /// <returns>List of validation errors.</returns>
+        /// <example>
+        /// <code>
+        /// using (var presentation = PowerPointPresentation.Create("test.pptx")) {
+        ///     var errors = presentation.ValidateDocument();
+        ///     if (errors.Count > 0) {
+        ///         // Handle validation errors
+        ///     }
+        /// }
+        /// </code>
+        /// </example>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
