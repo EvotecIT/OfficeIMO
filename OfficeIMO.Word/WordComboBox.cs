@@ -23,9 +23,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<string> Items {
             get {
-                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault();
+                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>()?.FirstOrDefault();
                 if (combo != null) {
-                    return combo.Elements<ListItem>().Select(li => li.DisplayText?.Value ?? li.Value?.Value).ToList();
+                    return combo.Elements<ListItem>()
+                        .Select(li => li.DisplayText?.Value ?? li.Value?.Value ?? string.Empty)
+                        .ToList();
                 }
                 return new List<string>();
             }
@@ -34,16 +36,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag value for this combo box control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var tag = _sdtRun.SdtProperties?.OfType<Tag>()?.FirstOrDefault();
                 return tag?.Val;
             }
             set {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var properties = _sdtRun.SdtProperties ?? (_sdtRun.SdtProperties = new SdtProperties());
+                var tag = properties.OfType<Tag>().FirstOrDefault();
                 if (tag == null) {
                     tag = new Tag();
-                    _sdtRun.SdtProperties.Append(tag);
+                    properties.Append(tag);
                 }
                 tag.Val = value;
             }
@@ -52,9 +55,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the alias associated with this combo box control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
-                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                var sdtAlias = _sdtRun.SdtProperties?.OfType<SdtAlias>()?.FirstOrDefault();
                 return sdtAlias?.Val;
             }
         }

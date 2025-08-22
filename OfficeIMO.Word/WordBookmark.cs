@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Word {
@@ -12,9 +13,10 @@ namespace OfficeIMO.Word {
         private Paragraph _paragraph;
         private BookmarkStart _bookmarkStart;
 
-        private BookmarkEnd _bookmarkEnd {
+        private BookmarkEnd? _bookmarkEnd {
             get {
-                var listElements = _document._wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<Paragraph>();
+                var listElements = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body?
+                    .ChildElements.OfType<Paragraph>() ?? Enumerable.Empty<Paragraph>();
                 foreach (Paragraph paragraph in listElements) {
                     var listBookmarkEnds = paragraph.ChildElements.OfType<BookmarkEnd>();
                     foreach (var bookmarkEnd in listBookmarkEnds) {
@@ -31,7 +33,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bookmark name.
         /// </summary>
-        public string Name {
+        public string? Name {
             get => _bookmarkStart.Name;
             set => _bookmarkStart.Name = value;
         }
@@ -40,7 +42,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bookmark identifier.
         /// </summary>
         public int Id {
-            get => int.Parse(_bookmarkStart.Id);
+            get => int.TryParse(_bookmarkStart.Id, out var id) ? id : 0;
             set => _bookmarkStart.Id = value.ToString();
         }
 
@@ -60,7 +62,7 @@ namespace OfficeIMO.Word {
         /// Removes the bookmark from the document.
         /// </summary>
         public void Remove() {
-            this._bookmarkEnd.Remove();
+            this._bookmarkEnd?.Remove();
             this._bookmarkStart.Remove();
         }
 
