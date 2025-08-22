@@ -21,11 +21,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
-                Assert.Equal("A1:B2", tablePart.Table.Reference.Value);
+                Assert.Equal("A1:B2", tablePart.Table.Reference!.Value);
                 Assert.Equal("MyTable", tablePart.Table.Name);
-                Assert.Equal("TableStyleMedium9", tablePart.Table.TableStyleInfo.Name.Value);
+                Assert.Equal("TableStyleMedium9", tablePart.Table.TableStyleInfo!.Name!.Value);
             }
         }
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cells = wsPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>();
                 Assert.Contains(cells, c => c.CellReference == "A2");
                 Assert.Contains(cells, c => c.CellReference == "B2");
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Equal(5, wsPart.TableDefinitionParts.Count());
             }
         }
@@ -95,9 +95,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Single(wsPart.TableDefinitionParts);
-                Assert.Equal("A1:B3", wsPart.TableDefinitionParts.First().Table.Reference.Value);
+                  Assert.Equal("A1:B3", wsPart.TableDefinitionParts.First().Table.Reference!.Value);
             }
         }
     }

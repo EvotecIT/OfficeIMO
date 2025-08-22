@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = html.LoadFromHtml();
             var table = doc.Tables[0];
 
-            var (style, size, colorHex) = table.StyleDetails.GetBorderProperties(WordTableBorderSide.Top);
+            var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(BorderValues.Single, style);
             Assert.Equal((UInt32Value)12U, size);
             Assert.Equal("000000", colorHex);

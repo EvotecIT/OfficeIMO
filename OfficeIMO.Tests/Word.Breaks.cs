@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue);
                 Assert.True(document.Paragraphs[1].Color == null);
                 Assert.True(document.Paragraphs[2].IsBreak == true);
-                Assert.True(document.Paragraphs[2].Break.BreakType == BreakValues.TextWrapping);
+                  Assert.True(document.Paragraphs[2].Break!.BreakType == BreakValues.TextWrapping);
                 Assert.True(document.Sections.Count == 1);
                 Assert.True(document.Sections[0].Paragraphs.Count == 8);
 
