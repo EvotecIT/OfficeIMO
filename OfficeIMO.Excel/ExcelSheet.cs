@@ -163,6 +163,11 @@ namespace OfficeIMO.Excel {
             return columnIndex;
         }
 
+        private static int GetRowIndex(string cellReference) {
+            var digits = new string(cellReference.Where(char.IsDigit).ToArray());
+            return int.Parse(digits, CultureInfo.InvariantCulture);
+        }
+
         private string GetCellText(Cell cell) {
             if (cell.CellValue == null) return string.Empty;
             string value = cell.CellValue.InnerText;
@@ -215,6 +220,36 @@ namespace OfficeIMO.Excel {
                 return true;
             } catch {
                 return false;
+            }
+        }
+
+        private SixLabors.Fonts.Font GetCellFont(Cell cell) {
+            var defaultFont = GetDefaultFont();
+            if (cell.StyleIndex == null) return defaultFont;
+
+            var stylesPart = _spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            var stylesheet = stylesPart?.Stylesheet;
+            var fonts = stylesheet?.Fonts;
+            var cellFormats = stylesheet?.CellFormats;
+            if (fonts == null || cellFormats == null) return defaultFont;
+
+            var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
+            if (cellFormat?.FontId == null) return defaultFont;
+
+            var fontElement = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)cellFormat.FontId.Value);
+            if (fontElement == null) return defaultFont;
+
+            var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
+            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? defaultFont.Size;
+            bool bold = fontElement.GetFirstChild<Bold>() != null;
+
+            try {
+                if (!string.IsNullOrEmpty(fontName)) {
+                    return SystemFonts.CreateFont(fontName, (float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+                }
+                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+            } catch (FontFamilyNotFoundException) {
+                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
             }
         }
 
@@ -291,46 +326,48 @@ namespace OfficeIMO.Excel {
         }
 
         public void AutoFitColumn(int columnIndex) {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var columns = worksheet.GetFirstChild<Columns>();
-            if (columns == null) {
-                columns = worksheet.InsertAt(new Columns(), 0);
-            }
-
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
-            float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
-            double width = 0;
-
-            foreach (var row in sheetData.Elements<Row>()) {
-                var cell = row.Elements<Cell>()
-                    .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
-                if (cell == null) continue;
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                var size = TextMeasurer.MeasureSize(text, options);
-                double cellWidth = size.Width / zeroWidth + 1;
-                if (cellWidth > width) width = cellWidth;
-            }
-
-            Column column = columns.Elements<Column>()
-                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
-            if (width > 0) {
-                if (column == null) {
-                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
-                    columns.Append(column);
+                var columns = worksheet.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = worksheet.InsertAt(new Columns(), 0);
                 }
-                column.Width = width;
-                column.CustomWidth = true;
-                column.BestFit = true;
-            } else if (column != null) {
-                column.Remove();
-            }
 
-            worksheet.Save();
+                double width = 0;
+
+                foreach (var row in sheetData.Elements<Row>()) {
+                    var cell = row.Elements<Cell>()
+                        .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
+                    if (cell == null) continue;
+                    string text = GetCellText(cell);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    var font = GetCellFont(cell);
+                    var options = new TextOptions(font);
+                    float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
+                    var size = TextMeasurer.MeasureSize(text, options);
+                    double cellWidth = zeroWidth == 0 ? 0 : size.Width / zeroWidth + 1;
+                    if (cellWidth > width) width = cellWidth;
+                }
+
+                Column column = columns.Elements<Column>()
+                    .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+                if (width > 0) {
+                    if (column == null) {
+                        column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                        columns.Append(column);
+                    }
+                    column.Width = width;
+                    column.CustomWidth = true;
+                    column.BestFit = true;
+                } else if (column != null) {
+                    column.Remove();
+                }
+
+                worksheet.Save();
+            });
         }
 
         public void SetColumnWidth(int columnIndex, double width) {
@@ -371,46 +408,45 @@ namespace OfficeIMO.Excel {
         }
 
         public void AutoFitRow(int rowIndex) {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
+            WriteLock(() => {
+                var worksheet = _worksheetPart.Worksheet;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
 
-            var font = GetDefaultFont();
-            var options = new TextOptions(font);
+                Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
+                if (row == null) return;
 
-            double defaultHeight = 15;
-            double ToPoints(double height) {
-                return height * 72.0 / options.Dpi;
-            }
+                const double defaultHeight = 15;
+                const double pointsPerInch = 72.0;
 
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return;
-
-            double maxHeight = 0;
-            foreach (var cell in row.Elements<Cell>()) {
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                double lineHeight = lines.Max(line => ToPoints(TextMeasurer.MeasureSize(line, options).Height));
-                double cellHeight = lineHeight * lines.Length;
-                if (cellHeight > maxHeight) maxHeight = cellHeight;
-            }
-
-            if (maxHeight > 0) {
-                row.Height = maxHeight + 2;
-                row.CustomHeight = true;
-                var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
-                if (sheetFormat == null) {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                double maxHeight = 0;
+                foreach (var cell in row.Elements<Cell>()) {
+                    string text = GetCellText(cell);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    var font = GetCellFont(cell);
+                    var options = new TextOptions(font);
+                    var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                    double lineHeight = lines.Max(line => TextMeasurer.MeasureSize(line, options).Height * pointsPerInch / options.Dpi);
+                    double cellHeight = lineHeight * lines.Length;
+                    if (cellHeight > maxHeight) maxHeight = cellHeight;
                 }
-                sheetFormat.DefaultRowHeight = defaultHeight;
-                sheetFormat.CustomHeight = true;
-            } else {
-                row.Height = null;
-                row.CustomHeight = null;
-            }
 
-            worksheet.Save();
+                if (maxHeight > 0) {
+                    row.Height = maxHeight + 2;
+                    row.CustomHeight = true;
+                    var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+                    if (sheetFormat == null) {
+                        sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                    }
+                    sheetFormat.DefaultRowHeight = defaultHeight;
+                    sheetFormat.CustomHeight = true;
+                } else {
+                    row.Height = null;
+                    row.CustomHeight = null;
+                }
+
+                worksheet.Save();
+            });
         }
 
         /// <summary>
@@ -516,11 +552,35 @@ namespace OfficeIMO.Excel {
 
                 int startColumnIndex = GetColumnIndex(startRef);
                 int endColumnIndex = GetColumnIndex(endRef);
+                int startRowIndex = GetRowIndex(startRef);
+                int endRowIndex = GetRowIndex(endRef);
 
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
-                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+                foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
+                    var existingRange = existingPart.Table?.Reference?.Value;
+                    if (string.IsNullOrEmpty(existingRange)) continue;
+                    var existingCells = existingRange.Split(':');
+                    if (existingCells.Length != 2) continue;
+                    string existingStartRef = existingCells[0];
+                    string existingEndRef = existingCells[1];
+
+                    int existingStartColumn = GetColumnIndex(existingStartRef);
+                    int existingEndColumn = GetColumnIndex(existingEndRef);
+                    int existingStartRow = GetRowIndex(existingStartRef);
+                    int existingEndRow = GetRowIndex(existingEndRef);
+
+                    bool overlaps = startColumnIndex <= existingEndColumn &&
+                                    endColumnIndex >= existingStartColumn &&
+                                    startRowIndex <= existingEndRow &&
+                                    endRowIndex >= existingStartRow;
+                    if (overlaps) {
+                        throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                    }
+                }
+
                 uint tableId = (uint)(_worksheetPart.TableDefinitionParts.Count() + 1);
+                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
 
                 if (string.IsNullOrEmpty(name)) {
                     name = $"Table{tableId}";
@@ -550,6 +610,7 @@ namespace OfficeIMO.Excel {
                 });
 
                 tableDefinitionPart.Table = table;
+                tableDefinitionPart.Table.Save();
 
                 var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {

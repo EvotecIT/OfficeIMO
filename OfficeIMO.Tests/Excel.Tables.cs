@@ -34,15 +34,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Concurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                for (int i = 0; i < 5; i++) {
+                    int rowStart = 1 + i * 3;
+                    sheet.CellValue(rowStart, 1, "Name");
+                    sheet.CellValue(rowStart, 2, "Value");
+                    sheet.CellValue(rowStart + 1, 1, "A");
+                    sheet.CellValue(rowStart + 1, 2, 1d);
+                    sheet.CellValue(rowStart + 2, 1, "B");
+                    sheet.CellValue(rowStart + 2, 2, 2d);
+                }
 
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(i => Task.Run(() => sheet.AddTable("A1:B3", true, $"MyTable{i}", TableStyle.TableStyleMedium9)))
+                    .Select(i => Task.Run(() => sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", TableStyle.TableStyleMedium9)))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -51,6 +54,31 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
                 Assert.Equal(5, wsPart.TableDefinitionParts.Count());
+            }
+        }
+
+        [Fact]
+        public void Test_AddTableOverlappingRangeThrows() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.Overlap.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.AddTable("A1:B3", true, "Table1", TableStyle.TableStyleMedium9);
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    sheet.AddTable("B2:C4", true, "Table2", TableStyle.TableStyleMedium9));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                Assert.Single(wsPart.TableDefinitionParts);
+                Assert.Equal("A1:B3", wsPart.TableDefinitionParts.First().Table.Reference.Value);
             }
         }
     }
