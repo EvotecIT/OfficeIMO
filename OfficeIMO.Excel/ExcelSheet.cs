@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
-    public class ExcelSheet {
+    public class ExcelSheet : IDisposable {
         private readonly Sheet _sheet;
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-        private bool _skipWriteLock;
+        private readonly AsyncLocal<bool> _skipWriteLock = new AsyncLocal<bool>();
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void WriteLockConditional(Action action) {
-            if (_skipWriteLock) {
+            if (_skipWriteLock.Value) {
                 action();
             } else {
                 WriteLock(action);
@@ -864,11 +864,11 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                _skipWriteLock = true;
+                _skipWriteLock.Value = true;
                 try {
                     Parallel.ForEach(cells, cell => CellValue(cell.Row, cell.Column, cell.Value));
                 } finally {
-                    _skipWriteLock = false;
+                    _skipWriteLock.Value = false;
                 }
             });
         }
@@ -1147,6 +1147,10 @@ namespace OfficeIMO.Excel {
             } else {
                 CellValue(row, column, string.Empty);
             }
+        }
+
+        public void Dispose() {
+            _lock.Dispose();
         }
     }
 }
