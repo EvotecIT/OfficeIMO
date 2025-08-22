@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
-    public class ExcelSheet {
+    public class ExcelSheet : IDisposable {
         private readonly Sheet _sheet;
 
         /// <summary>
@@ -36,6 +36,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly AsyncLocal<bool> _skipWriteLock = new AsyncLocal<bool>();
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -186,6 +187,14 @@ namespace OfficeIMO.Excel {
                 action();
             } finally {
                 _lock.ExitWriteLock();
+            }
+        }
+
+        private void WriteLockConditional(Action action) {
+            if (_skipWriteLock.Value) {
+                action();
+            } else {
+                WriteLock(action);
             }
         }
 
@@ -897,14 +906,19 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(cells));
             }
 
-            Parallel.ForEach(Partitioner.Create(cells), cell => {
-                CellValue(cell.Row, cell.Column, cell.Value);
+            WriteLock(() => {
+                _skipWriteLock.Value = true;
+                try {
+                    Parallel.ForEach(cells, cell => CellValue(cell.Row, cell.Column, cell.Value));
+                } finally {
+                    _skipWriteLock.Value = false;
+                }
             });
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
                 cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
@@ -914,7 +928,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, double value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -923,7 +937,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, decimal value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -932,7 +946,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTime value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -946,7 +960,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, TimeSpan value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
                 cell.DataType = CellValues.Number;
@@ -980,7 +994,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, bool value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
                 cell.CellValue = new CellValue(value ? "1" : "0");
                 cell.DataType = CellValues.Boolean;
@@ -1102,7 +1116,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
         public void CellValue(int row, int column, object value) {
-            WriteLock(() => {
+            WriteLockConditional(() => {
                 switch (value) {
                     case string s:
                         CellValue(row, column, s);
@@ -1176,6 +1190,10 @@ namespace OfficeIMO.Excel {
             } else {
                 CellValue(row, column, string.Empty);
             }
+        }
+
+        public void Dispose() {
+            _lock.Dispose();
         }
     }
 }
