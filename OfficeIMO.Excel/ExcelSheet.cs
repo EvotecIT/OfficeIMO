@@ -366,6 +366,11 @@ namespace OfficeIMO.Excel {
 
                 Column column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+
+                if (column != null) {
+                    column = SplitColumn(columns, column, (uint)columnIndex);
+                }
+
                 if (width > 0) {
                     if (column == null) {
                         column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
@@ -378,8 +383,58 @@ namespace OfficeIMO.Excel {
                     column.Remove();
                 }
 
+                ReorderColumns(columns);
+
                 worksheet.Save();
             });
+
+            static Column SplitColumn(Columns columns, Column column, uint index) {
+                if (column.Min!.Value == index && column.Max!.Value == index) {
+                    return column;
+                }
+
+                uint min = column.Min.Value;
+                uint max = column.Max.Value;
+                var template = (Column)column.CloneNode(true);
+                column.Remove();
+
+                if (min < index) {
+                    var left = (Column)template.CloneNode(true);
+                    left.Min = min;
+                    left.Max = index - 1;
+                    columns.Append(left);
+                }
+
+                var middle = (Column)template.CloneNode(true);
+                middle.Min = index;
+                middle.Max = index;
+                columns.Append(middle);
+
+                if (index < max) {
+                    var right = (Column)template.CloneNode(true);
+                    right.Min = index + 1;
+                    right.Max = max;
+                    columns.Append(right);
+                }
+
+                return middle;
+            }
+
+            static void ReorderColumns(Columns columns) {
+                var ordered = columns.Elements<Column>().OrderBy(c => c.Min!.Value).ToList();
+                columns.RemoveAllChildren<Column>();
+                Column? previous = null;
+                foreach (var col in ordered) {
+                    if (previous != null && col.Min!.Value <= previous.Max!.Value) {
+                        if (col.Max!.Value <= previous.Max!.Value) {
+                            continue;
+                        }
+                        col.Min = previous.Max!.Value + 1;
+                    }
+                    columns.Append(col);
+                    previous = col;
+                }
+            }
         }
 
         public void SetColumnWidth(int columnIndex, double width) {
