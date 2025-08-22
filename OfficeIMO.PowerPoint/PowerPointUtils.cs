@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using D = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
+using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -26,26 +27,34 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void CreatePresentationParts(PresentationPart presentationPart) {
             SlideMasterIdList slideMasterIdList1 = new SlideMasterIdList(new SlideMasterId() { Id = (UInt32Value)2147483648U, RelationshipId = "rId1" });
+            NotesMasterIdList notesMasterIdList1 = new NotesMasterIdList(new NotesMasterId() { Id = "rId3" });
             SlideIdList slideIdList1 = new SlideIdList(new SlideId() { Id = (UInt32Value)256U, RelationshipId = "rId2" });
             SlideSize slideSize1 = new SlideSize() { Cx = 9144000, Cy = 6858000, Type = SlideSizeValues.Screen4x3 };
             NotesSize notesSize1 = new NotesSize() { Cx = 6858000, Cy = 9144000 };
             DefaultTextStyle defaultTextStyle1 = new DefaultTextStyle();
 
-            presentationPart.Presentation.Append(slideMasterIdList1, slideIdList1, slideSize1, notesSize1, defaultTextStyle1);
+            presentationPart.Presentation.Append(slideMasterIdList1, notesMasterIdList1, slideIdList1, slideSize1, notesSize1, defaultTextStyle1);
 
             SlidePart slidePart1;
             SlideLayoutPart slideLayoutPart1;
             SlideMasterPart slideMasterPart1;
             ThemePart themePart1;
+            NotesMasterPart notesMasterPart1;
 
             slidePart1 = CreateSlidePart(presentationPart);
             slideLayoutPart1 = CreateSlideLayoutPart(slidePart1);
             slideMasterPart1 = CreateSlideMasterPart(slideLayoutPart1);
             themePart1 = CreateTheme(slideMasterPart1);
+            notesMasterPart1 = CreateNotesMasterPart(presentationPart);
+            CreatePresentationPropertiesPart(presentationPart);
+            CreateViewPropertiesPart(presentationPart);
+            CreateTableStylesPart(presentationPart);
+            CreateExtendedFilePropertiesPart(presentationPart);
 
             slideMasterPart1.AddPart(slideLayoutPart1, "rId1");
             presentationPart.AddPart(slideMasterPart1, "rId1");
             presentationPart.AddPart(themePart1, "rId5");
+            notesMasterPart1.AddPart(themePart1, "rId1");
         }
 
         private static SlidePart CreateSlidePart(PresentationPart presentationPart) {
@@ -249,6 +258,44 @@ namespace OfficeIMO.PowerPoint {
 
             themePart1.Theme = theme1;
             return themePart1;
+        }
+
+        private static NotesMasterPart CreateNotesMasterPart(PresentationPart presentationPart) {
+            NotesMasterPart notesMasterPart1 = presentationPart.AddNewPart<NotesMasterPart>("rId3");
+            NotesMaster notesMaster1 = new NotesMaster(
+                new CommonSlideData(new ShapeTree(
+                    new P.NonVisualGroupShapeProperties(
+                        new P.NonVisualDrawingProperties() { Id = 1U, Name = string.Empty },
+                        new P.NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()),
+                    new GroupShapeProperties(new D.TransformGroup()))),
+                new ColorMapOverride(new MasterColorMapping()));
+            notesMasterPart1.NotesMaster = notesMaster1;
+            return notesMasterPart1;
+        }
+
+        private static void CreatePresentationPropertiesPart(PresentationPart presentationPart) {
+            PresentationPropertiesPart presentationPropertiesPart = presentationPart.AddNewPart<PresentationPropertiesPart>("rId6");
+            presentationPropertiesPart.PresentationProperties = new PresentationProperties();
+        }
+
+        private static void CreateViewPropertiesPart(PresentationPart presentationPart) {
+            ViewPropertiesPart viewPropertiesPart = presentationPart.AddNewPart<ViewPropertiesPart>("rId7");
+            viewPropertiesPart.ViewProperties = new ViewProperties();
+        }
+
+        private static void CreateTableStylesPart(PresentationPart presentationPart) {
+            TableStylesPart tableStylesPart = presentationPart.AddNewPart<TableStylesPart>("rId8");
+            tableStylesPart.TableStyleList = new D.TableStyleList();
+        }
+
+        private static void CreateExtendedFilePropertiesPart(PresentationPart presentationPart) {
+            PresentationDocument document = (PresentationDocument)presentationPart.OpenXmlPackage;
+            ExtendedFilePropertiesPart appPart = document.ExtendedFilePropertiesPart
+                ?? document.AddExtendedFilePropertiesPart();
+            if (appPart.Properties == null) {
+                appPart.Properties = new Ap.Properties();
+            }
         }
     }
 }

@@ -27,7 +27,9 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(master.SlideLayoutParts);
                 ThemePart theme = part.ThemePart!;
                 Assert.Same(theme, master.ThemePart);
-                Assert.Single(part.Presentation.SlideIdList!.Elements<SlideId>());
+                Assert.Equal(2, part.Presentation.SlideIdList!.Elements<SlideId>().Count());
+                Assert.NotNull(part.NotesMasterPart?.NotesMaster);
+                Assert.NotNull(part.Presentation.NotesMasterIdList);
 
                 Assert.NotNull(document.ExtendedFilePropertiesPart?.Properties);
                 Assert.NotNull(part.PresentationPropertiesPart?.PresentationProperties);
@@ -54,6 +56,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.slide+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.theme+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"));
             }
 
