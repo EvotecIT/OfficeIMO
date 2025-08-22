@@ -485,17 +485,37 @@ namespace OfficeIMO.Excel {
                     if (topRows > 0 && leftCols > 0) {
                         pane.ActivePane = PaneValues.BottomRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else if (topRows > 0) {
                         pane.ActivePane = PaneValues.BottomLeft;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.BottomLeft });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.BottomLeft,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     } else {
                         pane.ActivePane = PaneValues.TopRight;
                         sheetView.Append(pane);
-                        sheetView.Append(new Selection { Pane = PaneValues.TopRight });
+                        sheetView.Append(new Selection {
+                            Pane = PaneValues.TopRight,
+                            ActiveCell = pane.TopLeftCell,
+                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                        });
                     }
                 }
 
