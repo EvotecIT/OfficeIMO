@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == SixLabors.ImageSharp.Color.Aqua.ToHexColor());
-                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
-                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace!.Value);
+                Assert.Equal(24U, document.Sections[0].Borders.LeftSize!.Value);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == SixLabors.ImageSharp.Color.Red.ToHexColor());
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == SixLabors.ImageSharp.Color.Blue.ToHexColor());
-                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
-                Assert.True(document.Sections[0].Borders.BottomSize == 18);
+                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace!.Value);
+                Assert.Equal(18U, document.Sections[0].Borders.BottomSize!.Value);
 
 
                 document.AddSection();
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == SixLabors.ImageSharp.Color.Aqua.ToHexColor());
-                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
-                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace!.Value);
+                Assert.Equal(24U, document.Sections[0].Borders.LeftSize!.Value);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == SixLabors.ImageSharp.Color.Red.ToHexColor());
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == SixLabors.ImageSharp.Color.Blue.ToHexColor());
-                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
-                Assert.True(document.Sections[0].Borders.BottomSize == 18);
+                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace!.Value);
+                Assert.Equal(18U, document.Sections[0].Borders.BottomSize!.Value);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == BorderValues.BabyRattle);
@@ -133,8 +133,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == BorderValues.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToHexColor() == SixLabors.ImageSharp.Color.Aqua.ToHexColor());
-                Assert.True(document.Sections[0].Borders.LeftSpace == 10);
-                Assert.True(document.Sections[0].Borders.LeftSize == 24);
+                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace!.Value);
+                Assert.Equal(24U, document.Sections[0].Borders.LeftSize!.Value);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == BorderValues.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToHexColor() == SixLabors.ImageSharp.Color.Red.ToHexColor());
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == BorderValues.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToHexColor() == SixLabors.ImageSharp.Color.Blue.ToHexColor());
-                Assert.True(document.Sections[0].Borders.BottomSpace == 15);
-                Assert.True(document.Sections[0].Borders.BottomSize == 18);
+                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace!.Value);
+                Assert.Equal(18U, document.Sections[0].Borders.BottomSize!.Value);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == BorderValues.BabyRattle);
