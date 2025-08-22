@@ -1,16 +1,19 @@
-﻿using System;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml;
+﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
@@ -73,7 +76,7 @@ namespace OfficeIMO.Excel {
             if (name == "") {
                 name = "Sheet1";
             }
-            
+
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
             worksheetPart.Worksheet = new Worksheet(new SheetData());
@@ -467,8 +470,25 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
                 SheetViews sheetViews = worksheet.GetFirstChild<SheetViews>();
+
+                if (topRows == 0 && leftCols == 0) {
+                    if (sheetViews != null) {
+                        worksheet.RemoveChild(sheetViews);
+                    }
+                    worksheet.Save();
+                    return;
+                }
+
                 if (sheetViews == null) {
-                    sheetViews = worksheet.AppendChild(new SheetViews());
+                    sheetViews = new SheetViews();
+                    OpenXmlElement? insertBefore = worksheet.Elements<SheetFormatProperties>().Cast<OpenXmlElement>().FirstOrDefault()
+                        ?? worksheet.Elements<Columns>().Cast<OpenXmlElement>().FirstOrDefault()
+                        ?? worksheet.Elements<SheetData>().Cast<OpenXmlElement>().FirstOrDefault();
+                    if (insertBefore != null) {
+                        worksheet.InsertBefore(sheetViews, insertBefore);
+                    } else {
+                        worksheet.AppendChild(sheetViews);
+                    }
                 }
 
                 SheetView sheetView = sheetViews.GetFirstChild<SheetView>();
@@ -480,57 +500,61 @@ namespace OfficeIMO.Excel {
                 sheetView.RemoveAllChildren<Pane>();
                 sheetView.RemoveAllChildren<Selection>();
 
-                if (topRows > 0 || leftCols > 0) {
-                    Pane pane = new Pane { State = PaneStateValues.Frozen };
-                    if (topRows > 0) {
-                        pane.HorizontalSplit = topRows;
-                    }
-                    if (leftCols > 0) {
-                        pane.VerticalSplit = leftCols;
-                    }
-
-                    pane.TopLeftCell = GetColumnName(leftCols + 1) + (topRows + 1).ToString(CultureInfo.InvariantCulture);
-
-                    if (topRows > 0 && leftCols > 0) {
-                        pane.ActivePane = PaneValues.BottomRight;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.TopRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomLeft,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    } else if (topRows > 0) {
-                        pane.ActivePane = PaneValues.BottomLeft;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.BottomLeft,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    } else {
-                        pane.ActivePane = PaneValues.TopRight;
-                        sheetView.Append(pane);
-                        sheetView.Append(new Selection {
-                            Pane = PaneValues.TopRight,
-                            ActiveCell = pane.TopLeftCell,
-                            SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
-                        });
-                    }
+                Pane pane = new Pane { State = PaneStateValues.Frozen };
+                if (topRows > 0) {
+                    pane.HorizontalSplit = topRows;
                 }
+                if (leftCols > 0) {
+                    pane.VerticalSplit = leftCols;
+                }
+
+                pane.TopLeftCell = GetColumnName(leftCols + 1) + (topRows + 1).ToString(CultureInfo.InvariantCulture);
+
+                if (topRows > 0 && leftCols > 0) {
+                    pane.ActivePane = PaneValues.BottomRight;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.TopRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomLeft,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                } else if (topRows > 0) {
+                    pane.ActivePane = PaneValues.BottomLeft;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.BottomLeft,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                } else {
+                    pane.ActivePane = PaneValues.TopRight;
+                    sheetView.Append(pane);
+                    sheetView.Append(new Selection {
+                        Pane = PaneValues.TopRight,
+                        ActiveCell = pane.TopLeftCell,
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = pane.TopLeftCell }
+                    });
+                }
+
+                sheetView.Append(new Selection {
+                    ActiveCell = "A1",
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+                });
 
                 worksheet.Save();
             });
         }
+
 
         public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
@@ -897,8 +921,26 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private readonly struct CellUpdate {
+            public readonly int Row;
+            public readonly int Column;
+            public readonly string Text;
+            public readonly CellValues DataType;
+            public readonly bool IsSharedString;
+
+            public CellUpdate(int row, int column, string text, CellValues dataType, bool isSharedString) {
+                Row = row;
+                Column = column;
+                Text = text;
+                DataType = dataType;
+                IsSharedString = isSharedString;
+            }
+        }
+
         /// <summary>
-        /// Sets multiple cell values in parallel.
+        /// Sets multiple cell values in parallel without mutating the DOM concurrently.
+        /// Cell data is prepared in parallel, then applied sequentially under write lock
+        /// to prevent XML corruption and ensure thread safety.
         /// </summary>
         /// <param name="cells">Collection of cell coordinates and values.</param>
         public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
@@ -906,14 +948,103 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(cells));
             }
 
+            var cellList = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
+            int cellCount = cellList.Count;
+            bool monitor = cellCount > 5000;
+            Stopwatch? prepWatch = null;
+            Stopwatch? applyWatch = null;
+            if (monitor) {
+                prepWatch = Stopwatch.StartNew();
+            }
+
+            var bag = new ConcurrentBag<CellUpdate>();
+
+            Parallel.ForEach(cellList, cell => {
+                bag.Add(PrepareCellUpdate(cell.Row, cell.Column, cell.Value));
+            });
+
+            if (monitor && prepWatch != null) {
+                prepWatch.Stop();
+                applyWatch = Stopwatch.StartNew();
+            }
+
             WriteLock(() => {
                 _skipWriteLock.Value = true;
                 try {
-                    Parallel.ForEach(cells, cell => CellValue(cell.Row, cell.Column, cell.Value));
+                    foreach (var update in bag) {
+                        ApplyCellUpdate(update);
+                    }
+                    ValidateWorksheetXml();
                 } finally {
                     _skipWriteLock.Value = false;
                 }
             });
+
+            if (monitor && applyWatch != null && prepWatch != null) {
+                applyWatch.Stop();
+                Debug.WriteLine($"CellValuesParallel: prepared {cellCount} cells in {prepWatch.ElapsedMilliseconds} ms, applied in {applyWatch.ElapsedMilliseconds} ms.");
+            }
+        }
+
+        private CellUpdate PrepareCellUpdate(int row, int column, object value) {
+            switch (value) {
+                case string s:
+                    return new CellUpdate(row, column, s, CellValues.SharedString, true);
+                case double d:
+                    return new CellUpdate(row, column, d.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case float f:
+                    return new CellUpdate(row, column, Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case decimal dec:
+                    return new CellUpdate(row, column, dec.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case int i:
+                    return new CellUpdate(row, column, ((double)i).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case long l:
+                    return new CellUpdate(row, column, ((double)l).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case DateTime dt:
+                    return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case DateTimeOffset dto:
+                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case TimeSpan ts:
+                    return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case bool b:
+                    return new CellUpdate(row, column, b ? "1" : "0", CellValues.Boolean, false);
+                case uint ui:
+                    return new CellUpdate(row, column, ((double)ui).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case ulong ul:
+                    return new CellUpdate(row, column, ((double)ul).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case ushort us:
+                    return new CellUpdate(row, column, ((double)us).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case byte by:
+                    return new CellUpdate(row, column, ((double)by).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case sbyte sb:
+                    return new CellUpdate(row, column, ((double)sb).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case short sh:
+                    return new CellUpdate(row, column, ((double)sh).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                default:
+                    return new CellUpdate(row, column, value?.ToString() ?? string.Empty, CellValues.SharedString, true);
+            }
+        }
+
+        private void ApplyCellUpdate(CellUpdate update) {
+            Cell cell = GetCell(update.Row, update.Column);
+            if (update.IsSharedString) {
+                int sharedStringIndex = _excelDocument.GetSharedStringIndex(update.Text);
+                cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.SharedString;
+            } else {
+                cell.CellValue = new CellValue(update.Text);
+                cell.DataType = update.DataType;
+            }
+        }
+
+        private void ValidateWorksheetXml() {
+            try {
+                using StringReader sr = new StringReader(_worksheetPart.Worksheet.OuterXml);
+                using XmlReader reader = XmlReader.Create(sr);
+                while (reader.Read()) { }
+            } catch (XmlException ex) {
+                throw new InvalidOperationException($"Worksheet XML is not well-formed after parallel write operation. {ex.Message}", ex);
+            }
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />

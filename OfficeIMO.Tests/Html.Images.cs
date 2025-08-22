@@ -84,17 +84,25 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             Assert.Collection(doc.Images, _ => { }, _ => { });
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
+            var wordDoc = doc._wordprocessingDocument;
+            Assert.NotNull(wordDoc);
+            var mainPart = wordDoc.MainDocumentPart;
+            Assert.NotNull(mainPart);
+            Assert.Single(mainPart.ImageParts);
         }
 
         [Fact]
         public void DuplicateImageFileSrcSharesPart() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
-            string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>"; 
+            string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>";
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Single(doc._wordprocessingDocument.MainDocumentPart.ImageParts);
+            var wordDoc = doc._wordprocessingDocument;
+            Assert.NotNull(wordDoc);
+            var mainPart = wordDoc.MainDocumentPart;
+            Assert.NotNull(mainPart);
+            Assert.Single(mainPart.ImageParts);
         }
 
         [Fact]

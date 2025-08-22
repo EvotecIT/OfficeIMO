@@ -73,8 +73,8 @@ namespace OfficeIMO.PowerPoint {
                 NotesSlide notesSlide = NotesSlide;
                 CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
                 ShapeTree tree = common.ShapeTree ??= new ShapeTree();
-                Shape shape = tree.GetFirstChild<Shape>();
-                if (shape == null) {
+                Shape? shape = tree.GetFirstChild<Shape>();
+                if (shape is null) {
                     shape = new Shape(
                         new NonVisualShapeProperties(
                             new NonVisualDrawingProperties { Id = 1U, Name = "Notes Placeholder" },

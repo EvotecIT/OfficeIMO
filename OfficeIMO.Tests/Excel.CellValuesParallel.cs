@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -15,16 +16,24 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
 
-                var col1 = Enumerable.Range(1, 250).Select(i => (i, 1, (object)$"R{i}C1"));
-                var col2 = Enumerable.Range(1, 250).Select(i => (i, 2, (object)$"R{i}C2"));
-                var col3 = Enumerable.Range(1, 250).Select(i => (i, 3, (object)$"R{i}C3"));
-                var col4 = Enumerable.Range(1, 250).Select(i => (i, 4, (object)$"R{i}C4"));
+                var col1 = Enumerable.Range(1, 1000).Select(i => (i, 1, (object)$"R{i}C1"));
+                var col2 = Enumerable.Range(1, 1000).Select(i => (i, 2, (object)$"R{i}C2"));
+                var col3 = Enumerable.Range(1, 1000).Select(i => (i, 3, (object)$"R{i}C3"));
+                var col4 = Enumerable.Range(1, 1000).Select(i => (i, 4, (object)$"R{i}C4"));
+                var col5 = Enumerable.Range(1, 1000).Select(i => (i, 5, (object)$"R{i}C5"));
+                var col6 = Enumerable.Range(1, 1000).Select(i => (i, 6, (object)$"R{i}C6"));
+                var col7 = Enumerable.Range(1, 1000).Select(i => (i, 7, (object)$"R{i}C7"));
+                var col8 = Enumerable.Range(1, 1000).Select(i => (i, 8, (object)$"R{i}C8"));
 
                 await Task.WhenAll(
                     Task.Run(() => sheet.CellValuesParallel(col1)),
                     Task.Run(() => sheet.CellValuesParallel(col2)),
                     Task.Run(() => sheet.CellValuesParallel(col3)),
-                    Task.Run(() => sheet.CellValuesParallel(col4))
+                    Task.Run(() => sheet.CellValuesParallel(col4)),
+                    Task.Run(() => sheet.CellValuesParallel(col5)),
+                    Task.Run(() => sheet.CellValuesParallel(col6)),
+                    Task.Run(() => sheet.CellValuesParallel(col7)),
+                    Task.Run(() => sheet.CellValuesParallel(col8))
                 );
 
                 document.Save();
@@ -39,8 +48,8 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
 
-                for (int row = 1; row <= 250; row++) {
-                    for (int col = 1; col <= 4; col++) {
+                for (int row = 1; row <= 1000; row++) {
+                    for (int col = 1; col <= 8; col++) {
                         string expected = $"R{row}C{col}";
                         string cellRef = $"{(char)('A' + col - 1)}{row}";
                         Cell cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == cellRef);
@@ -49,8 +58,10 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(expected, shared.SharedStringTable!.ElementAt(index).InnerText);
                     }
                 }
+                OpenXmlValidator validator = new OpenXmlValidator();
+                Assert.Empty(validator.Validate(spreadsheet));
 
-                Assert.Equal(1000, shared.SharedStringTable!.Count());
+                Assert.Equal(8000, shared.SharedStringTable!.Count());
             }
         }
     }
