@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
@@ -287,6 +288,43 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _presentationPart.Presentation.Save();
+        }
+
+        /// <summary>
+        ///     Indicates whether the presentation passes Open XML validation.
+        /// </summary>
+        public bool DocumentIsValid {
+            get {
+                if (DocumentValidationErrors.Count > 0) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the list of validation errors for the presentation.
+        /// </summary>
+        public List<ValidationErrorInfo> DocumentValidationErrors {
+            get {
+                return ValidateDocument();
+            }
+        }
+
+        /// <summary>
+        ///     Validates the presentation using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
+            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            foreach (ValidationErrorInfo error in validator.Validate(_document)) {
+                listErrors.Add(error);
+            }
+
+            return listErrors;
         }
 
         /// <summary>
