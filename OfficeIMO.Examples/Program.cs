@@ -50,6 +50,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
             // Excel/CellValuesParallel
             OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
+            // Excel/ValidateDocument
+            OfficeIMO.Examples.Excel.ValidateDocument.Example(folderPath, false);
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
