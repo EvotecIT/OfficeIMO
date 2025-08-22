@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name {
             get {
-                return _sheet.Name;
+                return _sheet.Name?.Value ?? string.Empty;
             }
             set {
                 _sheet.Name = value;
@@ -49,13 +49,10 @@ namespace OfficeIMO.Excel {
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
 
-            var list = _spreadSheetDocument.WorkbookPart.WorksheetParts.ToList();
-            foreach (var worksheetPart in list) {
-                var id = spreadSheetDocument.WorkbookPart.GetIdOfPart(worksheetPart);
-                if (id == _sheet.Id) {
-                    _worksheetPart = worksheetPart;
-                }
-            }
+            var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart not found");
+            _worksheetPart = workbookPart.WorksheetParts
+                .FirstOrDefault(wp => workbookPart.GetIdOfPart(wp) == sheet.Id) ?? throw new InvalidOperationException("WorksheetPart not found");
+            Id = sheet.SheetId ?? throw new InvalidOperationException("Sheet Id cannot be null.");
         }
 
         /// <summary>
@@ -69,37 +66,35 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
 
-            UInt32Value id = excelDocument.id.Max() + 1;
-            if (name == "") {
+            uint nextId = excelDocument.id.Any() ? excelDocument.id.Max(v => v.Value) + 1U : 1U;
+            if (string.IsNullOrEmpty(name)) {
                 name = "Sheet1";
             }
-            
+
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
             worksheetPart.Worksheet = new Worksheet(new SheetData());
 
             // Add Sheets to the Workbook.
-            Sheets sheets = null;
-            if (spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                sheets = spreadSheetDocument.WorkbookPart.Workbook.Sheets;
-            } else {
-                sheets = spreadSheetDocument.WorkbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+            Sheets? sheets = workbookpart.Workbook.Sheets;
+            if (sheets == null) {
+                sheets = workbookpart.Workbook.AppendChild(new Sheets());
             }
 
             // Append a new worksheet and associate it with the workbook.
             Sheet sheet = new Sheet() {
-                Id = spreadSheetDocument.WorkbookPart.GetIdOfPart(worksheetPart),
-                SheetId = id,
+                Id = workbookpart.GetIdOfPart(worksheetPart),
+                SheetId = nextId,
                 Name = name
             };
             sheets.Append(sheet);
 
-            this._sheet = sheet;
-            this.Name = name;
-            this.Id = sheet.SheetId;
-            this._worksheetPart = worksheetPart;
+            _sheet = sheet;
+            Name = name;
+            Id = sheet.SheetId ?? throw new InvalidOperationException("Sheet Id cannot be null.");
+            _worksheetPart = worksheetPart;
 
-            excelDocument.id.Add(id);
+            excelDocument.id.Add(nextId);
         }
 
         private Cell GetCell(int row, int column) {
@@ -110,23 +105,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column));
             }
 
-            SheetData sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) {
                 sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
             }
 
-            Row rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)row);
+            Row? rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)row);
             if (rowElement == null) {
                 rowElement = new Row { RowIndex = (uint)row };
                 sheetData.Append(rowElement);
             }
 
             string cellReference = GetColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
-            Cell cell = rowElement.Elements<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == cellReference);
+            Cell? cell = rowElement.Elements<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == cellReference);
             if (cell == null) {
                 cell = new Cell { CellReference = cellReference };
 
-                Cell refCell = null;
+                Cell? refCell = null;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
                     if (string.Compare(c.CellReference?.Value, cellReference, StringComparison.Ordinal) > 0) {
                         refCell = c;
@@ -236,7 +231,7 @@ namespace OfficeIMO.Excel {
             var defaultFont = GetDefaultFont();
             if (cell.StyleIndex == null) return defaultFont;
 
-            var stylesPart = _spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            var stylesPart = _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var fonts = stylesheet?.Fonts;
             var cellFormats = stylesheet?.CellFormats;
@@ -268,7 +263,7 @@ namespace OfficeIMO.Excel {
         public void AutoFitColumns() {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
-                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
 
                 var columns = worksheet.GetFirstChild<Columns>();
@@ -277,7 +272,7 @@ namespace OfficeIMO.Excel {
                 foreach (var row in sheetData.Elements<Row>()) {
                     foreach (var cell in row.Elements<Cell>()) {
                         if (cell.CellReference == null) continue;
-                        columnIndexes.Add(GetColumnIndex(cell.CellReference.Value));
+                        columnIndexes.Add(GetColumnIndex(cell.CellReference!.Value!));
                     }
                 }
 
@@ -305,7 +300,7 @@ namespace OfficeIMO.Excel {
         public void AutoFitRows() {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
-                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
 
                 var rowIndexes = sheetData.Elements<Row>()
@@ -334,10 +329,14 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Automatically adjusts the width of a single column.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
         public void AutoFitColumn(int columnIndex) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
-                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
 
                 var columns = worksheet.GetFirstChild<Columns>();
@@ -349,7 +348,7 @@ namespace OfficeIMO.Excel {
 
                 foreach (var row in sheetData.Elements<Row>()) {
                     var cell = row.Elements<Cell>()
-                        .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
+                        .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference!.Value!) == columnIndex);
                     if (cell == null) continue;
                     string text = GetCellText(cell);
                     if (string.IsNullOrWhiteSpace(text)) continue;
@@ -361,7 +360,7 @@ namespace OfficeIMO.Excel {
                     if (cellWidth > width) width = cellWidth;
                 }
 
-                Column column = columns.Elements<Column>()
+                Column? column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
                 if (width > 0) {
                     if (column == null) {
@@ -379,6 +378,11 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Sets the width of a column.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
+        /// <param name="width">Desired column width.</param>
         public void SetColumnWidth(int columnIndex, double width) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
@@ -386,7 +390,7 @@ namespace OfficeIMO.Excel {
                 if (columns == null) {
                     columns = worksheet.InsertAt(new Columns(), 0);
                 }
-                var column = columns.Elements<Column>()
+                Column? column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
                 if (column == null) {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
@@ -398,6 +402,11 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Hides or shows a column.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
+        /// <param name="hidden">Whether the column should be hidden.</param>
         public void SetColumnHidden(int columnIndex, bool hidden) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
@@ -405,7 +414,7 @@ namespace OfficeIMO.Excel {
                 if (columns == null) {
                     columns = worksheet.InsertAt(new Columns(), 0);
                 }
-                var column = columns.Elements<Column>()
+                Column? column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
                 if (column == null) {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
@@ -416,13 +425,17 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Automatically adjusts the height of a single row.
+        /// </summary>
+        /// <param name="rowIndex">1-based row index.</param>
         public void AutoFitRow(int rowIndex) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
-                SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+                SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
 
-                Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
+                Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex is UInt32Value idx && idx.Value == (uint)rowIndex);
                 if (row == null) return;
 
                 const double defaultHeight = 15;
@@ -466,12 +479,12 @@ namespace OfficeIMO.Excel {
         public void Freeze(int topRows = 0, int leftCols = 0) {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
-                SheetViews sheetViews = worksheet.GetFirstChild<SheetViews>();
+                SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
                 if (sheetViews == null) {
                     sheetViews = worksheet.AppendChild(new SheetViews());
                 }
 
-                SheetView sheetView = sheetViews.GetFirstChild<SheetView>();
+                SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
                 if (sheetView == null) {
                     sheetView = new SheetView { WorkbookViewId = 0U };
                     sheetViews.Append(sheetView);
@@ -532,7 +545,12 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null) {
+        /// <summary>
+        /// Applies an auto filter to the specified range.
+        /// </summary>
+        /// <param name="range">Cell range to filter.</param>
+        /// <param name="filterCriteria">Optional filter criteria.</param>
+        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -540,7 +558,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
 
-                AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+                AutoFilter? existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
                 if (existing != null) {
                     worksheet.RemoveChild(existing);
                 }
@@ -679,6 +697,13 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">Target cell range.</param>
+        /// <param name="operator">Comparison operator.</param>
+        /// <param name="formula1">First formula.</param>
+        /// <param name="formula2">Optional second formula.</param>
         public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -718,10 +743,19 @@ namespace OfficeIMO.Excel {
             return "FF" + color.ToHexColor();
         }
 
+        /// <summary>
+        /// Adds a two-color scale conditional formatting rule using color objects.
+        /// </summary>
         public void AddConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
             AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
         }
 
+        /// <summary>
+        /// Adds a two-color scale conditional formatting rule.
+        /// </summary>
+        /// <param name="range">Target cell range.</param>
+        /// <param name="startColor">Start color.</param>
+        /// <param name="endColor">End color.</param>
         public void AddConditionalColorScale(string range, string startColor, string endColor) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -758,10 +792,18 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds a data bar conditional formatting rule using a color object.
+        /// </summary>
         public void AddConditionalDataBar(string range, SixLaborsColor color) {
             AddConditionalDataBar(range, ConvertColor(color));
         }
 
+        /// <summary>
+        /// Adds a data bar conditional formatting rule.
+        /// </summary>
+        /// <param name="range">Target cell range.</param>
+        /// <param name="color">Bar color.</param>
         public void AddConditionalDataBar(string range, string color) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -797,6 +839,13 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Inserts objects into the worksheet by flattening their properties.
+        /// </summary>
+        /// <typeparam name="T">Type of objects to insert.</typeparam>
+        /// <param name="items">Collection of objects.</param>
+        /// <param name="includeHeaders">Whether to include header row.</param>
+        /// <param name="startRow">Row index to start at.</param>
         public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
@@ -1043,9 +1092,10 @@ namespace OfficeIMO.Excel {
         public void FormatCell(int row, int column, string numberFormat) {
             Cell cell = GetCell(row, column);
 
-            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            var workbookPart = _excelDocument._spreadSheetDocument?.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart not found");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
-                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
             }
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -1069,15 +1119,15 @@ namespace OfficeIMO.Excel {
 
             stylesheet.NumberingFormats ??= new NumberingFormats();
 
-            NumberingFormat existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                 .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
 
             uint numberFormatId;
-            if (existingFormat != null) {
+            if (existingFormat?.NumberFormatId != null) {
                 numberFormatId = existingFormat.NumberFormatId.Value;
             } else {
                 numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
-                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId.Value) + 1
+                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId!.Value) + 1
                     : 164U;
                 NumberingFormat numberingFormat = new NumberingFormat {
                     NumberFormatId = numberFormatId,
@@ -1103,12 +1153,6 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet.Save();
         }
 
-        /// <summary>
-        /// Sets the value of a cell.
-        /// </summary>
-        /// <param name="row">The 1-based row index.</param>
-        /// <param name="column">The 1-based column index.</param>
-        /// <param name="value">The value to assign.</param>
         /// <summary>
         /// Sets the specified value into a cell, inferring the data type.
         /// </summary>
@@ -1167,11 +1211,11 @@ namespace OfficeIMO.Excel {
                         CellValue(row, column, (double)sh);
                         break;
                     default:
-                        if (value != null) {
-                            CellValue(row, column, value.ToString());
-                        } else {
-                            CellValue(row, column, string.Empty);
-                        }
+                          if (value != null) {
+                              CellValue(row, column, value?.ToString() ?? string.Empty);
+                          } else {
+                              CellValue(row, column, string.Empty);
+                          }
                         break;
                 }
             });
@@ -1192,6 +1236,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Releases resources used by the worksheet.
+        /// </summary>
         public void Dispose() {
             _lock.Dispose();
         }

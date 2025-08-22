@@ -28,10 +28,11 @@ namespace OfficeIMO.Excel {
                 try {
                     List<ExcelSheet> listExcel = new List<ExcelSheet>();
                     List<Sheet>? elements = null;
-                    if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
-                        elements = _spreadSheetDocument.WorkbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
+                    var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
+                    if (sheets != null) {
+                        elements = sheets.OfType<Sheet>().ToList();
                         foreach (Sheet s in elements) {
-                            listExcel.Add(new ExcelSheet(this, _spreadSheetDocument, s));
+                            listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
                         }
                     }
 
@@ -41,7 +42,7 @@ namespace OfficeIMO.Excel {
                         id.Add(0);
                         if (elements != null) {
                             foreach (Sheet s in elements) {
-                                if (!id.Contains(s.SheetId)) {
+                                if (s.SheetId != null && !id.Contains(s.SheetId)) {
                                     id.Add(s.SheetId);
                                 }
                             }
@@ -60,20 +61,20 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Underlying Open XML spreadsheet document instance.
         /// </summary>
-        public SpreadsheetDocument _spreadSheetDocument;
-        private WorkbookPart _workBookPart;
-        private SharedStringTablePart _sharedStringTablePart;
+        public SpreadsheetDocument? _spreadSheetDocument;
+        private WorkbookPart? _workBookPart;
+        private SharedStringTablePart? _sharedStringTablePart;
 
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
-        public string FilePath;
+        public string FilePath = string.Empty;
         private bool _isMemory;
 
         /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
-        public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+        public FileAccess FileOpenAccess => _spreadSheetDocument?.FileOpenAccess ?? FileAccess.Read;
 
         /// <summary>
         /// Indicates whether the document is valid.
@@ -105,7 +106,7 @@ namespace OfficeIMO.Excel {
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
-            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument)) {
+            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument!)) {
                 listErrors.Add(error);
             }
             return listErrors;
@@ -118,7 +119,7 @@ namespace OfficeIMO.Excel {
                     if (_sharedStringTablePart == null) {
                         _lock.EnterWriteLock();
                         try {
-                            if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                            if (_workBookPart!.GetPartsOfType<SharedStringTablePart>().Any()) {
                                 _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
                             } else {
                                 _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
@@ -129,7 +130,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    return _sharedStringTablePart;
+                    return _sharedStringTablePart!;
                 } finally {
                     _lock.ExitUpgradeableReadLock();
                 }
@@ -211,7 +212,7 @@ namespace OfficeIMO.Excel {
             document._spreadSheetDocument = spreadSheetDocument;
 
             //// Add a WorkbookPart to the document.
-            document._workBookPart = document._spreadSheetDocument.WorkbookPart;
+            document._workBookPart = document._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.");
 
             return document;
         }
@@ -225,10 +226,11 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
-            if (filePath != null) {
-                if (!File.Exists(filePath)) {
-                    throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-                }
+            if (filePath == null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, readOnly ? FileShare.Read : FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
@@ -244,7 +246,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument document = new ExcelDocument {
                 FilePath = filePath,
                 _spreadSheetDocument = spreadSheetDocument,
-                _workBookPart = spreadSheetDocument.WorkbookPart
+                _workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.")
             };
 
             return document;
@@ -270,7 +272,7 @@ namespace OfficeIMO.Excel {
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
             _lock.EnterWriteLock();
             try {
-                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
+                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart!, _spreadSheetDocument!, workSheetName);
 
                 return excelSheet;
             } finally {
@@ -294,7 +296,7 @@ namespace OfficeIMO.Excel {
         /// Closes the underlying spreadsheet document.
         /// </summary>
         public void Close() {
-            this._spreadSheetDocument.Dispose();
+            this._spreadSheetDocument?.Dispose();
         }
 
         /// <summary>
@@ -303,9 +305,12 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to save to.</param>
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
-            _workBookPart.Workbook.Save();
+            _workBookPart!.Workbook.Save();
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            if (string.IsNullOrEmpty(path)) {
+                throw new InvalidOperationException("File path is not set.");
+            }
 
             if (!string.IsNullOrEmpty(filePath) && !Path.GetFullPath(path).Equals(Path.GetFullPath(FilePath), StringComparison.OrdinalIgnoreCase)) {
                 if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -320,22 +325,22 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                    using (_spreadSheetDocument.Clone(fs)) {
+                    using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
+                        using (_spreadSheetDocument!.Clone(fs)) {
+                        }
+                        fs.Flush();
                     }
-                    fs.Flush();
-                }
-                FilePath = path;
-            } else if (_isMemory) {
-                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                    using (_spreadSheetDocument.Clone(fs)) {
+                    FilePath = path;
+                } else if (_isMemory) {
+                    using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
+                        using (_spreadSheetDocument!.Clone(fs)) {
+                        }
+                        fs.Flush();
                     }
-                    fs.Flush();
                 }
-            }
 
             try {
-                _spreadSheetDocument.Dispose();
+                _spreadSheetDocument!.Dispose();
             } catch (NotSupportedException) {
                 // ignore dispose failures on some streams
             }
@@ -346,7 +351,7 @@ namespace OfficeIMO.Excel {
             }
             memory.Position = 0;
             _spreadSheetDocument = SpreadsheetDocument.Open(memory, true);
-            _workBookPart = _spreadSheetDocument.WorkbookPart;
+            _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.");
             _sharedStringTablePart = null;
             _isMemory = true;
 
@@ -378,7 +383,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
-            _workBookPart.Workbook.Save();
+            _workBookPart!.Workbook.Save();
 
             try {
                 if (!string.IsNullOrEmpty(filePath)) {
@@ -396,17 +401,17 @@ namespace OfficeIMO.Excel {
 
                     FileStream fs;
                     try {
-                        fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
+                          fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
                     } catch (UnauthorizedAccessException ex) {
                         throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
                     }
 
-                    using (fs) {
-                        using (var clone = _spreadSheetDocument.Clone(fs)) {
-                        }
-                        await fs.FlushAsync(cancellationToken);
-                    }
-                    FilePath = filePath;
+                      using (fs) {
+                          using (_spreadSheetDocument!.Clone(fs)) {
+                          }
+                          await fs.FlushAsync(cancellationToken);
+                      }
+                      FilePath = filePath;
                 }
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                 throw;
@@ -439,10 +444,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private bool _disposed;
 
+        /// <summary>
+        /// Releases resources used by the document.
+        /// </summary>
         public void Dispose() {
             DisposeAsync().GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Asynchronously releases resources used by the document.
+        /// </summary>
         public async ValueTask DisposeAsync() {
             if (_disposed) {
                 return;
