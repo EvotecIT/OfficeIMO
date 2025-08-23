@@ -23,13 +23,16 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Contains(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.Contains(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.NotNull(document._document);
+                var body = document._document!.Body;
+                Assert.NotNull(body);
+                Assert.Contains(body!.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.Contains(body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
 
                 document.AcceptRevisions();
 
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.DoesNotContain(body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Before");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Added");
             }
@@ -49,8 +52,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.RejectRevisions();
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), run => run.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
+                Assert.NotNull(document._document);
+                var body = document._document!.Body;
+                Assert.NotNull(body);
+                Assert.DoesNotContain(body!.Descendants<InsertedRun>(), run => run.InnerText == "Added");
+                Assert.DoesNotContain(body.Descendants<DeletedRun>(), run => run.InnerText == "Removed");
                 Assert.Contains(document.Paragraphs, p => p.Text == "Removed");
             }
         }
@@ -86,19 +92,22 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.ConvertRevisionsToMarkup();
 
-                Assert.DoesNotContain(document._document.Body.Descendants<InsertedRun>(), r => r.InnerText == "Added");
-                Assert.DoesNotContain(document._document.Body.Descendants<DeletedRun>(), r => r.InnerText == "Removed");
+                Assert.NotNull(document._document);
+                var body = document._document!.Body;
+                Assert.NotNull(body);
+                Assert.DoesNotContain(body!.Descendants<InsertedRun>(), r => r.InnerText == "Added");
+                Assert.DoesNotContain(body.Descendants<DeletedRun>(), r => r.InnerText == "Removed");
 
-                var insertedRun = document._document.Body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Added");
+                var insertedRun = body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Added");
                 Assert.NotNull(insertedRun);
-                Assert.NotNull(insertedRun.RunProperties);
-                Assert.NotNull(insertedRun.RunProperties.Underline);
+                Assert.NotNull(insertedRun!.RunProperties);
+                Assert.NotNull(insertedRun.RunProperties!.Underline);
                 Assert.Equal("0000FF", insertedRun.RunProperties.Color?.Val);
 
-                var deletedRun = document._document.Body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Removed");
+                var deletedRun = body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Removed");
                 Assert.NotNull(deletedRun);
-                Assert.NotNull(deletedRun.RunProperties);
-                Assert.NotNull(deletedRun.RunProperties.Strike);
+                Assert.NotNull(deletedRun!.RunProperties);
+                Assert.NotNull(deletedRun.RunProperties!.Strike);
                 Assert.Equal("FF0000", deletedRun.RunProperties.Color?.Val);
             }
         }
