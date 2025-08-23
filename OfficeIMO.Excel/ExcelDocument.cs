@@ -16,18 +16,28 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        // Allocated only when an operation actually needs a serialized apply stage
+        internal ReaderWriterLockSlim? _lock;
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
         private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
         private readonly object _sharedStringLock = new object();
+
+        /// <summary>
+        /// Execution policy for controlling parallel vs sequential operations.
+        /// </summary>
+        public ExecutionPolicy Execution { get; } = new();
+
+        internal ReaderWriterLockSlim EnsureLock()
+            => _lock ??= new ReaderWriterLockSlim(); // default: NoRecursion
 
         /// <summary>
         /// Gets a list of worksheets contained in the document.
         /// </summary>
         public List<ExcelSheet> Sheets {
             get {
-                _lock.EnterUpgradeableReadLock();
-                try {
+                // Since we need to both read and write, we'll use a write lock for the entire operation
+                // to avoid nested lock issues
+                return Locking.ExecuteWrite(EnsureLock(), () => {
                     List<ExcelSheet> listExcel = new List<ExcelSheet>();
                     List<Sheet>? elements = null;
                     if (_spreadSheetDocument.WorkbookPart.Workbook.Sheets != null) {
@@ -37,25 +47,19 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    _lock.EnterWriteLock();
-                    try {
-                        id.Clear();
-                        id.Add(0);
-                        if (elements != null) {
-                            foreach (Sheet s in elements) {
-                                if (!id.Contains(s.SheetId)) {
-                                    id.Add(s.SheetId);
-                                }
+                    // Update the id list
+                    id.Clear();
+                    id.Add(0);
+                    if (elements != null) {
+                        foreach (Sheet s in elements) {
+                            if (!id.Contains(s.SheetId)) {
+                                id.Add(s.SheetId);
                             }
                         }
-                    } finally {
-                        _lock.ExitWriteLock();
                     }
 
                     return listExcel;
-                } finally {
-                    _lock.ExitUpgradeableReadLock();
-                }
+                });
             }
         }
 
@@ -115,26 +119,37 @@ namespace OfficeIMO.Excel {
 
         internal SharedStringTablePart SharedStringTablePart {
             get {
-                _lock.EnterUpgradeableReadLock();
-                try {
+                // Check if already initialized without lock first (double-check locking pattern)
+                if (_sharedStringTablePart != null) {
+                    return _sharedStringTablePart;
+                }
+
+                // Check if we're in a NoLock scope or already have a lock - if so, initialize without locking
+                if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
                     if (_sharedStringTablePart == null) {
-                        _lock.EnterWriteLock();
-                        try {
-                            if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
-                                _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
-                            } else {
-                                _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
-                                _sharedStringTablePart.SharedStringTable = new SharedStringTable();
-                            }
-                        } finally {
-                            _lock.ExitWriteLock();
+                        if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                            _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                        } else {
+                            _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
+                            _sharedStringTablePart.SharedStringTable = new SharedStringTable();
                         }
                     }
-
                     return _sharedStringTablePart;
-                } finally {
-                    _lock.ExitUpgradeableReadLock();
                 }
+
+                // Use write lock for initialization when no lock is held
+                return Locking.ExecuteWrite(EnsureLock(), () => {
+                    // Double-check inside the lock
+                    if (_sharedStringTablePart == null) {
+                        if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                            _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                        } else {
+                            _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
+                            _sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                        }
+                    }
+                    return _sharedStringTablePart;
+                });
             }
         }
 
@@ -277,14 +292,10 @@ namespace OfficeIMO.Excel {
         /// <param name="workSheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            _lock.EnterWriteLock();
-            try {
+            return Locking.ExecuteWrite(EnsureLock(), () => {
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
-
                 return excelSheet;
-            } finally {
-                _lock.ExitWriteLock();
-            }
+            });
         }
 
         /// <summary>
@@ -312,6 +323,11 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to save to.</param>
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
+            // Ensure all worksheets have proper element ordering before saving
+            foreach (var sheet in Sheets) {
+                sheet.EnsureWorksheetElementOrder();
+            }
+            
             _workBookPart.Workbook.Save();
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
@@ -387,6 +403,11 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            // Ensure all worksheets have proper element ordering before saving
+            foreach (var sheet in Sheets) {
+                sheet.EnsureWorksheetElementOrder();
+            }
+            
             _workBookPart.Workbook.Save();
 
             try {
@@ -470,6 +491,7 @@ namespace OfficeIMO.Excel {
                 this._spreadSheetDocument = null;
             }
 
+            _lock?.Dispose();
             _disposed = true;
             GC.SuppressFinalize(this);
         }

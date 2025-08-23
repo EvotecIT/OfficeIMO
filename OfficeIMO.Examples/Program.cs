@@ -55,6 +55,8 @@ namespace OfficeIMO.Examples {
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
+            OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
+            OfficeIMO.Examples.Excel.TestDateTime.Example_TestDateTime(folderPath, false);
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);

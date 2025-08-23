@@ -11,13 +11,29 @@ namespace OfficeIMO.Excel.Fluent {
         public ExcelFluentWorkbook Sheet(string name, Action<SheetBuilder> action) {
             var builder = new SheetBuilder(this);
             builder.AddSheet(name);
-            action(builder);
+            
+            // If in Sequential mode, run all operations in NoLock scope
+            if (Workbook.Execution.Mode == ExecutionMode.Sequential) {
+                using (Locking.EnterNoLockScope()) {
+                    action(builder);
+                }
+            } else {
+                action(builder);
+            }
             return this;
         }
 
         public ExcelFluentWorkbook Sheet(Action<SheetBuilder> action) {
             var builder = new SheetBuilder(this);
-            action(builder);
+            
+            // If in Sequential mode, run all operations in NoLock scope
+            if (Workbook.Execution.Mode == ExecutionMode.Sequential) {
+                using (Locking.EnterNoLockScope()) {
+                    action(builder);
+                }
+            } else {
+                action(builder);
+            }
             return this;
         }
 

@@ -18,41 +18,91 @@ using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        
+        // Core implementation: single source of truth (no locks here)
+        private void CellValueCore(int row, int column, object value)
+        {
+            var cell = GetCell(row, column);
+            var (cellValue, dataType) = CoerceForCell(value);
+            cell.CellValue = cellValue;
+            cell.DataType = dataType;
+            
+            // Automatically apply date format for DateTime values
+            // Using Excel's built-in date format code 14 (invariant short date)
+            if (value is DateTime || value is DateTimeOffset)
+            {
+                ApplyBuiltInNumberFormat(row, column, 14);  // Built-in format 14 is short date
+            }
+        }
+
+        // Compute-only coercion (no OpenXML mutations, except SharedString for now)
+        private (CellValue cellValue, EnumValue<CellValues> dataType) CoerceForCell(object value)
+        {
+            switch (value)
+            {
+                case null:
+                    return (new CellValue(string.Empty), new EnumValue<CellValues>(CellValues.String));
+                case string s:
+                    // TODO: SharedString index should be resolved via planner in parallel scenarios
+                    int sharedStringIndex = _excelDocument.GetSharedStringIndex(s);
+                    return (new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.SharedString));
+                case double d:
+                    return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case float f:
+                    return (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case decimal dec:
+                    return (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case int i:
+                    return (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case long l:
+                    return (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case DateTime dt:
+                    return (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case DateTimeOffset dto:
+                    return (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case TimeSpan ts:
+                    return (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case bool b:
+                    return (new CellValue(b ? "1" : "0"), new EnumValue<CellValues>(CellValues.Boolean));
+                case uint ui:
+                    return (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case ulong ul:
+                    return (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case ushort us:
+                    return (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case byte by:
+                    return (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case sbyte sb:
+                    return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                case short sh:
+                    return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                default:
+                    string stringValue = value?.ToString() ?? string.Empty;
+                    int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);
+                    return (new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.SharedString));
+            }
+        }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
-                cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.SharedString;
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, double value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.Number;
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, decimal value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.Number;
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTime value) {
             WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(value.ToOADate().ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.Number;
+                CellValueCore(row, column, value);
+                // DateTime formatting is now handled in CellValueCore
             });
         }
 
@@ -63,11 +113,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, TimeSpan value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(value.TotalDays.ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.Number;
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
@@ -97,11 +143,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, bool value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(value ? "1" : "0");
-                cell.DataType = CellValues.Boolean;
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <summary>
@@ -144,15 +186,62 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="numberFormat">The number format code to apply.</param>
         public void FormatCell(int row, int column, string numberFormat) {
-            WriteLock(() => {
-                Cell cell = GetCell(row, column);
+            WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
+        }
 
-                WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
-                if (stylesPart == null) {
-                    stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
-                }
+        private void ApplyBuiltInNumberFormat(int row, int column, uint builtInFormatId) {
+            Cell cell = GetCell(row, column);
 
-                Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+
+            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+
+            stylesheet.Fills ??= new Fills(new Fill(new PatternFill { PatternType = PatternValues.None }));
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
+
+            stylesheet.Borders ??= new Borders(new DocumentFormat.OpenXml.Spreadsheet.Border());
+            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
+
+            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
+            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
+
+            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+
+            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == builtInFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
+            if (formatIndex == -1) {
+                CellFormat cellFormat = new CellFormat {
+                    NumberFormatId = builtInFormatId,
+                    FontId = 0,
+                    FillId = 0,
+                    BorderId = 0,
+                    FormatId = 0,
+                    ApplyNumberFormat = true
+                };
+                stylesheet.CellFormats.Append(cellFormat);
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                formatIndex = cellFormats.Count;
+            }
+
+            cell.StyleIndex = (uint)formatIndex;
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void FormatCellCore(int row, int column, string numberFormat) {
+            Cell cell = GetCell(row, column);
+
+            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
 
                 stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
                 stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
@@ -196,6 +285,10 @@ namespace OfficeIMO.Excel {
                 if (formatIndex == -1) {
                     CellFormat cellFormat = new CellFormat {
                         NumberFormatId = numberFormatId,
+                        FontId = 0,
+                        FillId = 0,
+                        BorderId = 0,
+                        FormatId = 0,
                         ApplyNumberFormat = true
                     };
                     stylesheet.CellFormats.Append(cellFormat);
@@ -205,7 +298,6 @@ namespace OfficeIMO.Excel {
 
                 cell.StyleIndex = (uint)formatIndex;
                 stylesPart.Stylesheet.Save();
-            });
         }
 
         /// <summary>
@@ -221,82 +313,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
         public void CellValue(int row, int column, object value) {
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
-                switch (value) {
-                    case string s:
-                        int sharedStringIndex = _excelDocument.GetSharedStringIndex(s);
-                        cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.SharedString;
-                        break;
-                    case double d:
-                        cell.CellValue = new CellValue(d.ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case float f:
-                        cell.CellValue = new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case decimal dec:
-                        cell.CellValue = new CellValue(dec.ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case int i:
-                        cell.CellValue = new CellValue(((double)i).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case long l:
-                        cell.CellValue = new CellValue(((double)l).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case DateTime dt:
-                        cell.CellValue = new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case DateTimeOffset dto:
-                        cell.CellValue = new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case TimeSpan ts:
-                        cell.CellValue = new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case bool b:
-                        cell.CellValue = new CellValue(b ? "1" : "0");
-                        cell.DataType = CellValues.Boolean;
-                        break;
-                    case uint ui:
-                        cell.CellValue = new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case ulong ul:
-                        cell.CellValue = new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case ushort us:
-                        cell.CellValue = new CellValue(((double)us).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case byte by:
-                        cell.CellValue = new CellValue(((double)by).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case sbyte sb:
-                        cell.CellValue = new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    case short sh:
-                        cell.CellValue = new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.Number;
-                        break;
-                    default:
-                        string stringValue = value?.ToString() ?? string.Empty;
-                        int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);
-                        cell.CellValue = new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture));
-                        cell.DataType = CellValues.SharedString;
-                        break;
-                }
-            });
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <summary>

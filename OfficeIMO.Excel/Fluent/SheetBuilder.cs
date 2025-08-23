@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel.Fluent {
         internal ExcelSheet? Sheet { get; private set; }
         private int _currentRow = 1;
         private string? _lastRange;
+        private string? _pendingAutoFilterRange;
+        private Dictionary<uint, IEnumerable<string>>? _pendingAutoFilterCriteria;
 
         internal SheetBuilder(ExcelFluentWorkbook fluent) {
             _fluent = fluent;
@@ -165,6 +167,7 @@ namespace OfficeIMO.Excel.Fluent {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new TableBuilder(Sheet);
             action(builder);
+            // Note: The TableBuilder will handle AutoFilter conflicts internally
             return this;
         }
 
@@ -177,6 +180,12 @@ namespace OfficeIMO.Excel.Fluent {
 
         public SheetBuilder AutoFilter(string range, Dictionary<uint, IEnumerable<string>>? criteria = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
+            
+            // Store the pending AutoFilter for conflict detection
+            _pendingAutoFilterRange = range;
+            _pendingAutoFilterCriteria = criteria;
+            
+            // Apply the AutoFilter
             Sheet.AddAutoFilter(range, criteria);
             return this;
         }

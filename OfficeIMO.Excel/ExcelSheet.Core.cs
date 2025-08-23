@@ -38,11 +38,32 @@ namespace OfficeIMO.Excel {
         private readonly WorksheetPart _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private bool _isBatchOperation = false;
         private readonly object _batchLock = new object();
         private static int _nextTableId = 1;
         private static readonly object _tableIdLock = new object();
+
+        /// <summary>
+        /// Override execution policy for this sheet. Null = inherit from document.
+        /// </summary>
+        public ExecutionPolicy? ExecutionOverride { get; set; }
+
+        /// <summary>
+        /// Gets the effective execution policy for this sheet.
+        /// </summary>
+        internal ExecutionPolicy EffectiveExecution => ExecutionOverride ?? _excelDocument.Execution;
+
+        /// <summary>
+        /// Begin a no-lock context where operations bypass locking.
+        /// </summary>
+        public NoLockContext BeginNoLock() => new();
+
+        public sealed class NoLockContext : IDisposable
+        {
+            private readonly IDisposable _scope;
+            internal NoLockContext() => _scope = Locking.EnterNoLockScope();
+            public void Dispose() => _scope.Dispose();
+        }
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -114,11 +135,6 @@ namespace OfficeIMO.Excel {
             }
             if (column <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(column));
-            }
-
-            // Ensure we have write lock when manipulating DOM
-            if (!_lock.IsWriteLockHeld) {
-                throw new InvalidOperationException("GetCell must be called within a write lock");
             }
 
             SheetData sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
@@ -235,18 +251,13 @@ namespace OfficeIMO.Excel {
         }
 
         private void WriteLock(Action action) {
-            _lock.EnterWriteLock();
-            try {
-                action();
-            } finally {
-                _lock.ExitWriteLock();
-            }
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), action);
         }
 
         private void WriteLockConditional(Action action) {
-            // If we're already in a batch operation (which holds the write lock),
+            // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
-            if (_isBatchOperation && _lock.IsWriteLockHeld) {
+            if (_isBatchOperation || Locking.IsNoLock) {
                 action();
             } else {
                 WriteLock(action);
@@ -318,7 +329,7 @@ namespace OfficeIMO.Excel {
         }
 
         public void Dispose() {
-            _lock.Dispose();
+            // No local lock to dispose anymore - using document's lock
         }
     }
 }

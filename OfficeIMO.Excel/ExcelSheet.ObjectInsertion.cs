@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
 
             const int parallelThreshold = 1000;
             if (cells.Count > parallelThreshold) {
-                CellValuesParallel(cells);
+                SetCellValues(cells, ExecutionMode.Parallel);
             } else {
                 foreach (var cell in cells) {
                     CellValue(cell.Row, cell.Column, cell.Value);
@@ -186,39 +186,39 @@ namespace OfficeIMO.Excel {
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {
             switch (value) {
                 case string s:
-                    return new CellUpdate(row, column, s, CellValues.SharedString, true);
+                    return new CellUpdate(row, column, s, DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, true);
                 case double d:
-                    return new CellUpdate(row, column, d.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, d.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case float f:
-                    return new CellUpdate(row, column, Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case decimal dec:
-                    return new CellUpdate(row, column, dec.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, dec.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case int i:
-                    return new CellUpdate(row, column, ((double)i).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)i).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case long l:
-                    return new CellUpdate(row, column, ((double)l).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)l).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case DateTime dt:
-                    return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case DateTimeOffset dto:
-                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case TimeSpan ts:
-                    return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case bool b:
-                    return new CellUpdate(row, column, b ? "1" : "0", CellValues.Boolean, false);
+                    return new CellUpdate(row, column, b ? "1" : "0", DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean, false);
                 case uint ui:
-                    return new CellUpdate(row, column, ((double)ui).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)ui).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case ulong ul:
-                    return new CellUpdate(row, column, ((double)ul).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)ul).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case ushort us:
-                    return new CellUpdate(row, column, ((double)us).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)us).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case byte by:
-                    return new CellUpdate(row, column, ((double)by).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)by).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case sbyte sb:
-                    return new CellUpdate(row, column, ((double)sb).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)sb).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case short sh:
-                    return new CellUpdate(row, column, ((double)sh).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                    return new CellUpdate(row, column, ((double)sh).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 default:
-                    return new CellUpdate(row, column, value?.ToString() ?? string.Empty, CellValues.SharedString, true);
+                    return new CellUpdate(row, column, value?.ToString() ?? string.Empty, DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, true);
             }
         }
 
@@ -227,7 +227,7 @@ namespace OfficeIMO.Excel {
             if (update.IsSharedString) {
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(update.Text);
                 cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
-                cell.DataType = CellValues.SharedString;
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
             } else {
                 cell.CellValue = new CellValue(update.Text);
                 cell.DataType = update.DataType;
