@@ -122,10 +122,10 @@ namespace OfficeIMO.Excel {
             public int Row { get; }
             public int Column { get; }
             public string Text { get; }
-            public CellValues DataType { get; }
+            public DocumentFormat.OpenXml.Spreadsheet.CellValues DataType { get; }
             public bool IsSharedString { get; }
 
-            public CellUpdate(int row, int column, string text, CellValues dataType, bool isSharedString) {
+            public CellUpdate(int row, int column, string text, DocumentFormat.OpenXml.Spreadsheet.CellValues dataType, bool isSharedString) {
                 Row = row;
                 Column = column;
                 Text = text;

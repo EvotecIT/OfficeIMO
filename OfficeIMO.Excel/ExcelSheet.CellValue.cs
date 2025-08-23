@@ -26,60 +26,66 @@ namespace OfficeIMO.Excel {
             var (cellValue, dataType) = CoerceForCell(value);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
-            
+
             // Automatically apply date format for DateTime values
             // Using Excel's built-in date format code 14 (invariant short date)
             if (value is DateTime || value is DateTimeOffset)
             {
                 ApplyBuiltInNumberFormat(row, column, 14);  // Built-in format 14 is short date
             }
+
+            // Enable wrap text when value contains new lines so Excel renders multiple lines correctly
+            if (value is string s && (s.Contains("\n") || s.Contains("\r")))
+            {
+                ApplyWrapText(row, column);
+            }
         }
 
         // Compute-only coercion (no OpenXML mutations, except SharedString for now)
-        private (CellValue cellValue, EnumValue<CellValues> dataType) CoerceForCell(object value)
+        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
         {
             switch (value)
             {
                 case null:
-                    return (new CellValue(string.Empty), new EnumValue<CellValues>(CellValues.String));
+                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
                 case string s:
                     // TODO: SharedString index should be resolved via planner in parallel scenarios
                     int sharedStringIndex = _excelDocument.GetSharedStringIndex(s);
-                    return (new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.SharedString));
+                    return (new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
                 case double d:
-                    return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case float f:
-                    return (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case decimal dec:
-                    return (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case int i:
-                    return (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case long l:
-                    return (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case DateTime dt:
-                    return (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case DateTimeOffset dto:
-                    return (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case TimeSpan ts:
-                    return (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case bool b:
-                    return (new CellValue(b ? "1" : "0"), new EnumValue<CellValues>(CellValues.Boolean));
+                    return (new CellValue(b ? "1" : "0"), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean));
                 case uint ui:
-                    return (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case ulong ul:
-                    return (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case ushort us:
-                    return (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case byte by:
-                    return (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case sbyte sb:
-                    return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case short sh:
-                    return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.Number));
+                    return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 default:
                     string stringValue = value?.ToString() ?? string.Empty;
                     int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);
-                    return (new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<CellValues>(CellValues.SharedString));
+                    return (new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
             }
         }
 
@@ -187,6 +193,90 @@ namespace OfficeIMO.Excel {
         /// <param name="numberFormat">The number format code to apply.</param>
         public void FormatCell(int row, int column, string numberFormat) {
             WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
+        }
+
+        private void ApplyWrapText(int row, int column)
+        {
+            var cell = GetCell(row, column);
+            ApplyWrapText(cell);
+        }
+
+        private void ApplyWrapText(Cell cell)
+        {
+            WorkbookStylesPart stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+            {
+                stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+
+            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+
+            stylesheet.Fills ??= new Fills(new Fill());
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
+
+            stylesheet.Borders ??= new Borders(new Border());
+            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
+
+            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
+            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
+
+            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0)
+            {
+                stylesheet.CellFormats.Count = 1;
+            }
+
+            // Base on existing cell's style if present
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
+            {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U
+            };
+
+            // Try to find an existing format with same base ids and WrapText enabled
+            int wrapIndex = -1;
+            for (int i = 0; i < cellFormats.Count; i++)
+            {
+                var cf = cellFormats[i];
+                var align = cf.Alignment;
+                bool wrap = align != null && align.WrapText != null && align.WrapText.Value;
+                if (wrap && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
+                        && cf.FontId?.Value == baseFormat.FontId?.Value
+                        && cf.FillId?.Value == baseFormat.FillId?.Value
+                        && cf.BorderId?.Value == baseFormat.BorderId?.Value)
+                {
+                    wrapIndex = i;
+                    break;
+                }
+            }
+
+            if (wrapIndex == -1)
+            {
+                var newFormat = new CellFormat
+                {
+                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+                    FontId = baseFormat.FontId ?? 0U,
+                    FillId = baseFormat.FillId ?? 0U,
+                    BorderId = baseFormat.BorderId ?? 0U,
+                    FormatId = baseFormat.FormatId ?? 0U,
+                    ApplyAlignment = true,
+                    Alignment = new Alignment { WrapText = true }
+                };
+                stylesheet.CellFormats.Append(newFormat);
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                wrapIndex = (int)stylesheet.CellFormats.Count.Value - 1;
+                stylesPart.Stylesheet.Save();
+            }
+
+            cell.StyleIndex = (uint)wrapIndex;
         }
 
         private void ApplyBuiltInNumberFormat(int row, int column, uint builtInFormatId) {

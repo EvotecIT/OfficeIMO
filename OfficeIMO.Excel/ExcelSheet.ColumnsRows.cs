@@ -117,24 +117,67 @@ namespace OfficeIMO.Excel {
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return 0;
 
-            double width = 0;
+            double maxWidth = 0;
+            
+            // Get the default font for MDW calculation
+            var defaultFont = GetDefaultFont();
+            var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
+            float mdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
+            if (mdw <= 0.0001f) return 0;
+            
+            // Pixel Padding (PP) - extra pixels at left and right border (ClosedXML uses 2)
+            const double pixelPadding = 2.0;
 
             foreach (var row in sheetData.Elements<Row>())
             {
                 var cell = row.Elements<Cell>()
                     .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
                 if (cell == null) continue;
+                
                 string text = GetCellText(cell);
                 if (string.IsNullOrWhiteSpace(text)) continue;
+                
+                // Check if cell has wrap text enabled
+                bool hasWrapText = HasWrapText(cell);
+                
                 var font = GetCellFont(cell);
-                var options = new TextOptions(font);
-                float zeroWidth = TextMeasurer.MeasureSize("0", options).Width;
-                var size = TextMeasurer.MeasureSize(text, options);
-                double cellWidth = zeroWidth == 0 ? 0 : size.Width / zeroWidth + 1;
-                if (cellWidth > width) width = cellWidth;
+                var options = new TextOptions(font) { Dpi = 96 };
+
+                float textWidthPx;
+                if (text.Contains('\n') || text.Contains('\r'))
+                {
+                    // For text with newlines, measure the longest line (regardless of wrap setting)
+                    string[] lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+                    textWidthPx = 0;
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            float lineWidth = TextMeasurer.MeasureSize(line, options).Width;
+                            if (lineWidth > textWidthPx) textWidthPx = lineWidth;
+                        }
+                    }
+                }
+                else
+                {
+                    // Measure full text as single line
+                    textWidthPx = TextMeasurer.MeasureSize(text, options).Width;
+                }
+                
+                // ClosedXML formula: Add 2 * padding + 1 pixel for cell border
+                double cellWidthPx = textWidthPx + (2 * pixelPadding) + 1;
+                
+                // Convert pixels to Excel column width using ClosedXML's formula
+                // width = Truncate(pixels / MDW * 256) / 256
+                double columnWidth = Math.Truncate(cellWidthPx / mdw * 256.0) / 256.0;
+                
+                if (columnWidth > maxWidth)
+                {
+                    maxWidth = columnWidth;
+                }
             }
 
-            return width;
+            return maxWidth;
         }
 
         private void SetColumnWidthCore(int columnIndex, double width)
@@ -171,6 +214,318 @@ namespace OfficeIMO.Excel {
             }
 
             ReorderColumns(columns);
+        }
+
+        private double GetDefaultRowHeightPoints()
+        {
+            var sheetFormat = _worksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>();
+            if (sheetFormat?.DefaultRowHeight != null && sheetFormat.DefaultRowHeight.Value > 0)
+            {
+                return sheetFormat.DefaultRowHeight.Value;
+            }
+            return 15.0; // Excel default for Calibri 11pt
+        }
+
+        private bool HasWrapText(Cell cell)
+        {
+            if (cell.StyleIndex == null) return false;
+            
+            var stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart?.WorkbookStylesPart;
+            var stylesheet = stylesPart?.Stylesheet;
+            var cellFormats = stylesheet?.CellFormats;
+            
+            if (cellFormats == null) return false;
+            
+            var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
+            if (cellFormat?.Alignment == null) return false;
+            
+            return cellFormat.Alignment.WrapText?.Value == true;
+        }
+
+        private double CalculateRowHeight(int rowIndex)
+        {
+            var worksheet = _worksheetPart.Worksheet;
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return 0;
+
+            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
+            if (row == null) return 0;
+
+            double defaultHeight = GetDefaultRowHeightPoints();
+            double maxHeight = defaultHeight; // Start with default as minimum
+            
+            // Pre-calc default font metrics and MDW for pixel conversions
+            var defaultFont = GetDefaultFont();
+            var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
+            float mdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
+            if (mdw <= 0.0001f) return defaultHeight;
+
+            // Helper to get available content width in pixels for a given cell's column span
+            double GetAvailableWidthPx(Cell c)
+            {
+                const double pixelPadding = 2.0; // both sides added by Excel grid
+                // Determine merged span width
+                (int fromCol, int toCol) = GetCellMergeSpan(c) ?? (GetColumnIndex(c.CellReference!.Value), GetColumnIndex(c.CellReference!.Value));
+                double totalPx = 0;
+                for (int col = fromCol; col <= toCol; col++)
+                {
+                    totalPx += GetColumnWidthPixels(col, mdw);
+                }
+                // subtract small inner padding for content
+                double contentPx = Math.Max(0, totalPx - 2 * pixelPadding);
+                return contentPx;
+            }
+
+            foreach (var cell in row.Elements<Cell>())
+            {
+                string text = GetCellText(cell);
+                if (string.IsNullOrEmpty(text)) continue;
+                
+                var font = GetCellFont(cell);
+                var options = new TextOptions(font) { Dpi = 96 };
+                
+                // Measure a consistent line height using representative glyphs, but never below default row height
+                // ClosedXML effectively uses a line box that’s slightly taller than raw metrics; add a small pixel fudge
+                float measuredPx = TextMeasurer.MeasureSize("Xg", options).Height; // representative ascender/descender
+                double lineHeightPx = Math.Ceiling(measuredPx + 2); // add 2px to align with Excel/ClosedXML appearance
+                double baseLineHeightPt = Math.Max(defaultHeight, lineHeightPx * 72.0 / 96.0);
+
+                // Determine line count considering explicit newlines and wrapping
+                // Compute line count: hard breaks always add lines; wrapping adds more within each segment
+                var hardLines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+                int totalLines = Math.Max(1, hardLines.Length);
+                bool hasExplicitBreaks = hardLines.Length > 1;
+                bool wrap = HasWrapText(cell) || hasExplicitBreaks; // Excel treats explicit breaks as wrapped content
+
+                // Ensure WrapText for visual parity when explicit breaks exist
+                if (hasExplicitBreaks && !HasWrapText(cell)) ApplyWrapText(cell);
+
+                if (wrap)
+                {
+                    // Available width in pixels for this cell (span-aware)
+                    double availPx = GetAvailableWidthPx(cell);
+                    if (availPx > 0)
+                    {
+                        int linesCount = 0;
+                        foreach (var hard in hardLines)
+                        {
+                            // At minimum, each hard segment is one line, even if empty
+                            linesCount += CountWrappedLines(hard, availPx, options);
+                        }
+                        // Ensure we never undercount hard breaks
+                        totalLines = Math.Max(totalLines, linesCount);
+                    }
+                }
+
+                // Excel behavior roughly aligns to: height = baseLineHeight * lines + small padding
+                // Increase padding slightly for multi-line to avoid clipping
+                double paddingPt = totalLines > 1 ? 2.5 : 0.0;
+                double cellHeight = baseLineHeightPt * totalLines + paddingPt;
+
+                // Ensure Excel wraps when our calculation indicates multiple lines
+                if (totalLines > 1 && !HasWrapText(cell))
+                {
+                    ApplyWrapText(cell);
+                }
+
+                if (cellHeight > maxHeight)
+                {
+                    maxHeight = cellHeight;
+                }
+            }
+
+            // Round to reasonable precision and return desired height
+            return Math.Round(maxHeight, 2);
+        }
+
+        private int CountWrappedLines(string text, double maxWidthPx, TextOptions options)
+        {
+            // Empty line still occupies one visual line
+            if (string.IsNullOrEmpty(text)) return 1;
+
+            // Quick accept if whole text fits
+            float fullWidth = TextMeasurer.MeasureSize(text, options).Width;
+            if (fullWidth <= maxWidthPx) return 1;
+
+            // Word-based greedy wrap
+            var words = SplitIntoWords(text);
+            int lines = 1;
+            double current = 0;
+            for (int i = 0; i < words.Count; i++)
+            {
+                string token = words[i];
+                bool isSpace = token == " ";
+                if (isSpace)
+                {
+                    // Defer space addition until next word to avoid trailing space width issues
+                    continue;
+                }
+
+                string segment = token;
+                float w = TextMeasurer.MeasureSize(segment, options).Width;
+                // If we had a previous nonempty segment on the line, consider a space before this word
+                if (current > 0)
+                {
+                    float spaceW = TextMeasurer.MeasureSize(" ", options).Width;
+                    w += spaceW;
+                }
+
+                if (w > maxWidthPx)
+                {
+                    // Word itself too long: split by characters
+                    var chars = token.ToCharArray();
+                    var sb = new StringBuilder();
+                    for (int c = 0; c < chars.Length; c++)
+                    {
+                        string candidate = (current > 0 ? " " : string.Empty) + sb.ToString() + chars[c];
+                        float cw = TextMeasurer.MeasureSize(candidate, options).Width;
+                        if (cw > maxWidthPx)
+                        {
+                            // break before this char
+                            lines++;
+                            sb.Clear();
+                            current = 0;
+                            candidate = chars[c].ToString();
+                            cw = TextMeasurer.MeasureSize(candidate, options).Width;
+                        }
+                        sb.Append(chars[c]);
+                        current = cw;
+                    }
+                    continue;
+                }
+
+                if (current + w > maxWidthPx + 0.1)
+                {
+                    // Move word to next line
+                    lines++;
+                    current = TextMeasurer.MeasureSize(token, options).Width; // start with word only on new line
+                }
+                else
+                {
+                    current += w;
+                }
+            }
+
+            return Math.Max(1, lines);
+        }
+
+        private List<string> SplitIntoWords(string text)
+        {
+            var list = new List<string>();
+            int i = 0;
+            while (i < text.Length)
+            {
+                if (char.IsWhiteSpace(text[i]))
+                {
+                    // normalize all whitespace to single space for width measuring consistency
+                    list.Add(" ");
+                    while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+                }
+                else
+                {
+                    int start = i;
+                    while (i < text.Length && !char.IsWhiteSpace(text[i])) i++;
+                    list.Add(text.Substring(start, i - start));
+                }
+            }
+            return list;
+        }
+
+        private (int fromCol, int toCol)? GetCellMergeSpan(Cell cell)
+        {
+            var ws = _worksheetPart.Worksheet;
+            var merges = ws.Elements<MergeCells>().FirstOrDefault();
+            if (merges == null) return null;
+            var r = cell.CellReference?.Value;
+            if (string.IsNullOrEmpty(r)) return null;
+            int selfCol = GetColumnIndex(r);
+            int selfRow = GetRowIndex(r);
+            foreach (var mc in merges.Elements<MergeCell>())
+            {
+                var refAttr = mc.Reference?.Value; // e.g. "A1:C1"
+                if (string.IsNullOrEmpty(refAttr)) continue;
+                var parts = refAttr.Split(':');
+                if (parts.Length != 2) continue;
+                int fromRow = GetRowIndex(parts[0]);
+                int toRow = GetRowIndex(parts[1]);
+                if (selfRow < fromRow || selfRow > toRow) continue;
+                int fromCol = GetColumnIndex(parts[0]);
+                int toCol = GetColumnIndex(parts[1]);
+                if (selfCol < fromCol || selfCol > toCol) continue;
+                return (fromCol, toCol);
+            }
+            return null;
+        }
+
+        private double GetColumnWidthPixels(int columnIndex, float mdw)
+        {
+            // Find explicit column width if present; else use default width
+            double width = GetColumnWidthUnits(columnIndex);
+            // Convert Excel width to pixels using MDW
+            double pixels = Math.Truncate((256.0 * width + Math.Truncate(128.0 / mdw)) / 256.0 * mdw);
+            return pixels;
+        }
+
+        private double GetColumnWidthUnits(int columnIndex)
+        {
+            var ws = _worksheetPart.Worksheet;
+            var columns = ws.GetFirstChild<Columns>();
+            var col = columns?.Elements<Column>()
+                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+            if (col?.Width != null && col.CustomWidth != null && col.CustomWidth.Value)
+            {
+                return col.Width.Value;
+            }
+            // Fallback to sheet default or Excel default 8.43
+            var sf = ws.GetFirstChild<SheetFormatProperties>();
+            if (sf?.DefaultColumnWidth != null && sf.DefaultColumnWidth.Value > 0)
+                return sf.DefaultColumnWidth.Value;
+            return 8.43; // Excel's default width for Calibri 11
+        }
+
+        private void SetRowHeightCore(int rowIndex, double height)
+        {
+            var worksheet = _worksheetPart.Worksheet;
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return;
+
+            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
+            if (row == null) return;
+
+            double defaultHeight = GetDefaultRowHeightPoints();
+            if (height > defaultHeight)
+            {
+                row.Height = height;
+                row.CustomHeight = true;
+            }
+            else
+            {
+                row.Height = null;
+                row.CustomHeight = null;
+            }
+        }
+
+        private void UpdateSheetFormat()
+        {
+            var worksheet = _worksheetPart.Worksheet;
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
+
+            bool anyCustom = sheetData?.Elements<Row>()
+                .Any(r => r.CustomHeight != null && r.CustomHeight.Value) == true;
+
+            if (anyCustom)
+            {
+                if (sheetFormat == null)
+                {
+                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                }
+                if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0)
+                {
+                    sheetFormat.DefaultRowHeight = 15D;
+                }
+                // Do not set CustomHeight here; it's for default height semantics, not per-row
+            }
         }
 
         /// <summary>
@@ -235,78 +590,7 @@ namespace OfficeIMO.Excel {
             );
         }
 
-        private void UpdateSheetFormat()
-        {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
-            
-            bool anyCustom = sheetData.Elements<Row>()
-                .Any(r => r.CustomHeight != null && r.CustomHeight.Value);
-
-            if (anyCustom)
-            {
-                if (sheetFormat == null)
-                {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
-                }
-                sheetFormat.DefaultRowHeight = 15;
-                sheetFormat.CustomHeight = true;
-            }
-            else if (sheetFormat != null)
-            {
-                sheetFormat.Remove();
-            }
-        }
-
-        private double CalculateRowHeight(int rowIndex)
-        {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return 0;
-
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return 0;
-
-            const double defaultHeight = 15;
-            const double pointsPerInch = 72.0;
-
-            double maxHeight = 0;
-            foreach (var cell in row.Elements<Cell>())
-            {
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                var font = GetCellFont(cell);
-                var options = new TextOptions(font);
-                var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                double lineHeight = lines.Max(line => TextMeasurer.MeasureSize(line, options).Height * pointsPerInch / options.Dpi);
-                double cellHeight = lineHeight * lines.Length;
-                if (cellHeight > maxHeight) maxHeight = cellHeight;
-            }
-
-            return maxHeight > 0 ? maxHeight + 2 : 0;
-        }
-
-        private void SetRowHeightCore(int rowIndex, double height)
-        {
-            var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
-
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return;
-
-            if (height > 0)
-            {
-                row.Height = height;
-                row.CustomHeight = true;
-            }
-            else
-            {
-                row.Height = null;
-                row.CustomHeight = null;
-            }
-        }
+        
 
         public void AutoFitColumn(int columnIndex) {
             WriteLockConditional(() => {

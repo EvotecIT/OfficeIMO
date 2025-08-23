@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel.Fluent {
                 }
             }
 
-            Sheet.CellValuesParallel(cells);
+            Sheet.CellValues(cells);
             return this;
         }
 
