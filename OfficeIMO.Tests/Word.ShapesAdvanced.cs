@@ -22,8 +22,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal(40d, document.Paragraphs[0].Shape.Width, 1);
-                Assert.Equal(20d, document.Paragraphs[0].Shape.Height, 1);
+                var shape = document.Paragraphs[0].Shape;
+                Assert.NotNull(shape);
+                Assert.Equal(40d, shape.Width, 1);
+                Assert.Equal(20d, shape.Height, 1);
             }
         }
         [Fact]
