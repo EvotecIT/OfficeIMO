@@ -120,6 +120,14 @@ namespace OfficeIMO.Excel.Read
 
         private object? ConvertByHints(EnumValue<CellValues>? type, uint? styleIndex, string? rawText, string? inlineText)
         {
+            // Custom converter hook (cell-level). If provided and handled, honor it.
+            var hook = _opt.CellValueConverter;
+            if (hook != null)
+            {
+                var ctx = new ExcelCellContext(type?.Value, styleIndex, rawText, inlineText, _opt.Culture);
+                var res = hook(ctx);
+                if (res.Handled) return res.Value;
+            }
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 
             if (type?.Value == CellValues.SharedString && int.TryParse(rawText, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out var sstIndex))
@@ -184,4 +192,3 @@ namespace OfficeIMO.Excel.Read
         }
     }
 }
-

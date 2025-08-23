@@ -57,6 +57,14 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
             OfficeIMO.Examples.Excel.TestDateTime.Example_TestDateTime(folderPath, false);
+            // Excel/Read with custom converters
+            OfficeIMO.Examples.Excel.ReadWithConverters.Example(folderPath, false);
+            // Excel/Read presets and static helpers
+            OfficeIMO.Examples.Excel.ReadPresetsAndHelpers.Example(folderPath, false);
+            // Excel/Read for PowerShell consumption (emits JSON rows)
+            OfficeIMO.Examples.Excel.ReadForPowerShell.Example(folderPath, false);
+            // Excel/PowerShell-style round trip: write → read → modify → write → JSON
+            OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);

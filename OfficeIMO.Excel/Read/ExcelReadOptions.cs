@@ -39,6 +39,18 @@ namespace OfficeIMO.Excel.Read
         public bool NormalizeHeaders { get; set; } = true;
 
         /// <summary>
+        /// Optional cell-level converter hook. If provided and it returns a handled value,
+        /// the built-in conversion pipeline is skipped and the returned value is used.
+        /// </summary>
+        public Func<ExcelCellContext, ExcelCellValue>? CellValueConverter { get; set; }
+
+        /// <summary>
+        /// Optional type conversion hook used by typed readers (ReadColumnAs/ReadRowsAs/ReadRangeAs and object mapping).
+        /// If it returns ok=true, its value is used; otherwise the built-in converter is used.
+        /// </summary>
+        public Func<object, Type, CultureInfo, (bool ok, object? value)>? TypeConverter { get; set; }
+
+        /// <summary>
         /// Initializes reading defaults and per-operation thresholds.
         /// </summary>
         public ExcelReadOptions()
@@ -49,4 +61,3 @@ namespace OfficeIMO.Excel.Read
         }
     }
 }
-

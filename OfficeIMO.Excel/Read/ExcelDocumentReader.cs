@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Read
     /// <summary>
     /// Reader for an Excel workbook (read-only). Provides access to sheet readers and basic metadata.
     /// </summary>
-    public sealed class ExcelDocumentReader : IDisposable
+    public sealed partial class ExcelDocumentReader : IDisposable
     {
         private readonly SpreadsheetDocument _doc;
         private readonly ExcelReadOptions _opt;
@@ -60,4 +60,3 @@ namespace OfficeIMO.Excel.Read
         public void Dispose() => _doc.Dispose();
     }
 }
-

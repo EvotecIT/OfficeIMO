@@ -42,6 +42,19 @@ namespace OfficeIMO.Excel.Read
             }
             return res;
         }
+
+        public static string ColumnIndexToLetters(int index)
+        {
+            if (index <= 0) return "A";
+            string letters = string.Empty;
+            int n = index;
+            while (n > 0)
+            {
+                int rem = (n - 1) % 26;
+                letters = (char)('A' + rem) + letters;
+                n = (n - 1) / 26;
+            }
+            return letters;
+        }
     }
 }
-

@@ -13,6 +13,42 @@ namespace OfficeIMO.Excel.Read
     public sealed partial class ExcelSheetReader
     {
         /// <summary>
+        /// Returns the used range of the worksheet as an A1 string (e.g., "A1:C10").
+        /// If the sheet is empty, returns "A1:A1".
+        /// </summary>
+        public string GetUsedRangeA1()
+        {
+            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            if (sheetData is null)
+                return "A1:A1";
+
+            int minRow = int.MaxValue, maxRow = 0;
+            int minCol = int.MaxValue, maxCol = 0;
+
+            foreach (var row in sheetData.Elements<Row>())
+            {
+                if (!row.HasChildren) continue;
+                int rIndex = checked((int)row.RowIndex!.Value);
+                foreach (var cell in row.Elements<Cell>())
+                {
+                    if (cell.CellReference?.Value is null) continue;
+                    var (r, c) = A1.ParseCellRef(cell.CellReference.Value);
+                    if (r <= 0 || c <= 0) continue;
+                    if (r < minRow) minRow = r;
+                    if (r > maxRow) maxRow = r;
+                    if (c < minCol) minCol = c;
+                    if (c > maxCol) maxCol = c;
+                }
+            }
+
+            if (maxRow == 0 || maxCol == 0)
+                return "A1:A1";
+
+            string start = A1.ColumnIndexToLetters(minCol) + minRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string end = A1.ColumnIndexToLetters(maxCol) + maxRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return start + ":" + end;
+        }
+        /// <summary>
         /// Reads a rectangular A1 range (e.g., "A1:C10") into a dense 2D array of typed values.
         /// </summary>
         public object?[,] ReadRange(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default)
@@ -155,4 +191,3 @@ namespace OfficeIMO.Excel.Read
         }
     }
 }
-
