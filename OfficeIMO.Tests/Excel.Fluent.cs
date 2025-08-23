@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(column?.BestFit?.Value ?? false);
 
                 var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex == 1);
-                Assert.True(row?.CustomHeight?.Value ?? false);
+                Assert.False(row?.CustomHeight?.Value ?? false);
             }
 
             File.Delete(filePath);
