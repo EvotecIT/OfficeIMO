@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal("Rectangle", loadedShape.Title);
+                Assert.Equal("Rectangle", loadedShape!.Title);
                 Assert.Equal("My rectangle", loadedShape.Description);
                 Assert.False(loadedShape.Hidden!.Value);
                 Assert.True(loadedShape.Stroked!.Value);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Lime.ToHexColor(), loadedShape.FillColorHex);
+                Assert.Equal(Color.Lime.ToHexColor(), loadedShape!.FillColorHex);
                 Assert.Equal(Color.Black.ToHexColor(), loadedShape.StrokeColorHex);
             }
         }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Aqua.ToHexColor(), loadedShape.FillColorHex);
+                Assert.Equal(Color.Aqua.ToHexColor(), loadedShape!.FillColorHex);
                 Assert.Equal(Color.Red.ToHexColor(), loadedShape.StrokeColorHex);
             }
         }
@@ -151,9 +151,12 @@ namespace OfficeIMO.Tests {
                 var section = document.Sections[0];
                 Assert.Equal(3, document.Shapes.Count);
                 Assert.Equal(3, section.Shapes.Count);
-                Assert.True(section.Header.Default.Paragraphs[0].IsShape);
-                Assert.True(section.Header.Default.Paragraphs[1].IsShape);
-                Assert.True(section.Header.Default.Paragraphs[2].IsShape);
+                Assert.NotNull(section.Header);
+                Assert.NotNull(section.Header!.Default);
+                var headerDefault = section.Header.Default!;
+                Assert.True(headerDefault.Paragraphs[0].IsShape);
+                Assert.True(headerDefault.Paragraphs[1].IsShape);
+                Assert.True(headerDefault.Paragraphs[2].IsShape);
             }
         }
 
@@ -172,7 +175,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.InRange(loadedShape.ArcSize!.Value, 0.29, 0.31);
+                Assert.InRange(loadedShape!.ArcSize!.Value, 0.29, 0.31);
             }
         }
     }
