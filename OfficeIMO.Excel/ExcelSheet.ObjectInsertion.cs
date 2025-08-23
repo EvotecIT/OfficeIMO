@@ -59,14 +59,8 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            const int parallelThreshold = 1000;
-            if (cells.Count > parallelThreshold) {
-                SetCellValues(cells, ExecutionMode.Parallel);
-            } else {
-                foreach (var cell in cells) {
-                    CellValue(cell.Row, cell.Column, cell.Value);
-                }
-            }
+            // Use the batch CellValues path with planner + execution policy
+            SetCellValues(cells, null);
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {

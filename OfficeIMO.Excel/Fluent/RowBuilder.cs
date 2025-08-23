@@ -24,9 +24,12 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         public RowBuilder Values(params object?[] values) {
+            if (values == null || values.Length == 0) return this;
+            var cells = new System.Collections.Generic.List<(int Row, int Column, object Value)>(values.Length);
             for (int i = 0; i < values.Length; i++) {
-                _sheet.CellValue(_rowIndex, i + 1, values[i]);
+                cells.Add((_rowIndex, i + 1, values[i] ?? string.Empty));
             }
+            _sheet.CellValues(cells);
             return this;
         }
 

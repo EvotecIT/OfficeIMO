@@ -6,6 +6,9 @@ namespace OfficeIMO.Excel.Fluent {
 
         public ExcelFluentWorkbook(ExcelDocument workbook) {
             Workbook = workbook;
+            // Favor stability for fluent scenarios: default to Sequential mode
+            // Users can override (Workbook.Execution.Mode) if desired
+            Workbook.Execution.Mode = ExecutionMode.Sequential;
         }
 
         public ExcelFluentWorkbook Sheet(string name, Action<SheetBuilder> action) {
