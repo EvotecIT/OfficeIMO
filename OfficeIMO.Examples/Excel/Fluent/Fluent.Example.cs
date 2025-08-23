@@ -22,7 +22,6 @@ namespace OfficeIMO.Examples.Excel {
                     //.ConditionalDataBar("B2:B3", Color.Blue) // Can't have both ColorScale and DataBar on same range
                     //.AutoFit(columns: true, rows: true)
                     //.Columns(c => c.Col(1, col => col.Width(25)).Col(2, col => col.Hidden(true))) // Don't hide columns in demo
-
                     )
                     .End()
                     .Save(openExcel);
