@@ -22,11 +22,11 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
                 Assert.NotNull(mainPart);
-                var document = mainPart.Document;
+                var document = mainPart!.Document;
                 Assert.NotNull(document);
-                var body = document.Body;
+                var body = document!.Body;
                 Assert.NotNull(body);
-                var oval = body.Descendants<V.Oval>().First();
+                var oval = body!.Descendants<V.Oval>().First();
                 var textBox = new V.TextBox();
                 textBox.Append(new TextBoxContent(new Paragraph(new Run(new Text("Text")))));
                 oval.Append(textBox);
@@ -48,11 +48,11 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
                 Assert.NotNull(mainPart);
-                var document = mainPart.Document;
+                var document = mainPart!.Document;
                 Assert.NotNull(document);
-                var body = document.Body;
+                var body = document!.Body;
                 Assert.NotNull(body);
-                var run = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
+                var run = body!.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
                 var drawing = run.Descendants<Drawing>().First();
                 drawing.Remove();
                 var choice = new AlternateContentChoice() { Requires = "wps" };
@@ -78,11 +78,11 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
                 Assert.NotNull(mainPart);
-                var document = mainPart.Document;
+                var document = mainPart!.Document;
                 Assert.NotNull(document);
-                var body = document.Body;
+                var body = document!.Body;
                 Assert.NotNull(body);
-                var run = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
+                var run = body!.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
                 var drawing = run.Descendants<Drawing>().First();
                 var fallbackDrawing = (Drawing)drawing.CloneNode(true);
                 drawing.Remove();
@@ -113,11 +113,11 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
                 Assert.NotNull(mainPart);
-                var document = mainPart.Document;
+                var document = mainPart!.Document;
                 Assert.NotNull(document);
-                var body = document.Body;
+                var body = document!.Body;
                 Assert.NotNull(body);
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
+                var shapeRun = body!.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
                 var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
                 var shapeDrawing = shapeRun.Descendants<Drawing>().First();
                 var textBoxDrawing = textBoxRun.Descendants<Drawing>().First();
@@ -154,11 +154,11 @@ namespace OfficeIMO.Tests {
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
                 Assert.NotNull(mainPart);
-                var document = mainPart.Document;
+                var document = mainPart!.Document;
                 Assert.NotNull(document);
-                var body = document.Body;
+                var body = document!.Body;
                 Assert.NotNull(body);
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
+                var shapeRun = body!.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
                 var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
                 var shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
                 var textBoxDrawing = (Drawing)textBoxRun.Descendants<Drawing>().First().CloneNode(true);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
 
                 var parent = shapeRun.Parent;
                 Assert.NotNull(parent);
-                parent.InsertBefore(run, shapeRun);
+                parent!.InsertBefore(run, shapeRun);
                 shapeRun.Remove();
                 textBoxRun.Remove();
 

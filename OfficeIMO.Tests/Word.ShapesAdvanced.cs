@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var shape = document.Paragraphs[0].Shape;
                 Assert.NotNull(shape);
-                Assert.Equal(40d, shape.Width, 1);
+                Assert.Equal(40d, shape!.Width, 1);
                 Assert.Equal(20d, shape.Height, 1);
             }
         }
