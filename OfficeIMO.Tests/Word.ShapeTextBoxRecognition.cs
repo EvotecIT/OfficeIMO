@@ -20,11 +20,17 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
-                var oval = wDoc.MainDocumentPart.Document.Body.Descendants<V.Oval>().First();
+                var mainPart = wDoc.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var document = mainPart.Document;
+                Assert.NotNull(document);
+                var body = document.Body;
+                Assert.NotNull(body);
+                var oval = body.Descendants<V.Oval>().First();
                 var textBox = new V.TextBox();
                 textBox.Append(new TextBoxContent(new Paragraph(new Run(new Text("Text")))));
                 oval.Append(textBox);
-                wDoc.MainDocumentPart.Document.Save();
+                document.Save();
             }
             using (WordDocument doc = WordDocument.Load(filePath)) {
                 Assert.Empty(doc.Shapes);
@@ -40,7 +46,13 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
-                var run = wDoc.MainDocumentPart.Document.Body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
+                var mainPart = wDoc.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var document = mainPart.Document;
+                Assert.NotNull(document);
+                var body = document.Body;
+                Assert.NotNull(body);
+                var run = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
                 var drawing = run.Descendants<Drawing>().First();
                 drawing.Remove();
                 var choice = new AlternateContentChoice() { Requires = "wps" };
@@ -48,7 +60,7 @@ namespace OfficeIMO.Tests {
                 var alt = new AlternateContent();
                 alt.Append(choice);
                 run.Append(alt);
-                wDoc.MainDocumentPart.Document.Save();
+                document.Save();
             }
             using (WordDocument doc = WordDocument.Load(filePath)) {
                 Assert.Single(doc.Shapes);
@@ -64,7 +76,13 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
-                var run = wDoc.MainDocumentPart.Document.Body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
+                var mainPart = wDoc.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var document = mainPart.Document;
+                Assert.NotNull(document);
+                var body = document.Body;
+                Assert.NotNull(body);
+                var run = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any());
                 var drawing = run.Descendants<Drawing>().First();
                 var fallbackDrawing = (Drawing)drawing.CloneNode(true);
                 drawing.Remove();
@@ -76,7 +94,7 @@ namespace OfficeIMO.Tests {
                 alt.Append(choice);
                 alt.Append(fallback);
                 run.Append(alt);
-                wDoc.MainDocumentPart.Document.Save();
+                document.Save();
             }
             using (WordDocument doc = WordDocument.Load(filePath)) {
                 Assert.Single(doc.Shapes);
@@ -93,7 +111,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
-                var body = wDoc.MainDocumentPart.Document.Body;
+                var mainPart = wDoc.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var document = mainPart.Document;
+                Assert.NotNull(document);
+                var body = document.Body;
+                Assert.NotNull(body);
                 var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
                 var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
                 var shapeDrawing = shapeRun.Descendants<Drawing>().First();
@@ -108,7 +131,6 @@ namespace OfficeIMO.Tests {
                 alt.Append(fallback);
                 shapeRun.Append(alt);
                 textBoxRun.Remove();
-                var document = wDoc.MainDocumentPart.Document;
                 if (document.LookupNamespace("wps") == null) {
                     document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
                 }
@@ -130,7 +152,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
-                var body = wDoc.MainDocumentPart.Document.Body;
+                var mainPart = wDoc.MainDocumentPart;
+                Assert.NotNull(mainPart);
+                var document = mainPart.Document;
+                Assert.NotNull(document);
+                var body = document.Body;
+                Assert.NotNull(body);
                 var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
                 var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
                 var shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
@@ -150,11 +177,12 @@ namespace OfficeIMO.Tests {
                 run.Append(shapeAc);
                 run.Append(textBoxAc);
 
-                shapeRun.Parent.InsertBefore(run, shapeRun);
+                var parent = shapeRun.Parent;
+                Assert.NotNull(parent);
+                parent.InsertBefore(run, shapeRun);
                 shapeRun.Remove();
                 textBoxRun.Remove();
 
-                var document = wDoc.MainDocumentPart.Document;
                 if (document.LookupNamespace("wps") == null) {
                     document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
                 }

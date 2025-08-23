@@ -46,17 +46,19 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithShapes.docx"))) {
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal("Rectangle", document.Paragraphs[0].Shape.Title);
-                Assert.Equal("My rectangle", document.Paragraphs[0].Shape.Description);
-                Assert.False(document.Paragraphs[0].Shape.Hidden!.Value);
-                Assert.True(document.Paragraphs[0].Shape.Stroked!.Value);
-                Assert.Equal(Color.Blue.ToHexColor(), document.Paragraphs[0].Shape.StrokeColorHex);
-                Assert.Equal(2d, document.Paragraphs[0].Shape.StrokeWeight!.Value, 1);
-                Assert.Equal(120d, document.Paragraphs[0].Shape.Width, 1);
-                Assert.Equal(60d, document.Paragraphs[0].Shape.Height, 1);
-                Assert.Equal(10d, document.Paragraphs[0].Shape.Left!.Value, 1);
-                Assert.Equal(20d, document.Paragraphs[0].Shape.Top!.Value, 1);
-                Assert.Equal(45d, document.Paragraphs[0].Shape.Rotation!.Value, 1);
+                var loadedShape = document.Paragraphs[0].Shape;
+                Assert.NotNull(loadedShape);
+                Assert.Equal("Rectangle", loadedShape.Title);
+                Assert.Equal("My rectangle", loadedShape.Description);
+                Assert.False(loadedShape.Hidden!.Value);
+                Assert.True(loadedShape.Stroked!.Value);
+                Assert.Equal(Color.Blue.ToHexColor(), loadedShape.StrokeColorHex);
+                Assert.Equal(2d, loadedShape.StrokeWeight!.Value, 1);
+                Assert.Equal(120d, loadedShape.Width, 1);
+                Assert.Equal(60d, loadedShape.Height, 1);
+                Assert.Equal(10d, loadedShape.Left!.Value, 1);
+                Assert.Equal(20d, loadedShape.Top!.Value, 1);
+                Assert.Equal(45d, loadedShape.Rotation!.Value, 1);
             }
         }
 
@@ -73,8 +75,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal(Color.Lime.ToHexColor(), document.Paragraphs[0].Shape.FillColorHex);
-                Assert.Equal(Color.Black.ToHexColor(), document.Paragraphs[0].Shape.StrokeColorHex);
+                var loadedShape = document.Paragraphs[0].Shape;
+                Assert.NotNull(loadedShape);
+                Assert.Equal(Color.Lime.ToHexColor(), loadedShape.FillColorHex);
+                Assert.Equal(Color.Black.ToHexColor(), loadedShape.StrokeColorHex);
             }
         }
 
@@ -92,8 +96,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal(Color.Aqua.ToHexColor(), document.Paragraphs[0].Shape.FillColorHex);
-                Assert.Equal(Color.Red.ToHexColor(), document.Paragraphs[0].Shape.StrokeColorHex);
+                var loadedShape = document.Paragraphs[0].Shape;
+                Assert.NotNull(loadedShape);
+                Assert.Equal(Color.Aqua.ToHexColor(), loadedShape.FillColorHex);
+                Assert.Equal(Color.Red.ToHexColor(), loadedShape.StrokeColorHex);
             }
         }
 
@@ -164,7 +170,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.InRange(document.Paragraphs[0].Shape.ArcSize!.Value, 0.29, 0.31);
+                var loadedShape = document.Paragraphs[0].Shape;
+                Assert.NotNull(loadedShape);
+                Assert.InRange(loadedShape.ArcSize!.Value, 0.29, 0.31);
             }
         }
     }
