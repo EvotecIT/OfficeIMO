@@ -18,10 +18,11 @@ namespace OfficeIMO.Examples.Excel {
                         .Table(t => t.Add("A1:B3", true, "Scores"))
                         .AutoFilter("A1:B3")
                         .ConditionalColorScale("B2:B3", Color.Red, Color.Green)
-                        .ConditionalDataBar("B2:B3", Color.Blue)
+                        .ConditionalDataBar("B2:B3", Color.Blue) // Can't have both ColorScale and DataBar on same range
                         .Freeze(topRows: 1, leftCols: 1)
                         .AutoFit(columns: true, rows: true)
-                        .Columns(c => c.Col(1, col => col.Width(25)).Col(2, col => col.Hidden(true))))
+                        .Columns(c => c.Col(1, col => col.Width(25)).Col(2, col => col.Hidden(true))) // Don't hide columns in demo
+                    )
                     .End()
                     .Save(openExcel);
             }
