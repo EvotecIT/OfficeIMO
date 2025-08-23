@@ -1,0 +1,248 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using SixLabors.Fonts;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
+using SixLaborsColor = SixLabors.ImageSharp.Color;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
+            if (items == null) {
+                throw new ArgumentNullException(nameof(items));
+            }
+
+            var list = items.Cast<object?>().ToList();
+            if (list.Count == 0) {
+                return;
+            }
+
+            var flattenedItems = new List<Dictionary<string, object?>>();
+            List<string> headers = new List<string>();
+
+            foreach (var item in list) {
+                var dict = new Dictionary<string, object?>();
+                FlattenObject(item, null, dict);
+                flattenedItems.Add(dict);
+                foreach (var key in dict.Keys) {
+                    if (!headers.Contains(key)) {
+                        headers.Add(key);
+                    }
+                }
+            }
+
+            List<(int Row, int Column, object Value)> cells = new List<(int Row, int Column, object Value)>();
+            int row = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < headers.Count; c++) {
+                    cells.Add((row, c + 1, headers[c]));
+                }
+                row++;
+            }
+
+            foreach (var dict in flattenedItems) {
+                for (int c = 0; c < headers.Count; c++) {
+                    object value = dict.ContainsKey(headers[c]) ? dict[headers[c]] ?? string.Empty : string.Empty;
+                    cells.Add((row, c + 1, value));
+                }
+                row++;
+            }
+
+            const int parallelThreshold = 1000;
+            if (cells.Count > parallelThreshold) {
+                CellValuesParallel(cells);
+            } else {
+                foreach (var cell in cells) {
+                    CellValue(cell.Row, cell.Column, cell.Value);
+                }
+            }
+        }
+
+        private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
+            if (value == null) {
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = null;
+                }
+                return;
+            }
+
+            if (value is IDictionary dictionary) {
+                foreach (DictionaryEntry entry in dictionary) {
+                    string key = entry.Key?.ToString() ?? string.Empty;
+                    string childPrefix = string.IsNullOrEmpty(prefix) ? key : prefix + "." + key;
+                    FlattenObject(entry.Value, childPrefix, result);
+                }
+                return;
+            }
+
+            if (value is IEnumerable enumerable && value is not string) {
+                var values = new List<string>();
+                foreach (var item in enumerable) {
+                    values.Add(item?.ToString() ?? string.Empty);
+                }
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = string.Join(", ", values);
+                }
+                return;
+            }
+
+            Type type = value.GetType();
+            if (type.IsPrimitive || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is Guid) {
+                if (!string.IsNullOrEmpty(prefix)) {
+                    result[prefix] = value;
+                }
+                return;
+            }
+
+            var props = type.GetProperties().Where(p => p.CanRead);
+            bool hasAny = false;
+            foreach (var prop in props) {
+                hasAny = true;
+                string childPrefix = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
+                FlattenObject(prop.GetValue(value, null), childPrefix, result);
+            }
+
+            if (!hasAny && !string.IsNullOrEmpty(prefix)) {
+                result[prefix] = value.ToString();
+            }
+        }
+
+        private class CellUpdate {
+            public int Row { get; }
+            public int Column { get; }
+            public string Text { get; }
+            public CellValues DataType { get; }
+            public bool IsSharedString { get; }
+
+            public CellUpdate(int row, int column, string text, CellValues dataType, bool isSharedString) {
+                Row = row;
+                Column = column;
+                Text = text;
+                DataType = dataType;
+                IsSharedString = isSharedString;
+            }
+        }
+
+        /// <summary>
+        /// Sets multiple cell values in parallel without mutating the DOM concurrently.
+        /// Cell data is prepared in parallel, then applied sequentially under write lock
+        /// to prevent XML corruption and ensure thread safety.
+        /// </summary>
+        /// <param name="cells">Collection of cell coordinates and values.</param>
+        public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
+            if (cells == null) {
+                throw new ArgumentNullException(nameof(cells));
+            }
+
+            var cellList = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
+            int cellCount = cellList.Count;
+            bool monitor = cellCount > 5000;
+            Stopwatch? prepWatch = null;
+            Stopwatch? applyWatch = null;
+            if (monitor) {
+                prepWatch = Stopwatch.StartNew();
+            }
+
+            var bag = new ConcurrentBag<CellUpdate>();
+
+            Parallel.ForEach(cellList, cell => {
+                bag.Add(PrepareCellUpdate(cell.Row, cell.Column, cell.Value));
+            });
+
+            if (monitor && prepWatch != null) {
+                prepWatch.Stop();
+                applyWatch = Stopwatch.StartNew();
+            }
+
+            WriteLock(() => {
+                _isBatchOperation = true;
+                try {
+                    foreach (var update in bag) {
+                        ApplyCellUpdate(update);
+                    }
+                    ValidateWorksheetXml();
+                } finally {
+                    _isBatchOperation = false;
+                }
+            });
+
+            if (monitor && applyWatch != null && prepWatch != null) {
+                applyWatch.Stop();
+                Debug.WriteLine($"CellValuesParallel: prepared {cellCount} cells in {prepWatch.ElapsedMilliseconds} ms, applied in {applyWatch.ElapsedMilliseconds} ms.");
+            }
+        }
+
+        private CellUpdate PrepareCellUpdate(int row, int column, object value) {
+            switch (value) {
+                case string s:
+                    return new CellUpdate(row, column, s, CellValues.SharedString, true);
+                case double d:
+                    return new CellUpdate(row, column, d.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case float f:
+                    return new CellUpdate(row, column, Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case decimal dec:
+                    return new CellUpdate(row, column, dec.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case int i:
+                    return new CellUpdate(row, column, ((double)i).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case long l:
+                    return new CellUpdate(row, column, ((double)l).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case DateTime dt:
+                    return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case DateTimeOffset dto:
+                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case TimeSpan ts:
+                    return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case bool b:
+                    return new CellUpdate(row, column, b ? "1" : "0", CellValues.Boolean, false);
+                case uint ui:
+                    return new CellUpdate(row, column, ((double)ui).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case ulong ul:
+                    return new CellUpdate(row, column, ((double)ul).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case ushort us:
+                    return new CellUpdate(row, column, ((double)us).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case byte by:
+                    return new CellUpdate(row, column, ((double)by).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case sbyte sb:
+                    return new CellUpdate(row, column, ((double)sb).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                case short sh:
+                    return new CellUpdate(row, column, ((double)sh).ToString(CultureInfo.InvariantCulture), CellValues.Number, false);
+                default:
+                    return new CellUpdate(row, column, value?.ToString() ?? string.Empty, CellValues.SharedString, true);
+            }
+        }
+
+        private void ApplyCellUpdate(CellUpdate update) {
+            Cell cell = GetCell(update.Row, update.Column);
+            if (update.IsSharedString) {
+                int sharedStringIndex = _excelDocument.GetSharedStringIndex(update.Text);
+                cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+                cell.DataType = CellValues.SharedString;
+            } else {
+                cell.CellValue = new CellValue(update.Text);
+                cell.DataType = update.DataType;
+            }
+        }
+
+        private void ValidateWorksheetXml() {
+            try {
+                using StringReader sr = new StringReader(_worksheetPart.Worksheet.OuterXml);
+                using XmlReader reader = XmlReader.Create(sr);
+                while (reader.Read()) { }
+            } catch (XmlException ex) {
+                throw new InvalidOperationException($"Worksheet XML is not well-formed after parallel write operation. {ex.Message}", ex);
+            }
+        }
+    }
+}
+

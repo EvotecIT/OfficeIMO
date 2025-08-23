@@ -18,6 +18,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
+        private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
+        private readonly object _sharedStringLock = new object();
 
         /// <summary>
         /// Gets a list of worksheets contained in the document.
@@ -137,28 +139,35 @@ namespace OfficeIMO.Excel {
         }
 
         internal int GetSharedStringIndex(string text) {
-            _lock.EnterUpgradeableReadLock();
-            try {
+            lock (_sharedStringLock) {
+                // Check cache first
+                if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
+                    return cachedIndex;
+                }
+
                 var sharedStringTable = SharedStringTablePart.SharedStringTable;
-                int index = 0;
-                foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
-                    if (item.InnerText == text) {
-                        return index;
+                
+                // If cache is empty, rebuild it
+                if (_sharedStringCache.Count == 0) {
+                    int idx = 0;
+                    foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
+                        _sharedStringCache[item.InnerText] = idx;
+                        idx++;
                     }
-                    index++;
+                    
+                    // Check again after rebuilding cache
+                    if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
+                        return foundIndex;
+                    }
                 }
 
-                _lock.EnterWriteLock();
-                try {
-                    sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-                    sharedStringTable.Save();
-                } finally {
-                    _lock.ExitWriteLock();
-                }
-
-                return index;
-            } finally {
-                _lock.ExitUpgradeableReadLock();
+                // Add new string
+                int newIndex = _sharedStringCache.Count;
+                sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                sharedStringTable.Save();
+                _sharedStringCache[text] = newIndex;
+                
+                return newIndex;
             }
         }
 
