@@ -364,9 +364,12 @@ namespace OfficeIMO.Excel {
             }
             FilePath = path;
 
-            // Reopen as in-memory document for further operations
+            // Reopen as in-memory document for further operations on an expandable stream
+            var mem = new MemoryStream();
             snapshot.Position = 0;
-            _spreadSheetDocument = SpreadsheetDocument.Open(new MemoryStream(snapshot.ToArray()), true);
+            snapshot.CopyTo(mem);
+            mem.Position = 0;
+            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true);
             _workBookPart = _spreadSheetDocument.WorkbookPart;
             _sharedStringTablePart = null;
             _isMemory = true;

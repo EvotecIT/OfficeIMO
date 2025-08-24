@@ -655,6 +655,13 @@ namespace OfficeIMO.Word.Html.Converters {
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var elements = section.Elements;
+                if (elements == null || elements.Count == 0) {
+                    // Fallback: compose elements from paragraphs and tables when section enumeration yields none
+                    var composed = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
+                    composed.AddRange(section.Paragraphs);
+                    composed.AddRange(section.Tables);
+                    elements = composed;
+                }
                 for (int idx = 0; idx < elements.Count; idx++) {
                     var element = elements[idx];
                     if (element is WordParagraph paragraph) {
