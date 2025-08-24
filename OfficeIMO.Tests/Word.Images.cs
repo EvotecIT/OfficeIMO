@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
 
-            Assert.Equal(22d, paragraph.Image.Height!.Value, 15);
-            Assert.Equal(22d, paragraph.Image.Width!.Value, 15);
+            Assert.Equal(22d, paragraph.Image.Height ?? default, 15);
+            Assert.Equal(22d, paragraph.Image.Width ?? default, 15);
 
             document.AddParagraph("This adds another picture with 500x500");
 
@@ -49,8 +49,8 @@ namespace OfficeIMO.Tests {
             paragraph2.Image.Rotation = 180;
             paragraph2.Image.Shape = ShapeTypeValues.ActionButtonMovie;
 
-            Assert.Equal(500d, paragraph2.Image.Height!.Value, 15);
-            Assert.Equal(500d, paragraph2.Image.Width!.Value, 15);
+            Assert.Equal(500d, paragraph2.Image.Height ?? default, 15);
+            Assert.Equal(500d, paragraph2.Image.Width ?? default, 15);
 
             document.AddParagraph("This adds another picture with 100x100");
 
@@ -68,15 +68,15 @@ namespace OfficeIMO.Tests {
             paragraph4.Image.HorizontalFlip = true;
 
 
-            Assert.Equal(50d, paragraph4.Image.Height.Value, 15);
-            Assert.Equal(50d, paragraph4.Image.Width.Value, 15);
+            Assert.Equal(50d, paragraph4.Image.Height ?? default, 15);
+            Assert.Equal(50d, paragraph4.Image.Width ?? default, 15);
 
             // or we can get any image and overwrite it's size
             document.Images[0].Height = 200;
             document.Images[0].Width = 200;
 
-            Assert.Equal(200d, document.Images[0].Height.Value, 15);
-            Assert.Equal(200d, document.Images[0].Width.Value, 15);
+            Assert.Equal(200d, document.Images[0].Height ?? default, 15);
+            Assert.Equal(200d, document.Images[0].Width ?? default, 15);
 
             var fileToSave = Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
             document.Images[0].SaveToFile(fileToSave);
@@ -296,15 +296,15 @@ namespace OfficeIMO.Tests {
             document.Paragraphs[1].Image.horizontalPosition = horizontalPosition1;
             Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
             Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
-            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
-            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom.Value);
+            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom?.Value ?? default);
+            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom?.Value ?? default);
 
 
             document.Paragraphs[1].Image.verticalPosition = verticalPosition1;
             Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
             Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
-            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
-            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom.Value);
+            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition.RelativeFrom?.Value ?? default);
+            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom?.Value ?? default);
 
             document.Save(false);
 
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
                 var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(75000, alpha.Amount.Value);
+                Assert.Equal(75000, alpha.Amount?.Value ?? default);
             }
         }
 
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
                 var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(50000, alpha.Amount.Value);
+                Assert.Equal(50000, alpha.Amount?.Value ?? default);
             }
         }
 
@@ -491,7 +491,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 Assert.Equal(ImageFillMode.Tile, document.Images[0].FillMode);
-                Assert.True(document.Images[0].UseLocalDpi);
+                Assert.True(document.Images[0].UseLocalDpi == true);
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
@@ -544,7 +544,7 @@ namespace OfficeIMO.Tests {
                 var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 var tile = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>();
                 Assert.NotNull(tile);
-                Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value);
+                Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value ?? default);
             }
         }
 
@@ -586,12 +586,12 @@ namespace OfficeIMO.Tests {
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
                 var pic = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
                 var nv = pic.NonVisualPictureProperties;
-                Assert.Equal("MyTitle", nv.NonVisualDrawingProperties.Title);
-                Assert.True(nv.NonVisualDrawingProperties.Hidden);
-                Assert.True(nv.NonVisualPictureDrawingProperties.PreferRelativeResize);
-                Assert.True(nv.NonVisualPictureDrawingProperties.PictureLocks.NoChangeAspect);
+                Assert.Equal("MyTitle", nv.NonVisualDrawingProperties?.Title);
+                Assert.True(nv.NonVisualDrawingProperties?.Hidden == true);
+                Assert.True(nv.NonVisualPictureDrawingProperties?.PreferRelativeResize == true);
+                Assert.True(nv.NonVisualPictureDrawingProperties?.PictureLocks?.NoChangeAspect == true);
                 var ar = pic.BlipFill.Blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
-                Assert.Equal(80000, ar.Alpha.Value);
+                Assert.Equal(80000, ar.Alpha?.Value ?? default);
             }
         }
 
@@ -624,13 +624,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("ff0000", img.AlphaInversionColorHex);
                 Assert.Equal(60, img.BlackWhiteThreshold);
                 Assert.Equal(2000, img.BlurRadius);
-                Assert.True(img.BlurGrow);
+                Assert.True(img.BlurGrow == true);
                 Assert.Equal("97e4fe", img.ColorChangeFromHex);
                 Assert.Equal("ff3399", img.ColorChangeToHex);
                 Assert.Equal("00ff00", img.ColorReplacementHex);
                 Assert.Equal("000000", img.DuotoneColor1Hex);
                 Assert.Equal("ffffff", img.DuotoneColor2Hex);
-                Assert.True(img.GrayScale);
+                Assert.True(img.GrayScale == true);
                 Assert.Equal(65, img.LuminanceBrightness);
                 Assert.Equal(30, img.LuminanceContrast);
                 Assert.Equal(50, img.TintAmount);
