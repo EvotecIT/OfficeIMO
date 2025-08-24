@@ -12,9 +12,19 @@ namespace OfficeIMO.Visio {
         private bool _gridVisible;
         private bool _snap = true;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisioPage"/> class with default A4 dimensions.
+        /// </summary>
+        /// <param name="name">Page name.</param>
         public VisioPage(string name) : this(name, 8.26771653543307, 11.69291338582677) {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisioPage"/> class with specified dimensions in inches.
+        /// </summary>
+        /// <param name="name">Page name.</param>
+        /// <param name="widthInches">Page width in inches.</param>
+        /// <param name="heightInches">Page height in inches.</param>
         public VisioPage(string name, double widthInches, double heightInches) {
             Name = name;
             NameU = name;

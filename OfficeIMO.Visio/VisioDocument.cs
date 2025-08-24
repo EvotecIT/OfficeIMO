@@ -124,7 +124,7 @@ namespace OfficeIMO.Visio {
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
                     string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
                     string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                    if (string.IsNullOrEmpty(mRelId)) {
+                    if (mRelId == null || mRelId.Length == 0) {
                         continue;
                     }
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Visio {
                 page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
                 string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                if (string.IsNullOrEmpty(relId)) {
+                if (relId == null || relId.Length == 0) {
                     continue;
                 }
 
@@ -172,7 +172,7 @@ namespace OfficeIMO.Visio {
 
                     VisioShape shape = ParseShape(shapeElement, ns);
                     string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
-                    if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
+                    if (masterIdAttr != null && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
                         shape.Master = master;
                         if (shape.Width == 0 || shape.Height == 0) {
                             VisioShape masterShape = shape.Master.Shape;
@@ -416,7 +416,7 @@ namespace OfficeIMO.Visio {
                     string? key = row.Attribute("N")?.Value;
                     XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
                     string? value = valueCell?.Attribute("V")?.Value;
-                    if (!string.IsNullOrEmpty(key) && value != null) {
+                    if (key != null && key.Length > 0 && value != null) {
                         shape.Data[key] = value;
                     }
                 }
@@ -489,19 +489,20 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Saves the document to a <c>.vsdx</c> package.
+        /// Saves the document to the originally specified file path.
         /// </summary>
-        /// <summary>
-        /// Saves the document to a file.
-        /// </summary>
-        /// <param name="filePath">Path to save the file.</param>
         public void Save() {
-            if (string.IsNullOrEmpty(_filePath)) {
+            string path = _filePath ?? throw new InvalidOperationException("File path is not set.");
+            if (path.Length == 0) {
                 throw new InvalidOperationException("File path is not set.");
             }
-            SaveInternal(_filePath);
+            SaveInternal(path);
         }
 
+        /// <summary>
+        /// Saves the document to the specified file path.
+        /// </summary>
+        /// <param name="filePath">Path to save the file.</param>
         public void Save(string filePath) {
             _filePath = filePath;
             SaveInternal(filePath);

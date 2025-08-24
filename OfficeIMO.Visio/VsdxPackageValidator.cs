@@ -429,7 +429,7 @@ namespace OfficeIMO.Visio {
                    id == 0;
         }
 
-        private XDocument LoadXml(string path) {
+        private XDocument? LoadXml(string path) {
             try {
                 return XDocument.Load(path, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             } catch {

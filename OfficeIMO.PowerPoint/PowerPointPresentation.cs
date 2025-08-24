@@ -114,13 +114,15 @@ namespace OfficeIMO.PowerPoint {
                     .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
                     .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
                     .Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => id!)
             );
             
             // Also check the slide IDs
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    if (!string.IsNullOrEmpty(existingSlideId.RelationshipId)) {
-                        existingRelationships.Add(existingSlideId.RelationshipId);
+                    string? relId = existingSlideId.RelationshipId;
+                    if (relId != null && relId.Length > 0) {
+                        existingRelationships.Add(relId);
                     }
                 }
             }
@@ -237,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
             _slides.RemoveAt(index);
             slideId.Remove();
 
-            if (!string.IsNullOrEmpty(relId)) {
+            if (relId != null && relId.Length > 0) {
                 OpenXmlPart part = _presentationPart.GetPartById(relId);
                 _presentationPart.DeletePart(part);
             }
