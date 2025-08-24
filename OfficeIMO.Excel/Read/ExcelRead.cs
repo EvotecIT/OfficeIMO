@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel.Read
 {
@@ -12,6 +13,20 @@ namespace OfficeIMO.Excel.Read
     /// </summary>
     public static class ExcelRead
     {
+        // -------- Instance-friendly overloads (avoid reopening files) --------
+
+        /// <summary>
+        /// Reads the used range of a sheet as dictionaries (first row as headers) using an already-open ExcelDocument.
+        /// Avoids re-opening the file and potential file locks.
+        /// </summary>
+        public static List<Dictionary<string, object?>> ReadUsedRangeObjects(ExcelDocument doc, string sheetName, ExcelReadOptions? options = null)
+        {
+            using var rdr = ExcelDocumentReader.Wrap(doc._spreadSheetDocument, options ?? new ExcelReadOptions());
+            var sh = rdr.GetSheet(sheetName);
+            var a1 = sh.GetUsedRangeA1();
+            return sh.ReadObjects(a1).ToList();
+        }
+
         /// <summary>
         /// Reads a rectangular A1 range (e.g., "A1:C10") from the specified sheet into a dense 2D array of typed values.
         /// </summary>

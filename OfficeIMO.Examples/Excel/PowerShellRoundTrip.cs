@@ -42,7 +42,10 @@ namespace OfficeIMO.Examples.Excel
             {
                 var s = doc.Sheets[0];
                 // Read entire sheet (used range) as dictionaries
-                var rows = ExcelRead.ReadUsedRangeObjects(filePath, "Data", ExcelReadPresets.Simple());
+                using var rdr = doc.CreateReader(ExcelReadPresets.Simple());
+                var sh = rdr.GetSheet("Data");
+                var a1 = sh.GetUsedRangeA1();
+                var rows = sh.ReadObjects(a1).ToList();
                 foreach (var row in rows)
                 {
                     var name = Convert.ToString(row["Name"]);

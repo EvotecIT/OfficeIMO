@@ -66,6 +66,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
+        /// </summary>
+        public string GetUsedRangeA1()
+        {
+            using var reader = _excelDocument.CreateReader();
+            var sh = reader.GetSheet(this.Name);
+            return sh.GetUsedRangeA1();
+        }
+
+        /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
         /// </summary>
         /// <param name="excelDocument">Parent document.</param>
