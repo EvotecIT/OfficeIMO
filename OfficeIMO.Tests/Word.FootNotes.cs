@@ -42,24 +42,30 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(lastFootNoteParagraph.IsFootNote == true);
 
-                var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+                var footNote = lastFootNoteParagraph.FootNote;
+                Assert.NotNull(footNote);
+                var footNoteParagraphs = footNote.Paragraphs;
 
                 Assert.True(footNoteParagraphs.Count == 2);
 
-                Assert.True(lastFootNoteParagraph.FootNote.ParentParagraph.Text == " more within paragraph");
+                Assert.NotNull(footNote.ParentParagraph);
+                Assert.True(footNote.ParentParagraph.Text == " more within paragraph");
                 Assert.True(footNoteParagraphs[1].Text == "4th footnote!");
 
 
-                Assert.True(document.FootNotes[3].ParentParagraph.Text == " more within paragraph");
-                Assert.True(document.FootNotes[3].Paragraphs[1].Text == "4th footnote!");
+                var thirdFootNote = document.FootNotes[3];
+                Assert.NotNull(thirdFootNote.ParentParagraph);
+                Assert.True(thirdFootNote.ParentParagraph.Text == " more within paragraph");
+                var thirdFootNoteParagraphs = thirdFootNote.Paragraphs;
+                Assert.True(thirdFootNoteParagraphs[1].Text == "4th footnote!");
 
-                Assert.True(document.FootNotes[3].Paragraphs[1].Bold == false);
+                Assert.True(thirdFootNoteParagraphs[1].Bold == false);
 
                 // lets make bold that footnote
                 footNoteParagraphs[1].Bold = true;
 
                 Assert.True(footNoteParagraphs[1].Bold == true);
-                Assert.True(document.FootNotes[3].Paragraphs[1].Bold == true);
+                Assert.True(thirdFootNoteParagraphs[1].Bold == true);
 
                 document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
 
