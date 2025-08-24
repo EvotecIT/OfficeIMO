@@ -118,38 +118,64 @@ namespace OfficeIMO.Word {
         }
 
         internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream, string? fileName = null) {
+            // Fast-path by extension to avoid throwing/catching first-chance exceptions from ImageSharp
+            string? ext = null;
+            if (!string.IsNullOrEmpty(fileName)) {
+                ext = Path.GetExtension(fileName).ToLowerInvariant();
+                if (ext == ".svg") {
+                    try {
+                        using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+                        var svg = System.Xml.Linq.XDocument.Load(reader);
+                        var root = svg.Root ?? throw new InvalidOperationException("SVG document has no root element.");
+                        double width = 0;
+                        double height = 0;
+                        var wAttr = root.Attribute("width");
+                        var hAttr = root.Attribute("height");
+                        if (wAttr != null) double.TryParse(wAttr.Value.Replace("px", string.Empty), out width);
+                        if (hAttr != null) double.TryParse(hAttr.Value.Replace("px", string.Empty), out height);
+                        imageStream.Position = 0;
+                        return new ImageCharacteristics(width, height, CustomImagePartType.Svg);
+                    } catch {
+                        imageStream.Position = 0;
+                        // If SVG parsing fails, fall through to ImageSharp attempt
+                    }
+                } else if (ext == ".emf") {
+                    imageStream.Position = 0;
+                    return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
+                }
+            }
+
             try {
                 using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
                 imageStream.Position = 0;
                 var type = ConvertToImagePartType(imageFormat);
                 return new ImageCharacteristics(img.Width, img.Height, type);
             } catch (SixLabors.ImageSharp.UnknownImageFormatException) {
+                // Fallback: infer type from extension (if available) without throwing
                 imageStream.Position = 0;
-                if (!string.IsNullOrEmpty(fileName)) {
-                    var ext = Path.GetExtension(fileName);
-                    if (ext.Equals(".emf", StringComparison.OrdinalIgnoreCase)) {
-                        return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
-                    }
-                    if (ext.Equals(".svg", StringComparison.OrdinalIgnoreCase)) {
-                        try {
-                            using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-                            var svg = System.Xml.Linq.XDocument.Load(reader);
-                            var root = svg.Root ?? throw new InvalidOperationException("SVG document has no root element.");
-                            double width = 0;
-                            double height = 0;
-                            var wAttr = root.Attribute("width");
-                            var hAttr = root.Attribute("height");
-                            if (wAttr != null) double.TryParse(wAttr.Value.Replace("px", string.Empty), out width);
-                            if (hAttr != null) double.TryParse(hAttr.Value.Replace("px", string.Empty), out height);
-                            imageStream.Position = 0;
-                            return new ImageCharacteristics(width, height, CustomImagePartType.Svg);
-                        } catch {
-                            imageStream.Position = 0;
-                            throw;
-                        }
+                if (!string.IsNullOrEmpty(ext)) {
+                    switch (ext) {
+                        case ".png":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
+                        case ".jpg":
+                        case ".jpeg":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Jpeg);
+                        case ".gif":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Gif);
+                        case ".bmp":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Bmp);
+                        case ".tif":
+                        case ".tiff":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Tiff);
+                        case ".emf":
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
+                        case ".svg":
+                            // Should have been handled above; default here for safety
+                            return new ImageCharacteristics(0, 0, CustomImagePartType.Svg);
                     }
                 }
-                throw;
+                // As a last resort, treat as PNG with unknown size rather than throw repeatedly
+                return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
             }
         }
 

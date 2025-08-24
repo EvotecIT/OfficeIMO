@@ -19,23 +19,17 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Header.Default)) {
-                yield return paragraph;
-            }
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Header.Even)) {
-                yield return paragraph;
-            }
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Header.First)) {
-                yield return paragraph;
-            }
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Footer.Default)) {
-                yield return paragraph;
-            }
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Footer.Even)) {
-                yield return paragraph;
-            }
-            foreach (var paragraph in EnumerateHeaderFooterParagraphs(this.Footer.First)) {
-                yield return paragraph;
+            // Iterate headers/footers per section to avoid multi-section header warnings
+            foreach (var sec in this.Sections) {
+                var headers = sec.Header;
+                foreach (var p in EnumerateHeaderFooterParagraphs(headers.Default)) yield return p;
+                foreach (var p in EnumerateHeaderFooterParagraphs(headers.Even)) yield return p;
+                foreach (var p in EnumerateHeaderFooterParagraphs(headers.First)) yield return p;
+
+                var footers = sec.Footer;
+                foreach (var p in EnumerateHeaderFooterParagraphs(footers.Default)) yield return p;
+                foreach (var p in EnumerateHeaderFooterParagraphs(footers.Even)) yield return p;
+                foreach (var p in EnumerateHeaderFooterParagraphs(footers.First)) yield return p;
             }
         }
 

@@ -19,7 +19,8 @@ namespace OfficeIMO.Word.Html.Converters {
                     var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
                     field?.SetValue(list, _orderedListNumberId.Value);
                 } else {
-                    list = cell != null ? cell.AddList(WordListStyle.Headings111) : headerFooter != null ? headerFooter.AddList(WordListStyle.Headings111) : doc.AddListNumbered();
+                    // Use standard numbered list style for ordered lists in all contexts
+                    list = cell != null ? cell.AddList(WordListStyle.Numbered) : headerFooter != null ? headerFooter.AddList(WordListStyle.Numbered) : doc.AddListNumbered();
                     if (options.ContinueNumbering && listStack.Count == 0 && cell == null && headerFooter == null) {
                         var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
                         _orderedListNumberId = (int?)field?.GetValue(list);

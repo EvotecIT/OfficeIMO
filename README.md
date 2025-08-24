@@ -79,6 +79,17 @@ Please consider sharing a post about OfficeIMO and the value it provides. It rea
 [![Share on facebook](https://img.shields.io/badge/share%20on-facebook-1976D2?logo=facebook)](https://www.facebook.com/sharer/sharer.php?u=https://github.com/EvotecIT/OfficeIMO)
 [![Share on linkedin](https://img.shields.io/badge/share%20on-linkedin-3949AB?logo=linkedin)](https://www.linkedin.com/shareArticle?url=https://github.com/EvotecIT/OfficeIMO&title=OfficeIMO)
 
+## Projects
+
+- OfficeIMO.Word: ./OfficeIMO.Word
+- OfficeIMO.Excel: ./OfficeIMO.Excel/README.md
+- OfficeIMO.PowerPoint: ./OfficeIMO.PowerPoint
+- OfficeIMO.Visio: ./OfficeIMO.Visio
+- OfficeIMO.Html: ./OfficeIMO.Html
+- OfficeIMO.Markdown: ./OfficeIMO.Markdown
+- OfficeIMO.Pdf: ./OfficeIMO.Pdf
+- Examples: ./OfficeIMO.Examples
+
 ## Features
 
 Here's a list of features currently supported (and probably a lot I forgot) and those that are planned. It's not a closed list, more of TODO, and I'm sure there's more:

@@ -38,11 +38,42 @@ namespace OfficeIMO.Excel {
         private readonly WorksheetPart _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private bool _isBatchOperation = false;
         private readonly object _batchLock = new object();
         private static int _nextTableId = 1;
         private static readonly object _tableIdLock = new object();
+
+        /// <summary>
+        /// Override execution policy for this sheet. Null = inherit from document.
+        /// </summary>
+        public ExecutionPolicy? ExecutionOverride { get; set; }
+
+        /// <summary>
+        /// Gets the effective execution policy for this sheet.
+        /// </summary>
+        internal ExecutionPolicy EffectiveExecution => ExecutionOverride ?? _excelDocument.Execution;
+
+        /// <summary>
+        /// Begin a no-lock context where operations bypass locking.
+        /// </summary>
+        public NoLockContext BeginNoLock() => new();
+
+        public sealed class NoLockContext : IDisposable
+        {
+            private readonly IDisposable _scope;
+            internal NoLockContext() => _scope = Locking.EnterNoLockScope();
+            public void Dispose() => _scope.Dispose();
+        }
+
+        /// <summary>
+        /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
+        /// </summary>
+        public string GetUsedRangeA1()
+        {
+            using var reader = _excelDocument.CreateReader();
+            var sh = reader.GetSheet(this.Name);
+            return sh.GetUsedRangeA1();
+        }
 
         /// <summary>
         /// Initializes a worksheet from an existing <see cref="Sheet"/> element.
@@ -114,11 +145,6 @@ namespace OfficeIMO.Excel {
             }
             if (column <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(column));
-            }
-
-            // Ensure we have write lock when manipulating DOM
-            if (!_lock.IsWriteLockHeld) {
-                throw new InvalidOperationException("GetCell must be called within a write lock");
             }
 
             SheetData sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
@@ -223,37 +249,78 @@ namespace OfficeIMO.Excel {
         }
 
         private string GetCellText(Cell cell) {
-            if (cell.CellValue == null) return string.Empty;
-            string value = cell.CellValue.InnerText;
-            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
-                if (int.TryParse(value, out int id)) {
-                    var item = _excelDocument.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(id);
-                    return item.InnerText;
+            // Shared string lookup
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
+            {
+                var raw = cell.CellValue?.InnerText;
+                if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int id))
+                {
+                    var sst = _excelDocument.SharedStringTablePart?.SharedStringTable;
+                    if (sst != null)
+                    {
+                        var item = sst.Elements<SharedStringItem>().ElementAtOrDefault(id);
+                        if (item != null)
+                        {
+                            // Prefer direct Text element when present; otherwise concatenate run texts
+                            if (item.Text != null)
+                            {
+                                return item.Text.Text ?? string.Empty;
+                            }
+                            var sb = new StringBuilder();
+                            foreach (var t in item.Descendants<Text>())
+                            {
+                                sb.Append(t.Text);
+                            }
+                            return sb.ToString();
+                        }
+                    }
                 }
+                return string.Empty;
             }
-            return value;
+
+            // Inline string
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString)
+            {
+                var inline = cell.InlineString;
+                if (inline != null)
+                {
+                    if (inline.Text != null)
+                    {
+                        return inline.Text.Text ?? string.Empty;
+                    }
+                    var sb = new StringBuilder();
+                    foreach (var r in inline.Elements<Run>())
+                    {
+                        if (r.Text != null) sb.Append(r.Text.Text);
+                    }
+                    return sb.ToString();
+                }
+                return string.Empty;
+            }
+
+            // Default: take cell value as-is (numbers, booleans, etc.)
+            return cell.CellValue?.InnerText ?? string.Empty;
         }
 
         private void WriteLock(Action action) {
-            _lock.EnterWriteLock();
-            try {
-                action();
-            } finally {
-                _lock.ExitWriteLock();
-            }
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), action);
         }
 
         private void WriteLockConditional(Action action) {
-            // If we're already in a batch operation (which holds the write lock),
+            // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
-            if (_isBatchOperation && _lock.IsWriteLockHeld) {
+            if (_isBatchOperation || Locking.IsNoLock) {
                 action();
             } else {
                 WriteLock(action);
             }
         }
 
-        private static SixLabors.Fonts.Font GetDefaultFont() {
+        private SixLabors.Fonts.Font GetDefaultFont() {
+            // Try to use the workbook's default font if present
+            var wf = GetWorkbookDefaultFont();
+            if (wf != null) return wf;
+
             string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
 
             foreach (var name in preferred) {
@@ -276,6 +343,33 @@ namespace OfficeIMO.Excel {
 
             // Fallback to first available family without validation
             return SystemFonts.Collection.Families.First().CreateFont(11);
+        }
+
+        private SixLabors.Fonts.Font? GetWorkbookDefaultFont() {
+            try {
+                var stylesPart = _spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+                var stylesheet = stylesPart?.Stylesheet;
+                var fonts = stylesheet?.Fonts;
+                var firstFont = fonts?.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().FirstOrDefault();
+                if (firstFont == null) return null;
+
+                var fontName = firstFont.GetFirstChild<FontName>()?.Val?.Value;
+                var fontSize = firstFont.GetFirstChild<FontSize>()?.Val?.Value ?? 11.0;
+                bool bold = firstFont.GetFirstChild<Bold>() != null;
+                bool italic = firstFont.GetFirstChild<Italic>() != null;
+
+                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
+                if (!string.IsNullOrEmpty(fontName)) {
+                    try {
+                        return SystemFonts.CreateFont(fontName, (float)fontSize, style);
+                    } catch (FontFamilyNotFoundException) {
+                        return null;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+            return null;
         }
 
         private static bool IsFontUsable(SixLabors.Fonts.Font font) {
@@ -306,19 +400,29 @@ namespace OfficeIMO.Excel {
             var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
             var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? defaultFont.Size;
             bool bold = fontElement.GetFirstChild<Bold>() != null;
+            bool italic = fontElement.GetFirstChild<Italic>() != null;
 
             try {
+                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
                 if (!string.IsNullOrEmpty(fontName)) {
-                    return SystemFonts.CreateFont(fontName, (float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+                    return SystemFonts.CreateFont(fontName, (float)fontSize, style);
                 }
-                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+                return defaultFont.Family.CreateFont((float)fontSize, style);
             } catch (FontFamilyNotFoundException) {
-                return defaultFont.Family.CreateFont((float)fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+                var fallbackStyle = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
+                return defaultFont.Family.CreateFont((float)fontSize, fallbackStyle);
             }
         }
 
         public void Dispose() {
-            _lock.Dispose();
+            // No local lock to dispose anymore - using document's lock
+        }
+
+        /// <summary>
+        /// Persists pending changes on this worksheet to its underlying OpenXml part.
+        /// </summary>
+        internal void Commit() {
+            _worksheetPart?.Worksheet?.Save();
         }
     }
 }

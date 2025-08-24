@@ -6,18 +6,27 @@ namespace OfficeIMO.Excel.Fluent {
 
         public ExcelFluentWorkbook(ExcelDocument workbook) {
             Workbook = workbook;
+            // Favor stability for fluent scenarios: default to Sequential mode
+            // Users can override (Workbook.Execution.Mode) if desired
+            Workbook.Execution.Mode = ExecutionMode.Sequential;
         }
 
         public ExcelFluentWorkbook Sheet(string name, Action<SheetBuilder> action) {
             var builder = new SheetBuilder(this);
             builder.AddSheet(name);
-            action(builder);
+            // Run all fluent operations in NoLock scope for stability
+            using (Locking.EnterNoLockScope()) {
+                action(builder);
+            }
             return this;
         }
 
         public ExcelFluentWorkbook Sheet(Action<SheetBuilder> action) {
             var builder = new SheetBuilder(this);
-            action(builder);
+            // Run all fluent operations in NoLock scope for stability
+            using (Locking.EnterNoLockScope()) {
+                action(builder);
+            }
             return this;
         }
 

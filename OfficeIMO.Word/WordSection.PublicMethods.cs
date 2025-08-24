@@ -29,8 +29,9 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraph(bool newRun) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph(wordParagraph);
-                return paragraph;
+                // Historical behavior: delegate to document so first content lands correctly
+                // for both initial and subsequently added sections.
+                return this._document.AddParagraph(wordParagraph);
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this, wordParagraph);
@@ -46,17 +47,16 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraph(string text = "") {
             if (this.Paragraphs.Count == 0) {
                 WordParagraph paragraph = this._document.AddParagraph();
-                if (text != "") {
+                if (!string.IsNullOrEmpty(text)) {
                     paragraph.Text = text;
                 }
-
                 return paragraph;
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
 
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
                 paragraph._document = this._document;
-                if (text != "") {
+                if (!string.IsNullOrEmpty(text)) {
                     paragraph.Text = text;
                 }
 

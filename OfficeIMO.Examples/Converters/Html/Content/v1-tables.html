@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>03 – Tables</title>
+  
+</head>
+<body>
+<header>
+  <h1>03 – Tables</h1>
+  <p><small>Generated 2025-08-23 06:22:17</small></p>
+  <hr>
+</header>
+
+<p>Tables with thead/tbody/tfoot, merged cells, borders, and captions.</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <caption>Simple Table</caption>
+  <thead>
+    <tr><th>ID</th><th>Name</th><th>Role</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Alice</td><td>Admin</td></tr>
+    <tr><td>2</td><td>Bob</td><td>User</td></tr>
+    <tr><td>3</td><td>Charlie</td><td>Guest</td></tr>
+  </tbody>
+  <tfoot>
+    <tr><td colspan="3">Footer total: 3 rows</td></tr>
+  </tfoot>
+</table>
+
+<h3>Colspan/Rowspan</h3>
+<table style="border-collapse:collapse; border:1px solid #333;">
+  <tr>
+    <th style="border:1px solid #333; padding:6px;">Merged Header</th>
+    <th style="border:1px solid #333; padding:6px;">Q1</th>
+    <th style="border:1px solid #333; padding:6px;">Q2</th>
+  </tr>
+  <tr>
+    <td style="border:1px solid #333; padding:6px;" rowspan="2">2011–2012</td>
+    <td style="border:1px solid #333; padding:6px;">100</td>
+    <td style="border:1px solid #333; padding:6px;">120</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #333; padding:6px;">110</td>
+    <td style="border:1px solid #333; padding:6px;">130</td>
+  </tr>
+</table>
+
+<h3>Colgroup</h3>
+<table style="border-collapse:collapse; border:1px solid #333;">
+  <colgroup>
+    <col span="1" style="background:#f8f9fa;">
+    <col span="2" style="background:#e9ecef;">
+  </colgroup>
+  <tr>
+    <th style="border:1px solid #333; padding:6px;">Region</th>
+    <th style="border:1px solid #333; padding:6px;">Sales</th>
+    <th style="border:1px solid #333; padding:6px;">Profit</th>
+  </tr>
+  <tr>
+    <td style="border:1px solid #333; padding:6px;">EU</td>
+    <td style="border:1px solid #333; padding:6px;">200</td>
+    <td style="border:1px solid #333; padding:6px;">30</td>
+  </tr>
+</table>
+
+<footer>
+  <hr>
+  <p><small>OfficeIMO Roundtrip Test — 03 – Tables</small></p>
+</footer>
+</body>
+</html>

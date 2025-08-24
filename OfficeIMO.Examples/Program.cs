@@ -15,14 +15,12 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
-
             // Visio - Core Examples
             OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             OfficeIMO.Examples.Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
             OfficeIMO.Examples.Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
             OfficeIMO.Examples.Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
             OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
-
 
             // Excel/BasicExcelFunctionality
             OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
@@ -38,6 +36,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
             // Excel/AutoFilter
             OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
+            // Excel/Styles & Colors
+            OfficeIMO.Examples.Excel.StylesColors.Example(folderPath, false);
             // Excel/Freeze
             OfficeIMO.Examples.Excel.Freeze.Example(folderPath, false);
             // Excel/ConditionalFormatting
@@ -55,6 +55,16 @@ namespace OfficeIMO.Examples {
             // Excel/Fluent
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
             OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
+            OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
+            OfficeIMO.Examples.Excel.TestDateTime.Example_TestDateTime(folderPath, false);
+            // Excel/Read with custom converters
+            OfficeIMO.Examples.Excel.ReadWithConverters.Example(folderPath, false);
+            // Excel/Read presets and static helpers
+            OfficeIMO.Examples.Excel.ReadPresetsAndHelpers.Example(folderPath, false);
+            // Excel/Read for PowerShell consumption (emits JSON rows)
+            OfficeIMO.Examples.Excel.ReadForPowerShell.Example(folderPath, false);
+            // Excel/PowerShell-style round trip: write → read → modify → write → JSON
+            OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
@@ -67,17 +77,18 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
             OfficeIMO.Examples.PowerPoint.ValidateDocument.Example(folderPath, false);
             OfficeIMO.Examples.PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
-            return;
-            // Html/Html
-            OfficeIMO.Examples.Html.Html.Example_HtmlHeadings(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlImages(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlFigureWithCaption(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlInterface(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlLists(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlRoundTrip(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlTables(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlNestedTables(folderPath, false);
-            OfficeIMO.Examples.Html.Html.Example_HtmlComplexStyles(folderPath, false);
+            // Html/Html (consolidated set)
+            //             OfficeIMO.Examples.Html.Html.Example_Html01_LoadAndRoundTripBasics(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html02_SaveAsHtmlFromWord(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html03_TextFormatting(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html04_ListsAndNumbering(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html05_TablesComplex(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html06_ImagesAllModes(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html07_LinksAndAnchors(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html08_SemanticsAndCitations(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html09_CodePreWhitespace(folderPath, false);
+            OfficeIMO.Examples.Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
+            OfficeIMO.Examples.Html.Html.Example_Html00_AllInOne(folderPath, false);
             // Markdown/Markdown
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownInterface(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownLists(folderPath, false);

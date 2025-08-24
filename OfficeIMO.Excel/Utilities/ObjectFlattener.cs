@@ -6,23 +6,6 @@ using System.Linq;
 using System.Reflection;
 
 namespace OfficeIMO.Excel.Utilities {
-    public enum HeaderCase {
-        Raw,
-        Pascal,
-        Title
-    }
-
-    public enum NullPolicy {
-        EmptyString,
-        NullLiteral,
-        DefaultValue
-    }
-
-    public enum CollectionMode {
-        JoinWith,
-        ExpandRows
-    }
-
     public class ObjectFlattenerOptions {
         public List<string> ExpandProperties { get; } = new();
         public bool IncludeFullObjects { get; set; }

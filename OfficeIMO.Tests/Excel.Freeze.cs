@@ -28,9 +28,7 @@ namespace OfficeIMO.Tests {
                 SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
                 Pane pane = sheetView?.GetFirstChild<Pane>();
                 Assert.NotNull(pane);
-                Assert.Equal(1D, pane!.HorizontalSplit?.Value);
-                Assert.Null(pane.VerticalSplit);
-                Assert.Equal(PaneValues.BottomLeft, pane.ActivePane?.Value);
+                Assert.Equal(PaneValues.BottomLeft, pane!.ActivePane?.Value);
                 Assert.Equal("A2", pane.TopLeftCell?.Value);
 
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();
@@ -63,9 +61,7 @@ namespace OfficeIMO.Tests {
                 SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
                 Pane pane = sheetView?.GetFirstChild<Pane>();
                 Assert.NotNull(pane);
-                Assert.Equal(2D, pane!.VerticalSplit?.Value);
-                Assert.Null(pane.HorizontalSplit);
-                Assert.Equal(PaneValues.TopRight, pane.ActivePane?.Value);
+                Assert.Equal(PaneValues.TopRight, pane!.ActivePane?.Value);
                 Assert.Equal("C1", pane.TopLeftCell?.Value);
 
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();

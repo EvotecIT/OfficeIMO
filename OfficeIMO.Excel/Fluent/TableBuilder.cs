@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.Fluent {
         private readonly ExcelSheet _sheet;
         private TableStyle _style = TableStyle.TableStyleLight9;
         private bool _hasHeader = true;
+        private bool _includeAutoFilter = true;
 
         internal TableBuilder(ExcelSheet sheet) {
             _sheet = sheet;
@@ -19,12 +20,17 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        internal void Build(string range, string name) {
-            _sheet.AddTable(range, _hasHeader, name, _style);
+        public TableBuilder WithAutoFilter(bool includeAutoFilter = true) {
+            _includeAutoFilter = includeAutoFilter;
+            return this;
         }
 
-        public TableBuilder Add(string range, bool hasHeader = true, string name = "", TableStyle style = TableStyle.TableStyleLight9) {
-            _sheet.AddTable(range, hasHeader, name, style);
+        internal void Build(string range, string name) {
+            _sheet.AddTable(range, _hasHeader, name, _style, _includeAutoFilter);
+        }
+
+        public TableBuilder Add(string range, bool hasHeader = true, string name = "", TableStyle style = TableStyle.TableStyleLight9, bool includeAutoFilter = true) {
+            _sheet.AddTable(range, hasHeader, name, style, includeAutoFilter);
             return this;
         }
     }

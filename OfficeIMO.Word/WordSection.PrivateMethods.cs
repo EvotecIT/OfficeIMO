@@ -500,9 +500,15 @@ namespace OfficeIMO.Word {
                             // converts Table to WordTable
                             WordTable wordTable = new WordTable(_document, (Table)element);
                             dataSections[count].Add(wordTable);
+                        } else if (element is SectionProperties sp) {
+                            // Section boundary marker; handled below. No warning needed.
+                            if (AreSectionPropertiesEqual(sp, _sectionProperties)) {
+                                foundCount = count;
+                            }
                         } else {
-                            // TODO: Implement other types
-                            Debug.WriteLine("Missing type? " + element.GetType().Name + ". Maybe lets add it?");
+                            // Other body-level elements currently not mapped to WordElement
+                            // (e.g., bookmarks, custom XML). Intentionally skip noisy warnings.
+                            // Debug.WriteLine($"Unmapped body element: {element.GetType().Name}");
                         }
                     }
 
