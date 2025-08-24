@@ -417,7 +417,7 @@ namespace OfficeIMO.Visio {
                     XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
                     string? value = valueCell?.Attribute("V")?.Value;
                     if (!string.IsNullOrEmpty(key) && value != null) {
-                        shape.Data[key] = value;
+                        shape.Data[key!] = value;
                     }
                 }
             }
@@ -489,20 +489,21 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Saves the document to a <c>.vsdx</c> package.
+        /// Saves the document to the file previously specified when opening or saving.
         /// </summary>
+        public void Save() {
+            string filePath = _filePath ?? throw new InvalidOperationException("File path is not set.");
+            SaveInternal(filePath);
+        }
+
         /// <summary>
         /// Saves the document to a file.
         /// </summary>
-        /// <param name="filePath">Path to save the file.</param>
-        public void Save() {
-            if (string.IsNullOrEmpty(_filePath)) {
-                throw new InvalidOperationException("File path is not set.");
-            }
-            SaveInternal(_filePath);
-        }
-
+        /// <param name="filePath">Path where the file should be saved.</param>
         public void Save(string filePath) {
+            if (filePath == null) {
+                throw new ArgumentNullException(nameof(filePath));
+            }
             _filePath = filePath;
             SaveInternal(filePath);
         }

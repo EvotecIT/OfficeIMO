@@ -44,16 +44,34 @@ namespace OfficeIMO.Visio {
 
         public double Width { get; set; }
 
+        /// <summary>
+        /// Height of the shape.
+        /// </summary>
         public double Height { get; set; }
 
+        /// <summary>
+        /// Thickness of the shape's outline.
+        /// </summary>
         public double LineWeight { get; set; }
 
+        /// <summary>
+        /// Local X coordinate of the pin (anchor) point.
+        /// </summary>
         public double LocPinX { get; set; }
 
+        /// <summary>
+        /// Local Y coordinate of the pin (anchor) point.
+        /// </summary>
         public double LocPinY { get; set; }
 
+        /// <summary>
+        /// Rotation angle in radians.
+        /// </summary>
         public double Angle { get; set; }
 
+        /// <summary>
+        /// Text displayed by the shape.
+        /// </summary>
         public string? Text { get; set; }
         
         /// <summary>
@@ -76,8 +94,14 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int FillPattern { get; set; }
 
+        /// <summary>
+        /// Connection points associated with the shape.
+        /// </summary>
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
 
+        /// <summary>
+        /// Custom data stored on the shape.
+        /// </summary>
         public Dictionary<string, string> Data { get; } = new();
 
         /// <summary>

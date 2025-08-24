@@ -8,6 +8,9 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
+    /// <summary>
+    /// Validates and optionally fixes Visio <c>.vsdx</c> packages.
+    /// </summary>
     public class VsdxPackageValidator {
         private static readonly XNamespace nsCore = "http://schemas.microsoft.com/office/visio/2011/1/core";
         private static readonly XNamespace nsPkgRel = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -27,10 +30,25 @@ namespace OfficeIMO.Visio {
         private readonly List<string> _warnings = new();
         private readonly List<string> _fixes = new();
 
+        /// <summary>
+        /// List of validation errors.
+        /// </summary>
         public IReadOnlyList<string> Errors => _errors.AsReadOnly();
+
+        /// <summary>
+        /// List of validation warnings.
+        /// </summary>
         public IReadOnlyList<string> Warnings => _warnings.AsReadOnly();
+
+        /// <summary>
+        /// List of fixes applied when repairing a package.
+        /// </summary>
         public IReadOnlyList<string> Fixes => _fixes.AsReadOnly();
 
+        /// <summary>
+        /// Validates the specified <c>.vsdx</c> file.
+        /// </summary>
+        /// <param name="inputPath">Path to the file to validate.</param>
         public bool ValidateFile(string inputPath) {
             _errors.Clear();
             _warnings.Clear();
@@ -50,6 +68,11 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        /// <summary>
+        /// Validates and fixes the specified file, writing the result to <paramref name="outputPath"/>.
+        /// </summary>
+        /// <param name="inputPath">Path to the file to fix.</param>
+        /// <param name="outputPath">Path to save the fixed file.</param>
         public bool FixFile(string inputPath, string outputPath) {
             _errors.Clear();
             _warnings.Clear();

@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
                     if (!string.IsNullOrEmpty(existingSlideId.RelationshipId)) {
-                        existingRelationships.Add(existingSlideId.RelationshipId);
+                        existingRelationships.Add(existingSlideId.RelationshipId!);
                     }
                 }
             }
@@ -238,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
             slideId.Remove();
 
             if (!string.IsNullOrEmpty(relId)) {
-                OpenXmlPart part = _presentationPart.GetPartById(relId);
+                OpenXmlPart part = _presentationPart.GetPartById(relId!);
                 _presentationPart.DeletePart(part);
             }
 

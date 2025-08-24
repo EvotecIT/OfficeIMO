@@ -7,6 +7,9 @@ using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
+    /// <summary>
+    /// Validates the structure of Visio <c>.vsdx</c> packages.
+    /// </summary>
     public static class VisioValidator {
         private static readonly XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
         private static readonly XNamespace rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -21,6 +24,10 @@ namespace OfficeIMO.Visio {
         private const string CT_Pages = "application/vnd.ms-visio.pages+xml";
         private const string CT_Page = "application/vnd.ms-visio.page+xml";
 
+        /// <summary>
+        /// Validates the specified Visio file and returns a list of issues.
+        /// </summary>
+        /// <param name="vsdxPath">Path to the <c>.vsdx</c> file.</param>
         public static IReadOnlyList<string> Validate(string vsdxPath) {
             List<string> issues = new();
             using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
