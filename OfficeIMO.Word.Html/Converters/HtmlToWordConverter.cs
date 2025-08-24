@@ -423,7 +423,8 @@ namespace OfficeIMO.Word.Html.Converters {
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
                             }
-                            int startIndex = doc.Paragraphs.Count;
+                            // Track start within this section rather than whole document
+                            int startIndex = section.Paragraphs.Count;
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -437,7 +438,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             var id = element.GetAttribute("id");
                             if (!string.IsNullOrEmpty(id)) {
-                                var paragraph = doc.Paragraphs.Count > startIndex ? doc.Paragraphs[startIndex] : cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : (cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph(""));
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
                             break;

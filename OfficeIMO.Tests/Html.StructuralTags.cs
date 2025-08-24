@@ -56,6 +56,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(doc.Bookmarks, b => b.Name == "article:art");
 
             string roundTrip = doc.ToHtml();
+            System.Console.WriteLine(roundTrip);
             Assert.Contains("<section id=\"intro\">", roundTrip);
             Assert.Contains("<article id=\"art\">", roundTrip);
         }
