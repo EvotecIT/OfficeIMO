@@ -224,7 +224,8 @@ namespace OfficeIMO.Word.Html.Converters {
                         continue;
                     }
 
-                    INode node = htmlDoc.CreateTextNode(run.Text);
+                    // Ensure null-safe text handling
+                    INode node = htmlDoc.CreateTextNode(run.Text ?? string.Empty);
 
                     if (run.Bold) {
                         var strong = htmlDoc.CreateElement("strong");
@@ -263,10 +264,14 @@ namespace OfficeIMO.Word.Html.Converters {
                     }
 
                     if (run.IsHyperLink && run.Hyperlink != null) {
-                        var a = htmlDoc.CreateElement("a");
-                        a.SetAttribute("href", run.Hyperlink.Uri.ToString());
-                        a.AppendChild(node);
-                        node = a;
+                        var href = run.Hyperlink.Uri?.ToString();
+                        if (!string.IsNullOrEmpty(href)) {
+                            var a = htmlDoc.CreateElement("a");
+                            a.SetAttribute("href", href);
+                            a.AppendChild(node);
+                            node = a;
+                        }
+                        // if href is null/empty, fall back to plain text
                     }
 
                     bool handledHtmlStyle = false;

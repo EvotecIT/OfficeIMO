@@ -176,14 +176,13 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlToWordOptions();
             type ??= HeaderFooterValues.Default;
 
+            // Prefer section-scoped headers to avoid multi-section warnings
+            var targetSection = doc.Sections.Last();
+            var headers = targetSection.Header;
             WordHeader header;
-            if (type == HeaderFooterValues.First) {
-                header = doc.Header.First;
-            } else if (type == HeaderFooterValues.Even) {
-                header = doc.Header.Even;
-            } else {
-                header = doc.Header.Default;
-            }
+            if (type == HeaderFooterValues.First) header = headers.First;
+            else if (type == HeaderFooterValues.Even) header = headers.Even;
+            else header = headers.Default;
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
@@ -218,14 +217,13 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlToWordOptions();
             type ??= HeaderFooterValues.Default;
 
+            // Prefer section-scoped footers to avoid multi-section warnings
+            var targetSection = doc.Sections.Last();
+            var footers = targetSection.Footer;
             WordFooter footer;
-            if (type == HeaderFooterValues.First) {
-                footer = doc.Footer.First;
-            } else if (type == HeaderFooterValues.Even) {
-                footer = doc.Footer.Even;
-            } else {
-                footer = doc.Footer.Default;
-            }
+            if (type == HeaderFooterValues.First) footer = footers.First;
+            else if (type == HeaderFooterValues.Even) footer = footers.Even;
+            else footer = footers.Default;
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);

@@ -1858,12 +1858,20 @@ namespace OfficeIMO.Word {
             blipExtensionList.Append(blipExtension1);
 
             if (System.IO.Path.GetExtension(fileName).Equals(".svg", StringComparison.OrdinalIgnoreCase)) {
+                // Add Office 2010 a14:svgBlip extension that points to the SVG ImagePart
                 var svgExt = new BlipExtension() {
                     Uri = "{96DAC541-7B7A-43D3-8B79-8F7C33B92B69}"
                 };
-                var svgBlip = new OpenXmlUnknownElement("a14:svgBlip");
-                svgBlip.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
-                svgBlip.SetAttribute(new OpenXmlAttribute("r", "embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", relationshipId));
+                // Create unknown element with correct prefix and namespace
+                var svgBlip = new OpenXmlUnknownElement(
+                    "a14",
+                    "svgBlip",
+                    "http://schemas.microsoft.com/office/drawing/2010/main");
+                svgBlip.SetAttribute(new OpenXmlAttribute(
+                    "r",
+                    "embed",
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+                    relationshipId));
                 svgExt.Append(svgBlip);
                 blipExtensionList.Append(svgExt);
             }

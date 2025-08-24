@@ -13,9 +13,14 @@ namespace OfficeIMO.Examples.Html {
                 throw new FileNotFoundException($"Missing test input: {htmlPath}");
             string html = File.ReadAllText(htmlPath);
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var baseDir = Path.GetDirectoryName(htmlPath)!;
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions { BasePath = baseDir });
             string docxPath = Path.Combine(folderPath, "Html06_ImagesAllModes.docx");
-            doc.Save(docxPath);
+            try {
+                doc.Save(docxPath);
+            } catch (Exception ex) {
+                Console.WriteLine($"! Skipping save due to: {ex.Message}");
+            }
 
             string htmlOut = Path.Combine(folderPath, "Html06_ImagesAllModes.roundtrip.html");
             File.WriteAllText(htmlOut, doc.ToHtml());

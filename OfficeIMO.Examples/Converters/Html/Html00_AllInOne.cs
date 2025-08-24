@@ -13,7 +13,8 @@ namespace OfficeIMO.Examples.Html {
                 throw new FileNotFoundException($"Missing test input: {htmlPath}");
 
             string html = File.ReadAllText(htmlPath);
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
+            var baseDir = Path.GetDirectoryName(htmlPath)!;
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri", BasePath = baseDir });
 
             string docxPath = Path.Combine(folderPath, "Html00_AllInOne.docx");
             doc.Save(docxPath);
@@ -30,4 +31,3 @@ namespace OfficeIMO.Examples.Html {
         }
     }
 }
-

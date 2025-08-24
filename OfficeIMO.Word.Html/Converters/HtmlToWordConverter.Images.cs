@@ -41,7 +41,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            var alt = img.AlternativeText;
+            var alt = img.AlternativeText ?? string.Empty;
 
             WordParagraph? paragraph = currentParagraph;
 
@@ -55,27 +55,54 @@ namespace OfficeIMO.Word.Html.Converters {
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 var commaIndex = src.IndexOf(',');
                 if (commaIndex > 0) {
-                    var meta = src.Substring(5, commaIndex - 5); // e.g., image/png;base64
-                    var base64 = src.Substring(commaIndex + 1);
-                    var ext = "png";
-                    var parts = meta.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length >= 2) {
-                        ext = parts[1];
+                    try {
+                        var meta = src.Substring(5, commaIndex - 5); // e.g., image/png;base64
+                        var base64 = src.Substring(commaIndex + 1);
+                        var ext = "png";
+                        var parts = meta.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 2) {
+                            ext = parts[1];
+                        }
+                        paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                        paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt);
+                        image = paragraph.Image;
+                    } catch (Exception ex) {
+                        Console.WriteLine($"Failed to decode data-image: {ex.Message}");
+                        if (!string.IsNullOrEmpty(alt)) {
+                            paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
+                            paragraph.AddText(alt);
+                        }
+                        return;
                     }
-                    paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt);
-                    image = paragraph.Image;
                 } else {
                     return;
                 }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
-                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
-                image = paragraph.Image;
+                try {
+                    paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                    paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
+                    image = paragraph.Image;
+                } catch (Exception ex) {
+                    Console.WriteLine($"Failed to load image from file '{uri.LocalPath}': {ex.Message}");
+                    if (!string.IsNullOrEmpty(alt)) {
+                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
+                        paragraph.AddText(alt);
+                    }
+                    return;
+                }
             } else if (File.Exists(src)) {
-                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(src, width, height, wrap, description: alt);
-                image = paragraph.Image;
+                try {
+                    paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                    paragraph.AddImage(src, width, height, wrap, description: alt);
+                    image = paragraph.Image;
+                } catch (Exception ex) {
+                    Console.WriteLine($"Failed to load image from file '{src}': {ex.Message}");
+                    if (!string.IsNullOrEmpty(alt)) {
+                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
+                        paragraph.AddText(alt);
+                    }
+                    return;
+                }
             } else {
                 try {
                     using HttpClient client = new HttpClient();
@@ -138,8 +165,15 @@ namespace OfficeIMO.Word.Html.Converters {
                 svgContent = client.GetStringAsync(src).GetAwaiter().GetResult();
             }
 
-            SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
-            _imageCache[src] = paragraph.Image;
+            try {
+                SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
+                _imageCache[src] = paragraph.Image;
+            } catch (System.Exception ex) {
+                System.Console.WriteLine($"Failed to embed SVG: {ex.Message}");
+                if (!string.IsNullOrEmpty(alt)) {
+                    paragraph.AddText(alt);
+                }
+            }
         }
 
         private void ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
@@ -149,7 +183,11 @@ namespace OfficeIMO.Word.Html.Converters {
             if (double.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), out var h)) height = h;
 
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : section.AddParagraph());
-            SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
+            try {
+                SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
+            } catch (System.Exception ex) {
+                System.Console.WriteLine($"Failed to embed inline SVG: {ex.Message}");
+            }
         }
     }
 }
