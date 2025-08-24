@@ -5,6 +5,10 @@ namespace OfficeIMO.Visio {
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisioShape"/> class with the specified identifier.
+        /// </summary>
+        /// <param name="id">Identifier of the shape.</param>
         public VisioShape(string id) {
             Id = id;
             LineWeight = 0.0138889;
@@ -15,6 +19,15 @@ namespace OfficeIMO.Visio {
             FillPattern = 1; // Solid fill
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VisioShape"/> class.
+        /// </summary>
+        /// <param name="id">Identifier of the shape.</param>
+        /// <param name="pinX">X coordinate of the pin.</param>
+        /// <param name="pinY">Y coordinate of the pin.</param>
+        /// <param name="width">Width of the shape.</param>
+        /// <param name="height">Height of the shape.</param>
+        /// <param name="text">Text contained within the shape.</param>
         public VisioShape(string id, double pinX, double pinY, double width, double height, string text) : this(id) {
             PinX = pinX;
             PinY = pinY;
@@ -30,30 +43,69 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string Id { get; }
 
+        /// <summary>
+        /// Gets or sets the shape name.
+        /// </summary>
         public string? Name { get; set; }
 
+        /// <summary>
+        /// Gets or sets the universal name of the shape.
+        /// </summary>
         public string? NameU { get; set; }
 
+        /// <summary>
+        /// Gets or sets the master associated with the shape.
+        /// </summary>
         public VisioMaster? Master { get; set; }
 
+        /// <summary>
+        /// Gets the universal name of the master.
+        /// </summary>
         public string? MasterNameU => Master?.NameU;
 
+        /// <summary>
+        /// Gets or sets the X coordinate of the pin.
+        /// </summary>
         public double PinX { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Y coordinate of the pin.
+        /// </summary>
         public double PinY { get; set; }
 
+        /// <summary>
+        /// Gets or sets the width of the shape.
+        /// </summary>
         public double Width { get; set; }
 
+        /// <summary>
+        /// Gets or sets the height of the shape.
+        /// </summary>
         public double Height { get; set; }
 
+        /// <summary>
+        /// Gets or sets the line weight of the shape.
+        /// </summary>
         public double LineWeight { get; set; }
 
+        /// <summary>
+        /// Gets or sets the X coordinate of the local pin.
+        /// </summary>
         public double LocPinX { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Y coordinate of the local pin.
+        /// </summary>
         public double LocPinY { get; set; }
 
+        /// <summary>
+        /// Gets or sets the rotation angle of the shape in radians.
+        /// </summary>
         public double Angle { get; set; }
 
+        /// <summary>
+        /// Gets or sets the text contained in the shape.
+        /// </summary>
         public string? Text { get; set; }
         
         /// <summary>
@@ -76,8 +128,14 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int FillPattern { get; set; }
 
+        /// <summary>
+        /// Connection points associated with the shape.
+        /// </summary>
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
 
+        /// <summary>
+        /// Arbitrary data associated with the shape.
+        /// </summary>
         public Dictionary<string, string> Data { get; } = new();
 
         /// <summary>

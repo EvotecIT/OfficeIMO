@@ -8,6 +8,9 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
+    /// <summary>
+    /// Validates and optionally fixes Visio VSDX packages for common structural issues.
+    /// </summary>
     public class VsdxPackageValidator {
         private static readonly XNamespace nsCore = "http://schemas.microsoft.com/office/visio/2011/1/core";
         private static readonly XNamespace nsPkgRel = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -27,10 +30,26 @@ namespace OfficeIMO.Visio {
         private readonly List<string> _warnings = new();
         private readonly List<string> _fixes = new();
 
+        /// <summary>
+        /// Gets the list of validation errors.
+        /// </summary>
         public IReadOnlyList<string> Errors => _errors.AsReadOnly();
+
+        /// <summary>
+        /// Gets the list of warnings encountered during validation.
+        /// </summary>
         public IReadOnlyList<string> Warnings => _warnings.AsReadOnly();
+
+        /// <summary>
+        /// Gets the list of fixes applied when running in fix mode.
+        /// </summary>
         public IReadOnlyList<string> Fixes => _fixes.AsReadOnly();
 
+        /// <summary>
+        /// Validates the specified VSDX file.
+        /// </summary>
+        /// <param name="inputPath">Path to the input VSDX file.</param>
+        /// <returns><c>true</c> if no errors were found; otherwise, <c>false</c>.</returns>
         public bool ValidateFile(string inputPath) {
             _errors.Clear();
             _warnings.Clear();
@@ -50,6 +69,12 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        /// <summary>
+        /// Validates and fixes the specified VSDX file.
+        /// </summary>
+        /// <param name="inputPath">Path to the input VSDX file.</param>
+        /// <param name="outputPath">Path where the fixed file will be saved.</param>
+        /// <returns><c>true</c> if the file was fixed successfully; otherwise, <c>false</c>.</returns>
         public bool FixFile(string inputPath, string outputPath) {
             _errors.Clear();
             _warnings.Clear();
@@ -217,7 +242,7 @@ namespace OfficeIMO.Visio {
                     _fixes.Add("Added root -> document.xml relationship");
                 }
             } else {
-                var target = (string)docRel.Attribute("Target");
+                string? target = (string?)docRel.Attribute("Target");
                 if (!string.Equals(target, "visio/document.xml", StringComparison.OrdinalIgnoreCase)) {
                     _warnings.Add($"Root document relationship target is '{target}', expected 'visio/document.xml'");
                 }
@@ -258,8 +283,8 @@ namespace OfficeIMO.Visio {
             bool modified = false;
             var rels = doc.Root.Elements(nsPkgRel + "Relationship").ToList();
             
-            var pagesRel = rels.FirstOrDefault(r => 
-                (string)r.Attribute("Type") == RT_Pages);
+            var pagesRel = rels.FirstOrDefault(r =>
+                (string?)r.Attribute("Type") == RT_Pages);
             
             if (pagesRel == null) {
                 _errors.Add("document.xml.rels has no pages relationship");
@@ -273,12 +298,12 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            var mastersRel = rels.FirstOrDefault(r => 
-                (string)r.Attribute("Type") == RT_Masters);
+            var mastersRel = rels.FirstOrDefault(r =>
+                (string?)r.Attribute("Type") == RT_Masters);
             
             if (mastersRel != null) {
-                var target = Path.Combine(tempPath, "visio", 
-                    ((string)mastersRel.Attribute("Target") ?? "").Replace('/', Path.DirectorySeparatorChar));
+                    var target = Path.Combine(tempPath, "visio",
+                        ((string?)mastersRel.Attribute("Target") ?? "").Replace('/', Path.DirectorySeparatorChar));
                 
                 if (!File.Exists(target)) {
                     _errors.Add("document.xml.rels references masters but masters.xml does not exist");
@@ -323,15 +348,15 @@ namespace OfficeIMO.Visio {
 
             if (pagesDoc?.Root != null && pagesRelsDoc?.Root != null) {
                 var relElements = pagesDoc.Descendants(nsCore + "Rel").ToList();
-                var relMap = pagesRelsDoc.Root.Elements(nsPkgRel + "Relationship")
-                    .ToDictionary(e => (string)e.Attribute("Id") ?? "", 
-                                  e => (string)e.Attribute("Target") ?? "");
+            var relMap = pagesRelsDoc.Root.Elements(nsPkgRel + "Relationship")
+                .ToDictionary(e => (string?)e.Attribute("Id") ?? "",
+                              e => (string?)e.Attribute("Target") ?? "");
 
                 int pageIndex = 1;
                 bool modified = false;
                 
                 foreach (var rel in relElements) {
-                    var id = (string)rel.Attribute(nsDocRel + "id") ?? "";
+                    var id = (string?)rel.Attribute(nsDocRel + "id") ?? "";
                     if (string.IsNullOrWhiteSpace(id)) {
                         _errors.Add("A <Rel> in pages.xml has no r:id");
                         continue;
@@ -381,17 +406,17 @@ namespace OfficeIMO.Visio {
 
             var styleSheets = docDoc.Root.Element(nsCore + "StyleSheets");
             bool hasStyle0 = styleSheets?.Elements(nsCore + "StyleSheet")
-                .Any(s => (string)s.Attribute("ID") == "0") ?? false;
+                .Any(s => (string?)s.Attribute("ID") == "0") ?? false;
 
             var pageSheet = pagesDoc.Descendants(nsCore + "PageSheet").FirstOrDefault();
-            if (pageSheet != null) {
-                var lineStyle = (string)pageSheet.Attribute("LineStyle");
-                var fillStyle = (string)pageSheet.Attribute("FillStyle");
-                var textStyle = (string)pageSheet.Attribute("TextStyle");
+                if (pageSheet != null) {
+                    string? lineStyle = (string?)pageSheet.Attribute("LineStyle");
+                    string? fillStyle = (string?)pageSheet.Attribute("FillStyle");
+                    string? textStyle = (string?)pageSheet.Attribute("TextStyle");
 
-                bool needsStyle0 = IsStyle0Referenced(lineStyle) || 
-                                   IsStyle0Referenced(fillStyle) || 
-                                   IsStyle0Referenced(textStyle);
+                    bool needsStyle0 = IsStyle0Referenced(lineStyle) ||
+                                       IsStyle0Referenced(fillStyle) ||
+                                       IsStyle0Referenced(textStyle);
 
                 if (needsStyle0 && !hasStyle0) {
                     _warnings.Add("PageSheet references style ID 0 but no <StyleSheet ID=\"0\"> exists");
@@ -423,13 +448,11 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private bool IsStyle0Referenced(string styleValue) {
-            return !string.IsNullOrEmpty(styleValue) && 
-                   int.TryParse(styleValue, out var id) && 
-                   id == 0;
+        private bool IsStyle0Referenced(string? styleValue) {
+            return int.TryParse(styleValue, out var id) && id == 0;
         }
 
-        private XDocument LoadXml(string path) {
+        private XDocument? LoadXml(string path) {
             try {
                 return XDocument.Load(path, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             } catch {
@@ -439,7 +462,7 @@ namespace OfficeIMO.Visio {
 
         private void SaveXml(XDocument doc, string path) {
             var dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir)) {
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) {
                 Directory.CreateDirectory(dir);
             }
 
@@ -456,14 +479,14 @@ namespace OfficeIMO.Visio {
 
         private bool HasDefault(XDocument doc, string ext, string contentType) {
             return doc.Root.Elements(nsCT + "Default").Any(e =>
-                (string)e.Attribute("Extension") == ext &&
-                (string)e.Attribute("ContentType") == contentType);
+                (string?)e.Attribute("Extension") == ext &&
+                (string?)e.Attribute("ContentType") == contentType);
         }
 
         private bool HasOverride(XDocument doc, string partName, string contentType) {
             return doc.Root.Elements(nsCT + "Override").Any(e =>
-                (string)e.Attribute("PartName") == partName &&
-                (string)e.Attribute("ContentType") == contentType);
+                (string?)e.Attribute("PartName") == partName &&
+                (string?)e.Attribute("ContentType") == contentType);
         }
 
         private void AddDefault(XDocument doc, string ext, string contentType) {

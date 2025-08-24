@@ -7,6 +7,9 @@ using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
+    /// <summary>
+    /// Provides methods to validate Visio packages for basic compliance.
+    /// </summary>
     public static class VisioValidator {
         private static readonly XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
         private static readonly XNamespace rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -21,6 +24,11 @@ namespace OfficeIMO.Visio {
         private const string CT_Pages = "application/vnd.ms-visio.pages+xml";
         private const string CT_Page = "application/vnd.ms-visio.page+xml";
 
+        /// <summary>
+        /// Validates the specified Visio package.
+        /// </summary>
+        /// <param name="vsdxPath">Path to the VSDX package.</param>
+        /// <returns>List of validation issues.</returns>
         public static IReadOnlyList<string> Validate(string vsdxPath) {
             List<string> issues = new();
             using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -76,8 +84,10 @@ namespace OfficeIMO.Visio {
                 }
 
                 XElement? relChild = page.Element(v + "Rel");
-                string? rid = (string?)relChild?.Attribute(rel + "id");
-                if (relChild == null || string.IsNullOrWhiteSpace(rid) || !rid.StartsWith("rId")) {
+                string? rid = relChild?.Attribute(rel + "id")?.Value;
+                if (relChild == null) {
+                    issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
+                } else if (string.IsNullOrWhiteSpace(rid) || !rid.StartsWith("rId", StringComparison.Ordinal)) {
                     issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
                 }
             }

@@ -35,7 +35,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Bold {
             get {
                 A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.Bold == true;
+                return run?.RunProperties?.Bold?.Value ?? false;
             }
             set {
                 foreach (A.Run run in Runs) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Italic {
             get {
                 A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.Italic == true;
+                return run?.RunProperties?.Italic?.Value ?? false;
             }
             set {
                 foreach (A.Run run in Runs) {
