@@ -3,13 +3,6 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Excel
 {
-    public enum ExecutionMode
-    {
-        Automatic,   // Default: decide by thresholds
-        Sequential,  // Force single-threaded, no locks
-        Parallel     // Compute in parallel; single serialized apply
-    }
-
     public sealed class ExecutionPolicy
     {
         public ExecutionMode Mode { get; set; } = ExecutionMode.Automatic;
