@@ -38,9 +38,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var aliasControl = document.GetStructuredDocumentTagByAlias("Alias2");
-                Assert.Equal("Changed", aliasControl.Text);
+                Assert.NotNull(aliasControl);
+                Assert.Equal("Changed", aliasControl!.Text);
                 var tagControl = document.GetStructuredDocumentTagByTag("Tag3");
-                Assert.Equal("Modified", tagControl.Text);
+                Assert.NotNull(tagControl);
+                Assert.Equal("Modified", tagControl!.Text);
             }
         }
     }

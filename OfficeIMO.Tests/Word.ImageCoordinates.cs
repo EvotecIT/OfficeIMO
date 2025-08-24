@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -13,7 +14,9 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
-            var loc = paragraph.Image.Location;
+            var image = document.Images.FirstOrDefault();
+            Assert.NotNull(image);
+            var loc = image!.Location;
             Assert.Equal(0, loc.X);
             Assert.Equal(0, loc.Y);
 
@@ -27,17 +30,21 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50, WrapTextImage.Square);
+            var paraImage = paragraph.Image;
+            Assert.NotNull(paraImage);
             int offset = 914400;
-            paragraph.Image.horizontalPosition = new HorizontalPosition() {
+            paraImage!.horizontalPosition = new HorizontalPosition() {
                 RelativeFrom = HorizontalRelativePositionValues.Page,
                 PositionOffset = new PositionOffset { Text = offset.ToString() }
             };
-            paragraph.Image.verticalPosition = new VerticalPosition() {
+            paraImage.verticalPosition = new VerticalPosition() {
                 RelativeFrom = VerticalRelativePositionValues.Page,
                 PositionOffset = new PositionOffset { Text = offset.ToString() }
             };
 
-            var loc = paragraph.Image.Location;
+            var image = document.Images.FirstOrDefault();
+            Assert.NotNull(image);
+            var loc = image!.Location;
             Assert.Equal(offset, loc.X);
             Assert.Equal(offset, loc.Y);
 
