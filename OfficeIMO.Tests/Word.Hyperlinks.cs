@@ -26,6 +26,8 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test 1");
 
                 var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+                var hyperlinkElement = hyperlink.Hyperlink;
+                Assert.NotNull(hyperlinkElement);
 
                 Assert.True(hyperlink.Underline == UnderlineValues.Single);
                 Assert.True(hyperlink.Bold == false);
@@ -46,7 +48,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlink.Color == Color.Red);
                 Assert.True(hyperlink.Underline == UnderlineValues.Dash);
 
-                Assert.True(hyperlink.Hyperlink.Text == "bookmark below");
+                Assert.True(hyperlinkElement!.Text == "bookmark below");
 
                 Assert.True(document.Paragraphs.Count == 3);
                 Assert.True(document.HyperLinks.Count == 1);
@@ -59,8 +61,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsHyperLinks.Count == 2);
 
                 var hyperlink1 = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                var hyperlink1Element = hyperlink1.Hyperlink;
+                Assert.NotNull(hyperlink1Element);
 
-                Assert.True(hyperlink1.Hyperlink.EmailAddress == "kontakt@evotec.pl");
+                Assert.True(hyperlink1Element!.EmailAddress == "kontakt@evotec.pl");
 
 
                 Assert.True(document.Paragraphs.Count == 7);
@@ -110,11 +114,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
                 Assert.True(document.Sections[0].Bookmarks.Count == 1);
 
-                document.HyperLinks[1].Uri = new Uri("https://evotec.pl");
+                var secondHyperlink = document.HyperLinks[1];
+                Assert.NotNull(secondHyperlink);
+                secondHyperlink.Uri = new Uri("https://evotec.pl");
 
-                Assert.True(document.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+                Assert.True(secondHyperlink.Uri == new Uri("https://evotec.pl"));
 
-                Assert.True(document.HyperLinks[1].Text == " to website?");
+                Assert.True(secondHyperlink.Text == " to website?");
 
                 var section = document.AddSection(SectionMarkValues.NextPage);
                 section.AddHyperLink("This is my website", new Uri("https://evotec.xyz"));
@@ -123,31 +129,38 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs.Count == 17);
 
-                Assert.True(section.HyperLinks[0].Text == "This is my website");
-                Assert.True(section.HyperLinks[1].Text == "This is second website");
-                Assert.True(section.HyperLinks[2].Text == "This is third website");
-                Assert.True(section.HyperLinks[0].Anchor == null);
-                Assert.True(section.HyperLinks[1].Anchor == null);
-                Assert.True(section.HyperLinks[2].Anchor == null);
-                Assert.True(section.HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
-                Assert.True(section.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
-                Assert.True(section.HyperLinks[2].Uri == new Uri("https://evotec.se"));
-                Assert.True(section.HyperLinks[0].Tooltip == null);
-                Assert.True(section.HyperLinks[1].Tooltip == "This is tooltip for my website 1");
-                Assert.True(section.HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+                var secLink0 = section.HyperLinks[0];
+                var secLink1 = section.HyperLinks[1];
+                var secLink2 = section.HyperLinks[2];
+                Assert.True(secLink0.Text == "This is my website");
+                Assert.True(secLink1.Text == "This is second website");
+                Assert.True(secLink2.Text == "This is third website");
+                Assert.True(secLink0.Anchor == null);
+                Assert.True(secLink1.Anchor == null);
+                Assert.True(secLink2.Anchor == null);
+                Assert.True(secLink0.Uri == new Uri("https://evotec.xyz"));
+                Assert.True(secLink1.Uri == new Uri("https://evotec.pl"));
+                Assert.True(secLink2.Uri == new Uri("https://evotec.se"));
+                Assert.True(secLink0.Tooltip == null);
+                Assert.True(secLink1.Tooltip == "This is tooltip for my website 1");
+                Assert.True(secLink2.Tooltip == "This is tooltip for my website 2");
 
-                Assert.True(document.Sections[1].HyperLinks[0].Text == "This is my website");
-                Assert.True(document.Sections[1].HyperLinks[1].Text == "This is second website");
-                Assert.True(document.Sections[1].HyperLinks[2].Text == "This is third website");
-                Assert.True(document.Sections[1].HyperLinks[0].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[1].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[2].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
-                Assert.True(document.Sections[1].HyperLinks[1].Uri == new Uri("https://evotec.pl"));
-                Assert.True(document.Sections[1].HyperLinks[2].Uri == new Uri("https://evotec.se"));
-                Assert.True(document.Sections[1].HyperLinks[0].Tooltip == null);
-                Assert.True(document.Sections[1].HyperLinks[1].Tooltip == "This is tooltip for my website 1");
-                Assert.True(document.Sections[1].HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+                var sec1 = document.Sections[1];
+                var sec1Link0 = sec1.HyperLinks[0];
+                var sec1Link1 = sec1.HyperLinks[1];
+                var sec1Link2 = sec1.HyperLinks[2];
+                Assert.True(sec1Link0.Text == "This is my website");
+                Assert.True(sec1Link1.Text == "This is second website");
+                Assert.True(sec1Link2.Text == "This is third website");
+                Assert.True(sec1Link0.Anchor == null);
+                Assert.True(sec1Link1.Anchor == null);
+                Assert.True(sec1Link2.Anchor == null);
+                Assert.True(sec1Link0.Uri == new Uri("https://evotec.xyz"));
+                Assert.True(sec1Link1.Uri == new Uri("https://evotec.pl"));
+                Assert.True(sec1Link2.Uri == new Uri("https://evotec.se"));
+                Assert.True(sec1Link0.Tooltip == null);
+                Assert.True(sec1Link1.Tooltip == "This is tooltip for my website 1");
+                Assert.True(sec1Link2.Tooltip == "This is tooltip for my website 2");
 
                 document.Save();
             }
@@ -161,45 +174,39 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
                 Assert.True(document.Sections[0].Bookmarks.Count == 1);
 
-                var section = document.Sections[1];
+                var section1 = document.Sections[1];
+                var sectionLink0 = section1.HyperLinks[0];
+                var sectionLink1 = section1.HyperLinks[1];
+                var sectionLink2 = section1.HyperLinks[2];
 
-                Assert.True(section.HyperLinks[0].Text == "This is my website");
-                Assert.True(section.HyperLinks[1].Text == "This is second website");
-                Assert.True(section.HyperLinks[2].Text == "This is third website");
-                Assert.True(section.HyperLinks[0].Anchor == null);
-                Assert.True(section.HyperLinks[1].Anchor == null);
-                Assert.True(section.HyperLinks[2].Anchor == null);
-                Assert.True(section.HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
-                Assert.True(section.HyperLinks[1].Uri == new Uri("https://evotec.pl"));
-                Assert.True(section.HyperLinks[2].Uri == new Uri("https://evotec.se"));
-                Assert.True(section.HyperLinks[0].Tooltip == null);
-                Assert.True(section.HyperLinks[1].Tooltip == "This is tooltip for my website 1");
-                Assert.True(section.HyperLinks[2].Tooltip == "This is tooltip for my website 2");
+                Assert.True(sectionLink0.Text == "This is my website");
+                Assert.True(sectionLink1.Text == "This is second website");
+                Assert.True(sectionLink2.Text == "This is third website");
+                Assert.True(sectionLink0.Anchor == null);
+                Assert.True(sectionLink1.Anchor == null);
+                Assert.True(sectionLink2.Anchor == null);
+                Assert.True(sectionLink0.Uri == new Uri("https://evotec.xyz"));
+                Assert.True(sectionLink1.Uri == new Uri("https://evotec.pl"));
+                Assert.True(sectionLink2.Uri == new Uri("https://evotec.se"));
+                Assert.True(sectionLink0.Tooltip == null);
+                Assert.True(sectionLink1.Tooltip == "This is tooltip for my website 1");
+                Assert.True(sectionLink2.Tooltip == "This is tooltip for my website 2");
 
-                Assert.True(document.Sections[1].HyperLinks[0].Text == "This is my website");
-                Assert.True(document.Sections[1].HyperLinks[1].Text == "This is second website");
-                Assert.True(document.Sections[1].HyperLinks[2].Text == "This is third website");
-                Assert.True(document.Sections[1].HyperLinks[0].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[1].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[2].Anchor == null);
-                Assert.True(document.Sections[1].HyperLinks[0].Uri == new Uri("https://evotec.xyz"));
-                Assert.True(document.Sections[1].HyperLinks[1].Uri == new Uri("https://evotec.pl"));
+                sectionLink1.History = false;
 
-                document.Sections[1].HyperLinks[1].History = false;
+                Assert.True(sectionLink2.Uri == new Uri("https://evotec.se"));
+                Assert.True(sectionLink0.Tooltip == null);
+                Assert.True(sectionLink1.Tooltip == "This is tooltip for my website 1");
+                Assert.True(sectionLink2.Tooltip == "This is tooltip for my website 2");
 
-                Assert.True(document.Sections[1].HyperLinks[2].Uri == new Uri("https://evotec.se"));
-                Assert.True(document.Sections[1].HyperLinks[0].Tooltip == null);
-                Assert.True(document.Sections[1].HyperLinks[1].Tooltip == "This is tooltip for my website 1");
-                Assert.True(document.Sections[1].HyperLinks[2].Tooltip == "This is tooltip for my website 2");
-
-                Assert.True(document.Sections[1].HyperLinks[0].IsEmail == false);
-                Assert.True(document.Sections[1].HyperLinks[0].IsHttp == true);
-                Assert.True(document.Sections[1].HyperLinks[0].Scheme == Uri.UriSchemeHttps);
-                Assert.True(document.Sections[1].HyperLinks[0].History == true);
-                Assert.True(document.Sections[1].HyperLinks[0].TargetFrame == null);
+                Assert.True(sectionLink0.IsEmail == false);
+                Assert.True(sectionLink0.IsHttp == true);
+                Assert.True(sectionLink0.Scheme == Uri.UriSchemeHttps);
+                Assert.True(sectionLink0.History == true);
+                Assert.True(sectionLink0.TargetFrame == null);
 
 
-                Assert.True(document.Sections[1].HyperLinks[1].History == false);
+                Assert.True(sectionLink1.History == false);
 
                 document.Save();
             }
@@ -221,8 +228,10 @@ namespace OfficeIMO.Tests {
 
                 var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
                     "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+                var hyperlinkElement = hyperlink.Hyperlink;
+                Assert.NotNull(hyperlinkElement);
 
-                Assert.True(hyperlink.Hyperlink._runProperties.Bold == null);
+                Assert.True(hyperlinkElement!._runProperties?.Bold == null);
 
                 Assert.True(hyperlink.Underline == UnderlineValues.Single);
                 Assert.True(hyperlink.Bold == false);
@@ -243,23 +252,25 @@ namespace OfficeIMO.Tests {
 
                 var hyperlinkWithoutStyle = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
                     "TestBookmark", false, "This is link to bookmark below shown within Tooltip");
+                var hyperlinkWithoutStyleElement = hyperlinkWithoutStyle.Hyperlink;
+                Assert.NotNull(hyperlinkWithoutStyleElement);
 
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties == null);
+                Assert.True(hyperlinkWithoutStyleElement!._runProperties == null);
 
                 hyperlinkWithoutStyle.Bold = true;
                 Assert.True(hyperlinkWithoutStyle.Bold == true);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Bold != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties!.Bold != null);
 
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Italic == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Underline == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Color == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Spacing == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.FontSize == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.RunFonts == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Highlight == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Strike == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.DoubleStrike == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Italic == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Underline == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Color == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Spacing == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.FontSize == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.RunFonts == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Highlight == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Strike == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.DoubleStrike == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Caps == null);
 
                 hyperlinkWithoutStyle.Bold = true;
                 hyperlinkWithoutStyle.Italic = true;
@@ -285,23 +296,23 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.DoubleStrike);
                 Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.SmallCaps);
 
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Bold != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Italic != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Underline != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Color != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Spacing != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.FontSize != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.RunFonts != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Highlight != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Strike != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.DoubleStrike != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps == null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.SmallCaps != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Bold != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Italic != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Underline != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Color != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Spacing != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.FontSize != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.RunFonts != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Highlight != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Strike != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.DoubleStrike != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Caps == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.SmallCaps != null);
 
                 hyperlinkWithoutStyle.CapsStyle = CapsStyle.Caps;
 
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.Caps != null);
-                Assert.True(hyperlinkWithoutStyle.Hyperlink._runProperties.SmallCaps == null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.Caps != null);
+                Assert.True(hyperlinkWithoutStyleElement._runProperties.SmallCaps == null);
 
                 Assert.True(hyperlinkWithoutStyle.CapsStyle == CapsStyle.Caps);
 
@@ -324,13 +335,17 @@ namespace OfficeIMO.Tests {
 
                 document.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
 
-                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].IsHyperLink == true);
-                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Hyperlink.IsHttp == true);
-                Assert.True(document.Tables[0].Rows[0].Cells[0].Paragraphs[1].Hyperlink.Text == " to website?");
+                var tableParagraph = document.Tables[0].Rows[0].Cells[0].Paragraphs[1];
+                Assert.True(tableParagraph.IsHyperLink == true);
+                var tableHyperlink = tableParagraph.Hyperlink;
+                Assert.NotNull(tableHyperlink);
+                Assert.True(tableHyperlink!.IsHttp == true);
+                Assert.True(tableHyperlink.Text == " to website?");
 
                 Assert.True(document.HyperLinks.Count == 1);
 
-                Assert.True(document.HyperLinks[0].Text == " to website?");
+                var firstHyperlink = document.HyperLinks[0];
+                Assert.True(firstHyperlink.Text == " to website?");
 
                 document.Save(false);
             }
@@ -370,7 +385,8 @@ namespace OfficeIMO.Tests {
                 paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
 
                 var reference = paragraph.Hyperlink;
-                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
+                Assert.NotNull(reference);
+                var created = WordHyperLink.CreateFormattedHyperlink(reference!, "Bing", new Uri("https://bing.com"));
 
                 Assert.Equal("Bing", created.Text);
                 Assert.Equal(new Uri("https://bing.com"), created.Uri);
@@ -399,8 +415,9 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Search using ");
                 paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 var reference = paragraph.Hyperlink;
+                Assert.NotNull(reference);
 
-                var duplicate = WordHyperLink.DuplicateHyperlink(reference);
+                var duplicate = WordHyperLink.DuplicateHyperlink(reference!);
 
                 Assert.Equal(reference.Text, duplicate.Text);
                 Assert.Equal(reference.Uri, duplicate.Uri);
@@ -422,7 +439,8 @@ namespace OfficeIMO.Tests {
                 paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
 
                 var reference = paragraph.Hyperlink;
-                var created = reference.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
+                Assert.NotNull(reference);
+                var created = reference!.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
 
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
                 Assert.Equal("Bing", paragraph._paragraph.Elements<Hyperlink>().First().InnerText);
@@ -445,13 +463,15 @@ namespace OfficeIMO.Tests {
                 var paraHeader = header.AddParagraph("Search using ");
                 paraHeader.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 var refHeader = paraHeader.Hyperlink;
-                refHeader.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
+                Assert.NotNull(refHeader);
+                refHeader!.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 
                 var footer = document.Footer.Default;
                 var paraFooter = footer.AddParagraph("Find us on ");
                 paraFooter.AddHyperLink("Yahoo", new Uri("https://yahoo.com"), addStyle: true);
                 var refFooter = paraFooter.Hyperlink;
-                refFooter.InsertFormattedHyperlinkAfter("DuckDuckGo", new Uri("https://duckduckgo.com"));
+                Assert.NotNull(refFooter);
+                refFooter!.InsertFormattedHyperlinkAfter("DuckDuckGo", new Uri("https://duckduckgo.com"));
 
                 Assert.Equal(2, paraHeader._paragraph.Elements<Hyperlink>().Count());
                 Assert.Equal(2, paraFooter._paragraph.Elements<Hyperlink>().Count());
@@ -475,10 +495,12 @@ namespace OfficeIMO.Tests {
                 var refPara = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 refPara.Bold = true;
                 var reference = refPara.Hyperlink;
+                Assert.NotNull(reference);
 
                 paragraph.AddHyperLink("Bing", new Uri("https://bing.com"));
                 var target = paragraph.Hyperlink;
-                target.CopyFormattingFrom(reference);
+                Assert.NotNull(target);
+                target!.CopyFormattingFrom(reference!);
 
                 Assert.NotNull(target._runProperties);
                 Assert.Equal(reference._runProperties.Color.Val, target._runProperties.Color.Val);
@@ -500,18 +522,24 @@ namespace OfficeIMO.Tests {
                 var google = first.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 google.Bold = true;
                 var googleRef = google.Hyperlink;
+                Assert.NotNull(googleRef);
 
                 var bing = first.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true);
                 bing.Italic = true;
                 var bingRef = bing.Hyperlink;
+                Assert.NotNull(bingRef);
 
                 document.AddParagraph("separator");
 
                 var second = document.AddList(WordListStyle.Bulleted);
                 var duck = second.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"));
-                duck.Hyperlink.CopyFormattingFrom(googleRef);
+                var duckLink = duck.Hyperlink;
+                Assert.NotNull(duckLink);
+                duckLink!.CopyFormattingFrom(googleRef!);
                 var start = second.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com"));
-                start.Hyperlink.CopyFormattingFrom(bingRef);
+                var startLink = start.Hyperlink;
+                Assert.NotNull(startLink);
+                startLink!.CopyFormattingFrom(bingRef!);
 
                 Assert.True(duck.Bold);
                 Assert.True(start.Italic);
