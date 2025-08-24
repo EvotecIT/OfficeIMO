@@ -504,3 +504,293 @@ If you want, I can generate a compact benchmark harness (BenchmarkDotNet) tailor
 - Expand concurrency tests to mixed-sheet automatic mode decisions and `OnDecision` diagnostics hooks.
 - Consider caching/optimizing style application for dynamic number formats under heavy loads.
 - Add README examples for the new read APIs (`OfficeIMO.Excel.Read`) and batching patterns.
+
+Status
+- Implemented: Execution policy (Automatic/Sequential/Parallel), compute→apply split, SharedStrings/Styles planners, read APIs (range/rows/objects/stream), AutoFit compute parallelization.
+- Pending: Multiline AutoFit specifics (wrap and merged spans), reader materializer chain, fluent read surface, benchmarks, and final naming cleanup.
+
+# Quick take (what looks right / what to tweak)
+
+* Your **compute → apply** split is the right direction. Keep all OpenXML DOM mutations in the single serialized “apply” phase only.
+* For **reads**, you can be more aggressive: traverse once; offload conversion in chunks; yield lazily. The lazy, chunked, ordered pipeline we sketched fits here.
+* **Multiline AutoFit** needs a different algorithm than single-line: you must wrap at the current column width (or merged span) and account for `\n`/`CHAR(10)` + `wrapText`, font metrics, and vertical padding.
+
+# Naming recommendations (tidy & predictable)
+
+## Write API
+
+* BREAKING: Adopt `SetValue(row, col, value)` and `SetValues(batch)` (replace `CellValue/CellValues`).
+* Keep `AutoFitColumns`, `AutoFitRows`.
+* Structural verbs: `AddTable`, `AddAutoFilter`, `AddConditionalFormatting`, `FreezePanes` (rename from `Freeze`).
+* Options bucket stays `ExecutionPolicy` with `Mode/ParallelThreshold/OperationThresholds/MaxDegreeOfParallelism/OnDecision`.
+
+## Read API
+
+Use a **“Read/As/To*”*\* shape that mirrors LINQ/ADO:
+
+* Entry (builder-style chain over a light RangeQuery):
+
+  * `ReadRange("A1:C100")`
+  * `ReadRangeStream("A1:C100", chunkRows: 2048)`
+* Materializers:
+
+  * `.ToDataTable(headers: true)`
+  * `.ToRows()` → `IEnumerable<object?[]>`
+  * `.ToObjects()` → `IEnumerable<Dictionary<string,object?>>`
+* Low-level:
+
+  * `.AsDataReader()` (new `RangeChunkDataReader`) for `SqlBulkCopy`.
+
+This gives you **discoverable** names and a smooth path from simple reads to ETL.
+
+---
+
+# Fluent Read API (proposal)
+
+```csharp
+document.AsFluent()
+    .Read(sheet: "Data", r => r
+        .Range("A1:Z1000000")
+        .Headers(true)
+        .ChunkRows(4096)
+        .Execution(ExecutionMode.Automatic)
+        .Into(dt => /* got DataTable */)
+        // or:
+        //.IntoRows(rows => ...)
+        //.IntoObjects(dicts => ...)
+        //.IntoDataReader(dr => bulkCopy.WriteToServer(dr))
+    )
+    .End();
+```
+
+Internally this just wraps your `ExcelSheetReader.ReadRange` / `ReadRangeStream` + materializers.
+
+---
+
+# AutoFit that handles multiline (what Excel actually does)
+
+You need **two pieces**:
+
+1. **Width** (columns): compute the maximum single-line pixel width among cells **formatted with that column’s style**, then convert to Excel column width units (characters of “0” in Normal style) with the standard fudge factors. Excel’s spec is quirky; see Eric White’s write-up and OOXML `col` width details. ([ericwhite.com][1], [Microsoft Learn][2], [Stack Overflow][3])
+
+2. **Height** (rows) with wrapping:
+
+   * For each row, for each cell:
+
+     * Determine the **effective wrapping width** in pixels:
+
+       * If **merged** horizontally, width = sum of spanned column widths + inter-cell gridlines.
+       * Else width = that column’s pixel width.
+     * If the cell has **manual line breaks** (`\n` / `CHAR(10)`), split first.
+     * For each line fragment, perform **soft wrapping** at the measured width using word-boundary rules.
+     * Count resulting wrapped lines → `lineCount`.
+     * Compute height = `topPadding + lineCount * lineHeight + bottomPadding` (line height from font metrics + leading).
+   * Row height = **max** of all cell heights in the row (unless locked by an explicit height).
+   * Respect Excel quirks:
+
+     * `wrapText=false` → single-line (truncate visually, height unchanged).
+     * `ShrinkToFit` reduces font rendering width, but Excel’s logic is non-trivial; for now, ignore or handle later.
+     * Merged cells + wrap: Excel has edge cases (Excel won’t auto-fit height when the cell is merged in certain scenarios). Document this caveat.
+
+**Implementation choices for measurement:**
+
+* Default: SixLabors.Fonts-based measurer (already used in repo) for cross-platform text metrics.
+* Optional: **SkiaSharp** (`SKPaint.MeasureText`, `BreakText`) to stay deterministic.
+* Fallback: heuristic approximation (EPPlus-style) if neither engine is available. ([GitHub][4])
+
+**Column width conversions and constants**: Excel uses a base of the **max digit** glyph width of Normal style (Calibri 11 → \~7 px at 96 DPI) and `Truncate(chars * maxDigit) + padding`. Keep this centralized. ([Microsoft Learn][5])
+
+Microsoft/OOXML references on widths/heights: ([Eric White][1], [Microsoft Learn][2], [Stack Overflow][6])
+
+---
+
+# Parallel model sanity-check (reads & writes)
+
+**Writes**
+
+* ✅ Parallel **compute only** (coercion, CF evaluation, AutoFit measurement).
+* ✅ Single **apply** phase under one coarse lock.
+* ✅ SharedStrings/Styles use a **planner** (distinct gather → apply once → fixup indexes).
+* ⚠️ Explicit rule: no OpenXML part mutation during compute (e.g., `GetSharedStringIndex`, styles). Use planners to gather, then mutate once in apply.
+
+**Reads**
+
+* ✅ DOM traversal single-threaded → chunk raw.
+* ✅ Chunk conversion offloaded with **bounded parallelism**.
+* ✅ **Ordered** delivery (chunk index) for stable consumers.
+* ✅ `CancellationToken` + `MaxDegreeOfParallelism`.
+
+If any part of write-compute touches `WorksheetPart`, `SharedStringTablePart`, or `WorkbookStylesPart`, move it into the apply stage.
+
+---
+
+# Targeted improvements to drop in now
+
+1. **Rename write surface (breaking)**
+
+   * `CellValue` → `SetValue`
+   * `CellValues` → `SetValues`
+   * Update fluent and tests accordingly (no shims necessary).
+
+2. **Reader materializers**
+
+   * Add `ReadRange(...).ToDataTable(headers: bool)`,
+     `ReadRange(...).ToRows()`, `ReadRange(...).ToObjects()`,
+     and `ReadRangeStream(...).AsDataReader()` using a light `RangeQuery/RangeStreamQuery` wrapper.
+
+3. **AutoFit v2**
+
+   * Introduce `ITextMeasurer` with a default **SixLabors** implementation; optional Skia engine.
+   * Add `AutoFitOptions`:
+
+     * `MeasureEngine: "Skia"|"GDI"|"Heuristic"`
+     * `IncludeMergedCells: bool`
+     * `WrapAtMergedSpan: bool`
+     * `RespectShrinkToFit: bool` (future)
+   * New internals:
+
+     * `MeasureSingleLineWidth(text, font)` → px
+     * `WrapLines(text, font, widthPx)` → `IReadOnlyList<string>`
+     * `ComputeRowHeight(cell, colSpanWidthPx, style)` → px
+     * Conversion helpers `Pixels↔ExcelUnits` centralized.
+
+4. **Policy defaults**
+
+   * `Execution.Policy.OperationThresholds["CellValues"] = 10_000;`
+   * `["AutoFitColumns"] = 2_000; ["AutoFitRows"] = 2_000;`
+   * `["InsertObjects"] = 1_000;`
+   * `MaxDegreeOfParallelism = Environment.ProcessorCount`.
+
+5. **Benchmarks**
+
+   * Bench harness for:
+
+     * `SetValues` small vs large
+     * `AutoFitColumns/Rows` with/without wrap
+     * `ReadRange` vs `ReadRangeStream` (parallel).
+
+---
+
+# New TODO (laser-focused)
+
+### A. Naming & API surface (breaking)
+
+* [ ] Rename `CellValue/CellValues` → `SetValue/SetValues` across code/tests/fluent.
+* [ ] Structural names unified: `AddTable`, `AddAutoFilter`, `AddConditionalFormatting`, `FreezePanes` (rename from `Freeze`).
+* [ ] Reader materializers: `ToDataTable`, `ToRows`, `ToObjects`, `AsDataReader` via `RangeQuery` wrappers.
+
+### B. Fluent Read
+
+* [ ] `Fluent.Read(...)` with `.Range()`, `.Headers()`, `.ChunkRows()`, `.Execution()`, `.Into(...)`.
+* [ ] Expose `AsDataReader` path in fluent for bulk copy.
+
+### C. Parallel correctness
+
+* [ ] Audit: **no** OpenXML part mutation outside apply stage.
+* [ ] SharedStrings/Styles **planner** integrated in apply stage only.
+* [ ] Reads: ensure `OpenXmlReader` or DOM traversal is **single-threaded**; conversion is chunk-parallel.
+
+### D. AutoFit v2 (multiline, merged cells)
+
+* [ ] Introduce `ITextMeasurer` + `SixLaborsTextMeasurer` (and optional `SkiaTextMeasurer`).
+* [ ] Implement word-wrap + manual breaks (`\n`/`CHAR(10)`) respecting `wrapText`.
+* [ ] Account for **merged spans** when computing wrap width.
+* [ ] Compute row height as max of wrapped cells; convert px→row height.
+* [ ] Centralize conversions (`ExcelColWidth↔px`, `RowHeight↔px`) with constants/Normal style.
+* [ ] Add `AutoFitOptions` (engine, merged handling, future `ShrinkToFit`).
+
+### E. Heuristics fallback (optional)
+
+* [ ] Implement a **heuristic** measurer (no native deps) to keep pure-managed option.
+
+---
+
+References
+1. Eric White on column widths and Excel units: https://ericwhite.com/blog/ and archived OpenXML sizing posts
+2. Microsoft Learn – Change column width: https://learn.microsoft.com/office/open-xml/how-to-change-the-width-of-a-column-in-a-spreadsheet
+3. SkiaSharp MeasureText: https://learn.microsoft.com/dotnet/api/skiasharp.skpaint.measuretext
+4. EPPlus width/height discussions (heuristics): https://github.com/EPPlusSoftware/EPPlus
+5. Excel column width and row height overview: https://support.microsoft.com/office/change-the-column-width-and-row-height-c2c3f030-5ab9-4d2a-8dfd-f5b6a25ac749
+6. Stack Overflow – OpenXML column width units: https://stackoverflow.com/questions/17888225/column-width-in-openxml
+
+### F. Diagnostics & perf
+
+* [ ] `ExecutionPolicy.OnDecision` hooks → log op name, count, mode.
+* [ ] BenchmarkDotNet: publish `Before/After` for:
+
+  * `SetValues` small (≤1k) vs big (≥100k)
+  * `AutoFitRows` on wrapped text
+  * `ReadRange` vs `ReadRangeStream`.
+
+### G. Tests
+
+* [ ] Row height correctness with:
+
+  * Single line, wrap off
+  * Multiline via `\n`
+  * Soft wrap at width (long words, long URLs)
+  * Merged cells (2–5 columns)
+* [ ] Column width correctness on mixed fonts/styles
+* [ ] Parallel reads/writes correctness under cancellation.
+
+---
+
+# Small code sketch (interfaces you can paste)
+
+```csharp
+public interface ITextMeasurer
+{
+    TextMetrics MeasureSingleLine(string text, FontSpec font);
+    WrappedText Wrap(string text, double availableWidthPx, FontSpec font);
+}
+
+public sealed record FontSpec(string Family, double SizePt, bool Bold, bool Italic);
+public sealed record TextMetrics(double WidthPx, double LineHeightPx);
+public sealed record WrappedText(IReadOnlyList<string> Lines, TextMetrics Metrics);
+
+public sealed class AutoFitOptions
+{
+    public string MeasureEngine { get; init; } = "Skia"; // or "GDI", "Heuristic"
+    public bool IncludeMergedCells { get; init; } = true;
+    public bool WrapAtMergedSpan { get; init; } = true;
+    public bool RespectShrinkToFit { get; init; } = false; // future
+}
+
+public static class ExcelUnits
+{
+    // Centralize conversions; constants taken from OOXML/Excel behavior.
+    public static double ColumnWidthCharsToPixels(double chars, double maxDigitPx = 7.0, double paddingPx = 5.0)
+        => Math.Floor(chars * maxDigitPx) + paddingPx;
+    public static double PixelsToColumnWidthChars(double px, double maxDigitPx = 7.0, double paddingPx = 5.0)
+        => (px - paddingPx) / maxDigitPx;
+
+    // Row height is stored in points; 1pt = 96/72 px at 100% scaling
+    public static double PointsToPixels(double pt) => pt * (96.0 / 72.0);
+    public static double PixelsToPoints(double px) => px * (72.0 / 96.0);
+}
+```
+
+Then in `AutoFitRows`:
+
+```csharp
+public void AutoFitRows(AutoFitOptions? options = null, ExecutionMode? mode = null)
+{
+    options ??= new AutoFitOptions();
+    var measurer = TextMeasurerFactory.Create(options.MeasureEngine);
+
+    // compute in parallel: gather effective widths per cell (consider merged spans),
+    // wrap text, compute required height per cell, reduce to max per row
+    // apply once: set row heights (points) + save worksheet
+}
+```
+
+References for width/height math and OOXML `col` behavior: Eric White’s write-up and the OOXML column spec; both are the best grounding for the constants and conversions. ([ericwhite.com][1], [Microsoft Learn][2])
+Some practical discussions/heuristics also exist (StackOverflow/answers). ([Stack Overflow][6], [Microsoft Learn][5])
+
+
+[1]: https://www.ericwhite.com/blog/precisely-calculating-cell-sizes-in-open-xml-spreadsheetml/?utm_source=chatgpt.com "Precisely Calculating Cell Sizes in Open XML ..."
+[2]: https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.spreadsheet.column?view=openxml-3.0.1&utm_source=chatgpt.com "Column Class (DocumentFormat.OpenXml.Spreadsheet)"
+[3]: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/53741810?utm_source=chatgpt.com "Formula to convert .NET pixels to Excel width in OpenXML ..."
+[4]: https://github.com/EPPlusSoftware/EPPlus/wiki/Autofit-columns?utm_source=chatgpt.com "Autofit columns · EPPlusSoftware/EPPlus Wiki"
+[5]: https://learn.microsoft.com/en-us/answers/questions/4973888/%28excel%29-how-to-calculate-the-default-column-width?utm_source=chatgpt.com "(Excel) How to calculate the default column width for a ..."
+[6]: https://stackoverflow.com/questions/34374785/creating-custom-column-widths-in-openxml-excel?utm_source=chatgpt.com "Creating custom column widths in OpenXML (excel)"
