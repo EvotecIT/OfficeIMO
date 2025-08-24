@@ -91,6 +91,9 @@ namespace OfficeIMO.Excel
                 foreach (var element in kv.Value)
                     worksheet.AppendChild(element);
             }
+
+            // Persist any structural changes
+            worksheet.Save();
         }
     }
 }

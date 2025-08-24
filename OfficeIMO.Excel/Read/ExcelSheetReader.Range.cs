@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.Read
 
                 foreach (var cell in row.Elements<Cell>())
                 {
-                    var (cIndex, _) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                    var (_, cIndex) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     var raw = new CellRaw
