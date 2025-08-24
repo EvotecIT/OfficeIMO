@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>03b – Nested & Advanced Tables</title>
+  
+</head>
+<body>
+<header>
+  <h1>03b – Nested & Advanced Tables</h1>
+  <p><small>Generated 2025-08-23 06:25:40</small></p>
+  <hr>
+</header>
+
+<p>This page stresses nested tables, captions, headers/ids, colgroups, and tfoot.</p>
+
+<table style="border-collapse:collapse; width:100%; border:1px solid #333;" summary="Outer table with nested inner table">
+  <caption>Outer Table</caption>
+  <colgroup>
+    <col span="1" style="background:#f8f9fa">
+    <col span="2" style="background:#eef2f7">
+  </colgroup>
+  <thead>
+    <tr>
+      <th id="h-region" style="border:1px solid #333; padding:6px; text-align:left;">Region</th>
+      <th id="h-metrics" colspan="2" style="border:1px solid #333; padding:6px;">Metrics</th>
+    </tr>
+    <tr>
+      <th headers="h-region" style="border:1px solid #333; padding:6px;">Name</th>
+      <th style="border:1px solid #333; padding:6px;">Sales</th>
+      <th style="border:1px solid #333; padding:6px;">Profit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="border:1px solid #333; padding:6px;">EU</td>
+      <td style="border:1px solid #333; padding:6px;">120</td>
+      <td style="border:1px solid #333; padding:6px;">20</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #333; padding:6px;">US</td>
+      <td style="border:1px solid #333; padding:6px;">150</td>
+      <td style="border:1px solid #333; padding:6px;">25</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #333; padding:6px;" colspan="3">
+        <p>Nested table below (quarter breakdown):</p>
+        <table style="border-collapse:collapse; width:100%; border:1px dashed #666;">
+          <caption>Inner Table – Breakdown</caption>
+          <thead>
+            <tr>
+              <th style="border:1px dashed #666; padding:4px;">Quarter</th>
+              <th style="border:1px dashed #666; padding:4px;">EU</th>
+              <th style="border:1px dashed #666; padding:4px;">US</th>
+              <th style="border:1px dashed #666; padding:4px;">APAC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border:1px dashed #666; padding:4px;">Q1</td>
+              <td style="border:1px dashed #666; padding:4px;">50</td>
+              <td style="border:1px dashed #666; padding:4px;">60</td>
+              <td style="border:1px dashed #666; padding:4px;">40</td>
+            </tr>
+            <tr>
+              <td style="border:1px dashed #666; padding:4px;">Q2</td>
+              <td style="border:1px dashed #666; padding:4px;">70</td>
+              <td style="border:1px dashed #666; padding:4px;">90</td>
+              <td style="border:1px dashed #666; padding:4px;">65</td>
+            </tr>
+            <tr>
+              <td style="border:1px dashed #666; padding:4px;">Q3</td>
+              <td style="border:1px dashed #666; padding:4px;">80</td>
+              <td style="border:1px dashed #666; padding:4px;">85</td>
+              <td style="border:1px dashed #666; padding:4px;">70</td>
+            </tr>
+            <tr>
+              <td style="border:1px dashed #666; padding:4px;">Q4</td>
+              <td style="border:1px dashed #666; padding:4px;">65</td>
+              <td style="border:1px dashed #666; padding:4px;">75</td>
+              <td style="border:1px dashed #666; padding:4px;">72</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td style="border:1px dashed #666; padding:4px;" colspan="4">Inner table footnote</td>
+            </tr>
+          </tfoot>
+        </table>
+      </td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td style="border:1px solid #333; padding:6px;" colspan="3">Totals and notes for outer table</td>
+    </tr>
+  </tfoot>
+</table>
+
+<h3>Table with Fixed Column Widths and Alignment</h3>
+<table style="border-collapse:collapse; width:100%; border:1px solid #333;">
+  <colgroup>
+    <col style="width:30%">
+    <col style="width:20%">
+    <col style="width:50%">
+  </colgroup>
+  <tr>
+    <th style="border:1px solid #333; padding:6px; text-align:left;">Field</th>
+    <th style="border:1px solid #333; padding:6px; text-align:center;">Code</th>
+    <th style="border:1px solid #333; padding:6px; text-align:right;">Description (Right Aligned)</th>
+  </tr>
+  <tr>
+    <td style="border:1px solid #333; padding:6px;">Name</td>
+    <td style="border:1px solid #333; padding:6px; text-align:center;">001</td>
+    <td style="border:1px solid #333; padding:6px; text-align:right;">Primary identifier</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #333; padding:6px;">Address</td>
+    <td style="border:1px solid #333; padding:6px; text-align:center;">A12</td>
+    <td style="border:1px solid #333; padding:6px; text-align:right;">Street, City, ZIP</td>
+  </tr>
+</table>
+
+<h3>Long Content</h3>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. </p>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. </p>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vitae odio ac turpis pulvinar auctor. Sed vehicula, nisl a tempor varius, arcu libero placerat justo, in rhoncus nulla magna id lectus. Integer sodales leo ac est commodo, a egestas ante bibendum. </p>
+<footer>
+  <hr>
+  <p><small>OfficeIMO Roundtrip Test — 03b – Nested & Advanced Tables</small></p>
+</footer>
+</body>
+</html>

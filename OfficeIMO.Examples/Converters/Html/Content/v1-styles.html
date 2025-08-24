@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>06 – Styles (CSS classes & inline)</title>
+  
+<style>
+  :root { --accent: #0d6efd; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.5; }
+  .accent { color: var(--accent); }
+  .card { border:1px solid #ced4da; border-radius:8px; padding:12px; margin:8px 0; background:#f8f9fa; }
+  .smallcaps { font-variant: small-caps; }
+  .spaced { letter-spacing: 0.05em; word-spacing: 0.2em; }
+  .shadow { text-shadow: 1px 1px 0 rgba(0,0,0,.15); }
+</style>
+
+</head>
+<body>
+<header>
+  <h1>06 – Styles (CSS classes & inline)</h1>
+  <p><small>Generated 2025-08-23 06:22:17</small></p>
+  <hr>
+</header>
+
+<p class="accent shadow">Variable-driven accent color with text shadow.</p>
+<div class="card">
+  <p class="smallcaps">Small Caps paragraph.</p>
+  <p class="spaced">Letter and word spacing stress test.</p>
+  <p><span style="background:yellow; padding:2px 4px;">Inline highlight via style attribute</span></p>
+</div>
+<p style="margin:24px 0; border-left:4px solid var(--accent); padding-left:8px;">Block with left border.</p>
+
+<footer>
+  <hr>
+  <p><small>OfficeIMO Roundtrip Test — 06 – Styles (CSS classes & inline)</small></p>
+</footer>
+</body>
+</html>
