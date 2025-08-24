@@ -35,12 +35,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_OverrideBuiltInParagraphStyle() {
             var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
+            Assert.NotNull(original);
             var custom = new Style { Type = StyleValues.Paragraph, StyleId = "Normal" };
             WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, custom);
 
-            Assert.Equal(custom, WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal));
+            var retrieved = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
+            Assert.NotNull(retrieved);
+            Assert.Equal(custom, retrieved);
 
-            WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original);
+            WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original!);
         }
 
         [Fact]
