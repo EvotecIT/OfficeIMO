@@ -63,7 +63,48 @@ foreach (var row in doc.Read().Sheet("Data").UsedRange().AsEditableRows())
 {
     if (row.Get<int>("Value") >= 100)
         row.Set("Status", "Hold");
+    // Set a number format or formula on a specific cell
+    row["Value"].NumberFormat("0.00");
 }
+```
+
+## Data Operations
+
+```csharp
+var s = doc["Data"];
+
+// AutoFilter: add and filter by header value
+s.AutoFilterAdd("A1:C100");
+s.AutoFilterByHeaderEquals("Status", new[] { "Processed", "Hold" });
+
+// Contains filter (text):
+s.AutoFilterByHeaderContains("Name", "Al");
+
+// Sort (values-only rewrite)
+s.SortUsedRangeByHeader("Value", ascending: false);
+s.SortUsedRangeByHeaders(("Value", false), ("Name", true));
+
+// Validation list
+s.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
+
+// Find/Replace
+var first = s.FindFirst("Beta");
+int changed = s.ReplaceAll("New", "Processed");
+```
+
+## Colors and Styles
+
+```csharp
+using SixLabors.ImageSharp;
+
+// Column background + bold via builder
+s.ColumnStyleByHeader("Status", includeHeader: true)
+ .Background(Color.Parse("#E7FFE7"))
+ .Bold();
+
+// Cell backgrounds
+s.CellBackground(2, 3, Color.Parse("#FFFBE6"));
+s.CellBackground(3, 3, "#FFE7E7");
 ```
 
 Notes:

@@ -92,6 +92,89 @@ namespace OfficeIMO.Excel
             });
         }
 
+        /// <summary>
+        /// Applies equals filters for multiple headers at once (AND semantics across columns, OR semantics within a column).
+        /// </summary>
+        public void AutoFilterByHeadersEquals(params (string Header, IEnumerable<string> Values)[] filters)
+        {
+            if (filters == null || filters.Length == 0) throw new ArgumentException("At least one filter must be provided.", nameof(filters));
+            WriteLock(() =>
+            {
+                var ws = _worksheetPart.Worksheet;
+                var af = ws.Elements<AutoFilter>().FirstOrDefault();
+                if (af == null)
+                {
+                    var used = GetUsedRangeA1();
+                    af = new AutoFilter { Reference = used };
+                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
+                }
+
+                var (r1, c1, r2, c2) = Read.A1.ParseRange(af.Reference!);
+
+                foreach (var (header, values) in filters)
+                {
+                    if (string.IsNullOrWhiteSpace(header)) continue;
+                    int colIndex = ColumnIndexByHeader(header);
+                    if (colIndex < c1 || colIndex > c2) continue;
+                    uint columnId = (uint)(colIndex - c1);
+
+                    var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                    existingColumn?.Remove();
+
+                    var fcNew = new FilterColumn { ColumnId = columnId };
+                    var filtersNode = new Filters();
+                    foreach (var v in (values ?? Array.Empty<string>()).Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        if (v == null) continue;
+                        filtersNode.Append(new Filter { Val = v });
+                    }
+                    fcNew.Append(filtersNode);
+                    af.Append(fcNew);
+                }
+                ws.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies an AutoFilter text contains filter to a column resolved by header within the current AutoFilter range.
+        /// Uses wildcard pattern matching ("*text*") via CustomFilters with Equal operator.
+        /// </summary>
+        public void AutoFilterByHeaderContains(string header, string containsText)
+        {
+            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
+            if (containsText is null) throw new ArgumentNullException(nameof(containsText));
+
+            WriteLock(() =>
+            {
+                var ws = _worksheetPart.Worksheet;
+                var af = ws.Elements<AutoFilter>().FirstOrDefault();
+                if (af == null)
+                {
+                    var used = GetUsedRangeA1();
+                    af = new AutoFilter { Reference = used };
+                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
+                }
+
+                var (r1, c1, r2, c2) = Read.A1.ParseRange(af.Reference!);
+                int colIndex = ColumnIndexByHeader(header);
+                if (colIndex < c1 || colIndex > c2)
+                    throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
+
+                uint columnId = (uint)(colIndex - c1);
+
+                var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                existingColumn?.Remove();
+
+                var fcNew = new FilterColumn { ColumnId = columnId };
+                var custom = new CustomFilters();
+                // Excel uses Equal + wildcard pattern for contains
+                custom.Append(new CustomFilter { Operator = FilterOperatorValues.Equal, Val = "*" + containsText + "*" });
+                fcNew.Append(custom);
+                af.Append(fcNew);
+                ws.Save();
+            });
+        }
+
         // -------- Find/Replace --------
 
         /// <summary>
@@ -269,6 +352,72 @@ namespace OfficeIMO.Excel
                 if (a is IComparable ca && b is IComparable cb && a.GetType() == b.GetType())
                     return ca.CompareTo(cb);
                 // Fallback string compare
+                return string.Compare(Convert.ToString(a), Convert.ToString(b), StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        /// <summary>
+        /// Sorts the sheet's UsedRange rows in-place by multiple headers in the given order (excluding header row).
+        /// Values-only: rewrites cell values; formulas and styles are not preserved.
+        /// </summary>
+        public void SortUsedRangeByHeaders(params (string Header, bool Ascending)[] keys)
+        {
+            if (keys == null || keys.Length == 0) throw new ArgumentException("At least one key is required.", nameof(keys));
+
+            var a1 = GetUsedRangeA1();
+            var (r1, c1, r2, c2) = Read.A1.ParseRange(a1);
+            if (r2 - r1 < 1) return;
+
+            // Resolve column indices and validate
+            var cols = new List<(int Index, bool Asc)>();
+            foreach (var k in keys)
+            {
+                int col = ColumnIndexByHeader(k.Header);
+                cols.Add((col - c1, k.Ascending));
+            }
+
+            using var rdr = _excelDocument.CreateReader();
+            var sh = rdr.GetSheet(this.Name);
+            var values = sh.ReadRange(a1);
+            int rows = values.GetLength(0);
+            int width = values.GetLength(1);
+
+            var list = new List<(int SheetRow, object?[] Row)>();
+            for (int r = 1; r < rows; r++)
+            {
+                var arr = new object?[width];
+                for (int c = 0; c < width; c++) arr[c] = values[r, c];
+                list.Add((r1 + r, arr));
+            }
+
+            list.Sort((a, b) =>
+            {
+                foreach (var (idx, asc) in cols)
+                {
+                    int cmp = CompareCell(a.Row[idx], b.Row[idx]);
+                    if (cmp != 0) return asc ? cmp : -cmp;
+                }
+                return 0;
+            });
+
+            WriteLock(() =>
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var row = list[i];
+                    int sheetRow = r1 + 1 + i;
+                    for (int c = 0; c < width; c++)
+                        CellValue(sheetRow, c1 + c, row.Row[c] ?? string.Empty);
+                }
+            });
+
+            static int CompareCell(object? a, object? b)
+            {
+                if (a == null && b == null) return 0;
+                if (a == null) return -1;
+                if (b == null) return 1;
+                if (a is IComparable ca && b is IComparable cb && a.GetType() == b.GetType())
+                    return ca.CompareTo(cb);
                 return string.Compare(Convert.ToString(a), Convert.ToString(b), StringComparison.OrdinalIgnoreCase);
             }
         }

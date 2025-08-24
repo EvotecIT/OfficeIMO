@@ -78,6 +78,23 @@ namespace OfficeIMO.Excel.Read.Edit
                 return default!;
             }
         }
+
+        /// <summary>
+        /// Applies an Excel number format to this cell (e.g., "0.00", "yyyy-mm-dd", "[h]:mm:ss").
+        /// </summary>
+        public void NumberFormat(string format)
+        {
+            if (string.IsNullOrWhiteSpace(format)) return;
+            _sheet.FormatCell(RowIndex, ColumnIndex, format);
+        }
+
+        /// <summary>
+        /// Sets a formula on this cell.
+        /// </summary>
+        public void Formula(string formula)
+        {
+            if (string.IsNullOrWhiteSpace(formula)) return;
+            _sheet.CellFormula(RowIndex, ColumnIndex, formula);
+        }
     }
 }
-

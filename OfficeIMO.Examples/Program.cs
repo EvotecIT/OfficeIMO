@@ -38,6 +38,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
             // Excel/AutoFilter
             OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
+            // Excel/Styles & Colors
+            OfficeIMO.Examples.Excel.StylesColors.Example(folderPath, false);
             // Excel/Freeze
             OfficeIMO.Examples.Excel.Freeze.Example(folderPath, false);
             // Excel/ConditionalFormatting

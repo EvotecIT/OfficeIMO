@@ -90,6 +90,21 @@ namespace OfficeIMO.Excel.Read.Edit
         /// Returns a cell handle for the given header.
         /// </summary>
         public CellEdit CellByHeader(string header) => this[header];
+
+        /// <summary>
+        /// Applies a number format to the cell resolved by header.
+        /// </summary>
+        public void NumberFormat(string header, string format)
+        {
+            CellByHeader(header).NumberFormat(format);
+        }
+
+        /// <summary>
+        /// Sets a formula on the cell resolved by header.
+        /// </summary>
+        public void SetFormula(string header, string formula)
+        {
+            CellByHeader(header).Formula(formula);
+        }
     }
 }
-

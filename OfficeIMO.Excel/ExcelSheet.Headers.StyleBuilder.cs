@@ -49,6 +49,29 @@ namespace OfficeIMO.Excel
         public ColumnStyleByHeaderBuilder Text() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Text));
 
         public ColumnStyleByHeaderBuilder NumberFormat(string format) => ApplyFormat(format);
+
+        public ColumnStyleByHeaderBuilder Bold()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellBold(r, _colIndex, bold: true);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a solid background fill to the column. Accepts #RRGGBB or #AARRGGBB.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder Background(string hexColor)
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellBackground(r, _colIndex, hexColor);
+            return this;
+        }
+
+        public ColumnStyleByHeaderBuilder Background(SixLabors.ImageSharp.Color color)
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellBackground(r, _colIndex, color);
+            return this;
+        }
     }
 }
-
