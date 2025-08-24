@@ -7,9 +7,17 @@ namespace OfficeIMO.Excel
     public partial class ExcelSheet
     {
         /// <summary>
-        /// Core execution helper that handles compute/apply split with optional parallelization.
+        /// Core execution helper that handles a compute/apply split with optional parallelization.
         /// Compute runs without locks; only the apply stage is serialized under a document-level lock.
         /// </summary>
+        /// <remarks>
+        /// Pattern guidance:
+        /// - The <paramref name="computeParallel"/> delegate must not touch the OpenXML DOM or any shared mutable state.
+        ///   It should prepare immutable data structures for the apply stage.
+        /// - The <paramref name="applySequential"/> delegate runs once under a writer lock and may mutate the DOM.
+        /// - Prefer coarse-grained apply operations (e.g., single Append with a buffer) to minimize DOM churn.
+        /// - Use <paramref name="itemCount"/> to provide a best-effort scale hint; it need not be exact.
+        /// </remarks>
         /// <param name="opName">A short operation name used for diagnostics and policy decisions.</param>
         /// <param name="itemCount">Approximate number of items to process; used to decide parallel vs sequential.
         /// This does not have to be exact but should reflect relative workload.</param>

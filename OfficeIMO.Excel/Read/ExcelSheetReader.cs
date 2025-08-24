@@ -143,8 +143,19 @@ namespace OfficeIMO.Excel.Read
                     if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa))
                         return System.DateTime.FromOADate(oa);
                 }
-                if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
-                    return num;
+                if (_opt.NumericAsDecimal)
+                {
+                    if (decimal.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dec))
+                        return dec;
+                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dbl))
+                        return dbl;
+                    return rawText;
+                }
+                else
+                {
+                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
+                        return num;
+                }
                 return rawText;
             }
 
@@ -171,8 +182,18 @@ namespace OfficeIMO.Excel.Read
                     return rawText;
                 }
 
-                if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
-                    return num;
+                if (_opt.NumericAsDecimal)
+                {
+                    if (decimal.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dec2))
+                        return dec2;
+                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dbl2))
+                        return dbl2;
+                }
+                else
+                {
+                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
+                        return num;
+                }
                 return rawText;
             }
 

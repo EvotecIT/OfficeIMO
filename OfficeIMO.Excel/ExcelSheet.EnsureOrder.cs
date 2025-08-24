@@ -97,26 +97,35 @@ namespace OfficeIMO.Excel
             if (!needsReorder)
                 return;
 
-            // Remove all children and append back in schema order (O(n)).
+            // Remove all children and rebuild once in the correct order.
+            // Build a single ordered buffer to minimize per-append overhead for large worksheets.
             worksheet.RemoveAllChildren();
+
+            var ordered = new List<OpenXmlElement>(children.Count);
             var knownTypes = new HashSet<System.Type>(elementOrder);
 
+            // Known types in schema order
             foreach (var elementType in elementOrder)
             {
                 if (buckets.TryGetValue(elementType, out var list))
                 {
-                    foreach (var element in list)
-                        worksheet.AppendChild(element);
+                    ordered.AddRange(list);
                 }
             }
 
-            // Append any remaining (unknown) elements preserving their original discovery order
+            // Unknown types in original order
             foreach (var child in children)
             {
                 if (!knownTypes.Contains(child.GetType()))
                 {
-                    worksheet.AppendChild(child);
+                    ordered.Add(child);
                 }
+            }
+
+            // Single append is measurably faster than per-item appends on large sets
+            if (ordered.Count > 0)
+            {
+                worksheet.Append(ordered.ToArray());
             }
 
             // Persist any structural changes

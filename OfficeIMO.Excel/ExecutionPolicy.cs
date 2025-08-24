@@ -19,11 +19,16 @@ namespace OfficeIMO.Excel
         /// <summary>Structured diagnostics (operation, items, decided mode).</summary>
         public Action<string, int, ExecutionMode>? OnDecision { get; set; }
 
-        internal ExecutionMode Decide(string op, int count)
+        /// <summary>
+        /// Decide execution mode for a given operation and workload size.
+        /// </summary>
+        /// <param name="operationName">Descriptive operation name (e.g. "ReadRange", "AutoFitColumns").</param>
+        /// <param name="itemCount">Approximate number of items to process.</param>
+        internal ExecutionMode Decide(string operationName, int itemCount)
         {
-            var thr = OperationThresholds.TryGetValue(op, out var v) ? v : ParallelThreshold;
-            var decided = count > thr ? ExecutionMode.Parallel : ExecutionMode.Sequential;
-            OnDecision?.Invoke(op, count, decided);
+            var thr = OperationThresholds.TryGetValue(operationName, out var v) ? v : ParallelThreshold;
+            var decided = itemCount > thr ? ExecutionMode.Parallel : ExecutionMode.Sequential;
+            OnDecision?.Invoke(operationName, itemCount, decided);
             return decided;
         }
 

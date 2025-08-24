@@ -37,15 +37,11 @@ namespace OfficeIMO.Examples.Excel
                 doc.Save(openExcel);
             }
 
-            // 2) Modify: read used range on-demand, update cells and save again
+            // 2) Modify: read used range via sheet.Rows(), update cells and save again
             using (var doc = ExcelDocument.Load(filePath))
             {
-                var s = doc.Sheets[0];
-                // Read entire sheet (used range) as dictionaries
-                using var rdr = doc.CreateReader(ExcelReadPresets.Simple());
-                var sh = rdr.GetSheet("Data");
-                var a1 = sh.GetUsedRangeA1();
-                var rows = sh.ReadObjects(a1).ToList();
+                var s = doc["Data"];
+                var rows = s.Rows().ToList();
                 foreach (var row in rows)
                 {
                     var name = Convert.ToString(row["Name"]);
@@ -72,7 +68,8 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption
-            var finalRows = ExcelRead.ReadRangeObjects(filePath, "Data", "A1:C3", ExcelReadPresets.Simple());
+            using var doc2 = ExcelDocument.Load(filePath);
+            var finalRows = doc2["Data"].Rows("A1:C3");
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
             foreach (var r in finalRows)
             {

@@ -39,6 +39,11 @@ namespace OfficeIMO.Excel.Read
         public bool NormalizeHeaders { get; set; } = true;
 
         /// <summary>
+        /// When true, numeric cells are returned as decimal where possible; otherwise double is used.
+        /// </summary>
+        public bool NumericAsDecimal { get; set; } = false;
+
+        /// <summary>
         /// Optional cell-level converter hook. If provided and it returns a handled value,
         /// the built-in conversion pipeline is skipped and the returned value is used.
         /// </summary>

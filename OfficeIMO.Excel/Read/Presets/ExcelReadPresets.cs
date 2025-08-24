@@ -30,6 +30,16 @@ namespace OfficeIMO.Excel.Read
         }
 
         /// <summary>
+        /// Like Simple() but prefers decimal for numeric cells when possible.
+        /// </summary>
+        public static ExcelReadOptions DecimalFirst()
+        {
+            var opt = new ExcelReadOptions { NumericAsDecimal = true };
+            ApplyBasicConverters(opt);
+            return opt;
+        }
+
+        /// <summary>
         /// Applies the same converters as <see cref="BasicConverters"/> to an existing options instance.
         /// </summary>
         public static void ApplyBasicConverters(ExcelReadOptions options)
