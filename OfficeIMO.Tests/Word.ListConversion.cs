@@ -22,9 +22,12 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
+                var paragraph = document.Paragraphs.FirstOrDefault();
+                Assert.NotNull(paragraph);
                 var list = document.Lists.First();
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
-                Assert.Equal(NumberFormatValues.Decimal, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.NotNull(list.Numbering);
+                Assert.Equal(NumberFormatValues.Decimal, list.Numbering!.Levels.First()._level.NumberingFormat.Val.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
             }
         }
@@ -45,9 +48,12 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
+                var paragraph = document.Paragraphs.FirstOrDefault();
+                Assert.NotNull(paragraph);
                 var list = document.Lists.First();
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
-                Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level.NumberingFormat.Val.Value);
+                Assert.NotNull(list.Numbering);
+                Assert.Equal(NumberFormatValues.Bullet, list.Numbering!.Levels.First()._level.NumberingFormat.Val.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
             }
         }
