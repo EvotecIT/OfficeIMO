@@ -121,7 +121,7 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments[3].ContentType == "application/rtf");
             Assert.True(document.EmbeddedDocuments[4].ContentType == "application/rtf");
 
-            var list1 = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            var list1 = document._document!.MainDocumentPart!.AlternativeFormatImportParts;
             Assert.True(list1.Count() == 5);
 
             // lets delete last 3 embedded documents 
@@ -135,7 +135,7 @@ public partial class Word {
             Assert.True(document.Sections[0].EmbeddedDocuments.Count == 2);
             Assert.True(document.Sections[1].EmbeddedDocuments.Count == 0);
 
-            var list2 = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            var list2 = document._document!.MainDocumentPart!.AlternativeFormatImportParts;
             Assert.True(list2.Count() == 2);
 
 
@@ -218,8 +218,8 @@ public partial class Word {
             document.AddEmbeddedDocument(rtfFilePath);
             document.AddEmbeddedDocument(rtfFilePath);
 
-            var ids = document._wordprocessingDocument.MainDocumentPart.AlternativeFormatImportParts
-                .Select(p => document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(p))
+            var ids = document._wordprocessingDocument!.MainDocumentPart!.AlternativeFormatImportParts
+                .Select(p => document._wordprocessingDocument!.MainDocumentPart!.GetIdOfPart(p))
                 .ToList();
 
             Assert.Equal(ids.Count, ids.Distinct().Count());
@@ -228,8 +228,8 @@ public partial class Word {
         }
 
         using (var document = WordDocument.Load(filePath)) {
-            var ids = document._wordprocessingDocument.MainDocumentPart.AlternativeFormatImportParts
-                .Select(p => document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(p))
+            var ids = document._wordprocessingDocument!.MainDocumentPart!.AlternativeFormatImportParts
+                .Select(p => document._wordprocessingDocument!.MainDocumentPart!.GetIdOfPart(p))
                 .ToList();
 
             Assert.Equal(ids.Count, ids.Distinct().Count());
@@ -267,7 +267,7 @@ public partial class Word {
 
             Assert.True(document.EmbeddedDocuments.Count == 2);
 
-            var listBefore = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            var listBefore = document._document!.MainDocumentPart!.AlternativeFormatImportParts;
             Assert.True(listBefore.Count() == 2);
 
             document.EmbeddedDocuments[0].Remove();
@@ -275,7 +275,7 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments.Count == 1);
             Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
 
-            var listAfter = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            var listAfter = document._document!.MainDocumentPart!.AlternativeFormatImportParts;
             Assert.True(listAfter.Count() == 1);
 
             document.Save(false);
@@ -285,7 +285,7 @@ public partial class Word {
             Assert.True(document.EmbeddedDocuments.Count == 1);
             Assert.True(document.EmbeddedDocuments[0].ContentType == "text/html");
 
-            var listAfter = document._document.MainDocumentPart.AlternativeFormatImportParts;
+            var listAfter = document._document!.MainDocumentPart!.AlternativeFormatImportParts;
             Assert.True(listAfter.Count() == 1);
         }
     }
