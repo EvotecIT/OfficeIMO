@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel
                 typeof(ExtensionList)
             };
 
-            // Get all current children once and bucket by type for O(n)
+            // Snapshot children once and bucket by type for O(n)
             var children = worksheet.ChildElements.ToList();
             var buckets = new Dictionary<System.Type, List<OpenXmlElement>>();
             foreach (var child in children)
@@ -73,23 +73,50 @@ namespace OfficeIMO.Excel
                 list.Add(child);
             }
 
-            // Remove all children and append back in schema order
+            // Fast-path: if already in non-decreasing schema order, skip reordering.
+            // Unknown types are treated as coming after all known schema-ordered types.
+            var orderIndex = new Dictionary<System.Type, int>(elementOrder.Count);
+            for (int i = 0; i < elementOrder.Count; i++)
+                orderIndex[elementOrder[i]] = i;
+
+            bool needsReorder = false;
+            int last = -1;
+            int unknownIndexBase = elementOrder.Count; // unknowns come after knowns
+            foreach (var child in children)
+            {
+                var t = child.GetType();
+                int idx = orderIndex.TryGetValue(t, out var val) ? val : unknownIndexBase;
+                if (idx < last)
+                {
+                    needsReorder = true;
+                    break;
+                }
+                last = idx;
+            }
+
+            if (!needsReorder)
+                return;
+
+            // Remove all children and append back in schema order (O(n)).
             worksheet.RemoveAllChildren();
+            var knownTypes = new HashSet<System.Type>(elementOrder);
+
             foreach (var elementType in elementOrder)
             {
                 if (buckets.TryGetValue(elementType, out var list))
                 {
                     foreach (var element in list)
                         worksheet.AppendChild(element);
-                    buckets.Remove(elementType);
                 }
             }
 
-            // Append any remaining elements in their original discovery order
-            foreach (var kv in buckets)
+            // Append any remaining (unknown) elements preserving their original discovery order
+            foreach (var child in children)
             {
-                foreach (var element in kv.Value)
-                    worksheet.AppendChild(element);
+                if (!knownTypes.Contains(child.GetType()))
+                {
+                    worksheet.AppendChild(child);
+                }
             }
         }
     }

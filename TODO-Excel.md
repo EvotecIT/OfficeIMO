@@ -383,38 +383,39 @@ Use an analogous planner for **Styles/NumberFormats** if you generate them dynam
 
 ### Phase 1 – Core Infrastructure
 
-1. [ ] Add `ExecutionMode` and `ExecutionPolicy` with `OnDecision`, `MaxDegreeOfParallelism`.
-2. [ ] Add `Execution` to `ExcelDocument`; add `ExecutionOverride` to `ExcelSheet`.
-3. [ ] Implement `Locking` with `AsyncLocal<bool>` and `ExecuteWrite`.
-4. [ ] Implement `ExecuteWithPolicy` (compute/apply split + cancellation).
+1. [x] Add `ExecutionMode` and `ExecutionPolicy` with `OnDecision`, `MaxDegreeOfParallelism`.
+2. [x] Add `Execution` to `ExcelDocument`; add `ExecutionOverride` to `ExcelSheet`.
+3. [x] Implement `Locking` with `AsyncLocal<bool>` and `ExecuteWrite`.
+4. [x] Implement `ExecuteWithPolicy` (compute/apply split + cancellation).
 
 ### Phase 2 – Critical Refactors (Fix current issues)
 
-1. [ ] Refactor `CellValue`/`CellValues` to use the helper and **no nested locks**.
-2. [ ] Refactor `AutoFitColumns/Rows` to compute widths in parallel, apply once.
-3. [ ] Keep `AddAutoFilter` + Conditional Formatting ops sequential-only.
-4. [ ] Verify the original failing fluent example works in `Sequential` mode.
+1. [x] Refactor `CellValue`/`CellValues` to use the helper and **no nested locks**.
+2. [x] Refactor `AutoFitColumns/Rows` to compute widths in parallel, apply once.
+3. [x] Keep `AddAutoFilter` + Conditional Formatting ops sequential-only.
+4. [x] Verify the original failing fluent example works in `Sequential` mode.
 
 ### Phase 3 – Planners
 
-1. [ ] Implement `SharedStringPlanner` and integrate into `CellValues` apply phase.
-2. [ ] Implement `StylePlanner` (number formats, fills, fonts) if needed.
+1. [x] Implement `SharedStringPlanner` and integrate into `CellValues` apply phase.
+2. [x] Implement `StylePlanner` (number formats, fills, fonts) if needed.
 
 ### Phase 4 – Batch APIs & Objects
 
-1. [ ] `InsertObjects` uses compute/apply split; parallel flattening; planner usage.
-2. [ ] `InsertDataTable` mirrors `CellValues` path, with planner integration.
+1. [x] `InsertObjects` uses compute/apply split (via `SetCellValues`); planner usage. (Flattening currently sequential.)
+2. [x] `InsertDataTable` mirrors `CellValues` path, with planner integration.
 
 ### Phase 5 – Fluent & Batching
 
-1. [ ] Fluent builder aggregates values and calls `CellValues` in one batch.
-2. [ ] Fluent builder defaults to `ExecutionMode.Sequential` (or sets an internal `BeginNoLock()` scope).
+1. [x] Fluent builder aggregates values and calls `CellValues` in one batch.
+2. [x] Fluent builder defaults to `ExecutionMode.Sequential` (and sets an internal no‑lock scope).
 
 ### Phase 6 – Polish
 
-1. [ ] Operation defaults for thresholds.
-2. [ ] Diagnostics wiring with `OnDecision`.
-3. [ ] Benchmarks & unit tests.
+1. [x] Operation defaults for thresholds.
+2. [x] Diagnostics wiring with `OnDecision`.
+3. [ ] Benchmarks.
+4. [x] Unit tests.
 
 ---
 
@@ -493,3 +494,13 @@ sheet.CellValues(hugeCells); // compute in parallel, apply once
 ---
 
 If you want, I can generate a compact benchmark harness (BenchmarkDotNet) tailored to your `CellValues` and `AutoFitColumns` paths so you can capture the before/after deltas immediately.
+
+---
+
+## Next Steps
+
+- Parallelize object flattening in `InsertObjects` for large inputs (respect `ExecutionPolicy`).
+- Add BenchmarkDotNet benchmarks for `CellValues` and `AutoFitColumns/Rows` to quantify gains.
+- Expand concurrency tests to mixed-sheet automatic mode decisions and `OnDecision` diagnostics hooks.
+- Consider caching/optimizing style application for dynamic number formats under heavy loads.
+- Add README examples for the new read APIs (`OfficeIMO.Excel.Read`) and batching patterns.
