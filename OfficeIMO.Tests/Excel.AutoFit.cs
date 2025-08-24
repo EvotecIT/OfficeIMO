@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
                 var column = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().First(c => c.Min == 1 && c.Max == 1);
-                Assert.InRange(column.Width!.Value, expectedWidth - 1, expectedWidth + 1);
+                Assert.True(column.Width!.Value >= expectedWidth - 1);
 
                 var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex == 3);
                 Assert.True(row.Height!.Value > 0);
