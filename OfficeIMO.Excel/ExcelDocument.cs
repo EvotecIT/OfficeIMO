@@ -431,7 +431,8 @@ namespace OfficeIMO.Excel {
                 // Write snapshot to disk asynchronously
                 using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
                     snapshot.Position = 0;
-                    await snapshot.CopyToAsync(fs, cancellationToken);
+                    // Use explicit buffer size overload for broad TFMs compatibility
+                    await snapshot.CopyToAsync(fs, 81920, cancellationToken);
                     await fs.FlushAsync(cancellationToken);
                 }
                 FilePath = target;
