@@ -417,5 +417,12 @@ namespace OfficeIMO.Excel {
         public void Dispose() {
             // No local lock to dispose anymore - using document's lock
         }
+
+        /// <summary>
+        /// Persists pending changes on this worksheet to its underlying OpenXml part.
+        /// </summary>
+        internal void Commit() {
+            _worksheetPart?.Worksheet?.Save();
+        }
     }
 }

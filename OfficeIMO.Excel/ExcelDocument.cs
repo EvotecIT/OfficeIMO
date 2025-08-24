@@ -326,51 +326,47 @@ namespace OfficeIMO.Excel {
             // Ensure all worksheets have proper element ordering before saving
             foreach (var sheet in Sheets) {
                 sheet.EnsureWorksheetElementOrder();
+                sheet.Commit();
             }
             
             _workBookPart.Workbook.Save();
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
 
-            if (!string.IsNullOrEmpty(filePath) && !Path.GetFullPath(path).Equals(Path.GetFullPath(FilePath), StringComparison.OrdinalIgnoreCase)) {
-                if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
-                    throw new IOException($"Failed to save to '{path}'. The file is read-only.");
-                }
+            // Prepare serialized snapshot of current document
+            var snapshot = new MemoryStream();
+            using (_spreadSheetDocument.Clone(snapshot)) { }
+            snapshot.Position = 0;
 
-                var directory = Path.GetDirectoryName(Path.GetFullPath(path));
-                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                    var dirInfo = new DirectoryInfo(directory);
-                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                        throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
-                    }
-                }
-
-                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                    using (_spreadSheetDocument.Clone(fs)) {
-                    }
-                    fs.Flush();
-                }
-                FilePath = path;
-            } else if (_isMemory) {
-                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                    using (_spreadSheetDocument.Clone(fs)) {
-                    }
-                    fs.Flush();
+            // Ensure target directory is writable
+            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
+                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
+            }
+            var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                var dirInfo = new DirectoryInfo(directory);
+                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                    throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
                 }
             }
 
+            // Release any file handles by disposing the current document first
             try {
                 _spreadSheetDocument.Dispose();
             } catch (NotSupportedException) {
                 // ignore dispose failures on some streams
             }
 
-            var memory = new MemoryStream();
-            using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                file.CopyTo(memory);
+            // Write snapshot to disk
+            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
+                snapshot.CopyTo(fs);
+                fs.Flush();
             }
-            memory.Position = 0;
-            _spreadSheetDocument = SpreadsheetDocument.Open(memory, true);
+            FilePath = path;
+
+            // Reopen as in-memory document for further operations
+            snapshot.Position = 0;
+            _spreadSheetDocument = SpreadsheetDocument.Open(new MemoryStream(snapshot.ToArray()), true);
             _workBookPart = _spreadSheetDocument.WorkbookPart;
             _sharedStringTablePart = null;
             _isMemory = true;
@@ -406,39 +402,40 @@ namespace OfficeIMO.Excel {
             // Ensure all worksheets have proper element ordering before saving
             foreach (var sheet in Sheets) {
                 sheet.EnsureWorksheetElementOrder();
+                sheet.Commit();
             }
             
             _workBookPart.Workbook.Save();
 
             try {
-                if (!string.IsNullOrEmpty(filePath)) {
-                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                    }
+                // Serialize current document to memory snapshot
+                var snapshot = new MemoryStream();
+                using (_spreadSheetDocument.Clone(snapshot)) { }
+                snapshot.Position = 0;
 
-                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                        var dirInfo = new DirectoryInfo(directory);
-                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                        }
-                    }
-
-                    FileStream fs;
-                    try {
-                        fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                    } catch (UnauthorizedAccessException ex) {
-                        throw new IOException($"Failed to save to '{filePath}'. Access denied or path is read-only.", ex);
-                    }
-
-                    using (fs) {
-                        using (var clone = _spreadSheetDocument.Clone(fs)) {
-                        }
-                        await fs.FlushAsync(cancellationToken);
-                    }
-                    FilePath = filePath;
+                var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+                if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
+                    throw new IOException($"Failed to save to '{target}'. The file is read-only.");
                 }
-            } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
+                var directory = Path.GetDirectoryName(Path.GetFullPath(target));
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                    var dirInfo = new DirectoryInfo(directory);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                        throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
+                    }
+                }
+
+                // Dispose current document to release file handle (if any)
+                try { _spreadSheetDocument.Dispose(); } catch { }
+
+                // Write snapshot to disk asynchronously
+                using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                    snapshot.Position = 0;
+                    await snapshot.CopyToAsync(fs, cancellationToken);
+                    await fs.FlushAsync(cancellationToken);
+                }
+                FilePath = target;
+            } catch (Exception) when (true) {
                 throw;
             }
 

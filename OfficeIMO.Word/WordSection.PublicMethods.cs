@@ -29,8 +29,16 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraph(bool newRun) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
             if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph(wordParagraph);
-                return paragraph;
+                // Insert the first paragraph of this section BEFORE the section break paragraph
+                // so that the paragraph belongs to this section.
+                var body = _document._document!.Body!;
+                if (this._paragraph != null) {
+                    body.InsertBefore(wordParagraph._paragraph, this._paragraph);
+                } else {
+                    // Fallback: append to body if section paragraph is not tracked
+                    body.AppendChild(wordParagraph._paragraph);
+                }
+                return wordParagraph;
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this, wordParagraph);
@@ -45,18 +53,24 @@ namespace OfficeIMO.Word {
         /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(string text = "") {
             if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph();
-                if (text != "") {
-                    paragraph.Text = text;
+                // Insert the first paragraph of this section BEFORE the section break paragraph
+                var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: false);
+                if (!string.IsNullOrEmpty(text)) {
+                    wordParagraph.AddText(text);
                 }
-
-                return paragraph;
+                var body = _document._document!.Body!;
+                if (this._paragraph != null) {
+                    body.InsertBefore(wordParagraph._paragraph, this._paragraph);
+                } else {
+                    body.AppendChild(wordParagraph._paragraph);
+                }
+                return wordParagraph;
             } else {
                 WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
 
                 WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
                 paragraph._document = this._document;
-                if (text != "") {
+                if (!string.IsNullOrEmpty(text)) {
                     paragraph.Text = text;
                 }
 
