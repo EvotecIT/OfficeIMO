@@ -54,14 +54,30 @@ namespace OfficeIMO.Excel {
                 computeParallel: () =>
                 {
                     // Parallel compute phase - calculate widths without DOM mutation
-                    Parallel.For(0, columnsList.Count, new ParallelOptions 
+                    var failures = new System.Collections.Concurrent.ConcurrentBag<int>();
+                    Parallel.For(0, columnsList.Count, new ParallelOptions
                     {
                         CancellationToken = ct,
                         MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
                     }, i =>
                     {
-                        computed[i] = CalculateColumnWidth(columnsList[i]);
+                        try
+                        {
+                            computed[i] = CalculateColumnWidth(columnsList[i]);
+                        }
+                        catch
+                        {
+                            failures.Add(i);
+                        }
                     });
+                    if (!failures.IsEmpty)
+                    {
+                        foreach (var idx in failures)
+                        {
+                            try { computed[idx] = CalculateColumnWidth(columnsList[idx]); }
+                            catch { computed[idx] = 0; }
+                        }
+                    }
                 },
                 applySequential: () =>
                 {
@@ -567,14 +583,30 @@ namespace OfficeIMO.Excel {
                 computeParallel: () =>
                 {
                     // Parallel compute phase - calculate heights without DOM mutation
-                    Parallel.For(0, rowIndexes.Count, new ParallelOptions 
+                    var failures = new System.Collections.Concurrent.ConcurrentBag<int>();
+                    Parallel.For(0, rowIndexes.Count, new ParallelOptions
                     {
                         CancellationToken = ct,
                         MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
                     }, i =>
                     {
-                        computed[i] = CalculateRowHeight(rowIndexes[i]);
+                        try
+                        {
+                            computed[i] = CalculateRowHeight(rowIndexes[i]);
+                        }
+                        catch
+                        {
+                            failures.Add(i);
+                        }
                     });
+                    if (!failures.IsEmpty)
+                    {
+                        foreach (var idx in failures)
+                        {
+                            try { computed[idx] = CalculateRowHeight(rowIndexes[idx]); }
+                            catch { computed[idx] = 0; }
+                        }
+                    }
                 },
                 applySequential: () =>
                 {

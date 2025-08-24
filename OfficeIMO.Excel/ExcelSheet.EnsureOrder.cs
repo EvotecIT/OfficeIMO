@@ -59,27 +59,37 @@ namespace OfficeIMO.Excel
                 typeof(ExtensionList)
             };
 
-            // Get all current children
+            // Get all current children once and bucket by type for O(n)
             var children = worksheet.ChildElements.ToList();
-            
-            // Remove all children
+            var buckets = new Dictionary<System.Type, List<OpenXmlElement>>();
+            foreach (var child in children)
+            {
+                var t = child.GetType();
+                if (!buckets.TryGetValue(t, out var list))
+                {
+                    list = new List<OpenXmlElement>();
+                    buckets[t] = list;
+                }
+                list.Add(child);
+            }
+
+            // Remove all children and append back in schema order
             worksheet.RemoveAllChildren();
-            
-            // Re-add children in correct order
             foreach (var elementType in elementOrder)
             {
-                var elementsOfType = children.Where(c => c.GetType() == elementType).ToList();
-                foreach (var element in elementsOfType)
+                if (buckets.TryGetValue(elementType, out var list))
                 {
-                    worksheet.AppendChild(element);
+                    foreach (var element in list)
+                        worksheet.AppendChild(element);
+                    buckets.Remove(elementType);
                 }
             }
-            
-            // Add any remaining elements that weren't in our list (for forward compatibility)
-            var remainingElements = children.Where(c => !elementOrder.Contains(c.GetType())).ToList();
-            foreach (var element in remainingElements)
+
+            // Append any remaining elements in their original discovery order
+            foreach (var kv in buckets)
             {
-                worksheet.AppendChild(element);
+                foreach (var element in kv.Value)
+                    worksheet.AppendChild(element);
             }
         }
     }
