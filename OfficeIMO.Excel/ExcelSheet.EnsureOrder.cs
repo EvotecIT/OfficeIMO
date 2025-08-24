@@ -118,6 +118,9 @@ namespace OfficeIMO.Excel
                     worksheet.AppendChild(child);
                 }
             }
+
+            // Persist any structural changes
+            worksheet.Save();
         }
     }
 }
