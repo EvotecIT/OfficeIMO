@@ -73,7 +73,9 @@ namespace OfficeIMO.Tests {
                 run.SetBold(false);
                 Assert.NotNull(run._run.RunProperties);
                 document.CleanupDocument();
-                Assert.Null(run._paragraph.Elements<Run>().First().RunProperties);
+                Assert.NotNull(run._paragraph);
+                var firstRun = run._paragraph!.Elements<Run>().First();
+                Assert.Null(firstRun.RunProperties);
                 document.Save(false);
             }
         }

@@ -33,7 +33,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.False(document.GetCheckBoxByTag("AgreeTag").IsChecked);
+                var checkBox = document.GetCheckBoxByTag("AgreeTag");
+                Assert.NotNull(checkBox);
+                Assert.False(checkBox!.IsChecked);
             }
         }
     }

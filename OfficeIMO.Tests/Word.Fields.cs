@@ -26,17 +26,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Fields.Count == 0);
                 Assert.True(document.Sections[1].HyperLinks.Count == 0);
 
-                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink.IsEmail == false);
-                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.IsEmail == true);
-                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
+                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink!.IsEmail == false);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink!.IsEmail == true);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink!.EmailAddress == "przemyslaw.klys@test.pl");
 
-                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Text == "Przemysław Kłys");
-                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Text == "FieldsAndSections.docx");
-                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Text == "1");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field!.Text == "Przemysław Kłys");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field!.Text == "FieldsAndSections.docx");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field!.Text == "1");
 
-                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field!.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field!.Field == @" FILENAME   \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field!.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
 
 
                 Assert.Equal(new[] { WordFieldFormat.Caps, WordFieldFormat.Mergeformat }, document.Fields[0].FieldFormat);
@@ -97,17 +97,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Fields.Count == 0);
                 Assert.True(document.Sections[1].HyperLinks.Count == 0);
 
-                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink.IsEmail == false);
-                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.IsEmail == true);
-                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink.EmailAddress == "przemyslaw.klys@test.pl");
+                Assert.True(document.ParagraphsHyperLinks[0].Hyperlink!.IsEmail == false);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink!.IsEmail == true);
+                Assert.True(document.ParagraphsHyperLinks[1].Hyperlink!.EmailAddress == "przemyslaw.klys@test.pl");
 
-                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Text == "Przemysław Kłys");
-                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Text == "FieldsAndSections.docx");
-                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Text == "1");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field!.Text == "Przemysław Kłys");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field!.Text == "FieldsAndSections.docx");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field!.Text == "1");
 
-                Assert.True(document.Sections[0].ParagraphsFields[0].Field.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].ParagraphsFields[1].Field.Field == @" FILENAME   \* MERGEFORMAT ");
-                Assert.True(document.Sections[0].ParagraphsFields[2].Field.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[0].Field!.Field == @" AUTHOR  \* Caps  \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[1].Field!.Field == @" FILENAME   \* MERGEFORMAT ");
+                Assert.True(document.Sections[0].ParagraphsFields[2].Field!.Field == @" PAGE  \* Arabic  \* MERGEFORMAT ");
 
                 document.Fields[0].UpdateField = true;
                 document.Fields[1].UpdateField = true;
@@ -170,14 +170,16 @@ namespace OfficeIMO.Tests {
                 var fieldTypes = (WordFieldType[])Enum.GetValues(typeof(WordFieldType));
                 foreach (var fieldType in fieldTypes) {
                     var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType);
-                    Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
+                    Assert.NotNull(paragraph.Field);
+                    Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
                 }
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 2);
 
                 foreach (var fieldType in fieldTypes) {
                     var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, advanced: true);
-                    Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
+                    Assert.NotNull(paragraph.Field);
+                    Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
                 }
 
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 4);
@@ -191,8 +193,9 @@ namespace OfficeIMO.Tests {
                 foreach (var fieldType in fieldTypes) {
                     foreach (var fieldTypeFormat in fieldTypesFormats) {
                         var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, fieldTypeFormat);
-                        Assert.True(paragraph.Field.FieldType == fieldType, "FieldType matches");
-                        Assert.Contains(fieldTypeFormat, paragraph.Field.FieldFormat);
+                        Assert.NotNull(paragraph.Field);
+                        Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
+                        Assert.Contains(fieldTypeFormat, paragraph.Field!.FieldFormat);
                     }
                 }
 
@@ -298,7 +301,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CustomFormattedField.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
-                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field.Field);
+                Assert.NotNull(paragraph.Field);
+                Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field!.Field);
                 document.Save(false);
             }
 
