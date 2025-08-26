@@ -73,19 +73,13 @@ namespace OfficeIMO.Word {
         private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties? runProperties) {
             run = VerifyRun(hyperlink, run);
             if (run != null) {
-                runProperties ??= run.GetFirstChild<RunProperties>();
+                runProperties = run.GetFirstChild<RunProperties>();
                 if (runProperties == null) {
-                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    runProperties = new RunProperties();
-                    if (text != null) {
-                        text.InsertBeforeSelf(runProperties);
-                    } else {
-                        run.Append(runProperties);
-                    }
+                    runProperties = run.PrependChild(new RunProperties());
                 }
             }
 
-            return runProperties;
+            return runProperties!;
         }
 
         /// <summary>
@@ -94,20 +88,16 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private RunProperties VerifyRunProperties() {
             VerifyRun();
-            if (this._run != null) {
-                _runProperties ??= _run.GetFirstChild<RunProperties>();
-                if (_runProperties == null) {
-                    var text = _run.ChildElements.OfType<Text>().FirstOrDefault();
-                    _runProperties = new RunProperties();
-                    if (text != null) {
-                        text.InsertBeforeSelf(_runProperties);
-                    } else {
-                        this._run.Append(_runProperties);
-                    }
-                }
+            if (_run == null) {
+                throw new InvalidOperationException("Run is not initialized.");
             }
 
-            return this._runProperties!;
+            var runProperties = _run.GetFirstChild<RunProperties>();
+            if (runProperties == null) {
+                runProperties = _run.PrependChild(new RunProperties());
+            }
+
+            return runProperties;
         }
 
         /// <summary>
