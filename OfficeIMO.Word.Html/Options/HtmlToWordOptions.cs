@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
-        public string FontFamily { get; set; }
+        public string? FontFamily { get; set; }
 
         /// <summary>
         /// Character inserted before inline quoted text. Defaults to left double quotation mark.
@@ -70,7 +70,7 @@ namespace OfficeIMO.Word.Html {
         public List<string> StylesheetContents { get; } = new List<string>();
 
         /// <summary>
-        /// When true, <pre> elements are rendered inside a single-cell table.
+        /// When true, <c>&lt;pre&gt;</c> elements are rendered inside a single-cell table.
         /// </summary>
         public bool RenderPreAsTable { get; set; }
 
