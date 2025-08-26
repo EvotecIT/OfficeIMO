@@ -37,8 +37,8 @@ namespace OfficeIMO.Word.Html.Converters {
             var htmlDoc = await context.OpenNewAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var head = htmlDoc.Head;
-            var body = htmlDoc.Body;
+            var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
+            var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");
 
             var charset = htmlDoc.CreateElement("meta");
             charset.SetAttribute("charset", "UTF-8");
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Html.Converters {
             title.TextContent = string.IsNullOrEmpty(props?.Title) ? "Document" : props.Title;
             head.AppendChild(title);
 
-            void AddMeta(string name, string value) {
+            void AddMeta(string name, string? value) {
                 if (!string.IsNullOrEmpty(value)) {
                     var meta = htmlDoc.CreateElement("meta");
                     meta.SetAttribute("name", name);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                                     srcSvg = imgObj.ExternalUri.ToString();
                                 } else {
-                                    srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? imgObj.FileName : imgObj.FilePath;
+                                    srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
                                 imgSvg!.Source = srcSvg;
                                 if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
@@ -193,10 +193,10 @@ namespace OfficeIMO.Word.Html.Converters {
                         if (imgObj.IsExternal && imgObj.ExternalUri != null) {
                             src = imgObj.ExternalUri.ToString();
                         } else if (!options.EmbedImagesAsBase64) {
-                            src = string.IsNullOrEmpty(imgObj.FilePath) ? imgObj.FileName : imgObj.FilePath;
+                            src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                         } else {
                             var bytes = imgObj.GetBytes();
-                            var mime = MimeFromFileName(imgObj.FileName);
+                            var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
                             src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                         }
                         img!.Source = src;
@@ -287,7 +287,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         handledHtmlStyle = true;
                     } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
                         var time = htmlDoc.CreateElement("time");
-                        string dt = run.Text;
+                          string dt = run.Text ?? string.Empty;
                         if (DateTime.TryParse(run.Text, out var parsed)) {
                             dt = parsed.ToString("o");
                         }
@@ -354,8 +354,8 @@ namespace OfficeIMO.Word.Html.Converters {
 
             void AppendParagraph(IElement parent, WordParagraph para) {
                 if (para.IsBookmark && para.Bookmark != null) {
-                    var name = para.Bookmark.Name;
-                    var parts = name.Split(new[] { ':' }, 2);
+                      var name = para.Bookmark.Name ?? string.Empty;
+                      var parts = name.Split(new[] { ':' }, 2);
                     if (parts.Length == 2 && IsStructuralTag(parts[0])) {
                         var structEl = htmlDoc.CreateElement(parts[0]);
                         structEl.SetAttribute("id", parts[1]);
@@ -449,7 +449,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 return align;
             }
 
-            string? BuildBorderCss(BorderValues? style, string colorHex, UInt32Value size) {
+            string? BuildBorderCss(BorderValues? style, string? colorHex, UInt32Value? size) {
                 if (style == null) {
                     return null;
                 }
@@ -654,16 +654,19 @@ namespace OfficeIMO.Word.Html.Converters {
 
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var elements = section.Elements;
-                if (elements == null || elements.Count == 0) {
-                    // Fallback: compose elements from paragraphs and tables when section enumeration yields none
-                    var composed = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
-                    composed.AddRange(section.Paragraphs);
-                    composed.AddRange(section.Tables);
-                    elements = composed;
-                }
-                for (int idx = 0; idx < elements.Count; idx++) {
-                    var element = elements[idx];
+            var elements = section.Elements;
+            if (elements == null || elements.Count == 0) {
+                // Fallback: compose elements from paragraphs and tables when section enumeration yields none
+                var composed = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
+                composed.AddRange(section.Paragraphs);
+                composed.AddRange(section.Tables);
+                elements = composed;
+            }
+            if (elements == null) {
+                continue;
+            }
+            for (int idx = 0; idx < elements.Count; idx++) {
+                var element = elements[idx];
                     if (element is WordParagraph paragraph) {
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
@@ -736,8 +739,8 @@ namespace OfficeIMO.Word.Html.Converters {
                     } else if (element is WordTable table) {
                         CloseLists();
                         AppendTable(body, table);
-                    }
                 }
+            }
             }
 
             CloseLists();
@@ -763,7 +766,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (paragraphStyles.Count > 0 || runStyles.Count > 0) {
-                var stylePart = document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart;
+                var stylePart = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
                 var styleMap = (stylePart?.Styles?.OfType<Style>() ?? Enumerable.Empty<Style>())
                     .ToDictionary<Style, string, Style>(s => s.StyleId!, s => s, StringComparer.OrdinalIgnoreCase);
 
@@ -771,8 +774,8 @@ namespace OfficeIMO.Word.Html.Converters {
                     var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-                    void Merge(string id) {
-                        if (!visited.Add(id)) {
+                    void Merge(string? id) {
+                        if (string.IsNullOrEmpty(id) || !visited.Add(id)) {
                             return;
                         }
                         if (!styleMap.TryGetValue(id, out var def)) {
@@ -803,7 +806,8 @@ namespace OfficeIMO.Word.Html.Converters {
                             if (rPr.Italic != null) {
                                 props["font-style"] = "italic";
                             }
-                            if (rPr.Underline != null && rPr.Underline.Val != UnderlineValues.None) {
+                            var underline = rPr.Underline?.Val?.Value;
+                            if (underline != null && underline != UnderlineValues.None) {
                                 props["text-decoration"] = "underline";
                             }
                             var colorVal = rPr.Color?.Val?.Value;
@@ -814,9 +818,9 @@ namespace OfficeIMO.Word.Html.Converters {
                             if (!string.IsNullOrEmpty(sizeVal) && int.TryParse(sizeVal, out int sz)) {
                                 props["font-size"] = (sz / 2.0).ToString("0.##") + "pt";
                             }
-                            var font = rPr.RunFonts?.Ascii;
+                            var font = rPr.RunFonts?.Ascii?.Value;
                             if (!string.IsNullOrEmpty(font)) {
-                                string value = font;
+                                var value = font;
                                 props["font-family"] = value.Contains(' ') ? $"\"{value}\"" : value;
                             }
                         }
