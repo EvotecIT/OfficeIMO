@@ -45,14 +45,14 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Load(path))
             {
                 var s = doc.Sheets[0];
-                foreach (var row in rows)
-                {
-                    string name = Convert.ToString(row["Name"]);
-                    int value = 0;
-                    if (row.TryGetValue("Value", out var val) && val != null)
+                    foreach (var row in rows)
                     {
-                        try { value = Convert.ToInt32(val); } catch { }
-                    }
+                        string name = Convert.ToString(row["Name"]) ?? string.Empty;
+                        int value = 0;
+                        if (row.TryGetValue("Value", out var val) && val != null)
+                        {
+                            try { value = Convert.ToInt32(val); } catch { }
+                        }
 
                     if (string.Equals(name, "Alpha", StringComparison.OrdinalIgnoreCase) && value == 10)
                     {

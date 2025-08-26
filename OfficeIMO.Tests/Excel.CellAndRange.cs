@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             var value = cell.CellValue?.Text ?? string.Empty;
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
-                var table = document.WorkbookPart.SharedStringTablePart.SharedStringTable;
-                if (int.TryParse(value, out int id)) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                if (table != null && int.TryParse(value, out int id)) {
                     return table.ChildElements[id].InnerText;
                 }
             }
@@ -30,7 +30,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("Hello", GetCellValue(document._spreadSheetDocument, sheetPart, "C2"));
             }
 
@@ -60,7 +63,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("A", GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal("D", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
             }
