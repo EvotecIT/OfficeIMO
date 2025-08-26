@@ -72,7 +72,7 @@ public class CoverPageTests : VerifyTestBase {
 
         wordListToc.AddItem("More on the next page");
 
-        document.TableOfContent.Update();
+        document.TableOfContent?.Update();
 
         document.Save();
 
