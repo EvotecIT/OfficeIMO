@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             var value = cell.CellValue?.Text ?? string.Empty;
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
-                var table = document.WorkbookPart.SharedStringTablePart.SharedStringTable;
-                if (int.TryParse(value, out int id)) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                if (table != null && int.TryParse(value, out int id)) {
                     return table.ChildElements[id].InnerText;
                 }
             }
@@ -41,7 +41,10 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 Assert.Single(document.Sheets);
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("Name", GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal("93", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
                 Assert.True(sheetPart.TableDefinitionParts.Any());
@@ -66,7 +69,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("Sheet", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
                 Assert.Equal("Row", GetCellValue(document._spreadSheetDocument, sheetPart, "C1"));
                 Assert.Equal("Column", GetCellValue(document._spreadSheetDocument, sheetPart, "D2"));
@@ -92,14 +98,19 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var workbookPart = spreadsheet.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 var columns = wsPart.Worksheet.GetFirstChild<Columns>();
                 Assert.NotNull(columns);
-                var col1 = columns.Elements<Column>().First(c => c.Min == 1 && c.Max == 1);
-                var col2 = columns.Elements<Column>().First(c => c.Min == 2 && c.Max == 2);
-                Assert.Equal(25D, col1.Width!.Value);
-                Assert.True(col1.Hidden!.Value);
-                Assert.Equal(30D, col2.Width!.Value);
+                var col1 = columns.Elements<Column>().First(c => c.Min != null && c.Min.Value == 1 && c.Max != null && c.Max.Value == 1);
+                var col2 = columns.Elements<Column>().First(c => c.Min != null && c.Min.Value == 2 && c.Max != null && c.Max.Value == 2);
+                Assert.NotNull(col1.Width);
+                Assert.Equal(25D, col1.Width.Value);
+                Assert.NotNull(col1.Hidden);
+                Assert.True(col1.Hidden.Value);
+                Assert.NotNull(col2.Width);
+                Assert.Equal(30D, col2.Width.Value);
                 Assert.False(col2.Hidden?.Value ?? false);
             }
 

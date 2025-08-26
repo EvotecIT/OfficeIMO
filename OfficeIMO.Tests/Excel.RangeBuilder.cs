@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             var value = cell.CellValue?.Text ?? string.Empty;
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
-                var table = document.WorkbookPart.SharedStringTablePart.SharedStringTable;
-                if (int.TryParse(value, out int id)) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                if (table != null && int.TryParse(value, out int id)) {
                     return table.ChildElements[id].InnerText;
                 }
             }
@@ -32,7 +32,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("A", GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal("D", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
             }
@@ -50,7 +53,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("X", GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
             }
 
@@ -71,14 +77,24 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                var wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var workbookPart = spreadsheet.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
                 var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
                 Assert.NotNull(cell.StyleIndex);
-                uint styleIndex = cell.StyleIndex!.Value;
-                var styles = spreadsheet.WorkbookPart.WorkbookStylesPart.Stylesheet;
+                uint styleIndex = cell.StyleIndex.Value;
+                var stylesPart = workbookPart.WorkbookStylesPart;
+                Assert.NotNull(stylesPart);
+                var styles = stylesPart.Stylesheet;
+                Assert.NotNull(styles);
+                Assert.NotNull(styles.CellFormats);
                 var cellFormat = (CellFormat)styles.CellFormats.ElementAt((int)styleIndex);
-                var nfId = cellFormat.NumberFormatId!.Value;
-                var numberingFormat = styles.NumberingFormats.Elements<NumberingFormat>().First(n => n.NumberFormatId.Value == nfId);
+                Assert.NotNull(cellFormat.NumberFormatId);
+                var nfId = cellFormat.NumberFormatId.Value;
+                var numberingFormats = styles.NumberingFormats;
+                Assert.NotNull(numberingFormats);
+                var numberingFormat = numberingFormats.Elements<NumberingFormat>().First(n => n.NumberFormatId != null && n.NumberFormatId.Value == nfId);
+                Assert.NotNull(numberingFormat.FormatCode);
                 Assert.Equal("0.00", numberingFormat.FormatCode.Value);
             }
 
@@ -99,7 +115,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                var sheetPart = document._spreadSheetDocument.WorkbookPart.WorksheetParts.First();
+                Assert.NotNull(document._spreadSheetDocument);
+                var workbookPart = document._spreadSheetDocument.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheetPart = workbookPart.WorksheetParts.First();
                 Assert.Equal(string.Empty, GetCellValue(document._spreadSheetDocument, sheetPart, "A1"));
                 Assert.Equal(string.Empty, GetCellValue(document._spreadSheetDocument, sheetPart, "B2"));
             }

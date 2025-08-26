@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             var value = cell.CellValue?.Text ?? string.Empty;
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
-                var table = document.WorkbookPart.SharedStringTablePart.SharedStringTable;
-                if (int.TryParse(value, out int id)) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                if (table != null && int.TryParse(value, out int id)) {
                     return table.ChildElements[id].InnerText;
                 }
             }
@@ -53,7 +53,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = SpreadsheetDocument.Open(filePath, false)) {
-                var wsPart = document.WorkbookPart.WorksheetParts.First();
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("Name", GetCellValue(document, wsPart, "A1"));
                 Assert.Equal("Age", GetCellValue(document, wsPart, "B1"));
                 Assert.Equal("Address.City", GetCellValue(document, wsPart, "C1"));
@@ -91,7 +93,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = SpreadsheetDocument.Open(filePath, false)) {
-                var wsPart = document.WorkbookPart.WorksheetParts.First();
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
                 Assert.Equal("N/A", GetCellValue(document, wsPart, "C3"));
                 Assert.Equal("", GetCellValue(document, wsPart, "D2"));
                 Assert.Equal("30y", GetCellValue(document, wsPart, "B2"));
@@ -120,11 +124,14 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = SpreadsheetDocument.Open(filePath, false)) {
-                var wsPart = document.WorkbookPart.WorksheetParts.First();
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
                 // two rows for tags -> name repeats twice
                 Assert.Equal("Alice", GetCellValue(document, wsPart, "A2"));
                 Assert.Equal("Alice", GetCellValue(document, wsPart, "A3"));
                 var table = wsPart.TableDefinitionParts.First();
+                Assert.NotNull(table.Table);
                 Assert.Equal("People", table.Table.DisplayName.Value);
                 Assert.Equal("TableStyleMedium9", table.Table.TableStyleInfo?.Name?.Value);
             }
