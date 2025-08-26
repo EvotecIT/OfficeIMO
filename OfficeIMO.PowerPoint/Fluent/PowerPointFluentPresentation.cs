@@ -45,6 +45,9 @@ namespace OfficeIMO.PowerPoint.Fluent {
             return Slide(0, 0, configure);
         }
 
+        /// <summary>
+        ///     Completes fluent configuration and returns the underlying presentation.
+        /// </summary>
         public PowerPointPresentation End() {
             return Presentation;
         }
