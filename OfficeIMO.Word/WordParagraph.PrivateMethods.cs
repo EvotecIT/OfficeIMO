@@ -70,15 +70,17 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
-            VerifyRun(hyperlink, run);
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties? runProperties) {
+            run = VerifyRun(hyperlink, run);
             if (run != null) {
+                runProperties ??= run.GetFirstChild<RunProperties>();
                 if (runProperties == null) {
                     var text = run.ChildElements.OfType<Text>().FirstOrDefault();
+                    runProperties = new RunProperties();
                     if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
+                        text.InsertBeforeSelf(runProperties);
                     } else {
-                        run.Append(new RunProperties());
+                        run.Append(runProperties);
                     }
                 }
             }
@@ -93,17 +95,19 @@ namespace OfficeIMO.Word {
         private RunProperties VerifyRunProperties() {
             VerifyRun();
             if (this._run != null) {
-                if (this._runProperties == null) {
+                _runProperties ??= _run.GetFirstChild<RunProperties>();
+                if (_runProperties == null) {
                     var text = _run.ChildElements.OfType<Text>().FirstOrDefault();
+                    _runProperties = new RunProperties();
                     if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
+                        text.InsertBeforeSelf(_runProperties);
                     } else {
-                        this._run.Append(new RunProperties());
+                        this._run.Append(_runProperties);
                     }
                 }
             }
 
-            return this._runProperties;
+            return this._runProperties!;
         }
 
         /// <summary>
