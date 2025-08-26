@@ -70,8 +70,8 @@ namespace OfficeIMO.Word.Pdf {
                 return container;
             }
 
-            if (paragraph.Bookmark != null) {
-                container = container.Section(paragraph.Bookmark.Name);
+            if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
+                container = container.Section(paragraph.Bookmark!.Name);
             }
 
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {

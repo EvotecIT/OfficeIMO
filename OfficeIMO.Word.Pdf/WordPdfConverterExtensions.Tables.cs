@@ -54,7 +54,8 @@ namespace OfficeIMO.Word.Pdf {
 
             WordTableCellBorder borders = cell.Borders;
 
-            List<string> colors = new() {
+            List<string?> colors = new()
+            {
                 borders.TopColorHex,
                 borders.BottomColorHex,
                 borders.LeftColorHex,
@@ -62,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
             };
             colors.RemoveAll(string.IsNullOrEmpty);
             if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
-                container = container.BorderColor("#" + colors[0]);
+                container = container.BorderColor("#" + colors[0]!);
             }
 
             if (HasBorder(borders.TopStyle)) {
@@ -83,6 +84,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasBorder(W.BorderValues? style) => style != null && style != W.BorderValues.Nil && style != W.BorderValues.None;
 
-        private static float GetBorderWidth(UInt32Value size) => size != null ? size.Value / 8f : 1f;
+        private static float GetBorderWidth(UInt32Value? size) => size != null ? size.Value / 8f : 1f;
     }
 }
