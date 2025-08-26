@@ -410,25 +410,35 @@ namespace OfficeIMO.Word {
             }
 
             foreach (var headerRef in _sectionProperties.Elements<HeaderReference>().ToList()) {
-                string id = headerRef.Id;
-                bool usedElsewhere = _document.Sections
-                    .Where(s => s != this)
-                    .Any(s => s._sectionProperties.Elements<HeaderReference>().Any(hr => hr.Id == id));
-                if (!usedElsewhere) {
-                    var part = (HeaderPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
-                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                var id = headerRef.Id?.Value;
+                if (id != null) {
+                    bool usedElsewhere = _document.Sections
+                        .Where(s => s != this)
+                        .Any(s => s._sectionProperties.Elements<HeaderReference>().Any(hr => hr.Id == id));
+                    if (!usedElsewhere) {
+                        var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
+                        var part = mainDocumentPart?.GetPartById(id) as HeaderPart;
+                        if (part != null) {
+                            mainDocumentPart.DeletePart(part);
+                        }
+                    }
                 }
                 headerRef.Remove();
             }
 
             foreach (var footerRef in _sectionProperties.Elements<FooterReference>().ToList()) {
-                string id = footerRef.Id;
-                bool usedElsewhere = _document.Sections
-                    .Where(s => s != this)
-                    .Any(s => s._sectionProperties.Elements<FooterReference>().Any(fr => fr.Id == id));
-                if (!usedElsewhere) {
-                    var part = (FooterPart)_document._wordprocessingDocument.MainDocumentPart.GetPartById(id);
-                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(part);
+                var id = footerRef.Id?.Value;
+                if (id != null) {
+                    bool usedElsewhere = _document.Sections
+                        .Where(s => s != this)
+                        .Any(s => s._sectionProperties.Elements<FooterReference>().Any(fr => fr.Id == id));
+                    if (!usedElsewhere) {
+                        var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
+                        var part = mainDocumentPart?.GetPartById(id) as FooterPart;
+                        if (part != null) {
+                            mainDocumentPart.DeletePart(part);
+                        }
+                    }
                 }
                 footerRef.Remove();
             }

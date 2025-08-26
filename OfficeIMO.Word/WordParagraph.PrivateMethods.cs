@@ -70,20 +70,16 @@ namespace OfficeIMO.Word {
             return run;
         }
 
-        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties runProperties) {
-            VerifyRun(hyperlink, run);
+        private RunProperties VerifyRunProperties(Hyperlink hyperlink, Run run, RunProperties? runProperties) {
+            run = VerifyRun(hyperlink, run);
             if (run != null) {
+                runProperties = run.GetFirstChild<RunProperties>();
                 if (runProperties == null) {
-                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
-                    } else {
-                        run.Append(new RunProperties());
-                    }
+                    runProperties = run.PrependChild(new RunProperties());
                 }
             }
 
-            return runProperties;
+            return runProperties!;
         }
 
         /// <summary>
@@ -92,18 +88,16 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         private RunProperties VerifyRunProperties() {
             VerifyRun();
-            if (this._run != null) {
-                if (this._runProperties == null) {
-                    var text = _run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.InsertBeforeSelf(new RunProperties());
-                    } else {
-                        this._run.Append(new RunProperties());
-                    }
-                }
+            if (_run == null) {
+                throw new InvalidOperationException("Run is not initialized.");
             }
 
-            return this._runProperties;
+            var runProperties = _run.GetFirstChild<RunProperties>();
+            if (runProperties == null) {
+                runProperties = _run.PrependChild(new RunProperties());
+            }
+
+            return runProperties;
         }
 
         /// <summary>
