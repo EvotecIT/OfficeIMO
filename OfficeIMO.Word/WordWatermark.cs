@@ -442,11 +442,24 @@ namespace OfficeIMO.Word {
             }
 
             var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
+
             if (TryValidateHexColor(trimmed, out _)) {
-                return trimmed.ToLowerInvariant();
+                for (int i = 0; i < trimmed.Length; i++) {
+                    char c = trimmed[i];
+                    if (c >= 'A' && c <= 'F') {
+                        return trimmed.ToLowerInvariant();
+                    }
+                }
+
+                return trimmed;
             }
 
-            if (SixLabors.ImageSharp.Color.TryParse(value, out var named) || SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
+            if (SixLabors.ImageSharp.Color.TryParse(value, out var named)) {
+                return named.ToHexColor();
+            }
+
+            if (!value.StartsWith("#", StringComparison.Ordinal) &&
+                SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
                 return named.ToHexColor();
             }
 
