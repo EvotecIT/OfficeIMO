@@ -1,9 +1,12 @@
-using System;
-using System.IO;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using System;
+using System.IO;
+using System.Linq;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -278,6 +281,81 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(20, watermark.VerticalOffset);
                 Assert.True(watermark.Width > 0);
                 Assert.True(watermark.Height > 0);
+            }
+        }
+
+        [Fact]
+        public void Test_WatermarkColorSupportsHex() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsHex.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Hex");
+                watermark.Color = Color.Red;
+                document.Save();
+            }
+
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
+                var fill = wordDoc.MainDocumentPart!.HeaderParts.First().Header.Descendants<V.Shape>().First().FillColor?.Value;
+                Assert.True(fill == "#ff0000");
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var watermark = document.Watermarks[0];
+                Assert.True(watermark.ColorHex == "ff0000");
+                Assert.True(watermark.Color == Color.Red);
+            }
+        }
+
+        [Fact]
+        public void Test_WatermarkSupportsMultipleColorInputs() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkSupportsMultipleColorInputs.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+
+                // SixLabors colors
+                var red = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Red");
+                red.Color = Color.Red;
+
+                document.AddSection();
+                document.Sections[1].AddHeadersAndFooters();
+                var green = document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Green");
+                green.Color = Color.Green;
+
+                document.AddSection();
+                document.Sections[2].AddHeadersAndFooters();
+                var blue = document.Sections[2].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Blue");
+                blue.Color = Color.Blue;
+
+                // Hex without '#'
+                document.AddSection();
+                document.Sections[3].AddHeadersAndFooters();
+                var magenta = document.Sections[3].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Magenta");
+                magenta.ColorHex = "ff00ff";
+
+                // Hex with '#'
+                document.AddSection();
+                document.Sections[4].AddHeadersAndFooters();
+                var cyan = document.Sections[4].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Cyan");
+                cyan.ColorHex = "#00ffff";
+
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal("ff0000", document.Sections[0].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Red, document.Sections[0].Header.Default.Watermarks[0].Color);
+
+                Assert.Equal("008000", document.Sections[1].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Green, document.Sections[1].Header.Default.Watermarks[0].Color);
+
+                Assert.Equal("0000ff", document.Sections[2].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Blue, document.Sections[2].Header.Default.Watermarks[0].Color);
+
+                Assert.Equal("ff00ff", document.Sections[3].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Magenta, document.Sections[3].Header.Default.Watermarks[0].Color);
+
+                Assert.Equal("00ffff", document.Sections[4].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Cyan, document.Sections[4].Header.Default.Watermarks[0].Color);
             }
         }
     }

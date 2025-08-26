@@ -1,20 +1,20 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Vml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using V = DocumentFormat.OpenXml.Vml;
+using Color = SixLabors.ImageSharp.Color;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
+using V = DocumentFormat.OpenXml.Vml;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
-using DocumentFormat.OpenXml.Vml;
-using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -421,16 +421,26 @@ namespace OfficeIMO.Word {
             get {
                 var shape = _shape;
                 if (shape?.FillColor?.Value != null) {
-                    return shape.FillColor.Value;
+                    var color = shape.FillColor.Value;
+                    return color.StartsWith("#", StringComparison.Ordinal) ? color.Substring(1) : color;
                 }
                 return "";
             }
             set {
                 var shape = _shape;
-                if (shape?.FillColor != null) {
-                    shape.FillColor.Value = value;
+                if (shape?.FillColor != null && value != null) {
+                    var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
+                    if (IsHexColor(trimmed)) {
+                        shape.FillColor.Value = "#" + trimmed.ToLowerInvariant();
+                    } else {
+                        shape.FillColor.Value = value;
+                    }
                 }
             }
+        }
+
+        private static bool IsHexColor(string value) {
+            return value.Length == 6 && value.All(Uri.IsHexDigit);
         }
 
         private Shape? _shape {
