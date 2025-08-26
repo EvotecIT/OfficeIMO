@@ -441,7 +441,8 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("Color value cannot be null or empty.", nameof(value));
             }
 
-            var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
+            var startsWithHash = value.StartsWith("#", StringComparison.Ordinal);
+            var trimmed = startsWithHash ? value.Substring(1) : value;
 
             if (TryValidateHexColor(trimmed, out _)) {
                 for (int i = 0; i < trimmed.Length; i++) {
@@ -458,7 +459,7 @@ namespace OfficeIMO.Word {
                 return named.ToHexColor();
             }
 
-            if (!value.StartsWith("#", StringComparison.Ordinal) &&
+            if (!startsWithHash &&
                 SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
                 return named.ToHexColor();
             }
