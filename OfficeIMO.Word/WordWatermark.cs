@@ -437,20 +437,20 @@ namespace OfficeIMO.Word {
         }
 
         private static string NormalizeColorValue(string value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                throw new ArgumentException("Color value cannot be null or empty.", nameof(value));
+            }
+
             var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
-            if (TryValidateHexColor(trimmed, out string? _)) {
-                return trimmed.Equals(trimmed.ToLowerInvariant(), StringComparison.Ordinal) ? trimmed : trimmed.ToLowerInvariant();
+            if (TryValidateHexColor(trimmed, out _)) {
+                return trimmed.ToLowerInvariant();
             }
 
             if (SixLabors.ImageSharp.Color.TryParse(value, out var named) || SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
                 return named.ToHexColor();
             }
 
-            if (!TryValidateHexColor(trimmed, out var error)) {
-                throw new ArgumentException(error, nameof(value));
-            }
-
-            throw new ArgumentException($"Invalid color value: {value}", nameof(value));
+            throw new ArgumentException($"Invalid color value: {value}. Must be a valid hex color (6 characters) or named color.", nameof(value));
         }
 
         private static bool TryValidateHexColor(string value, out string? error) {

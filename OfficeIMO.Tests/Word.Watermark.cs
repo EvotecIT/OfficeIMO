@@ -377,5 +377,15 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => watermark.ColorHex = "notacolor");
             }
         }
+
+        [Fact]
+        public void Test_WatermarkEmptyColorThrows() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkEmptyColorThrows.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
+                Assert.Throws<ArgumentException>(() => watermark.ColorHex = "");
+            }
+        }
     }
 }
