@@ -338,6 +338,12 @@ namespace OfficeIMO.Tests {
                 var cyan = document.Sections[4].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Cyan");
                 cyan.ColorHex = "#00ffff";
 
+                // Named color string
+                document.AddSection();
+                document.Sections[5].AddHeadersAndFooters();
+                var yellow = document.Sections[5].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Yellow");
+                yellow.ColorHex = "yellow";
+
                 document.Save();
             }
 
@@ -356,6 +362,19 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("00ffff", document.Sections[4].Header.Default.Watermarks[0].ColorHex);
                 Assert.Equal(Color.Cyan, document.Sections[4].Header.Default.Watermarks[0].Color);
+
+                Assert.Equal("ffff00", document.Sections[5].Header.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Yellow, document.Sections[5].Header.Default.Watermarks[0].Color);
+            }
+        }
+
+        [Fact]
+        public void Test_WatermarkInvalidColorThrows() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkInvalidColorThrows.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
+                Assert.Throws<ArgumentException>(() => watermark.ColorHex = "notacolor");
             }
         }
     }

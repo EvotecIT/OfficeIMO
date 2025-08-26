@@ -395,7 +395,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets or sets color of the watermark.
-        /// Some colors are not supported. If you set unsupported color, it will be ignored.
+        /// Invalid color values will result in <see cref="ArgumentException"/> being thrown.
         /// </summary>
         public SixLabors.ImageSharp.Color? Color {
             get {
@@ -416,6 +416,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the fill color of the watermark.
         /// The value can be a known color name or a hex value without the leading '#'.
+        /// Invalid inputs will throw <see cref="ArgumentException"/>.
         /// </summary>
         public string ColorHex {
             get {
@@ -429,18 +430,42 @@ namespace OfficeIMO.Word {
             set {
                 var shape = _shape;
                 if (shape?.FillColor != null && value != null) {
-                    var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
-                    if (IsHexColor(trimmed)) {
-                        shape.FillColor.Value = "#" + trimmed.ToLowerInvariant();
-                    } else {
-                        shape.FillColor.Value = value;
-                    }
+                    var normalized = NormalizeColorValue(value);
+                    shape.FillColor.Value = "#" + normalized;
                 }
             }
         }
 
-        private static bool IsHexColor(string value) {
-            return value.Length == 6 && value.All(Uri.IsHexDigit);
+        private static string NormalizeColorValue(string value) {
+            var trimmed = value.StartsWith("#", StringComparison.Ordinal) ? value.Substring(1) : value;
+            if (TryValidateHexColor(trimmed, out string? _)) {
+                return trimmed.Equals(trimmed.ToLowerInvariant(), StringComparison.Ordinal) ? trimmed : trimmed.ToLowerInvariant();
+            }
+
+            if (SixLabors.ImageSharp.Color.TryParse(value, out var named) || SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
+                return named.ToHexColor();
+            }
+
+            if (!TryValidateHexColor(trimmed, out var error)) {
+                throw new ArgumentException(error, nameof(value));
+            }
+
+            throw new ArgumentException($"Invalid color value: {value}", nameof(value));
+        }
+
+        private static bool TryValidateHexColor(string value, out string? error) {
+            if (value.Length != 6) {
+                error = "Hex color must be exactly 6 characters.";
+                return false;
+            }
+
+            if (!value.All(Uri.IsHexDigit)) {
+                error = "Hex color must contain only hexadecimal characters.";
+                return false;
+            }
+
+            error = null;
+            return true;
         }
 
         private Shape? _shape {
