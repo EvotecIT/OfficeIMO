@@ -32,10 +32,11 @@ namespace OfficeIMO.Excel
                 return;
             }
 
-            WorkbookStylesPart stylesPart = doc._spreadSheetDocument.WorkbookPart.WorkbookStylesPart;
+            var workbookPart = doc._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
             {
-                stylesPart = doc._spreadSheetDocument.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
             }
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
