@@ -39,12 +39,24 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Adds a page with the specified dimensions.
+        /// </summary>
+        /// <param name="name">Name of the page.</param>
+        /// <param name="width">Page width.</param>
+        /// <param name="height">Page height.</param>
+        /// <param name="page">The created page.</param>
         [System.Obsolete("Use AddPage with width, height and unit parameters")]
         public VisioFluentDocument AddPage(string name, double width, double height, out VisioPage page) {
             page = _document.AddPage(name, width, height);
             return this;
         }
 
+        /// <summary>
+        /// Adds a page with default dimensions.
+        /// </summary>
+        /// <param name="name">Name of the page.</param>
+        /// <param name="page">The created page.</param>
         [System.Obsolete("Use AddPage with width, height and unit parameters")]
         public VisioFluentDocument AddPage(string name, out VisioPage page) {
             page = _document.AddPage(name);

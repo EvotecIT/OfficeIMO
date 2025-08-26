@@ -87,7 +87,9 @@ namespace OfficeIMO.Visio {
                 string? rid = relChild?.Attribute(rel + "id")?.Value;
                 if (relChild == null) {
                     issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
-                } else if (string.IsNullOrWhiteSpace(rid) || !rid.StartsWith("rId", StringComparison.Ordinal)) {
+                } else if (rid == null || string.IsNullOrWhiteSpace(rid)) {
+                    issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
+                } else if (!rid.StartsWith("rId", StringComparison.Ordinal)) {
                     issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
                 }
             }

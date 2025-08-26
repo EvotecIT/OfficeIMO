@@ -229,7 +229,7 @@ namespace OfficeIMO.Visio {
             }
 
             var docRel = doc.Root.Elements(nsPkgRel + "Relationship")
-                .FirstOrDefault(r => (string)r.Attribute("Type") == RT_Document);
+                .FirstOrDefault(r => (string?)r.Attribute("Type") == RT_Document);
 
             if (docRel == null) {
                 _errors.Add("No root relationship to visio/document.xml");
@@ -478,19 +478,19 @@ namespace OfficeIMO.Visio {
         }
 
         private bool HasDefault(XDocument doc, string ext, string contentType) {
-            return doc.Root.Elements(nsCT + "Default").Any(e =>
+            return doc.Root?.Elements(nsCT + "Default").Any(e =>
                 (string?)e.Attribute("Extension") == ext &&
-                (string?)e.Attribute("ContentType") == contentType);
+                (string?)e.Attribute("ContentType") == contentType) ?? false;
         }
 
         private bool HasOverride(XDocument doc, string partName, string contentType) {
-            return doc.Root.Elements(nsCT + "Override").Any(e =>
+            return doc.Root?.Elements(nsCT + "Override").Any(e =>
                 (string?)e.Attribute("PartName") == partName &&
-                (string?)e.Attribute("ContentType") == contentType);
+                (string?)e.Attribute("ContentType") == contentType) ?? false;
         }
 
         private void AddDefault(XDocument doc, string ext, string contentType) {
-            if (!HasDefault(doc, ext, contentType)) {
+            if (doc.Root != null && !HasDefault(doc, ext, contentType)) {
                 doc.Root.Add(new XElement(nsCT + "Default",
                     new XAttribute("Extension", ext),
                     new XAttribute("ContentType", contentType)));
@@ -498,7 +498,7 @@ namespace OfficeIMO.Visio {
         }
 
         private void AddOverride(XDocument doc, string partName, string contentType) {
-            if (!HasOverride(doc, partName, contentType)) {
+            if (doc.Root != null && !HasOverride(doc, partName, contentType)) {
                 doc.Root.Add(new XElement(nsCT + "Override",
                     new XAttribute("PartName", partName),
                     new XAttribute("ContentType", contentType)));

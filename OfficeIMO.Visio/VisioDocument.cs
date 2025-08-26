@@ -123,10 +123,11 @@ namespace OfficeIMO.Visio {
                 foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
                     string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
-                    string? mRelId = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                    if (string.IsNullOrEmpty(mRelId)) {
+                    string? mRelIdValue = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                    if (string.IsNullOrEmpty(mRelIdValue)) {
                         continue;
                     }
+                    string mRelId = mRelIdValue!;
 
                     PackageRelationship rel = mastersPart.GetRelationship(mRelId);
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
@@ -150,12 +151,13 @@ namespace OfficeIMO.Visio {
                 page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
                 page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
-                string? relId = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
-                if (string.IsNullOrEmpty(relId)) {
-                    continue;
-                }
+                  string? relIdValue = pageRef.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
+                  if (string.IsNullOrEmpty(relIdValue)) {
+                      continue;
+                  }
+                    string relId = relIdValue!;
 
-                PackageRelationship pageRel = pagesPart.GetRelationship(relId);
+                    PackageRelationship pageRel = pagesPart.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
@@ -170,26 +172,26 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    VisioShape shape = ParseShape(shapeElement, ns);
-                    string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
-                    if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr, out VisioMaster master)) {
-                        shape.Master = master;
-                        if (shape.Width == 0 || shape.Height == 0) {
-                            VisioShape masterShape = shape.Master.Shape;
-                            if (shape.Width == 0) {
-                                shape.Width = masterShape.Width;
-                            }
-                            if (shape.Height == 0) {
-                                shape.Height = masterShape.Height;
-                            }
-                            if (shape.LocPinX == 0) {
-                                shape.LocPinX = masterShape.LocPinX;
-                            }
-                            if (shape.LocPinY == 0) {
-                                shape.LocPinY = masterShape.LocPinY;
-                            }
-                        }
-                    }
+                      VisioShape shape = ParseShape(shapeElement, ns);
+                      string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
+                      if (masterIdAttr != null && masters.TryGetValue(masterIdAttr, out VisioMaster? master)) {
+                          shape.Master = master;
+                          if (shape.Width == 0 || shape.Height == 0) {
+                              VisioShape masterShape = master!.Shape;
+                              if (shape.Width == 0) {
+                                  shape.Width = masterShape.Width;
+                              }
+                              if (shape.Height == 0) {
+                                  shape.Height = masterShape.Height;
+                              }
+                              if (shape.LocPinX == 0) {
+                                  shape.LocPinX = masterShape.LocPinX;
+                              }
+                              if (shape.LocPinY == 0) {
+                                  shape.LocPinY = masterShape.LocPinY;
+                              }
+                          }
+                      }
 
                     page.Shapes.Add(shape);
                     shapeMap[shape.Id] = shape;
@@ -212,15 +214,17 @@ namespace OfficeIMO.Visio {
                     connectionMap[connectorId] = info;
                 }
 
-                foreach (XElement connectorElement in connectorElements) {
-                    string id = connectorElement.Attribute("ID")?.Value ?? string.Empty;
-                    if (!connectionMap.TryGetValue(id, out var ids) || ids.fromId == null || ids.toId == null) {
-                        continue;
-                    }
-                    if (!shapeMap.TryGetValue(ids.fromId, out VisioShape fromShape) || !shapeMap.TryGetValue(ids.toId, out VisioShape toShape)) {
-                        continue;
-                    }
-                    VisioConnector connector = new VisioConnector(id, fromShape, toShape);
+                  foreach (XElement connectorElement in connectorElements) {
+                      string id = connectorElement.Attribute("ID")?.Value ?? string.Empty;
+                      if (!connectionMap.TryGetValue(id, out var ids) || ids.fromId == null || ids.toId == null) {
+                          continue;
+                      }
+                      string fromId = ids.fromId!;
+                      string toId = ids.toId!;
+                      if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
+                          continue;
+                      }
+                      VisioConnector connector = new VisioConnector(id, fromShape!, toShape!);
 
                     foreach (XElement cell in connectorElement.Elements(ns + "Cell")) {
                         string? n = cell.Attribute("N")?.Value;
@@ -413,12 +417,13 @@ namespace OfficeIMO.Visio {
             XElement? propSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
             if (propSection != null) {
                 foreach (XElement row in propSection.Elements(ns + "Row")) {
-                    string? key = row.Attribute("N")?.Value;
-                    XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
-                    string? value = valueCell?.Attribute("V")?.Value;
-                    if (!string.IsNullOrEmpty(key) && value != null) {
-                        shape.Data[key] = value;
-                    }
+                      string? key = row.Attribute("N")?.Value;
+                      XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
+                      string? value = valueCell?.Attribute("V")?.Value;
+                      if (!string.IsNullOrEmpty(key) && value != null) {
+                          string keyNonNull = key!;
+                          shape.Data[keyNonNull] = value;
+                      }
                 }
             }
 
@@ -489,19 +494,19 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Saves the document to a <c>.vsdx</c> package.
+        /// Saves the document to the path specified when the document was created.
         /// </summary>
-        /// <summary>
-        /// Saves the document to a file.
-        /// </summary>
-        /// <param name="filePath">Path to save the file.</param>
         public void Save() {
             if (string.IsNullOrEmpty(_filePath)) {
                 throw new InvalidOperationException("File path is not set.");
             }
-            SaveInternal(_filePath);
+            SaveInternal(_filePath!);
         }
 
+        /// <summary>
+        /// Saves the document to a specified file.
+        /// </summary>
+        /// <param name="filePath">Path to save the file.</param>
         public void Save(string filePath) {
             _filePath = filePath;
             SaveInternal(filePath);
