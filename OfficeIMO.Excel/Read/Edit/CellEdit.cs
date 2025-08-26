@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel.Read.Edit
             if (dest.IsAssignableFrom(v.GetType())) return (T)v;
             try
             {
-                if (dest == typeof(string)) return (T)(object)Convert.ToString(v);
+                if (dest == typeof(string)) return (T)(object)(Convert.ToString(v) ?? string.Empty);
                 if (dest == typeof(int)) return (T)(object)Convert.ToInt32(v);
                 if (dest == typeof(long)) return (T)(object)Convert.ToInt64(v);
                 if (dest == typeof(double)) return (T)(object)Convert.ToDouble(v);
