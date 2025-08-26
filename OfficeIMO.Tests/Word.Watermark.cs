@@ -307,6 +307,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WatermarkColorSupportsUppercaseHexWithHash() {
+            string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsUppercaseHexWithHash.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Upper");
+                watermark.ColorHex = "#FF00FF";
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var watermark = document.Watermarks[0];
+                Assert.Equal("ff00ff", watermark.ColorHex);
+                Assert.Equal(Color.Magenta, watermark.Color);
+            }
+        }
+
+        [Fact]
         public void Test_WatermarkSupportsMultipleColorInputs() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkSupportsMultipleColorInputs.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
