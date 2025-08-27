@@ -25,6 +25,9 @@ namespace OfficeIMO.Word.Fluent {
             _columns = table.Rows.Count > 0 ? table.Rows[0].Cells.Count : 0;
         }
 
+        /// <summary>
+        /// Gets the table being built.
+        /// </summary>
         public WordTable? Table => _table;
 
         /// <summary>

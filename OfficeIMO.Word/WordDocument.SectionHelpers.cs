@@ -18,6 +18,10 @@ namespace OfficeIMO.Word {
             if (type == HeaderFooterValues.Even) return headers.Even;
             return headers.Default;
         }
+        /// <summary>
+        /// Returns the default header for a specific section index.
+        /// </summary>
+        /// <param name="sectionIndex">Index of the section or -1 for the last section.</param>
         public WordHeader GetHeaderForSection(int sectionIndex = -1) => GetHeaderForSection(sectionIndex, HeaderFooterValues.Default);
 
         /// <summary>
@@ -32,6 +36,10 @@ namespace OfficeIMO.Word {
             if (type == HeaderFooterValues.Even) return footers.Even;
             return footers.Default;
         }
+        /// <summary>
+        /// Returns the default footer for a specific section index.
+        /// </summary>
+        /// <param name="sectionIndex">Index of the section or -1 for the last section.</param>
         public WordFooter GetFooterForSection(int sectionIndex = -1) => GetFooterForSection(sectionIndex, HeaderFooterValues.Default);
     }
 }
