@@ -21,8 +21,15 @@ namespace OfficeIMO.Word.Fluent {
             _fluent = fluent;
         }
 
+        /// <summary>
+        /// Gets the image created by the most recent operation.
+        /// </summary>
         public WordImage? Image => _image;
 
+        /// <summary>
+        /// Adds an image from a file path.
+        /// </summary>
+        /// <param name="path">Path to the image file.</param>
         public ImageBuilder Add(string path) {
             var paragraph = _fluent.Document.AddParagraph();
             paragraph.AddImage(path);
@@ -31,6 +38,11 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Adds an image from a stream.
+        /// </summary>
+        /// <param name="stream">Stream containing image data.</param>
+        /// <param name="fileName">File name of the image.</param>
         public ImageBuilder Add(Stream stream, string fileName) {
             var paragraph = _fluent.Document.AddParagraph();
             paragraph.AddImage(stream, fileName, null, null);
@@ -39,11 +51,20 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Adds an image from a byte array.
+        /// </summary>
+        /// <param name="bytes">Image bytes.</param>
+        /// <param name="fileName">File name of the image.</param>
         public ImageBuilder Add(byte[] bytes, string fileName) {
             using var ms = new MemoryStream(bytes);
             return Add(ms, fileName);
         }
 
+        /// <summary>
+        /// Downloads and adds an image from a URL.
+        /// </summary>
+        /// <param name="url">Image URL.</param>
         public ImageBuilder AddFromUrl(string url) {
             using HttpClient client = new HttpClient();
             var data = client.GetByteArrayAsync(url).GetAwaiter().GetResult();
@@ -51,6 +72,11 @@ namespace OfficeIMO.Word.Fluent {
             return Add(data, fileName);
         }
 
+        /// <summary>
+        /// Asynchronously downloads and adds an image from a URL.
+        /// </summary>
+        /// <param name="url">Image URL.</param>
+        /// <returns>The current <see cref="ImageBuilder"/>.</returns>
         public async Task<ImageBuilder> AddFromUrlAsync(string url) {
             using HttpClient client = new HttpClient();
             var data = await client.GetByteArrayAsync(url);
@@ -58,6 +84,11 @@ namespace OfficeIMO.Word.Fluent {
             return Add(data, fileName);
         }
 
+        /// <summary>
+        /// Sets the size of the image in pixels.
+        /// </summary>
+        /// <param name="width">Image width in pixels.</param>
+        /// <param name="height">Optional image height in pixels.</param>
         public ImageBuilder Size(double width, double? height = null) {
             if (_image != null) {
                 _image.Width = width;
@@ -68,6 +99,10 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Sets the maximum allowed width of the image.
+        /// </summary>
+        /// <param name="width">Maximum width in pixels.</param>
         public ImageBuilder MaxWidth(double width) {
             if (_image != null) {
                 if (_image.Width == null || _image.Width > width) {
@@ -77,6 +112,10 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Applies a wrapping style to the image.
+        /// </summary>
+        /// <param name="wrapImage">Wrapping option.</param>
         public ImageBuilder Wrap(WrapTextImage wrapImage) {
             if (_image != null) {
                 _image.WrapText = wrapImage;

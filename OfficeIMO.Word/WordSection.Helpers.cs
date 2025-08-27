@@ -13,6 +13,9 @@ namespace OfficeIMO.Word {
             if (type == HeaderFooterValues.Even) return this.Header.Even;
             return this.Header.Default;
         }
+        /// <summary>
+        /// Returns the default section header.
+        /// </summary>
         public WordHeader GetHeader() => GetHeader(HeaderFooterValues.Default);
 
         /// <summary>
@@ -23,6 +26,9 @@ namespace OfficeIMO.Word {
             if (type == HeaderFooterValues.Even) return this.Footer.Even;
             return this.Footer.Default;
         }
+        /// <summary>
+        /// Returns the default section footer.
+        /// </summary>
         public WordFooter GetFooter() => GetFooter(HeaderFooterValues.Default);
 
         /// <summary>
@@ -36,6 +42,11 @@ namespace OfficeIMO.Word {
             }
             return string.IsNullOrEmpty(text) ? header.AddParagraph("") : header.AddParagraph(text);
         }
+        /// <summary>
+        /// Adds a paragraph to the default section header.
+        /// </summary>
+        /// <param name="text">Paragraph text.</param>
+        /// <param name="removeExistingParagraphs">True to clear existing paragraphs.</param>
         public WordParagraph AddHeaderParagraph(string text = "", bool removeExistingParagraphs = false) =>
             AddHeaderParagraph(text, HeaderFooterValues.Default, removeExistingParagraphs);
 
@@ -49,6 +60,11 @@ namespace OfficeIMO.Word {
             }
             return string.IsNullOrEmpty(text) ? footer.AddParagraph("") : footer.AddParagraph(text);
         }
+        /// <summary>
+        /// Adds a paragraph to the default section footer.
+        /// </summary>
+        /// <param name="text">Paragraph text.</param>
+        /// <param name="removeExistingParagraphs">True to clear existing paragraphs.</param>
         public WordParagraph AddFooterParagraph(string text = "", bool removeExistingParagraphs = false) =>
             AddFooterParagraph(text, HeaderFooterValues.Default, removeExistingParagraphs);
     }

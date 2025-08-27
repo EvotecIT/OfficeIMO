@@ -11,6 +11,9 @@ namespace OfficeIMO.Word.Fluent {
             _run = run;
         }
 
+        /// <summary>
+        /// Gets the underlying run.
+        /// </summary>
         public WordParagraph Run => _run;
     }
 }
