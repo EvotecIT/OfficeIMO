@@ -1,14 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Net.Http;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using SixLabors.ImageSharp;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
 
             var paragraph = AddParagraph();
             paragraph.AddImage(ms, fileName, width, height);
-            return paragraph.Image;
+            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph();
             paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image;
+            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
         }
 
         /// <summary>
@@ -985,11 +985,11 @@ namespace OfficeIMO.Word {
             if (foundList?.Count > 0) {
                 count += foundList.Count;
                 foreach (var ts in foundList) {
-                      if (!IsSegmentValid(paragraphs, ts))
-                          continue;
-                      if (ts.BeginIndex == ts.EndIndex) {
-                          var p = paragraphs[ts.BeginIndex];
-                          if (p is not null) {
+                    if (!IsSegmentValid(paragraphs, ts))
+                        continue;
+                    if (ts.BeginIndex == ts.EndIndex) {
+                        var p = paragraphs[ts.BeginIndex];
+                        if (p is not null) {
                             if (replace) {
                                 int replaceCount = 0;
                                 p.Text = p.Text.FindAndReplace(oldText, newText, stringComparison, ref replaceCount);
@@ -1002,7 +1002,7 @@ namespace OfficeIMO.Word {
                         if (replace) {
                             var beginPara = paragraphs[ts.BeginIndex];
                             var endPara = paragraphs[ts.EndIndex];
-                              if (beginPara is not null && endPara is not null) {
+                            if (beginPara is not null && endPara is not null) {
                                 beginPara.Text = beginPara.Text.Replace(beginPara.Text.Substring(ts.BeginChar), newText);
                                 endPara.Text = endPara.Text.Replace(endPara.Text.Substring(0, ts.EndChar + 1), "");
                                 if (!foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, beginPara._paragraph))) {

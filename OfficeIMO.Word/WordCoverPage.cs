@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Built-in cover page templates available for Word documents.
     /// </summary>
-public enum CoverPageTemplate {
+    public enum CoverPageTemplate {
         /// <summary>
         /// The "Austin" built-in template.
         /// </summary>
@@ -88,7 +88,9 @@ public enum CoverPageTemplate {
         public WordCoverPage(WordDocument wordDocument, CoverPageTemplate coverPageTemplate) {
             _document = wordDocument;
             _sdtBlock = GetStyle(coverPageTemplate);
-            this._document._wordprocessingDocument.MainDocumentPart.Document.Body.Append(_sdtBlock);
+            var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
+                ?? throw new InvalidOperationException("Document body is missing.");
+            body.Append(_sdtBlock);
         }
 
         private SdtBlock GetStyle(CoverPageTemplate template) {
