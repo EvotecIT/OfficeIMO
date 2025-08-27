@@ -6,7 +6,7 @@
         <AssemblyName>OfficeIMO.Visio</AssemblyName>
         <AssemblyTitle>OfficeIMO.Visio</AssemblyTitle>
 
-        <VersionPrefix>1.0.6</VersionPrefix>
+        <VersionPrefix>1.0.7</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
