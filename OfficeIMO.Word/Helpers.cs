@@ -43,7 +43,10 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Normalizes color input which may be a hex value or a named color.
-        /// Returns a lowercase hex string without '#'.
+        /// Hex values may be specified as three or six digits, with or without '#'.
+        /// Returns a lowercase six-digit hex string without '#'.
+        /// Throws <see cref="ArgumentException"/> if the value cannot be parsed
+        /// as a valid color.
         /// </summary>
         internal static string? NormalizeColor(string? color) {
             if (string.IsNullOrEmpty(color)) {
@@ -55,10 +58,14 @@ namespace OfficeIMO.Word {
                 return parsed.ToHexColor();
             } catch {
                 if (!color.StartsWith("#", StringComparison.Ordinal)) {
-                    var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
-                    return parsedHex.ToHexColor();
+                    try {
+                        var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
+                        return parsedHex.ToHexColor();
+                    } catch {
+                        // ignored so that ArgumentException below is thrown
+                    }
                 }
-                throw;
+                throw new ArgumentException($"Invalid color value: {color}. Must be a valid hex color (3 or 6 characters) or named color.", nameof(color));
             }
         }
 

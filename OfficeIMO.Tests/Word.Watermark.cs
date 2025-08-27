@@ -7,6 +7,7 @@ using System.Linq;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 using V = DocumentFormat.OpenXml.Vml;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -382,6 +383,43 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("ffff00", document.Sections[5].Header.Default.Watermarks[0].ColorHex);
                 Assert.Equal(Color.Yellow, document.Sections[5].Header.Default.Watermarks[0].Color);
+            }
+        }
+
+        [Theory]
+        [InlineData("red", "ff0000")]
+        [InlineData("#00FF00", "00ff00")]
+        [InlineData("0000ff", "0000ff")]
+        [InlineData("#ABC", "aabbcc")]
+        [InlineData("abc", "aabbcc")]
+        public void Test_WatermarkColorRoundTripAndRendering(string input, string expectedHex) {
+            string filePath = Path.Combine(_directoryWithFiles, $"Test_WatermarkColorRoundTripAndRendering_{expectedHex}.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Color");
+                watermark.ColorHex = input;
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                Assert.Equal(expectedHex, watermark.ColorHex);
+                Assert.Equal(Color.Parse(expectedHex), watermark.Color);
+            }
+
+            using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
+                var headerPart = wordDoc.MainDocumentPart!.HeaderParts.First();
+                var shape = headerPart.Header.Descendants<V.Shape>().First();
+                var fill = shape.GetFirstChild<V.Fill>();
+                var textPath = shape.GetFirstChild<V.TextPath>();
+
+                Assert.Equal("#" + expectedHex, shape.FillColor?.Value);
+                Assert.Equal("#" + expectedHex, fill?.Color);
+                var fillAttr = textPath?.GetAttribute("fillcolor", string.Empty).Value;
+                var strokeAttr = textPath?.GetAttribute("strokecolor", string.Empty).Value;
+                Assert.Equal("#" + expectedHex, fillAttr);
+                Assert.Equal("#" + expectedHex, strokeAttr);
             }
         }
 
