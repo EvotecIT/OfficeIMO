@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly WordParagraph _wordParagraph;
         private readonly WordHeaderFooter? _headerFooter;
-        private Run _run => _wordParagraph._run;
+        private Run _run => _wordParagraph._run!;
         private V.TextBox? _vmlTextBox;
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, string text, WrapTextImage wrapTextImage) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _document = wordDocument;
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
             _headerFooter = wordHeaderFooter;
 
             var paragraph = wordHeaderFooter.AddParagraph(newRun: true);
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, WordParagraph paragraph, string text, WrapTextImage wrapTextImage) {
             _document = wordDocument;
 
-            paragraph._run.Append(new RunProperties());
+            paragraph._run!.Append(new RunProperties());
             AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;

@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
         public TableOverlapValues? TableOverlap {
             get {
                 if (_tableProperties != null && _tableProperties.TableOverlap != null)
-                    return _tableProperties.TableOverlap.Val;
+                    return _tableProperties.TableOverlap.Val != null ? _tableProperties.TableOverlap.Val.Value : (TableOverlapValues?)null;
 
                 return null;
             }

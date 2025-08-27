@@ -155,7 +155,7 @@ namespace OfficeIMO.Word {
         /// <remarks>The source list is removed after its items are transferred.</remarks>
         public void Merge(WordList documentList) {
             foreach (var item in documentList.ListItems.ToList()) {
-                var numberingProperties = item._paragraphProperties.NumberingProperties;
+                var numberingProperties = item._paragraphProperties?.NumberingProperties;
                 if (numberingProperties != null && numberingProperties.NumberingId != null) {
                     numberingProperties.NumberingId.Val = this._numberId;
                 }

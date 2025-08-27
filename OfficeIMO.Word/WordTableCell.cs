@@ -298,7 +298,7 @@ namespace OfficeIMO.Word {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.TopMargin?.Width;
                 if (width != null) {
-                    return Int16.Parse(width);
+                    return short.Parse(width!);
                 }
                 return null;
             }
@@ -323,7 +323,7 @@ namespace OfficeIMO.Word {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.BottomMargin?.Width;
                 if (width != null) {
-                    return Int16.Parse(width);
+                    return short.Parse(width!);
                 }
                 return null;
             }
@@ -348,7 +348,7 @@ namespace OfficeIMO.Word {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.LeftMargin?.Width;
                 if (width != null) {
-                    return Int16.Parse(width);
+                    return short.Parse(width!);
                 }
                 return null;
             }
@@ -373,7 +373,7 @@ namespace OfficeIMO.Word {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.RightMargin?.Width;
                 if (width != null) {
-                    return Int16.Parse(width);
+                    return short.Parse(width!);
                 }
                 return null;
             }
