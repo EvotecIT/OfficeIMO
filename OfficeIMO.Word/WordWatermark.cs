@@ -395,6 +395,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets or sets color of the watermark.
+        /// Accepted formats for setting the color are named colors (for example, "red")
+        /// or three- or six-digit hexadecimal strings with or without a leading '#'.
         /// Invalid color values will result in <see cref="ArgumentException"/> being thrown.
         /// </summary>
         public SixLabors.ImageSharp.Color? Color {
@@ -415,7 +417,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets or sets the fill color of the watermark.
-        /// The value can be a known color name or a hex value without the leading '#'.
+        /// The value can be a named color (e.g., "red") or a three- or six-digit hex value with
+        /// or without the leading '#'. Three-digit hex values are expanded to six digits.
         /// Invalid inputs will throw <see cref="ArgumentException"/>.
         /// </summary>
         public string ColorHex {
@@ -430,56 +433,25 @@ namespace OfficeIMO.Word {
             set {
                 var shape = _shape;
                 if (shape?.FillColor != null && value != null) {
-                    var normalized = NormalizeColorValue(value);
-                    shape.FillColor.Value = "#" + normalized;
-                }
-            }
-        }
+                    var normalized = Helpers.NormalizeColor(value);
+                    if (normalized == null) {
+                        throw new ArgumentException("Color value cannot be null or empty.", nameof(value));
+                    }
+                    var colorWithHash = "#" + normalized;
+                    shape.FillColor.Value = colorWithHash;
 
-        private static string NormalizeColorValue(string value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                throw new ArgumentException("Color value cannot be null or empty.", nameof(value));
-            }
+                    var fill = shape.GetFirstChild<V.Fill>();
+                    if (fill != null) {
+                        fill.Color = colorWithHash;
+                    }
 
-            var startsWithHash = value.StartsWith("#", StringComparison.Ordinal);
-            var trimmed = startsWithHash ? value.Substring(1) : value;
-
-            if (TryValidateHexColor(trimmed, out _)) {
-                for (int i = 0; i < trimmed.Length; i++) {
-                    char c = trimmed[i];
-                    if (c >= 'A' && c <= 'F') {
-                        return trimmed.ToLowerInvariant();
+                    var textPath = shape.GetFirstChild<V.TextPath>();
+                    if (textPath != null) {
+                        textPath.SetAttribute(new OpenXmlAttribute("fillcolor", string.Empty, colorWithHash));
+                        textPath.SetAttribute(new OpenXmlAttribute("strokecolor", string.Empty, colorWithHash));
                     }
                 }
-
-                return trimmed;
             }
-
-            if (SixLabors.ImageSharp.Color.TryParse(value, out var named)) {
-                return named.ToHexColor();
-            }
-
-            if (!startsWithHash &&
-                SixLabors.ImageSharp.Color.TryParse("#" + value, out named)) {
-                return named.ToHexColor();
-            }
-
-            throw new ArgumentException($"Invalid color value: {value}. Must be a valid hex color (6 characters) or named color.", nameof(value));
-        }
-
-        private static bool TryValidateHexColor(string value, out string? error) {
-            if (value.Length != 6) {
-                error = "Hex color must be exactly 6 characters.";
-                return false;
-            }
-
-            if (!value.All(Uri.IsHexDigit)) {
-                error = "Hex color must contain only hexadecimal characters.";
-                return false;
-            }
-
-            error = null;
-            return true;
         }
 
         private Shape? _shape {
