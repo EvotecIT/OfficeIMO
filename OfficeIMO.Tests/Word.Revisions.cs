@@ -111,5 +111,25 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FF0000", deletedRun.RunProperties.Color?.Val);
             }
         }
+
+        [Fact]
+        public void Test_AcceptRevisions_HandlesInsertionWithoutRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesEmptyInsertion.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph._paragraph.Append(new Inserted() { Id = "1", Author = "Codex" });
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AcceptRevisions();
+                Assert.NotNull(document._document);
+                var body = document._document.Body;
+                Assert.NotNull(body);
+                Assert.Empty(body.Descendants<Inserted>());
+            }
+        }
     }
 }
