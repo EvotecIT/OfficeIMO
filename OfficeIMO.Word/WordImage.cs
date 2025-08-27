@@ -621,15 +621,15 @@ namespace OfficeIMO.Word {
         public int? Rotation {
             get {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    if (picture.ShapeProperties.Transform2D.Rotation != null) {
+                    var picture = _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (picture?.ShapeProperties?.Transform2D?.Rotation != null) {
                         return picture.ShapeProperties.Transform2D.Rotation / 10000;
                     }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                    if (anchorGraphic?.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        if (picture.ShapeProperties.Transform2D.Rotation != null) {
+                        if (picture?.ShapeProperties?.Transform2D?.Rotation != null) {
                             return picture.ShapeProperties.Transform2D.Rotation / 10000;
                         }
                     }
@@ -639,20 +639,40 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    if (value == null) {
-                        picture.ShapeProperties.Transform2D.Rotation = null;
-                    } else {
-                        picture.ShapeProperties.Transform2D.Rotation = value.Value * 10000;
+                    var picture = _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    if (picture != null) {
+                        var shape = picture.ShapeProperties;
+                        if (shape == null) {
+                            shape = new ShapeProperties();
+                            picture.ShapeProperties = shape;
+                        }
+
+                        var transform = shape.Transform2D;
+                        if (transform == null) {
+                            transform = new A.Transform2D();
+                            shape.Transform2D = transform;
+                        }
+
+                        transform.Rotation = value == null ? null : value.Value * 10000;
                     }
                 } else if (_Image.Anchor != null) {
                     var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                    if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                    if (anchorGraphic?.GraphicData != null) {
                         var picture = anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        if (value == null) {
-                            picture.ShapeProperties.Transform2D.Rotation = null;
-                        } else {
-                            picture.ShapeProperties.Transform2D.Rotation = value.Value * 10000;
+                        if (picture != null) {
+                            var shape = picture.ShapeProperties;
+                            if (shape == null) {
+                                shape = new ShapeProperties();
+                                picture.ShapeProperties = shape;
+                            }
+
+                            var transform = shape.Transform2D;
+                            if (transform == null) {
+                                transform = new A.Transform2D();
+                                shape.Transform2D = transform;
+                            }
+
+                            transform.Rotation = value == null ? null : value.Value * 10000;
                         }
                     }
                 }
@@ -661,12 +681,12 @@ namespace OfficeIMO.Word {
 
         private DocumentFormat.OpenXml.Drawing.Pictures.Picture? GetPicture() {
             if (_Image.Inline != null) {
-                return _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
             }
 
             if (_Image.Anchor != null) {
                 var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
-                if (anchorGraphic != null && anchorGraphic.GraphicData != null) {
+                if (anchorGraphic?.GraphicData != null) {
                     return anchorGraphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                 }
             }
@@ -676,9 +696,11 @@ namespace OfficeIMO.Word {
 
         private void SetPicture(Pic.Picture picture) {
             if (_Image.Inline != null) {
-                var graphicData = _Image.Inline.Graphic.GraphicData;
-                graphicData.RemoveAllChildren<Pic.Picture>();
-                graphicData.AppendChild(picture);
+                var graphicData = _Image.Inline.Graphic?.GraphicData;
+                if (graphicData != null) {
+                    graphicData.RemoveAllChildren<Pic.Picture>();
+                    graphicData.AppendChild(picture);
+                }
             } else if (_Image.Anchor != null) {
                 var anchorGraphic = _Image.Anchor.OfType<Graphic>().FirstOrDefault();
                 if (anchorGraphic?.GraphicData != null) {
@@ -694,18 +716,23 @@ namespace OfficeIMO.Word {
         public int? CropTop {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.SourceRectangle?.Top;
+                return (int?)picture?.BlipFill?.SourceRectangle?.Top;
             }
             set {
                 _cropTop = value;
                 var picture = GetPicture();
                 if (picture == null) return;
 
-                if (picture.BlipFill.SourceRectangle == null && value != null) {
-                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                if (picture.BlipFill?.SourceRectangle == null && value != null) {
+                    if (picture.BlipFill == null) {
+                        picture.BlipFill = new Pic.BlipFill();
+                    }
+                    if (picture.BlipFill.SourceRectangle == null) {
+                        picture.BlipFill.SourceRectangle = new A.SourceRectangle();
+                    }
                 }
 
-                if (picture.BlipFill.SourceRectangle != null) {
+                if (picture.BlipFill != null && picture.BlipFill.SourceRectangle != null) {
                     picture.BlipFill.SourceRectangle.Top = value;
                     if (value == null &&
                         picture.BlipFill.SourceRectangle.Left == null &&
@@ -723,18 +750,23 @@ namespace OfficeIMO.Word {
         public int? CropBottom {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.SourceRectangle?.Bottom;
+                return (int?)picture?.BlipFill?.SourceRectangle?.Bottom;
             }
             set {
                 _cropBottom = value;
                 var picture = GetPicture();
                 if (picture == null) return;
 
-                if (picture.BlipFill.SourceRectangle == null && value != null) {
-                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                if (picture.BlipFill?.SourceRectangle == null && value != null) {
+                    if (picture.BlipFill == null) {
+                        picture.BlipFill = new Pic.BlipFill();
+                    }
+                    if (picture.BlipFill.SourceRectangle == null) {
+                        picture.BlipFill.SourceRectangle = new A.SourceRectangle();
+                    }
                 }
 
-                if (picture.BlipFill.SourceRectangle != null) {
+                if (picture.BlipFill != null && picture.BlipFill.SourceRectangle != null) {
                     picture.BlipFill.SourceRectangle.Bottom = value;
                     if (value == null &&
                         picture.BlipFill.SourceRectangle.Left == null &&
@@ -752,18 +784,23 @@ namespace OfficeIMO.Word {
         public int? CropLeft {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.SourceRectangle?.Left;
+                return (int?)picture?.BlipFill?.SourceRectangle?.Left;
             }
             set {
                 _cropLeft = value;
                 var picture = GetPicture();
                 if (picture == null) return;
 
-                if (picture.BlipFill.SourceRectangle == null && value != null) {
-                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                if (picture.BlipFill?.SourceRectangle == null && value != null) {
+                    if (picture.BlipFill == null) {
+                        picture.BlipFill = new Pic.BlipFill();
+                    }
+                    if (picture.BlipFill.SourceRectangle == null) {
+                        picture.BlipFill.SourceRectangle = new A.SourceRectangle();
+                    }
                 }
 
-                if (picture.BlipFill.SourceRectangle != null) {
+                if (picture.BlipFill != null && picture.BlipFill.SourceRectangle != null) {
                     picture.BlipFill.SourceRectangle.Left = value;
                     if (value == null &&
                         picture.BlipFill.SourceRectangle.Top == null &&
@@ -781,18 +818,23 @@ namespace OfficeIMO.Word {
         public int? CropRight {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.SourceRectangle?.Right;
+                return (int?)picture?.BlipFill?.SourceRectangle?.Right;
             }
             set {
                 _cropRight = value;
                 var picture = GetPicture();
                 if (picture == null) return;
 
-                if (picture.BlipFill.SourceRectangle == null && value != null) {
-                    picture.BlipFill.SourceRectangle = new SourceRectangle();
+                if (picture.BlipFill?.SourceRectangle == null && value != null) {
+                    if (picture.BlipFill == null) {
+                        picture.BlipFill = new Pic.BlipFill();
+                    }
+                    if (picture.BlipFill.SourceRectangle == null) {
+                        picture.BlipFill.SourceRectangle = new A.SourceRectangle();
+                    }
                 }
 
-                if (picture.BlipFill.SourceRectangle != null) {
+                if (picture.BlipFill != null && picture.BlipFill.SourceRectangle != null) {
                     picture.BlipFill.SourceRectangle.Right = value;
                     if (value == null &&
                         picture.BlipFill.SourceRectangle.Top == null &&

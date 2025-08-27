@@ -211,7 +211,9 @@ namespace OfficeIMO.Word {
                 List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsPageBreak).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.PageBreak);
+                    if (paragraph.PageBreak != null) {
+                        list.Add(paragraph.PageBreak);
+                    }
                 }
                 return list;
             }
@@ -225,7 +227,9 @@ namespace OfficeIMO.Word {
                 List<WordChart> list = new List<WordChart>();
                 var paragraphs = Paragraphs.Where(p => p.IsChart).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Chart);
+                    if (paragraph.Chart != null) {
+                        list.Add(paragraph.Chart);
+                    }
                 }
                 return list;
             }
@@ -239,7 +243,9 @@ namespace OfficeIMO.Word {
                 List<WordBreak> list = new List<WordBreak>();
                 var paragraphs = Paragraphs.Where(p => p.IsBreak).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Break);
+                    if (paragraph.Break != null) {
+                        list.Add(paragraph.Break);
+                    }
                 }
                 return list;
             }
@@ -253,7 +259,9 @@ namespace OfficeIMO.Word {
                 List<WordImage> list = new List<WordImage>();
                 var paragraphs = Paragraphs.Where(p => p.IsImage).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Image);
+                    if (paragraph.Image != null) {
+                        list.Add(paragraph.Image);
+                    }
                 }
                 return list;
             }
@@ -267,7 +275,9 @@ namespace OfficeIMO.Word {
                 List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
                 var paragraphs = Paragraphs.Where(p => p.IsEmbeddedObject).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.EmbeddedObject);
+                    if (paragraph.EmbeddedObject != null) {
+                        list.Add(paragraph.EmbeddedObject);
+                    }
                 }
                 return list;
             }
@@ -280,7 +290,9 @@ namespace OfficeIMO.Word {
                 List<WordBookmark> list = new List<WordBookmark>();
                 var paragraphs = Paragraphs.Where(p => p.IsBookmark).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Bookmark);
+                    if (paragraph.Bookmark != null) {
+                        list.Add(paragraph.Bookmark);
+                    }
                 }
                 return list;
             }
@@ -294,7 +306,9 @@ namespace OfficeIMO.Word {
                 List<WordField> list = new List<WordField>();
                 var paragraphs = Paragraphs.Where(p => p.IsField).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Field);
+                    if (paragraph.Field != null) {
+                        list.Add(paragraph.Field);
+                    }
                 }
                 return list;
             }
@@ -308,7 +322,9 @@ namespace OfficeIMO.Word {
                 List<WordEndNote> list = new List<WordEndNote>();
                 var paragraphs = Paragraphs.Where(p => p.IsEndNote).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.EndNote);
+                    if (paragraph.EndNote != null) {
+                        list.Add(paragraph.EndNote);
+                    }
                 }
                 return list;
             }
@@ -322,7 +338,9 @@ namespace OfficeIMO.Word {
                 List<WordFootNote> list = new List<WordFootNote>();
                 var paragraphs = Paragraphs.Where(p => p.IsFootNote).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.FootNote);
+                    if (paragraph.FootNote != null) {
+                        list.Add(paragraph.FootNote);
+                    }
                 }
                 return list;
             }
@@ -336,12 +354,14 @@ namespace OfficeIMO.Word {
                 List<WordHyperLink> list = new List<WordHyperLink>();
                 var paragraphs = Paragraphs.Where(p => p.IsHyperLink).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Hyperlink);
+                    if (paragraph.Hyperlink != null) {
+                        list.Add(paragraph.Hyperlink);
+                    }
                 }
 
                 foreach (var table in this.Tables) {
                     foreach (var paragraph in table.Paragraphs) {
-                        if (paragraph.IsHyperLink) {
+                        if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
                             list.Add(paragraph.Hyperlink);
                         }
                     }
@@ -358,7 +378,9 @@ namespace OfficeIMO.Word {
                 List<WordTabChar> list = new List<WordTabChar>();
                 var paragraphs = Paragraphs.Where(p => p.IsTab).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Tab);
+                    if (paragraph.Tab != null) {
+                        list.Add(paragraph.Tab);
+                    }
                 }
                 return list;
             }
@@ -373,7 +395,9 @@ namespace OfficeIMO.Word {
                 List<WordTextBox> list = new List<WordTextBox>();
                 var paragraphs = Paragraphs.Where(p => p.IsTextBox).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.TextBox);
+                    if (paragraph.TextBox != null) {
+                        list.Add(paragraph.TextBox);
+                    }
                 }
                 return list;
             }
@@ -388,7 +412,9 @@ namespace OfficeIMO.Word {
                 List<WordShape> list = new List<WordShape>();
                 var paragraphs = ParagraphsShapes;
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Shape);
+                    if (paragraph.Shape != null) {
+                        list.Add(paragraph.Shape);
+                    }
                 }
                 return list;
             }
@@ -403,7 +429,9 @@ namespace OfficeIMO.Word {
                 List<WordSmartArt> list = new List<WordSmartArt>();
                 var paragraphs = ParagraphsSmartArts;
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.SmartArt);
+                    if (paragraph.SmartArt != null) {
+                        list.Add(paragraph.SmartArt);
+                    }
                 }
                 return list;
             }

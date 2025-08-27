@@ -143,7 +143,7 @@ namespace OfficeIMO.Word {
         private Chart CreatePieChart(Chart chart) {
             PieChart pieChart1 = new PieChart();
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            chart.PlotArea.Append(pieChart1);
+            chart.PlotArea!.Append(pieChart1);
             return chart;
         }
 
@@ -154,9 +154,9 @@ namespace OfficeIMO.Word {
             BarChart barChart1 = CreateBarChart(catId, valId);
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
-            chart.PlotArea.Append(barChart1);
-            chart.PlotArea.Append(categoryAxis1);
-            chart.PlotArea.Append(valueAxis1);
+            chart.PlotArea!.Append(barChart1);
+            chart.PlotArea!.Append(categoryAxis1);
+            chart.PlotArea!.Append(valueAxis1);
 
             return chart;
         }
@@ -229,7 +229,7 @@ namespace OfficeIMO.Word {
                     if (catAxis != null) {
                         _chart.PlotArea.InsertBefore(barChart, catAxis);
                     } else {
-                        _chart.PlotArea.Append(barChart);
+                        _chart.PlotArea!.Append(barChart);
                     }
                 } else {
                     _chart = GenerateChartBar(_chart);
@@ -267,7 +267,7 @@ namespace OfficeIMO.Word {
                     if (catAxis != null) {
                         _chart.PlotArea.InsertBefore(lineChart, catAxis);
                     } else {
-                        _chart.PlotArea.Append(lineChart);
+                        _chart.PlotArea!.Append(lineChart);
                     }
                 } else {
                     _chart = GenerateLineChart(_chart);
@@ -338,9 +338,9 @@ namespace OfficeIMO.Word {
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             //chart.PlotArea.Append(layout1);
-            chart.PlotArea.Append(lineChart1);
-            chart.PlotArea.Append(categoryAxis1);
-            chart.PlotArea.Append(valueAxis1);
+            chart.PlotArea!.Append(lineChart1);
+            chart.PlotArea!.Append(categoryAxis1);
+            chart.PlotArea!.Append(valueAxis1);
             return chart;
         }
         private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, SixLabors.ImageSharp.Color color, List<string> categories, List<T> data) {
@@ -409,9 +409,9 @@ namespace OfficeIMO.Word {
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             //chart.PlotArea.Append(layout1);
-            chart.PlotArea.Append(areaChart);
-            chart.PlotArea.Append(categoryAxis1);
-            chart.PlotArea.Append(valueAxis1);
+            chart.PlotArea!.Append(areaChart);
+            chart.PlotArea!.Append(categoryAxis1);
+            chart.PlotArea!.Append(valueAxis1);
 
 
             return chart;
@@ -523,9 +523,9 @@ namespace OfficeIMO.Word {
             ValueAxis xAxis = AddValueAxisInternal(xId, yId, AxisPositionValues.Bottom);
             ValueAxis yAxis = AddValueAxisInternal(yId, xId, AxisPositionValues.Left);
 
-            chart.PlotArea.Append(scatter);
-            chart.PlotArea.Append(xAxis);
-            chart.PlotArea.Append(yAxis);
+            chart.PlotArea!.Append(scatter);
+            chart.PlotArea!.Append(xAxis);
+            chart.PlotArea!.Append(yAxis);
 
             return chart;
         }
@@ -596,9 +596,9 @@ namespace OfficeIMO.Word {
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
-            chart.PlotArea.Append(radarChart);
-            chart.PlotArea.Append(catAxis);
-            chart.PlotArea.Append(valAxis);
+            chart.PlotArea!.Append(radarChart);
+            chart.PlotArea!.Append(catAxis);
+            chart.PlotArea!.Append(valAxis);
             return chart;
         }
 
@@ -656,9 +656,9 @@ namespace OfficeIMO.Word {
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
-            chart.PlotArea.Append(chart3d);
-            chart.PlotArea.Append(catAxis);
-            chart.PlotArea.Append(valAxis);
+            chart.PlotArea!.Append(chart3d);
+            chart.PlotArea!.Append(catAxis);
+            chart.PlotArea!.Append(valAxis);
             return chart;
         }
 
@@ -732,10 +732,10 @@ namespace OfficeIMO.Word {
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             SeriesAxis seriesAxis = AddSeriesAxisInternal(seriesId, catId, AxisPositionValues.Right);
 
-            chart.PlotArea.Append(chart3d);
-            chart.PlotArea.Append(catAxis);
-            chart.PlotArea.Append(valAxis);
-            chart.PlotArea.Append(seriesAxis);
+            chart.PlotArea!.Append(chart3d);
+            chart.PlotArea!.Append(catAxis);
+            chart.PlotArea!.Append(valAxis);
+            chart.PlotArea!.Append(seriesAxis);
             return chart;
         }
 
@@ -777,7 +777,7 @@ namespace OfficeIMO.Word {
 
         private Chart GeneratePie3DChart(Chart chart) {
             Pie3DChart pie3d = CreatePie3DChart();
-            chart.PlotArea.Append(pie3d);
+            chart.PlotArea!.Append(pie3d);
             return chart;
         }
 
@@ -813,9 +813,9 @@ namespace OfficeIMO.Word {
             CategoryAxis catAxis = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valAxis = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
-            chart.PlotArea.Append(area3d);
-            chart.PlotArea.Append(catAxis);
-            chart.PlotArea.Append(valAxis);
+            chart.PlotArea!.Append(area3d);
+            chart.PlotArea!.Append(catAxis);
+            chart.PlotArea!.Append(valAxis);
 
             return chart;
         }
