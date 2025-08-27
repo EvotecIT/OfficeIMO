@@ -26,7 +26,9 @@ namespace OfficeIMO.Word {
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
             }
 
-            this._wordprocessingDocument!.MainDocumentPart!.Document!.Body!.AppendChild(wordParagraph._paragraph);
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body
+                ?? throw new InvalidOperationException("Document body is missing.");
+            body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
 
@@ -51,7 +53,8 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            this._document!.Body!.Append(newWordParagraph._paragraph);
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            body.Append(newWordParagraph._paragraph);
             return newWordParagraph;
         }
 
@@ -75,7 +78,8 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            this._document!.Body!.Append(newWordParagraph._paragraph);
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            body.Append(newWordParagraph._paragraph);
             var currentSection = this.Sections.LastOrDefault();
             currentSection?.Paragraphs.Add(newWordParagraph);
             return newWordParagraph;
@@ -380,7 +384,7 @@ namespace OfficeIMO.Word {
                 paragraph = new WordParagraph(this, true, false);
             }
 
-            var body = _document!.Body!;
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             var paragraphs = body.Elements<Paragraph>().ToList();
             if (index < 0 || index > paragraphs.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
@@ -431,7 +435,8 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
-            _tableOfContentIndex = _document!.Body!.ChildElements.Count - 1;
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            _tableOfContentIndex = body.ChildElements.Count - 1;
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
@@ -454,16 +459,17 @@ namespace OfficeIMO.Word {
         public WordTableOfContent RegenerateTableOfContent() {
             var toc = TableOfContent;
             var style = _tableOfContentStyle ?? TableOfContentStyle.Template1;
-            int index = _tableOfContentIndex ?? (toc != null ? _document!.Body!.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            int index = _tableOfContentIndex ?? (toc != null ? body.ChildElements.ToList().IndexOf(toc.SdtBlock) : -1);
             RemoveTableOfContent();
             var newToc = new WordTableOfContent(this, style);
-            if (index >= 0 && index < _document!.Body!.ChildElements.Count - 1) {
+            if (index >= 0 && index < body.ChildElements.Count - 1) {
                 var block = newToc.SdtBlock;
                 block.Remove();
-                _document!.Body!.InsertAt(block, index);
+                body.InsertAt(block, index);
                 _tableOfContentIndex = index;
             } else {
-                _tableOfContentIndex = _document!.Body!.ChildElements.Count - 1;
+                _tableOfContentIndex = body.ChildElements.Count - 1;
             }
             return newToc;
         }
@@ -579,7 +585,8 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
 
 
-            this._document!.MainDocumentPart!.Document!.Body!.Append(paragraph);
+            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            body.Append(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);

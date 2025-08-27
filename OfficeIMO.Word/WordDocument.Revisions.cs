@@ -49,13 +49,10 @@ namespace OfficeIMO.Word {
             foreach (OpenXmlElement insertion in insertions) {
                 // Found new content.
                 // Promote them to the same level as node, and then delete the node.
+                OpenXmlElement next = insertion;
                 foreach (var run in insertion.Elements<Run>()) {
-                    if (run == insertion.FirstChild) {
-                        insertion.InsertAfterSelf(new Run(run.OuterXml));
-                    } else {
-                        var nextSibling = insertion.NextSibling() ?? throw new InvalidOperationException("Insertion has no next sibling.");
-                        nextSibling.InsertAfterSelf(new Run(run.OuterXml));
-                    }
+                    next.InsertAfterSelf(new Run(run.OuterXml));
+                    next = next.NextSibling() ?? throw new InvalidOperationException("Insertion has no next sibling.");
                 }
 
                 insertion.RemoveAttribute("rsidR", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
@@ -99,13 +96,10 @@ namespace OfficeIMO.Word {
             foreach (OpenXmlElement insertion in insertions) {
                 // Found new content.
                 // Promote them to the same level as node, and then delete the node.
+                OpenXmlElement next = insertion;
                 foreach (var run in insertion.Elements<Run>()) {
-                    if (run == insertion.FirstChild) {
-                        insertion.InsertAfterSelf(new Run(run.OuterXml));
-                    } else {
-                        var nextSibling = insertion.NextSibling() ?? throw new InvalidOperationException("Insertion has no next sibling.");
-                        nextSibling.InsertAfterSelf(new Run(run.OuterXml));
-                    }
+                    next.InsertAfterSelf(new Run(run.OuterXml));
+                    next = next.NextSibling() ?? throw new InvalidOperationException("Insertion has no next sibling.");
                 }
 
                 insertion.RemoveAttribute("rsidR", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
@@ -179,13 +173,10 @@ namespace OfficeIMO.Word {
             deletions.AddRange(body.Descendants<DeletedRun>().Where(c => c.Author?.Value == authorName).Cast<OpenXmlElement>().ToList());
             deletions.AddRange(body.Descendants<DeletedMathControl>().Where(c => c.Author?.Value == authorName).Cast<OpenXmlElement>().ToList());
             foreach (OpenXmlElement deletion in deletions) {
+                OpenXmlElement next = deletion;
                 foreach (var run in deletion.Elements<Run>()) {
-                    if (run == deletion.FirstChild) {
-                        deletion.InsertAfterSelf(new Run(run.OuterXml));
-                    } else {
-                        var nextSibling = deletion.NextSibling() ?? throw new InvalidOperationException("Deletion has no next sibling.");
-                        nextSibling.InsertAfterSelf(new Run(run.OuterXml));
-                    }
+                    next.InsertAfterSelf(new Run(run.OuterXml));
+                    next = next.NextSibling() ?? throw new InvalidOperationException("Deletion has no next sibling.");
                 }
                 deletion.RemoveAttribute("rsidDel", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
                 deletion.RemoveAttribute("rsidRPr", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
@@ -215,13 +206,10 @@ namespace OfficeIMO.Word {
             deletions.AddRange(body.Descendants<DeletedRun>().Cast<OpenXmlElement>().ToList());
             deletions.AddRange(body.Descendants<DeletedMathControl>().Cast<OpenXmlElement>().ToList());
             foreach (OpenXmlElement deletion in deletions) {
+                OpenXmlElement next = deletion;
                 foreach (var run in deletion.Elements<Run>()) {
-                    if (run == deletion.FirstChild) {
-                        deletion.InsertAfterSelf(new Run(run.OuterXml));
-                    } else {
-                        var nextSibling = deletion.NextSibling() ?? throw new InvalidOperationException("Deletion has no next sibling.");
-                        nextSibling.InsertAfterSelf(new Run(run.OuterXml));
-                    }
+                    next.InsertAfterSelf(new Run(run.OuterXml));
+                    next = next.NextSibling() ?? throw new InvalidOperationException("Deletion has no next sibling.");
                 }
                 deletion.RemoveAttribute("rsidDel", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
                 deletion.RemoveAttribute("rsidRPr", "https://schemas.openxmlformats.org/wordprocessingml/2006/main");
