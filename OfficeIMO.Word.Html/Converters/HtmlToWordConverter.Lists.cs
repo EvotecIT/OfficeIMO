@@ -1,7 +1,8 @@
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
+using OfficeIMO.Word;
+using System.Collections.Generic;
+                    list.NumberId = _orderedListNumberId.Value;
+                        _orderedListNumberId = list.NumberId;
+
 using System.Collections.Generic;
 using System.Reflection;
 
