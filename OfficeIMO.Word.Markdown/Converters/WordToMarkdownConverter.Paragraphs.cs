@@ -63,9 +63,15 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     continue;
                 }
 
+                bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
+
                 string? text = run.Text;
                 if (string.IsNullOrEmpty(text)) {
                     continue;
+                }
+
+                if (!code) {
+                    text = EscapeMarkdown(text);
                 }
 
                 if (run.Bold && run.Italic) {
@@ -88,7 +94,6 @@ namespace OfficeIMO.Word.Markdown.Converters {
                     text = $"=={text}==";
                 }
 
-                bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
                 if (code) {
                     text = $"`{text}`";
                 }
@@ -158,6 +163,17 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 string base64 = System.Convert.ToBase64String(bytes);
                 return $"![{alt}](data:{mime};base64,{base64})";
             }
+        }
+
+        private static string EscapeMarkdown(string text) {
+            var sb = new StringBuilder(text.Length * 2);
+            foreach (char c in text) {
+                if (c == '\\' || c == '`' || c == '*' || c == '_' || c == '{' || c == '}' || c == '[' || c == ']' || c == '(' || c == ')' || c == '#' || c == '+' || c == '-' || c == '.' || c == '!' || c == '>') {
+                    sb.Append('\\');
+                }
+                sb.Append(c);
+            }
+            return sb.ToString();
         }
     }
 }
