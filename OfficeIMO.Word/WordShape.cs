@@ -38,6 +38,10 @@ namespace OfficeIMO.Word {
         internal Drawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
 
+        internal Run Run => _run;
+
+        internal V.Line? Line => _line;
+
         /// <summary>
         /// Initializes a new rectangle shape and appends it to the paragraph.
         /// </summary>

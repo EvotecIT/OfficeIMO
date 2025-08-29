@@ -178,5 +178,21 @@ namespace OfficeIMO.Tests {
                 Assert.InRange(loadedShape!.ArcSize!.Value, 0.29, 0.31);
             }
         }
+
+        [Fact]
+        public void Test_WordShape_InternalProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "ShapeInternalProperties.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                var rectangle = paragraph.AddShape(100, 50);
+                var line = WordShape.AddLine(paragraph, 0, 0, 10, 10);
+
+                Assert.NotNull(rectangle.Run);
+                Assert.Null(rectangle.Line);
+
+                Assert.NotNull(line.Run);
+                Assert.NotNull(line.Line);
+            }
+        }
     }
 }

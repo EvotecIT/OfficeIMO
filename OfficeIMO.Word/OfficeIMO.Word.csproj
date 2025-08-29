@@ -80,6 +80,8 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
+        <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
     </ItemGroup>
 
 </Project>
