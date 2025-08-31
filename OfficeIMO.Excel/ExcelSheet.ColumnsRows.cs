@@ -35,9 +35,9 @@ namespace OfficeIMO.Excel {
                 sequentialCore: () =>
                 {
                     // Sequential path with NoLock
-                    var worksheet = _worksheetPart.Worksheet;
-                    SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData == null) return;
+                      var worksheet = _worksheetPart.Worksheet;
+                      SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+                      if (sheetData == null) return;
 
                     for (int i = 0; i < columnsList.Count; i++)
                     {
@@ -96,20 +96,21 @@ namespace OfficeIMO.Excel {
         private HashSet<int> GetAllColumnIndices()
         {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return new HashSet<int>();
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+              if (sheetData == null) return new HashSet<int>();
 
             var columns = worksheet.GetFirstChild<Columns>();
             HashSet<int> columnIndexes = new HashSet<int>();
 
-            foreach (var row in sheetData.Elements<Row>())
-            {
-                foreach (var cell in row.Elements<Cell>())
-                {
-                    if (cell.CellReference == null) continue;
-                    columnIndexes.Add(GetColumnIndex(cell.CellReference.Value));
-                }
-            }
+              foreach (var row in sheetData.Elements<Row>())
+              {
+                  foreach (var cell in row.Elements<Cell>())
+                  {
+                      var cellRef = cell.CellReference?.Value;
+                      if (string.IsNullOrEmpty(cellRef)) continue;
+                      columnIndexes.Add(GetColumnIndex(cellRef));
+                  }
+              }
 
             if (columns != null)
             {
@@ -130,8 +131,8 @@ namespace OfficeIMO.Excel {
         private double CalculateColumnWidth(int columnIndex)
         {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return 0;
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+              if (sheetData == null) return 0;
 
             double maxWidth = 0;
             
@@ -146,8 +147,12 @@ namespace OfficeIMO.Excel {
 
             foreach (var row in sheetData.Elements<Row>())
             {
-                var cell = row.Elements<Cell>()
-                    .FirstOrDefault(c => c.CellReference != null && GetColumnIndex(c.CellReference.Value) == columnIndex);
+                  var cell = row.Elements<Cell>()
+                      .FirstOrDefault(c =>
+                      {
+                          string? reference = c.CellReference?.Value;
+                          return reference != null && GetColumnIndex(reference) == columnIndex;
+                      });
                 if (cell == null) continue;
                 
                 string text = GetCellText(cell);
@@ -205,8 +210,8 @@ namespace OfficeIMO.Excel {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
 
-            Column column = columns.Elements<Column>()
-                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+              Column? column = columns.Elements<Column>()
+                  .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
 
             if (column != null)
             {
@@ -261,11 +266,11 @@ namespace OfficeIMO.Excel {
         private double CalculateRowHeight(int rowIndex)
         {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return 0;
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+              if (sheetData == null) return 0;
 
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return 0;
+              Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
+              if (row == null) return 0;
 
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
@@ -281,7 +286,8 @@ namespace OfficeIMO.Excel {
             {
                 const double pixelPadding = 2.0; // both sides added by Excel grid
                 // Determine merged span width
-                (int fromCol, int toCol) = GetCellMergeSpan(c) ?? (GetColumnIndex(c.CellReference!.Value), GetColumnIndex(c.CellReference!.Value));
+                  string reference = c.CellReference?.Value ?? throw new InvalidOperationException("CellReference is null");
+                  (int fromCol, int toCol) = GetCellMergeSpan(c) ?? (GetColumnIndex(reference), GetColumnIndex(reference));
                 double totalPx = 0;
                 for (int col = fromCol; col <= toCol; col++)
                 {
@@ -502,11 +508,10 @@ namespace OfficeIMO.Excel {
         private void SetRowHeightCore(int rowIndex, double height)
         {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
-
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == (uint)rowIndex);
-            if (row == null) return;
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+              if (sheetData == null) return;
+              Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
+              if (row == null) return;
 
             double defaultHeight = GetDefaultRowHeightPoints();
             if (height > defaultHeight)
@@ -524,7 +529,7 @@ namespace OfficeIMO.Excel {
         private void UpdateSheetFormat()
         {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
             bool anyCustom = sheetData?.Elements<Row>()
@@ -549,7 +554,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
             var worksheet = _worksheetPart.Worksheet;
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
             var rowIndexes = sheetData.Elements<Row>()
@@ -637,8 +642,8 @@ namespace OfficeIMO.Excel {
                 return column;
             }
 
-            uint min = column.Min.Value;
-            uint max = column.Max.Value;
+              uint min = column.Min!.Value;
+              uint max = column.Max!.Value;
             var template = (Column)column.CloneNode(true);
             column.Remove();
 
@@ -735,7 +740,7 @@ namespace OfficeIMO.Excel {
         public void Freeze(int topRows = 0, int leftCols = 0) {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
-                SheetViews sheetViews = worksheet.GetFirstChild<SheetViews>();
+              SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
 
                 if (topRows == 0 && leftCols == 0) {
                     if (sheetViews != null) {
@@ -763,11 +768,11 @@ namespace OfficeIMO.Excel {
                     worksheet.AppendChild(sheetData);
                 }
 
-                SheetView sheetView = sheetViews.GetFirstChild<SheetView>();
-                if (sheetView == null) {
-                    sheetView = new SheetView { WorkbookViewId = 0U };
-                    sheetViews.Append(sheetView);
-                }
+                  SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
+                  if (sheetView == null) {
+                      sheetView = new SheetView { WorkbookViewId = 0U };
+                      sheetViews.Append(sheetView);
+                  }
 
                 sheetView.RemoveAllChildren<Pane>();
                 sheetView.RemoveAllChildren<Selection>();
