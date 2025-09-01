@@ -58,13 +58,13 @@ namespace OfficeIMO.Excel
                     }, i =>
                     {
                         var (r, c, obj) = list[i];
-                        var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
+                          var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
                         if (type?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val?.Text is string raw)
                         {
                             if (raw.Contains("\n") || raw.Contains("\r"))
                                 wrapFlags[i] = true;
                         }
-                        prepared[i] = (r, c, val, type);
+                          prepared[i] = (r, c, val!, type!);
                     });
                 },
                 applySequential: () =>
