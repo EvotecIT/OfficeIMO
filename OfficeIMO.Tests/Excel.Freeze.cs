@@ -24,9 +24,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
-                Pane pane = sheetView?.GetFirstChild<Pane>();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
+                Pane? pane = sheetView?.GetFirstChild<Pane>();
                 Assert.NotNull(pane);
                 Assert.Equal(PaneValues.BottomLeft, pane!.ActivePane?.Value);
                 Assert.Equal("A2", pane.TopLeftCell?.Value);
@@ -57,9 +58,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
-                Pane pane = sheetView?.GetFirstChild<Pane>();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
+                Pane? pane = sheetView?.GetFirstChild<Pane>();
                 Assert.NotNull(pane);
                 Assert.Equal(PaneValues.TopRight, pane!.ActivePane?.Value);
                 Assert.Equal("C1", pane.TopLeftCell?.Value);
@@ -90,9 +92,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
-                Pane pane = sheetView?.GetFirstChild<Pane>();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
+                Pane? pane = sheetView?.GetFirstChild<Pane>();
                 Assert.NotNull(pane);
                 Assert.Equal(1D, pane!.HorizontalSplit?.Value);
                 Assert.Equal(1D, pane.VerticalSplit?.Value);
@@ -132,7 +135,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 Assert.Null(wsPart.Worksheet.GetFirstChild<SheetViews>());
 
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
