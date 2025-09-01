@@ -11,8 +11,9 @@ namespace OfficeIMO.Tests {
             using var doc = html.LoadFromHtml();
             Assert.True(doc.Paragraphs.Count >= 1);
             Assert.Equal("text", doc.Paragraphs[0].Text);
+            Assert.NotNull(doc.FootNotes);
             Assert.Single(doc.FootNotes);
-            Assert.Equal("desc", doc.FootNotes[0].Paragraphs[1].Text);
+            Assert.Equal("desc", doc.FootNotes![0].Paragraphs[1].Text);
 
             string roundTrip = doc.ToHtml(new WordToHtmlOptions { ExportFootnotes = true });
             Assert.Contains("<abbr", roundTrip, StringComparison.OrdinalIgnoreCase);

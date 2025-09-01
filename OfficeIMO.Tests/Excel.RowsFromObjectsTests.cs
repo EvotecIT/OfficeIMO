@@ -132,7 +132,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Alice", GetCellValue(document, wsPart, "A3"));
                 var table = wsPart.TableDefinitionParts.First();
                 Assert.NotNull(table.Table);
-                Assert.Equal("People", table.Table.DisplayName.Value);
+                Assert.NotNull(table.Table!.DisplayName);
+                Assert.Equal("People", table.Table.DisplayName!.Value);
                 Assert.Equal("TableStyleMedium9", table.Table.TableStyleInfo?.Name?.Value);
             }
 

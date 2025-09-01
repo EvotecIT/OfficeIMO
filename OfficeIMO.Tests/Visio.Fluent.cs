@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
 
             VisioDocument result = document.AsFluent()
-                .AddPage("Page1", out VisioPage page)
+                .AddPage("Page1", 8.5, 11, VisioMeasurementUnit.Inches, out VisioPage page)
                 .End();
 
             Assert.Same(document, result);

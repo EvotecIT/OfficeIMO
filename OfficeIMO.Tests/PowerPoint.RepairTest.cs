@@ -56,11 +56,11 @@ namespace OfficeIMO.Tests {
                 foreach (var slidePart in document.PresentationPart.SlideParts) {
                     var shapeTree = slidePart.Slide.CommonSlideData?.ShapeTree;
                     if (shapeTree != null) {
-                        var ids = shapeTree.Descendants<NonVisualDrawingProperties>()
-                            .Select(dp => dp.Id?.Value)
-                            .Where(id => id.HasValue)
-                            .Select(id => id.Value)
-                            .ToList();
+                      var ids = shapeTree.Descendants<NonVisualDrawingProperties>()
+                          .Select(dp => dp.Id?.Value)
+                          .Where(id => id.HasValue)
+                          .Select(id => id!.Value)
+                          .ToList();
                         
                         // Verify all IDs are unique
                         Assert.Equal(ids.Count, ids.Distinct().Count());
@@ -72,12 +72,12 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slideIdList);
                 
                 foreach (SlideId slideId in slideIdList.Elements<SlideId>()) {
-                    Assert.NotNull(slideId.RelationshipId);
-                    Assert.NotNull(slideId.Id);
-                    Assert.True(slideId.Id.Value >= 256);
-                    
-                    // Verify the relationship exists
-                    var part = document.PresentationPart.GetPartById(slideId.RelationshipId);
+                      Assert.NotNull(slideId.RelationshipId);
+                      Assert.NotNull(slideId.Id);
+                      Assert.True(slideId.Id!.Value >= 256);
+
+                      // Verify the relationship exists
+                      var part = document.PresentationPart.GetPartById(slideId.RelationshipId!);
                     Assert.NotNull(part);
                     Assert.IsType<SlidePart>(part);
                 }

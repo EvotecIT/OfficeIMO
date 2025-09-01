@@ -30,16 +30,16 @@ namespace OfficeIMO.Tests {
                 SlidePart slidePart = document.PresentationPart!.SlideParts.First();
                 Shape shape = slidePart.Slide.Descendants<Shape>().First();
                 var paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToList();
-                foreach (var paragraph in paragraphs) {
-                    A.Run run = paragraph.GetFirstChild<A.Run>()!;
-                    A.RunProperties rp = run.RunProperties!;
-                    Assert.True(rp.Bold == true);
-                    Assert.True(rp.Italic == true);
-                    Assert.Equal(2400, rp.FontSize!.Value);
-                    Assert.Equal("Arial", rp.GetFirstChild<A.LatinFont>()?.Typeface);
-                    Assert.Equal("FF0000", rp.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val);
+                    foreach (var paragraph in paragraphs) {
+                        A.Run run = paragraph.GetFirstChild<A.Run>()!;
+                        A.RunProperties rp = run.RunProperties!;
+                        Assert.True(rp.Bold?.Value ?? false);
+                        Assert.True(rp.Italic?.Value ?? false);
+                        Assert.Equal(2400, rp.FontSize!.Value);
+                        Assert.Equal("Arial", rp.GetFirstChild<A.LatinFont>()?.Typeface);
+                        Assert.Equal("FF0000", rp.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val);
+                    }
                 }
-            }
 
             File.Delete(filePath);
         }

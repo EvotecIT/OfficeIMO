@@ -140,23 +140,24 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                AutoFilter autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                AutoFilter? autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
                 Assert.NotNull(autoFilter);
-                Assert.Equal("A1:B3", autoFilter.Reference.Value);
+                Assert.NotNull(autoFilter!.Reference);
+                Assert.Equal("A1:B3", autoFilter.Reference!.Value);
 
-                var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
-                    .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
-                    .ToList();
-                Assert.Contains(rules, r => r.Type == ConditionalFormatValues.ColorScale);
-                Assert.Contains(rules, r => r.Type == ConditionalFormatValues.DataBar);
+                  var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
+                      .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
+                      .ToList();
+                  Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.ColorScale);
+                  Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.DataBar);
 
-                var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault();
-                Assert.True(column?.BestFit?.Value ?? false);
+                  var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault();
+                  Assert.True(column?.BestFit?.Value ?? false);
 
-                var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex == 1);
-                Assert.False(row?.CustomHeight?.Value ?? false);
-            }
+                  var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == 1);
+                  Assert.False(row?.CustomHeight?.Value ?? false);
+              }
 
             File.Delete(filePath);
         }

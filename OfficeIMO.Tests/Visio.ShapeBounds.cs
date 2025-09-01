@@ -36,12 +36,13 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             PackagePart pagePart = package.GetPart(new Uri("/visio/pages/page1.xml", UriKind.Relative));
             XDocument pageXml = XDocument.Load(pagePart.GetStream());
-            XElement connectorShape = pageXml.Root?
+            XElement? connectorShape = pageXml.Root?
                 .Element(ns + "Shapes")?
                 .Elements(ns + "Shape")
-                .First(e => e.Attribute("ID")?.Value == connector.Id);
+                .FirstOrDefault(e => e.Attribute("ID")?.Value == connector.Id);
+            Assert.NotNull(connectorShape);
 
-            XElement[] segments = connectorShape.Element(ns + "Geom")?.Elements().ToArray() ?? Array.Empty<XElement>();
+            XElement[] segments = connectorShape!.Element(ns + "Geom")?.Elements().ToArray() ?? Array.Empty<XElement>();
             Assert.Empty(segments);
         }
     }
