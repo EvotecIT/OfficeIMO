@@ -412,21 +412,28 @@ namespace OfficeIMO.Word {
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
         }
 
+        private static string NormalizeHexNoHash(string? v) {
+            if (string.IsNullOrEmpty(v)) return string.Empty;
+            var s = v!.Trim();
+            if (s.StartsWith("#", StringComparison.Ordinal)) s = s.Substring(1);
+            return s.ToLowerInvariant();
+        }
+
         /// <summary>
-        /// Gets or sets the fill color as hexadecimal string.
+        /// Gets or sets the fill color as hexadecimal string (no leading '#', lowercase).
         /// </summary>
         public string FillColorHex {
             get {
-                if (_rectangle?.FillColor?.Value is string rect) return rect;
-                if (_roundRectangle?.FillColor?.Value is string round) return round;
-                if (_ellipse?.FillColor?.Value is string ellipse) return ellipse;
-                if (_polygon?.FillColor?.Value is string poly) return poly;
-                if (_shape?.FillColor?.Value is string shape) return shape;
+                if (_rectangle?.FillColor?.Value is string rect) return NormalizeHexNoHash(rect);
+                if (_roundRectangle?.FillColor?.Value is string round) return NormalizeHexNoHash(round);
+                if (_ellipse?.FillColor?.Value is string ellipse) return NormalizeHexNoHash(ellipse);
+                if (_polygon?.FillColor?.Value is string poly) return NormalizeHexNoHash(poly);
+                if (_shape?.FillColor?.Value is string shape) return NormalizeHexNoHash(shape);
                 if (_wpsShape != null) {
                     var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
                     var solid = spPr?.GetFirstChild<A.SolidFill>();
                     var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
-                    if (rgb?.Val != null) return "#" + rgb.Val.Value;
+                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
                 }
                 return string.Empty;
             }
@@ -566,22 +573,22 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color in hex format. Null when not applicable.
+        /// Outline color in hex format (no leading '#', lowercase). Null when not applicable.
         /// </summary>
         public string? StrokeColorHex {
             get {
-                if (_rectangle != null) return _rectangle.StrokeColor?.Value;
-                if (_roundRectangle != null) return _roundRectangle.StrokeColor?.Value;
-                if (_ellipse != null) return _ellipse.StrokeColor?.Value;
-                if (_polygon != null) return _polygon.StrokeColor?.Value;
-                if (_line != null) return _line.StrokeColor?.Value;
-                if (_shape != null) return _shape.StrokeColor?.Value;
+                if (_rectangle != null) return NormalizeHexNoHash(_rectangle.StrokeColor?.Value);
+                if (_roundRectangle != null) return NormalizeHexNoHash(_roundRectangle.StrokeColor?.Value);
+                if (_ellipse != null) return NormalizeHexNoHash(_ellipse.StrokeColor?.Value);
+                if (_polygon != null) return NormalizeHexNoHash(_polygon.StrokeColor?.Value);
+                if (_line != null) return NormalizeHexNoHash(_line.StrokeColor?.Value);
+                if (_shape != null) return NormalizeHexNoHash(_shape.StrokeColor?.Value);
                 if (_wpsShape != null) {
                     var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
                     var outline = spPr?.GetFirstChild<A.Outline>();
                     var solid = outline?.GetFirstChild<A.SolidFill>();
                     var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
-                    if (rgb?.Val != null) return "#" + rgb.Val.Value;
+                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
                 }
                 return null;
             }
