@@ -10,7 +10,18 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with red rectangle");
-                paragraph.AddShape(100, 50, Color.Red);
+                var shp = paragraph.AddShape(100, 50, Color.Red);
+                // Demonstrate property setters
+                shp.Stroked = true;
+                shp.StrokeColor = Color.Black;
+                shp.StrokeWeight = 1.5;
+
+                // Add a couple more simple shapes, spaced vertically
+                var p2 = document.AddParagraph("Ellipse below");
+                p2.AddShape(ShapeType.Ellipse, 80, 50, Color.Orange, Color.Black, 1.25);
+
+                var p3 = document.AddParagraph("Line below");
+                p3.AddLine(0, 0, 120, 0, Color.Blue, 2);
                 document.Save(openWord);
             }
         }

@@ -540,6 +540,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a DrawingML shape anchored at an absolute position on the page in a new paragraph.
+        /// </summary>
+        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+            var paragraph = AddParagraph();
+            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt, leftPt, topPt);
+        }
+
+        /// <summary>
         /// Inserts a SmartArt diagram into the document.
         /// </summary>
         /// <param name="type">Layout type of the SmartArt.</param>
